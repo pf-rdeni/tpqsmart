@@ -64,12 +64,6 @@
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a href=<?php echo base_url('backend/login/show') ?> class="nav-link">
-                            <i class="nav-icon 	fas fa-user"></i>
-                            <p> Login</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-cog"></i>
                             <p>
@@ -77,7 +71,7 @@
                                 <i class="right fas fa-angle-left"></i>
                             </p>
                         </a>
-                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->;
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
