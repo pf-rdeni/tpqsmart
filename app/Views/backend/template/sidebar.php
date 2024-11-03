@@ -21,14 +21,14 @@
 
         <!-- Sidebar Menu -->
         <nav class="mt-2">
-            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false" >
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 <li class="nav-item">
                     <a href=<?php echo base_url('backend/pages/index') ?> class="nav-link">
                         <i class="nav-icon 	fas fa-tachometer-alt"></i>
                         <p> Dashboard</p>
                     </a>
                 </li>
-                <?php if(in_groups('admin')): ?>
+                <?php if (in_groups('admin')): ?>
                     <li class="nav-item">
                         <a href=<?php echo base_url('backend/tpq/show') ?> class="nav-link">
                             <i class="nav-icon 	fas fa-mosque"></i>
@@ -42,7 +42,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href=<?php echo base_url('backend/santri/show') ?> class="nav-link">
+                        <a href="#" class="nav-link">
                             <i class="nav-icon 	fas fa-users"></i>
                             <p> Data Santri</p>
                         </a>
@@ -69,12 +69,12 @@
                             <p> Login</p>
                         </a>
                     </li>
-                    <li class="nav-item" >
+                    <li class="nav-item">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-cog"></i>
                             <p>
-                            Setting
-                            <i class="right fas fa-angle-left"></i>
+                                Setting
+                                <i class="right fas fa-angle-left"></i>
                             </p>
                         </a>
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->;
@@ -98,32 +98,32 @@
                             </li>
                         </ul>
                     </li>
-                                  
-                    <li class="nav-item" >
+
+                    <li class="nav-item">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>
                             <p>
-                            Kesiswaan
-                            <i class="right fas fa-angle-left"></i>
+                                Kesiswaan
+                                <i class="right fas fa-angle-left"></i>
                             </p>
                         </a>
                         <ul class="nav nav-treeview" style="display: none;">
                             <li class="nav-item">
-                            <a href=<?php echo base_url('backend/santri/showSantriPerKelas') ?> class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Santri Per Kelas</p>
-                            </a>
+                                <a href=<?php echo base_url('backend/santri/showSantriPerKelas') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Santri Per Kelas</p>
+                                </a>
                             </li>
                             <li class="nav-item">
-                            <a href=<?php echo base_url('backend/nilai/showSumaryPersemester') ?> class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Nilai Per Semester</p>
-                            </a>
+                                <a href=<?php echo base_url('backend/nilai/showSumaryPersemester') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Nilai Per Semester</p>
+                                </a>
                             <li class="nav-item">
-                            <a href=<?php echo base_url('backend/nilai/showNilaiProfilDetail'.'/'.'20150001') ?>  class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Profil Detail</p>
-                            </a>
+                                <a href=<?php echo base_url('backend/nilai/showNilaiProfilDetail' . '/' . '20150001') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Profil Detail</p>
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showKontakSantri') ?> class="nav-link">
@@ -135,7 +135,7 @@
                     </li>
                 <?php endif; ?>
                 <!-- Absensi -->
-                <li class="nav-item no-hover" >
+                <li class="nav-item no-hover">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-file-signature"></i>
                         <p>
@@ -145,7 +145,7 @@
                     </a>
                     <ul class="nav nav-treeview" style="display: none;">
                         <li class="nav-item">
-                        <a href=<?php echo base_url('backend/absensi/index') ?> class="nav-link">
+                            <a href=<?php echo base_url('backend/absensi/index') ?> class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Kehadiran</p>
                             </a>
@@ -159,12 +159,12 @@
                     </ul>
                 </li>
                 <!-- Keuangan -->
-                <li class="nav-item no-hover" >
+                <li class="nav-item no-hover">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-chart-line"></i>
                         <p>
-                        Keuangan
-                        <i class="right fas fa-angle-left"></i>
+                            Keuangan
+                            <i class="right fas fa-angle-left"></i>
                         </p>
                     </a>
                     <ul class="nav nav-treeview" style="display: none;">
@@ -183,12 +183,12 @@
                     </ul>
                 </li>
                 <!-- Kesantrian -->
-                <li class="nav-item no-hover" >
+                <li class="nav-item no-hover">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-users"></i>
                         <p>
-                        Kesantrian
-                        <i class="right fas fa-angle-left"></i>
+                            Kesantrian
+                            <i class="right fas fa-angle-left"></i>
                         </p>
                     </a>
                     <ul class="nav nav-treeview" style="display: none;">
@@ -207,21 +207,21 @@
                     </ul>
                 </li>
                 <!-- Penilaian -->
-                <li class="nav-item no-hover" >
+                <li class="nav-item no-hover">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fas fa-award"></i>
                         <p>
-                        Penilaian
-                        <i class="right fas fa-angle-left"></i>
+                            Penilaian
+                            <i class="right fas fa-angle-left"></i>
                         </p>
                     </a>
                     <ul class="nav nav-treeview" style="display: none;">
-                        <?php 
-                            $IdGuru = session()->get('IdGuru');
-                            $encrypter = \Config\Services::encrypter();
-                            $encryptedIdGuru =null;
-                            if( $IdGuru)
-                             $encryptedIdGuru = bin2hex($encrypter->encrypt($IdGuru));;?>
+                        <?php
+                        $IdGuru = session()->get('IdGuru');
+                        $encrypter = \Config\Services::encrypter();
+                        $encryptedIdGuru = null;
+                        if ($IdGuru)
+                            $encryptedIdGuru = bin2hex($encrypter->encrypt($IdGuru));; ?>
                         <li class="nav-item">
                             <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
@@ -229,9 +229,9 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href=<?php 
-                            
-                            echo base_url('backend/santri/showSantriPerKelas/'.$encryptedIdGuru) ?> class="nav-link no-hover">
+                            <a href=<?php
+
+                                    echo base_url('backend/santri/showSantriPerKelas/' . $encryptedIdGuru) ?> class="nav-link no-hover">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Nilai Per Semester</p>
                             </a>
