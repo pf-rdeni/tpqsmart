@@ -1,0 +1,17 @@
+class DataProfil:
+    def __init__(self):
+        # ... kode yang ada ...
+        self.jenis_kelamin = ""
+        # ... kode yang ada ...
+
+    # ... metode lain ...
+
+    def set_jenis_kelamin(self, jenis_kelamin):
+        jenis_kelamin = jenis_kelamin.lower()
+        if jenis_kelamin in ["laki-laki", "perempuan"]:
+            self.jenis_kelamin = jenis_kelamin
+        else:
+            raise ValueError("Jenis kelamin harus 'laki-laki' atau 'perempuan'")
+
+    def get_jenis_kelamin(self):
+        return self.jenis_kelamin
