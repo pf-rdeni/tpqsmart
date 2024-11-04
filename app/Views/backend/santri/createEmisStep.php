@@ -25,28 +25,28 @@
                                     <!-- your steps here -->
                                     <div class="step" data-target="#tpq-part">
                                         <button type="button" class="step-trigger" role="tab" aria-controls="tpq-part" id="tpq-part-trigger">
-                                            <span class="bs-stepper-circle">1</span>
-                                            <span class="bs-stepper-label">Profil Tpq</span>
+                                            <span class="bs-stepper-circle"><i class="fas fa-mosque"></i></span>
+                                            <span class="bs-stepper-label">Tpq</span>
                                         </button>
                                     </div>
                                     <div class="line"></div>
                                     <div class="step" data-target="#santri-part">
                                         <button type="button" class="step-trigger" role="tab" aria-controls="santri-part" id="santri-part-trigger">
-                                            <span class="bs-stepper-circle">2</span>
-                                            <span class="bs-stepper-label">Profil Santri</span>
+                                            <span class="bs-stepper-circle"><i class="fas fa-user"></i></span>
+                                            <span class="bs-stepper-label">Santri</span>
                                         </button>
                                     </div>
                                     <div class="line"></div>
                                     <div class="step" data-target="#ortu-part">
                                         <button type="button" class="step-trigger" role="tab" aria-controls="ortu-part" id="ortu-part-trigger">
-                                            <span class="bs-stepper-circle">3</span>
-                                            <span class="bs-stepper-label">Profil Orang Tua</span>
+                                            <span class="bs-stepper-circle"><i class="fas fa-users"></i></span>
+                                            <span class="bs-stepper-label">OrTu</span>
                                         </button>
                                     </div>
                                     <div class="line"></div>
                                     <div class="step" data-target="#alamat-part">
                                         <button type="button" class="step-trigger" role="tab" aria-controls="alamat-part" id="alamat-part-trigger">
-                                            <span class="bs-stepper-circle">4</span>
+                                            <span class="bs-stepper-circle"><i class="fas fa-map-marker-alt"></i></span>
                                             <span class="bs-stepper-label">Alamat</span>
                                         </button>
                                     </div>
@@ -282,10 +282,14 @@
                                             </div>
                                             <div class="form-group row">
                                                 <div class="col-md-6">
+                                                    <label for="NISN">NISN</label>
+                                                    <input type="number" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN" max="9999999999">
+                                                </div>
+                                                <div class="col-md-3">
                                                     <label for="Agama">Agama<span class="text-danger font-weight-bold">*</span></label>
                                                     <input type="text" class="form-control" id="Agama" name="Agama" value="Islam" readonly <?= $required ?>>
                                                 </div>
-                                                <div class="col-md-6">
+                                                <div class="col-md-3">
                                                     <label for="JenisKelamin">Jenis Kelamin<span class="text-danger font-weight-bold">*</span></label>
                                                     <div class="d-flex">
                                                         <div class="d-inline-block custom-control custom-radio mr-3">

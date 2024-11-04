@@ -50,8 +50,8 @@ class Santri extends BaseController
             $newNumber = $lastNumber + 1;
             $IdSantri= $tahunSekarang . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
         } else {
-            // Jika belum ada santri tahun ini, mulai dari 001
-            $IdSantri = $tahunSekarang . '001';
+            // Jika belum ada santri tahun ini, mulai dari 0001
+            $IdSantri = $tahunSekarang . '0001';
         }
 
         // Fungsi untuk menangani upload file dengan nama yang menyertakan IdSantri
