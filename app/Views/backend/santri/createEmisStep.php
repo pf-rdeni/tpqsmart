@@ -2236,7 +2236,7 @@
                 console.error(`Error element for ${inputId} not found`);
                 return;
             }
-
+            // fungsi untuk validasi NIK
             function validasiNIK(input) {
                 const nilai = input.value.replace(/\D/g, ''); // Hapus semua karakter non-digit
                 const pola = /^[1-9]\d{15}$/;
