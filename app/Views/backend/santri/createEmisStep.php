@@ -2,7 +2,7 @@
 <?= $this->section('content'); ?>
 <div class="col-12">
     <?php echo session()->getFlashdata('pesan');
-    $required = 'required'; //required
+    $required = ''; //required
     ?>
     <div class="card">
         <div class="modal-body">
