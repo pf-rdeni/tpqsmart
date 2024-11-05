@@ -1814,6 +1814,7 @@
         });
 
         // Event listener untuk input dengan kelas 'number-only'
+        // Validasi input hanya angka
         document.querySelectorAll('.number-only').forEach(function(input) {
             input.addEventListener('input', function(e) {
                 this.value = this.value.replace(/[^0-9]/g, '');
@@ -1826,7 +1827,10 @@
             });
         });
 
-        // Fungsi untuk memvalidasi input angka
+        /**
+         * Memvalidasi input angka
+         * @param {HTMLElement} input - Elemen input yang akan divalidasi
+         */
         function validateNumberInput(input) {
             // Hapus karakter non-angka kecuali tanda minus di awal
             input.value = input.value.replace(/^-?\d*\.?\d*$/, function(match) {
@@ -1870,6 +1874,11 @@
         });
 
         // Fungsi untuk memvalidasi input nama dan tempat (hanya huruf)
+        /**
+         * Fungsi untuk memvalidasi input nama dan tempat lahir
+         * Hanya menerima huruf, spasi, tanda petik, titik dan tanda hubung
+         * @param {HTMLElement} input - Elemen input yang akan dicek validasinya
+         */
         function validateNameInput(input) {
             const regex = /^[A-Za-z\s'.-]+$/;
             const errorElement = document.getElementById(input.id + 'Error');
@@ -1916,7 +1925,10 @@
             });
         });
 
-        // Fungsi untuk validasi input
+        /**
+         * Validasi input form dan tampilkan error
+         * @param {HTMLElement} field - Input yang divalidasi
+         */
         function validateField(field) {
             let errorField = document.getElementById(field.id + "Error");
             if (!errorField) {
@@ -1955,6 +1967,10 @@
             }
         }
 
+        /**
+         * Memvalidasi input dan melanjutkan ke langkah berikutnya
+         * @param {string} stepId - ID dari langkah yang sedang divalidasi
+         */
         function validateAndNext(stepId) {
             let isValid = true;
             let fields = document.querySelectorAll('#' + stepId + ' .form-control[required], #' + stepId + ' input[type="radio"][required]');
@@ -1997,7 +2013,25 @@
         });
 
         // Start Fungsi menampilkan preview file img atau pdf 
-        // untuk membuat elemen preview jika belum ada
+        /**
+         * Membuat elemen-elemen preview untuk file yang diupload
+         * 
+         * Fungsi ini membuat dan menginisialisasi elemen-elemen yang diperlukan untuk menampilkan preview file,
+         * baik untuk gambar maupun PDF. Elemen yang dibuat meliputi:
+         * - Div container untuk preview
+         * - Tombol close untuk menghapus preview
+         * - Elemen img untuk preview gambar
+         * - Elemen embed untuk preview PDF
+         * 
+         * Fitur yang disediakan:
+         * - Preview gambar dengan kemampuan zoom (popup) saat diklik
+         * - Preview PDF dengan kemampuan zoom (popup) saat diklik
+         * - Tombol close untuk membatalkan upload dan menghapus preview
+         * - Responsive layout dengan max-height dan width yang sesuai
+         * 
+         * @param {string} inputId - ID dari elemen input file yang akan dibuat previewnya
+         * @returns {HTMLElement} Elemen div yang berisi semua elemen preview
+         */
         function createPreviewElements(inputId) {
             const baseId = inputId.replace('File', '');
             let previewDiv = document.getElementById('preview' + baseId);
@@ -2091,7 +2125,10 @@
             return previewDiv;
         }
 
-        // Fungsi untuk membatalkan upload file
+        /**
+         * Membatalkan upload file
+         * @param {string} inputId - ID dari elemen input file
+         */
         function cancelFileUpload(inputId) {
             const fileInput = document.getElementById(inputId);
             const previewDiv = document.getElementById('preview' + inputId.replace('File', ''));
@@ -2115,7 +2152,10 @@
             }
         }
 
-        // fungsi untuk menampilkan preview file img atau pdf 
+        /**
+         * Menampilkan preview file img atau pdf
+         * @param {string} inputId - ID dari elemen input file
+         */
         function previewFile(inputId) {
             // Validasi file terlebih dahulu
             if (!validateFile(inputId)) {
@@ -2154,6 +2194,18 @@
             }
         }
 
+        // fungsi untuk validasi file
+        /**
+         * Memvalidasi file yang diupload
+         * @param {string} inputId - ID dari elemen input file
+         * @returns {boolean} - true jika file valid, false jika tidak valid
+         * 
+         * Validasi yang dilakukan:
+         * 1. Ukuran file maksimal 2MB
+         * 2. Format file harus JPG, PNG, atau PDF
+         * 3. Menampilkan pesan error jika validasi gagal
+         * 4. Mengupdate label file jika validasi berhasil
+         */
         function validateFile(inputId) {
             const fileInput = document.getElementById(inputId);
             const file = fileInput.files[0];
@@ -2236,7 +2288,7 @@
                 console.error(`Error element for ${inputId} not found`);
                 return;
             }
-            // fungsi untuk validasi NIK
+            // fungsi untuk validasi NIK 
             function validasiNIK(input) {
                 const nilai = input.value.replace(/\D/g, ''); // Hapus semua karakter non-digit
                 const pola = /^[1-9]\d{15}$/;
