@@ -18,7 +18,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /home/u1525344/daftarsantribaru/app/
-          local-dir: ./app/  # direktori lokal yang akan di-upload
+          local-dir: ./tpqsmart/app/  # direktori lokal yang akan di-upload
           include: |
             app/Models/SantriBaruModel.php
             app/Controllers/Backend/Santri.php
