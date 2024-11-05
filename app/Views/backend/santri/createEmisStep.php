@@ -58,7 +58,7 @@
                                             <div class="form-group">
                                                 <label for="IdTpq">Nama TPQ<span class="text-danger font-weight-bold">*</span></label>
                                                 <select class="form-control" id="IdTpq" name="IdTpq" <?= $required ?>>
-                                                    <option value="">Pilih TPQ</option>
+                                                    <option value="">Pilih Nama TPQ sesuai Desa/Kelurahan</option>
                                                     <option value="411221010222">AD'DAKWAH - KUALA SEMPANG</option>
                                                     <option value="411221010215">AL-AMIN - TELUK SASAH</option>
                                                     <option value="411221010226">AL-FALAH - TELUK SASAH</option>
