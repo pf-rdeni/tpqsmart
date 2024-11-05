@@ -18,6 +18,12 @@ jobs:
       - name: Print environment variables
         run: env
 
+      # Debug: Print full path of local and server directories
+      - name: Print full path
+        run: |
+          echo "Local directory full path: $(pwd)/app/"
+          echo "Server directory: /home/u1525344/daftarsantribaru/app/"
+
       # Deploy ke cPanel menggunakan FTP
       - name: 📂 Deploy ke cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
