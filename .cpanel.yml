@@ -7,3 +7,8 @@ deployment:
     - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Controllers $DEPLOYPATH
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Config/Routes.php $DEPLOYPATH/Config/
 
+#path untuk update daftarsantribaru
+- export DEPLOYPATH_DBS=/home/u1525344/daftarsantribaru/app
+- /bin/cp /home/u1525344/repositories/daftarsantribaru/app/Models/SantriBaruModel.php $DEPLOYPATH_DBS/Models/
+- /bin/cp /home/u1525344/repositories/daftarsantribaru/app/Controllers/Backend/Santri.php $DEPLOYPATH_DBS/Controllers/Backend/
+- /bin/cp /home/u1525344/repositories/daftarsantribaru/app/Views/backend/santri/createEmisStep.php $DEPLOYPATH_DBS/Views/backend/santri/
