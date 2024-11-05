@@ -21,7 +21,7 @@ jobs:
       # Debug: Print full path of local and server directories
       - name: Print full path
         run: |
-          echo "Local directory full path: $(pwd)/app/"
+          echo "Local directory full path: $GITHUB_WORKSPACE/app/"
           echo "Server directory: /home/u1525344/daftarsantribaru/app/"
 
       # Deploy ke cPanel menggunakan FTP
