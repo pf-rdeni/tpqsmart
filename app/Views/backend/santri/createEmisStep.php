@@ -280,10 +280,10 @@
                                                     <span id="NamaSantriError" class="text-danger" style="display:none;">Nama Santri diperlukan.</span>
                                                 </div>
                                             </div>
-                                            <div class="form-group row">
+                                            <div class="form-group ">
                                                 <div class="col-md-6">
                                                     <label for="NISN">NISN</label>
-                                                    <input type="number" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN" max="9999999999">
+                                                    <input type="number" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN">
                                                 </div>
                                                 <div class="col-md-3">
                                                     <label for="Agama">Agama<span class="text-danger font-weight-bold">*</span></label>
@@ -553,7 +553,7 @@
                                                         <small id="FileKIPError" class="text-danger d-none"></small>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label for="FileKkSantri">Upload KK</label>
+                                                        <label for="FileKkSantri">Upload KK Santri</label>
                                                         <div class="input-group">
                                                             <div class="custom-file">
                                                                 <input type="file" class="form-control" id="FileKkSantri" name="FileKkSantri" onchange="validateFile('FileKkSantri')" accept=".pdf,.jpg,.jpeg,.png">
@@ -647,7 +647,7 @@
                                                         'PekerjaanUtamaIbu',
                                                         'PenghasilanUtamaIbu',
                                                         'NoHpIbu',
-                                                        'KKSamaDenganAyah',
+                                                        'KkIbuSamaDenganAyahAtauSantri',
                                                         'FileKKIbuDiv',
                                                         'AlamatIbuSamaDenganAyah',
                                                         'TinggalDiluarNegeriIbu',
@@ -807,22 +807,22 @@
                                                     <div class="col-md-4">
                                                         <div class="form-group">
                                                             <label for="NoHpAyah">No Handphone Ayah</label>
-                                                            <input type="nomor" class="form-control number-only" id="NoHpAyah" name="NoHpAyah" placeholder="Masukkan nomor handphone">
+                                                            <input type="text" class="form-control number-only" id="NoHpAyah" name="NoHpAyah" placeholder="Masukkan nomor handphone">
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <div class="form-check">
-                                                            <input type="checkbox" class="form-check-input" id="KKSamaAyah" name="KKSamaAyah">
-                                                            <label class="form-check-label" for="KKSamaAyah">Ayah satu KK dengan santri</label>
+                                                            <input type="checkbox" class="form-check-input" id="KkAyahSamaDenganSantri" name="KkAyahSamaDenganSantri">
+                                                            <label class="form-check-label" for="KkAyahSamaDenganSantri">Ayah satu KK dengan santri</label>
                                                             <script>
-                                                                document.getElementById('KKSamaAyah').addEventListener('change', function() {
-                                                                    var fileKKAyahDiv = document.getElementById('FileKKAyahDiv');
-                                                                    if (this.checked) {
-                                                                        fileKKAyahDiv.style.display = 'none';
-                                                                    } else {
-                                                                        fileKKAyahDiv.style.display = 'block';
-                                                                    }
-                                                                });
+                                                                // document.getElementById('KkAyahSamaDenganSantri').addEventListener('change', function() {
+                                                                //     var fileKKAyahDiv = document.getElementById('FileKKAyahDiv');
+                                                                //     if (this.checked) {
+                                                                //         fileKKAyahDiv.style.display = 'none';
+                                                                //     } else {
+                                                                //         fileKKAyahDiv.style.display = 'block';
+                                                                //     }
+                                                                // });
                                                             </script>
                                                         </div>
                                                         <div class="form-group" id="FileKKAyahDiv">
@@ -962,33 +962,17 @@
                                                     <div class="col-md-4">
                                                         <div class="form-group">
                                                             <label for="NoHpIbu">No Handphone Ibu</label>
-                                                            <input type="nomor" class="form-control number-only" id="NoHpIbu" name="NoHpIbu" placeholder="Masukkan nomor handphone">
+                                                            <input type="text" class="form-control number-only" id="NoHpIbu" name="NoHpIbu" placeholder="Masukkan nomor handphone">
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="row mb-3">
                                                     <div class="col-md-12">
                                                         <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" id="KKSamaDenganAyah" name="KKSamaDenganAyah">
-                                                            <label class="form-check-label" for="KKSamaDenganAyah">
-                                                                Ibu satu KK dengan Ayah Kandung santri
+                                                            <input class="form-check-input" type="checkbox" id="KkIbuSamaDenganAyahAtauSantri" name="KkIbuSamaDenganAyahAtauSantri">
+                                                            <label class="form-check-label" for="KkIbuSamaDenganAyahAtauSantri">
+                                                                Ibu satu KK dengan Ayah atau Santri
                                                             </label>
-                                                            <script>
-                                                                document.getElementById('KKSamaDenganAyah').addEventListener('change', function() {
-                                                                    const fileKKIbuDiv = document.querySelector('.form-group:has(#FileKkIbu)');
-                                                                    const statusAyah = document.getElementById('StatusAyah').value;
-                                                                    const statusIbu = document.getElementById('StatusIbu').value;
-
-                                                                    if (statusAyah === 'Masih Hidup' && statusIbu === 'Masih Hidup') {
-                                                                        fileKKIbuDiv.style.display = this.checked ? 'none' : 'block';
-                                                                    } else {
-                                                                        this.checked = false;
-                                                                        fileKKIbuDiv.style.display = 'block';
-                                                                    }
-                                                                });
-                                                                // Trigger change event on load to hide file upload initially
-                                                                document.getElementById('KKSamaDenganAyah').dispatchEvent(new Event('change'));
-                                                            </script>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1174,7 +1158,7 @@
                                                         <div class="col-md-4">
                                                             <div class="form-group">
                                                                 <label for="NoHpWali">No Handphone Wali</label>
-                                                                <input type="nomor" class="form-control number-only" id="NoHpWali" name="NoHpWali" placeholder="Masukkan nomor handphone">
+                                                                <input type="text" class="form-control number-only" id="NoHpWali" name="NoHpWali" placeholder="Masukkan nomor handphone">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1813,6 +1797,89 @@
             });
         });
 
+        // Fungsi untuk memvalidasi nomor handphone
+        function validatePhoneNumber(input) {
+            // Hapus semua karakter non-angka
+            let phoneNumber = input.value.replace(/\D/g, '');
+            const errorElement = document.getElementById(input.id + 'Error');
+
+            // Validasi panjang nomor (minimal 10 digit, maksimal 13 digit)
+            if (phoneNumber.length < 10 || phoneNumber.length > 13) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                if (errorElement) {
+                    errorElement.textContent = 'Nomor handphone harus antara 10-13 digit';
+                    errorElement.style.display = 'block';
+                }
+                return false;
+            }
+
+            // Validasi awalan nomor Indonesia (08 atau +62)
+            if (!phoneNumber.startsWith('08') && !phoneNumber.startsWith('62')) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                if (errorElement) {
+                    errorElement.textContent = 'Nomor handphone harus diawali dengan 08 atau 62';
+                    errorElement.style.display = 'block';
+                }
+                return false;
+            }
+
+            // Format ulang nomor telepon
+            if (phoneNumber.startsWith('08')) {
+                phoneNumber = phoneNumber; // Biarkan format 08
+            } else if (phoneNumber.startsWith('62')) {
+                phoneNumber = '0' + phoneNumber.substring(2); // Ubah 62 menjadi 0
+            }
+
+            input.value = phoneNumber;
+            input.classList.remove('is-invalid');
+            input.classList.add('is-valid');
+            if (errorElement) {
+                errorElement.style.display = 'none';
+            }
+            return true;
+        }
+
+        // Event listener untuk input nomor handphone
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInputs = ['NoHpAyah', 'NoHpIbu', 'NoHpWali'];
+
+            phoneInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    // Tambahkan span untuk pesan error jika belum ada
+                    let errorElement = document.getElementById(inputId + 'Error');
+                    if (!errorElement) {
+                        errorElement = document.createElement('span');
+                        errorElement.id = inputId + 'Error';
+                        errorElement.className = 'text-danger';
+                        errorElement.style.display = 'none';
+                        input.parentNode.appendChild(errorElement);
+                    }
+
+                    // Event untuk input
+                    input.addEventListener('input', function() {
+                        this.value = this.value.replace(/\D/g, '').slice(0, 13);
+                        validatePhoneNumber(this);
+                    });
+
+                    // Event untuk blur
+                    input.addEventListener('blur', function() {
+                        validatePhoneNumber(this);
+                    });
+
+                    // Event untuk paste
+                    input.addEventListener('paste', function(e) {
+                        e.preventDefault();
+                        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                        this.value = pastedText.replace(/\D/g, '').slice(0, 13);
+                        validatePhoneNumber(this);
+                    });
+                }
+            });
+        });
+
         // Event listener untuk input dengan kelas 'number-only'
         // Validasi input hanya angka
         document.querySelectorAll('.number-only').forEach(function(input) {
@@ -2395,6 +2462,152 @@
         });
 
         /* ===== End Region: Validasi NIK ===== */
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Logika untuk KK Santri dan KK Ayah
+            const fileKkSantri = document.getElementById('FileKkSantri');
+            const KkAyahSamaDenganSantri = document.getElementById('KkAyahSamaDenganSantri');
+            const fileKKAyahDiv = document.getElementById('FileKKAyahDiv');
+            const fileKkAyah = document.getElementById('FileKkAyah');
+            const KkIbuSamaDenganAyahAtauSantri = document.getElementById('KkIbuSamaDenganAyahAtauSantri');
+            const fileKKIbuDiv = document.getElementById('FileKKIbuDiv');
+            const statusAyah = document.getElementById('StatusAyah');
+            const statusIbu = document.getElementById('StatusIbu');
+
+            // Nonaktifkan checkbox saat awal
+            KkAyahSamaDenganSantri.disabled = true;
+            KkIbuSamaDenganAyahAtauSantri.disabled = true;
+
+            // Fungsi untuk mengupdate status checkbox KK Ayah
+            function updateKKAyahState() {
+                const santriHasKK = fileKkSantri.files.length > 0;
+                const ayahHidup = statusAyah.value === 'Masih Hidup';
+
+                // Aktifkan checkbox hanya jika semua kondisi terpenuhi
+                KkAyahSamaDenganSantri.disabled = !(santriHasKK && ayahHidup);
+
+                // Reset checkbox dan tampilkan form upload jika kondisi tidak terpenuhi
+                if (!santriHasKK || !ayahHidup) {
+                    KkAyahSamaDenganSantri.checked = false;
+                    if (fileKKAyahDiv) {
+                        fileKKAyahDiv.style.display = 'block';
+                    }
+                }
+
+                // Tambahkan pesan informasi
+                const infoElement = document.getElementById('kkAyahInfo');
+                if (!infoElement) {
+                    const info = document.createElement('small');
+                    info.id = 'kkAyahInfo';
+                    info.className = 'form-text mt-1';
+                    KkAyahSamaDenganSantri.parentElement.appendChild(info);
+                }
+
+                const info = document.getElementById('kkAyahInfo');
+                if (!ayahHidup) {
+                    info.className = 'form-text text-danger mt-1';
+                    info.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ayah harus masih hidup untuk menggunakan opsi ini';
+                } else if (!santriHasKK) {
+                    info.className = 'form-text text-warning mt-1';
+                    info.innerHTML = '<i class="fas fa-info-circle"></i> KK Santri harus diupload terlebih dahulu';
+                } else {
+                    info.className = 'form-text text-success mt-1';
+                    info.innerHTML = '<i class="fas fa-check-circle"></i> Anda dapat mencentang ini jika Ayah satu KK dengan Santri';
+                }
+
+                // Trigger updateKKIbuState karena status KK Ayah mempengaruhi KK Ibu
+                updateKKIbuState();
+            }
+
+            // Fungsi untuk mengupdate status checkbox KK Ibu
+            function updateKKIbuState() {
+                const ibuHidup = statusIbu.value === 'Masih Hidup';
+                const santriHasKK = fileKkSantri.files.length > 0;
+                const ayahHidup = statusAyah.value === 'Masih Hidup';
+                const ayahHasKK = fileKkAyah.files.length > 0 || KkAyahSamaDenganSantri.checked;
+
+                // Aktifkan checkbox jika salah satu kondisi terpenuhi:
+                // 1. KK Santri ada dan Ibu hidup, ATAU
+                // 2. KK Ayah ada, Ayah hidup, dan Ibu hidup
+                const canUseSantriKK = santriHasKK && ibuHidup;
+                const canUseAyahKK = ayahHasKK && ayahHidup && ibuHidup;
+
+                KkIbuSamaDenganAyahAtauSantri.disabled = !(canUseSantriKK || canUseAyahKK);
+
+                // Reset checkbox dan tampilkan form upload jika kondisi tidak terpenuhi
+                if (!canUseSantriKK && !canUseAyahKK) {
+                    KkIbuSamaDenganAyahAtauSantri.checked = false;
+                    if (fileKKIbuDiv) {
+                        fileKKIbuDiv.style.display = 'block';
+                    }
+                }
+
+                // Tambahkan pesan informasi
+                const infoElement = document.getElementById('kkIbuInfo');
+                if (!infoElement) {
+                    const info = document.createElement('small');
+                    info.id = 'kkIbuInfo';
+                    info.className = 'form-text mt-1';
+                    KkIbuSamaDenganAyahAtauSantri.parentElement.appendChild(info);
+                }
+
+                const info = document.getElementById('kkIbuInfo');
+
+                if (!ibuHidup) {
+                    info.className = 'form-text text-danger mt-1';
+                    info.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ibu harus masih hidup untuk menggunakan opsi ini';
+                } else if (!santriHasKK && (!ayahHasKK || !ayahHidup)) {
+                    info.className = 'form-text text-warning mt-1';
+                    info.innerHTML = '<i class="fas fa-info-circle"></i> Anda dapat mencentang jika mengupload KK Santri atau KK Ayah terlebih dahulu';
+                } else {
+                    info.className = 'form-text text-success mt-1';
+                    let message = '<i class="fas fa-check-circle"></i> Anda dapat mencentang ini jika Ibu ';
+
+                    if (canUseSantriKK && canUseAyahKK) {
+                        message += 'satu KK dengan Ayah atau Santri';
+                    } else if (canUseSantriKK) {
+                        message += 'satu KK dengan Santri';
+                    } else if (canUseAyahKK) {
+                        message += 'satu KK dengan Ayah';
+                    }
+
+                    info.innerHTML = message;
+                }
+            }
+
+            // Event listeners untuk KK Santri dan Ayah
+            fileKkSantri.addEventListener('change', updateKKAyahState);
+            statusAyah.addEventListener('change', function() {
+                updateKKAyahState();
+                updateKKIbuState();
+            });
+
+            // Event listeners untuk KK Ibu
+            fileKkAyah.addEventListener('change', updateKKIbuState);
+            statusIbu.addEventListener('change', updateKKIbuState);
+            KkAyahSamaDenganSantri.addEventListener('change', updateKKIbuState);
+
+            // Event listener untuk checkbox KK Ibu
+            KkIbuSamaDenganAyahAtauSantri.addEventListener('change', function() {
+                if (fileKKIbuDiv) {
+                    fileKKIbuDiv.style.display = this.checked ? 'none' : 'block';
+                }
+            });
+
+            // Inisialisasi status awal
+            updateKKAyahState();
+            updateKKIbuState();
+        });
+
+        // Perbarui label checkbox untuk mencerminkan opsi baru
+        document.addEventListener('DOMContentLoaded', function() {
+            const KkIbuSamaDenganAyahAtauSantriLabel = KkIbuSamaDenganAyahAtauSantri.nextElementSibling;
+            if (KkIbuSamaDenganAyahAtauSantriLabel) {
+                KkIbuSamaDenganAyahAtauSantriLabel.textContent = 'Satu KK dengan Ayah atau Santri';
+            }
+
+            // ... existing event listeners ...
+        });
     </script>
 
     <?= $this->endSection(); ?>
