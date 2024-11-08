@@ -25,9 +25,18 @@ class Santri extends BaseController
     // fungsi untuk menampilkan form tambah santri
     public function createEmisStep()
     {
+        // Ambil semua data TPQ
+        $dataTpq = $this->helpFunction->getDataTpq();
+        usort($dataTpq, function ($a, $b) {
+            return strcmp($a['NamaTpq'], $b['NamaTpq']);
+        });
+
+        // Ambil data kelas
+        $dataKelas = $this->helpFunction->getDataKelas();
         $data = [
             'page_title' => 'Form Data Tambah Santri',
-            'validation' => \Config\Services::validation()
+            'dataTpq' => $dataTpq,
+            'dataKelas' => $dataKelas
         ];
 
         return view('backend/santri/createEmisStep', $data);

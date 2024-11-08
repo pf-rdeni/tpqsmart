@@ -59,28 +59,9 @@
                                                 <label for="IdTpq">Nama TPQ<span class="text-danger font-weight-bold">*</span></label>
                                                 <select class="form-control" id="IdTpq" name="IdTpq" <?= $required ?>>
                                                     <option value="">Pilih Nama TPQ sesuai Desa/Kelurahan</option>
-                                                    <option value="411221010222">AD'DAKWAH - KUALA SEMPANG</option>
-                                                    <option value="411221010215">AL-AMIN - TELUK SASAH</option>
-                                                    <option value="411221010226">AL-FALAH - TELUK SASAH</option>
-                                                    <option value="411221010301">AL-HIDAYAH - TANJUNG PERMAI</option>
-                                                    <option value="411221010234">AL-HIKMAH - KUALA SEMPANG</option>
-                                                    <option value="411221010224">AL-JANNAH - BUSUNG</option>
-                                                    <option value="411221010223">AL-MUTTAQIN - KUALA SEMPANG</option>
-                                                    <option value="411221010221">AN-NUR - TELUK SASAH</option>
-                                                    <option value="411221010232">AN-NUR - KUALA SEMPANG</option>
-                                                    <option value="411221010227">AR-RAUDHAH - TANJUNG PERMAI</option>
-                                                    <option value="411221010216">AT-TAHFID - TANJUNG PERMAI</option>
-                                                    <option value="411221010219">BAITUL HUDA - TANJUNG PERMAI</option>
-                                                    <option value="411221010231">BAITUSSALAM - TELUK SASAH</option>
-                                                    <option value="411221010225">BAITURRAHMAN - TELUK SASAH</option>
-                                                    <option value="411221010214">NURUL HIDAYAH - BUSUNG</option>
-                                                    <option value="411221010229">NURUL HIDAYAH - KUALA SEMPANG</option>
-                                                    <option value="411221010230">NURUL HUDA - TELUK SASAH</option>
-                                                    <option value="411221010220">NURUL IMAN - TELUK LOBAM</option>
-                                                    <option value="411221010217">NURUL ISTIQOMAH - TELUK LOBAM</option>
-                                                    <option value="411221010213">RIYADHUSH SHOLIHIN - TELUK LOBAM</option>
-                                                    <option value="411221010228">SABILUL MUTTAQIN - TANJUNG PERMAI</option>
-                                                    <option value="411221010218">SHIRATUL JANNAH - TANJUNG PERMAI</option>
+                                                    <?php foreach ($dataTpq as $tpq): ?>
+                                                        <option value="<?= $tpq['IdTpq'] ?>"><?= $tpq['NamaTpq'] ?> - <?= $tpq['Alamat'] ?></option>
+                                                    <?php endforeach; ?>
                                                 </select>
                                                 <span id="tpqNameError" class="text-danger" style="display:none;">Nama TPQ diperlukan.</span>
                                             </div>
@@ -88,15 +69,9 @@
                                                 <label for="IdKelas">Kelas<span class="text-danger font-weight-bold">*</span></label>
                                                 <select class="form-control" id="IdKelas" name="IdKelas" <?= $required ?>>
                                                     <option value="">Pilih Kelas</option>
-                                                    <option value="1">TK</option>
-                                                    <option value="2">TKA</option>
-                                                    <option value="3">TKB</option>
-                                                    <option value="4">TPQ1/SD1</option>
-                                                    <option value="5">TPQ2/SD2</option>
-                                                    <option value="6">TPQ3/SD3</option>
-                                                    <option value="7">TPQ4/SD4</option>
-                                                    <option value="8">TPQ5/SD5</option>
-                                                    <option value="9">TPQ6/SD6</option>
+                                                    <?php foreach ($dataKelas as $kelas): ?>
+                                                        <option value="<?= $kelas['IdKelas'] ?>"><?= $kelas['NamaKelas'] ?></option>
+                                                    <?php endforeach; ?>
                                                 </select>
                                                 <span id="IdKelasError" class="text-danger" style="display:none;">Kelas diperlukan.</span>
                                             </div>
@@ -280,7 +255,7 @@
                                                     <span id="NamaSantriError" class="text-danger" style="display:none;">Nama Santri diperlukan.</span>
                                                 </div>
                                             </div>
-                                            <div class="form-group ">
+                                            <div class="form-group row">
                                                 <div class="col-md-6">
                                                     <label for="NISN">NISN</label>
                                                     <input type="number" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN">
@@ -1797,7 +1772,15 @@
             });
         });
 
-        // Fungsi untuk memvalidasi nomor handphone
+        /* ===== Region: Validasi Nomor Handphone =====
+        Fungsi ini melakukan validasi nomor handphone dengan ketentuan:
+        1. Hanya menerima input angka (0-9)
+        2. Panjang nomor antara 10-13 digit
+        3. Harus diawali dengan 08 atau 62 (format Indonesia)
+        4. Menampilkan pesan error jika tidak sesuai ketentuan
+        5. Memformat ulang nomor jika diawali 62 menjadi format 08
+        6. Diterapkan pada input NoHpAyah, NoHpIbu, dan NoHpWali
+        */
         function validatePhoneNumber(input) {
             // Hapus semua karakter non-angka
             let phoneNumber = input.value.replace(/\D/g, '');
@@ -1879,6 +1862,7 @@
                 }
             });
         });
+        //=== Region: Validasi Input Angka ===
 
         // Event listener untuk input dengan kelas 'number-only'
         // Validasi input hanya angka
@@ -1894,10 +1878,13 @@
             });
         });
 
-        /**
-         * Memvalidasi input angka
-         * @param {HTMLElement} input - Elemen input yang akan divalidasi
-         */
+        /* ===== Region: Validasi Input Angka =====
+        Fungsi ini memvalidasi input angka dengan ketentuan:
+        1. Hanya menerima angka dan tanda minus
+        2. Menghapus karakter non-angka kecuali tanda minus di awal
+        3. Menghapus angka nol di awal jika bukan angka desimal
+        4. Diterapkan pada input-input angka lainnya
+        */
         function validateNumberInput(input) {
             // Hapus karakter non-angka kecuali tanda minus di awal
             input.value = input.value.replace(/^-?\d*\.?\d*$/, function(match) {
@@ -2345,6 +2332,30 @@
         });
 
         /* ===== Region: Validasi NIK ===== */
+        /**
+         * Region Validasi NIK berisi fungsi-fungsi untuk:
+         * 
+         * 1. createNIKValidator(inputId)
+         *    - Membuat validator untuk input NIK
+         *    - Parameter: ID elemen input NIK
+         *    - Menangani validasi format dan keunikan NIK
+         * 
+         * 2. validasiNIK(input) 
+         *    - Memvalidasi format dan nilai NIK
+         *    - Mengecek:
+         *      - NIK tidak boleh kosong
+         *      - NIK tidak boleh 16 angka 0
+         *      - NIK harus 16 digit dan tidak diawali 0
+         *    - Untuk NIK Santri: cek duplikasi via AJAX
+         *
+         * 3. tampilkanError() & sembunyikanError()
+         *    - Menampilkan/menyembunyikan pesan error
+         *    - Mengatur styling elemen error
+         *
+         * Event Listeners:
+         * - Input: Validasi realtime saat input
+         * - Blur: Validasi saat input kehilangan fokus
+         */
         // Fungsi validasi NIK yang dapat digunakan ulang
         function createNIKValidator(inputId) {
             const nikInput = document.getElementById(inputId);
@@ -2463,6 +2474,31 @@
 
         /* ===== End Region: Validasi NIK ===== */
 
+        /* ===== Region: Validasi KK ===== */
+        /**
+         * 1. updateKKAyahState()
+         *    - Mengatur status checkbox KK Ayah berdasarkan:
+         *      a. Keberadaan file KK Santri
+         *      b. Status hidup Ayah
+         *    - Menampilkan pesan informasi sesuai kondisi
+         * 
+         * 2. updateKKIbuState() 
+         *    - Mengatur status checkbox KK Ibu berdasarkan:
+         *      a. Keberadaan file KK Santri/Ayah
+         *      b. Status hidup Ibu
+         *    - Menampilkan pesan informasi sesuai kondisi
+         *
+         * 3. Event Listeners:
+         *    - DOMContentLoaded: Inisialisasi validasi
+         *    - change: Memantau perubahan file dan status
+         *    - click: Menangani interaksi checkbox
+         *
+         * 4. Fitur Utama:
+         *    - Validasi upload file KK
+         *    - Pengecekan status hidup orangtua
+         *    - Opsi penggunaan KK yang sama
+         *    - Pesan informasi dinamis
+         */
         document.addEventListener('DOMContentLoaded', function() {
             // Logika untuk KK Santri dan KK Ayah
             const fileKkSantri = document.getElementById('FileKkSantri');
@@ -2523,14 +2559,12 @@
             function updateKKIbuState() {
                 const ibuHidup = statusIbu.value === 'Masih Hidup';
                 const santriHasKK = fileKkSantri.files.length > 0;
-                const ayahHidup = statusAyah.value === 'Masih Hidup';
                 const ayahHasKK = fileKkAyah.files.length > 0 || KkAyahSamaDenganSantri.checked;
 
-                // Aktifkan checkbox jika salah satu kondisi terpenuhi:
-                // 1. KK Santri ada dan Ibu hidup, ATAU
-                // 2. KK Ayah ada, Ayah hidup, dan Ibu hidup
+                // Ubah logika - Ibu bisa menggunakan KK Santri terlepas dari status Ayah
                 const canUseSantriKK = santriHasKK && ibuHidup;
-                const canUseAyahKK = ayahHasKK && ayahHidup && ibuHidup;
+                // Untuk KK Ayah, tetap perlu cek status Ayah
+                const canUseAyahKK = ayahHasKK && statusAyah.value === 'Masih Hidup' && ibuHidup;
 
                 KkIbuSamaDenganAyahAtauSantri.disabled = !(canUseSantriKK || canUseAyahKK);
 
@@ -2542,29 +2576,21 @@
                     }
                 }
 
-                // Tambahkan pesan informasi
-                const infoElement = document.getElementById('kkIbuInfo');
-                if (!infoElement) {
-                    const info = document.createElement('small');
-                    info.id = 'kkIbuInfo';
-                    info.className = 'form-text mt-1';
-                    KkIbuSamaDenganAyahAtauSantri.parentElement.appendChild(info);
-                }
-
-                const info = document.getElementById('kkIbuInfo');
+                // Update pesan informasi
+                const info = document.getElementById('kkIbuInfo') || createKKIbuInfo();
 
                 if (!ibuHidup) {
                     info.className = 'form-text text-danger mt-1';
                     info.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ibu harus masih hidup untuk menggunakan opsi ini';
-                } else if (!santriHasKK && (!ayahHasKK || !ayahHidup)) {
+                } else if (!santriHasKK && !ayahHasKK) {
                     info.className = 'form-text text-warning mt-1';
-                    info.innerHTML = '<i class="fas fa-info-circle"></i> Anda dapat mencentang jika mengupload KK Santri atau KK Ayah terlebih dahulu';
+                    info.innerHTML = '<i class="fas fa-info-circle"></i> Anda perlu mengupload KK Santri atau KK Ayah terlebih dahulu';
                 } else {
                     info.className = 'form-text text-success mt-1';
                     let message = '<i class="fas fa-check-circle"></i> Anda dapat mencentang ini jika Ibu ';
 
                     if (canUseSantriKK && canUseAyahKK) {
-                        message += 'satu KK dengan Ayah atau Santri';
+                        message += 'satu KK dengan Santri atau Ayah';
                     } else if (canUseSantriKK) {
                         message += 'satu KK dengan Santri';
                     } else if (canUseAyahKK) {
@@ -2573,6 +2599,15 @@
 
                     info.innerHTML = message;
                 }
+            }
+
+            // Helper function untuk membuat elemen info jika belum ada
+            function createKKIbuInfo() {
+                const info = document.createElement('small');
+                info.id = 'kkIbuInfo';
+                info.className = 'form-text mt-1';
+                KkIbuSamaDenganAyahAtauSantri.parentElement.appendChild(info);
+                return info;
             }
 
             // Event listeners untuk KK Santri dan Ayah
@@ -2587,6 +2622,12 @@
             statusIbu.addEventListener('change', updateKKIbuState);
             KkAyahSamaDenganSantri.addEventListener('change', updateKKIbuState);
 
+            // Event listener untuk checkbox KK Ayah
+            KkAyahSamaDenganSantri.addEventListener('change', function() {
+                if (fileKKAyahDiv) {
+                    fileKKAyahDiv.style.display = this.checked ? 'none' : 'block';
+                }
+            });
             // Event listener untuk checkbox KK Ibu
             KkIbuSamaDenganAyahAtauSantri.addEventListener('change', function() {
                 if (fileKKIbuDiv) {
@@ -2605,9 +2646,8 @@
             if (KkIbuSamaDenganAyahAtauSantriLabel) {
                 KkIbuSamaDenganAyahAtauSantriLabel.textContent = 'Satu KK dengan Ayah atau Santri';
             }
-
-            // ... existing event listeners ...
         });
+        /* ===== End Region: Validasi KK ===== */
     </script>
 
     <?= $this->endSection(); ?>
