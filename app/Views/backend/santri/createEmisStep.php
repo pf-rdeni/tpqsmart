@@ -796,16 +796,6 @@
                                                         <div class="form-check">
                                                             <input type="checkbox" class="form-check-input" id="KkAyahSamaDenganSantri" name="KkAyahSamaDenganSantri">
                                                             <label class="form-check-label" for="KkAyahSamaDenganSantri">Ayah satu KK dengan santri</label>
-                                                            <script>
-                                                                // document.getElementById('KkAyahSamaDenganSantri').addEventListener('change', function() {
-                                                                //     var fileKKAyahDiv = document.getElementById('FileKKAyahDiv');
-                                                                //     if (this.checked) {
-                                                                //         fileKKAyahDiv.style.display = 'none';
-                                                                //     } else {
-                                                                //         fileKKAyahDiv.style.display = 'block';
-                                                                //     }
-                                                                // });
-                                                            </script>
                                                         </div>
                                                         <div class="form-group" id="FileKKAyahDiv">
                                                             <label for="FileKkAyah">Upload KK Ayah</label>
@@ -1277,7 +1267,7 @@
                                                         <div class="form-check">
                                                             <input type="checkbox" class="form-check-input" id="TinggalDiluarNegeriAyah" name="TinggalDiluarNegeriAyah">
                                                             <label class="form-check-label" for="TinggalDiluarNegeriAyah">
-                                                                Tinggal Di Luar Negeri
+                                                                Tinggal Di Luar Daerah atau Luar Negeri
                                                             </label>
                                                         </div>
                                                     </div>
@@ -1285,8 +1275,8 @@
                                                 <div class="row">
                                                     <div class="col-md-12">
                                                         <div class="form-group">
-                                                            <label for="StatusKepemilikanRumahAyah">Status Kepemilikan Rumah<span class="text-danger font-weight-bold">*</span></label>
-                                                            <select class="form-control" id="StatusKepemilikanRumahAyah" name="StatusKepemilikanRumahAyah" <?= $required ?>>
+                                                            <label for="StatusKepemilikanRumahAyah">Status Kepemilikan Rumah</label>
+                                                            <select class="form-control" id="StatusKepemilikanRumahAyah" name="StatusKepemilikanRumahAyah">
                                                                 <option value="">-- Pilih Status Kepemilikan Rumah --</option>
                                                                 <option value="Milik Sendiri">Milik Sendiri</option>
                                                                 <option value="Rumah Orang Tua">Rumah Orang Tua</option>
@@ -1303,20 +1293,20 @@
                                                 <div class="row">
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="ProvinsiAyah">
-                                                            <label for="ProvinsiAyah">Provinsi<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="ProvinsiAyah" name="ProvinsiAyah" value="Kepulauan Riau" readonly <?= $required ?>>
+                                                            <label for="ProvinsiAyah">Provinsi</label>
+                                                            <input type="text" class="form-control" id="ProvinsiAyah" name="ProvinsiAyah" value="Kepulauan Riau" readonly>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="KabupatenKotaAyah">
-                                                            <label for="KabupatenKotaAyah">Kabupaten/Kota<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="KabupatenKotaAyah" name="KabupatenKotaAyah" value="Bintan" readonly <?= $required ?>>
+                                                            <label for="KabupatenKotaAyah">Kabupaten/Kota</label>
+                                                            <input type="text" class="form-control" id="KabupatenKotaAyah" name="KabupatenKotaAyah" value="Bintan" readonly>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="KecamatanAyah">
-                                                            <label for="KecamatanAyah">Kecamatan<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="KecamatanAyah" name="KecamatanAyah" value="Seri Kuala Lobam" readonly <?= $required ?>>
+                                                            <label for="KecamatanAyah">Kecamatan</label>
+                                                            <input type="text" class="form-control" id="KecamatanAyah" name="KecamatanAyah" value="Seri Kuala Lobam" readonly>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1324,8 +1314,8 @@
                                                 <div class="row">
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="KelurahanDesaAyah">
-                                                            <label for="KelurahanDesaAyah">Kelurahan/Desa<span class="text-danger font-weight-bold">*</span></label>
-                                                            <select class="form-control" id="KelurahanDesaAyah" name="KelurahanDesaAyah" <?= $required ?>>
+                                                            <label for="KelurahanDesaAyah">Kelurahan/Desa</label>
+                                                            <select class="form-control" id="KelurahanDesaAyah" name="KelurahanDesaAyah">
                                                                 <option value="">Pilih Kelurahan/Desa</option>
                                                                 <option value="TELUK LOBAM">TELUK LOBAM</option>
                                                                 <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
@@ -1338,15 +1328,15 @@
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="RWAyah">
-                                                            <label for="RWAyah">RW<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="RWAyah" name="RWAyah" placeholder="Masukkan RW" <?= $required ?>>
+                                                            <label for="RWAyah">RW</label>
+                                                            <input type="text" class="form-control" id="RWAyah" name="RWAyah" placeholder="Masukkan RW">
                                                             <span id="RWAyahError" class="text-danger" style="display:none;">RW diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="RTAyah">
-                                                            <label for="RTAyah">RT<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="RTAyah" name="RTAyah" placeholder="Masukkan RT" <?= $required ?>>
+                                                            <label for="RTAyah">RT</label>
+                                                            <input type="text" class="form-control" id="RTAyah" name="RTAyah" placeholder="Masukkan RT">
                                                             <span id="RTAyahError" class="text-danger" style="display:none;">RT diperlukan.</span>
                                                         </div>
                                                     </div>
@@ -1354,15 +1344,15 @@
                                                 <div class="row">
                                                     <div class="col-md-8">
                                                         <div class="form-group">
-                                                            <label for="AlamatAyah">Alamat<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="AlamatAyah" name="AlamatAyah" placeholder="Masukkan Alamat" <?= $required ?>>
+                                                            <label for="AlamatAyah">Alamat</label>
+                                                            <input type="text" class="form-control" id="AlamatAyah" name="AlamatAyah" placeholder="Masukkan Alamat">
                                                             <span id="AlamatAyahError" class="text-danger" style="display:none;">Alamat diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="KodePosAyah">
-                                                            <label for="KodePosAyah">Kode Pos<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control number-only" id="KodePosAyah" name="KodePosAyah" value="29152" readonly <?= $required ?>>
+                                                            <label for="KodePosAyah">Kode Pos</label>
+                                                            <input type="text" class="form-control number-only" id="KodePosAyah" name="KodePosAyah" value="29152" readonly>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1391,15 +1381,15 @@
                                                     <div class="col-md-12">
                                                         <div class="form-check">
                                                             <input class="form-check-input" type="checkbox" id="TinggalDiluarNegeriIbu" name="TinggalDiluarNegeriIbu">
-                                                            <label class="form-check-label" for="TinggalDiluarNegeriIbu">Tinggal Di Luar Negeri</label>
+                                                            <label class="form-check-label" for="TinggalDiluarNegeriIbu">Tinggal Di Luar Daerah atau Luar Negeri</label>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <div class="form-group" id="StatusKepemilikanRumahIbu">
-                                                            <label for="StatusKepemilikanRumahIbu">Status Kepemilikan Rumah<span class="text-danger font-weight-bold">*</span></label>
-                                                            <select class="form-control" id="StatusKepemilikanRumahIbu" name="StatusKepemilikanRumahIbu" <?= $required ?>>
+                                                            <label for="StatusKepemilikanRumahIbu">Status Kepemilikan Rumah</label>
+                                                            <select class="form-control" id="StatusKepemilikanRumahIbu" name="StatusKepemilikanRumahIbu">
                                                                 <option value="">Pilih Status Kepemilikan</option>
                                                                 <option value="Milik Sendiri">Milik Sendiri</option>
                                                                 <option value="Rumah Orang Tua">Rumah Orang Tua</option>
@@ -1415,20 +1405,20 @@
                                                 <div class="row">
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="ProvinsiIbu">
-                                                            <label for="ProvinsiIbu">Provinsi<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="ProvinsiIbu" name="ProvinsiIbu" value="Kepulauan Riau" readonly <?= $required ?>>
+                                                            <label for="ProvinsiIbu">Provinsi</label>
+                                                            <input type="text" class="form-control" id="ProvinsiIbu" name="ProvinsiIbu" value="Kepulauan Riau" readonly>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="KabupatenKotaIbu">
-                                                            <label for="KabupatenKotaIbu">Kabupaten/Kota<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="KabupatenKotaIbu" name="KabupatenKotaIbu" value="Bintan" readonly <?= $required ?>>
+                                                            <label for="KabupatenKotaIbu">Kabupaten/Kota</label>
+                                                            <input type="text" class="form-control" id="KabupatenKotaIbu" name="KabupatenKotaIbu" value="Bintan" readonly>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="KecamatanIbu">
-                                                            <label for="KecamatanIbu">Kecamatan<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="KecamatanIbu" name="KecamatanIbu" value="Seri Kuala Lobam" readonly <?= $required ?>>
+                                                            <label for="KecamatanIbu">Kecamatan</label>
+                                                            <input type="text" class="form-control" id="KecamatanIbu" name="KecamatanIbu" value="Seri Kuala Lobam" readonly>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1436,8 +1426,8 @@
                                                 <div class="row">
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="KelurahanDesaIbu">
-                                                            <label for="KelurahanDesaIbu">Kelurahan/Desa<span class="text-danger font-weight-bold">*</span></label>
-                                                            <select class="form-control" id="KelurahanDesaIbu" name="KelurahanDesaIbu" <?= $required ?>>
+                                                            <label for="KelurahanDesaIbu">Kelurahan/Desa</label>
+                                                            <select class="form-control" id="KelurahanDesaIbu" name="KelurahanDesaIbu">
                                                                 <option value="">Pilih Kelurahan/Desa</option>
                                                                 <option value="TELUK LOBAM">TELUK LOBAM</option>
                                                                 <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
@@ -1450,15 +1440,15 @@
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="RWIbu">
-                                                            <label for="RWIbu">RW<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="RWIbu" name="RWIbu" placeholder="Masukkan RW" <?= $required ?>>
+                                                            <label for="RWIbu">RW</label>
+                                                            <input type="text" class="form-control" id="RWIbu" name="RWIbu" placeholder="Masukkan RW">
                                                             <span id="RWIbuError" class="text-danger" style="display:none;">RW diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="RTIbu">
-                                                            <label for="RTIbu">RT<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="RTIbu" name="RTIbu" placeholder="Masukkan RT" <?= $required ?>>
+                                                            <label for="RTIbu">RT</label>
+                                                            <input type="text" class="form-control" id="RTIbu" name="RTIbu" placeholder="Masukkan RT">
                                                             <span id="RTIbuError" class="text-danger" style="display:none;">RT diperlukan.</span>
                                                         </div>
                                                     </div>
@@ -1466,15 +1456,15 @@
                                                 <div class="row">
                                                     <div class="col-md-8">
                                                         <div class="form-group">
-                                                            <label for="AlamatIbu">Alamat<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="AlamatIbu" name="AlamatIbu" placeholder="Masukkan Alamat" <?= $required ?>>
+                                                            <label for="AlamatIbu">Alamat</label>
+                                                            <input type="text" class="form-control" id="AlamatIbu" name="AlamatIbu" placeholder="Masukkan Alamat">
                                                             <span id="AlamatIbuError" class="text-danger" style="display:none;">Alamat diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group" id="KodePosIbu">
-                                                            <label for="KodePosIbu">Kode Pos<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control number-only" id="KodePosIbu" name="KodePosIbu" value="29152" readonly <?= $required ?>>
+                                                            <label for="KodePosIbu">Kode Pos</label>
+                                                            <input type="text" class="form-control number-only" id="KodePosIbu" name="KodePosIbu" value="29152" readonly>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1491,7 +1481,7 @@
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
-                                                            <label for="StatusMukim">Status MUKIM<span class="text-danger font-weight-bold">*</span></label>
+                                                            <label for="StatusMukim">Status MUKIM</label>
                                                             <input type="text" class="form-control" id="StatusMukim" name="StatusMukim" value="Tidak Mukim" readonly>
                                                         </div>
                                                     </div>
@@ -1499,8 +1489,8 @@
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
-                                                            <label for="StatusTempatTinggal">Status Tempat Tinggal<span class="text-danger font-weight-bold">*</span></label>
-                                                            <select class="form-control" id="StatusTempatTinggal" name="StatusTempatTinggal" <?= $required ?>>
+                                                            <label for="StatusTempatTinggal">Status Tempat Tinggal</label>
+                                                            <select class="form-control" id="StatusTempatTinggal" name="StatusTempatTinggal">
                                                                 <option value="">Pilih Status Tempat Tinggal</option>
                                                                 <script>
                                                                     // Fungsi ini digunakan untuk memperbarui pilihan status tempat tinggal santri
@@ -1603,20 +1593,20 @@
                                                 <div class="row">
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="ProvinsiSantri">Provinsi<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="ProvinsiSantri" name="ProvinsiSantri" value="Kepulauan Riau" readonly <?= $required ?>>
+                                                            <label for="ProvinsiSantri">Provinsi</label>
+                                                            <input type="text" class="form-control" id="ProvinsiSantri" name="ProvinsiSantri" value="Kepulauan Riau" readonly>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="KabupatenKotaSantri">Kabupaten/Kota<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="KabupatenKotaSantri" name="KabupatenKotaSantri" value="Bintan" readonly <?= $required ?>>
+                                                            <label for="KabupatenKotaSantri">Kabupaten/Kota</label>
+                                                            <input type="text" class="form-control" id="KabupatenKotaSantri" name="KabupatenKotaSantri" value="Bintan" readonly>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="KecamatanSantri">Kecamatan<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="KecamatanSantri" name="KecamatanSantri" value="Seri Kuala Lobam" readonly <?= $required ?>>
+                                                            <label for="KecamatanSantri">Kecamatan</label>
+                                                            <input type="text" class="form-control" id="KecamatanSantri" name="KecamatanSantri" value="Seri Kuala Lobam" readonly>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1624,8 +1614,8 @@
                                                 <div class="row">
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="KelurahanDesaSantri">Kelurahan/Desa<span class="text-danger font-weight-bold">*</span></label>
-                                                            <select class="form-control" id="KelurahanDesaSantri" name="KelurahanDesaSantri" <?= $required ?>>
+                                                            <label for="KelurahanDesaSantri">Kelurahan/Desa</label>
+                                                            <select class="form-control" id="KelurahanDesaSantri" name="KelurahanDesaSantri">
                                                                 <option value="">Pilih Kelurahan/Desa</option>
                                                                 <option value="TELUK LOBAM">TELUK LOBAM</option>
                                                                 <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
@@ -1638,15 +1628,15 @@
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="RWSantri">RW<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="RWSantri" name="RWSantri" placeholder="Masukkan RW" <?= $required ?>>
+                                                            <label for="RWSantri">RW</label>
+                                                            <input type="text" class="form-control" id="RWSantri" name="RWSantri" placeholder="Masukkan RW">
                                                             <span id="RWSantriError" class="text-danger" style="display:none;">RW diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="RTSantri">RT<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="RTSantri" name="RTSantri" placeholder="Masukkan RT" <?= $required ?>>
+                                                            <label for="RTSantri">RT</label>
+                                                            <input type="text" class="form-control" id="RTSantri" name="RTSantri" placeholder="Masukkan RT">
                                                             <span id="RTSantriError" class="text-danger" style="display:none;">RT diperlukan.</span>
                                                         </div>
                                                     </div>
@@ -1654,15 +1644,15 @@
                                                 <div class="row">
                                                     <div class="col-md-8">
                                                         <div class="form-group">
-                                                            <label for="AlamatSantri">Alamat<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="AlamatSantri" name="AlamatSantri" placeholder="Masukkan Alamat" <?= $required ?>>
+                                                            <label for="AlamatSantri">Alamat</label>
+                                                            <input type="text" class="form-control" id="AlamatSantri" name="AlamatSantri" placeholder="Masukkan Alamat">
                                                             <span id="AlamatSantriError" class="text-danger" style="display:none;">Alamat diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="KodePosSantri">Kode Pos<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control number-only" id="KodePosSantri" name="KodePosSantri" value="29152" readonly <?= $required ?>>
+                                                            <label for="KodePosSantri">Kode Pos</span></label>
+                                                            <input type="text" class="form-control number-only" id="KodePosSantri" name="KodePosSantri" value="29152" readonly>
                                                         </div>
                                                     </div>
                                                 </div>
