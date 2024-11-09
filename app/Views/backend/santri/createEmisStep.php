@@ -299,11 +299,11 @@
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <label for="JumlahSaudara">Jumlah Saudara<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan jumlah saudara" <?= $required ?>>
+                                                        <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan jumlah saudara" <?= $required ?> oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="AnakKe">Anak Ke<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control" id="AnakKe" name="AnakKe" placeholder="Masukkan anak ke berapa" <?= $required ?>>
+                                                        <input type="text" class="form-control" id="AnakKe" name="AnakKe" placeholder="Masukkan anak ke berapa" <?= $required ?> oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                     </div>
                                                 </div>
                                             </div>
@@ -501,7 +501,8 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="NamaKepalaKeluarga">Nama Kepala Keluarga<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Masukkan nama kepala keluarga" <?= $required ?>>
+                                                        <input type="text" class="form-control name-input" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Masukkan nama kepala keluarga" <?= $required ?>>
+                                                        <span id="NamaKepalaKeluargaError" class="text-danger" style="display:none;">Nama Kepala Keluarga diperlukan.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -683,7 +684,7 @@
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <label for="NamaAyah">Nama Ayah Kandung<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control" id="NamaAyah" name="NamaAyah" placeholder="Ketik nama lengkap ayah kandung" <?= $required ?>>
+                                                        <input type="text" class="form-control name-input" id="NamaAyah" name="NamaAyah" placeholder="Ketik nama lengkap ayah kandung" <?= $required ?>>
                                                         <span id="NamaAyahError" class="text-danger" style="display:none;">Nama Ayah Kandung diperlukan.</span>
                                                     </div>
                                                     <div class="col-md-6">
@@ -824,7 +825,7 @@
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label for="NamaIbu">Nama Ibu Kandung<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control" id="NamaIbu" name="NamaIbu" placeholder="Ketik nama lengkap ibu kandung" <?= $required ?>>
+                                                            <input type="text" class="form-control name-input" id="NamaIbu" name="NamaIbu" placeholder="Ketik nama lengkap ibu kandung" <?= $required ?>>
                                                             <span id="NamaIbuError" class="text-danger" style="display:none;">Nama Ibu Kandung diperlukan.</span>
                                                         </div>
                                                     </div>
@@ -1036,7 +1037,8 @@
                                                         <div class="col-md-4">
                                                             <div class="form-group">
                                                                 <label for="NamaWali">Nama Wali<span class="text-danger font-weight-bold">*</span></label>
-                                                                <input type="text" class="form-control" id="NamaWali" name="NamaWali" placeholder="Masukkan nama wali">
+                                                                <input type="text" class="form-control name-input" id="NamaWali" name="NamaWali" placeholder="Masukkan nama wali">
+                                                                <span id="NamaWaliError" class="text-danger" style="display:none;">Nama Wali diperlukan.</span>
                                                             </div>
                                                         </div>
                                                         <div class="col-md-4">
