@@ -244,21 +244,24 @@
                                                 <div class="col-md-6">
                                                     <label for="NikSantri">NIK Santri<span class="text-danger font-weight-bold">*</span></label>
                                                     <input type="text" class="form-control" id="NikSantri" name="NikSantri"
-                                                        placeholder="Masukkan 16 digit Induk Kependudukan (NIK)" <?= $required ?> pattern="^[1-9]\d{15}$"
+                                                        placeholder="Masukkan NIK 16 digit" <?= $required ?> pattern="^[1-9]\d{15}$"
                                                         title="NIK harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0">
                                                     <span id="NikSantriError" class="text-danger" style="display:none;">NIK diperlukan dan harus 16 digit.</span>
                                                 </div>
 
                                                 <div class="col-md-6">
                                                     <label for="NamaSantri">Nama Santri<span class="text-danger font-weight-bold">*</span></label>
-                                                    <input type="text" class="form-control name-input" id="NamaSantri" name="NamaSantri" placeholder="Ketik Nama Lengkap" <?= $required ?>>
+                                                    <input type="text" class="form-control name-input" id="NamaSantri" name="NamaSantri" placeholder="Masukkan nama lengkap" <?= $required ?>>
                                                     <span id="NamaSantriError" class="text-danger" style="display:none;">Nama Santri diperlukan.</span>
                                                 </div>
                                             </div>
                                             <div class="form-group row">
                                                 <div class="col-md-6">
                                                     <label for="NISN">NISN</label>
-                                                    <input type="number" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN">
+                                                    <input type="text" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN"
+                                                        pattern="[0-9]{10}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                    <small class="text-muted">NISN harus 10 digit angka</small>
+                                                    <span id="NISNError" class="text-danger" style="display:none;">NISN harus 10 digit angka</span>
                                                 </div>
                                                 <div class="col-md-3">
                                                     <label for="Agama">Agama<span class="text-danger font-weight-bold">*</span></label>
@@ -296,11 +299,11 @@
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <label for="JumlahSaudara">Jumlah Saudara<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="number" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Ketik number jumlah saudara" <?= $required ?>>
+                                                        <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan jumlah saudara" <?= $required ?>>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="AnakKe">Anak Ke<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="number" class="form-control" id="AnakKe" name="AnakKe" placeholder="Ketik number anak ke" <?= $required ?>>
+                                                        <input type="text" class="form-control" id="AnakKe" name="AnakKe" placeholder="Masukkan anak ke berapa" <?= $required ?>>
                                                     </div>
                                                 </div>
                                             </div>
@@ -425,12 +428,12 @@
                                             <div class="form-group">
                                                 <div class="row">
                                                     <div class="col-md-6">
-                                                        <label for="NoHpSantri">No Handpone</label>
-                                                        <input type="number" class="form-control" id="NoHpSantri" name="NoHpSantri" placeholder="Ketik nohp santri contoh 6281365290265">
+                                                        <label for="NoHpSantri">No Handphone</label>
+                                                        <input type="text" class="form-control" id="NoHpSantri" name="NoHpSantri" placeholder="Masukkan nomor handphone">
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="EmailSantri">Alamat Email</label>
-                                                        <input type="email" class="form-control" id="EmailSantri" name="EmailSantri" placeholder="Ketik alamat email santri contoh santri@gmail.com">
+                                                        <input type="email" class="form-control" id="EmailSantri" name="EmailSantri" placeholder="Contoh: nama@email.com">
                                                     </div>
                                                 </div>
                                             </div>
@@ -448,7 +451,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="KebutuhanKhususLainya">Kebutuhan Khusus Lainya</label>
-                                                        <input type="text" class="form-control" id="KebutuhanKhususLainya" name="KebutuhanKhususLainya" placeholder="Ketik Kebutuhan Lainya" disabled>
+                                                        <input type="text" class="form-control" id="KebutuhanKhususLainya" name="KebutuhanKhususLainya" placeholder="Masukkan kebutuhan khusus lainnya" disabled>
                                                     </div>
                                                 </div>
                                             </div>
@@ -469,7 +472,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="KebutuhanDisabilitasLainya">Kebutuhan Disabilitas Lainya</label>
-                                                        <input type="text" class="form-control" id="KebutuhanDisabilitasLainya" placeholder="Ketik Kebutuhan Lainya" disabled>
+                                                        <input type="text" class="form-control" id="KebutuhanDisabilitasLainya" placeholder="Masukkan kebutuhan disabilitas lainnya" disabled>
                                                     </div>
                                                 </div>
                                                 <script>
@@ -498,19 +501,23 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="NamaKepalaKeluarga">Nama Kepala Keluarga<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Ketik nama kepala keluarga" <?= $required ?>>
+                                                        <input type="text" class="form-control" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Masukkan nama kepala keluarga" <?= $required ?>>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="form-group">
                                                 <div class="row">
                                                     <div class="col-md-6">
-                                                        <label for="NoKIP">No Kartu Indonesia Pintar (KIP)</label>
-                                                        <input type="number" class="form-control" id="NoKIP" name="NoKIP" placeholder="Ketik no kartu indonesia pintar">
+                                                        <label for="no_kip">No Kartu Indonesia Pintar (KIP)</label>
+                                                        <input type="text" class="form-control" id="no_kip" name="no_kip" placeholder="Masukkan Nomor KIP"
+                                                            pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                        <small class="text-muted">Nomor KIP harus 16 digit angka</small>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="IdKartuKeluarga">No Kartu Keluarga (KK)</label>
-                                                        <input type="number" class="form-control" id="IdKartuKeluarga" name="IdKartuKeluarga" placeholder="Ketik number kartu keluarga">
+                                                        <input type="text" class="form-control" id="IdKartuKeluarga" name="IdKartuKeluarga" placeholder="Masukkan nomor KK"
+                                                            pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                        <small class="text-muted">Nomor KK harus 16 digit angka</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -521,7 +528,7 @@
                                                         <div class="input-group mb-3">
                                                             <div class="custom-file">
                                                                 <input type="file" class="form-control" id="FileKIP" name="FileKIP" onchange="previewFile('FileKIP')" accept=".pdf,.jpg,.jpeg,.png">
-                                                                <label class="custom-file-label" for="FileKIP">Pilih file KIP</label>
+                                                                <label class="custom-file-label" for="FileKIP">Unggah KIP</label>
                                                             </div>
                                                             <!-- div input-group-append dihapus -->
                                                         </div>
@@ -532,7 +539,7 @@
                                                         <div class="input-group">
                                                             <div class="custom-file">
                                                                 <input type="file" class="form-control" id="FileKkSantri" name="FileKkSantri" onchange="validateFile('FileKkSantri')" accept=".pdf,.jpg,.jpeg,.png">
-                                                                <label class="custom-file-label" for="FileKkSantri">Pilih file KK</label>
+                                                                <label class="custom-file-label" for="FileKkSantri">Unggah KK</label>
                                                             </div>
                                                             <!-- div input-group-append dihapus -->
                                                         </div>
@@ -1153,13 +1160,17 @@
                                                 <div class="col-md-6">
                                                     <div class="form-group">
                                                         <label for="NomorKKS">Nomor KKS</label>
-                                                        <input type="text" class="form-control" id="NomorKKS" name="NomorKKS" placeholder="Masukkan Nomor Kartu Keluarga Sejahtera (KKS)">
+                                                        <input type="text" class="form-control" id="NomorKKS" name="NomorKKS" placeholder="Masukkan Nomor Kartu Keluarga Sejahtera (KKS)"
+                                                            pattern="[0-9]{6}" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                        <small class="text-muted">Nomor KKS harus 6 digit angka</small>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="form-group">
                                                         <label for="NomorPKH">Nomor PKH</label>
-                                                        <input type="text" class="form-control" id="NomorPKH" name="NomorPKH" placeholder="Masukkan Nomor Program Keluarga Harapan (PKH)">
+                                                        <input type="text" class="form-control" id="NomorPKH" name="NomorPKH" placeholder="Masukkan Nomor Program Keluarga Harapan (PKH)"
+                                                            pattern="[0-9]{14}" maxlength="14" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                        <small class="text-muted">Nomor PKH harus 14 digit angka</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1782,39 +1793,46 @@
         6. Diterapkan pada input NoHpAyah, NoHpIbu, dan NoHpWali
         */
         function validatePhoneNumber(input) {
-            // Hapus semua karakter non-angka
-            let phoneNumber = input.value.replace(/\D/g, '');
+            let phoneNumber = input.value.trim();
             const errorElement = document.getElementById(input.id + 'Error');
 
-            // Validasi panjang nomor (minimal 10 digit, maksimal 13 digit)
-            if (phoneNumber.length < 10 || phoneNumber.length > 13) {
+            // Cek format awal nomor
+            const isValidStart = phoneNumber.startsWith('+62') ||
+                phoneNumber.startsWith('08') ||
+                phoneNumber.startsWith('8');
+
+            if (!isValidStart) {
                 input.classList.add('is-invalid');
                 input.classList.remove('is-valid');
                 if (errorElement) {
-                    errorElement.textContent = 'Nomor handphone harus antara 10-13 digit';
+                    errorElement.textContent = 'Nomor handphone harus diawali dengan +62, 08, atau 8';
                     errorElement.style.display = 'block';
                 }
                 return false;
             }
 
-            // Validasi awalan nomor Indonesia (08 atau +62)
-            if (!phoneNumber.startsWith('08') && !phoneNumber.startsWith('62')) {
-                input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-                if (errorElement) {
-                    errorElement.textContent = 'Nomor handphone harus diawali dengan 08 atau 62';
-                    errorElement.style.display = 'block';
-                }
-                return false;
-            }
-
-            // Format ulang nomor telepon
+            // Konversi ke format +62 jika perlu
             if (phoneNumber.startsWith('08')) {
-                phoneNumber = phoneNumber; // Biarkan format 08
-            } else if (phoneNumber.startsWith('62')) {
-                phoneNumber = '0' + phoneNumber.substring(2); // Ubah 62 menjadi 0
+                phoneNumber = '+62' + phoneNumber.substring(1);
+            } else if (phoneNumber.startsWith('8')) {
+                phoneNumber = '+62' + phoneNumber;
             }
 
+            // Validasi panjang nomor (tidak termasuk +62)
+            const numberWithoutCode = phoneNumber.replace(/^\+62/, '');
+            const isNumeric = /^\d+$/.test(numberWithoutCode);
+
+            if (!isNumeric || numberWithoutCode.length < 9 || numberWithoutCode.length > 12) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                if (errorElement) {
+                    errorElement.textContent = 'Panjang nomor handphone harus 9-12 digit setelah kode negara';
+                    errorElement.style.display = 'block';
+                }
+                return false;
+            }
+
+            // Jika semua validasi berhasil
             input.value = phoneNumber;
             input.classList.remove('is-invalid');
             input.classList.add('is-valid');
@@ -1826,7 +1844,7 @@
 
         // Event listener untuk input nomor handphone
         document.addEventListener('DOMContentLoaded', function() {
-            const phoneInputs = ['NoHpAyah', 'NoHpIbu', 'NoHpWali'];
+            const phoneInputs = ['NoHpAyah', 'NoHpIbu', 'NoHpWali', 'NoHpSantri'];
 
             phoneInputs.forEach(inputId => {
                 const input = document.getElementById(inputId);
@@ -1842,21 +1860,41 @@
                     }
 
                     // Event untuk input
-                    input.addEventListener('input', function() {
-                        this.value = this.value.replace(/\D/g, '').slice(0, 13);
+                    input.addEventListener('input', function(e) {
+                        // Izinkan tanda + hanya di awal
+                        let value = this.value;
+                        if (value.length > 1) {
+                            value = value.charAt(0) + value.substring(1).replace(/\D/g, '');
+                        }
+                        if (value.length > 14) { // Batasi panjang total (termasuk +62)
+                            value = value.slice(0, 14);
+                        }
+                        this.value = value;
                         validatePhoneNumber(this);
                     });
 
-                    // Event untuk blur
-                    input.addEventListener('blur', function() {
-                        validatePhoneNumber(this);
+                    // Event untuk keypress - hanya izinkan angka dan + di awal
+                    input.addEventListener('keypress', function(e) {
+                        const char = String.fromCharCode(e.which);
+                        if (!(char === '+' && this.value.length === 0) && !/[0-9]/.test(char)) {
+                            e.preventDefault();
+                        }
                     });
 
                     // Event untuk paste
                     input.addEventListener('paste', function(e) {
                         e.preventDefault();
-                        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                        this.value = pastedText.replace(/\D/g, '').slice(0, 13);
+                        let pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                        // Bersihkan teks yang di-paste
+                        if (pastedText.startsWith('+')) {
+                            pastedText = '+' + pastedText.substring(1).replace(/\D/g, '');
+                        } else {
+                            pastedText = pastedText.replace(/\D/g, '');
+                        }
+                        if (pastedText.length > 14) {
+                            pastedText = pastedText.slice(0, 14);
+                        }
+                        this.value = pastedText;
                         validatePhoneNumber(this);
                     });
                 }
