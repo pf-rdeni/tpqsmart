@@ -503,7 +503,64 @@
                                                         <label for="NamaKepalaKeluarga">Nama Kepala Keluarga<span class="text-danger font-weight-bold">*</span></label>
                                                         <input type="text" class="form-control name-input" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Masukkan nama kepala keluarga" <?= $required ?>>
                                                         <span id="NamaKepalaKeluargaError" class="text-danger" style="display:none;">Nama Kepala Keluarga diperlukan.</span>
+                                                        <div class="form-check mt-2">
+                                                            <input type="checkbox" class="form-check-input" id="NamaKepalaKeluargaSamaDenganAyah" name="NamaKepalaKeluargaSamaDenganAyah">
+                                                            <label class="form-check-label small text-success" for="NamaKepalaKeluargaSamaDenganAyah">
+                                                                Checklist Jika Nama Kepala Keluarga Sama Dengan Ayah Kandung
+                                                            </label>
+                                                        </div>
                                                     </div>
+                                                    <script>
+                                                        document.addEventListener('DOMContentLoaded', function() {
+                                                            const namaKepalaKeluargaInput = document.getElementById('NamaKepalaKeluarga');
+                                                            const checkbox = document.getElementById('NamaKepalaKeluargaSamaDenganAyah');
+                                                            const namaAyahInput = document.getElementById('NamaAyah');
+                                                            const errorText = document.getElementById('NamaKepalaKeluargaError');
+
+                                                            // Tambahkan event listener untuk input nama kepala keluarga
+                                                            namaKepalaKeluargaInput.addEventListener('input', function() {
+                                                                // Jika input tidak kosong, tampilkan checkbox
+                                                                if (this.value.trim()) {
+                                                                    checkbox.style.display = 'block';
+                                                                    checkbox.parentElement.style.display = 'block';
+                                                                } else {
+                                                                    checkbox.style.display = 'none';
+                                                                    checkbox.parentElement.style.display = 'none';
+                                                                    checkbox.checked = false;
+                                                                    namaAyahInput.readOnly = false;
+                                                                    namaAyahInput.value = '';
+                                                                    namaAyahInput.classList.remove('is-valid');
+                                                                }
+                                                            });
+
+                                                            // Event listener untuk checkbox tetap sama seperti sebelumnya
+                                                            checkbox.addEventListener('change', function() {
+                                                                if (this.checked) {
+                                                                    if (!namaKepalaKeluargaInput.value.trim()) {
+                                                                        alert('Silakan isi Nama Kepala Keluarga terlebih dahulu');
+                                                                        this.checked = false;
+                                                                        return;
+                                                                    }
+
+                                                                    namaAyahInput.value = namaKepalaKeluargaInput.value;
+                                                                    namaAyahInput.classList.remove('is-invalid');
+                                                                    namaAyahInput.classList.add('is-valid');
+                                                                    namaAyahInput.readOnly = true;
+                                                                } else {
+                                                                    namaAyahInput.readOnly = false;
+                                                                    namaAyahInput.value = '';
+                                                                    namaAyahInput.classList.remove('is-valid');
+                                                                }
+                                                            });
+
+                                                            // Set tampilan awal checkbox
+                                                            if (!namaKepalaKeluargaInput.value.trim()) {
+                                                                checkbox.style.display = 'none';
+                                                                checkbox.parentElement.style.display = 'none';
+                                                            }
+                                                        });
+                                                    </script>
+
                                                 </div>
                                             </div>
                                             <div class="form-group">
@@ -2678,6 +2735,140 @@
             }
         });
         /* ===== End Region: Validasi KK ===== */
+
+        /* ===== Region: Validasi Tanggal Lahir Santri ===== */
+        document.addEventListener('DOMContentLoaded', function() {
+            const kelasSelect = document.getElementById('IdKelas');
+            const tanggalLahirInput = document.getElementById('TanggalLahirSantri');
+
+            function validateTanggalLahir() {
+                const selectedKelasId = parseInt(kelasSelect.value); // Mengambil ID kelas sebagai number
+                const tanggalLahir = new Date(tanggalLahirInput.value);
+                const today = new Date();
+                const umur = today.getFullYear() - tanggalLahir.getFullYear();
+
+                // Hapus pesan error yang ada
+                const existingError = document.getElementById('TanggalLahirError');
+                if (existingError) {
+                    existingError.remove();
+                }
+
+                // Validasi berdasarkan kelas
+                let isValid = true;
+                let errorMessage = '';
+
+                // Fungsi helper untuk format pesan error
+                const formatErrorMessage = (kelasName, minAge, maxAge) => {
+                    return `Untuk ${kelasName}, usia kisaran antara ${minAge}-${maxAge} tahun (lahir tahun ${today.getFullYear()-maxAge} sampai ${today.getFullYear()-minAge})`;
+                };
+
+                // Validasi berdasarkan ID kelas
+                switch (selectedKelasId) {
+                    case 1: // TK
+                    case 2: // TKA 
+                    case 3: // TKB
+                        // Untuk TK/TKA/TKB: usia 4-7 tahun
+                        if (umur < 4 || umur > 7) {
+                            isValid = false;
+                            const minTahun = today.getFullYear() - 7; // Tahun untuk usia maksimal (7 tahun)
+                            const maxTahun = today.getFullYear() - 4; // Tahun untuk usia minimal (4 tahun) 
+                            errorMessage = `Untuk TK/TKA/TKB, usia harus 4-7 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                        }
+                        break;
+
+                    case 4: // TPQ1/SD1
+                        // Untuk TPQ1/SD1: usia 6-7 tahun
+                        if (umur < 6 || umur > 7) {
+                            isValid = false;
+                            const minTahun = today.getFullYear() - 7;
+                            const maxTahun = today.getFullYear() - 6;
+                            errorMessage = `Untuk TPQ1/SD1, usia harus 6-7 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                        }
+                        break;
+
+                    case 5: // TPQ2/SD2
+                        // Untuk TPQ2/SD2: usia 7-8 tahun
+                        if (umur < 7 || umur > 8) {
+                            isValid = false;
+                            const minTahun = today.getFullYear() - 8;
+                            const maxTahun = today.getFullYear() - 7;
+                            errorMessage = `Untuk TPQ2/SD2, usia harus 7-8 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                        }
+                        break;
+
+                    case 6: // TPQ3/SD3
+                        // Untuk TPQ3/SD3: usia 8-9 tahun
+                        if (umur < 8 || umur > 9) {
+                            isValid = false;
+                            const minTahun = today.getFullYear() - 9;
+                            const maxTahun = today.getFullYear() - 8;
+                            errorMessage = `Untuk TPQ3/SD3, usia harus 8-9 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                        }
+                        break;
+
+                    case 7: // TPQ4/SD4
+                        // Untuk TPQ4/SD4: usia 9-10 tahun
+                        if (umur < 9 || umur > 10) {
+                            isValid = false;
+                            const minTahun = today.getFullYear() - 10;
+                            const maxTahun = today.getFullYear() - 9;
+                            errorMessage = `Untuk TPQ4/SD4, usia harus 9-10 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                        }
+                        break;
+
+                    case 8: // TPQ5/SD5
+                        // Untuk TPQ5/SD5: usia 10-11 tahun
+                        if (umur < 10 || umur > 11) {
+                            isValid = false;
+                            const minTahun = today.getFullYear() - 11;
+                            const maxTahun = today.getFullYear() - 10;
+                            errorMessage = `Untuk TPQ5/SD5, usia harus 10-11 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                        }
+                        break;
+
+                    case 9: // TPQ6/SD6
+                        // Untuk TPQ6/SD6: usia 11-12 tahun
+                        if (umur < 11 || umur > 12) {
+                            isValid = false;
+                            const minTahun = today.getFullYear() - 12;
+                            const maxTahun = today.getFullYear() - 11;
+                            errorMessage = `Untuk TPQ6/SD6, usia harus 11-12 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                        }
+                        break;
+
+                    default:
+                        isValid = false;
+                        errorMessage = 'Silakan pilih kelas terlebih dahulu';
+                }
+
+                if (!isValid) {
+                    // Tampilkan pesan error
+                    const errorDiv = document.createElement('div');
+                    errorDiv.id = 'TanggalLahirError';
+                    errorDiv.className = 'alert alert-danger mt-2';
+                    errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
+                    tanggalLahirInput.parentElement.appendChild(errorDiv);
+                    return false;
+                }
+
+                return true;
+            }
+
+            // Tambahkan event listener untuk perubahan tanggal lahir dan kelas
+            tanggalLahirInput.addEventListener('change', validateTanggalLahir);
+            kelasSelect.addEventListener('change', validateTanggalLahir);
+
+            // Tambahkan validasi saat form disubmit
+            const santriForm = document.getElementById('santriForm');
+            if (santriForm) {
+                santriForm.addEventListener('submit', function(e) {
+                    if (!validateTanggalLahir()) {
+                        e.preventDefault(); // Mencegah form disubmit jika validasi gagal
+                    }
+                });
+            }
+        });
+        /* ===== End Region: Validasi Tanggal Lahir Santri ===== */
     </script>
 
     <?= $this->endSection(); ?>
