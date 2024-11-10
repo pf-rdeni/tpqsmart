@@ -2759,7 +2759,7 @@
 
                 // Fungsi helper untuk format pesan error
                 const formatErrorMessage = (kelasName, minAge, maxAge) => {
-                    return `Untuk ${kelasName}, usia kisaran antara ${minAge}-${maxAge} tahun (lahir tahun ${today.getFullYear()-maxAge} sampai ${today.getFullYear()-minAge})`;
+                    return `Untuk kelas ${kelasName} yang dipilih, usia kisaran antara ${minAge}-${maxAge} tahun (lahir tahun ${today.getFullYear()-maxAge} sampai ${today.getFullYear()-minAge})`;
                 };
 
                 // Validasi berdasarkan ID kelas
@@ -2772,7 +2772,7 @@
                             isValid = false;
                             const minTahun = today.getFullYear() - 7; // Tahun untuk usia maksimal (7 tahun)
                             const maxTahun = today.getFullYear() - 4; // Tahun untuk usia minimal (4 tahun) 
-                            errorMessage = `Untuk TK/TKA/TKB, usia harus 4-7 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                            errorMessage = formatErrorMessage('TK/TKA/TKB', 4, 7);
                         }
                         break;
 
@@ -2782,7 +2782,7 @@
                             isValid = false;
                             const minTahun = today.getFullYear() - 7;
                             const maxTahun = today.getFullYear() - 6;
-                            errorMessage = `Untuk TPQ1/SD1, usia harus 6-7 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                            errorMessage = formatErrorMessage('TPQ1/SD1', 6, 7);
                         }
                         break;
 
@@ -2792,7 +2792,7 @@
                             isValid = false;
                             const minTahun = today.getFullYear() - 8;
                             const maxTahun = today.getFullYear() - 7;
-                            errorMessage = `Untuk TPQ2/SD2, usia harus 7-8 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                            errorMessage = formatErrorMessage('TPQ2/SD2', 7, 8);
                         }
                         break;
 
@@ -2802,7 +2802,7 @@
                             isValid = false;
                             const minTahun = today.getFullYear() - 9;
                             const maxTahun = today.getFullYear() - 8;
-                            errorMessage = `Untuk TPQ3/SD3, usia harus 8-9 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                            errorMessage = formatErrorMessage('TPQ3/SD3', 8, 9);
                         }
                         break;
 
@@ -2812,7 +2812,7 @@
                             isValid = false;
                             const minTahun = today.getFullYear() - 10;
                             const maxTahun = today.getFullYear() - 9;
-                            errorMessage = `Untuk TPQ4/SD4, usia harus 9-10 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                            errorMessage = formatErrorMessage('TPQ4/SD4', 9, 10);
                         }
                         break;
 
@@ -2822,7 +2822,7 @@
                             isValid = false;
                             const minTahun = today.getFullYear() - 11;
                             const maxTahun = today.getFullYear() - 10;
-                            errorMessage = `Untuk TPQ5/SD5, usia harus 10-11 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                            errorMessage = formatErrorMessage('TPQ5/SD5', 10, 11);
                         }
                         break;
 
@@ -2832,7 +2832,7 @@
                             isValid = false;
                             const minTahun = today.getFullYear() - 12;
                             const maxTahun = today.getFullYear() - 11;
-                            errorMessage = `Untuk TPQ6/SD6, usia harus 11-12 tahun (lahir antara tahun ${minTahun} sampai ${maxTahun})`;
+                            errorMessage = formatErrorMessage('TPQ6/SD6', 11, 12);
                         }
                         break;
 
@@ -2845,7 +2845,7 @@
                     // Tampilkan pesan error
                     const errorDiv = document.createElement('div');
                     errorDiv.id = 'TanggalLahirError';
-                    errorDiv.className = 'alert alert-danger mt-2';
+                    errorDiv.className = 'alert alert-danger mt-2 small';
                     errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
                     tanggalLahirInput.parentElement.appendChild(errorDiv);
                     return false;
