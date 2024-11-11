@@ -15,7 +15,7 @@
                         <div class="card-body p-0">
                             <div class="alert alert-warning alert-dismissible fade show" role="alert">
                                 <i class="fas fa-exclamation-triangle mr-2"></i>
-                                <strong>Perhatian..!</strong> Kolom isian dengan tanda <span class="text-danger font-weight-bold">*</span> merah adalah wajib diisi.
+                                <strong>Perhatian..!</strong> Kolom isian dengan tanda <span class="text-danger font-weight-bold">*</span> merah adalah harus diisi.
                                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
@@ -383,7 +383,7 @@
                                                     <!-- Bagian Cita-Cita -->
                                                     <div class="col-md-6">
                                                         <label for="CitaCita">Cita-Cita<span class="text-danger font-weight-bold">*</span></label>
-                                                        <select class="form-control" id="CitaCita" name="CitaCita" onchange="toggleCitaCitaLainya()" <?= $required ?>>
+                                                        <select class="form-control" id="CitaCita" name="CitaCita" <?= $required ?>>
                                                             <option value="">Pilih Cita-Cita</option>
                                                             <option value="PNS">PNS</option>
                                                             <option value="TNI/Polri">TNI/Polri</option>
@@ -400,7 +400,7 @@
                                                     <!-- Bagian Hobi -->
                                                     <div class="col-md-6">
                                                         <label for="Hobi">Hobi<span class="text-danger font-weight-bold">*</span></label>
-                                                        <select class="form-control" id="Hobi" name="Hobi" onchange="toggleHobiLainya()" <?= $required ?>>
+                                                        <select class="form-control" id="Hobi" name="Hobi" <?= $required ?>>
                                                             <option value="">Pilih Hobi</option>
                                                             <option value="Olahraga">Olahraga</option>
                                                             <option value="Kesenian">Kesenian</option>
@@ -439,7 +439,7 @@
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <label for="KebutuhanKhusus">Kebutuhan Khusus</label>
-                                                        <select class="form-control" id="KebutuhanKhusus" name="KebutuhanKhusus" onchange="toggleKebutuhanKhususLainya()">
+                                                        <select class="form-control" id="KebutuhanKhusus" name="KebutuhanKhusus">
                                                             <option value="Tidak Ada">Tidak Ada</option>
                                                             <option value="Lamban Belajar">Lamban Belajar</option>
                                                             <option value="Kesulitan Belajar Spesific">Kesulitan Belajar Spesific</option>
@@ -449,7 +449,7 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="KebutuhanDisabilitas">Kebutuhan Disabilitas</label>
-                                                        <select class="form-control" id="KebutuhanDisabilitas" name="KebutuhanDisabilitas" onchange="toggleKebutuhanDisabilitasLainya()">
+                                                        <select class="form-control" id="KebutuhanDisabilitas" name="KebutuhanDisabilitas">
                                                             <option value="Tidak Ada">Tidak Ada</option>
                                                             <option value="Tuna Netra">Tuna Netra</option>
                                                             <option value="Tuna Wicara">Tuna Wicara</option>
@@ -473,19 +473,6 @@
                                                         <input type="text" class="form-control" id="KebutuhanDisabilitasLainya" placeholder="Masukkan kebutuhan disabilitas lainnya" disabled>
                                                     </div>
                                                 </div>
-                                                <script>
-                                                    function toggleKebutuhanKhususLainya() {
-                                                        const kebutuhanKhusus = document.getElementById("KebutuhanKhusus").value;
-                                                        const kebutuhanKhususLainya = document.getElementById("KebutuhanKhususLainya");
-                                                        kebutuhanKhususLainya.disabled = kebutuhanKhusus !== "Lainya";
-                                                    }
-
-                                                    function toggleKebutuhanDisabilitasLainya() {
-                                                        const kebutuhanDisabilitas = document.getElementById("KebutuhanDisabilitas").value;
-                                                        const kebutuhanDisabilitasLainya = document.getElementById("KebutuhanDisabilitasLainya");
-                                                        kebutuhanDisabilitasLainya.disabled = kebutuhanDisabilitas !== "Lainya";
-                                                    }
-                                                </script>
                                             </div>
                                             <div class="form-group">
                                                 <div class="row">
@@ -2138,7 +2125,7 @@
 
             if (!isValid) {
                 event.preventDefault(); // Mencegah pengiriman form jika ada yang tidak valid
-                alert('Mohon isi semua bidang yang wajib diisi sebelum mengirim formulir.');
+                alert('Mohon isi semua bidang yang harus diisi sebelum mengirim formulir.');
             }
         });
 
@@ -2449,7 +2436,7 @@
                 const pola = /^[1-9]\d{15}$/;
 
                 if (nilai === '') {
-                    tampilkanError(`${inputId.replace('Nik', '')} NIK wajib diisi.`);
+                    tampilkanError(`${inputId.replace('Nik', '')} NIK ha diisi.`);
                     return false;
                 } else if (nilai === '0000000000000000') {
                     tampilkanError(`${inputId.replace('Nik', '')} NIK tidak boleh terdiri dari 16 angka 0.`);
@@ -2897,7 +2884,7 @@
                 // Validasi jika input kosong
                 if (!inputElement.value.trim()) {
                     errorSpan.style.display = "block";
-                    errorSpan.textContent = `${labelText} wajib diisi`;
+                    errorSpan.textContent = `${labelText} harus diisi`;
                     inputElement.classList.remove('is-valid');
                     inputElement.classList.add('is-invalid');
                 }
@@ -2969,7 +2956,7 @@
                     if (this.required) {
                         if (!this.value.trim()) {
                             errorSpan.style.display = "block";
-                            errorSpan.textContent = `${field.labelText} wajib diisi`;
+                            errorSpan.textContent = `${field.labelText} harus diisi`;
                             this.classList.remove('is-valid');
                             this.classList.add('is-invalid');
                         } else {
@@ -2984,30 +2971,6 @@
                 toggleLainnyaInput(field.selectId, field.inputId, field.errorId, field.labelText);
             });
 
-            // Tambahkan CSS untuk styling validasi
-            if (!document.getElementById('validationStyles')) {
-                const style = document.createElement('style');
-                style.id = 'validationStyles';
-                style.textContent = `
-                    .is-valid {
-                        border-color: #28a745 !important;
-                        padding-right: calc(1.5em + 0.75rem) !important;
-                        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e") !important;
-                        background-repeat: no-repeat !important;
-                        background-position: right calc(0.375em + 0.1875rem) center !important;
-                        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
-                    }
-                    .is-invalid {
-                        border-color: #dc3545 !important;
-                        padding-right: calc(1.5em + 0.75rem) !important;
-                        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23dc3545' viewBox='-2 -2 7 7'%3e%3cpath stroke='%23dc3545' d='M0 0l3 3m0-3L0 3'/%3e%3ccircle r='.5'/%3e%3ccircle cx='3' r='.5'/%3e%3ccircle cy='3' r='.5'/%3e%3ccircle cx='3' cy='3' r='.5'/%3e%3c/svg%3E") !important;
-                        background-repeat: no-repeat !important;
-                        background-position: right calc(0.375em + 0.1875rem) center !important;
-                        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
-                    }
-                `;
-                document.head.appendChild(style);
-            }
         });
     </script>
 
