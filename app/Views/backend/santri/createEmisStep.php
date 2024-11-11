@@ -292,6 +292,7 @@
                                                     <div class="col-md-6">
                                                         <label for="TanggalLahirSantri">Tanggal Lahir<span class="text-danger font-weight-bold">*</span></label>
                                                         <input type="date" class="form-control" id="TanggalLahirSantri" name="TanggalLahirSantri" <?= $required ?>>
+                                                        <span id="TanggalLahirSantriError" class="text-danger" style="display:none;"></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -299,11 +300,11 @@
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <label for="JumlahSaudara">Jumlah Saudara<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan jumlah saudara" <?= $required ?> oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                        <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan angka jumlah saudara" <?= $required ?> oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="AnakKe">Anak Ke<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control" id="AnakKe" name="AnakKe" placeholder="Masukkan anak ke berapa" <?= $required ?> oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                        <input type="text" class="form-control" id="AnakKe" name="AnakKe" placeholder="Masukkan angka anak ke berapa" <?= $required ?> oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                     </div>
                                                 </div>
                                             </div>
@@ -330,6 +331,19 @@
                                                         // Validasi input harus berupa angka positif
                                                         if (jumlahSaudaraValue < 0 || anakKeValue < 0) {
                                                             showError('Jumlah saudara dan anak ke tidak boleh negatif');
+                                                            return false;
+                                                        }
+
+                                                        // Validasi maksimal input 10
+                                                        if (jumlahSaudaraValue > 10) {
+                                                            showError('Sistem saat ini membatasi maksimal 10 saudara. Jika jumlah saudara lebih dari 10, silakan hubungi admin untuk bantuan lebih lanjut.');
+                                                            jumlahSaudara.value = '10';
+                                                            return false;
+                                                        }
+
+                                                        if (anakKeValue > 10) {
+                                                            showError('Sistem saat ini membatasi maksimal anak ke-10. Jika nomor urut anak lebih dari 10, silakan hubungi admin untuk bantuan lebih lanjut.');
+                                                            anakKe.value = '10';
                                                             return false;
                                                         }
 
@@ -370,7 +384,7 @@
                                                     <div class="col-md-6">
                                                         <label for="CitaCita">Cita-Cita<span class="text-danger font-weight-bold">*</span></label>
                                                         <select class="form-control" id="CitaCita" name="CitaCita" onchange="toggleCitaCitaLainya()" <?= $required ?>>
-                                                            <option value="">-- Pilih Cita-Cita --</option>
+                                                            <option value="">Pilih Cita-Cita</option>
                                                             <option value="PNS">PNS</option>
                                                             <option value="TNI/Polri">TNI/Polri</option>
                                                             <option value="Guru/Dosen">Guru/Dosen</option>
@@ -383,18 +397,11 @@
                                                             <option value="Lainnya">Lainnya</option>
                                                         </select>
                                                     </div>
-                                                    <div class="col-md-6">
-                                                        <label for="CitaCitaLainya">Cita-Cita Lainnya</label>
-                                                        <input type="text" class="form-control" id="CitaCitaLainya" name="CitaCitaLainya" placeholder="Ketik cita-cita lainnya" disabled>
-                                                    </div>
-                                                </div>
-
-                                                <div class="row mt-3">
                                                     <!-- Bagian Hobi -->
                                                     <div class="col-md-6">
                                                         <label for="Hobi">Hobi<span class="text-danger font-weight-bold">*</span></label>
                                                         <select class="form-control" id="Hobi" name="Hobi" onchange="toggleHobiLainya()" <?= $required ?>>
-                                                            <option value="">-- Pilih Hobi --</option>
+                                                            <option value="">Pilih Hobi</option>
                                                             <option value="Olahraga">Olahraga</option>
                                                             <option value="Kesenian">Kesenian</option>
                                                             <option value="Membaca">Membaca</option>
@@ -403,27 +410,18 @@
                                                             <option value="Lainnya">Lainnya</option>
                                                         </select>
                                                     </div>
+                                                </div>
+
+                                                <div class="row mt-3">
+                                                    <div class="col-md-6">
+                                                        <label for="CitaCitaLainya">Cita-Cita Lainnya</label>
+                                                        <input type="text" class="form-control" id="CitaCitaLainya" name="CitaCitaLainya" placeholder="Ketik cita-cita lainnya" disabled>
+                                                    </div>
                                                     <div class="col-md-6">
                                                         <label for="HobiLainya">Hobi Lainnya</label>
                                                         <input type="text" class="form-control" id="HobiLainya" placeholder="Ketik hobi lainnya" disabled>
                                                     </div>
                                                 </div>
-
-                                                <script>
-                                                    function toggleCitaCitaLainya() {
-                                                        const citaCita = document.getElementById("CitaCita").value;
-                                                        const citaCitaLainya = document.getElementById("CitaCitaLainya");
-                                                        // Aktifkan input CitaCitaLainya jika "Lainnya" dipilih
-                                                        citaCitaLainya.disabled = citaCita !== "Lainnya";
-                                                    }
-
-                                                    function toggleHobiLainya() {
-                                                        const hobi = document.getElementById("Hobi").value;
-                                                        const hobiLainya = document.getElementById("HobiLainya");
-                                                        // Aktifkan input HobiLainya jika "Lainnya" dipilih
-                                                        hobiLainya.disabled = hobi !== "Lainnya";
-                                                    }
-                                                </script>
                                             </div>
                                             <div class="form-group">
                                                 <div class="row">
@@ -450,14 +448,6 @@
                                                         </select>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label for="KebutuhanKhususLainya">Kebutuhan Khusus Lainya</label>
-                                                        <input type="text" class="form-control" id="KebutuhanKhususLainya" name="KebutuhanKhususLainya" placeholder="Masukkan kebutuhan khusus lainnya" disabled>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <div class="row">
-                                                    <div class="col-md-6">
                                                         <label for="KebutuhanDisabilitas">Kebutuhan Disabilitas</label>
                                                         <select class="form-control" id="KebutuhanDisabilitas" name="KebutuhanDisabilitas" onchange="toggleKebutuhanDisabilitasLainya()">
                                                             <option value="Tidak Ada">Tidak Ada</option>
@@ -469,6 +459,14 @@
                                                             <option value="Tuna Daksa">Tuna Daksa</option>
                                                             <option value="Lainya">Lainya</option>
                                                         </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label for="KebutuhanKhususLainya">Kebutuhan Khusus Lainya</label>
+                                                        <input type="text" class="form-control" id="KebutuhanKhususLainya" name="KebutuhanKhususLainya" placeholder="Masukkan kebutuhan khusus lainnya" disabled>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="KebutuhanDisabilitasLainya">Kebutuhan Disabilitas Lainya</label>
@@ -560,7 +558,26 @@
                                                             }
                                                         });
                                                     </script>
-
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label for="IdKartuKeluarga">No Kartu Keluarga (KK)</label>
+                                                        <input type="text" class="form-control" id="IdKartuKeluarga" name="IdKartuKeluarga" placeholder="Masukkan nomor KK"
+                                                            pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                        <small class="text-muted">Nomor KK harus 16 digit angka</small>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label for="FileKkSantri">Upload KK Santri</label>
+                                                        <div class="input-group">
+                                                            <div class="custom-file">
+                                                                <input type="file" class="form-control" id="FileKkSantri" name="FileKkSantri" onchange="validateFile('FileKkSantri')" accept=".pdf,.jpg,.jpeg,.png">
+                                                                <label class="custom-file-label" for="FileKkSantri">Unggah KK</label>
+                                                            </div>
+                                                        </div>
+                                                        <small id="FileKKError" class="text-danger d-none"></small>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="form-group">
@@ -572,36 +589,14 @@
                                                         <small class="text-muted">Nomor KIP harus 16 digit angka</small>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label for="IdKartuKeluarga">No Kartu Keluarga (KK)</label>
-                                                        <input type="text" class="form-control" id="IdKartuKeluarga" name="IdKartuKeluarga" placeholder="Masukkan nomor KK"
-                                                            pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                                                        <small class="text-muted">Nomor KK harus 16 digit angka</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <div class="row">
-                                                    <div class="col-md-6">
                                                         <label for="FileKIP">Upload KIP</label>
                                                         <div class="input-group mb-3">
                                                             <div class="custom-file">
                                                                 <input type="file" class="form-control" id="FileKIP" name="FileKIP" onchange="previewFile('FileKIP')" accept=".pdf,.jpg,.jpeg,.png">
                                                                 <label class="custom-file-label" for="FileKIP">Unggah KIP</label>
                                                             </div>
-                                                            <!-- div input-group-append dihapus -->
                                                         </div>
                                                         <small id="FileKIPError" class="text-danger d-none"></small>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label for="FileKkSantri">Upload KK Santri</label>
-                                                        <div class="input-group">
-                                                            <div class="custom-file">
-                                                                <input type="file" class="form-control" id="FileKkSantri" name="FileKkSantri" onchange="validateFile('FileKkSantri')" accept=".pdf,.jpg,.jpeg,.png">
-                                                                <label class="custom-file-label" for="FileKkSantri">Unggah KK</label>
-                                                            </div>
-                                                            <!-- div input-group-append dihapus -->
-                                                        </div>
-                                                        <small id="FileKKError" class="text-danger d-none"></small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2743,6 +2738,18 @@
 
             function validateTanggalLahir() {
                 const selectedKelasId = parseInt(kelasSelect.value); // Mengambil ID kelas sebagai number
+
+                // Abaikan validasi jika input kosong
+                if (!tanggalLahirInput.value) {
+                    // Hapus semua class validasi dan pesan error
+                    tanggalLahirInput.classList.remove('is-invalid', 'is-valid');
+                    const existingError = document.getElementById('TanggalLahirError');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+                    return true;
+                }
+
                 const tanggalLahir = new Date(tanggalLahirInput.value);
                 const today = new Date();
                 const umur = today.getFullYear() - tanggalLahir.getFullYear();
@@ -2841,7 +2848,13 @@
                         errorMessage = 'Silakan pilih kelas terlebih dahulu';
                 }
 
+                // ... existing code ...
+
                 if (!isValid) {
+                    // Tambahkan class is-invalid pada input
+                    tanggalLahirInput.classList.add('is-invalid');
+                    tanggalLahirInput.classList.remove('is-valid');
+
                     // Tampilkan pesan error
                     const errorDiv = document.createElement('div');
                     errorDiv.id = 'TanggalLahirError';
@@ -2849,6 +2862,11 @@
                     errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
                     tanggalLahirInput.parentElement.appendChild(errorDiv);
                     return false;
+                } else {
+                    // Jika valid, hapus class is-invalid dan tambahkan is-valid
+                    tanggalLahirInput.classList.remove('is-invalid');
+                    tanggalLahirInput.classList.add('is-valid');
+                    return true;
                 }
 
                 return true;
@@ -2857,18 +2875,145 @@
             // Tambahkan event listener untuk perubahan tanggal lahir dan kelas
             tanggalLahirInput.addEventListener('change', validateTanggalLahir);
             kelasSelect.addEventListener('change', validateTanggalLahir);
+            // Tambahkan validasi tanggal lahir saat tombol next ditekan
+            document.querySelector('button[onclick="validateAndNext(\'santri-part\')"]').addEventListener('click', function() {
+                // Validasi tanggal lahir
+                validateTanggalLahir();
+            });
 
-            // Tambahkan validasi saat form disubmit
-            const santriForm = document.getElementById('santriForm');
-            if (santriForm) {
-                santriForm.addEventListener('submit', function(e) {
-                    if (!validateTanggalLahir()) {
-                        e.preventDefault(); // Mencegah form disubmit jika validasi gagal
-                    }
-                });
-            }
         });
         /* ===== End Region: Validasi Tanggal Lahir Santri ===== */
+
+        // Fungsi reusable untuk menangani semua input "Lainnya"
+        function toggleLainnyaInput(selectId, inputId, errorId, labelText) {
+            const selectElement = document.getElementById(selectId);
+            const inputElement = document.getElementById(inputId);
+            const inputParent = inputElement.parentElement;
+            const errorSpan = document.getElementById(errorId) || createErrorSpan(errorId);
+            const isLainnya = selectElement.value === "Lainnya" || selectElement.value === "Lainya"; // Handle kedua kemungkinan spelling
+
+            // Toggle display dan required state
+            if (isLainnya) {
+                inputParent.style.display = "block";
+                inputElement.disabled = false;
+                inputElement.required = true;
+                $(inputParent).show();
+
+                // Validasi jika input kosong
+                if (!inputElement.value.trim()) {
+                    errorSpan.style.display = "block";
+                    errorSpan.textContent = `${labelText} wajib diisi`;
+                    inputElement.classList.remove('is-valid');
+                    inputElement.classList.add('is-invalid');
+                }
+            } else {
+                inputParent.style.display = "none";
+                inputElement.disabled = true;
+                inputElement.required = false;
+                inputElement.value = "";
+                inputElement.classList.remove('is-valid', 'is-invalid');
+                errorSpan.style.display = "none";
+                $(inputParent).hide();
+            }
+        }
+
+        // Fungsi untuk membuat span error
+        function createErrorSpan(id) {
+            const span = document.createElement("span");
+            span.id = id;
+            span.className = "text-danger";
+            span.style.display = "none";
+
+            const inputId = id.replace('Error', '');
+            const parentElement = document.getElementById(inputId).parentElement;
+            parentElement.appendChild(span);
+            return span;
+        }
+
+        // Event listener saat dokumen dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            // Konfigurasi untuk semua field yang memiliki opsi "Lainnya"
+            const lainnyaFields = [{
+                    selectId: 'CitaCita',
+                    inputId: 'CitaCitaLainya',
+                    errorId: 'CitaCitaLainyaError',
+                    labelText: 'Cita-cita lainnya'
+                },
+                {
+                    selectId: 'Hobi',
+                    inputId: 'HobiLainya',
+                    errorId: 'HobiLainyaError',
+                    labelText: 'Hobi lainnya'
+                },
+                {
+                    selectId: 'KebutuhanKhusus',
+                    inputId: 'KebutuhanKhususLainya',
+                    errorId: 'KebutuhanKhususLainyaError',
+                    labelText: 'Kebutuhan khusus lainnya'
+                },
+                {
+                    selectId: 'KebutuhanDisabilitas',
+                    inputId: 'KebutuhanDisabilitasLainya',
+                    errorId: 'KebutuhanDisabilitasLainyaError',
+                    labelText: 'Kebutuhan disabilitas lainnya'
+                }
+            ];
+
+            // Setup event listeners dan inisialisasi untuk semua field
+            lainnyaFields.forEach(field => {
+                // Setup change event untuk select
+                const selectElement = document.getElementById(field.selectId);
+                selectElement.addEventListener('change', function() {
+                    toggleLainnyaInput(field.selectId, field.inputId, field.errorId, field.labelText);
+                });
+
+                // Setup input validation
+                const inputElement = document.getElementById(field.inputId);
+                inputElement.addEventListener('input', function() {
+                    const errorSpan = document.getElementById(field.errorId);
+                    if (this.required) {
+                        if (!this.value.trim()) {
+                            errorSpan.style.display = "block";
+                            errorSpan.textContent = `${field.labelText} wajib diisi`;
+                            this.classList.remove('is-valid');
+                            this.classList.add('is-invalid');
+                        } else {
+                            errorSpan.style.display = "none";
+                            this.classList.remove('is-invalid');
+                            this.classList.add('is-valid');
+                        }
+                    }
+                });
+
+                // Inisialisasi tampilan awal
+                toggleLainnyaInput(field.selectId, field.inputId, field.errorId, field.labelText);
+            });
+
+            // Tambahkan CSS untuk styling validasi
+            if (!document.getElementById('validationStyles')) {
+                const style = document.createElement('style');
+                style.id = 'validationStyles';
+                style.textContent = `
+                    .is-valid {
+                        border-color: #28a745 !important;
+                        padding-right: calc(1.5em + 0.75rem) !important;
+                        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e") !important;
+                        background-repeat: no-repeat !important;
+                        background-position: right calc(0.375em + 0.1875rem) center !important;
+                        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
+                    }
+                    .is-invalid {
+                        border-color: #dc3545 !important;
+                        padding-right: calc(1.5em + 0.75rem) !important;
+                        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23dc3545' viewBox='-2 -2 7 7'%3e%3cpath stroke='%23dc3545' d='M0 0l3 3m0-3L0 3'/%3e%3ccircle r='.5'/%3e%3ccircle cx='3' r='.5'/%3e%3ccircle cy='3' r='.5'/%3e%3ccircle cx='3' cy='3' r='.5'/%3e%3c/svg%3E") !important;
+                        background-repeat: no-repeat !important;
+                        background-position: right calc(0.375em + 0.1875rem) center !important;
+                        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        });
     </script>
 
     <?= $this->endSection(); ?>
