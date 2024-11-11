@@ -569,14 +569,14 @@
                                                         <small class="text-muted">Nomor KK harus 16 digit angka</small>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label for="FileKkSantri">Upload KK Santri</label>
+                                                        <label for="FileKKSantri">Upload KK Santri</label>
                                                         <div class="input-group">
                                                             <div class="custom-file">
-                                                                <input type="file" class="form-control" id="FileKkSantri" name="FileKkSantri" onchange="validateFile('FileKkSantri')" accept=".pdf,.jpg,.jpeg,.png">
-                                                                <label class="custom-file-label" for="FileKkSantri">Unggah KK</label>
+                                                                <input type="file" class="form-control" id="FileKKSantri" name="FileKKSantri" accept=".pdf,.jpg,.jpeg,.png">
+                                                                <label class="custom-file-label" for="FileKKSantri">Unggah KK</label>
                                                             </div>
                                                         </div>
-                                                        <small id="FileKKError" class="text-danger d-none"></small>
+                                                        <small id="FileKKSantriError" class="text-danger d-none"></small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -592,7 +592,7 @@
                                                         <label for="FileKIP">Upload KIP</label>
                                                         <div class="input-group mb-3">
                                                             <div class="custom-file">
-                                                                <input type="file" class="form-control" id="FileKIP" name="FileKIP" onchange="previewFile('FileKIP')" accept=".pdf,.jpg,.jpeg,.png">
+                                                                <input type="file" class="form-control" id="FileKIP" name="FileKIP" accept=".pdf,.jpg,.jpeg,.png">
                                                                 <label class="custom-file-label" for="FileKIP">Unggah KIP</label>
                                                             </div>
                                                         </div>
@@ -1221,30 +1221,24 @@
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <div class="form-group">
-                                                        <label for="fileKKS">Unggah File KKS</label>
+                                                        <label for="FileKKS">Unggah File KKS</label>
                                                         <div class="input-group mb-3">
                                                             <div class="custom-file">
-                                                                <input type="file" class="form-control" id="fileKKS" name="fileKKS" onchange="previewFile('fileKKS')" accept=".pdf,.jpg,.jpeg,.png">
-                                                                <label class="custom-file-label" for="fileKKS">Pilih file KKS</label>
+                                                                <input type="file" class="form-control" id="FileKKS" name="FileKKS" accept=".pdf,.jpg,.jpeg,.png">
+                                                                <label class="custom-file-label" for="FileKKS">Pilih file KKS</label>
                                                             </div>
-                                                            <!-- div input-group-append dihapus -->
-                                                        </div>
-                                                        <div class="mt-2" id="previewKKS" style="display:none;">
-                                                            <img id="previewImageKKS" src="" alt="Preview KKS" style="max-width:200px; max-height:200px; display:none;" class="img-thumbnail">
-                                                            <embed id="previewPdfKKS" src="" type="application/pdf" width="100%" height="200px" style="display:none;">
                                                         </div>
                                                         <small id="FileKKSError" class="text-danger d-none"></small>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="form-group">
-                                                        <label for="filePKH">Unggah File PKH</label>
+                                                        <label for="FilePKH">Unggah File PKH</label>
                                                         <div class="input-group mb-3">
                                                             <div class="custom-file">
-                                                                <input type="file" class="form-control" id="filePKH" name="filePKH" onchange="previewFile('filePKH')" accept=".pdf,.jpg,.jpeg,.png">
-                                                                <label class="custom-file-label" for="filePKH">Pilih file PKH</label>
+                                                                <input type="file" class="form-control" id="FilePKH" name="FilePKH" accept=".pdf,.jpg,.jpeg,.png">
+                                                                <label class="custom-file-label" for="FilePKH">Pilih file PKH</label>
                                                             </div>
-                                                            <!-- div input-group-append dihapus -->
                                                         </div>
                                                         <small id="FilePKHError" class="text-danger d-none"></small>
                                                     </div>
@@ -2363,6 +2357,7 @@
                     }
 
                     if (errorElement) {
+                        cancelFileUpload(inputId);
                         let errorMsg = [];
                         if (!allowedTypes.includes(fileType)) {
                             errorMsg.push(`Format file yang dipilih "${file.name}" (${fileType}) tidak valid. Format harus JPG, PNG, atau PDF`);
@@ -2583,7 +2578,7 @@
          */
         document.addEventListener('DOMContentLoaded', function() {
             // Logika untuk KK Santri dan KK Ayah
-            const fileKkSantri = document.getElementById('FileKkSantri');
+            const FileKKSantri = document.getElementById('FileKKSantri');
             const KkAyahSamaDenganSantri = document.getElementById('KkAyahSamaDenganSantri');
             const fileKKAyahDiv = document.getElementById('FileKKAyahDiv');
             const fileKkAyah = document.getElementById('FileKkAyah');
@@ -2598,7 +2593,7 @@
 
             // Fungsi untuk mengupdate status checkbox KK Ayah
             function updateKKAyahState() {
-                const santriHasKK = fileKkSantri.files.length > 0;
+                const santriHasKK = FileKKSantri.files.length > 0;
                 const ayahHidup = statusAyah.value === 'Masih Hidup';
 
                 // Aktifkan checkbox hanya jika semua kondisi terpenuhi
@@ -2640,7 +2635,7 @@
             // Fungsi untuk mengupdate status checkbox KK Ibu
             function updateKKIbuState() {
                 const ibuHidup = statusIbu.value === 'Masih Hidup';
-                const santriHasKK = fileKkSantri.files.length > 0;
+                const santriHasKK = FileKKSantri.files.length > 0;
                 const ayahHasKK = fileKkAyah.files.length > 0 || KkAyahSamaDenganSantri.checked;
 
                 // Ubah logika - Ibu bisa menggunakan KK Santri terlepas dari status Ayah
@@ -2693,7 +2688,7 @@
             }
 
             // Event listeners untuk KK Santri dan Ayah
-            fileKkSantri.addEventListener('change', updateKKAyahState);
+            FileKKSantri.addEventListener('change', updateKKAyahState);
             statusAyah.addEventListener('change', function() {
                 updateKKAyahState();
                 updateKKIbuState();
