@@ -81,39 +81,6 @@ $required = 'required'; //required
                                         </select>
                                         <span id="tpqNameError" class="text-danger" style="display:none;">Nama TPQ diperlukan.</span>
                                     </div>
-                                    <script>
-                                        document.addEventListener('DOMContentLoaded', function() {
-                                            const kelurahanSelect = document.getElementById('KelurahanDesaSantri');
-                                            const tpqSelect = document.getElementById('IdTpq');
-                                            const originalTpqOptions = Array.from(tpqSelect.options);
-
-                                            // Sembunyikan select TPQ saat pertama kali
-                                            tpqSelect.parentElement.style.display = 'none';
-
-                                            kelurahanSelect.addEventListener('change', function() {
-                                                const selectedKelurahan = this.value;
-
-                                                // Reset TPQ select
-                                                tpqSelect.innerHTML = '<option value="">Pilih Nama TPQ</option>';
-
-                                                if (selectedKelurahan) {
-                                                    // Tampilkan select TPQ
-                                                    tpqSelect.parentElement.style.display = 'block';
-
-                                                    // Filter TPQ berdasarkan kelurahan yang dipilih
-                                                    originalTpqOptions.forEach(option => {
-                                                        if (option.value && option.text.includes(selectedKelurahan)) {
-                                                            tpqSelect.add(option.cloneNode(true));
-                                                        }
-                                                    });
-                                                } else {
-                                                    // Sembunyikan select TPQ jika tidak ada kelurahan yang dipilih
-                                                    tpqSelect.parentElement.style.display = 'none';
-                                                }
-                                            });
-                                        });
-                                    </script>
-
                                     <div class="form-group">
                                         <label for="IdKelas">Kelas<span class="text-danger font-weight-bold">*</span></label>
                                         <select class="form-control" id="IdKelas" name="IdKelas" <?= $required ?>>
@@ -164,135 +131,6 @@ $required = 'required'; //required
                                             </div>
                                         </div>
                                     </div>
-                                    <script>
-                                        // Fungsi untuk menampilkan preview foto profil
-                                        function previewPhoto(input) {
-                                            const preview = document.getElementById('previewPhotoProfil');
-                                            const errorDiv = document.getElementById('PhotoProfilError');
-
-                                            errorDiv.style.display = 'none';
-
-                                            if (input.files && input.files[0]) {
-                                                const file = input.files[0];
-
-                                                // Validasi ukuran (max 2MB)
-                                                if (file.size > 2 * 1024 * 1024) {
-                                                    errorDiv.innerHTML = 'Ukuran file terlalu besar (maksimal 2MB)';
-                                                    errorDiv.style.display = 'block';
-                                                    input.value = '';
-                                                    preview.src = '/images/no-photo.jpg';
-                                                    return;
-                                                }
-
-                                                // Validasi tipe file
-                                                const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-                                                if (!validTypes.includes(file.type)) {
-                                                    errorDiv.innerHTML = 'Format file tidak valid (gunakan JPG, JPEG, atau PNG)';
-                                                    errorDiv.style.display = 'block';
-                                                    input.value = '';
-                                                    preview.src = '/images/no-photo.jpg';
-                                                    return;
-                                                }
-
-                                                // Tampilkan preview
-                                                try {
-                                                    const reader = new FileReader();
-                                                    reader.onload = function(e) {
-                                                        preview.src = e.target.result;
-                                                    };
-                                                    reader.readAsDataURL(file);
-                                                } catch (error) {
-                                                    console.error('Error saat membaca file:', error);
-                                                    errorDiv.innerHTML = 'Terjadi kesalahan saat memproses file';
-                                                    errorDiv.style.display = 'block';
-                                                    preview.src = '/images/no-photo.jpg';
-                                                }
-                                            }
-                                        }
-
-                                        // Fungsi untuk membuka kamera
-                                        function openCamera() {
-                                            // Cek apakah browser mendukung getUserMedia
-                                            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                                                // Buat elemen video untuk preview kamera
-                                                const videoPreview = document.createElement('video');
-                                                videoPreview.autoplay = true;
-
-                                                // Buat modal untuk menampilkan preview kamera
-                                                const modal = document.createElement('div');
-                                                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;';
-
-                                                // Tambahkan video ke modal
-                                                modal.appendChild(videoPreview);
-
-                                                // Tambahkan tombol ambil foto
-                                                const captureBtn = document.createElement('button');
-                                                captureBtn.textContent = 'Ambil Foto';
-                                                captureBtn.className = 'btn btn-primary mt-3';
-                                                modal.appendChild(captureBtn);
-
-                                                // Tambahkan tombol tutup
-                                                const closeBtn = document.createElement('button');
-                                                closeBtn.textContent = 'Tutup';
-                                                closeBtn.className = 'btn btn-secondary mt-2';
-                                                modal.appendChild(closeBtn);
-
-                                                // Tambahkan modal ke body
-                                                document.body.appendChild(modal);
-
-                                                // Minta akses kamera
-                                                navigator.mediaDevices.getUserMedia({
-                                                        video: true
-                                                    })
-                                                    .then(stream => {
-                                                        videoPreview.srcObject = stream;
-
-                                                        // Handler untuk tombol ambil foto
-                                                        captureBtn.onclick = () => {
-                                                            // Buat canvas untuk mengambil foto
-                                                            const canvas = document.createElement('canvas');
-                                                            canvas.width = videoPreview.videoWidth;
-                                                            canvas.height = videoPreview.videoHeight;
-                                                            canvas.getContext('2d').drawImage(videoPreview, 0, 0);
-
-                                                            // Konversi ke blob
-                                                            canvas.toBlob(blob => {
-                                                                // Buat file dari blob
-                                                                const file = new File([blob], "camera-photo.jpg", {
-                                                                    type: "image/jpeg"
-                                                                });
-
-                                                                // Buat objek DataTransfer untuk mensimulasikan file input
-                                                                const dataTransfer = new DataTransfer();
-                                                                dataTransfer.items.add(file);
-
-                                                                // Update file input dan preview
-                                                                const photoInput = document.getElementById('PhotoProfil');
-                                                                photoInput.files = dataTransfer.files;
-                                                                previewPhoto(photoInput);
-
-                                                                // Hentikan stream kamera dan tutup modal
-                                                                stream.getTracks().forEach(track => track.stop());
-                                                                document.body.removeChild(modal);
-                                                            }, 'image/jpeg');
-                                                        };
-
-                                                        // Handler untuk tombol tutup
-                                                        closeBtn.onclick = () => {
-                                                            stream.getTracks().forEach(track => track.stop());
-                                                            document.body.removeChild(modal);
-                                                        };
-                                                    })
-                                                    .catch(error => {
-                                                        console.error('Error accessing camera:', error);
-                                                        alert('Gagal mengakses kamera. Pastikan Anda memberikan izin akses kamera.');
-                                                        document.body.removeChild(modal);
-                                                    });
-                                            } else {
-                                                alert('Browser Anda tidak mendukung akses kamera');
-                                            }
-                                        }
-                                    </script>
                                     <div class="form-group row">
                                         <div class="col-md-6">
                                             <label for="NikSantri">NIK Santri<span class="text-danger font-weight-bold">*</span></label>
@@ -361,76 +199,6 @@ $required = 'required'; //required
                                             </div>
                                         </div>
                                     </div>
-                                    <script>
-                                        // Fungsi ini digunakan untuk memvalidasi input jumlah saudara dan anak ke
-                                        // Memastikan:
-                                        // 1. Input tidak boleh negatif
-                                        // 2. Anak ke tidak boleh lebih besar dari jumlah saudara + 1
-                                        // 3. Menampilkan pesan error jika validasi gagal
-                                        document.addEventListener('DOMContentLoaded', function() {
-                                            const jumlahSaudara = document.getElementById('JumlahSaudara');
-                                            const anakKe = document.getElementById('AnakKe');
-
-                                            function validateSaudaraAnakKe() {
-                                                const jumlahSaudaraValue = parseInt(jumlahSaudara.value);
-                                                const anakKeValue = parseInt(anakKe.value);
-
-                                                // Hapus pesan error yang ada
-                                                const existingError = document.getElementById('saudaraAnakKeError');
-                                                if (existingError) {
-                                                    existingError.remove();
-                                                }
-
-                                                // Validasi input harus berupa angka positif
-                                                if (jumlahSaudaraValue < 0 || anakKeValue < 0) {
-                                                    showError('Jumlah saudara dan anak ke tidak boleh negatif');
-                                                    return false;
-                                                }
-
-                                                // Validasi maksimal input 10
-                                                if (jumlahSaudaraValue > 10) {
-                                                    showError('Sistem saat ini membatasi maksimal 10 saudara. Jika jumlah saudara lebih dari 10, silakan hubungi admin untuk bantuan lebih lanjut.');
-                                                    jumlahSaudara.value = '10';
-                                                    return false;
-                                                }
-
-                                                if (anakKeValue > 10) {
-                                                    showError('Sistem saat ini membatasi maksimal anak ke-10. Jika nomor urut anak lebih dari 10, silakan hubungi admin untuk bantuan lebih lanjut.');
-                                                    anakKe.value = '10';
-                                                    return false;
-                                                }
-
-                                                // Validasi anak ke tidak boleh lebih besar dari jumlah saudara + 1
-                                                if (anakKeValue > (jumlahSaudaraValue + 1)) {
-                                                    showError('Anak ke tidak boleh lebih besar dari jumlah saudara + 1');
-                                                    return false;
-                                                }
-
-                                                return true;
-                                            }
-
-                                            function showError(message) {
-                                                // Hapus pesan error yang ada
-                                                const existingError = document.getElementById('saudaraAnakKeError');
-                                                if (existingError) {
-                                                    existingError.remove();
-                                                }
-
-                                                // Buat elemen error baru
-                                                const errorDiv = document.createElement('div');
-                                                errorDiv.id = 'saudaraAnakKeError';
-                                                errorDiv.className = 'alert alert-danger mt-2';
-                                                errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
-
-                                                // Masukkan setelah input anak ke
-                                                anakKe.parentElement.parentElement.appendChild(errorDiv);
-                                            }
-
-                                            // Tambahkan event listener untuk kedua input
-                                            jumlahSaudara.addEventListener('input', validateSaudaraAnakKe);
-                                            anakKe.addEventListener('input', validateSaudaraAnakKe);
-                                        });
-                                    </script>
                                     <div class="form-group">
                                         <div class="row">
                                             <!-- Bagian Cita-Cita -->
@@ -548,56 +316,6 @@ $required = 'required'; //required
                                                     </label>
                                                 </div>
                                             </div>
-                                            <script>
-                                                document.addEventListener('DOMContentLoaded', function() {
-                                                    const namaKepalaKeluargaInput = document.getElementById('NamaKepalaKeluarga');
-                                                    const checkbox = document.getElementById('NamaKepalaKeluargaSamaDenganAyah');
-                                                    const namaAyahInput = document.getElementById('NamaAyah');
-                                                    const errorText = document.getElementById('NamaKepalaKeluargaError');
-
-                                                    // Tambahkan event listener untuk input nama kepala keluarga
-                                                    namaKepalaKeluargaInput.addEventListener('input', function() {
-                                                        // Jika input tidak kosong, tampilkan checkbox
-                                                        if (this.value.trim()) {
-                                                            checkbox.style.display = 'block';
-                                                            checkbox.parentElement.style.display = 'block';
-                                                        } else {
-                                                            checkbox.style.display = 'none';
-                                                            checkbox.parentElement.style.display = 'none';
-                                                            checkbox.checked = false;
-                                                            namaAyahInput.readOnly = false;
-                                                            namaAyahInput.value = '';
-                                                            namaAyahInput.classList.remove('is-valid');
-                                                        }
-                                                    });
-
-                                                    // Event listener untuk checkbox tetap sama seperti sebelumnya
-                                                    checkbox.addEventListener('change', function() {
-                                                        if (this.checked) {
-                                                            if (!namaKepalaKeluargaInput.value.trim()) {
-                                                                alert('Silakan isi Nama Kepala Keluarga terlebih dahulu');
-                                                                this.checked = false;
-                                                                return;
-                                                            }
-
-                                                            namaAyahInput.value = namaKepalaKeluargaInput.value;
-                                                            namaAyahInput.classList.remove('is-invalid');
-                                                            namaAyahInput.classList.add('is-valid');
-                                                            namaAyahInput.readOnly = true;
-                                                        } else {
-                                                            namaAyahInput.readOnly = false;
-                                                            namaAyahInput.value = '';
-                                                            namaAyahInput.classList.remove('is-valid');
-                                                        }
-                                                    });
-
-                                                    // Set tampilan awal checkbox
-                                                    if (!namaKepalaKeluargaInput.value.trim()) {
-                                                        checkbox.style.display = 'none';
-                                                        checkbox.parentElement.style.display = 'none';
-                                                    }
-                                                });
-                                            </script>
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -1859,7 +1577,12 @@ $required = 'required'; //required
 
 <?= $this->section('scripts'); ?>
 <script>
-    // Event listener untuk DOMContentLoaded
+    /* ===== Region: Inisialisasi Stepper Form =====
+     * Fungsi ini dijalankan ketika DOM telah selesai dimuat
+     * Menginisialisasi stepper form dan menambahkan validasi pada input required
+     * Stepper form digunakan untuk membagi form menjadi beberapa tahap/langkah
+     * Validasi input memastikan semua field required telah diisi dengan benar
+     */
     document.addEventListener('DOMContentLoaded', function() {
         window.stepper = new Stepper(document.querySelector('.bs-stepper'));
 
@@ -1870,16 +1593,313 @@ $required = 'required'; //required
             });
         });
     });
+    /* ===== End Region: Inisialisasi Stepper Form ===== */
+
+    /* ===== Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya =====
+     * Memvalidasi input dan melanjutkan ke langkah berikutnya
+     * @param {string} stepId - ID dari langkah yang sedang divalidasi
+     */
+    function validateAndNext(stepId) {
+        let isValid = true;
+        let fields = document.querySelectorAll('#' + stepId + ' .form-control[required], #' + stepId + ' input[type="radio"][required]');
+
+        fields.forEach(function(field) {
+            validateField(field);
+            if (field.type === 'radio') {
+                let radioGroup = document.getElementsByName(field.name);
+                let isChecked = Array.from(radioGroup).some(radio => radio.checked);
+                if (!isChecked) isValid = false;
+            } else if (field.classList.contains('is-invalid')) {
+                isValid = false;
+            }
+        });
+
+        if (isValid) {
+            stepper.next();
+        } else {
+            // Fokus ke input pertama yang tidak valid
+            fields[0].focus();
+        }
+    }
+    /* ===== End Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
+
+    /* ===== Region: Validasi Input saat Submit Form =====
+     * Validasi input saat submit form
+     */
+    document.getElementById('santriForm').addEventListener('submit', function(event) {
+        let isValid = true;
+        let allRequiredFields = document.querySelectorAll('.form-control[required]');
+
+        allRequiredFields.forEach(function(field) {
+            validateField(field);
+            if (field.classList.contains('is-invalid')) {
+                isValid = false;
+            }
+        });
+
+        if (!isValid) {
+            event.preventDefault(); // Mencegah pengiriman form jika ada yang tidak valid
+            alert('Mohon isi semua bidang yang harus diisi sebelum mengirim formulir.');
+        }
+    });
+    /* ===== End Region: Validasi Input saat Submit Form ===== */
+
+    /* ===== Region: Filter TPQ berdasarkan kelurahan =====
+     * Fungsi ini memfilter opsi TPQ berdasarkan kelurahan yang dipilih
+     * Menggunakan event listener untuk perubahan pada select kelurahan
+     * Menampilkan atau menyembunyikan select TPQ berdasarkan kondisi
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        const kelurahanSelect = document.getElementById('KelurahanDesaSantri');
+        const tpqSelect = document.getElementById('IdTpq');
+        const originalTpqOptions = Array.from(tpqSelect.options);
+
+        // Sembunyikan select TPQ saat pertama kali
+        tpqSelect.parentElement.style.display = 'none';
+
+        kelurahanSelect.addEventListener('change', function() {
+            const selectedKelurahan = this.value;
+
+            // Reset TPQ select
+            tpqSelect.innerHTML = '<option value="">Pilih Nama TPQ</option>';
+
+            if (selectedKelurahan) {
+                // Tampilkan select TPQ
+                tpqSelect.parentElement.style.display = 'block';
+
+                // Filter TPQ berdasarkan kelurahan yang dipilih
+                originalTpqOptions.forEach(option => {
+                    if (option.value && option.text.includes(selectedKelurahan)) {
+                        tpqSelect.add(option.cloneNode(true));
+                    }
+                });
+            } else {
+                // Sembunyikan select TPQ jika tidak ada kelurahan yang dipilih
+                tpqSelect.parentElement.style.display = 'none';
+            }
+        });
+    });
+    /* ===== End Region: Filter TPQ berdasarkan kelurahan ===== */
+
+    /* ===== Region: Menampilkan preview foto profil =====
+     * Fungsi ini menampilkan preview foto profil dari input file
+     * Validasi file: ukuran maksimal 2MB, tipe file JPG, JPEG, atau PNG
+     * Menampilkan preview foto dan menampilkan pesan error jika ada
+     */
+    function previewPhoto(input) {
+        const preview = document.getElementById('previewPhotoProfil');
+        const errorDiv = document.getElementById('PhotoProfilError');
+
+        errorDiv.style.display = 'none';
+
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+
+            // Validasi ukuran (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                errorDiv.innerHTML = 'Ukuran file terlalu besar (maksimal 2MB)';
+                errorDiv.style.display = 'block';
+                input.value = '';
+                preview.src = '/images/no-photo.jpg';
+                return;
+            }
+
+            // Validasi tipe file
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                errorDiv.innerHTML = 'Format file tidak valid (gunakan JPG, JPEG, atau PNG)';
+                errorDiv.style.display = 'block';
+                input.value = '';
+                preview.src = '/images/no-photo.jpg';
+                return;
+            }
+
+            // Tampilkan preview
+            try {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error saat membaca file:', error);
+                errorDiv.innerHTML = 'Terjadi kesalahan saat memproses file';
+                errorDiv.style.display = 'block';
+                preview.src = '/images/no-photo.jpg';
+            }
+        }
+    }
+    /* ===== End Region: Menampilkan preview foto profil ===== */
+
+    /* ===== Region: Membuka kamera =====
+     * Fungsi ini membuka kamera untuk mengambil foto profil
+     * Memastikan browser mendukung getUserMedia
+     * Membuat elemen video untuk preview kamera
+     */
+    function openCamera() {
+        // Cek apakah browser mendukung getUserMedia
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            // Buat elemen video untuk preview kamera
+            const videoPreview = document.createElement('video');
+            videoPreview.autoplay = true;
+
+            // Buat modal untuk menampilkan preview kamera
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;';
+
+            // Tambahkan video ke modal
+            modal.appendChild(videoPreview);
+
+            // Tambahkan tombol ambil foto
+            const captureBtn = document.createElement('button');
+            captureBtn.textContent = 'Ambil Foto';
+            captureBtn.className = 'btn btn-primary mt-3';
+            modal.appendChild(captureBtn);
+
+            // Tambahkan tombol tutup
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = 'Tutup';
+            closeBtn.className = 'btn btn-secondary mt-2';
+            modal.appendChild(closeBtn);
+
+            // Tambahkan modal ke body
+            document.body.appendChild(modal);
+
+            // Minta akses kamera
+            navigator.mediaDevices.getUserMedia({
+                    video: true
+                })
+                .then(stream => {
+                    videoPreview.srcObject = stream;
+
+                    // Handler untuk tombol ambil foto
+                    captureBtn.onclick = () => {
+                        // Buat canvas untuk mengambil foto
+                        const canvas = document.createElement('canvas');
+                        canvas.width = videoPreview.videoWidth;
+                        canvas.height = videoPreview.videoHeight;
+                        canvas.getContext('2d').drawImage(videoPreview, 0, 0);
+
+                        // Konversi ke blob
+                        canvas.toBlob(blob => {
+                            // Buat file dari blob
+                            const file = new File([blob], "camera-photo.jpg", {
+                                type: "image/jpeg"
+                            });
+
+                            // Buat objek DataTransfer untuk mensimulasikan file input
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+
+                            // Update file input dan preview
+                            const photoInput = document.getElementById('PhotoProfil');
+                            photoInput.files = dataTransfer.files;
+                            previewPhoto(photoInput);
+
+                            // Hentikan stream kamera dan tutup modal
+                            stream.getTracks().forEach(track => track.stop());
+                            document.body.removeChild(modal);
+                        }, 'image/jpeg');
+                    };
+
+                    // Handler untuk tombol tutup
+                    closeBtn.onclick = () => {
+                        stream.getTracks().forEach(track => track.stop());
+                        document.body.removeChild(modal);
+                    };
+                })
+                .catch(error => {
+                    console.error('Error accessing camera:', error);
+                    alert('Gagal mengakses kamera. Pastikan Anda memberikan izin akses kamera.');
+                    document.body.removeChild(modal);
+                });
+        } else {
+            alert('Browser Anda tidak mendukung akses kamera');
+        }
+    }
+    /* ===== End Region: Membuka kamera ===== */
+
+    /* ===== Region: Validasi Jumlah Saudara dan Anak Ke =====
+     * Fungsi ini digunakan untuk memvalidasi input jumlah saudara dan anak ke
+     * Memastikan:
+     * 1. Input tidak boleh negatif
+     * 2. Anak ke tidak boleh lebih besar dari jumlah saudara + 1
+     * 3. Menampilkan pesan error jika validasi gagal
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        const jumlahSaudara = document.getElementById('JumlahSaudara');
+        const anakKe = document.getElementById('AnakKe');
+
+        function validateSaudaraAnakKe() {
+            const jumlahSaudaraValue = parseInt(jumlahSaudara.value);
+            const anakKeValue = parseInt(anakKe.value);
+
+            // Hapus pesan error yang ada
+            const existingError = document.getElementById('saudaraAnakKeError');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            // Validasi input harus berupa angka positif
+            if (jumlahSaudaraValue < 0 || anakKeValue < 0) {
+                showError('Jumlah saudara dan anak ke tidak boleh negatif');
+                return false;
+            }
+
+            // Validasi maksimal input 10
+            if (jumlahSaudaraValue > 10) {
+                showError('Sistem saat ini membatasi maksimal 10 saudara. Jika jumlah saudara lebih dari 10, silakan hubungi admin untuk bantuan lebih lanjut.');
+                jumlahSaudara.value = '10';
+                return false;
+            }
+
+            if (anakKeValue > 10) {
+                showError('Sistem saat ini membatasi maksimal anak ke-10. Jika nomor urut anak lebih dari 10, silakan hubungi admin untuk bantuan lebih lanjut.');
+                anakKe.value = '10';
+                return false;
+            }
+
+            // Validasi anak ke tidak boleh lebih besar dari jumlah saudara + 1
+            if (anakKeValue > (jumlahSaudaraValue + 1)) {
+                showError('Anak ke tidak boleh lebih besar dari jumlah saudara + 1');
+                return false;
+            }
+
+            return true;
+        }
+
+        function showError(message) {
+            // Hapus pesan error yang ada
+            const existingError = document.getElementById('saudaraAnakKeError');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            // Buat elemen error baru
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'saudaraAnakKeError';
+            errorDiv.className = 'alert alert-danger mt-2';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+
+            // Masukkan setelah input anak ke
+            anakKe.parentElement.parentElement.appendChild(errorDiv);
+        }
+
+        // Tambahkan event listener untuk kedua input
+        jumlahSaudara.addEventListener('input', validateSaudaraAnakKe);
+        anakKe.addEventListener('input', validateSaudaraAnakKe);
+    });
+    /* ===== End Region: Validasi Jumlah Saudara dan Anak Ke ===== */
 
     /* ===== Region: Validasi Nomor Handphone =====
-    Fungsi ini melakukan validasi nomor handphone dengan ketentuan:
-    1. Hanya menerima input angka (0-9)
-    2. Panjang nomor antara 10-13 digit
-    3. Harus diawali dengan 08 atau 62 (format Indonesia)
-    4. Menampilkan pesan error jika tidak sesuai ketentuan
-    5. Memformat ulang nomor jika diawali 62 menjadi format 08
-    6. Diterapkan pada input NoHpAyah, NoHpIbu, dan NoHpWali
-    */
+     * Fungsi ini melakukan validasi nomor handphone dengan ketentuan:
+     * 1. Hanya menerima input angka (0-9)
+     * 2. Panjang nomor antara 10-13 digit
+     * 3. Harus diawali dengan 08 atau 62 (format Indonesia)
+     * 4. Menampilkan pesan error jika tidak sesuai ketentuan
+     * 5. Memformat ulang nomor jika diawali 62 menjadi format 08
+     * 6. Diterapkan pada input NoHpAyah, NoHpIbu, dan NoHpWali
+     */
     function validatePhoneNumber(input) {
         let phoneNumber = input.value.trim();
         const errorElement = document.getElementById(input.id + 'Error');
@@ -1930,7 +1950,11 @@ $required = 'required'; //required
         return true;
     }
 
-    // Event listener untuk input nomor handphone
+    /* ===== End Region: Validasi Nomor Handphone ===== */
+
+    /* ===== Region: Event listener untuk input nomor handphone =====
+     * Event listener untuk input nomor handphone
+     */
     document.addEventListener('DOMContentLoaded', function() {
         const phoneInputs = ['NoHpAyah', 'NoHpIbu', 'NoHpWali', 'NoHpSantri'];
 
@@ -1988,10 +2012,66 @@ $required = 'required'; //required
             }
         });
     });
-    //=== Region: Validasi Input Angka ===
+    /* ===== End Region: Event listener untuk input nomor handphone ===== */
 
-    // Event listener untuk input dengan kelas 'number-only'
-    // Validasi input hanya angka
+    /* ===== Region: Validasi Nama Kepala Keluarga =====
+     * Fungsi ini memvalidasi input nama kepala keluarga
+     * Memastikan:
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        const namaKepalaKeluargaInput = document.getElementById('NamaKepalaKeluarga');
+        const checkbox = document.getElementById('NamaKepalaKeluargaSamaDenganAyah');
+        const namaAyahInput = document.getElementById('NamaAyah');
+        const errorText = document.getElementById('NamaKepalaKeluargaError');
+
+        // Tambahkan event listener untuk input nama kepala keluarga
+        namaKepalaKeluargaInput.addEventListener('input', function() {
+            // Jika input tidak kosong, tampilkan checkbox
+            if (this.value.trim()) {
+                checkbox.style.display = 'block';
+                checkbox.parentElement.style.display = 'block';
+            } else {
+                checkbox.style.display = 'none';
+                checkbox.parentElement.style.display = 'none';
+                checkbox.checked = false;
+                namaAyahInput.readOnly = false;
+                namaAyahInput.value = '';
+                namaAyahInput.classList.remove('is-valid');
+            }
+        });
+
+        // Event listener untuk checkbox tetap sama seperti sebelumnya
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                if (!namaKepalaKeluargaInput.value.trim()) {
+                    alert('Silakan isi Nama Kepala Keluarga terlebih dahulu');
+                    this.checked = false;
+                    return;
+                }
+
+                namaAyahInput.value = namaKepalaKeluargaInput.value;
+                namaAyahInput.classList.remove('is-invalid');
+                namaAyahInput.classList.add('is-valid');
+                namaAyahInput.readOnly = true;
+            } else {
+                namaAyahInput.readOnly = false;
+                namaAyahInput.value = '';
+                namaAyahInput.classList.remove('is-valid');
+            }
+        });
+
+        // Set tampilan awal checkbox
+        if (!namaKepalaKeluargaInput.value.trim()) {
+            checkbox.style.display = 'none';
+            checkbox.parentElement.style.display = 'none';
+        }
+    });
+    /* ===== End Region: Validasi Nama Kepala Keluarga ===== */
+
+    /* ===== Region: Validasi Input Angka =====
+     * Event listener untuk input dengan kelas 'number-only'
+     * Validasi input hanya angka
+     */
     document.querySelectorAll('.number-only').forEach(function(input) {
         input.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '');
@@ -2003,14 +2083,15 @@ $required = 'required'; //required
             }
         });
     });
+    /* ===== End Region: Validasi Input Angka ===== */
 
     /* ===== Region: Validasi Input Angka =====
-    Fungsi ini memvalidasi input angka dengan ketentuan:
-    1. Hanya menerima angka dan tanda minus
-    2. Menghapus karakter non-angka kecuali tanda minus di awal
-    3. Menghapus angka nol di awal jika bukan angka desimal
-    4. Diterapkan pada input-input angka lainnya
-    */
+     * Fungsi ini memvalidasi input angka dengan ketentuan:
+     * 1. Hanya menerima angka dan tanda minus
+     * 2. Menghapus karakter non-angka kecuali tanda minus di awal
+     * 3. Menghapus angka nol di awal jika bukan angka desimal
+     * 4. Diterapkan pada input-input angka lainnya
+     */
     function validateNumberInput(input) {
         // Hapus karakter non-angka kecuali tanda minus di awal
         input.value = input.value.replace(/^-?\d*\.?\d*$/, function(match) {
@@ -2053,8 +2134,7 @@ $required = 'required'; //required
         });
     });
 
-    // Fungsi untuk memvalidasi input nama dan tempat (hanya huruf)
-    /**
+    /* ===== Region: Validasi Input Nama dan Tempat =====
      * Fungsi untuk memvalidasi input nama dan tempat lahir
      * Hanya menerima huruf, spasi, tanda petik, titik dan tanda hubung
      * @param {HTMLElement} input - Elemen input yang akan dicek validasinya
@@ -2105,8 +2185,8 @@ $required = 'required'; //required
         });
     });
 
-    /**
-     * Validasi input form dan tampilkan error
+    /* ===== Region: Validasi Input Form =====
+     * Validasi input form dan tampilkan error secara dinamis semua input
      * @param {HTMLElement} field - Input yang divalidasi
      */
     function validateField(field) {
@@ -2147,53 +2227,7 @@ $required = 'required'; //required
         }
     }
 
-    /**
-     * Memvalidasi input dan melanjutkan ke langkah berikutnya
-     * @param {string} stepId - ID dari langkah yang sedang divalidasi
-     */
-    function validateAndNext(stepId) {
-        let isValid = true;
-        let fields = document.querySelectorAll('#' + stepId + ' .form-control[required], #' + stepId + ' input[type="radio"][required]');
-
-        fields.forEach(function(field) {
-            validateField(field);
-            if (field.type === 'radio') {
-                let radioGroup = document.getElementsByName(field.name);
-                let isChecked = Array.from(radioGroup).some(radio => radio.checked);
-                if (!isChecked) isValid = false;
-            } else if (field.classList.contains('is-invalid')) {
-                isValid = false;
-            }
-        });
-
-        if (isValid) {
-            stepper.next();
-        } else {
-            // Fokus ke input pertama yang tidak valid
-            fields[0].focus();
-        }
-    }
-
-    // Fungsi untuk validasi saat submit form
-    document.getElementById('santriForm').addEventListener('submit', function(event) {
-        let isValid = true;
-        let allRequiredFields = document.querySelectorAll('.form-control[required]');
-
-        allRequiredFields.forEach(function(field) {
-            validateField(field);
-            if (field.classList.contains('is-invalid')) {
-                isValid = false;
-            }
-        });
-
-        if (!isValid) {
-            event.preventDefault(); // Mencegah pengiriman form jika ada yang tidak valid
-            alert('Mohon isi semua bidang yang harus diisi sebelum mengirim formulir.');
-        }
-    });
-
-    // Start Fungsi menampilkan preview file img atau pdf 
-    /**
+    /* ===== Region: Menampilkan Preview File Img atau Pdf =====
      * Membuat elemen-elemen preview untuk file yang diupload
      * 
      * Fungsi ini membuat dan menginisialisasi elemen-elemen yang diperlukan untuk menampilkan preview file,
@@ -2601,8 +2635,7 @@ $required = 'required'; //required
 
     /* ===== End Region: Validasi NIK ===== */
 
-    /* ===== Region: Validasi KK ===== */
-    /**
+    /* ===== Region: Validasi KK =====
      * 1. updateKKAyahState()
      *    - Mengatur status checkbox KK Ayah berdasarkan:
      *      a. Keberadaan file KK Santri
