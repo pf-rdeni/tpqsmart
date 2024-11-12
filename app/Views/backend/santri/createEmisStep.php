@@ -1855,7 +1855,9 @@ $required = 'required'; //required
         <!-- /.row -->
     </div>
 </div>
+<?= $this->endSection(); ?>
 
+<?= $this->section('scripts'); ?>
 <script>
     // Event listener untuk DOMContentLoaded
     document.addEventListener('DOMContentLoaded', function() {
