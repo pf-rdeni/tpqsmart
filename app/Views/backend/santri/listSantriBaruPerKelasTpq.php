@@ -5,12 +5,14 @@
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
                 <h3 class="card-title">Daftar Santri Per Kelas <b>TPQ <?= $namaTpq['NamaTpq'] . ' - ' . $namaTpq['Alamat'] ?></b></h3>
-                <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Daftar Santri Baru
-                </a>
-                <a href="<?= base_url('backend/santri/showSantriBaru') ?>" class="btn btn-info ml-2">
-                    <i class="fas fa-list"></i> Lihat Daftar Santri Baru
-                </a>
+                <div class="d-flex">
+                    <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Daftar Santri Baru
+                    </a>
+                    <a href="<?= base_url('backend/santri/showSantriBaru') ?>" class="btn btn-info ml-2">
+                        <i class="fas fa-list"></i> Lihat Daftar Santri Baru
+                    </a>
+                </div>
             </div>
         </div>
         <div class="card-body">
