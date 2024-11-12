@@ -11,5 +11,8 @@ deployment:
     # Daftar Santri Baru deployment
     - export DEPLOYPATH=/home/u1525344/daftarsantribaru/app
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Models/SantriBaruModel.php $DEPLOYPATH/Models/SantriBaruModel.php
+    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Models/HelpFunction.php $DEPLOYPATH/Models/HelpFunction.php
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Controllers/Backend/Santri.php $DEPLOYPATH/Controllers/Backend/Santri.php
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Views/backend/santri/createEmisStep.php $DEPLOYPATH/Views/backend/santri/createEmisStep.php
+    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Views/backend/santri/listSantriBaru.php $DEPLOYPATH/Views/backend/santri/listSantriBaru.php
+    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Views/backend/santri/listSantriBaruPerKelasTpq.php $DEPLOYPATH/Views/backend/santri/listSantriBaruPerKelasTpq.php  
