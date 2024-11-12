@@ -55,6 +55,23 @@
                                     <!-- your steps content here -->
                                     <form action="<?= base_url('backend/santri/save') ?>" method="POST" id="santriForm" enctype="multipart/form-data">
                                         <div id="tpq-part" class="content" role="tabpanel" aria-labelledby="tpq-part-trigger">
+                                            <br>
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle"></i> <small>Silakan pilih lokasi TPQ berdasarkan Desa/Kelurahan terlebih dahulu, kemudian pilih nama TPQ dan kelas yang dituju.</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="KelurahanDesaSantri">Lokasi TPQ<span class="text-danger font-weight-bold">*</span></label>
+                                                <select class="form-control" id="KelurahanDesaSantri" name="KelurahanDesaSantri" required>
+                                                    <option value="">Pilih Lokasi TPQ</option>
+                                                    <option value="TELUK SASAH">TELUK SASAH</option>
+                                                    <option value="BUSUNG">BUSUNG</option>
+                                                    <option value="KUALA SEMPANG">KUALA SEMPANG</option>
+                                                    <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
+                                                    <option value="TELUK LOBAM">TELUK LOBAM</option>
+                                                </select>
+                                                <span id="KelurahanDesaSantriError" class="text-danger" style="display:none;">Desa/Kelurahan diperlukan.</span>
+                                            </div>
+
                                             <div class="form-group">
                                                 <label for="IdTpq">Nama TPQ<span class="text-danger font-weight-bold">*</span></label>
                                                 <select class="form-control" id="IdTpq" name="IdTpq" <?= $required ?>>
@@ -65,6 +82,39 @@
                                                 </select>
                                                 <span id="tpqNameError" class="text-danger" style="display:none;">Nama TPQ diperlukan.</span>
                                             </div>
+                                            <script>
+                                                document.addEventListener('DOMContentLoaded', function() {
+                                                    const kelurahanSelect = document.getElementById('KelurahanDesaSantri');
+                                                    const tpqSelect = document.getElementById('IdTpq');
+                                                    const originalTpqOptions = Array.from(tpqSelect.options);
+
+                                                    // Sembunyikan select TPQ saat pertama kali
+                                                    tpqSelect.parentElement.style.display = 'none';
+
+                                                    kelurahanSelect.addEventListener('change', function() {
+                                                        const selectedKelurahan = this.value;
+
+                                                        // Reset TPQ select
+                                                        tpqSelect.innerHTML = '<option value="">Pilih Nama TPQ</option>';
+
+                                                        if (selectedKelurahan) {
+                                                            // Tampilkan select TPQ
+                                                            tpqSelect.parentElement.style.display = 'block';
+
+                                                            // Filter TPQ berdasarkan kelurahan yang dipilih
+                                                            originalTpqOptions.forEach(option => {
+                                                                if (option.value && option.text.includes(selectedKelurahan)) {
+                                                                    tpqSelect.add(option.cloneNode(true));
+                                                                }
+                                                            });
+                                                        } else {
+                                                            // Sembunyikan select TPQ jika tidak ada kelurahan yang dipilih
+                                                            tpqSelect.parentElement.style.display = 'none';
+                                                        }
+                                                    });
+                                                });
+                                            </script>
+
                                             <div class="form-group">
                                                 <label for="IdKelas">Kelas<span class="text-danger font-weight-bold">*</span></label>
                                                 <select class="form-control" id="IdKelas" name="IdKelas" <?= $required ?>>
@@ -79,6 +129,10 @@
                                         </div>
                                         <!-- Bagian Profil Santri -->
                                         <div id="santri-part" class="content" role="tabpanel" aria-labelledby="santri-part-trigger">
+                                            <br>
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle"></i> <small>Silakan mengisi data profil santri dengan benar!</small>
+                                            </div>
                                             <div class="row">
                                                 <div class="col-md-12">
                                                     <div class="bg-success p-2">
@@ -592,6 +646,10 @@
                                         </div>
                                         <!-- Bagian Profil Orang Tua atau Wali -->
                                         <div id="ortu-part" class="content" role="tabpanel" aria-labelledby="ortu-part-trigger">
+                                            <br>
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle"></i> <small>Silakan mengisi data ayah dan ibu atau wali dengan benar!</small>
+                                            </div>
                                             <div class="row">
                                                 <div class="col-md-12">
                                                     <div class="bg-success p-2">
@@ -1236,59 +1294,11 @@
                                         </div>
                                         <!-- Bagian Alamat Orang Tua dan Santri beserta jarak tempat tinggal santri ke lembaga-->
                                         <div id="alamat-part" class="content" role="tabpanel" aria-labelledby="alamat-part-trigger">
-                                            <script>
-                                                // Fungsi untuk menangani checkbox "Tinggal Diluar Negeri"
-                                                function toggleAddressFields(checkboxId, fieldsToToggle) {
-                                                    const checkbox = document.getElementById(checkboxId);
-                                                    const fields = document.querySelectorAll(fieldsToToggle);
-
-                                                    function toggleFields() {
-                                                        fields.forEach(field => {
-                                                            if (checkbox.checked) {
-                                                                field.style.display = 'none';
-                                                            } else {
-                                                                field.style.display = 'block';
-                                                            }
-                                                        });
-                                                    }
-
-                                                    checkbox.addEventListener('change', toggleFields);
-                                                    // Panggil fungsi saat halaman dimuat untuk mengatur status awal
-                                                    toggleFields();
-                                                }
-
-                                                // Panggil fungsi untuk setiap bagian (Ayah, Ibu, Santri)
-                                                document.addEventListener('DOMContentLoaded', function() {
-                                                    toggleAddressFields('TinggalDiluarNegeriAyah', '#StatusKepemilikanRumahAyah, #ProvinsiAyah, #KabupatenKotaAyah, #KecamatanAyah, #KelurahanDesaAyah, #RWAyah, #RTAyah, #KodePosAyah');
-                                                    toggleAddressFields('TinggalDiluarNegeriIbu', '#StatusKepemilikanRumahIbu, #ProvinsiIbu, #KabupatenKotaIbu, #KecamatanIbu, #KelurahanDesaIbu, #RWIbu, #RTIbu, #KodePosIbu');
-                                                });
-
-                                                // Fungsi untuk menangani checkbox "Alamat Ibu Sama Dengan Ayah"
-                                                function toggleIbuAddressFields(checkboxId, fieldsToToggle) {
-                                                    const checkbox = document.getElementById(checkboxId);
-                                                    const fields = document.querySelectorAll(fieldsToToggle);
-
-                                                    function toggleFields() {
-                                                        fields.forEach(field => {
-                                                            if (checkbox.checked) {
-                                                                field.style.display = 'none';
-                                                            } else {
-                                                                field.style.display = 'block';
-                                                            }
-                                                        });
-                                                    }
-
-                                                    checkbox.addEventListener('change', toggleFields);
-                                                    // Panggil fungsi saat halaman dimuat untuk mengatur status awal
-                                                    toggleFields();
-                                                }
-
-                                                // Panggil fungsi untuk checkbox AlamatIbuSamaDenganAyah saat halaman dimuat
-                                                document.addEventListener('DOMContentLoaded', function() {
-                                                    toggleIbuAddressFields('AlamatIbuSamaDenganAyah', '#TinggalDiluarNegeriIbu, #StatusKepemilikanRumahIbu, #ProvinsiIbu, #KabupatenKotaIbu, #KecamatanIbu, #KelurahanDesaIbu, #RWIbu, #RTIbu, #KodePosIbu, #AlamatIbu');
-                                                });
-                                            </script>
                                             <!-- bagian data alamat ayah -->
+                                            <br>
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle"></i> <small>Silakan mengisi data alamat orang tua atau wali dengan benar!</small>
+                                            </div>
                                             <div class="row">
                                                 <div class="col-md-12">
                                                     <div class="bg-success p-2">
@@ -1307,6 +1317,59 @@
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <script>
+                                                    // Fungsi untuk menangani checkbox "Tinggal Diluar Negeri"
+                                                    function toggleAddressFields(checkboxId, fieldsToToggle) {
+                                                        const checkbox = document.getElementById(checkboxId);
+                                                        const fields = document.querySelectorAll(fieldsToToggle);
+
+                                                        function toggleFields() {
+                                                            fields.forEach(field => {
+                                                                if (checkbox.checked) {
+                                                                    field.style.display = 'none';
+                                                                } else {
+                                                                    field.style.display = 'block';
+                                                                }
+                                                            });
+                                                        }
+
+                                                        checkbox.addEventListener('change', toggleFields);
+                                                        // Panggil fungsi saat halaman dimuat untuk mengatur status awal
+                                                        toggleFields();
+                                                    }
+
+                                                    // Panggil fungsi untuk setiap bagian (Ayah, Ibu, Santri)
+                                                    document.addEventListener('DOMContentLoaded', function() {
+                                                        toggleAddressFields('TinggalDiluarNegeriAyah', '#StatusKepemilikanRumahAyah, #ProvinsiAyah, #KabupatenKotaAyah, #KecamatanAyah, #KelurahanDesaAyah, #RWAyah, #RTAyah, #KodePosAyah');
+                                                        toggleAddressFields('TinggalDiluarNegeriIbu', '#StatusKepemilikanRumahIbu, #ProvinsiIbu, #KabupatenKotaIbu, #KecamatanIbu, #KelurahanDesaIbu, #RWIbu, #RTIbu, #KodePosIbu');
+                                                    });
+
+                                                    // Fungsi untuk menangani checkbox "Alamat Ibu Sama Dengan Ayah"
+                                                    function toggleIbuAddressFields(checkboxId, fieldsToToggle) {
+                                                        const checkbox = document.getElementById(checkboxId);
+                                                        const fields = document.querySelectorAll(fieldsToToggle);
+
+                                                        function toggleFields() {
+                                                            fields.forEach(field => {
+                                                                if (checkbox.checked) {
+                                                                    field.style.display = 'none';
+                                                                } else {
+                                                                    field.style.display = 'block';
+                                                                }
+                                                            });
+                                                        }
+
+                                                        checkbox.addEventListener('change', toggleFields);
+                                                        // Panggil fungsi saat halaman dimuat untuk mengatur status awal
+                                                        toggleFields();
+                                                    }
+
+                                                    // Panggil fungsi untuk checkbox AlamatIbuSamaDenganAyah saat halaman dimuat
+                                                    document.addEventListener('DOMContentLoaded', function() {
+                                                        toggleIbuAddressFields('AlamatIbuSamaDenganAyah', '#TinggalDiluarNegeriIbu, #StatusKepemilikanRumahIbu, #ProvinsiIbu, #KabupatenKotaIbu, #KecamatanIbu, #KelurahanDesaIbu, #RWIbu, #RTIbu, #KodePosIbu, #AlamatIbu');
+                                                    });
+                                                </script>
+
                                                 <div class="row">
                                                     <div class="col-md-12">
                                                         <div class="form-group">
@@ -1785,7 +1848,7 @@
                         </div>
                         <!-- /.card-body -->
                         <div class="card-footer">
-                            Melihat <a href="#">data yang sudah masuk</a>.
+                            Melihat <a href="<?= base_url('backend/santri/showSantriBaru') ?>">data yang sudah masuk</a>.
                         </div>
                     </div>
                     <!-- /.card -->

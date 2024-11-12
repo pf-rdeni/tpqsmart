@@ -4,7 +4,7 @@
     <div class="card">
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
-                <h3 class="card-title">Data Pendaftaran Santri Baru TPQ Di Kecamana Seri Kuala Lobam</h3>
+                <h3 class="card-title">Daftar Santri TPQ Di Kecamatan Seri Kuala Lobam</h3>
                 <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Daftar Santri Baru
                 </a>
@@ -12,6 +12,7 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
+            <h5>Data Pendaftaran Santri Baru</h5>
             <table id="example1" class="table table-bordered table-striped">
                 <thead>
                     <tr>
@@ -23,7 +24,6 @@
                         <th>Kelas</th>
                         <th>Status</th>
                         <th>Tanggal Reg</th>
-                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,9 +75,6 @@
                                 <?php endif; ?>
                             </td>
                             <td><?= $santri['updated_at']; ?></td>
-                            <td>
-                                <a href="" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a>
-                            </td>
                         </tr>
                     <?php endforeach ?>
                 </tbody>
@@ -91,12 +88,45 @@
                         <th>Kelas</th>
                         <th>Status</th>
                         <th>Tanggal Reg</th>
-                        <th>Aksi</th>
                     </tr>
                 </tfoot>
             </table>
         </div>
         <!-- /.card-body -->
+        <div class="card-body">
+            <h5>Data Santri Baru berdasarkan TPQ</h5>
+            <table id="example3" class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama TPQ</th>
+                        <th>Alamat TPQ</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php $no = 1; ?>
+                    <?php foreach ($dataTpq as $tpq): ?>
+                        <tr>
+                            <td><?= $no++; ?></td>
+                            <td><?= $tpq['NamaTpq']; ?></td>
+                            <td><?= $tpq['Alamat']; ?></td>
+                            <td>
+                                <a href="<?= base_url('backend/santri/showSantriBaruPerKelasTpq/' . $tpq['IdTpq']); ?>" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a>
+                            </td>
+                        </tr>
+                    <?php endforeach ?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama TPQ</th>
+                        <th>Alamat TPQ</th>
+                        <th>Aksi</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
     </div>
     <!-- /.card -->
 </div>

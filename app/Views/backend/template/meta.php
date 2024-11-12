@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,9 +45,8 @@
         href="<?php echo base_url('/plugins') ?>/bootstrap4-duallistbox/bootstrap-duallistbox.min.css">
     <!-- BS Stepper -->
     <link rel="stylesheet" href="<?php echo base_url('/plugins') ?>/bs-stepper/css/bs-stepper.min.css">
-    
+
     <!-- dropzonejs -->
     <link rel="stylesheet" href="<?php echo base_url('/plugins') ?>/dropzone/min/dropzone.min.css">
 
 </head>
-

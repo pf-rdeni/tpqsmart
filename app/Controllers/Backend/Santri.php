@@ -404,11 +404,69 @@ class Santri extends BaseController
     public function showSantriBaru()
     {
         $santri = $this->DataSantriBaru->GetData();
+        $tpq = $this->helpFunction->getDataTpq();
+        usort($tpq, function ($a, $b) {
+            return strcmp($a['NamaTpq'], $b['NamaTpq']);
+        });
+
         $data = [
             'page_title' => 'Data Santri Baru',
-            'dataSantri' => $santri
+            'dataSantri' => $santri,
+            'dataTpq' => $tpq
         ];
         return view('backend/santri/listSantriBaru', $data);
+    }
+
+    public function showSantriBaruPerKelasTpq($IdTpq = null)
+    {
+        $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq);
+        $namaTpq = $this->helpFunction->getNamaTpqById($IdTpq);
+        // Mengelompokkan santri berdasarkan kelas
+        $santriPerKelas = [
+            'TK' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '1';
+            }),
+            'TKA' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '2';
+            }),
+            'TKB' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '3';
+            }),
+            'TPQ1' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '4';
+            }),
+            'TPQ2' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '5';
+            }),
+            'TPQ3' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '6';
+            }),
+            'TPQ4' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '7';
+            }),
+            'TPQ5' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '8';
+            }),
+            'TPQ6' => array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] == '9';
+            })
+        ];
+
+        $data = [
+            'page_title' => 'Data Santri Baru Per Kelas TPQ',
+            'dataSantriTK' => $santriPerKelas['TK'],
+            // 'dataSantriTKA' => $santriPerKelas['TKA'],
+            // 'dataSantriTKB' => $santriPerKelas['TKB'],
+            'dataSantriTPQ1' => $santriPerKelas['TPQ1'],
+            'dataSantriTPQ2' => $santriPerKelas['TPQ2'],
+            'dataSantriTPQ3' => $santriPerKelas['TPQ3'],
+            'dataSantriTPQ4' => $santriPerKelas['TPQ4'],
+            'dataSantriTPQ5' => $santriPerKelas['TPQ5'],
+            'dataSantriTPQ6' => $santriPerKelas['TPQ6'],
+            'namaTpq' => $namaTpq,
+        ];
+
+        return view('backend/santri/listSantriBaruPerKelasTpq', $data);
     }
 
     public function showSantriPerKelas($encryptedIdGuru = null)

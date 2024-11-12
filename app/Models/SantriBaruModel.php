@@ -182,4 +182,27 @@ class SantriBaruModel extends Model
             return [];
         }
     }
+
+    public function GetDataPerKelasTpq($IdTpq)
+    {
+        $db = db_connect();
+        $builder = $db->table('tbl_santri_baru');
+        $builder->select('
+            tbl_santri_baru.*, 
+            tbl_tpq.NamaTpq,
+            tbl_kelas.NamaKelas
+        ');
+
+        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left');
+        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
+        $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+
+        try {
+            $query = $builder->get();
+            return $query->getResultArray();
+        } catch (\Exception $e) {
+            log_message('error', 'Error in GetDataPerKelasTpq: ' . $e->getMessage());
+            return [];
+        }
+    }
 }

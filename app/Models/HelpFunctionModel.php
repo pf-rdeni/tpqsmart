@@ -199,5 +199,10 @@ class HelpFunctionModel extends Model
 
         return $months[$number];
     }
+
+    public function getNamaTpqById($IdTpq)
+    {
+        return $this->db->table('tbl_tpq')->where('IdTpq', $IdTpq)->get()->getRowArray();
+    }
 }
 
