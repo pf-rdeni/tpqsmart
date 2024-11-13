@@ -2,7 +2,7 @@
 <?= $this->section('content'); ?>
 <?php echo session()->getFlashdata('pesan');
 $required = '';
-//$required = 'required';
+$required = 'required';
 
 ?>
 
@@ -110,10 +110,10 @@ $required = '';
                                     </div>
                                     <div class="form-group">
                                         <div class="row">
-                                            <div class="col-md-6">
-                                                <label>Photo Profil</label>
+                                            <div class="col-md-3">
+                                                <label>Photo Profil<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="text-left">
-                                                    <input type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" style="display: none;" onchange="previewPhoto(this)">
+                                                    <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" style="display: none;" onchange="previewPhoto(this)" <?= $required ?>>
                                                     <div class="position-relative d-inline-block text-left">
                                                         <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
                                                             class="img-thumbnail" style="width: 215px; height: 280px; object-fit: cover; cursor: pointer; float: left;"
@@ -131,73 +131,81 @@ $required = '';
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <div class="col-md-6">
-                                            <label for="NikSantri">NIK Santri<span class="text-danger font-weight-bold">*</span></label>
-                                            <input type="text" class="form-control" id="NikSantri" name="NikSantri"
-                                                placeholder="Masukkan NIK 16 digit" <?= $required ?> pattern="^[1-9]\d{15}$"
-                                                title="NIK harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0">
-                                            <span id="NikSantriError" class="text-danger" style="display:none;">NIK diperlukan dan harus 16 digit.</span>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label for="NamaSantri">Nama Santri<span class="text-danger font-weight-bold">*</span></label>
-                                            <input type="text" class="form-control name-input" id="NamaSantri" name="NamaSantri" placeholder="Masukkan nama lengkap" <?= $required ?>>
-                                            <span id="NamaSantriError" class="text-danger" style="display:none;">Nama Santri diperlukan.</span>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <div class="col-md-6">
-                                            <label for="NISN">NISN</label>
-                                            <input type="text" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN"
-                                                pattern="[0-9]{10}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                                            <small class="text-muted">NISN harus 10 digit angka</small>
-                                            <span id="NISNError" class="text-danger" style="display:none;">NISN harus 10 digit angka</span>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label for="Agama">Agama<span class="text-danger font-weight-bold">*</span></label>
-                                            <input type="text" class="form-control" id="Agama" name="Agama" value="Islam" readonly <?= $required ?>>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label for="JenisKelamin">Jenis Kelamin<span class="text-danger font-weight-bold">*</span></label>
-                                            <div class="d-flex">
-                                                <div class="d-inline-block custom-control custom-radio mr-3">
-                                                    <input class="custom-control-input" type="radio" id="Laki-Laki" name="JenisKelamin" value="Laki-laki" <?= $required ?>>
-                                                    <label for="Laki-Laki" class="custom-control-label" style="font-weight: normal;">Laki-Laki</label>
+                                            <div class="col-md-9">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="NikSantri">NIK Santri<span class="text-danger font-weight-bold">*</span></label>
+                                                            <input type="text" class="form-control" id="NikSantri" name="NikSantri"
+                                                                placeholder="Masukkan NIK 16 digit" <?= $required ?> pattern="^[1-9]\d{15}$"
+                                                                title="NIK harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0">
+                                                            <span id="NikSantriError" class="text-danger" style="display:none;">NIK diperlukan dan harus 16 digit.</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="NamaSantri">Nama Santri<span class="text-danger font-weight-bold">*</span></label>
+                                                            <input type="text" class="form-control name-input" id="NamaSantri" name="NamaSantri" placeholder="Masukkan nama lengkap" <?= $required ?>>
+                                                            <span id="NamaSantriError" class="text-danger" style="display:none;">Nama Santri diperlukan.</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="d-inline-block custom-control custom-radio">
-                                                    <input class="custom-control-input" type="radio" id="Perempuan" name="JenisKelamin" value="Perempuan" <?= $required ?>>
-                                                    <label for="Perempuan" class="custom-control-label" style="font-weight: normal;">Perempuan</label>
+                                                <div class="form-group row">
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="NISN">NISN</label>
+                                                            <input type="text" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN"
+                                                                pattern="[0-9]{10}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                            <small class="text-muted">NISN harus 10 digit angka</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="form-group">
+                                                            <label for="Agama">Agama<span class="text-danger font-weight-bold">*</span></label>
+                                                            <input type="text" class="form-control" id="Agama" name="Agama" value="Islam" readonly <?= $required ?>>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="form-group">
+                                                            <label for="JenisKelamin">Jenis Kelamin<span class="text-danger font-weight-bold">*</span></label>
+                                                            <select class="form-control" id="JenisKelamin" name="JenisKelamin" <?= $required ?>>
+                                                                <option value="">Pilih Jenis Kelamin</option>
+                                                                <option value="Laki-laki">Laki-laki</option>
+                                                                <option value="Perempuan">Perempuan</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <span id="JenisKelaminError" class="text-danger" style="display:none;">Pilih jenis kelamin.</span>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <label for="TempatLahirSantri">Tempat Lahir<span class="text-danger font-weight-bold">*</span></label>
-                                                <input type="text" class="form-control name-input" id="TempatLahirSantri" name="TempatLahirSantri" placeholder="Ketik Tempat Lahir Santri" <?= $required ?> pattern="[A-Za-z\s'.-]+" title="Hanya huruf, spasi, tanda petik, titik, dan tanda hubung diizinkan">
-                                                <span id="TempatLahirSantriError" class="text-danger" style="display:none;"></span>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="TanggalLahirSantri">Tanggal Lahir<span class="text-danger font-weight-bold">*</span></label>
-                                                <input type="date" class="form-control" id="TanggalLahirSantri" name="TanggalLahirSantri" <?= $required ?>>
-                                                <span id="TanggalLahirSantriError" class="text-danger" style="display:none;"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <label for="JumlahSaudara">Jumlah Saudara<span class="text-danger font-weight-bold">*</span></label>
-                                                <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan angka jumlah saudara" <?= $required ?> oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="AnakKe">Anak Ke<span class="text-danger font-weight-bold">*</span></label>
-                                                <input type="text" class="form-control" id="AnakKe" name="AnakKe" placeholder="Masukkan angka anak ke berapa" <?= $required ?> oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="TempatLahirSantri">Tempat Lahir<span class="text-danger font-weight-bold">*</span></label>
+                                                            <input type="text" class="form-control name-input" id="TempatLahirSantri" name="TempatLahirSantri" placeholder="Ketik Tempat Lahir Santri" <?= $required ?>>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="TanggalLahirSantri">Tanggal Lahir<span class="text-danger font-weight-bold">*</span></label>
+                                                            <input type="date" class="form-control" id="TanggalLahirSantri" name="TanggalLahirSantri" <?= $required ?>>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="JumlahSaudara">Jumlah Saudara<span class="text-danger font-weight-bold">*</span></label>
+                                                            <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan angka jumlah saudara"
+                                                                pattern="[0-9]+" title="Jumlah Saudara harus berupa angka" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="AnakKe">Anak Ke<span class="text-danger font-weight-bold">*</span></label>
+                                                            <input type="text" class="form-control" id="AnakKe" name="AnakKe" placeholder="Masukkan angka anak ke berapa"
+                                                                pattern="[0-9]+" title="Anak Ke harus berupa angka" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -323,16 +331,16 @@ $required = '';
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <label for="IdKartuKeluarga">No Kartu Keluarga (KK)</label>
+                                                <label for="IdKartuKeluarga">No Kartu Keluarga (KK)<span class="text-danger font-weight-bold">*</span></label>
                                                 <input type="text" class="form-control" id="IdKartuKeluarga" name="IdKartuKeluarga" placeholder="Masukkan nomor KK"
-                                                    pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                    pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
                                                 <small class="text-muted">Nomor KK harus 16 digit angka</small>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="FileKKSantri">Upload KK Santri</label>
+                                                <label for="FileKKSantri">Upload KK Santri<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group">
                                                     <div class="custom-file">
-                                                        <input type="file" class="form-control" id="FileKKSantri" name="FileKKSantri" accept=".pdf,.jpg,.jpeg,.png">
+                                                        <input type="file" class="form-control" id="FileKKSantri" name="FileKKSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
                                                         <label class="custom-file-label" for="FileKKSantri">Unggah KK</label>
                                                     </div>
                                                 </div>
@@ -1613,15 +1621,11 @@ $required = '';
      */
     function validateAndNext(stepId) {
         let isValid = true;
-        let fields = document.querySelectorAll('#' + stepId + ' .form-control[required], #' + stepId + ' input[type="radio"][required]');
+        let fields = document.querySelectorAll('#' + stepId + ' .form-control[required]');
 
         fields.forEach(function(field) {
             validateField(field);
-            if (field.type === 'radio') {
-                let radioGroup = document.getElementsByName(field.name);
-                let isChecked = Array.from(radioGroup).some(radio => radio.checked);
-                if (!isChecked) isValid = false;
-            } else if (field.classList.contains('is-invalid')) {
+            if (field.classList.contains('is-invalid')) {
                 isValid = false;
             }
         });
@@ -1656,6 +1660,47 @@ $required = '';
     });
     /* ===== End Region: Validasi Input saat Submit Form ===== */
 
+    /* ===== Region: Validasi Input Form =====
+     * Validasi input form dan tampilkan error secara dinamis semua input
+     * @param {HTMLElement} field - Input yang divalidasi
+     */
+    function validateField(field) {
+        let errorField = document.getElementById(field.id + "Error");
+        if (!errorField) {
+            errorField = document.createElement('span');
+            errorField.id = field.id + "Error";
+            errorField.className = 'text-danger';
+            field.parentNode.insertBefore(errorField, field.nextSibling);
+        }
+
+        if (field.type === 'radio') {
+            let radioGroup = document.getElementsByName(field.name);
+            let isChecked = Array.from(radioGroup).some(radio => radio.checked);
+            if (!isChecked) {
+                document.getElementById('JenisKelaminError').style.display = 'block';
+                radioGroup.forEach(radio => radio.classList.add('is-invalid'));
+            } else {
+                document.getElementById('JenisKelaminError').style.display = 'none';
+                radioGroup.forEach(radio => {
+                    radio.classList.remove('is-invalid');
+                    radio.classList.add('is-valid');
+                });
+            }
+        } else {
+            // Validasi untuk input lainnya tetap sama
+            if (!field.value.trim()) {
+                errorField.textContent = 'Bagian ini harus diisi.';
+                errorField.style.display = 'block';
+                field.classList.remove('is-valid');
+                field.classList.add('is-invalid');
+            } else {
+                errorField.textContent = '';
+                errorField.style.display = 'none';
+                field.classList.remove('is-invalid');
+                field.classList.add('is-valid');
+            }
+        }
+    }
     /* ===== Region: Filter TPQ berdasarkan kelurahan =====
      * Fungsi ini memfilter opsi TPQ berdasarkan kelurahan yang dipilih
      * Menggunakan event listener untuk perubahan pada select kelurahan
@@ -2197,47 +2242,7 @@ $required = '';
         });
     });
 
-    /* ===== Region: Validasi Input Form =====
-     * Validasi input form dan tampilkan error secara dinamis semua input
-     * @param {HTMLElement} field - Input yang divalidasi
-     */
-    function validateField(field) {
-        let errorField = document.getElementById(field.id + "Error");
-        if (!errorField) {
-            errorField = document.createElement('span');
-            errorField.id = field.id + "Error";
-            errorField.className = 'text-danger';
-            field.parentNode.insertBefore(errorField, field.nextSibling);
-        }
 
-        if (field.type === 'radio') {
-            let radioGroup = document.getElementsByName(field.name);
-            let isChecked = Array.from(radioGroup).some(radio => radio.checked);
-            if (!isChecked) {
-                document.getElementById('JenisKelaminError').style.display = 'block';
-                radioGroup.forEach(radio => radio.classList.add('is-invalid'));
-            } else {
-                document.getElementById('JenisKelaminError').style.display = 'none';
-                radioGroup.forEach(radio => {
-                    radio.classList.remove('is-invalid');
-                    radio.classList.add('is-valid');
-                });
-            }
-        } else {
-            // Validasi untuk input lainnya tetap sama
-            if (!field.value.trim()) {
-                errorField.textContent = 'Kolom ini harus diisi.';
-                errorField.style.display = 'block';
-                field.classList.remove('is-valid');
-                field.classList.add('is-invalid');
-            } else {
-                errorField.textContent = '';
-                errorField.style.display = 'none';
-                field.classList.remove('is-invalid');
-                field.classList.add('is-valid');
-            }
-        }
-    }
 
     /* ===== Region: Menampilkan Preview File Img atau Pdf =====
      * Membuat elemen-elemen preview untuk file yang diupload
