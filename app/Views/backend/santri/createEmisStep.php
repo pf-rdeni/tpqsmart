@@ -113,7 +113,7 @@ $required = 'required';
                                             <div class="col-md-3">
                                                 <label>Photo Profil<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="text-left">
-                                                    <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" style="display: none;" onchange="previewPhoto(this)" <?= $required ?>>
+                                                    <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?>>
                                                     <div class="position-relative d-inline-block text-left">
                                                         <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
                                                             class="img-thumbnail" style="width: 215px; height: 280px; object-fit: cover; cursor: pointer; float: left;"
@@ -1627,6 +1627,44 @@ $required = 'required';
         let firstInvalidField = null;
         let fields = document.querySelectorAll('#' + stepId + ' .form-control[required]');
 
+        // Tambahkan validasi khusus untuk foto profil
+        if (stepId === 'santri-part') {
+            const photoProfil = document.getElementById('PhotoProfil');
+            const photoPreview = document.getElementById('previewPhotoProfil');
+            const photoError = document.getElementById('PhotoProfilError');
+
+            // Cek apakah foto profil sudah diupload
+            if (!photoProfil.files || !photoProfil.files[0]) {
+                isValid = false;
+                photoError.innerHTML = 'Foto profil harus diupload';
+                photoError.style.display = 'block';
+
+                // Tambahkan efek blinking pada preview foto
+                let blinkCount = 0;
+                const blinkInterval = setInterval(() => {
+                    photoPreview.style.border = blinkCount % 2 === 0 ? '2px solid #dc3545' : '2px solid transparent';
+                    blinkCount++;
+                    if (blinkCount >= 6) { // Blink 3 kali (6 perubahan)
+                        clearInterval(blinkInterval);
+                        photoPreview.style.border = '2px solid #dc3545'; // Tetap merah setelah blinking
+                    }
+                }, 300); // Interval 300ms antara setiap perubahan
+
+                if (!firstInvalidField) {
+                    firstInvalidField = photoProfil;
+                    // Scroll ke preview foto
+                    photoPreview.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            } else {
+                photoError.style.display = 'none';
+                photoPreview.style.border = '2px solid #28a745';
+            }
+        }
+
+        // Validasi field lainnya seperti sebelumnya
         fields.forEach(function(field) {
             validateField(field);
             if (field.classList.contains('is-invalid') && !firstInvalidField) {
@@ -1635,38 +1673,25 @@ $required = 'required';
         });
 
         if (firstInvalidField) {
-            // Scroll ke elemen dengan animasi smooth
             firstInvalidField.scrollIntoView({
                 behavior: 'smooth',
                 block: 'center'
             });
 
-            // Tambahkan delay sebelum fokus untuk memastikan scroll selesai
-            setTimeout(() => {
-                firstInvalidField.focus();
-
-                // Tambahkan highlight sementara
-                firstInvalidField.style.backgroundColor = '#fff3cd';
-                setTimeout(() => {
-                    firstInvalidField.style.backgroundColor = '';
-                }, 2000);
-            }, 500);
-
-            // Tambahkan highlight dengan efek blinking
-            firstInvalidField.style.transition = 'background-color 0.5s';
+            // Tambahkan efek blinking pada field yang invalid
             let blinkCount = 0;
-            const maxBlinks = 3;
             const blinkInterval = setInterval(() => {
-                if (blinkCount >= maxBlinks * 2) { // dikali 2 karena setiap blink butuh 2 perubahan warna
+                firstInvalidField.style.backgroundColor = blinkCount % 2 === 0 ? '#fff3cd' : '';
+                blinkCount++;
+                if (blinkCount >= 6) { // Blink 3 kali (6 perubahan)
                     clearInterval(blinkInterval);
                     firstInvalidField.style.backgroundColor = '';
-                    firstInvalidField.style.transition = '';
-                    return;
                 }
+            }, 300);
 
-                firstInvalidField.style.backgroundColor = blinkCount % 2 === 0 ? '#ffcdd2' : '';
-                blinkCount++;
-            }, 500); // 500ms untuk setiap perubahan warna
+            setTimeout(() => {
+                firstInvalidField.focus();
+            }, 500);
 
             return false;
         }
@@ -1713,6 +1738,32 @@ $required = 'required';
             field.parentNode.insertBefore(errorField, field.nextSibling);
         }
 
+        // Tambahkan pengecekan khusus untuk input type date
+        if (field.type === 'date') {
+            if (!field.value) {
+                field.classList.add('is-invalid');
+                field.style.border = '1px solid #dc3545';
+
+                // Tampilkan pesan error jika ada element error
+                const errorElement = document.getElementById(field.id + 'Error');
+                if (errorElement) {
+                    errorElement.style.display = 'block';
+                    errorElement.textContent = 'Tanggal harus diisi';
+                }
+                return false;
+            } else {
+                field.classList.remove('is-invalid');
+                field.classList.add('is-valid');
+                field.style.border = '1px solid #28a745';
+
+                // Sembunyikan pesan error jika ada
+                const errorElement = document.getElementById(field.id + 'Error');
+                if (errorElement) {
+                    errorElement.style.display = 'none';
+                }
+                return true;
+            }
+        }
         // Validasi untuk input lainnya tetap sama
         if (!field.value.trim()) {
             errorField.textContent = 'Bagian ini harus diisi...!';
