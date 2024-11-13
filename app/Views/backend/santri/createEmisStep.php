@@ -113,7 +113,7 @@ $required = 'required';
                                             <div class="col-md-3">
                                                 <label>Photo Profil<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="text-left">
-                                                    <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" style="display: none;" onchange="previewPhoto(this)" <?= $required ?>>
+                                                    <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" style="display: none;" onchange="previewPhoto(this)" <?= $required ?>>
                                                     <div class="position-relative d-inline-block text-left">
                                                         <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
                                                             class="img-thumbnail" style="width: 215px; height: 280px; object-fit: cover; cursor: pointer; float: left;"
@@ -337,14 +337,14 @@ $required = 'required';
                                                 <small class="text-muted">Nomor KK harus 16 digit angka</small>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="FileKKSantri">Upload KK Santri<span class="text-danger font-weight-bold">*</span></label>
+                                                <label for="FileKkSantri">Upload KK Santri<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group">
                                                     <div class="custom-file">
-                                                        <input type="file" class="form-control" id="FileKKSantri" name="FileKKSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
-                                                        <label class="custom-file-label" for="FileKKSantri">Unggah KK</label>
+                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
+                                                        <label class="custom-file-label" for="FileKkSantri">Unggah KK</label>
                                                     </div>
                                                 </div>
-                                                <small id="FileKKSantriError" class="text-danger d-none"></small>
+                                                <small id="FileKkSantriError" class="text-danger d-none"></small>
                                             </div>
                                         </div>
                                     </div>
@@ -1619,24 +1619,64 @@ $required = 'required';
      * Memvalidasi input dan melanjutkan ke langkah berikutnya
      * @param {string} stepId - ID dari langkah yang sedang divalidasi
      */
+    // ... existing code ...
+
+    /* ===== Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
     function validateAndNext(stepId) {
         let isValid = true;
+        let firstInvalidField = null;
         let fields = document.querySelectorAll('#' + stepId + ' .form-control[required]');
 
         fields.forEach(function(field) {
             validateField(field);
-            if (field.classList.contains('is-invalid')) {
-                isValid = false;
+            if (field.classList.contains('is-invalid') && !firstInvalidField) {
+                firstInvalidField = field;
             }
         });
 
+        if (firstInvalidField) {
+            // Scroll ke elemen dengan animasi smooth
+            firstInvalidField.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+
+            // Tambahkan delay sebelum fokus untuk memastikan scroll selesai
+            setTimeout(() => {
+                firstInvalidField.focus();
+
+                // Tambahkan highlight sementara
+                firstInvalidField.style.backgroundColor = '#fff3cd';
+                setTimeout(() => {
+                    firstInvalidField.style.backgroundColor = '';
+                }, 2000);
+            }, 500);
+
+            // Tambahkan highlight dengan efek blinking
+            firstInvalidField.style.transition = 'background-color 0.5s';
+            let blinkCount = 0;
+            const maxBlinks = 3;
+            const blinkInterval = setInterval(() => {
+                if (blinkCount >= maxBlinks * 2) { // dikali 2 karena setiap blink butuh 2 perubahan warna
+                    clearInterval(blinkInterval);
+                    firstInvalidField.style.backgroundColor = '';
+                    firstInvalidField.style.transition = '';
+                    return;
+                }
+
+                firstInvalidField.style.backgroundColor = blinkCount % 2 === 0 ? '#ffcdd2' : '';
+                blinkCount++;
+            }, 500); // 500ms untuk setiap perubahan warna
+
+            return false;
+        }
+
         if (isValid) {
             stepper.next();
-        } else {
-            // Fokus ke input pertama yang tidak valid
-            fields[0].focus();
         }
     }
+
+    // ... existing code ...
     /* ===== End Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
 
     /* ===== Region: Validasi Input saat Submit Form =====
@@ -1673,32 +1713,17 @@ $required = 'required';
             field.parentNode.insertBefore(errorField, field.nextSibling);
         }
 
-        if (field.type === 'radio') {
-            let radioGroup = document.getElementsByName(field.name);
-            let isChecked = Array.from(radioGroup).some(radio => radio.checked);
-            if (!isChecked) {
-                document.getElementById('JenisKelaminError').style.display = 'block';
-                radioGroup.forEach(radio => radio.classList.add('is-invalid'));
-            } else {
-                document.getElementById('JenisKelaminError').style.display = 'none';
-                radioGroup.forEach(radio => {
-                    radio.classList.remove('is-invalid');
-                    radio.classList.add('is-valid');
-                });
-            }
+        // Validasi untuk input lainnya tetap sama
+        if (!field.value.trim()) {
+            errorField.textContent = 'Bagian ini harus diisi...!';
+            errorField.style.display = 'block';
+            field.classList.remove('is-valid');
+            field.classList.add('is-invalid');
         } else {
-            // Validasi untuk input lainnya tetap sama
-            if (!field.value.trim()) {
-                errorField.textContent = 'Bagian ini harus diisi.';
-                errorField.style.display = 'block';
-                field.classList.remove('is-valid');
-                field.classList.add('is-invalid');
-            } else {
-                errorField.textContent = '';
-                errorField.style.display = 'none';
-                field.classList.remove('is-invalid');
-                field.classList.add('is-valid');
-            }
+            errorField.textContent = '';
+            errorField.style.display = 'none';
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
         }
     }
     /* ===== Region: Filter TPQ berdasarkan kelurahan =====
@@ -2678,7 +2703,7 @@ $required = 'required';
      */
     document.addEventListener('DOMContentLoaded', function() {
         // Logika untuk KK Santri dan KK Ayah
-        const FileKKSantri = document.getElementById('FileKKSantri');
+        const FileKkSantri = document.getElementById('FileKkSantri');
         const KkAyahSamaDenganSantri = document.getElementById('KkAyahSamaDenganSantri');
         const fileKKAyahDiv = document.getElementById('FileKKAyahDiv');
         const fileKkAyah = document.getElementById('FileKkAyah');
@@ -2693,7 +2718,7 @@ $required = 'required';
 
         // Fungsi untuk mengupdate status checkbox KK Ayah
         function updateKKAyahState() {
-            const santriHasKK = FileKKSantri.files.length > 0;
+            const santriHasKK = FileKkSantri.files.length > 0;
             const ayahHidup = statusAyah.value === 'Masih Hidup';
 
             // Aktifkan checkbox hanya jika semua kondisi terpenuhi
@@ -2735,7 +2760,7 @@ $required = 'required';
         // Fungsi untuk mengupdate status checkbox KK Ibu
         function updateKKIbuState() {
             const ibuHidup = statusIbu.value === 'Masih Hidup';
-            const santriHasKK = FileKKSantri.files.length > 0;
+            const santriHasKK = FileKkSantri.files.length > 0;
             const ayahHasKK = fileKkAyah.files.length > 0 || KkAyahSamaDenganSantri.checked;
 
             // Ubah logika - Ibu bisa menggunakan KK Santri terlepas dari status Ayah
@@ -2788,7 +2813,7 @@ $required = 'required';
         }
 
         // Event listeners untuk KK Santri dan Ayah
-        FileKKSantri.addEventListener('change', updateKKAyahState);
+        FileKkSantri.addEventListener('change', updateKKAyahState);
         statusAyah.addEventListener('change', function() {
             updateKKAyahState();
             updateKKIbuState();
