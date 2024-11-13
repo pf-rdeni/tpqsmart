@@ -109,16 +109,18 @@ $required = 'required';
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <div class="row">
+                                        <div class="row align-items-start"> <!-- Tambahkan align-items-start -->
                                             <div class="col-md-3">
                                                 <label>Photo Profil<span class="text-danger font-weight-bold">*</span></label>
-                                                <div class="text-left">
+                                                <small class="text-danger d-block mb-2">
+                                                    <i class="fas fa-exclamation-circle"></i>
+                                                    Format foto background merah dengan rasio 2x3 atau 3x4 atau 4x6
+                                                </small>
+                                                <div>
                                                     <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?>>
-                                                    <div class="position-relative d-inline-block text-left">
-                                                        <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
-                                                            class="img-thumbnail" style="width: 215px; height: 280px; object-fit: cover; cursor: pointer; float: left;"
-                                                            onclick="showPhotoOptions()">
-                                                    </div>
+                                                    <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
+                                                        class="img-thumbnail" style="width: 215px; height: 280px; object-fit: cover; cursor: pointer;"
+                                                        onclick="showPhotoOptions()">
                                                     <div class="mt-2">
                                                         <button type="button" class="btn btn-sm btn-primary mr-2" onclick="document.getElementById('PhotoProfil').click()">
                                                             <i class="fas fa-upload"></i> Upload Foto
@@ -127,6 +129,7 @@ $required = 'required';
                                                             <i class="fas fa-camera"></i> Ambil Foto
                                                         </button>
                                                         <small class="text-muted d-block mt-2">Format: JPG, JPEG, PNG. Maximal: 2MB</small>
+
                                                         <div id="PhotoProfilError" class="text-danger mt-1" style="display: none;"></div>
                                                     </div>
                                                 </div>
@@ -181,12 +184,14 @@ $required = 'required';
                                                         <div class="form-group">
                                                             <label for="TempatLahirSantri">Tempat Lahir<span class="text-danger font-weight-bold">*</span></label>
                                                             <input type="text" class="form-control name-input" id="TempatLahirSantri" name="TempatLahirSantri" placeholder="Ketik Tempat Lahir Santri" <?= $required ?>>
+                                                            <span id="TempatLahirSantriError" class="text-danger" style="display:none;">Tempat Lahir diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label for="TanggalLahirSantri">Tanggal Lahir<span class="text-danger font-weight-bold">*</span></label>
                                                             <input type="date" class="form-control" id="TanggalLahirSantri" name="TanggalLahirSantri" <?= $required ?>>
+                                                            <span id="TanggalLahirSantriError" class="text-danger" style="display:none;">Tanggal Lahir diperlukan.</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -340,7 +345,7 @@ $required = 'required';
                                                 <label for="FileKkSantri">Upload KK Santri<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group">
                                                     <div class="custom-file">
-                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
+                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" onchange="validateFile(this)" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
                                                         <label class="custom-file-label" for="FileKkSantri">Unggah KK</label>
                                                     </div>
                                                 </div>
@@ -1625,77 +1630,103 @@ $required = 'required';
     function validateAndNext(stepId) {
         let isValid = true;
         let firstInvalidField = null;
-        let fields = document.querySelectorAll('#' + stepId + ' .form-control[required]');
 
-        // Tambahkan validasi khusus untuk foto profil
+        // Fungsi untuk set field invalid
+        function setInvalidField(field) {
+            if (!firstInvalidField) {
+                firstInvalidField = field;
+                isValid = false;
+            }
+        }
+
+        // Validasi khusus untuk step santri-part
         if (stepId === 'santri-part') {
+            // 1. Validasi foto profil (prioritas pertama)
             const photoProfil = document.getElementById('PhotoProfil');
             const photoPreview = document.getElementById('previewPhotoProfil');
             const photoError = document.getElementById('PhotoProfilError');
 
-            // Cek apakah foto profil sudah diupload
             if (!photoProfil.files || !photoProfil.files[0]) {
                 isValid = false;
                 photoError.innerHTML = 'Foto profil harus diupload';
                 photoError.style.display = 'block';
-
-                // Tambahkan efek blinking pada preview foto
-                let blinkCount = 0;
-                const blinkInterval = setInterval(() => {
-                    photoPreview.style.border = blinkCount % 2 === 0 ? '2px solid #dc3545' : '2px solid transparent';
-                    blinkCount++;
-                    if (blinkCount >= 6) { // Blink 3 kali (6 perubahan)
-                        clearInterval(blinkInterval);
-                        photoPreview.style.border = '2px solid #dc3545'; // Tetap merah setelah blinking
-                    }
-                }, 300); // Interval 300ms antara setiap perubahan
-
-                if (!firstInvalidField) {
-                    firstInvalidField = photoProfil;
-                    // Scroll ke preview foto
-                    photoPreview.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-                }
+                photoPreview.style.border = '2px solid #dc3545';
+                setInvalidField(photoProfil);
             } else {
                 photoError.style.display = 'none';
                 photoPreview.style.border = '2px solid #28a745';
             }
         }
 
-        // Validasi field lainnya seperti sebelumnya
-        fields.forEach(function(field) {
-            validateField(field);
-            if (field.classList.contains('is-invalid') && !firstInvalidField) {
-                firstInvalidField = field;
+        // Validasi field required lainnya
+        const requiredFields = document.querySelectorAll('#' + stepId + ' .form-control[required]');
+        requiredFields.forEach(field => {
+            // Validasi khusus untuk tanggal lahir
+            if (field.id === 'TanggalLahirSantri') {
+                if (!field.value.trim()) {
+                    validateField(field);
+                    setInvalidField(field);
+                } else if (!validateTanggalLahir()) {
+                    setInvalidField(field);
+                }
+            }
+            // Validasi umum untuk field lainnya
+            else if (!field.value.trim()) {
+                validateField(field);
+                setInvalidField(field);
             }
         });
 
+        // Jika ada field invalid, fokus ke field tersebut
         if (firstInvalidField) {
-            firstInvalidField.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
+            // Handle scroll dan fokus
+            if (firstInvalidField.id === 'PhotoProfil') {
+                // Scroll ke preview foto
+                document.getElementById('previewPhotoProfil').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
 
-            // Tambahkan efek blinking pada field yang invalid
-            let blinkCount = 0;
-            const blinkInterval = setInterval(() => {
-                firstInvalidField.style.backgroundColor = blinkCount % 2 === 0 ? '#fff3cd' : '';
-                blinkCount++;
-                if (blinkCount >= 6) { // Blink 3 kali (6 perubahan)
-                    clearInterval(blinkInterval);
-                    firstInvalidField.style.backgroundColor = '';
-                }
-            }, 300);
+                // Efek blinking untuk preview foto
+                let blinkCount = 0;
+                const blinkInterval = setInterval(() => {
+                    document.getElementById('previewPhotoProfil').style.border =
+                        blinkCount % 2 === 0 ? '2px solid #dc3545' : '2px solid transparent';
+                    blinkCount++;
+                    if (blinkCount >= 6) {
+                        clearInterval(blinkInterval);
+                        document.getElementById('previewPhotoProfil').style.border = '2px solid #dc3545';
+                    }
+                }, 300);
+            } else {
+                // Scroll ke field invalid
+                firstInvalidField.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
 
-            setTimeout(() => {
-                firstInvalidField.focus();
-            }, 500);
+                // Efek blinking untuk field
+                let blinkCount = 0;
+                const blinkInterval = setInterval(() => {
+                    firstInvalidField.style.backgroundColor =
+                        blinkCount % 2 === 0 ? '#fff3cd' : '';
+                    blinkCount++;
+                    if (blinkCount >= 6) {
+                        clearInterval(blinkInterval);
+                        firstInvalidField.style.backgroundColor = '';
+                    }
+                }, 300);
+
+                // Set focus setelah scroll selesai
+                setTimeout(() => {
+                    firstInvalidField.focus();
+                }, 800);
+            }
 
             return false;
         }
 
+        // Lanjut ke step berikutnya jika semua validasi berhasil
         if (isValid) {
             stepper.next();
         }
@@ -1730,51 +1761,26 @@ $required = 'required';
      * @param {HTMLElement} field - Input yang divalidasi
      */
     function validateField(field) {
-        let errorField = document.getElementById(field.id + "Error");
-        if (!errorField) {
-            errorField = document.createElement('span');
-            errorField.id = field.id + "Error";
-            errorField.className = 'text-danger';
-            field.parentNode.insertBefore(errorField, field.nextSibling);
-        }
+        const errorElement = document.getElementById(field.id + 'Error');
 
-        // Tambahkan pengecekan khusus untuk input type date
-        if (field.type === 'date') {
-            if (!field.value) {
-                field.classList.add('is-invalid');
-                field.style.border = '1px solid #dc3545';
-
-                // Tampilkan pesan error jika ada element error
-                const errorElement = document.getElementById(field.id + 'Error');
-                if (errorElement) {
-                    errorElement.style.display = 'block';
-                    errorElement.textContent = 'Tanggal harus diisi';
-                }
-                return false;
-            } else {
-                field.classList.remove('is-invalid');
-                field.classList.add('is-valid');
-                field.style.border = '1px solid #28a745';
-
-                // Sembunyikan pesan error jika ada
-                const errorElement = document.getElementById(field.id + 'Error');
-                if (errorElement) {
-                    errorElement.style.display = 'none';
-                }
-                return true;
-            }
-        }
-        // Validasi untuk input lainnya tetap sama
         if (!field.value.trim()) {
-            errorField.textContent = 'Bagian ini harus diisi...!';
-            errorField.style.display = 'block';
-            field.classList.remove('is-valid');
             field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+            field.style.border = '1px solid #dc3545';
+
+            if (errorElement) {
+                errorElement.style.display = 'block';
+            }
+            return false;
         } else {
-            errorField.textContent = '';
-            errorField.style.display = 'none';
             field.classList.remove('is-invalid');
             field.classList.add('is-valid');
+            field.style.border = '1px solid #28a745';
+
+            if (errorElement) {
+                errorElement.style.display = 'none';
+            }
+            return true;
         }
     }
     /* ===== Region: Filter TPQ berdasarkan kelurahan =====
@@ -1854,6 +1860,8 @@ $required = 'required';
                     preview.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
+                errorDiv.style.display = 'none';
+                preview.style.border = '2px solid #28a745';
             } catch (error) {
                 console.error('Error saat membaca file:', error);
                 errorDiv.innerHTML = 'Terjadi kesalahan saat memproses file';
@@ -2903,155 +2911,142 @@ $required = 'required';
     /* ===== End Region: Validasi KK ===== */
 
     /* ===== Region: Validasi Tanggal Lahir Santri ===== */
+    // Deklarasikan fungsi validateTanggalLahir di scope global
+    window.validateTanggalLahir = function() {
+        const kelasSelect = document.getElementById('IdKelas');
+        const tanggalLahirInput = document.getElementById('TanggalLahirSantri');
+
+        // Abaikan validasi jika input kosong
+        if (!tanggalLahirInput.value || !kelasSelect.value) {
+            // Hapus semua class validasi dan pesan error
+            tanggalLahirInput.classList.remove('is-invalid', 'is-valid');
+            tanggalLahirInput.style.borderColor = ''; // Reset border color
+            const existingError = document.getElementById('TanggalLahirSantriError');
+            if (existingError) {
+                existingError.remove();
+            }
+            return true;
+        }
+
+        const selectedKelasId = parseInt(kelasSelect.value);
+        const tanggalLahir = new Date(tanggalLahirInput.value);
+        const today = new Date();
+        const umur = today.getFullYear() - tanggalLahir.getFullYear();
+
+        // Hapus pesan error yang ada
+        const existingError = document.getElementById('TanggalLahirSantriError');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        // Validasi berdasarkan kelas
+        let isValid = true;
+        let errorMessage = '';
+
+        // Fungsi helper untuk format pesan error
+        const formatErrorMessage = (kelasName, minAge, maxAge) => {
+            return `Untuk kelas ${kelasName} yang dipilih, usia kisaran antara ${minAge}-${maxAge} tahun (lahir tahun ${today.getFullYear()-maxAge} sampai ${today.getFullYear()-minAge})`;
+        };
+
+        // Validasi berdasarkan ID kelas
+        switch (selectedKelasId) {
+            case 1: // TK
+            case 2: // TKA 
+            case 3: // TKB
+                if (umur < 4 || umur > 7) {
+                    isValid = false;
+                    errorMessage = formatErrorMessage('TK/TKA/TKB', 4, 7);
+                }
+                break;
+
+            case 4: // TPQ1/SD1
+                if (umur < 6 || umur > 7) {
+                    isValid = false;
+                    errorMessage = formatErrorMessage('TPQ1/SD1', 6, 7);
+                }
+                break;
+
+            case 5: // TPQ2/SD2
+                if (umur < 7 || umur > 8) {
+                    isValid = false;
+                    errorMessage = formatErrorMessage('TPQ2/SD2', 7, 8);
+                }
+                break;
+
+            case 6: // TPQ3/SD3
+                if (umur < 8 || umur > 9) {
+                    isValid = false;
+                    errorMessage = formatErrorMessage('TPQ3/SD3', 8, 9);
+                }
+                break;
+
+            case 7: // TPQ4/SD4
+                if (umur < 9 || umur > 10) {
+                    isValid = false;
+                    errorMessage = formatErrorMessage('TPQ4/SD4', 9, 10);
+                }
+                break;
+
+            case 8: // TPQ5/SD5
+                if (umur < 10 || umur > 11) {
+                    isValid = false;
+                    errorMessage = formatErrorMessage('TPQ5/SD5', 10, 11);
+                }
+                break;
+
+            case 9: // TPQ6/SD6
+                if (umur < 11 || umur > 12) {
+                    isValid = false;
+                    errorMessage = formatErrorMessage('TPQ6/SD6', 11, 12);
+                }
+                break;
+
+            default:
+                isValid = false;
+                errorMessage = 'Silakan pilih kelas terlebih dahulu';
+        }
+
+        if (!isValid) {
+            // Tambahkan class is-invalid dan atur border merah
+            tanggalLahirInput.classList.add('is-invalid');
+            tanggalLahirInput.classList.remove('is-valid');
+            tanggalLahirInput.style.borderColor = '#dc3545';
+
+            // Tampilkan pesan error
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'TanggalLahirSantriError';
+            errorDiv.className = 'alert alert-danger mt-2 small';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
+            tanggalLahirInput.parentElement.appendChild(errorDiv);
+        } else {
+            // Jika valid, tambahkan class is-valid dan atur border hijau
+            tanggalLahirInput.classList.remove('is-invalid');
+            tanggalLahirInput.classList.add('is-valid');
+            tanggalLahirInput.style.borderColor = '#28a745';
+
+            // Hapus pesan error jika ada
+            const errorDiv = document.getElementById('TanggalLahirSantriError');
+            if (errorDiv) {
+                errorDiv.remove();
+            }
+        }
+
+        return isValid;
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const kelasSelect = document.getElementById('IdKelas');
         const tanggalLahirInput = document.getElementById('TanggalLahirSantri');
 
-        function validateTanggalLahir() {
-            const selectedKelasId = parseInt(kelasSelect.value); // Mengambil ID kelas sebagai number
-
-            // Abaikan validasi jika input kosong
-            if (!tanggalLahirInput.value) {
-                // Hapus semua class validasi dan pesan error
-                tanggalLahirInput.classList.remove('is-invalid', 'is-valid');
-                const existingError = document.getElementById('TanggalLahirError');
-                if (existingError) {
-                    existingError.remove();
-                }
-                return true;
-            }
-
-            const tanggalLahir = new Date(tanggalLahirInput.value);
-            const today = new Date();
-            const umur = today.getFullYear() - tanggalLahir.getFullYear();
-
-            // Hapus pesan error yang ada
-            const existingError = document.getElementById('TanggalLahirError');
-            if (existingError) {
-                existingError.remove();
-            }
-
-            // Validasi berdasarkan kelas
-            let isValid = true;
-            let errorMessage = '';
-
-            // Fungsi helper untuk format pesan error
-            const formatErrorMessage = (kelasName, minAge, maxAge) => {
-                return `Untuk kelas ${kelasName} yang dipilih, usia kisaran antara ${minAge}-${maxAge} tahun (lahir tahun ${today.getFullYear()-maxAge} sampai ${today.getFullYear()-minAge})`;
-            };
-
-            // Validasi berdasarkan ID kelas
-            switch (selectedKelasId) {
-                case 1: // TK
-                case 2: // TKA 
-                case 3: // TKB
-                    // Untuk TK/TKA/TKB: usia 4-7 tahun
-                    if (umur < 4 || umur > 7) {
-                        isValid = false;
-                        const minTahun = today.getFullYear() - 7; // Tahun untuk usia maksimal (7 tahun)
-                        const maxTahun = today.getFullYear() - 4; // Tahun untuk usia minimal (4 tahun) 
-                        errorMessage = formatErrorMessage('TK/TKA/TKB', 4, 7);
-                    }
-                    break;
-
-                case 4: // TPQ1/SD1
-                    // Untuk TPQ1/SD1: usia 6-7 tahun
-                    if (umur < 6 || umur > 7) {
-                        isValid = false;
-                        const minTahun = today.getFullYear() - 7;
-                        const maxTahun = today.getFullYear() - 6;
-                        errorMessage = formatErrorMessage('TPQ1/SD1', 6, 7);
-                    }
-                    break;
-
-                case 5: // TPQ2/SD2
-                    // Untuk TPQ2/SD2: usia 7-8 tahun
-                    if (umur < 7 || umur > 8) {
-                        isValid = false;
-                        const minTahun = today.getFullYear() - 8;
-                        const maxTahun = today.getFullYear() - 7;
-                        errorMessage = formatErrorMessage('TPQ2/SD2', 7, 8);
-                    }
-                    break;
-
-                case 6: // TPQ3/SD3
-                    // Untuk TPQ3/SD3: usia 8-9 tahun
-                    if (umur < 8 || umur > 9) {
-                        isValid = false;
-                        const minTahun = today.getFullYear() - 9;
-                        const maxTahun = today.getFullYear() - 8;
-                        errorMessage = formatErrorMessage('TPQ3/SD3', 8, 9);
-                    }
-                    break;
-
-                case 7: // TPQ4/SD4
-                    // Untuk TPQ4/SD4: usia 9-10 tahun
-                    if (umur < 9 || umur > 10) {
-                        isValid = false;
-                        const minTahun = today.getFullYear() - 10;
-                        const maxTahun = today.getFullYear() - 9;
-                        errorMessage = formatErrorMessage('TPQ4/SD4', 9, 10);
-                    }
-                    break;
-
-                case 8: // TPQ5/SD5
-                    // Untuk TPQ5/SD5: usia 10-11 tahun
-                    if (umur < 10 || umur > 11) {
-                        isValid = false;
-                        const minTahun = today.getFullYear() - 11;
-                        const maxTahun = today.getFullYear() - 10;
-                        errorMessage = formatErrorMessage('TPQ5/SD5', 10, 11);
-                    }
-                    break;
-
-                case 9: // TPQ6/SD6
-                    // Untuk TPQ6/SD6: usia 11-12 tahun
-                    if (umur < 11 || umur > 12) {
-                        isValid = false;
-                        const minTahun = today.getFullYear() - 12;
-                        const maxTahun = today.getFullYear() - 11;
-                        errorMessage = formatErrorMessage('TPQ6/SD6', 11, 12);
-                    }
-                    break;
-
-                default:
-                    isValid = false;
-                    errorMessage = 'Silakan pilih kelas terlebih dahulu';
-            }
-
-            // ... existing code ...
-
-            if (!isValid) {
-                // Tambahkan class is-invalid pada input
-                tanggalLahirInput.classList.add('is-invalid');
-                tanggalLahirInput.classList.remove('is-valid');
-
-                // Tampilkan pesan error
-                const errorDiv = document.createElement('div');
-                errorDiv.id = 'TanggalLahirError';
-                errorDiv.className = 'alert alert-danger mt-2 small';
-                errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
-                tanggalLahirInput.parentElement.appendChild(errorDiv);
-                return false;
-            } else {
-                // Jika valid, hapus class is-invalid dan tambahkan is-valid
-                tanggalLahirInput.classList.remove('is-invalid');
-                tanggalLahirInput.classList.add('is-valid');
-                return true;
-            }
-
-            return true;
-        }
-
-        // Tambahkan event listener untuk perubahan tanggal lahir dan kelas
+        // Tambahkan event listener untuk perubahan tanggal lahir
         tanggalLahirInput.addEventListener('change', validateTanggalLahir);
+        // Tambahkan event listener untuk perubahan kelas
         kelasSelect.addEventListener('change', validateTanggalLahir);
-        // Tambahkan validasi tanggal lahir saat tombol next ditekan
-        document.querySelector('button[onclick="validateAndNext(\'santri-part\')"]').addEventListener('click', function() {
-            // Validasi tanggal lahir
-            validateTanggalLahir();
-        });
 
+        // Jalankan validasi awal jika kedua field sudah memiliki nilai
+        if (tanggalLahirInput.value && kelasSelect.value) {
+            validateTanggalLahir();
+        }
     });
     /* ===== End Region: Validasi Tanggal Lahir Santri ===== */
 
@@ -3119,7 +3114,7 @@ $required = 'required';
             {
                 selectId: 'KebutuhanKhusus',
                 inputId: 'KebutuhanKhususLainya',
-                errorId: 'KebutuhanKhususLainyaError',
+                error: 'KebutuhanKhususLainyaError',
                 labelText: 'Kebutuhan khusus lainnya'
             },
             {
