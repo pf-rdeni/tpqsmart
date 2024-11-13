@@ -1,7 +1,9 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
 <?php echo session()->getFlashdata('pesan');
-$required = 'required'; //required
+$required = '';
+//$required = 'required';
+
 ?>
 
 <div class="modal-body">
@@ -59,8 +61,8 @@ $required = 'required'; //required
                                         <i class="fas fa-info-circle"></i> <small>Silakan pilih lokasi TPQ berdasarkan Desa/Kelurahan terlebih dahulu, kemudian pilih nama TPQ dan kelas yang dituju.</small>
                                     </div>
                                     <div class="form-group">
-                                        <label for="KelurahanDesaSantri">Lokasi TPQ<span class="text-danger font-weight-bold">*</span></label>
-                                        <select class="form-control" id="KelurahanDesaSantri" name="KelurahanDesaSantri" required>
+                                        <label for="KelurahanDesaTpq">Lokasi TPQ<span class="text-danger font-weight-bold">*</span></label>
+                                        <select class="form-control" id="KelurahanDesaTpq" name="KelurahanDesaTpq" <?= $required ?>>
                                             <option value="">Pilih Lokasi TPQ</option>
                                             <option value="TELUK SASAH">TELUK SASAH</option>
                                             <option value="BUSUNG">BUSUNG</option>
@@ -68,7 +70,7 @@ $required = 'required'; //required
                                             <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
                                             <option value="TELUK LOBAM">TELUK LOBAM</option>
                                         </select>
-                                        <span id="KelurahanDesaSantriError" class="text-danger" style="display:none;">Desa/Kelurahan diperlukan.</span>
+                                        <span id="KelurahanDesaTpqError" class="text-danger" style="display:none;">Desa/Kelurahan diperlukan.</span>
                                     </div>
 
                                     <div class="form-group">
@@ -1308,20 +1310,22 @@ $required = 'required'; //required
                                                     <select class="form-control" id="StatusTempatTinggal" name="StatusTempatTinggal">
                                                         <option value="">Pilih Status Tempat Tinggal</option>
                                                         <script>
-                                                            // Fungsi ini digunakan untuk memperbarui pilihan status tempat tinggal santri
-                                                            // berdasarkan status orang tua (hidup/meninggal) dan lokasi tinggal mereka
-                                                            //
-                                                            // Alur kerja:
-                                                            // 1. Mengambil elemen select status tempat tinggal
-                                                            // 2. Mengambil status ayah dan ibu (hidup/meninggal)
-                                                            // 3. Mengambil status wali yang dipilih
-                                                            // 4. Memperbarui pilihan berdasarkan:
-                                                            //    - Jika ayah masih hidup dan tidak di luar negeri, tambah opsi tinggal dengan ayah
-                                                            //    - Jika ibu masih hidup dan tidak di luar negeri/tidak tinggal dengan ayah, tambah opsi tinggal dengan ibu  
-                                                            //    - Jika wali sudah dipilih, tambah opsi tinggal dengan wali
-                                                            //    - Tambah pilihan statis (asrama pesantren dan lainnya)
-                                                            // 5. Memperbarui pilihan saat ada perubahan status orang tua/wali
-                                                            // 6. Memperbarui pilihan saat ada perubahan lokasi tinggal orang tua
+                                                            /* ===== Region: Memperbarui Pilihan Status Tempat Tinggal Santri ===== 
+                                                             * Fungsi ini digunakan untuk memperbarui pilihan status tempat tinggal santri
+                                                             * berdasarkan status orang tua (hidup/meninggal) dan lokasi tinggal mereka
+                                                             *
+                                                             * Alur kerja:
+                                                             * 1. Mengambil elemen select status tempat tinggal
+                                                             * 2. Mengambil status ayah dan ibu (hidup/meninggal)
+                                                             * 3. Mengambil status wali yang dipilih
+                                                             * 4. Memperbarui pilihan berdasarkan:
+                                                             *    - Jika ayah masih hidup dan tidak di luar negeri, tambah opsi tinggal dengan ayah
+                                                             *    - Jika ibu masih hidup dan tidak di luar negeri/tidak tinggal dengan ayah, tambah opsi tinggal dengan ibu  
+                                                             *    - Jika wali sudah dipilih, tambah opsi tinggal dengan wali
+                                                             *    - Tambah pilihan statis (asrama pesantren dan lainnya)
+                                                             * 5. Memperbarui pilihan saat ada perubahan status orang tua/wali
+                                                             * 6. Memperbarui pilihan saat ada perubahan lokasi tinggal orang tua
+                                                             */
                                                             document.addEventListener('DOMContentLoaded', function() {
                                                                 const statusTempatTinggal = document.getElementById('StatusTempatTinggal');
                                                                 const statusAyah = document.getElementById('StatusAyah');
@@ -1369,7 +1373,8 @@ $required = 'required'; //required
                                                                 document.getElementById('AlamatIbuSamaDenganAyah').addEventListener('change', updateOptions);
                                                             });
 
-                                                            // Fungsi untuk menangani perubahan status tempat tinggal
+                                                            /* ===== Region: Menangani Perubahan Status Tempat Tinggal ===== */
+                                                            /* ===== Fungsi untuk menangani perubahan status tempat tinggal ===== */
                                                             document.addEventListener('DOMContentLoaded', function() {
                                                                 const statusTempatTinggal = document.getElementById('StatusTempatTinggal');
                                                                 const alamatSantriFields = [
@@ -1381,24 +1386,31 @@ $required = 'required'; //required
                                                                     'RTSantri',
                                                                     'AlamatSantri',
                                                                     'KodePosSantri'
-                                                                ].map(id => document.getElementById(id).parentElement);
+                                                                ].map(id => {
+                                                                    // Cari parent div.form-group dari input
+                                                                    const element = document.getElementById(id);
+                                                                    return element.closest('.form-group');
+                                                                });
 
-                                                                function toggleAlamaSantriFields() {
+                                                                function toggleAlamatSantriFields() {
                                                                     const selectedValue = statusTempatTinggal.value;
                                                                     const display = (selectedValue === 'Tinggal dengan Ayah Kandung' ||
                                                                         selectedValue === 'Tinggal dengan Ibu Kandung') ? 'none' : 'block';
 
                                                                     alamatSantriFields.forEach(field => {
-                                                                        field.style.display = display;
+                                                                        if (field) {
+                                                                            field.style.display = display;
+                                                                        }
                                                                     });
                                                                 }
 
                                                                 // Tambahkan event listener untuk perubahan status tempat tinggal
-                                                                statusTempatTinggal.addEventListener('change', toggleAlamaSantriFields);
+                                                                statusTempatTinggal.addEventListener('change', toggleAlamatSantriFields);
 
                                                                 // Panggil fungsi saat halaman dimuat untuk mengatur status awal
-                                                                toggleAlamaSantriFields();
+                                                                toggleAlamatSantriFields();
                                                             });
+                                                            /* ===== End of Region: Menangani Perubahan Status Tempat Tinggal ===== */
                                                         </script>
                                                     </select>
                                                     <span id="StatusTempatTinggalError" class="text-danger" style="display:none;">Status tempat tinggal diperlukan.</span>
@@ -1650,7 +1662,7 @@ $required = 'required'; //required
      * Menampilkan atau menyembunyikan select TPQ berdasarkan kondisi
      */
     document.addEventListener('DOMContentLoaded', function() {
-        const kelurahanSelect = document.getElementById('KelurahanDesaSantri');
+        const kelurahanSelect = document.getElementById('KelurahanDesaTpq');
         const tpqSelect = document.getElementById('IdTpq');
         const originalTpqOptions = Array.from(tpqSelect.options);
 
