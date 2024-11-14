@@ -11,8 +11,16 @@ $required = 'required';
         <div class="col-md-12">
             <div class="card card-default">
                 <div class="card-header">
-                    <h3 class="card-title">Formulir Data Santri</h3>
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <h3 class="card-title m-0">Formulir Data Santri</h3>
+                        <div class="d-flex">
+                            <a href="<?= base_url('backend/santri/showSantriBaru') ?>" class="btn btn-info">
+                                <i class="fas fa-list"></i> Lihat Daftar Santri Baru
+                            </a>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="card-body p-0">
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-triangle mr-2"></i>
@@ -81,7 +89,7 @@ $required = 'required';
                                                 <option value="<?= $tpq['IdTpq'] ?>"><?= $tpq['NamaTpq'] ?> - <?= $tpq['Alamat'] ?></option>
                                             <?php endforeach; ?>
                                         </select>
-                                        <span id="tpqNameError" class="text-danger" style="display:none;">Nama TPQ diperlukan.</span>
+                                        <span id="IdTpqError" class="text-danger" style="display:none;">Nama TPQ diperlukan.</span>
                                     </div>
                                     <div class="form-group">
                                         <label for="IdKelas">Kelas<span class="text-danger font-weight-bold">*</span></label>
@@ -114,18 +122,16 @@ $required = 'required';
                                                 <label class="text-center w-100">Photo Profil<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="text-center">
                                                     <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
-                                                        class="img-thumbnail mx-auto d-block" style="width: 215px; height: 280px; object-fit: cover; cursor: pointer;">
-                                                    <div class="mt-2">
-                                                        <button type="button" class="btn btn-sm btn-primary mr-2" onclick="document.getElementById('PhotoProfil').click()">
+                                                        class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover; cursor: pointer;">
+                                                    <div class="mt-2 d-flex justify-content-between" style="width: 215px; margin: 0 auto;">
+                                                        <button type="button" class="btn btn-sm btn-primary flex-grow-1 mr-2" onclick="document.getElementById('PhotoProfil').click()">
                                                             <i class="fas fa-upload"></i> Upload Foto
                                                         </button>
-                                                        <button type="button" class="btn btn-sm btn-success" onclick="openCamera()">
+                                                        <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()">
                                                             <i class="fas fa-camera"></i> Ambil Foto
                                                         </button>
-                                                        <div id="PhotoProfilError" class="text-danger mt-1" style="display: none;"></div>
                                                     </div>
-                                                </div>
-                                                <small class="text-center d-block mb-2 text-muted">
+                                                </div> <small class="text-center d-block mb-2 text-muted">
                                                     <i class="fas fa-exclamation-circle"></i>
                                                     Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 2MB
                                                 </small>
@@ -139,7 +145,7 @@ $required = 'required';
                                                             <input type="text" class="form-control" id="NikSantri" name="NikSantri"
                                                                 placeholder="Masukkan NIK 16 digit" <?= $required ?> pattern="^[1-9]\d{15}$"
                                                                 title="NIK harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0">
-                                                            <span id="NikSantriError" class="text-danger" style="display:none;">NIK diperlukan dan harus 16 digit.</span>
+                                                            <span id="NikSantriError" class="text-danger" style="display:none;">NIK diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
@@ -173,6 +179,7 @@ $required = 'required';
                                                                 <option value="Laki-laki">Laki-laki</option>
                                                                 <option value="Perempuan">Perempuan</option>
                                                             </select>
+                                                            <span id="JenisKelaminError" class="text-danger" style="display:none;">Jenis Kelamin diperlukan.</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -197,14 +204,16 @@ $required = 'required';
                                                         <div class="form-group">
                                                             <label for="JumlahSaudara">Jumlah Saudara<span class="text-danger font-weight-bold">*</span></label>
                                                             <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan angka jumlah saudara"
-                                                                pattern="[0-9]+" title="Jumlah Saudara harus berupa angka" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
+                                                                pattern="[1-9]+" title="Jumlah Saudara harus berupa angka" oninput="this.value = this.value.replace(/[^1-9]/g, '')" <?= $required ?>>
+                                                            <span id="JumlahSaudaraError" class="text-danger" style="display:none;">Jumlah Saudara diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label for="AnakKe">Anak Ke<span class="text-danger font-weight-bold">*</span></label>
                                                             <input type="text" class="form-control" id="AnakKe" name="AnakKe" placeholder="Masukkan angka anak ke berapa"
-                                                                pattern="[0-9]+" title="Anak Ke harus berupa angka" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
+                                                                pattern="[1-9]+" title="Anak Ke harus berupa angka" oninput="this.value = this.value.replace(/[^1-9]/g, '')" <?= $required ?>>
+                                                            <span id="AnakKeError" class="text-danger" style="display:none;">Anak Ke diperlukan.</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -229,6 +238,7 @@ $required = 'required';
                                                     <option value="Agamawan">Agamawan</option>
                                                     <option value="Lainnya">Lainnya</option>
                                                 </select>
+                                                <span id="CitaCitaError" class="text-danger" style="display:none;">Cita-Cita diperlukan.</span>
                                             </div>
                                             <!-- Bagian Hobi -->
                                             <div class="col-md-6">
@@ -242,6 +252,7 @@ $required = 'required';
                                                     <option value="Jalan-jalan">Jalan-jalan</option>
                                                     <option value="Lainnya">Lainnya</option>
                                                 </select>
+                                                <span id="HobiError" class="text-danger" style="display:none;">Hobi diperlukan.</span>
                                             </div>
                                         </div>
 
@@ -249,10 +260,12 @@ $required = 'required';
                                             <div class="col-md-6">
                                                 <label for="CitaCitaLainya">Cita-Cita Lainnya</label>
                                                 <input type="text" class="form-control" id="CitaCitaLainya" name="CitaCitaLainya" placeholder="Ketik cita-cita lainnya" disabled>
+                                                <span id="CitaCitaLainyaError" class="text-danger" style="display:none;">Cita-Cita Lainnya diperlukan.</span>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="HobiLainya">Hobi Lainnya</label>
                                                 <input type="text" class="form-control" id="HobiLainya" placeholder="Ketik hobi lainnya" disabled>
+                                                <span id="HobiLainyaError" class="text-danger" style="display:none;">Hobi Lainnya diperlukan.</span>
                                             </div>
                                         </div>
                                     </div>
@@ -318,6 +331,7 @@ $required = 'required';
                                                     <option value="Orang Tua">Orang Tua</option>
                                                     <option value="Wali/Orang Tua Asuh">Wali/Orang Tua Asuh</option>
                                                 </select>
+                                                <span id="YangBiayaSekolahError" class="text-danger" style="display:none;">Yang Membiayai Sekolah diperlukan.</span>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="NamaKepalaKeluarga">Nama Kepala Keluarga<span class="text-danger font-weight-bold">*</span></label>
@@ -339,16 +353,17 @@ $required = 'required';
                                                 <input type="text" class="form-control" id="IdKartuKeluarga" name="IdKartuKeluarga" placeholder="Masukkan nomor KK"
                                                     pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
                                                 <small class="text-muted">Nomor KK harus 16 digit angka</small>
+                                                <span id="IdKartuKeluargaError" class="text-danger" style="display:none;">No Kartu Keluarga diperlukan.</span>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="FileKkSantri">Upload KK Santri<span class="text-danger font-weight-bold">*</span></label>
-                                                <div class="input-group">
+                                                <div class="input-group mb-3">
                                                     <div class="custom-file">
-                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" onchange="validateFile(this)" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
+                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
                                                         <label class="custom-file-label" for="FileKkSantri">Unggah KK</label>
                                                     </div>
                                                 </div>
-                                                <small id="FileKkSantriError" class="text-danger d-none"></small>
+                                                <span id="FileKkSantriError" class="text-danger d-none">Upload KK Santri diperlukan.</span>
                                             </div>
                                         </div>
                                     </div>
@@ -523,6 +538,7 @@ $required = 'required';
                                                     <option value="Sudah Meninggal">Sudah Meninggal</option>
                                                     <option value="Tidak Diketahui">Tidak Diketahui</option>
                                                 </select>
+                                                <span id="StatusAyahError" class="text-danger" style="display:none;">Status Ayah diperlukan.</span>
                                             </div>
                                         </div>
                                         <div class="row">
@@ -666,6 +682,7 @@ $required = 'required';
                                                         <option value="Sudah Meninggal">Sudah Meninggal</option>
                                                         <option value="Tidak Diketahui">Tidak Diketahui</option>
                                                     </select>
+                                                    <span id="StatusIbuError" class="text-danger" style="display:none;">Status Ibu diperlukan.</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -807,7 +824,7 @@ $required = 'required';
                                             <select class="form-control" id="Wali" name="StatusWali" <?= $required ?>>
                                                 <option value="">Pilih Wali</option>
                                             </select>
-
+                                            <span id="StatusWaliError" class="text-danger" style="display:none;">Status Wali diperlukan.</span>
                                             <script>
                                                 document.addEventListener('DOMContentLoaded', function() {
                                                     const waliSelect = document.getElementById('Wali');
@@ -816,6 +833,9 @@ $required = 'required';
 
                                                     function updateWaliOptions() {
                                                         waliSelect.innerHTML = '<option value="">Pilih Wali</option>';
+                                                        if (statusAyah.value === 'Masih Hidup' && statusIbu.value === 'Masih Hidup') {
+                                                            waliSelect.innerHTML += '<option value="Ayah dan Ibu Kandung">Sama Dengan Ayah dan Ibu Kandung</option>';
+                                                        }
 
                                                         if (statusAyah.value === 'Masih Hidup') {
                                                             waliSelect.innerHTML += '<option value="Ayah Kandung">Sama Dengan Ayah Kandung</option>';
@@ -969,7 +989,7 @@ $required = 'required';
                                     <script>
                                         document.getElementById('Wali').addEventListener('change', function() {
                                             var dataWali = document.getElementById('dataWali');
-                                            if (this.value === 'Lainnya') {
+                                            if (this.value === 'Lainnya' || this.value === 'Saudara') {
                                                 dataWali.style.display = 'block';
                                             } else {
                                                 dataWali.style.display = 'none';
@@ -1553,12 +1573,13 @@ $required = 'required';
                                             <div class="form-group">
                                                 <label for="TitikKoordinatSantri">Titik Koordinat</label>
                                                 <div class="input-group">
-                                                    <input type="text" class="form-control" id="TitikKoordinatSantri" name="TitikKoordinatSantri" placeholder="Titik Koordinat" readonly>
+                                                    <input type="text" class="form-control" id="TitikKoordinatSantri" name="TitikKoordinatSantri" placeholder="Titik Koordinat" readonly <?= $required ?>>
                                                     <div class="input-group-append">
                                                         <button class="btn btn-outline-secondary" type="button" id="getLocationBtn">
                                                             <i class="fas fa-map-marker-alt"></i> Dapatkan Lokasi
                                                         </button>
                                                     </div>
+                                                    <span id="TitikKoordinatSantriError" class="text-danger" style="display:none;">Titik koordinat diperlukan.</span>
                                                 </div>
                                                 <small class="form-text text-muted">Klik tombol untuk mendapatkan koordinat otomatis</small>
 
@@ -1706,15 +1727,32 @@ $required = 'required';
 
                 // Efek blinking untuk field
                 let blinkCount = 0;
+                // Tambahkan transisi CSS untuk efek smooth
+                firstInvalidField.style.transition = 'background-color 0.3s ease-in-out';
+
                 const blinkInterval = setInterval(() => {
                     firstInvalidField.style.backgroundColor =
-                        blinkCount % 2 === 0 ? '#ffb6c1' : '';
+                        blinkCount % 2 === 0 ? '#ffd6dc' : 'white';
                     blinkCount++;
-                    if (blinkCount >= 6) {
+                    if (blinkCount >= 4) { // 2x blinking
                         clearInterval(blinkInterval);
-                        firstInvalidField.style.backgroundColor = '';
+                        firstInvalidField.style.backgroundColor = '#ffd6dc'; // Set warna merah muda
+
+                        // Tambahkan event listener untuk menghapus background merah saat input valid
+                        firstInvalidField.addEventListener('input', function() {
+                            if (this.value.trim() !== '') {
+                                // Tambahkan transisi saat menghapus background
+                                this.style.transition = 'background-color 0.3s ease-in-out';
+                                this.style.backgroundColor = '';
+
+                                // Hapus transisi setelah selesai untuk menghindari efek pada interaksi lainnya
+                                setTimeout(() => {
+                                    this.style.transition = '';
+                                }, 300);
+                            }
+                        });
                     }
-                }, 300);
+                }, 600);
 
                 // Set focus setelah scroll selesai
                 setTimeout(() => {
@@ -1761,7 +1799,35 @@ $required = 'required';
      */
     function validateField(field) {
         const errorElement = document.getElementById(field.id + 'Error');
+        // Jika field adalah input file
+        if (field.type === 'file' && field.id !== 'PhotoProfil') {
+            // Jika field required dan tidak ada file yang dipilih
+            if (field.hasAttribute('required') && (!field.files || !field.files[0])) {
+                field.classList.add('is-invalid');
+                field.classList.remove('is-valid');
+                field.style.border = '1px solid #dc3545'; //merah
+                if (errorElement) {
+                    //errorElement.textContent = 'File KK santri diperlukan';
+                    errorElement.classList.remove('d-none');
+                }
+                return true;
+            }
+            // Jika ada file yang dipilih, validasi dengan validateFile()
+            if (!validateFile(field.id)) {
+                field.classList.add('is-invalid');
+                field.classList.remove('is-valid');
+                field.style.border = '1px solid #dc3545'; //merah
+                return true;
+            } else {
+                field.classList.remove('is-invalid');
+                field.classList.add('is-valid');
+                field.style.border = '1px solid #28a745'; //hijau
+                return false;
+            }
 
+        }
+
+        // Validasi untuk field non-file
         if (!field.value.trim()) {
             field.classList.add('is-invalid');
             field.classList.remove('is-valid');
@@ -2551,6 +2617,7 @@ $required = 'required';
                     }
                     errorElement.textContent = errorMsg.join(' dan ');
                     errorElement.classList.remove('d-none');
+                    errorElement.style.display = 'block';
                 }
                 return false;
             }
@@ -2921,9 +2988,9 @@ $required = 'required';
             tanggalLahirInput.classList.remove('is-invalid', 'is-valid');
             tanggalLahirInput.style.borderColor = ''; // Reset border color
             const existingError = document.getElementById('TanggalLahirSantriError');
-            if (existingError) {
-                existingError.remove();
-            }
+            // if (existingError) {
+            //     existingError.remove();
+            // }
             return true;
         }
 
