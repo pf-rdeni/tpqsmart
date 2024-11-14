@@ -109,18 +109,12 @@ $required = 'required';
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <div class="row align-items-start"> <!-- Tambahkan align-items-start -->
+                                        <div class="row">
                                             <div class="col-md-3">
-                                                <label>Photo Profil<span class="text-danger font-weight-bold">*</span></label>
-                                                <small class="text-danger d-block mb-2">
-                                                    <i class="fas fa-exclamation-circle"></i>
-                                                    Format foto background merah dengan rasio 2x3 atau 3x4 atau 4x6
-                                                </small>
-                                                <div>
-                                                    <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?>>
+                                                <label class="text-center w-100">Photo Profil<span class="text-danger font-weight-bold">*</span></label>
+                                                <div class="text-center">
                                                     <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
-                                                        class="img-thumbnail" style="width: 215px; height: 280px; object-fit: cover; cursor: pointer;"
-                                                        onclick="showPhotoOptions()">
+                                                        class="img-thumbnail mx-auto d-block" style="width: 215px; height: 280px; object-fit: cover; cursor: pointer;">
                                                     <div class="mt-2">
                                                         <button type="button" class="btn btn-sm btn-primary mr-2" onclick="document.getElementById('PhotoProfil').click()">
                                                             <i class="fas fa-upload"></i> Upload Foto
@@ -128,11 +122,14 @@ $required = 'required';
                                                         <button type="button" class="btn btn-sm btn-success" onclick="openCamera()">
                                                             <i class="fas fa-camera"></i> Ambil Foto
                                                         </button>
-                                                        <small class="text-muted d-block mt-2">Format: JPG, JPEG, PNG. Maximal: 2MB</small>
-
                                                         <div id="PhotoProfilError" class="text-danger mt-1" style="display: none;"></div>
                                                     </div>
                                                 </div>
+                                                <small class="text-center d-block mb-2 text-muted">
+                                                    <i class="fas fa-exclamation-circle"></i>
+                                                    Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 2MB
+                                                </small>
+                                                <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?> style="display: none;">
                                             </div>
                                             <div class="col-md-9">
                                                 <div class="row">
@@ -280,7 +277,7 @@ $required = 'required';
                                                     <option value="Lamban Belajar">Lamban Belajar</option>
                                                     <option value="Kesulitan Belajar Spesific">Kesulitan Belajar Spesific</option>
                                                     <option value="Berbakat/Memiliki Kemampuan dan Kecerdasan Luar Biasa">Berbakat/Memiliki Kemampuan dan Kecerdasan Luar Biasa</option>
-                                                    <option value="Lainya">Lainya</option>
+                                                    <option value="Lainnya">Lainnya</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-6">
@@ -293,7 +290,7 @@ $required = 'required';
                                                     <option value="Tuna Laras">Tuna Laras</option>
                                                     <option value="Tuna Grahita">Tuna Grahita</option>
                                                     <option value="Tuna Daksa">Tuna Daksa</option>
-                                                    <option value="Lainya">Lainya</option>
+                                                    <option value="Lainnya">Lainnya</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -301,12 +298,14 @@ $required = 'required';
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <label for="KebutuhanKhususLainya">Kebutuhan Khusus Lainya</label>
+                                                <label for="KebutuhanKhususLainya">Kebutuhan Khusus Lainnya</label>
                                                 <input type="text" class="form-control" id="KebutuhanKhususLainya" name="KebutuhanKhususLainya" placeholder="Masukkan kebutuhan khusus lainnya" disabled>
+                                                <span id="KebutuhanKhususLainyaError" class="text-danger" style="display:none;">Kebutuhan Khusus Lainnya diperlukan.</span>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="KebutuhanDisabilitasLainya">Kebutuhan Disabilitas Lainya</label>
+                                                <label for="KebutuhanDisabilitasLainya">Kebutuhan Disabilitas Lainnya</label>
                                                 <input type="text" class="form-control" id="KebutuhanDisabilitasLainya" placeholder="Masukkan kebutuhan disabilitas lainnya" disabled>
+                                                <span id="KebutuhanDisabilitasLainyaError" class="text-danger" style="display:none;">Kebutuhan Disabilitas Lainnya diperlukan.</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1709,7 +1708,7 @@ $required = 'required';
                 let blinkCount = 0;
                 const blinkInterval = setInterval(() => {
                     firstInvalidField.style.backgroundColor =
-                        blinkCount % 2 === 0 ? '#fff3cd' : '';
+                        blinkCount % 2 === 0 ? '#ffb6c1' : '';
                     blinkCount++;
                     if (blinkCount >= 6) {
                         clearInterval(blinkInterval);
@@ -3056,7 +3055,7 @@ $required = 'required';
         const inputElement = document.getElementById(inputId);
         const inputParent = inputElement.parentElement;
         const errorSpan = document.getElementById(errorId) || createErrorSpan(errorId);
-        const isLainnya = selectElement.value === "Lainnya" || selectElement.value === "Lainya"; // Handle kedua kemungkinan spelling
+        const isLainnya = selectElement.value === "Lainnya";
 
         // Toggle display dan required state
         if (isLainnya) {
@@ -3114,7 +3113,7 @@ $required = 'required';
             {
                 selectId: 'KebutuhanKhusus',
                 inputId: 'KebutuhanKhususLainya',
-                error: 'KebutuhanKhususLainyaError',
+                errorId: 'KebutuhanKhususLainyaError',
                 labelText: 'Kebutuhan khusus lainnya'
             },
             {
