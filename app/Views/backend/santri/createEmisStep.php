@@ -15,7 +15,7 @@ $required = 'required';
                         <h3 class="card-title m-0">Formulir Data Santri</h3>
                         <div class="d-flex">
                             <a href="<?= base_url('backend/santri/showSantriBaru') ?>" class="btn btn-info">
-                                <i class="fas fa-list"></i> Lihat Daftar Santri Baru
+                                <i class="fas fa-list"></i><span class="d-none d-md-inline">&nbsp;Data Santri Baru</span>
                             </a>
                         </div>
                     </div>
@@ -351,7 +351,7 @@ $required = 'required';
                                             <div class="col-md-6">
                                                 <label for="IdKartuKeluarga">No Kartu Keluarga (KK)<span class="text-danger font-weight-bold">*</span></label>
                                                 <input type="text" class="form-control" id="IdKartuKeluarga" name="IdKartuKeluarga" placeholder="Masukkan nomor KK"
-                                                    pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
+                                                    pattern="^[1-9]\d{15}$" maxlength="16" oninput="this.value = this.value.replace(/[^1-9]/g, '')" <?= $required ?>>
                                                 <small class="text-muted">Nomor KK harus 16 digit angka</small>
                                                 <span id="IdKartuKeluargaError" class="text-danger" style="display:none;">No Kartu Keluarga diperlukan.</span>
                                             </div>
@@ -1644,7 +1644,6 @@ $required = 'required';
      * Memvalidasi input dan melanjutkan ke langkah berikutnya
      * @param {string} stepId - ID dari langkah yang sedang divalidasi
      */
-    // ... existing code ...
 
     /* ===== Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
     function validateAndNext(stepId) {
@@ -1768,8 +1767,6 @@ $required = 'required';
             stepper.next();
         }
     }
-
-    // ... existing code ...
     /* ===== End Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
 
     /* ===== Region: Validasi Input saat Submit Form =====
@@ -2685,33 +2682,38 @@ $required = 'required';
      * - Blur: Validasi saat input kehilangan fokus
      */
     // Fungsi validasi NIK yang dapat digunakan ulang
-    function createNIKValidator(inputId) {
-        const nikInput = document.getElementById(inputId);
-        if (!nikInput) return; // Pastikan elemen input ada
+    function validasiNomorKkNik(inputId, type) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
 
-        const nikError = document.getElementById(inputId + 'Error');
-        if (!nikError) {
+        const errorElement = document.getElementById(inputId + 'Error');
+        if (!errorElement) {
             console.error(`Error element for ${inputId} not found`);
             return;
         }
-        // fungsi untuk validasi NIK 
-        function validasiNIK(input) {
-            const nilai = input.value.replace(/\D/g, ''); // Hapus semua karakter non-digit
-            const pola = /^[1-9]\d{15}$/;
 
+        // Fungsi untuk validasi nomor (NIK/KK)
+        function validasiNomor(input) {
+            const nilai = input.value.replace(/\D/g, ''); // Hapus karakter non-digit
+            const pola = /^[1-9]\d{15}$/;
+            const docType = type.toUpperCase(); // NIK atau KK
+
+            // Validasi dasar
             if (nilai === '') {
-                tampilkanError(`${inputId.replace('Nik', '')} NIK ha diisi.`);
+                tampilkanError(`${docType} harus diisi.`);
                 return false;
             } else if (nilai === '0000000000000000') {
-                tampilkanError(`${inputId.replace('Nik', '')} NIK tidak boleh terdiri dari 16 angka 0.`);
+                tampilkanError(`${docType} tidak boleh terdiri dari 16 angka 0.`);
                 return false;
             } else if (!pola.test(nilai)) {
-                tampilkanError(`${inputId.replace('Nik', '')} NIK harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0.`);
+                tampilkanError(`${docType} harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0.`);
                 return false;
-            } else if (inputId === 'NikSantri' && nilai.length === 16 && pola.test(nilai)) {
-                // Buat AJAX request untuk cek NIK
-                fetch('/backend/santri/getNikSantri/' + nilai, { // Menggunakan endpoint yang sesuai
-                        method: 'GET', // Ubah ke GET karena mengambil data
+            }
+
+            // Cek duplikasi hanya untuk NIK Santri
+            if (inputId === 'NikSantri' && nilai.length === 16 && pola.test(nilai)) {
+                fetch('/backend/santri/getNikSantri/' + nilai, {
+                        method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'
@@ -2720,11 +2722,9 @@ $required = 'required';
                     .then(response => response.json())
                     .then(data => {
                         if (data.exists) {
-                            // Jika NIK sudah ada, tampilkan pesan error
-                            tampilkanError(`NIK ${nilai} sudah terdaftar atas nama santri : ${data.data.NamaSantri}. Mohon periksa kembali NIK yang dimasukkan.`);
+                            tampilkanError(`NIK ${nilai} sudah terdaftar atas nama santri: ${data.data.NamaSantri}. Mohon periksa kembali NIK yang dimasukkan.`);
                             return false;
                         }
-                        // Jika NIK belum digunakan
                         sembunyikanError();
                         return true;
                     })
@@ -2734,70 +2734,69 @@ $required = 'required';
                         return false;
                     });
             } else {
+                // Untuk KK dan NIK lainnya, cukup validasi format
                 sembunyikanError();
                 return true;
             }
         }
 
         function tampilkanError(pesan) {
-            nikError.textContent = pesan;
-            nikError.style.display = 'block';
-            nikInput.classList.add('is-invalid');
-            nikInput.classList.remove('is-valid');
+            errorElement.textContent = pesan;
+            errorElement.style.display = 'block';
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            input.style.borderColor = '#dc3545';
         }
 
         function sembunyikanError() {
-            nikError.style.display = 'none';
-            nikInput.classList.remove('is-invalid');
-            nikInput.classList.add('is-valid');
+            errorElement.style.display = 'none';
+            input.classList.remove('is-invalid');
+            input.classList.add('is-valid');
+            input.style.borderColor = '#28a745';
         }
 
-        // Event listener untuk input event
-        nikInput.addEventListener('input', function(e) {
-            this.value = this.value.replace(/\D/g, '').slice(0, 16); // Batasi input hanya angka dan maksimal 16 digit
-            validasiNIK(this);
+        // Event listeners
+        input.addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '').slice(0, 16);
+            validasiNomor(this);
         });
 
-        // Event listener untuk keypress event
-        nikInput.addEventListener('keypress', function(e) {
+        input.addEventListener('keypress', function(e) {
             const karakter = String.fromCharCode(e.which);
             if (!/[0-9]/.test(karakter) || (this.value.length === 0 && karakter === '0')) {
                 e.preventDefault();
             }
         });
 
-        // Fungsi untuk menangani paste dari clipboard
-        nikInput.addEventListener('paste', function(e) {
+        input.addEventListener('paste', function(e) {
             e.preventDefault();
             const teksTempel = (e.clipboardData || window.clipboardData).getData('text');
             const teksBersih = teksTempel.replace(/\D/g, '').slice(0, 16);
             if (teksBersih.length > 0 && teksBersih[0] !== '0') {
                 this.value = teksBersih;
-                validasiNIK(this);
+                validasiNomor(this);
             }
         });
 
-        // Event listener untuk blur event
-        nikInput.addEventListener('blur', function() {
-            validasiNIK(this);
+        input.addEventListener('blur', function() {
+            validasiNomor(this);
         });
 
         // Validasi awal jika ada nilai default
-        if (nikInput.value) {
-            validasiNIK(nikInput);
+        if (input.value) {
+            validasiNomor(this);
         }
     }
 
-    // Tunggu sampai DOM sepenuhnya dimuat
+    // Inisialisasi validator untuk NIK dan KK
     document.addEventListener('DOMContentLoaded', function() {
-        // Validasi untuk NIK Santri
-        createNIKValidator('NikSantri');
+        // Validasi untuk NIK
+        validasiNomorKkNik('NikSantri', 'NIK');
+        validasiNomorKkNik('NikAyah', 'NIK');
+        validasiNomorKkNik('NikIbu', 'NIK');
 
-        // Validasi untuk NIK Ayah
-        createNIKValidator('NikAyah');
-
-        // Validasi untuk NIK Ibu 
-        createNIKValidator('NikIbu');
+        // Validasi untuk KK
+        validasiNomorKkNik('IdKartuKeluarga', 'KK');
     });
 
     /* ===== End Region: Validasi NIK ===== */

@@ -6,7 +6,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h3 class="card-title">Daftar Santri TPQ Di Kecamatan Seri Kuala Lobam</h3>
                 <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Daftar Santri Baru
+                    <i class="fas fa-plus"></i><span class="d-none d-md-inline">&nbsp;Daftar Santri Baru</span>
                 </a>
             </div>
         </div>
