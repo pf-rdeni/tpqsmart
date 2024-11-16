@@ -339,7 +339,7 @@ $required = 'required';
                                                 <span id="NamaKepalaKeluargaError" class="text-danger" style="display:none;">Nama Kepala Keluarga diperlukan.</span>
                                                 <div class="form-check mt-2">
                                                     <input type="checkbox" class="form-check-input" id="NamaKepalaKeluargaSamaDenganAyah" name="NamaKepalaKeluargaSamaDenganAyah">
-                                                    <label class="form-check-label small text-success" for="NamaKepalaKeluargaSamaDenganAyah">
+                                                    <label class="form-check-label small text-primary" for="NamaKepalaKeluargaSamaDenganAyah">
                                                         Checklist Jika Nama Kepala Keluarga Sama Dengan Ayah Kandung
                                                     </label>
                                                 </div>
@@ -370,8 +370,8 @@ $required = 'required';
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <label for="no_kip">No Kartu Indonesia Pintar (KIP)</label>
-                                                <input type="text" class="form-control" id="no_kip" name="no_kip" placeholder="Masukkan Nomor KIP"
+                                                <label for="NoKIP">No Kartu Indonesia Pintar (KIP)</label>
+                                                <input type="text" class="form-control" id="NoKIP" name="NoKIP" placeholder="Masukkan Nomor KIP"
                                                     pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                 <small class="text-muted">Nomor KIP harus 16 digit angka</small>
                                             </div>
@@ -403,125 +403,6 @@ $required = 'required';
                                             </div>
                                         </div>
                                     </div>
-                                    <script>
-                                        document.addEventListener('DOMContentLoaded', function() {
-                                            const statusAyah = document.getElementById('StatusAyah');
-                                            const fields = [
-                                                'NikAyah',
-                                                'KewarganegaraanAyah',
-                                                'TempatLahirAyah',
-                                                'TanggalLahirAyah',
-                                                'PendidikanAyah',
-                                                'PekerjaanUtamaAyah',
-                                                'PenghasilanUtamaAyah',
-                                                'NoHpAyah',
-                                                'FileKKAyahDiv',
-                                                'TinggalDiluarNegeriAyah',
-                                                'StatusKepemilikanRumahAyah',
-                                                'ProvinsiAyah',
-                                                'KabupatenKotaAyah',
-                                                'KecamatanAyah',
-                                                'KelurahanDesaAyah',
-                                                'RWAyah',
-                                                'RTAyah',
-                                                'KodePosAyah',
-                                                'AlamatAyah'
-                                            ].map(id =>
-                                                document.getElementById(id).parentElement
-                                            );
-
-                                            const headerAlamatAyah = document.getElementById('HeaderDataAlamatAyah');
-                                            const infoAyah = document.createElement('div');
-                                            infoAyah.className = 'alert alert-info mt-2';
-                                            infoAyah.style.display = 'none';
-                                            headerAlamatAyah.parentNode.insertBefore(infoAyah, headerAlamatAyah.nextSibling);
-
-                                            function toggleFields() {
-                                                const display = statusAyah.value === 'Masih Hidup' ? 'block' : 'none';
-                                                fields.forEach(field => field.style.display = display);
-
-                                                // Update info message
-                                                if (statusAyah.value === '') {
-                                                    infoAyah.className = 'small text-danger';
-                                                    infoAyah.innerHTML = '<i class="fas fa-info-circle"></i> Silakan pilih status ayah terlebih dahulu tekan tombol sebelumnya.';
-                                                    infoAyah.style.display = 'block';
-                                                } else if (statusAyah.value === 'Sudah Meninggal') {
-                                                    infoAyah.className = 'small text-success';
-                                                    infoAyah.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ayah telah meninggal dunia, data alamat tidak perlu diisi.';
-                                                    infoAyah.style.display = 'block';
-                                                } else if (statusAyah.value === 'Tidak Diketahui') {
-                                                    infoAyah.className = 'small text-success';
-                                                    infoAyah.innerHTML = '<i class="fas fa-question-circle"></i> Status ayah tidak diketahui, data alamat tidak perlu diisi.';
-                                                    infoAyah.style.display = 'block';
-                                                } else {
-                                                    infoAyah.style.display = 'none';
-                                                }
-                                            }
-
-                                            statusAyah.addEventListener('change', toggleFields);
-                                            toggleFields();
-                                        });
-
-                                        document.addEventListener('DOMContentLoaded', function() {
-                                            const statusIbu = document.getElementById('StatusIbu');
-                                            const fields = [
-                                                'NikIbu',
-                                                'KewarganegaraanIbu',
-                                                'TempatLahirIbu',
-                                                'TanggalLahirIbu',
-                                                'PendidikanIbu',
-                                                'PekerjaanUtamaIbu',
-                                                'PenghasilanUtamaIbu',
-                                                'NoHpIbu',
-                                                'KkIbuSamaDenganAyahAtauSantri',
-                                                'FileKKIbuDiv',
-                                                'AlamatIbuSamaDenganAyah',
-                                                'TinggalDiluarNegeriIbu',
-                                                'StatusKepemilikanRumahIbu',
-                                                'ProvinsiIbu',
-                                                'KabupatenKotaIbu',
-                                                'KecamatanIbu',
-                                                'KelurahanDesaIbu',
-                                                'RWIbu',
-                                                'RTIbu',
-                                                'KodePosIbu',
-                                                'AlamatIbu'
-                                            ].map(id =>
-                                                document.getElementById(id).parentElement
-                                            );
-
-                                            const headerAlamatIbu = document.getElementById('HeaderDataAlamatIbu');
-                                            const infoIbu = document.createElement('div');
-                                            infoIbu.className = 'alert alert-info mt-2';
-                                            infoIbu.style.display = 'none';
-                                            headerAlamatIbu.parentNode.insertBefore(infoIbu, headerAlamatIbu.nextSibling);
-
-                                            function toggleFields() {
-                                                const display = statusIbu.value === 'Masih Hidup' ? 'block' : 'none';
-                                                fields.forEach(field => field.style.display = display);
-
-                                                // Update info message
-                                                if (statusIbu.value === '') {
-                                                    infoIbu.className = 'small text-danger';
-                                                    infoIbu.innerHTML = '<i class="fas fa-info-circle"></i> Silakan pilih status ibu terlebih dahulu tekan tombol sebelumnya.';
-                                                    infoIbu.style.display = 'block';
-                                                } else if (statusIbu.value === 'Sudah Meninggal') {
-                                                    infoIbu.className = 'small text-success';
-                                                    infoIbu.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ibu telah meninggal dunia, data alamat tidak perlu diisi.';
-                                                    infoIbu.style.display = 'block';
-                                                } else if (statusIbu.value === 'Tidak Diketahui') {
-                                                    infoIbu.className = 'small text-success';
-                                                    infoIbu.innerHTML = '<i class="fas fa-question-circle"></i> Status ibu tidak diketahui, data alamat tidak perlu diisi.';
-                                                    infoIbu.style.display = 'block';
-                                                } else {
-                                                    infoIbu.style.display = 'none';
-                                                }
-                                            }
-
-                                            statusIbu.addEventListener('change', toggleFields);
-                                            toggleFields();
-                                        });
-                                    </script>
                                     <!-- Bagian Data Profil Ayah -->
                                     <div id="DataProfilAyahDiv">
                                         <div class="row">
@@ -541,117 +422,120 @@ $required = 'required';
                                                 <span id="StatusAyahError" class="text-danger" style="display:none;">Status Ayah diperlukan.</span>
                                             </div>
                                         </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <label for="NikAyah">NIK Ayah</label>
-                                                <input type="text" class="form-control number-only" id="NikAyah" name="NikAyah" placeholder="Masukkan NIK ayah">
-                                                <span id="NikAyahError" class="text-danger" style="display:none;">NIK Ayah diperlukan.</span>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="KewarganegaraanAyah">Kewarganegaraan<span class="text-danger font-weight-bold">*</span></label>
-                                                <select class="form-control" id="KewarganegaraanAyah" name="KewarganegaraanAyah">
-                                                    <option value="WNI" selected>Warga Negara Indonesia (WNI)</option>
-                                                    <option value="WNA">Warga Negara Asing (WNA)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="TempatLahirAyah">Tempat Lahir Ayah</label>
-                                                    <input type="text" class="form-control" id="TempatLahirAyah" name="TempatLahirAyah" placeholder="Masukkan tempat lahir ayah">
+                                        <!-- Div Data Profil Ayah -->
+                                        <div id="DataProfilAyahDetailDiv">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label for="NikAyah">NIK Ayah</label>
+                                                    <input type="text" class="form-control number-only" id="NikAyah" name="NikAyah" placeholder="Masukkan NIK ayah">
+                                                    <span id="NikAyahError" class="text-danger" style="display:none;">NIK Ayah diperlukan.</span>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="TanggalLahirAyah">Tanggal Lahir Ayah</label>
-                                                    <input type="date" class="form-control" id="TanggalLahirAyah" name="TanggalLahirAyah">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="PendidikanAyah">Pendidikan Terakhir</label>
-                                                    <select class="form-control" id="PendidikanAyah" name="PendidikanAyah">
-                                                        <option value="">Pilih Pendidikan</option>
-                                                        <option value="Tidak Sekolah">Tidak Sekolah</option>
-                                                        <option value="SD Sederajat">SD Sederajat</option>
-                                                        <option value="SMP Sederajat">SMP Sederajat</option>
-                                                        <option value="SMA Sederajat">SMA Sederajat</option>
-                                                        <option value="D1">D1</option>
-                                                        <option value="D2">D2</option>
-                                                        <option value="D3">D3</option>
-                                                        <option value="D4/S1">D4/S1</option>
-                                                        <option value="S2">S2</option>
-                                                        <option value="S3">S3</option>
-                                                        <option value="Lainnya">Lainnya</option>
+                                                <div class="col-md-6">
+                                                    <label for="KewarganegaraanAyah">Kewarganegaraan<span class="text-danger font-weight-bold">*</span></label>
+                                                    <select class="form-control" id="KewarganegaraanAyah" name="KewarganegaraanAyah">
+                                                        <option value="WNI" selected>Warga Negara Indonesia (WNI)</option>
+                                                        <option value="WNA">Warga Negara Asing (WNA)</option>
                                                     </select>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="PekerjaanUtamaAyah">Pekerjaan Utama Ayah</label>
-                                                    <select class="form-control" id="PekerjaanUtamaAyah" name="PekerjaanUtamaAyah">
-                                                        <option value="">Pilih Pekerjaan</option>
-                                                        <option value="Tidak Bekerja">Tidak Bekerja</option>
-                                                        <option value="Pensiunan">Pensiunan</option>
-                                                        <option value="PNS">PNS</option>
-                                                        <option value="TNI/Polisi">TNI/Polisi</option>
-                                                        <option value="Guru/Dosen">Guru/Dosen</option>
-                                                        <option value="Pegawai Swasta">Pegawai Swasta</option>
-                                                        <option value="Wiraswasta">Wiraswasta</option>
-                                                        <option value="Pengacara/Jaksa/Hakim/Notaris">Pengacara/Jaksa/Hakim/Notaris</option>
-                                                        <option value="Seniman/Pelukis/Artis/Sejenis">Seniman/Pelukis/Artis/Sejenis</option>
-                                                        <option value="Dokter/Bidan/Perawat">Dokter/Bidan/Perawat</option>
-                                                        <option value="Pilot/Pramugara">Pilot/Pramugara</option>
-                                                        <option value="Pedagang">Pedagang</option>
-                                                        <option value="Petani/Peternak">Petani/Peternak</option>
-                                                        <option value="Nelayan">Nelayan</option>
-                                                        <option value="Buruh (Tani/Pabrik/Bangunan)">Buruh (Tani/Pabrik/Bangunan)</option>
-                                                        <option value="Sopir/Masinis/Kondektur">Sopir/Masinis/Kondektur</option>
-                                                        <option value="Politikus">Politikus</option>
-                                                        <option value="Lainnya">Lainnya</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="PenghasilanUtamaAyah">Penghasilan Utama</label>
-                                                    <select class="form-control" id="PenghasilanUtamaAyah" name="PenghasilanUtamaAyah">
-                                                        <option value="">Pilih Penghasilan</option>
-                                                        <option value="Tidak Ada">Tidak Ada</option>
-                                                        <option value="Kurang dari Rp. 500.000">Kurang dari Rp. 500.000</option>
-                                                        <option value="Rp. 500.000 - Rp. 1.000.000">Rp. 500.000 - Rp. 1.000.000</option>
-                                                        <option value="Rp. 1.000.000 - Rp. 2.000.000">Rp. 1.000.000 - Rp. 2.000.000</option>
-                                                        <option value="Rp. 2.000.000 - Rp. 3.000.000">Rp. 2.000.000 - Rp. 3.000.000</option>
-                                                        <option value="Rp. 3.000.000 - Rp. 4.000.000">Rp. 3.000.000 - Rp. 4.000.000</option>
-                                                        <option value="Rp. 4.000.000 - Rp. 5.000.000">Rp. 4.000.000 - Rp. 5.000.000</option>
-                                                        <option value="Lebih dari Rp. 5.000.000">Lebih dari Rp. 5.000.000</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="NoHpAyah">No Handphone Ayah</label>
-                                                    <input type="text" class="form-control number-only" id="NoHpAyah" name="NoHpAyah" placeholder="Masukkan nomor handphone">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-check">
-                                                    <input type="checkbox" class="form-check-input" id="KkAyahSamaDenganSantri" name="KkAyahSamaDenganSantri">
-                                                    <label class="form-check-label" for="KkAyahSamaDenganSantri">Ayah satu KK dengan santri</label>
-                                                </div>
-                                                <div class="form-group" id="FileKKAyahDiv">
-                                                    <label for="FileKkAyah">Upload KK Ayah</label>
-                                                    <div class="input-group">
-                                                        <div class="custom-file">
-                                                            <input type="file" class="form-control" id="FileKkAyah" name="FileKkAyah" onchange="validateFile('FileKkAyah')" accept=".pdf,.jpg,.jpeg,.png">
-                                                            <label class="custom-file-label" for="FileKkAyah">Pilih file KK Ayah</label>
-                                                        </div>
-                                                        <!-- div input-group-append dihapus -->
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="TempatLahirAyah">Tempat Lahir Ayah</label>
+                                                        <input type="text" class="form-control" id="TempatLahirAyah" name="TempatLahirAyah" placeholder="Masukkan tempat lahir ayah">
                                                     </div>
-                                                    <small id="FileKKAyahError" class="text-danger d-none"></small>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="TanggalLahirAyah">Tanggal Lahir Ayah</label>
+                                                        <input type="date" class="form-control" id="TanggalLahirAyah" name="TanggalLahirAyah">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="PendidikanAyah">Pendidikan Terakhir</label>
+                                                        <select class="form-control" id="PendidikanAyah" name="PendidikanAyah">
+                                                            <option value="">Pilih Pendidikan</option>
+                                                            <option value="Tidak Sekolah">Tidak Sekolah</option>
+                                                            <option value="SD Sederajat">SD Sederajat</option>
+                                                            <option value="SMP Sederajat">SMP Sederajat</option>
+                                                            <option value="SMA Sederajat">SMA Sederajat</option>
+                                                            <option value="D1">D1</option>
+                                                            <option value="D2">D2</option>
+                                                            <option value="D3">D3</option>
+                                                            <option value="D4/S1">D4/S1</option>
+                                                            <option value="S2">S2</option>
+                                                            <option value="S3">S3</option>
+                                                            <option value="Lainnya">Lainnya</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="PekerjaanUtamaAyah">Pekerjaan Utama Ayah</label>
+                                                        <select class="form-control" id="PekerjaanUtamaAyah" name="PekerjaanUtamaAyah">
+                                                            <option value="">Pilih Pekerjaan</option>
+                                                            <option value="Tidak Bekerja">Tidak Bekerja</option>
+                                                            <option value="Pensiunan">Pensiunan</option>
+                                                            <option value="PNS">PNS</option>
+                                                            <option value="TNI/Polisi">TNI/Polisi</option>
+                                                            <option value="Guru/Dosen">Guru/Dosen</option>
+                                                            <option value="Pegawai Swasta">Pegawai Swasta</option>
+                                                            <option value="Wiraswasta">Wiraswasta</option>
+                                                            <option value="Pengacara/Jaksa/Hakim/Notaris">Pengacara/Jaksa/Hakim/Notaris</option>
+                                                            <option value="Seniman/Pelukis/Artis/Sejenis">Seniman/Pelukis/Artis/Sejenis</option>
+                                                            <option value="Dokter/Bidan/Perawat">Dokter/Bidan/Perawat</option>
+                                                            <option value="Pilot/Pramugara">Pilot/Pramugara</option>
+                                                            <option value="Pedagang">Pedagang</option>
+                                                            <option value="Petani/Peternak">Petani/Peternak</option>
+                                                            <option value="Nelayan">Nelayan</option>
+                                                            <option value="Buruh (Tani/Pabrik/Bangunan)">Buruh (Tani/Pabrik/Bangunan)</option>
+                                                            <option value="Sopir/Masinis/Kondektur">Sopir/Masinis/Kondektur</option>
+                                                            <option value="Politikus">Politikus</option>
+                                                            <option value="Lainnya">Lainnya</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="PenghasilanUtamaAyah">Penghasilan Utama</label>
+                                                        <select class="form-control" id="PenghasilanUtamaAyah" name="PenghasilanUtamaAyah">
+                                                            <option value="">Pilih Penghasilan</option>
+                                                            <option value="Tidak Ada">Tidak Ada</option>
+                                                            <option value="Kurang dari Rp. 500.000">Kurang dari Rp. 500.000</option>
+                                                            <option value="Rp. 500.000 - Rp. 1.000.000">Rp. 500.000 - Rp. 1.000.000</option>
+                                                            <option value="Rp. 1.000.000 - Rp. 2.000.000">Rp. 1.000.000 - Rp. 2.000.000</option>
+                                                            <option value="Rp. 2.000.000 - Rp. 3.000.000">Rp. 2.000.000 - Rp. 3.000.000</option>
+                                                            <option value="Rp. 3.000.000 - Rp. 4.000.000">Rp. 3.000.000 - Rp. 4.000.000</option>
+                                                            <option value="Rp. 4.000.000 - Rp. 5.000.000">Rp. 4.000.000 - Rp. 5.000.000</option>
+                                                            <option value="Lebih dari Rp. 5.000.000">Lebih dari Rp. 5.000.000</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="NoHpAyah">No Handphone Ayah</label>
+                                                        <input type="text" class="form-control number-only" id="NoHpAyah" name="NoHpAyah" placeholder="Masukkan nomor handphone">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" id="KkAyahSamaDenganSantri" name="KkAyahSamaDenganSantri">
+                                                        <label class="form-check-label" for="KkAyahSamaDenganSantri">Ayah satu KK dengan santri</label>
+                                                    </div>
+                                                    <div class="form-group" id="FileKKAyahDiv">
+                                                        <label for="FileKkAyah">Upload KK Ayah</label>
+                                                        <div class="input-group">
+                                                            <div class="custom-file">
+                                                                <input type="file" class="form-control" id="FileKkAyah" name="FileKkAyah" onchange="validateFile('FileKkAyah')" accept=".pdf,.jpg,.jpeg,.png">
+                                                                <label class="custom-file-label" for="FileKkAyah">Pilih file KK Ayah</label>
+                                                            </div>
+                                                            <!-- div input-group-append dihapus -->
+                                                        </div>
+                                                        <small id="FileKKAyahError" class="text-danger d-none"></small>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -686,126 +570,128 @@ $required = 'required';
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="NikIbu">NIK Ibu</label>
-                                                    <input type="text" class="form-control number-only" id="NikIbu" name="NikIbu" placeholder="Masukkan NIK ibu">
-                                                    <span id="NikIbuError" class="text-danger" style="display:none;">NIK Ibu diperlukan.</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="KewarganegaraanIbu">Kewarganegaraan Ibu</label>
-                                                    <select class="form-control" id="KewarganegaraanIbu" name="KewarganegaraanIbu">
-                                                        <option value="WNI" selected>Warga Negara Indonesia (WNI)</option>
-                                                        <option value="WNA">Warga Negara Asing (WNA)</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="TempatLahirIbu">Tempat Lahir Ibu</label>
-                                                    <input type="text" class="form-control" id="TempatLahirIbu" name="TempatLahirIbu" placeholder="Masukkan tempat lahir ibu">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="TanggalLahirIbu">Tanggal Lahir Ibu</label>
-                                                    <input type="date" class="form-control" id="TanggalLahirIbu" name="TanggalLahirIbu">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
+                                        <div id="DataProfilIbuDetailDiv">
+                                            <div class="row">
+                                                <div class="col-md-6">
                                                     <div class="form-group">
-                                                        <label for="PendidikanIbu">Pendidikan Terakhir Ibu</label>
-                                                        <select class="form-control" id="PendidikanIbu" name="PendidikanIbu">
-                                                            <option value="">Pilih Pendidikan</option>
-                                                            <option value="Tidak Sekolah">Tidak Sekolah</option>
-                                                            <option value="SD">SD</option>
-                                                            <option value="SMP">SMP</option>
-                                                            <option value="SMA">SMA</option>
-                                                            <option value="D1">D1</option>
-                                                            <option value="D2">D2</option>
-                                                            <option value="D3">D3</option>
-                                                            <option value="D4/S1">D4/S1</option>
-                                                            <option value="S2">S2</option>
-                                                            <option value="S3">S3</option>
-                                                            <option value="Lainnya">Lainnya</option>
+                                                        <label for="NikIbu">NIK Ibu</label>
+                                                        <input type="text" class="form-control number-only" id="NikIbu" name="NikIbu" placeholder="Masukkan NIK ibu">
+                                                        <span id="NikIbuError" class="text-danger" style="display:none;">NIK Ibu diperlukan.</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <label for="KewarganegaraanIbu">Kewarganegaraan Ibu</label>
+                                                        <select class="form-control" id="KewarganegaraanIbu" name="KewarganegaraanIbu">
+                                                            <option value="WNI" selected>Warga Negara Indonesia (WNI)</option>
+                                                            <option value="WNA">Warga Negara Asing (WNA)</option>
                                                         </select>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="PekerjaanUtamaIbu">Pekerjaan Utama</label>
-                                                    <select class="form-control" id="PekerjaanUtamaIbu" name="PekerjaanUtamaIbu">
-                                                        <option value="">Pilih Pekerjaan</option>
-                                                        <option value="Tidak Bekerja">Tidak Bekerja</option>
-                                                        <option value="Nelayan">Nelayan</option>
-                                                        <option value="Petani">Petani</option>
-                                                        <option value="Peternak">Peternak</option>
-                                                        <option value="PNS/TNI/Polri">PNS/TNI/Polri</option>
-                                                        <option value="Karyawan Swasta">Karyawan Swasta</option>
-                                                        <option value="Pedagang Kecil">Pedagang Kecil</option>
-                                                        <option value="Pedagang Besar">Pedagang Besar</option>
-                                                        <option value="Wiraswasta">Wiraswasta</option>
-                                                        <option value="Wirausaha">Wirausaha</option>
-                                                        <option value="Buruh">Buruh</option>
-                                                        <option value="Pensiunan">Pensiunan</option>
-                                                        <option value="Lainnya">Lainnya</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="PenghasilanUtamaIbu">Penghasilan Utama Ibu</label>
-                                                    <select class="form-control" id="PenghasilanUtamaIbu" name="PenghasilanUtamaIbu">
-                                                        <option value="">Pilih Penghasilan</option>
-                                                        <option value="Tidak Ada">Tidak Ada</option>
-                                                        <option value="Kurang dari Rp. 500.000">Kurang dari Rp. 500.000</option>
-                                                        <option value="Rp. 500.000 - Rp. 1.000.000">Rp. 500.000 - Rp. 1.000.000</option>
-                                                        <option value="Rp. 1.000.000 - Rp. 2.000.000">Rp. 1.000.000 - Rp. 2.000.000</option>
-                                                        <option value="Rp. 2.000.000 - Rp. 3.000.000">Rp. 2.000.000 - Rp. 3.000.000</option>
-                                                        <option value="Rp. 3.000.000 - Rp. 4.000.000">Rp. 3.000.000 - Rp. 4.000.000</option>
-                                                        <option value="Rp. 4.000.000 - Rp. 5.000.000">Rp. 4.000.000 - Rp. 5.000.000</option>
-                                                        <option value="Lebih dari Rp. 5.000.000">Lebih dari Rp. 5.000.000</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="NoHpIbu">No Handphone Ibu</label>
-                                                    <input type="text" class="form-control number-only" id="NoHpIbu" name="NoHpIbu" placeholder="Masukkan nomor handphone">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-3">
-                                            <div class="col-md-12">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="KkIbuSamaDenganAyahAtauSantri" name="KkIbuSamaDenganAyahAtauSantri">
-                                                    <label class="form-check-label" for="KkIbuSamaDenganAyahAtauSantri">
-                                                        Ibu satu KK dengan Ayah atau Santri
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group" id="FileKKIbuDiv">
-                                                    <label for="FileKkIbu">Upload KK Ibu</label>
-                                                    <div class="input-group">
-                                                        <div class="custom-file">
-                                                            <input type="file" class="form-control" id="FileKkIbu" name="FileKkIbu" onchange="validateFile('FileKkIbu')" accept=".pdf,.jpg,.jpeg,.png">
-                                                            <label class="custom-file-label" for="FileKkIbu">Pilih file KK Ibu</label>
-                                                        </div>
-                                                        <!-- div input-group-append dihapus -->
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="TempatLahirIbu">Tempat Lahir Ibu</label>
+                                                        <input type="text" class="form-control" id="TempatLahirIbu" name="TempatLahirIbu" placeholder="Masukkan tempat lahir ibu">
                                                     </div>
-                                                    <small id="FileKKIbuError" class="text-danger d-none"></small>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="TanggalLahirIbu">Tanggal Lahir Ibu</label>
+                                                        <input type="date" class="form-control" id="TanggalLahirIbu" name="TanggalLahirIbu">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <div class="form-group">
+                                                            <label for="PendidikanIbu">Pendidikan Terakhir Ibu</label>
+                                                            <select class="form-control" id="PendidikanIbu" name="PendidikanIbu">
+                                                                <option value="">Pilih Pendidikan</option>
+                                                                <option value="Tidak Sekolah">Tidak Sekolah</option>
+                                                                <option value="SD">SD</option>
+                                                                <option value="SMP">SMP</option>
+                                                                <option value="SMA">SMA</option>
+                                                                <option value="D1">D1</option>
+                                                                <option value="D2">D2</option>
+                                                                <option value="D3">D3</option>
+                                                                <option value="D4/S1">D4/S1</option>
+                                                                <option value="S2">S2</option>
+                                                                <option value="S3">S3</option>
+                                                                <option value="Lainnya">Lainnya</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="PekerjaanUtamaIbu">Pekerjaan Utama</label>
+                                                        <select class="form-control" id="PekerjaanUtamaIbu" name="PekerjaanUtamaIbu">
+                                                            <option value="">Pilih Pekerjaan</option>
+                                                            <option value="Tidak Bekerja">Tidak Bekerja</option>
+                                                            <option value="Nelayan">Nelayan</option>
+                                                            <option value="Petani">Petani</option>
+                                                            <option value="Peternak">Peternak</option>
+                                                            <option value="PNS/TNI/Polri">PNS/TNI/Polri</option>
+                                                            <option value="Karyawan Swasta">Karyawan Swasta</option>
+                                                            <option value="Pedagang Kecil">Pedagang Kecil</option>
+                                                            <option value="Pedagang Besar">Pedagang Besar</option>
+                                                            <option value="Wiraswasta">Wiraswasta</option>
+                                                            <option value="Wirausaha">Wirausaha</option>
+                                                            <option value="Buruh">Buruh</option>
+                                                            <option value="Pensiunan">Pensiunan</option>
+                                                            <option value="Lainnya">Lainnya</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="PenghasilanUtamaIbu">Penghasilan Utama Ibu</label>
+                                                        <select class="form-control" id="PenghasilanUtamaIbu" name="PenghasilanUtamaIbu">
+                                                            <option value="">Pilih Penghasilan</option>
+                                                            <option value="Tidak Ada">Tidak Ada</option>
+                                                            <option value="Kurang dari Rp. 500.000">Kurang dari Rp. 500.000</option>
+                                                            <option value="Rp. 500.000 - Rp. 1.000.000">Rp. 500.000 - Rp. 1.000.000</option>
+                                                            <option value="Rp. 1.000.000 - Rp. 2.000.000">Rp. 1.000.000 - Rp. 2.000.000</option>
+                                                            <option value="Rp. 2.000.000 - Rp. 3.000.000">Rp. 2.000.000 - Rp. 3.000.000</option>
+                                                            <option value="Rp. 3.000.000 - Rp. 4.000.000">Rp. 3.000.000 - Rp. 4.000.000</option>
+                                                            <option value="Rp. 4.000.000 - Rp. 5.000.000">Rp. 4.000.000 - Rp. 5.000.000</option>
+                                                            <option value="Lebih dari Rp. 5.000.000">Lebih dari Rp. 5.000.000</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="NoHpIbu">No Handphone Ibu</label>
+                                                        <input type="text" class="form-control number-only" id="NoHpIbu" name="NoHpIbu" placeholder="Masukkan nomor handphone">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-md-12">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="KkIbuSamaDenganAyahAtauSantri" name="KkIbuSamaDenganAyahAtauSantri">
+                                                        <label class="form-check-label" for="KkIbuSamaDenganAyahAtauSantri">
+                                                            Ibu satu KK dengan Ayah atau Santri
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-group" id="FileKKIbuDiv">
+                                                        <label for="FileKkIbu">Upload KK Ibu</label>
+                                                        <div class="input-group">
+                                                            <div class="custom-file">
+                                                                <input type="file" class="form-control" id="FileKkIbu" name="FileKkIbu" onchange="validateFile('FileKkIbu')" accept=".pdf,.jpg,.jpeg,.png">
+                                                                <label class="custom-file-label" for="FileKkIbu">Pilih file KK Ibu</label>
+                                                            </div>
+                                                            <!-- div input-group-append dihapus -->
+                                                        </div>
+                                                        <small id="FileKKIbuError" class="text-danger d-none"></small>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -820,14 +706,14 @@ $required = 'required';
                                     <!-- Bagian Data Wali -->
                                     <div id="DataProfilWaliDiv">
                                         <div class="form-group">
-                                            <label for="Wali">Wali</label>
-                                            <select class="form-control" id="Wali" name="StatusWali" <?= $required ?>>
+                                            <label for="StatusWali">Wali</label>
+                                            <select class="form-control" id="StatusWali" name="StatusWali" <?= $required ?>>
                                                 <option value="">Pilih Wali</option>
                                             </select>
                                             <span id="StatusWaliError" class="text-danger" style="display:none;">Status Wali diperlukan.</span>
                                             <script>
                                                 document.addEventListener('DOMContentLoaded', function() {
-                                                    const waliSelect = document.getElementById('Wali');
+                                                    const waliSelect = document.getElementById('StatusWali');
                                                     const statusAyah = document.getElementById('StatusAyah');
                                                     const statusIbu = document.getElementById('StatusIbu');
 
@@ -850,7 +736,7 @@ $required = 'required';
 
                                                         // Tambahkan info berdasarkan status yang dipilih
                                                         const infoDiv = document.createElement('small');
-                                                        infoDiv.className = 'form-text text-success';
+                                                        infoDiv.className = 'form-text text-primary';
 
                                                         if (statusAyah.value === 'Masih Hidup' && statusIbu.value === 'Masih Hidup') {
                                                             infoDiv.innerHTML = '<i class="fas fa-info-circle"></i> Anda dapat memilih ayah atau ibu kandung sebagai wali';
@@ -891,8 +777,8 @@ $required = 'required';
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
-                                                        <label for="NIKWali">NIK Wali<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control" id="NIKWali" name="NIKWali" placeholder="Masukkan NIK wali">
+                                                        <label for="NikWali">NIK Wali<span class="text-danger font-weight-bold">*</span></label>
+                                                        <input type="text" class="form-control" id="NikWali" name="NikWali" placeholder="Masukkan NIK wali">
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
@@ -987,7 +873,7 @@ $required = 'required';
                                         </div>
                                     </div>
                                     <script>
-                                        document.getElementById('Wali').addEventListener('change', function() {
+                                        document.getElementById('StatusWali').addEventListener('change', function() {
                                             var dataWali = document.getElementById('dataWali');
                                             if (this.value === 'Lainnya' || this.value === 'Saudara') {
                                                 dataWali.style.display = 'block';
@@ -1050,14 +936,14 @@ $required = 'required';
                                     <div class="alert alert-info">
                                         <i class="fas fa-info-circle"></i> <small>Silakan mengisi data alamat orang tua atau wali dengan benar!</small>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="bg-success p-2">
-                                                <h5 class="mb-0 text-white" id="HeaderDataAlamatAyah">Data Alamat Ayah Kandung</h5>
+                                    <div id="DataAlamatAyahDiv">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="bg-success p-2">
+                                                    <h5 class="mb-0 text-white" id="HeaderDataAlamatAyah">Data Alamat Ayah Kandung</h5>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div id="DataAlamatAyahDiv">
                                         <div class="row mb-3">
                                             <div class="col-md-12">
                                                 <div class="form-check">
@@ -1065,257 +951,219 @@ $required = 'required';
                                                     <label class="form-check-label" for="TinggalDiluarNegeriAyah">
                                                         Tinggal Di Luar Daerah atau Luar Negeri
                                                     </label>
+                                                    <small class="form-text text-primary">
+                                                        <i class="fas fa-info-circle"></i> Centang jika ayah tinggal di luar daerah atau luar negeri
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
-                                        <script>
-                                            // Fungsi untuk menangani checkbox "Tinggal Diluar Negeri"
-                                            function toggleAddressFields(checkboxId, fieldsToToggle) {
-                                                const checkbox = document.getElementById(checkboxId);
-                                                const fields = document.querySelectorAll(fieldsToToggle);
+                                        <div id="DataAlamatAyahProvinsiDiv">
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div class="form-group">
+                                                        <label for="StatusKepemilikanRumahAyah">Status Kepemilikan Rumah</label>
+                                                        <select class="form-control" id="StatusKepemilikanRumahAyah" name="StatusKepemilikanRumahAyah">
+                                                            <option value="">-- Pilih Status Kepemilikan Rumah --</option>
+                                                            <option value="Milik Sendiri">Milik Sendiri</option>
+                                                            <option value="Rumah Orang Tua">Rumah Orang Tua</option>
+                                                            <option value="Rumah Saudara/Kerabat">Rumah Saudara/Kerabat</option>
+                                                            <option value="Rumah Dinas">Rumah Dinas</option>
+                                                            <option value="Sewa/Kontrak">Sewa/Kontrak</option>
+                                                            <option value="Lainnya">Lainnya</option>
+                                                        </select>
+                                                        <span id="StatusKepemilikanRumahAyahError" class="text-danger" style="display:none;">Status kepemilikan rumah diperlukan.</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                                function toggleFields() {
-                                                    fields.forEach(field => {
-                                                        if (checkbox.checked) {
-                                                            field.style.display = 'none';
-                                                        } else {
-                                                            field.style.display = 'block';
-                                                        }
-                                                    });
-                                                }
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="ProvinsiAyah">Provinsi</label>
+                                                        <input type="text" class="form-control" id="ProvinsiAyah" name="ProvinsiAyah" value="Kepulauan Riau" readonly>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="KabupatenKotaAyah">Kabupaten/Kota</label>
+                                                        <input type="text" class="form-control" id="KabupatenKotaAyah" name="KabupatenKotaAyah" value="Bintan" readonly>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="KecamatanAyah">Kecamatan</label>
+                                                        <input type="text" class="form-control" id="KecamatanAyah" name="KecamatanAyah" value="Seri Kuala Lobam" readonly>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label for="KodePosAyah">Kode Pos</label>
+                                                        <input type="text" class="form-control number-only" id="KodePosAyah" name="KodePosAyah" value="29152" readonly>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                                checkbox.addEventListener('change', toggleFields);
-                                                // Panggil fungsi saat halaman dimuat untuk mengatur status awal
-                                                toggleFields();
-                                            }
-
-                                            // Panggil fungsi untuk setiap bagian (Ayah, Ibu, Santri)
-                                            document.addEventListener('DOMContentLoaded', function() {
-                                                toggleAddressFields('TinggalDiluarNegeriAyah', '#StatusKepemilikanRumahAyah, #ProvinsiAyah, #KabupatenKotaAyah, #KecamatanAyah, #KelurahanDesaAyah, #RWAyah, #RTAyah, #KodePosAyah');
-                                                toggleAddressFields('TinggalDiluarNegeriIbu', '#StatusKepemilikanRumahIbu, #ProvinsiIbu, #KabupatenKotaIbu, #KecamatanIbu, #KelurahanDesaIbu, #RWIbu, #RTIbu, #KodePosIbu');
-                                            });
-
-                                            // Fungsi untuk menangani checkbox "Alamat Ibu Sama Dengan Ayah"
-                                            function toggleIbuAddressFields(checkboxId, fieldsToToggle) {
-                                                const checkbox = document.getElementById(checkboxId);
-                                                const fields = document.querySelectorAll(fieldsToToggle);
-
-                                                function toggleFields() {
-                                                    fields.forEach(field => {
-                                                        if (checkbox.checked) {
-                                                            field.style.display = 'none';
-                                                        } else {
-                                                            field.style.display = 'block';
-                                                        }
-                                                    });
-                                                }
-
-                                                checkbox.addEventListener('change', toggleFields);
-                                                // Panggil fungsi saat halaman dimuat untuk mengatur status awal
-                                                toggleFields();
-                                            }
-
-                                            // Panggil fungsi untuk checkbox AlamatIbuSamaDenganAyah saat halaman dimuat
-                                            document.addEventListener('DOMContentLoaded', function() {
-                                                toggleIbuAddressFields('AlamatIbuSamaDenganAyah', '#TinggalDiluarNegeriIbu, #StatusKepemilikanRumahIbu, #ProvinsiIbu, #KabupatenKotaIbu, #KecamatanIbu, #KelurahanDesaIbu, #RWIbu, #RTIbu, #KodePosIbu, #AlamatIbu');
-                                            });
-                                        </script>
-
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="KelurahanDesaAyah">Kelurahan/Desa</label>
+                                                        <select class="form-control" id="KelurahanDesaAyah" name="KelurahanDesaAyah">
+                                                            <option value="">Pilih Kelurahan/Desa</option>
+                                                            <option value="TELUK LOBAM">TELUK LOBAM</option>
+                                                            <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
+                                                            <option value="BUSUNG">BUSUNG</option>
+                                                            <option value="TELUK SASAH">TELUK SASAH</option>
+                                                            <option value="KUALA SEMPANG">KUALA SEMPANG</option>
+                                                        </select>
+                                                        <span id="KelurahanDesaAyahError" class="text-danger" style="display:none;">Kelurahan/Desa diperlukan.</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="RWAyah">RW</label>
+                                                        <input type="text" class="form-control" id="RWAyah" name="RWAyah" placeholder="Masukkan RW">
+                                                        <span id="RWAyahError" class="text-danger" style="display:none;">RW diperlukan.</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="RTAyah">RT</label>
+                                                        <input type="text" class="form-control" id="RTAyah" name="RTAyah" placeholder="Masukkan RT">
+                                                        <span id="RTAyahError" class="text-danger" style="display:none;">RT diperlukan.</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div class="row">
                                             <div class="col-md-12">
-                                                <div class="form-group">
-                                                    <label for="StatusKepemilikanRumahAyah">Status Kepemilikan Rumah</label>
-                                                    <select class="form-control" id="StatusKepemilikanRumahAyah" name="StatusKepemilikanRumahAyah">
-                                                        <option value="">-- Pilih Status Kepemilikan Rumah --</option>
-                                                        <option value="Milik Sendiri">Milik Sendiri</option>
-                                                        <option value="Rumah Orang Tua">Rumah Orang Tua</option>
-                                                        <option value="Rumah Saudara/Kerabat">Rumah Saudara/Kerabat</option>
-                                                        <option value="Rumah Dinas">Rumah Dinas</option>
-                                                        <option value="Sewa/Kontrak">Sewa/Kontrak</option>
-                                                        <option value="Lainnya">Lainnya</option>
-                                                    </select>
-                                                    <span id="StatusKepemilikanRumahAyahError" class="text-danger" style="display:none;">Status kepemilikan rumah diperlukan.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="ProvinsiAyah">
-                                                    <label for="ProvinsiAyah">Provinsi</label>
-                                                    <input type="text" class="form-control" id="ProvinsiAyah" name="ProvinsiAyah" value="Kepulauan Riau" readonly>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="KabupatenKotaAyah">
-                                                    <label for="KabupatenKotaAyah">Kabupaten/Kota</label>
-                                                    <input type="text" class="form-control" id="KabupatenKotaAyah" name="KabupatenKotaAyah" value="Bintan" readonly>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="KecamatanAyah">
-                                                    <label for="KecamatanAyah">Kecamatan</label>
-                                                    <input type="text" class="form-control" id="KecamatanAyah" name="KecamatanAyah" value="Seri Kuala Lobam" readonly>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="KelurahanDesaAyah">
-                                                    <label for="KelurahanDesaAyah">Kelurahan/Desa</label>
-                                                    <select class="form-control" id="KelurahanDesaAyah" name="KelurahanDesaAyah">
-                                                        <option value="">Pilih Kelurahan/Desa</option>
-                                                        <option value="TELUK LOBAM">TELUK LOBAM</option>
-                                                        <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
-                                                        <option value="BUSUNG">BUSUNG</option>
-                                                        <option value="TELUK SASAH">TELUK SASAH</option>
-                                                        <option value="KUALA SEMPANG">KUALA SEMPANG</option>
-                                                    </select>
-                                                    <span id="KelurahanDesaAyahError" class="text-danger" style="display:none;">Kelurahan/Desa diperlukan.</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="RWAyah">
-                                                    <label for="RWAyah">RW</label>
-                                                    <input type="text" class="form-control" id="RWAyah" name="RWAyah" placeholder="Masukkan RW">
-                                                    <span id="RWAyahError" class="text-danger" style="display:none;">RW diperlukan.</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="RTAyah">
-                                                    <label for="RTAyah">RT</label>
-                                                    <input type="text" class="form-control" id="RTAyah" name="RTAyah" placeholder="Masukkan RT">
-                                                    <span id="RTAyahError" class="text-danger" style="display:none;">RT diperlukan.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-8">
                                                 <div class="form-group">
                                                     <label for="AlamatAyah">Alamat</label>
                                                     <input type="text" class="form-control" id="AlamatAyah" name="AlamatAyah" placeholder="Masukkan Alamat">
                                                     <span id="AlamatAyahError" class="text-danger" style="display:none;">Alamat diperlukan.</span>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="KodePosAyah">
-                                                    <label for="KodePosAyah">Kode Pos</label>
-                                                    <input type="text" class="form-control number-only" id="KodePosAyah" name="KodePosAyah" value="29152" readonly>
-                                                </div>
-                                            </div>
+
                                         </div>
                                     </div>
                                     <!-- bagian data alamat ibu -->
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="bg-success p-2">
-                                                <h5 id="HeaderDataAlamatIbu" class="mb-0 text-white">Data Alamat Ibu Kandung</h5>
+                                    <div id="DataAlamatIbuDiv">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="bg-success p-2">
+                                                    <h5 id="HeaderDataAlamatIbu" class="mb-0 text-white">Data Alamat Ibu Kandung</h5>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div id="DataAlamatIbuDiv">
                                         <div class="row mb-3">
                                             <div class="col-md-12">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="AlamatIbuSamaDenganAyah" name="AlamatIbuSamaDenganAyah">
+                                                <div class="form-check" id="AlamatIbuSamaDenganAyahDiv">
+                                                    <input class="form-check-input" type="checkbox" id="AlamatIbuSamaDenganAyah" name="AlamatIbuSamaDenganAyah" checked>
                                                     <label class="form-check-label" for="AlamatIbuSamaDenganAyah">Sama Dengan Ayah Kandung</label>
-                                                    <small class="form-text text-success">
-                                                        <i class="fas fa-info-circle"></i> Centang jika ibu dan ayah tinggal dalam satu rumah yang sama
+                                                    <small class="form-text text-primary">
+                                                        <i class="fas fa-info-circle"></i> Centang dirubah jika ibu dan ayah tinggal di rumah yang berbeda
                                                     </small>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="row mb-3">
-                                            <div class="col-md-12">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="TinggalDiluarNegeriIbu" name="TinggalDiluarNegeriIbu">
-                                                    <label class="form-check-label" for="TinggalDiluarNegeriIbu">Tinggal Di Luar Daerah atau Luar Negeri</label>
+                                        <div id="DataAlamatIbuDetailDiv">
+                                            <div class="row mb-3">
+                                                <div class="col-md-12">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="TinggalDiluarNegeriIbu" name="TinggalDiluarNegeriIbu">
+                                                        <label class="form-check-label" for="TinggalDiluarNegeriIbu">Tinggal Di Luar Daerah atau Luar Negeri</label>
+                                                        <small class="form-text text-primary">
+                                                            <i class="fas fa-info-circle"></i> Centang jika ibu tinggal di luar daerah atau luar negeri
+                                                        </small>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group" id="StatusKepemilikanRumahIbu">
-                                                    <label for="StatusKepemilikanRumahIbu">Status Kepemilikan Rumah</label>
-                                                    <select class="form-control" id="StatusKepemilikanRumahIbu" name="StatusKepemilikanRumahIbu">
-                                                        <option value="">Pilih Status Kepemilikan</option>
-                                                        <option value="Milik Sendiri">Milik Sendiri</option>
-                                                        <option value="Rumah Orang Tua">Rumah Orang Tua</option>
-                                                        <option value="Rumah Saudara/Kerabat">Rumah Saudara/Kerabat</option>
-                                                        <option value="Rumah Dinas">Rumah Dinas</option>
-                                                        <option value="Sewa/Kontrak">Sewa/Kontrak</option>
-                                                        <option value="Lainnya">Lainnya</option>
-                                                    </select>
-                                                    <span id="StatusKepemilikanRumahIbuError" class="text-danger" style="display:none;">Status Kepemilikan Rumah diperlukan.</span>
+                                            <!-- -->
+                                            <div id="DataAlamatIbuProvinsiDiv">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="StatusKepemilikanRumahIbu">Status Kepemilikan Rumah</label>
+                                                            <select class="form-control" id="StatusKepemilikanRumahIbu" name="StatusKepemilikanRumahIbu">
+                                                                <option value="">Pilih Status Kepemilikan</option>
+                                                                <option value="Milik Sendiri">Milik Sendiri</option>
+                                                                <option value="Rumah Orang Tua">Rumah Orang Tua</option>
+                                                                <option value="Rumah Saudara/Kerabat">Rumah Saudara/Kerabat</option>
+                                                                <option value="Rumah Dinas">Rumah Dinas</option>
+                                                                <option value="Sewa/Kontrak">Sewa/Kontrak</option>
+                                                                <option value="Lainnya">Lainnya</option>
+                                                            </select>
+                                                            <span id="StatusKepemilikanRumahIbuError" class="text-danger" style="display:none;">Status Kepemilikan Rumah diperlukan.</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="ProvinsiIbu">
-                                                    <label for="ProvinsiIbu">Provinsi</label>
-                                                    <input type="text" class="form-control" id="ProvinsiIbu" name="ProvinsiIbu" value="Kepulauan Riau" readonly>
+                                                <div class="row">
+                                                    <div class="col-md-3">
+                                                        <div class="form-group">
+                                                            <label for="ProvinsiIbu">Provinsi</label>
+                                                            <input type="text" class="form-control" id="ProvinsiIbu" name="ProvinsiIbu" value="Kepulauan Riau" readonly>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="form-group">
+                                                            <label for="KabupatenKotaIbu">Kabupaten/Kota</label>
+                                                            <input type="text" class="form-control" id="KabupatenKotaIbu" name="KabupatenKotaIbu" value="Bintan" readonly>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="form-group">
+                                                            <label for="KecamatanIbu">Kecamatan</label>
+                                                            <input type="text" class="form-control" id="KecamatanIbu" name="KecamatanIbu" value="Seri Kuala Lobam" readonly>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="form-group">
+                                                            <label for="KodePosIbu">Kode Pos</label>
+                                                            <input type="text" class="form-control number-only" id="KodePosIbu" name="KodePosIbu" value="29152" readonly>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="KabupatenKotaIbu">
-                                                    <label for="KabupatenKotaIbu">Kabupaten/Kota</label>
-                                                    <input type="text" class="form-control" id="KabupatenKotaIbu" name="KabupatenKotaIbu" value="Bintan" readonly>
+                                                <div class="row">
+                                                    <div class="col-md-4">
+                                                        <div class="form-group">
+                                                            <label for="KelurahanDesaIbu">Kelurahan/Desa</label>
+                                                            <select class="form-control" id="KelurahanDesaIbu" name="KelurahanDesaIbu">
+                                                                <option value="">Pilih Kelurahan/Desa</option>
+                                                                <option value="TELUK LOBAM">TELUK LOBAM</option>
+                                                                <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
+                                                                <option value="BUSUNG">BUSUNG</option>
+                                                                <option value="TELUK SASAH">TELUK SASAH</option>
+                                                                <option value="KUALA SEMPANG">KUALA SEMPANG</option>
+                                                            </select>
+                                                            <span id="KelurahanDesaIbuError" class="text-danger" style="display:none;">Kelurahan/Desa diperlukan.</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="form-group">
+                                                            <label for="RWIbu">RW</label>
+                                                            <input type="text" class="form-control" id="RWIbu" name="RWIbu" placeholder="Masukkan RW">
+                                                            <span id="RWIbuError" class="text-danger" style="display:none;">RW diperlukan.</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="form-group">
+                                                            <label for="RTIbu">RT</label>
+                                                            <input type="text" class="form-control" id="RTIbu" name="RTIbu" placeholder="Masukkan RT">
+                                                            <span id="RTIbuError" class="text-danger" style="display:none;">RT diperlukan.</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="KecamatanIbu">
-                                                    <label for="KecamatanIbu">Kecamatan</label>
-                                                    <input type="text" class="form-control" id="KecamatanIbu" name="KecamatanIbu" value="Seri Kuala Lobam" readonly>
-                                                </div>
-                                            </div>
-                                        </div>
 
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="KelurahanDesaIbu">
-                                                    <label for="KelurahanDesaIbu">Kelurahan/Desa</label>
-                                                    <select class="form-control" id="KelurahanDesaIbu" name="KelurahanDesaIbu">
-                                                        <option value="">Pilih Kelurahan/Desa</option>
-                                                        <option value="TELUK LOBAM">TELUK LOBAM</option>
-                                                        <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
-                                                        <option value="BUSUNG">BUSUNG</option>
-                                                        <option value="TELUK SASAH">TELUK SASAH</option>
-                                                        <option value="KUALA SEMPANG">KUALA SEMPANG</option>
-                                                    </select>
-                                                    <span id="KelurahanDesaIbuError" class="text-danger" style="display:none;">Kelurahan/Desa diperlukan.</span>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div class="form-group">
+                                                        <label for="AlamatIbu">Alamat</label>
+                                                        <input type="text" class="form-control" id="AlamatIbu" name="AlamatIbu" placeholder="Masukkan Alamat">
+                                                        <span id="AlamatIbuError" class="text-danger" style="display:none;">Alamat diperlukan.</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="RWIbu">
-                                                    <label for="RWIbu">RW</label>
-                                                    <input type="text" class="form-control" id="RWIbu" name="RWIbu" placeholder="Masukkan RW">
-                                                    <span id="RWIbuError" class="text-danger" style="display:none;">RW diperlukan.</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="RTIbu">
-                                                    <label for="RTIbu">RT</label>
-                                                    <input type="text" class="form-control" id="RTIbu" name="RTIbu" placeholder="Masukkan RT">
-                                                    <span id="RTIbuError" class="text-danger" style="display:none;">RT diperlukan.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-8">
-                                                <div class="form-group">
-                                                    <label for="AlamatIbu">Alamat</label>
-                                                    <input type="text" class="form-control" id="AlamatIbu" name="AlamatIbu" placeholder="Masukkan Alamat">
-                                                    <span id="AlamatIbuError" class="text-danger" style="display:none;">Alamat diperlukan.</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group" id="KodePosIbu">
-                                                    <label for="KodePosIbu">Kode Pos</label>
-                                                    <input type="text" class="form-control number-only" id="KodePosIbu" name="KodePosIbu" value="29152" readonly>
-                                                </div>
-                                            </div>
+                                            <!-- -->
                                         </div>
                                     </div>
                                     <!-- bagian data alamat santri -->
@@ -1338,8 +1186,8 @@ $required = 'required';
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group">
-                                                    <label for="StatusTempatTinggal">Status Tempat Tinggal</label>
-                                                    <select class="form-control" id="StatusTempatTinggal" name="StatusTempatTinggal">
+                                                    <label for="StatusTempatTinggal">Status Tempat Tinggal <span class="text-danger font-weight-bold">*</span></label>
+                                                    <select class="form-control" id="StatusTempatTinggal" name="StatusTempatTinggal" <?= $required ?>>
                                                         <option value="">Pilih Status Tempat Tinggal</option>
                                                         <script>
                                                             /* ===== Region: Memperbarui Pilihan Status Tempat Tinggal Santri ===== 
@@ -1362,7 +1210,7 @@ $required = 'required';
                                                                 const statusTempatTinggal = document.getElementById('StatusTempatTinggal');
                                                                 const statusAyah = document.getElementById('StatusAyah');
                                                                 const statusIbu = document.getElementById('StatusIbu');
-                                                                const wali = document.getElementById('Wali');
+                                                                const statusWali = document.getElementById('StatusWali');
 
                                                                 function updateOptions() {
                                                                     // Reset pilihan
@@ -1379,7 +1227,7 @@ $required = 'required';
                                                                         statusTempatTinggal.innerHTML += '<option value="Tinggal dengan Ibu Kandung">Tinggal dengan Ibu Kandung</option>';
                                                                     }
                                                                     // jika wali sudah diisi
-                                                                    if (wali.value && wali.value !== '') {
+                                                                    if (statusWali.value && statusWali.value !== '') {
                                                                         statusTempatTinggal.innerHTML += '<option value="Tinggal dengan Wali">Tinggal dengan Wali</option>';
                                                                     }
 
@@ -1393,7 +1241,7 @@ $required = 'required';
                                                                 // Perbarui pilihan saat status orang tua berubah
                                                                 statusAyah.addEventListener('change', updateOptions);
                                                                 statusIbu.addEventListener('change', updateOptions);
-                                                                wali.addEventListener('change', updateOptions);
+                                                                statusWali.addEventListener('change', updateOptions);
 
                                                                 // Initial update
                                                                 updateOptions();
@@ -1602,7 +1450,7 @@ $required = 'required';
                                         </div>
                                     </div>
                                     <button type="button" class="btn btn-primary" onclick="stepper.previous()">Sebelumnya</button>
-                                    <button type="submit" class="btn btn-primary">Simpan</button>
+                                    <button type="button" class="btn btn-primary" onclick="showPreview()">Preview</button>
                                 </div>
                             </form>
                         </div>
@@ -1618,10 +1466,500 @@ $required = 'required';
         <!-- /.row -->
     </div>
 </div>
+
+<!-- ============================================= Start Modal Preview ============================================= -->
+<!-- =============================================================================================================== -->
+<div class="modal fade" id="previewModal" tabindex="-1" role="dialog" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white" id="previewModalLabel">Preview Data Santri</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs" id="previewTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#dataSantri">Data Santri</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#dataOrangTua">Data Orang Tua</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#dataAlamat">Data Alamat</a>
+                    </li>
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content mt-3">
+                    <div class="tab-pane fade show active" id="dataSantri">
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <img id="previewFotoSantri" src="" alt="Foto Santri" class="img-thumbnail mb-2" style="max-width: 200px">
+                                <p class="font-weight-bold" id="previewNamaSantri"></p>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th width="30%">Nama TPQ</th>
+                                            <td id="previewIdTpq"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Nama Kelas</th>
+                                            <td id="previewIdKelas"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>NIK</th>
+                                            <td id="previewNikSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Nama Kepala Keluarga</th>
+                                            <td id="previewNamaKepalaKeluarga"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Tempat, Tanggal Lahir</th>
+                                            <td id="previewTtl"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Jenis Kelamin</th>
+                                            <td id="previewJenisKelamin"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Anak Ke / Jumlah Saudara</th>
+                                            <td><span id="previewAnakKe"></span> / <span id="previewJumlahSaudara"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Cita-cita</th>
+                                            <td id="previewCitaCita"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Hobi</th>
+                                            <td id="previewHobi"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kebutuhan Khusus</th>
+                                            <td id="previewKebutuhanKhusus"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kebutuhan Disabilitas</th>
+                                            <td id="previewKebutuhanDisabilitas"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Yang Membiayai Sekolah</th>
+                                            <td id="previewYangMembiayaiSekolah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Nomor HP / Email</th>
+                                            <td><span id="previewNoHpSantri"></span> / <span id="previewEmailSantri"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Nomor KK</th>
+                                            <td><span id="previewNoKkSantri"></span> / <span id="previewFileKkSantri"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Nomor KIP</th>
+                                            <td><span id="previewKip"></span> / <span id="previewFileKip"></span></td>
+                                        </tr>
+
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="dataOrangTua">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="font-weight-bold">Data Ayah</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th width="30%">Nama Ayah</th>
+                                            <td id="previewNamaAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>NIK Ayah</th>
+                                            <td id="previewNikAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Status</th>
+                                            <td id="previewStatusAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Pendidikan</th>
+                                            <td id="previewPendidikanAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Pekerjaan</th>
+                                            <td id="previewPekerjaanAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Penghasilan</th>
+                                            <td id="previewPenghasilanAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>No. HP</th>
+                                            <td id="previewNoHpAyah"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="font-weight-bold">Data Ibu</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th width="30%">Nama Ibu</th>
+                                            <td id="previewNamaIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>NIK Ibu</th>
+                                            <td id="previewNikIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Status</th>
+                                            <td id="previewStatusIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Pendidikan</th>
+                                            <td id="previewPendidikanIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Pekerjaan</th>
+                                            <td id="previewPekerjaanIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Penghasilan</th>
+                                            <td id="previewPenghasilanIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>No. HP</th>
+                                            <td id="previewNoHpIbu"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-12 mt-3">
+                                <h6 class="font-weight-bold">Data Wali</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th width="30%">Status Wali</th>
+                                            <td id="previewStatusWali"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Nama Wali</th>
+                                            <td id="previewNamaWali"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>NIK Wali</th>
+                                            <td id="previewNikWali"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>No. HP Wali</th>
+                                            <td id="previewNoHpWali"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="dataAlamat">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="font-weight-bold">Alamat Ayah</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th width="30%">Status Kepemilikan</th>
+                                            <td id="previewStatusKepemilikanRumahAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Alamat</th>
+                                            <td id="previewAlamatAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>RT/RW</th>
+                                            <td><span id="previewRTAyah"></span>/<span id="previewRWAyah"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kelurahan/Desa</th>
+                                            <td id="previewKelurahanDesaAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kecamatan</th>
+                                            <td id="previewKecamatanAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kabupaten/Kota</th>
+                                            <td id="previewKabupatenKotaAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Provinsi</th>
+                                            <td id="previewProvinsiAyah"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kode Pos</th>
+                                            <td id="previewKodePosAyah"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="font-weight-bold">Alamat Ibu</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th width="30%">Status Kepemilikan</th>
+                                            <td id="previewStatusKepemilikanRumahIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Alamat</th>
+                                            <td id="previewAlamatIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>RT/RW</th>
+                                            <td><span id="previewRTIbu"></span>/<span id="previewRWIbu"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kelurahan/Desa</th>
+                                            <td id="previewKelurahanDesaIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kecamatan</th>
+                                            <td id="previewKecamatanIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kabupaten/Kota</th>
+                                            <td id="previewKabupatenKotaIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Provinsi</th>
+                                            <td id="previewProvinsiIbu"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kode Pos</th>
+                                            <td id="previewKodePosIbu"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-12 mt-3">
+                                <h6 class="font-weight-bold">Alamat Santri</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th width="30%">Status Tempat Tinggal</th>
+                                            <td id="previewStatusTempatTinggal"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Status Mukim</th>
+                                            <td id="previewStatusMukim"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Alamat</th>
+                                            <td id="previewAlamatSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>RT/RW</th>
+                                            <td><span id="previewRTSantri"></span>/<span id="previewRWSantri"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kelurahan/Desa</th>
+                                            <td id="previewKelurahanDesaSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kecamatan</th>
+                                            <td id="previewKecamatanSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kabupaten/Kota</th>
+                                            <td id="previewKabupatenKotaSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Provinsi</th>
+                                            <td id="previewProvinsiSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Kode Pos</th>
+                                            <td id="previewKodePosSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Jarak ke Lembaga</th>
+                                            <td id="previewJarakTempuhSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Transportasi</th>
+                                            <td id="previewTransportasiSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Waktu Tempuh</th>
+                                            <td id="previewWaktuTempuhSantri"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Titik Koordinat</th>
+                                            <td id="previewTitikKoordinatSantri"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Udah Data</button>
+                <button type="submit" class="btn btn-primary" onclick="submitForm()">Kirim Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ============================================= End Modal Preview ================================================ -->
+
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
 <script>
+    /* ===== Region: Menampilkan Preview Data Santri =====
+     * Fungsi ini dipanggil saat tombol "Preview" diklik
+     * Menampilkan data santri yang telah diisi dalam modal preview
+     */
+    function showPreview() {
+        // Validasi form terlebih dahulu
+        if (!validateForm()) {
+            return;
+        }
+
+        // Data Santri
+        document.getElementById('previewIdTpq').textContent = (() => {
+            const tpqSelect = document.getElementById('IdTpq');
+            const selectedOption = tpqSelect.options[tpqSelect.selectedIndex];
+            return selectedOption ? selectedOption.text : '';
+        })();
+        document.getElementById('previewIdKelas').textContent = (() => {
+            const kelasSelect = document.getElementById('IdKelas');
+            const selectedOption = kelasSelect.options[kelasSelect.selectedIndex];
+            return selectedOption ? selectedOption.text : '';
+        })();
+        document.getElementById('previewNamaSantri').textContent = document.getElementById('NamaSantri').value;
+        document.getElementById('previewNikSantri').textContent = document.getElementById('NikSantri').value;
+        document.getElementById('previewNoKkSantri').textContent = document.getElementById('IdKartuKeluarga').value;
+        document.getElementById('previewNamaKepalaKeluarga').textContent = document.getElementById('NamaKepalaKeluarga').value;
+        document.getElementById('previewJenisKelamin').textContent = document.getElementById('JenisKelamin').value;
+        document.getElementById('previewAnakKe').textContent = document.getElementById('AnakKe').value;
+        document.getElementById('previewJumlahSaudara').textContent = document.getElementById('JumlahSaudara').value;
+        document.getElementById('previewCitaCita').textContent = document.getElementById('CitaCita').value;
+        document.getElementById('previewHobi').textContent = document.getElementById('Hobi').value;
+        document.getElementById('previewKebutuhanKhusus').textContent = document.getElementById('KebutuhanKhusus').value;
+        document.getElementById('previewKebutuhanDisabilitas').textContent = document.getElementById('KebutuhanDisabilitas').value;
+        document.getElementById('previewYangMembiayaiSekolah').textContent = document.getElementById('YangBiayaSekolah').value;
+        document.getElementById('previewKip').textContent = document.getElementById('NoKIP').value || '-';
+        document.getElementById('previewFileKip').textContent = document.getElementById('FileKIP').files[0]?.name || '-';
+
+        document.getElementById('previewNoHpSantri').textContent = document.getElementById('NoHpSantri').value || '-';
+        document.getElementById('previewEmailSantri').textContent = document.getElementById('EmailSantri').value || '-';
+        document.getElementById('previewFileKkSantri').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
+
+        // Preview foto santri
+        const photoInput = document.getElementById('PhotoProfil');
+        if (photoInput.files && photoInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewFotoSantri').src = e.target.result;
+            }
+            reader.readAsDataURL(photoInput.files[0]);
+        }
+
+        // Format TTL
+        const tempat = document.getElementById('TempatLahirSantri').value;
+        const tanggal = new Date(document.getElementById('TanggalLahirSantri').value)
+            .toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        document.getElementById('previewTtl').textContent = `${tempat}, ${tanggal}`;
+
+        // Data Ayah
+        document.getElementById('previewNamaAyah').textContent = document.getElementById('NamaAyah').value;
+        document.getElementById('previewNikAyah').textContent = document.getElementById('NikAyah').value || '-';
+        document.getElementById('previewStatusAyah').textContent = document.getElementById('StatusAyah').value;
+        document.getElementById('previewPendidikanAyah').textContent = document.getElementById('PendidikanAyah').value;
+        document.getElementById('previewPekerjaanAyah').textContent = document.getElementById('PekerjaanUtamaAyah').value;
+        document.getElementById('previewPenghasilanAyah').textContent = document.getElementById('PenghasilanUtamaAyah').value;
+        document.getElementById('previewNoHpAyah').textContent = document.getElementById('NoHpAyah').value || '-';
+
+        // Data Ibu
+        document.getElementById('previewNamaIbu').textContent = document.getElementById('NamaIbu').value;
+        document.getElementById('previewNikIbu').textContent = document.getElementById('NikIbu').value || '-';
+        document.getElementById('previewStatusIbu').textContent = document.getElementById('StatusIbu').value;
+        document.getElementById('previewPendidikanIbu').textContent = document.getElementById('PendidikanIbu').value;
+        document.getElementById('previewPekerjaanIbu').textContent = document.getElementById('PekerjaanUtamaIbu').value;
+        document.getElementById('previewPenghasilanIbu').textContent = document.getElementById('PenghasilanUtamaIbu').value;
+        document.getElementById('previewNoHpIbu').textContent = document.getElementById('NoHpIbu').value || '-';
+
+        // Data Wali
+        document.getElementById('previewStatusWali').textContent = document.getElementById('StatusWali').value;
+        document.getElementById('previewNamaWali').textContent = document.getElementById('NamaWali').value || '-';
+        document.getElementById('previewNikWali').textContent = document.getElementById('NikWali').value || '-';
+        document.getElementById('previewNoHpWali').textContent = document.getElementById('NoHpWali').value || '-';
+
+        // Alamat Ayah
+        document.getElementById('previewStatusKepemilikanRumahAyah').textContent = document.getElementById('StatusKepemilikanRumahAyah').value;
+        document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value;
+        document.getElementById('previewRTAyah').textContent = document.getElementById('RTAyah').value;
+        document.getElementById('previewRWAyah').textContent = document.getElementById('RWAyah').value;
+        document.getElementById('previewKelurahanDesaAyah').textContent = document.getElementById('KelurahanDesaAyah').value;
+        document.getElementById('previewKecamatanAyah').textContent = document.getElementById('KecamatanAyah').value;
+        document.getElementById('previewKabupatenKotaAyah').textContent = document.getElementById('KabupatenKotaAyah').value;
+        document.getElementById('previewProvinsiAyah').textContent = document.getElementById('ProvinsiAyah').value;
+        document.getElementById('previewKodePosAyah').textContent = document.getElementById('KodePosAyah').value;
+
+        // Alamat Ibu
+        document.getElementById('previewStatusKepemilikanRumahIbu').textContent = document.getElementById('StatusKepemilikanRumahIbu').value;
+        document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value;
+        document.getElementById('previewRTIbu').textContent = document.getElementById('RTIbu').value;
+        document.getElementById('previewRWIbu').textContent = document.getElementById('RWIbu').value;
+        document.getElementById('previewKelurahanDesaIbu').textContent = document.getElementById('KelurahanDesaIbu').value;
+        document.getElementById('previewKecamatanIbu').textContent = document.getElementById('KecamatanIbu').value;
+        document.getElementById('previewKabupatenKotaIbu').textContent = document.getElementById('KabupatenKotaIbu').value;
+        document.getElementById('previewProvinsiIbu').textContent = document.getElementById('ProvinsiIbu').value;
+        document.getElementById('previewKodePosIbu').textContent = document.getElementById('KodePosIbu').value;
+
+        // Alamat Santri
+        document.getElementById('previewStatusMukim').textContent = document.getElementById('StatusMukim').value;
+        document.getElementById('previewStatusTempatTinggal').textContent = document.getElementById('StatusTempatTinggal').value;
+        document.getElementById('previewAlamatSantri').textContent = document.getElementById('AlamatSantri').value;
+        document.getElementById('previewRTSantri').textContent = document.getElementById('RTSantri').value;
+        document.getElementById('previewRWSantri').textContent = document.getElementById('RWSantri').value;
+        document.getElementById('previewKelurahanDesaSantri').textContent = document.getElementById('KelurahanDesaSantri').value;
+        document.getElementById('previewKecamatanSantri').textContent = document.getElementById('KecamatanSantri').value;
+        document.getElementById('previewKabupatenKotaSantri').textContent = document.getElementById('KabupatenKotaSantri').value;
+        document.getElementById('previewProvinsiSantri').textContent = document.getElementById('ProvinsiSantri').value;
+        document.getElementById('previewKodePosSantri').textContent = document.getElementById('KodePosSantri').value;
+        document.getElementById('previewJarakTempuhSantri').textContent = document.getElementById('JarakTempuhSantri').value;
+        document.getElementById('previewTransportasiSantri').textContent = document.getElementById('TransportasiSantri').value;
+        document.getElementById('previewWaktuTempuhSantri').textContent = document.getElementById('WaktuTempuhSantri').value;
+        document.getElementById('previewTitikKoordinatSantri').textContent = document.getElementById('TitikKoordinatSantri').value;
+
+        // Tampilkan modal
+        $('#previewModal').modal('show');
+    }
+
+    function validateForm() {
+        // Implementasi validasi form
+        copyAlamatAyahKeIbu();
+        copyAlamatSantri();
+        return true; // Ganti dengan logika validasi yang sesuai
+    }
+
+    function submitForm() {
+        document.getElementById('santriForm').submit();
+    }
+    /* ===== End Region: Preview Menampilkan Data Santri    ===== */
+
     /* ===== Region: Inisialisasi Stepper Form =====
      * Fungsi ini dijalankan ketika DOM telah selesai dimuat
      * Menginisialisasi stepper form dan menambahkan validasi pada input required
@@ -1665,7 +2003,7 @@ $required = 'required';
             const photoPreview = document.getElementById('previewPhotoProfil');
             const photoError = document.getElementById('PhotoProfilError');
 
-            if (!photoProfil.files || !photoProfil.files[0]) {
+            if (!photoProfil.files && photoProfil.hasAttribute('required') || !photoProfil.files[0] && photoProfil.hasAttribute('required')) {
                 isValid = false;
                 photoError.innerHTML = 'Foto profil harus diupload';
                 photoError.style.display = 'block';
@@ -1699,7 +2037,7 @@ $required = 'required';
         // Jika ada field invalid, fokus ke field tersebut
         if (firstInvalidField) {
             // Handle scroll dan fokus
-            if (firstInvalidField.id === 'PhotoProfil') {
+            if (firstInvalidField.id === 'PhotoProfil' && firstInvalidField.hasAttribute('required')) {
                 // Scroll ke preview foto
                 document.getElementById('previewPhotoProfil').scrollIntoView({
                     behavior: 'smooth',
@@ -2392,20 +2730,20 @@ $required = 'required';
 
     /* ===== Region: Menampilkan Preview File Img atau Pdf =====
      * Membuat elemen-elemen preview untuk file yang diupload
-     * 
+     *
      * Fungsi ini membuat dan menginisialisasi elemen-elemen yang diperlukan untuk menampilkan preview file,
      * baik untuk gambar maupun PDF. Elemen yang dibuat meliputi:
      * - Div container untuk preview
      * - Tombol close untuk menghapus preview
      * - Elemen img untuk preview gambar
      * - Elemen embed untuk preview PDF
-     * 
+     *
      * Fitur yang disediakan:
      * - Preview gambar dengan kemampuan zoom (popup) saat diklik
      * - Preview PDF dengan kemampuan zoom (popup) saat diklik
      * - Tombol close untuk membatalkan upload dan menghapus preview
      * - Responsive layout dengan max-height dan width yang sesuai
-     * 
+     *
      * @param {string} inputId - ID dari elemen input file yang akan dibuat previewnya
      * @returns {HTMLElement} Elemen div yang berisi semua elemen preview
      */
@@ -2576,7 +2914,7 @@ $required = 'required';
      * Memvalidasi file yang diupload
      * @param {string} inputId - ID dari elemen input file
      * @returns {boolean} - true jika file valid, false jika tidak valid
-     * 
+     *
      * Validasi yang dilakukan:
      * 1. Ukuran file maksimal 2MB
      * 2. Format file harus JPG, PNG, atau PDF
@@ -2659,23 +2997,23 @@ $required = 'required';
     /* ===== Region: Validasi NIK ===== */
     /**
      * Region Validasi NIK berisi fungsi-fungsi untuk:
-     * 
+     *
      * 1. createNIKValidator(inputId)
-     *    - Membuat validator untuk input NIK
-     *    - Parameter: ID elemen input NIK
-     *    - Menangani validasi format dan keunikan NIK
-     * 
-     * 2. validasiNIK(input) 
-     *    - Memvalidasi format dan nilai NIK
-     *    - Mengecek:
-     *      - NIK tidak boleh kosong
-     *      - NIK tidak boleh 16 angka 0
-     *      - NIK harus 16 digit dan tidak diawali 0
-     *    - Untuk NIK Santri: cek duplikasi via AJAX
+     * - Membuat validator untuk input NIK
+     * - Parameter: ID elemen input NIK
+     * - Menangani validasi format dan keunikan NIK
+     *
+     * 2. validasiNIK(input)
+     * - Memvalidasi format dan nilai NIK
+     * - Mengecek:
+     * - NIK tidak boleh kosong
+     * - NIK tidak boleh 16 angka 0
+     * - NIK harus 16 digit dan tidak diawali 0
+     * - Untuk NIK Santri: cek duplikasi via AJAX
      *
      * 3. tampilkanError() & sembunyikanError()
-     *    - Menampilkan/menyembunyikan pesan error
-     *    - Mengatur styling elemen error
+     * - Menampilkan/menyembunyikan pesan error
+     * - Mengatur styling elemen error
      *
      * Event Listeners:
      * - Input: Validasi realtime saat input
@@ -2803,27 +3141,27 @@ $required = 'required';
 
     /* ===== Region: Validasi KK =====
      * 1. updateKKAyahState()
-     *    - Mengatur status checkbox KK Ayah berdasarkan:
-     *      a. Keberadaan file KK Santri
-     *      b. Status hidup Ayah
-     *    - Menampilkan pesan informasi sesuai kondisi
-     * 
-     * 2. updateKKIbuState() 
-     *    - Mengatur status checkbox KK Ibu berdasarkan:
-     *      a. Keberadaan file KK Santri/Ayah
-     *      b. Status hidup Ibu
-     *    - Menampilkan pesan informasi sesuai kondisi
+     * - Mengatur status checkbox KK Ayah berdasarkan:
+     * a. Keberadaan file KK Santri
+     * b. Status hidup Ayah
+     * - Menampilkan pesan informasi sesuai kondisi
+     *
+     * 2. updateKKIbuState()
+     * - Mengatur status checkbox KK Ibu berdasarkan:
+     * a. Keberadaan file KK Santri/Ayah
+     * b. Status hidup Ibu
+     * - Menampilkan pesan informasi sesuai kondisi
      *
      * 3. Event Listeners:
-     *    - DOMContentLoaded: Inisialisasi validasi
-     *    - change: Memantau perubahan file dan status
-     *    - click: Menangani interaksi checkbox
+     * - DOMContentLoaded: Inisialisasi validasi
+     * - change: Memantau perubahan file dan status
+     * - click: Menangani interaksi checkbox
      *
      * 4. Fitur Utama:
-     *    - Validasi upload file KK
-     *    - Pengecekan status hidup orangtua
-     *    - Opsi penggunaan KK yang sama
-     *    - Pesan informasi dinamis
+     * - Validasi upload file KK
+     * - Pengecekan status hidup orangtua
+     * - Opsi penggunaan KK yang sama
+     * - Pesan informasi dinamis
      */
     document.addEventListener('DOMContentLoaded', function() {
         // Logika untuk KK Santri dan KK Ayah
@@ -2873,7 +3211,7 @@ $required = 'required';
                 info.className = 'form-text text-warning mt-1';
                 info.innerHTML = '<i class="fas fa-info-circle"></i> KK Santri harus diupload terlebih dahulu';
             } else {
-                info.className = 'form-text text-success mt-1';
+                info.className = 'form-text text-primary mt-1';
                 info.innerHTML = '<i class="fas fa-check-circle"></i> Anda dapat mencentang ini jika Ayah satu KK dengan Santri';
             }
 
@@ -2912,7 +3250,7 @@ $required = 'required';
                 info.className = 'form-text text-warning mt-1';
                 info.innerHTML = '<i class="fas fa-info-circle"></i> Anda perlu mengupload KK Santri atau KK Ayah terlebih dahulu';
             } else {
-                info.className = 'form-text text-success mt-1';
+                info.className = 'form-text text-primary mt-1';
                 let message = '<i class="fas fa-check-circle"></i> Anda dapat mencentang ini jika Ibu ';
 
                 if (canUseSantriKK && canUseAyahKK) {
@@ -2988,7 +3326,7 @@ $required = 'required';
             tanggalLahirInput.style.borderColor = ''; // Reset border color
             const existingError = document.getElementById('TanggalLahirSantriError');
             // if (existingError) {
-            //     existingError.remove();
+            // existingError.remove();
             // }
             return true;
         }
@@ -3016,7 +3354,7 @@ $required = 'required';
         // Validasi berdasarkan ID kelas
         switch (selectedKelasId) {
             case 1: // TK
-            case 2: // TKA 
+            case 2: // TKA
             case 3: // TKB
                 if (umur < 4 || umur > 7) {
                     isValid = false;
@@ -3221,6 +3559,151 @@ $required = 'required';
         });
 
     });
+
+
+    /* ===== Region: Toggle Address Fields =====
+     * Fungsi umum untuk menangani toggle fields alamat
+     * Digunakan untuk:
+     * 1. Toggle alamat luar negeri (Ayah/Ibu) - Menyembunyikan/menampilkan field alamat ketika checkbox luar negeri dicentang
+     * 2. Toggle alamat Ibu sama dengan Ayah - Menyembunyikan/menampilkan field alamat ibu ketika checkbox sama dengan ayah dicentang
+     * 3. Mengatur visibilitas field berdasarkan status checkbox
+     * 4. Menangani perubahan status ibu dan ayah seleks secara dinamis
+     */
+    function toggleDataDanAlamat(checkboxId, fieldsToToggle) {
+        const checkbox = document.getElementById(checkboxId);
+        const fields = document.querySelectorAll(fieldsToToggle);
+
+        function toggleFields() {
+            fields.forEach(field => {
+                field.style.display = checkbox.checked ? 'none' : 'block';
+            });
+        }
+
+        // Event listener untuk perubahan checkbox
+        checkbox.addEventListener('change', toggleFields);
+
+        // Set status awal saat halaman dimuat
+        toggleFields();
+    }
+
+    // Inisialisasi semua toggle address fields
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cek status ayah dan sembunyikan/tampilkan field alamat
+        const statusAyah = document.getElementById('StatusAyah');
+        const dataAlamatAyahDiv = document.getElementById('DataAlamatAyahDiv');
+        const statusIbu = document.getElementById('StatusIbu');
+        const dataAlamatIbuDiv = document.getElementById('DataAlamatIbuDiv');
+        const alamatIbuSamaDenganAyahDiv = document.getElementById('AlamatIbuSamaDenganAyahDiv');
+
+        function toggleAlamatAyah() {
+            if (statusAyah.value !== 'Masih Hidup') {
+                dataAlamatAyahDiv.style.display = 'none';
+                // jika status ibu hidup, maka uncheck alamat ibu sama dengan ayah  
+                if (statusIbu.value === 'Masih Hidup') {
+                    document.getElementById('AlamatIbuSamaDenganAyah').checked = false;
+                    toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
+                    alamatIbuSamaDenganAyahDiv.style.display = 'none';
+                }
+                // sembunyikan data profil ayah
+                document.getElementById('DataProfilAyahDetailDiv').style.display = 'none';
+            } else {
+                dataAlamatAyahDiv.style.display = 'block';
+                // jika status ibu bukan hidup, maka check alamat ibu sama dengan ayah  
+                if (statusIbu.value === 'Masih Hidup') {
+                    alamatIbuSamaDenganAyahDiv.style.display = 'block';
+                    document.getElementById('AlamatIbuSamaDenganAyah').checked = true;
+                    toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
+                }
+                // tampilkan data profil ayah
+                document.getElementById('DataProfilAyahDetailDiv').style.display = 'block';
+            }
+        }
+
+        function toggleAlamatIbu() {
+            if (statusIbu.value !== 'Masih Hidup') {
+                dataAlamatIbuDiv.style.display = 'none';
+                // sembunyikan data profil ibu
+                document.getElementById('DataProfilIbuDetailDiv').style.display = 'none';
+            } else {
+                dataAlamatIbuDiv.style.display = 'block';
+                // jika status ayah bukan hidup, maka uncheck alamat ibu sama dengan ayah  
+                if (statusAyah.value !== 'Masih Hidup') {
+                    document.getElementById('AlamatIbuSamaDenganAyah').checked = false;
+                    toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
+                    // sembunyikan field alamat ibu
+                    alamatIbuSamaDenganAyahDiv.style.display = 'none';
+                }
+                // tampilkan data profil ibu
+                document.getElementById('DataProfilIbuDetailDiv').style.display = 'block';
+            }
+        }
+
+        // Event listeners untuk perubahan status
+        statusAyah.addEventListener('change', toggleAlamatAyah);
+        statusIbu.addEventListener('change', toggleAlamatIbu);
+
+        // Set status awal
+        toggleAlamatAyah();
+        toggleAlamatIbu();
+
+        // Toggle untuk alamat luar negeri
+        toggleDataDanAlamat('TinggalDiluarNegeriAyah', '#DataAlamatAyahProvinsiDiv'); // Hanya kolom alamat ayah yang aktif jika luar daerah atau luar negeri
+        toggleDataDanAlamat('TinggalDiluarNegeriIbu', '#DataAlamatIbuProvinsiDiv'); // Hanya kolom alamat ibu yang aktif jika luar daerah atau luar negeri
+
+        // Toggle untuk alamat Ibu sama dengan Ayah
+        toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
+
+
+
+        // Event listener untuk checkbox AlamatIbuSamaDenganAyah
+        document.getElementById('AlamatIbuSamaDenganAyah').addEventListener('change', copyAlamatAyahKeIbu);
+    });
+    /* ===== End Region: Toggle Address Fields ===== */
+    // Fungsi untuk menyalin data alamat ayah ke alamat ibu
+    function copyAlamatAyahKeIbu() {
+        const alamatIbuSamaDenganAyah = document.getElementById('AlamatIbuSamaDenganAyah');
+
+        if (alamatIbuSamaDenganAyah.checked) {
+            // Salin data alamat dari ayah ke ibu
+            document.getElementById('StatusKepemilikanRumahIbu').value = document.getElementById('StatusKepemilikanRumahAyah').value;
+            document.getElementById('AlamatIbu').value = document.getElementById('AlamatAyah').value;
+            document.getElementById('RTIbu').value = document.getElementById('RTAyah').value;
+            document.getElementById('RWIbu').value = document.getElementById('RWAyah').value;
+            document.getElementById('KelurahanDesaIbu').value = document.getElementById('KelurahanDesaAyah').value;
+            document.getElementById('KecamatanIbu').value = document.getElementById('KecamatanAyah').value;
+            document.getElementById('KabupatenKotaIbu').value = document.getElementById('KabupatenKotaAyah').value;
+            document.getElementById('ProvinsiIbu').value = document.getElementById('ProvinsiAyah').value;
+            document.getElementById('KodePosIbu').value = document.getElementById('KodePosAyah').value;
+        }
+    }
+
+    // Fungsi untuk menyalin alamat berdasarkan status tempat tinggal santri
+    function copyAlamatSantri() {
+        const statusTempatTinggal = document.getElementById('StatusTempatTinggal').value;
+
+        // Jika tinggal dengan ayah
+        if (statusTempatTinggal === 'Tinggal dengan Ayah Kandung') {
+            document.getElementById('AlamatSantri').value = document.getElementById('AlamatAyah').value;
+            document.getElementById('RTSantri').value = document.getElementById('RTAyah').value;
+            document.getElementById('RWSantri').value = document.getElementById('RWAyah').value;
+            document.getElementById('KelurahanDesaSantri').value = document.getElementById('KelurahanDesaAyah').value;
+            document.getElementById('KecamatanSantri').value = document.getElementById('KecamatanAyah').value;
+            document.getElementById('KabupatenKotaSantri').value = document.getElementById('KabupatenKotaAyah').value;
+            document.getElementById('ProvinsiSantri').value = document.getElementById('ProvinsiAyah').value;
+            document.getElementById('KodePosSantri').value = document.getElementById('KodePosAyah').value;
+        }
+        // Jika tinggal dengan ibu
+        else if (statusTempatTinggal === 'Tinggal dengan Ibu Kandung') {
+            document.getElementById('AlamatSantri').value = document.getElementById('AlamatIbu').value;
+            document.getElementById('RTSantri').value = document.getElementById('RTIbu').value;
+            document.getElementById('RWSantri').value = document.getElementById('RWIbu').value;
+            document.getElementById('KelurahanDesaSantri').value = document.getElementById('KelurahanDesaIbu').value;
+            document.getElementById('KecamatanSantri').value = document.getElementById('KecamatanIbu').value;
+            document.getElementById('KabupatenKotaSantri').value = document.getElementById('KabupatenKotaIbu').value;
+            document.getElementById('ProvinsiSantri').value = document.getElementById('ProvinsiIbu').value;
+            document.getElementById('KodePosSantri').value = document.getElementById('KodePosIbu').value;
+        }
+    }
 </script>
 
 <?= $this->endSection(); ?>
