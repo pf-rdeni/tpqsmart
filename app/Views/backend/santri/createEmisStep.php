@@ -2,7 +2,7 @@
 <?= $this->section('content'); ?>
 <?php echo session()->getFlashdata('pesan');
 $required = '';
-$required = 'required';
+//$required = 'required';
 
 ?>
 
@@ -136,6 +136,7 @@ $required = 'required';
                                                     Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 2MB
                                                 </small>
                                                 <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?> style="display: none;">
+                                                <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                             </div>
                                             <div class="col-md-9">
                                                 <div class="row">
@@ -387,7 +388,7 @@ $required = 'required';
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-primary" onclick="stepper.previous()">Sebelumnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="stepper.previous()">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('santri-part')">Selanjutnya</button>
                                 </div>
                                 <!-- Bagian Profil Orang Tua atau Wali -->
@@ -926,7 +927,7 @@ $required = 'required';
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-primary" onclick="stepper.previous()">Sebelumnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="stepper.previous()">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('ortu-part')">Selanjutnya</button>
                                 </div>
                                 <!-- Bagian Alamat Orang Tua dan Santri beserta jarak tempat tinggal santri ke lembaga-->
@@ -1427,9 +1428,9 @@ $required = 'required';
                                                             <i class="fas fa-map-marker-alt"></i> Dapatkan Lokasi
                                                         </button>
                                                     </div>
-                                                    <span id="TitikKoordinatSantriError" class="text-danger" style="display:none;">Titik koordinat diperlukan.</span>
                                                 </div>
                                                 <small class="form-text text-muted">Klik tombol untuk mendapatkan koordinat otomatis</small>
+                                                <span id="TitikKoordinatSantriError" class="text-danger" style="display:none;">Titik koordinat diperlukan.</span>
 
                                                 <script>
                                                     document.getElementById('getLocationBtn').addEventListener('click', function() {
@@ -1438,18 +1439,23 @@ $required = 'required';
                                                                 var lat = position.coords.latitude;
                                                                 var lng = position.coords.longitude;
                                                                 document.getElementById('TitikKoordinatSantri').value = lat + ', ' + lng;
+                                                                validateField(document.getElementById('TitikKoordinatSantri'));
                                                             }, function() {
                                                                 alert('Tidak dapat mengakses lokasi. Pastikan Anda mengizinkan akses lokasi.');
                                                             });
                                                         } else {
                                                             alert('Geolocation tidak didukung oleh browser Anda.');
                                                         }
+                                                        if (validateField(document.getElementById('TitikKoordinatSantri'))) {
+                                                            // Hapus background merah saat input valid
+                                                            document.getElementById('TitikKoordinatSantri').style.backgroundColor = '';
+                                                        }
                                                     });
                                                 </script>
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-primary" onclick="stepper.previous()">Sebelumnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="stepper.previous()">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="showPreview()">Preview</button>
                                 </div>
                             </form>
@@ -1479,330 +1485,354 @@ $required = 'required';
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Nav tabs -->
-                <ul class="nav nav-tabs" id="previewTab" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" data-toggle="tab" href="#dataSantri">Data Santri</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-toggle="tab" href="#dataOrangTua">Data Orang Tua</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-toggle="tab" href="#dataAlamat">Data Alamat</a>
-                    </li>
-                </ul>
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <h5><i class="icon fas fa-exclamation-triangle"></i> <strong>Perhatian!</strong></h5>
+                    <p>Mohon periksa kembali data sebelum mengirim:</p>
+                    <ul>
+                        <li>Pastikan semua data sudah benar</li>
+                        <li>Data yang terkirim tidak dapat diubah</li>
+                        <li>Klik "Ubah Data" untuk mengedit</li>
+                        <li>Klik "Kirim Data" jika sudah yakin</li>
+                    </ul>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-primary card-tabs">
+                            <div class="card-header p-0 pt-1">
+                                <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" id="custom-tabs-santri-tab" data-toggle="pill" href="#dataSantri" role="tab" aria-controls="dataSantri" aria-selected="true">Data Santri</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="custom-tabs-orangtua-tab" data-toggle="pill" href="#dataOrangTua" role="tab" aria-controls="dataOrangTua" aria-selected="false">Data Orang Tua</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="custom-tabs-alamat-tab" data-toggle="pill" href="#dataAlamat" role="tab" aria-controls="dataAlamat" aria-selected="false">Data Alamat</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-body">
+                                <div class="tab-content" id="custom-tabs-one-tabContent">
+                                    <!-- Tab Data Santri -->
+                                    <div class="tab-pane fade show active" id="dataSantri" role="tabpanel" aria-labelledby="custom-tabs-santri-tab">
+                                        <div class="row">
+                                            <div class="col-md-3 text-center">
+                                                <img id="previewFotoSantri" src="" alt="Foto Santri" class="img-thumbnail mb-2" style="max-width: 200px">
+                                                <p class="font-weight-bold" id="previewNamaSantri"></p>
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <th width="30%">Nama TPQ</th>
+                                                            <td id="previewIdTpq"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Nama Kelas</th>
+                                                            <td id="previewIdKelas"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>NIK</th>
+                                                            <td id="previewNikSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Nama Kepala Keluarga</th>
+                                                            <td id="previewNamaKepalaKeluarga"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Tempat, Tanggal Lahir</th>
+                                                            <td id="previewTtl"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Jenis Kelamin</th>
+                                                            <td id="previewJenisKelamin"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Anak Ke / Jumlah Saudara</th>
+                                                            <td><span id="previewAnakKe"></span> / <span id="previewJumlahSaudara"></span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Cita-cita</th>
+                                                            <td id="previewCitaCita"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Hobi</th>
+                                                            <td id="previewHobi"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kebutuhan Khusus</th>
+                                                            <td id="previewKebutuhanKhusus"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kebutuhan Disabilitas</th>
+                                                            <td id="previewKebutuhanDisabilitas"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Yang Membiayai Sekolah</th>
+                                                            <td id="previewYangMembiayaiSekolah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Nomor HP / Email</th>
+                                                            <td><span id="previewNoHpSantri"></span> / <span id="previewEmailSantri"></span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Nomor KK / File KK</th>
+                                                            <td><span id="previewNoKkSantri"></span> / <span id="previewFileKkSantri"></span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Nomor KIP / File KIP</th>
+                                                            <td><span id="previewKip"></span> / <span id="previewFileKip"></span></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                <!-- Tab content -->
-                <div class="tab-content mt-3">
-                    <div class="tab-pane fade show active" id="dataSantri">
-                        <div class="row">
-                            <div class="col-md-3 text-center">
-                                <img id="previewFotoSantri" src="" alt="Foto Santri" class="img-thumbnail mb-2" style="max-width: 200px">
-                                <p class="font-weight-bold" id="previewNamaSantri"></p>
-                            </div>
-                            <div class="col-md-9">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th width="30%">Nama TPQ</th>
-                                            <td id="previewIdTpq"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Nama Kelas</th>
-                                            <td id="previewIdKelas"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>NIK</th>
-                                            <td id="previewNikSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Nama Kepala Keluarga</th>
-                                            <td id="previewNamaKepalaKeluarga"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Tempat, Tanggal Lahir</th>
-                                            <td id="previewTtl"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Jenis Kelamin</th>
-                                            <td id="previewJenisKelamin"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Anak Ke / Jumlah Saudara</th>
-                                            <td><span id="previewAnakKe"></span> / <span id="previewJumlahSaudara"></span></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Cita-cita</th>
-                                            <td id="previewCitaCita"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Hobi</th>
-                                            <td id="previewHobi"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kebutuhan Khusus</th>
-                                            <td id="previewKebutuhanKhusus"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kebutuhan Disabilitas</th>
-                                            <td id="previewKebutuhanDisabilitas"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Yang Membiayai Sekolah</th>
-                                            <td id="previewYangMembiayaiSekolah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Nomor HP / Email</th>
-                                            <td><span id="previewNoHpSantri"></span> / <span id="previewEmailSantri"></span></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Nomor KK</th>
-                                            <td><span id="previewNoKkSantri"></span> / <span id="previewFileKkSantri"></span></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Nomor KIP</th>
-                                            <td><span id="previewKip"></span> / <span id="previewFileKip"></span></td>
-                                        </tr>
+                                    <!-- Tab Data Orang Tua -->
+                                    <div class="tab-pane fade" id="dataOrangTua" role="tabpanel" aria-labelledby="custom-tabs-orangtua-tab">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="font-weight-bold">Data Ayah</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <th width="30%">Nama Ayah</th>
+                                                            <td id="previewNamaAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>NIK Ayah</th>
+                                                            <td id="previewNikAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Status</th>
+                                                            <td id="previewStatusAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Pendidikan</th>
+                                                            <td id="previewPendidikanAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Pekerjaan</th>
+                                                            <td id="previewPekerjaanAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Penghasilan</th>
+                                                            <td id="previewPenghasilanAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>No. HP</th>
+                                                            <td id="previewNoHpAyah"></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6 class="font-weight-bold">Data Ibu</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <th width="30%">Nama Ibu</th>
+                                                            <td id="previewNamaIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>NIK Ibu</th>
+                                                            <td id="previewNikIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Status</th>
+                                                            <td id="previewStatusIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Pendidikan</th>
+                                                            <td id="previewPendidikanIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Pekerjaan</th>
+                                                            <td id="previewPekerjaanIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Penghasilan</th>
+                                                            <td id="previewPenghasilanIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>No. HP</th>
+                                                            <td id="previewNoHpIbu"></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12 mt-3">
+                                                <h6 class="font-weight-bold">Data Wali</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <th width="30%">Status Wali</th>
+                                                            <td id="previewStatusWali"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Nama Wali</th>
+                                                            <td id="previewNamaWali"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>NIK Wali</th>
+                                                            <td id="previewNikWali"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>No. HP Wali</th>
+                                                            <td id="previewNoHpWali"></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="dataOrangTua">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="font-weight-bold">Data Ayah</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th width="30%">Nama Ayah</th>
-                                            <td id="previewNamaAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>NIK Ayah</th>
-                                            <td id="previewNikAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Status</th>
-                                            <td id="previewStatusAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Pendidikan</th>
-                                            <td id="previewPendidikanAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Pekerjaan</th>
-                                            <td id="previewPekerjaanAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Penghasilan</th>
-                                            <td id="previewPenghasilanAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>No. HP</th>
-                                            <td id="previewNoHpAyah"></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="font-weight-bold">Data Ibu</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th width="30%">Nama Ibu</th>
-                                            <td id="previewNamaIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>NIK Ibu</th>
-                                            <td id="previewNikIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Status</th>
-                                            <td id="previewStatusIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Pendidikan</th>
-                                            <td id="previewPendidikanIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Pekerjaan</th>
-                                            <td id="previewPekerjaanIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Penghasilan</th>
-                                            <td id="previewPenghasilanIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>No. HP</th>
-                                            <td id="previewNoHpIbu"></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="col-md-12 mt-3">
-                                <h6 class="font-weight-bold">Data Wali</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th width="30%">Status Wali</th>
-                                            <td id="previewStatusWali"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Nama Wali</th>
-                                            <td id="previewNamaWali"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>NIK Wali</th>
-                                            <td id="previewNikWali"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>No. HP Wali</th>
-                                            <td id="previewNoHpWali"></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="dataAlamat">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="font-weight-bold">Alamat Ayah</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th width="30%">Status Kepemilikan</th>
-                                            <td id="previewStatusKepemilikanRumahAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Alamat</th>
-                                            <td id="previewAlamatAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>RT/RW</th>
-                                            <td><span id="previewRTAyah"></span>/<span id="previewRWAyah"></span></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kelurahan/Desa</th>
-                                            <td id="previewKelurahanDesaAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kecamatan</th>
-                                            <td id="previewKecamatanAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kabupaten/Kota</th>
-                                            <td id="previewKabupatenKotaAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Provinsi</th>
-                                            <td id="previewProvinsiAyah"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kode Pos</th>
-                                            <td id="previewKodePosAyah"></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="font-weight-bold">Alamat Ibu</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th width="30%">Status Kepemilikan</th>
-                                            <td id="previewStatusKepemilikanRumahIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Alamat</th>
-                                            <td id="previewAlamatIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>RT/RW</th>
-                                            <td><span id="previewRTIbu"></span>/<span id="previewRWIbu"></span></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kelurahan/Desa</th>
-                                            <td id="previewKelurahanDesaIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kecamatan</th>
-                                            <td id="previewKecamatanIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kabupaten/Kota</th>
-                                            <td id="previewKabupatenKotaIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Provinsi</th>
-                                            <td id="previewProvinsiIbu"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kode Pos</th>
-                                            <td id="previewKodePosIbu"></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="col-md-12 mt-3">
-                                <h6 class="font-weight-bold">Alamat Santri</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th width="30%">Status Tempat Tinggal</th>
-                                            <td id="previewStatusTempatTinggal"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Status Mukim</th>
-                                            <td id="previewStatusMukim"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Alamat</th>
-                                            <td id="previewAlamatSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>RT/RW</th>
-                                            <td><span id="previewRTSantri"></span>/<span id="previewRWSantri"></span></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kelurahan/Desa</th>
-                                            <td id="previewKelurahanDesaSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kecamatan</th>
-                                            <td id="previewKecamatanSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kabupaten/Kota</th>
-                                            <td id="previewKabupatenKotaSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Provinsi</th>
-                                            <td id="previewProvinsiSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kode Pos</th>
-                                            <td id="previewKodePosSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Jarak ke Lembaga</th>
-                                            <td id="previewJarakTempuhSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Transportasi</th>
-                                            <td id="previewTransportasiSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Waktu Tempuh</th>
-                                            <td id="previewWaktuTempuhSantri"></td>
-                                        </tr>
-                                        <tr>
-                                            <th>Titik Koordinat</th>
-                                            <td id="previewTitikKoordinatSantri"></td>
-                                        </tr>
-                                    </table>
+                                    <!-- Tab Data Alamat -->
+                                    <div class="tab-pane fade" id="dataAlamat" role="tabpanel" aria-labelledby="custom-tabs-alamat-tab">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="font-weight-bold">Alamat Ayah</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <th width="30%">Status Kepemilikan</th>
+                                                            <td id="previewStatusKepemilikanRumahAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Alamat</th>
+                                                            <td id="previewAlamatAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>RT/RW</th>
+                                                            <td><span id="previewRTAyah"></span>/<span id="previewRWAyah"></span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kelurahan/Desa</th>
+                                                            <td id="previewKelurahanDesaAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kecamatan</th>
+                                                            <td id="previewKecamatanAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kabupaten/Kota</th>
+                                                            <td id="previewKabupatenKotaAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Provinsi</th>
+                                                            <td id="previewProvinsiAyah"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kode Pos</th>
+                                                            <td id="previewKodePosAyah"></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6 class="font-weight-bold">Alamat Ibu</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <th width="30%">Status Kepemilikan</th>
+                                                            <td id="previewStatusKepemilikanRumahIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Alamat</th>
+                                                            <td id="previewAlamatIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>RT/RW</th>
+                                                            <td><span id="previewRTIbu"></span>/<span id="previewRWIbu"></span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kelurahan/Desa</th>
+                                                            <td id="previewKelurahanDesaIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kecamatan</th>
+                                                            <td id="previewKecamatanIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kabupaten/Kota</th>
+                                                            <td id="previewKabupatenKotaIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Provinsi</th>
+                                                            <td id="previewProvinsiIbu"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kode Pos</th>
+                                                            <td id="previewKodePosIbu"></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12 mt-3">
+                                                <h6 class="font-weight-bold">Alamat Santri</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <th width="30%">Status Tempat Tinggal</th>
+                                                            <td id="previewStatusTempatTinggal"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Status Mukim</th>
+                                                            <td id="previewStatusMukim"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Alamat</th>
+                                                            <td id="previewAlamatSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>RT/RW</th>
+                                                            <td><span id="previewRTSantri"></span>/<span id="previewRWSantri"></span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kelurahan/Desa</th>
+                                                            <td id="previewKelurahanDesaSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kecamatan</th>
+                                                            <td id="previewKecamatanSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kabupaten/Kota</th>
+                                                            <td id="previewKabupatenKotaSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Provinsi</th>
+                                                            <td id="previewProvinsiSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kode Pos</th>
+                                                            <td id="previewKodePosSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Jarak ke Lembaga</th>
+                                                            <td id="previewJarakTempuhSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Transportasi</th>
+                                                            <td id="previewTransportasiSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Waktu Tempuh</th>
+                                                            <td id="previewWaktuTempuhSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Titik Koordinat</th>
+                                                            <td id="previewTitikKoordinatSantri"></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1810,7 +1840,7 @@ $required = 'required';
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Udah Data</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Ubah Data</button>
                 <button type="submit" class="btn btn-primary" onclick="submitForm()">Kirim Data</button>
             </div>
         </div>
@@ -1950,6 +1980,9 @@ $required = 'required';
 
     function validateForm() {
         // Implementasi validasi form
+        if (!validateAndNext('alamat-part')) {
+            return false;
+        }
         copyAlamatAyahKeIbu();
         copyAlamatSantri();
         return true; // Ganti dengan logika validasi yang sesuai
@@ -2103,7 +2136,9 @@ $required = 'required';
         // Lanjut ke step berikutnya jika semua validasi berhasil
         if (isValid) {
             stepper.next();
+            return true;
         }
+        return false;
     }
     /* ===== End Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
 
@@ -2236,7 +2271,7 @@ $required = 'required';
 
             // Validasi ukuran (max 2MB)
             if (file.size > 2 * 1024 * 1024) {
-                errorDiv.innerHTML = 'Ukuran file terlalu besar (maksimal 2MB)';
+                errorDiv.innerHTML = 'Ukuran file ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB) terlalu besar (maksimal 2MB)';
                 errorDiv.style.display = 'block';
                 input.value = '';
                 preview.src = '/images/no-photo.jpg';
@@ -2969,30 +3004,6 @@ $required = 'required';
         return true;
     }
 
-    // Pastikan setiap input file memiliki elemen error message
-    document.addEventListener('DOMContentLoaded', function() {
-        const fileInputs = document.querySelectorAll('input[type="file"]');
-        fileInputs.forEach(input => {
-            const inputId = input.id;
-            let errorElement = document.getElementById(inputId + 'Error');
-
-            // Buat elemen error jika belum ada
-            if (!errorElement) {
-                errorElement = document.createElement('small');
-                errorElement.id = inputId + 'Error';
-                errorElement.className = 'text-danger'; // Hapus d-none dari class awal
-                input.parentNode.parentNode.appendChild(errorElement);
-            }
-
-            // Tambahkan event listener
-            input.addEventListener('change', function() {
-                previewFile(this.id);
-            });
-
-            // Buat elemen preview
-            createPreviewElements(input.id);
-        });
-    });
 
     /* ===== Region: Validasi NIK ===== */
     /**
