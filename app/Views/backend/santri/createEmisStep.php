@@ -1491,8 +1491,8 @@ $required = '';
                     <ul>
                         <li>Pastikan semua data sudah benar</li>
                         <li>Data yang terkirim tidak dapat diubah</li>
-                        <li>Klik "Ubah Data" untuk mengedit</li>
-                        <li>Klik "Kirim Data" jika sudah yakin</li>
+                        <li>Tekan tombol "<strong>Ubah Data</strong>" untuk mengedit</li>
+                        <li>Tekan tombol "<strong>Kirim Data</strong>" jika sudah yakin</li>
                     </ul>
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -1874,17 +1874,17 @@ $required = '';
             return selectedOption ? selectedOption.text : '';
         })();
         document.getElementById('previewNamaSantri').textContent = document.getElementById('NamaSantri').value;
-        document.getElementById('previewNikSantri').textContent = document.getElementById('NikSantri').value;
-        document.getElementById('previewNoKkSantri').textContent = document.getElementById('IdKartuKeluarga').value;
-        document.getElementById('previewNamaKepalaKeluarga').textContent = document.getElementById('NamaKepalaKeluarga').value;
+        document.getElementById('previewNikSantri').textContent = document.getElementById('NikSantri').value || '-';
+        document.getElementById('previewNoKkSantri').textContent = document.getElementById('IdKartuKeluarga').value || '-';
+        document.getElementById('previewNamaKepalaKeluarga').textContent = document.getElementById('NamaKepalaKeluarga').value || '-';
         document.getElementById('previewJenisKelamin').textContent = document.getElementById('JenisKelamin').value;
-        document.getElementById('previewAnakKe').textContent = document.getElementById('AnakKe').value;
-        document.getElementById('previewJumlahSaudara').textContent = document.getElementById('JumlahSaudara').value;
-        document.getElementById('previewCitaCita').textContent = document.getElementById('CitaCita').value;
-        document.getElementById('previewHobi').textContent = document.getElementById('Hobi').value;
-        document.getElementById('previewKebutuhanKhusus').textContent = document.getElementById('KebutuhanKhusus').value;
-        document.getElementById('previewKebutuhanDisabilitas').textContent = document.getElementById('KebutuhanDisabilitas').value;
-        document.getElementById('previewYangMembiayaiSekolah').textContent = document.getElementById('YangBiayaSekolah').value;
+        document.getElementById('previewAnakKe').textContent = document.getElementById('AnakKe').value || '-';
+        document.getElementById('previewJumlahSaudara').textContent = document.getElementById('JumlahSaudara').value || '-';
+        document.getElementById('previewCitaCita').textContent = document.getElementById('CitaCita').value || '-';
+        document.getElementById('previewHobi').textContent = document.getElementById('Hobi').value || '-';
+        document.getElementById('previewKebutuhanKhusus').textContent = document.getElementById('KebutuhanKhusus').value || '-';
+        document.getElementById('previewKebutuhanDisabilitas').textContent = document.getElementById('KebutuhanDisabilitas').value || '-';
+        document.getElementById('previewYangMembiayaiSekolah').textContent = document.getElementById('YangBiayaSekolah').value || '-';
         document.getElementById('previewKip').textContent = document.getElementById('NoKIP').value || '-';
         document.getElementById('previewFileKip').textContent = document.getElementById('FileKIP').files[0]?.name || '-';
 
@@ -2762,6 +2762,43 @@ $required = '';
     });
 
 
+    /* ===== Region: Validasi Input File =====
+     * Memastikan setiap input file memiliki elemen error message
+     * 
+     * Fungsi ini memastikan bahwa setiap input file memiliki elemen error message yang sesuai
+     * untuk menampilkan pesan validasi. Jika elemen error belum ada, maka akan dibuat secara otomatis.
+     * 
+     * Fitur yang disediakan:
+     * - Pengecekan elemen error message
+     * - Pembuatan elemen error otomatis jika belum ada
+     * - Penambahan event listener untuk validasi file
+     * - Inisialisasi preview file
+     */
+    // Pastikan setiap input file memiliki elemen error message
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => {
+            const inputId = input.id;
+            let errorElement = document.getElementById(inputId + 'Error');
+
+            // Buat elemen error jika belum ada
+            if (!errorElement) {
+                errorElement = document.createElement('small');
+                errorElement.id = inputId + 'Error';
+                errorElement.className = 'text-danger'; // Hapus d-none dari class awal
+                input.parentNode.parentNode.appendChild(errorElement);
+            }
+
+            // Tambahkan event listener
+            input.addEventListener('change', function() {
+                previewFile(this.id);
+            });
+
+            // Buat elemen preview
+            createPreviewElements(input.id);
+        });
+    });
+    /* ===== End Region: Validasi Input File ===== */
 
     /* ===== Region: Menampilkan Preview File Img atau Pdf =====
      * Membuat elemen-elemen preview untuk file yang diupload
