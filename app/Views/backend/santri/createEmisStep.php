@@ -2188,6 +2188,8 @@ $required = '';
         };
 
         // Kirim data ke endpoint PDF menggunakan fetch
+        // ... kode sebelumnya ...
+
         fetch('<?= base_url('backend/santri/generatePDF') ?>', {
                 method: 'POST',
                 headers: {
@@ -2196,24 +2198,34 @@ $required = '';
                 },
                 body: JSON.stringify(previewData)
             })
-            .then(response => response.blob())
+            .then(response => {
+                // Cek status response
+                if (!response.ok) {
+                    // Jika response bukan PDF, parse sebagai JSON untuk mendapat pesan error
+                    if (response.headers.get('content-type')?.includes('application/json')) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'Terjadi kesalahan saat membuat PDF');
+                        });
+                    }
+                    throw new Error('Gagal membuat PDF');
+                }
+                return response.blob();
+            })
             .then(blob => {
                 // Tutup loading spinner
                 Swal.close();
 
-                // Buat URL untuk blob PDF
+                // Proses blob PDF seperti sebelumnya
                 const url = window.URL.createObjectURL(blob);
-                const namaSantri = previewData.namaSantri || 'Santri';
+                const namaSantri = previewData.printNamaSantri || 'Santri';
                 const cleanNama = namaSantri.replace(/[^a-zA-Z0-9]/g, '_');
 
-                // Buat link untuk download
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `Data_${cleanNama}.pdf`;
                 document.body.appendChild(a);
                 a.click();
 
-                // Cleanup
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
 
@@ -2231,9 +2243,12 @@ $required = '';
                 Swal.fire({
                     icon: 'error',
                     title: 'Gagal membuat PDF',
-                    text: 'Terjadi kesalahan saat membuat file PDF. Silakan coba lagi.',
+                    text: error.message || 'Terjadi kesalahan saat membuat file PDF. Silakan coba lagi.',
+                    confirmButtonText: 'Tutup'
                 });
             });
+
+        // ... kode setelahnya ...
     }
     /* ===== End Region: Print PDF Data Santri ===== */
     /* ===== End Region: Preview Menampilkan Data Santri    ===== */

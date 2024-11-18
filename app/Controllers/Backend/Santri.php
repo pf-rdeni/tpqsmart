@@ -526,16 +526,19 @@ class Santri extends BaseController
     {
         // 1. Validasi request AJAX
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON([
-                'error' => 'AKSES TIDAK DIIZINKAN'
+            return $this->response->setStatusCode(403)->setJSON(['message' => 'AKSES TIDAK DIIZINKAN'
             ]);
         }
 
         try {
             // 2. Ambil dan validasi data
             $data = $this->request->getJSON(true);
-            if (empty($data) || empty($data['printNamaSantri'])) {
-                throw new \Exception('DATA SANTRI TIDAK LENGKAP');
+            if (empty($data)) {
+                throw new \Exception('TIDAK ADA DATA YANG DIKIRIM');
+            }
+
+            if (empty($data['printNamaSantri'])) {
+                throw new \Exception('NAMA SANTRI WAJIB DIISI UNTUK MENCETAK PDF');
             }
 
             // 3. Siapkan konfigurasi DOMPDF
@@ -548,10 +551,8 @@ class Santri extends BaseController
             // 4. Proses foto santri jika ada
             $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
 
-            // 5. Generate nama file PDF
-            $fileName = 'DATA_SANTRI_' . str_replace(' ', '_', strtoupper($data['printNamaSantri'])) . '.pdf';
 
-            // 6. Render HTML ke PDF
+            // 5. Render HTML ke PDF
             $html = view('backend/santri/pdf_template', [
                 'data' => $data,
                 'fotoSantri' => $fotoSantri
@@ -561,14 +562,13 @@ class Santri extends BaseController
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
 
-            // 7. Return PDF response
+            // 6. Return PDF response
             return $this->response
                 ->setHeader('Content-Type', 'application/pdf')
-                ->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"')
                 ->setBody($dompdf->output());
         } catch (\Exception $e) {
             return $this->response->setStatusCode(500)->setJSON([
-                'error' => 'GAGAL MEMBUAT PDF: ' . strtoupper($e->getMessage())
+                'message' => 'GAGAL MEMBUAT PDF: ' . strtoupper($e->getMessage())
             ]);
         }
     }
@@ -581,41 +581,55 @@ class Santri extends BaseController
     private function processFotoSantri(?string $base64Image): ?string
     {
         if (empty($base64Image)) {
-            return null;
+            throw new \Exception('FOTO SANTRI TIDAK BOLEH KOSONG');
+        }
+
+        // Validasi format base64
+        if (!preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+            throw new \Exception('FORMAT GAMBAR TIDAK VALID - HARUS BASE64');
+        }
+
+        // Extract data gambar
+        $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
+        $imageData = base64_decode($base64Image);
+
+        if (!$imageData) {
+            throw new \Exception('GAGAL DECODE BASE64 IMAGE');
+        }
+
+        // Konversi ke image
+        $srcImage = imagecreatefromstring($imageData);
+        if (!$srcImage) {
+            throw new \Exception('GAGAL MEMBUAT IMAGE DARI STRING DATA');
         }
 
         try {
-            // Validasi format base64
-            if (!preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
-                throw new \Exception('FORMAT GAMBAR TIDAK VALID');
-            }
-
-            // Extract data gambar
-            $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
-            $imageData = base64_decode($base64Image);
-
-            // Konversi semua format gambar ke JPEG
-            $srcImage = imagecreatefromstring($imageData);
-            if (!$srcImage) {
-                throw new \Exception('GAGAL MEMPROSES GAMBAR');
-            }
-
             // Buat file JPEG temporary
             $jpegFile = tempnam(sys_get_temp_dir(), 'jpg');
-            imagejpeg($srcImage, $jpegFile, 90);
+            if (!$jpegFile) {
+                throw new \Exception('GAGAL MEMBUAT FILE TEMPORARY');
+            }
 
-            // Baca data JPEG dan konversi ke base64
+            // Simpan sebagai JPEG
+            if (!imagejpeg($srcImage, $jpegFile, 90)) {
+                throw new \Exception('GAGAL MENYIMPAN GAMBAR KE JPEG');
+            }
+
+            // Baca data JPEG
             $jpegData = file_get_contents($jpegFile);
-            $result = 'data:image/jpeg;base64,' . base64_encode($jpegData);
+            if (!$jpegData) {
+                throw new \Exception('GAGAL MEMBACA FILE JPEG');
+            }
 
+            return 'data:image/jpeg;base64,' . base64_encode($jpegData);
+        } finally {
             // Cleanup
-            imagedestroy($srcImage);
-            unlink($jpegFile);
-
-            return $result;
-        } catch (\Exception $e) {
-            log_message('error', 'GAGAL MEMPROSES FOTO SANTRI: ' . $e->getMessage());
-            return null;
+            if (isset($srcImage)) {
+                imagedestroy($srcImage);
+            }
+            if (isset($jpegFile) && file_exists($jpegFile)) {
+                unlink($jpegFile);
+            }
         }
     }
 }
