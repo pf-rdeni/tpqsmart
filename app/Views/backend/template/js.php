@@ -59,6 +59,9 @@
 <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
 <script src="<?php echo base_url('/template/backend/dist') ?>/js/pages/dashboard.js"></script>
 
+<!-- sweetalert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
     $(function() {
 

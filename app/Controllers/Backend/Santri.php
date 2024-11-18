@@ -8,6 +8,7 @@ use App\Models\EncryptModel;
 use App\Models\HelpFunctionModel;
 use App\Models\SantriBaruModel;
 
+
 class Santri extends BaseController
 {
     public $DataSantri;
@@ -521,5 +522,100 @@ class Santri extends BaseController
         ]);
     }
 
+    public function generatePDF()
+    {
+        // 1. Validasi request AJAX
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'error' => 'AKSES TIDAK DIIZINKAN'
+            ]);
+        }
 
+        try {
+            // 2. Ambil dan validasi data
+            $data = $this->request->getJSON(true);
+            if (empty($data) || empty($data['printNamaSantri'])) {
+                throw new \Exception('DATA SANTRI TIDAK LENGKAP');
+            }
+
+            // 3. Siapkan konfigurasi DOMPDF
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $dompdf = new \Dompdf\Dompdf($options);
+
+            // 4. Proses foto santri jika ada
+            $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
+
+            // 5. Generate nama file PDF
+            $fileName = 'DATA_SANTRI_' . str_replace(' ', '_', strtoupper($data['printNamaSantri'])) . '.pdf';
+
+            // 6. Render HTML ke PDF
+            $html = view('backend/santri/pdf_template', [
+                'data' => $data,
+                'fotoSantri' => $fotoSantri
+            ]);
+
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // 7. Return PDF response
+            return $this->response
+                ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"')
+                ->setBody($dompdf->output());
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'error' => 'GAGAL MEMBUAT PDF: ' . strtoupper($e->getMessage())
+            ]);
+        }
+    }
+
+    /**
+     * Proses foto santri dari base64 ke format yang sesuai
+     * @param string|null $base64Image
+     * @return string|null
+     */
+    private function processFotoSantri(?string $base64Image): ?string
+    {
+        if (empty($base64Image)) {
+            return null;
+        }
+
+        try {
+            // Validasi format base64
+            if (!preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+                throw new \Exception('FORMAT GAMBAR TIDAK VALID');
+            }
+
+            // Extract data gambar
+            $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
+            $imageData = base64_decode($base64Image);
+
+            // Konversi semua format gambar ke JPEG
+            $srcImage = imagecreatefromstring($imageData);
+            if (!$srcImage) {
+                throw new \Exception('GAGAL MEMPROSES GAMBAR');
+            }
+
+            // Buat file JPEG temporary
+            $jpegFile = tempnam(sys_get_temp_dir(), 'jpg');
+            imagejpeg($srcImage, $jpegFile, 90);
+
+            // Baca data JPEG dan konversi ke base64
+            $jpegData = file_get_contents($jpegFile);
+            $result = 'data:image/jpeg;base64,' . base64_encode($jpegData);
+
+            // Cleanup
+            imagedestroy($srcImage);
+            unlink($jpegFile);
+
+            return $result;
+        } catch (\Exception $e) {
+            log_message('error', 'GAGAL MEMPROSES FOTO SANTRI: ' . $e->getMessage());
+            return null;
+        }
+    }
 }
