@@ -549,8 +549,8 @@ class Santri extends BaseController
             $dompdf = new \Dompdf\Dompdf($options);
 
             // 4. Proses foto santri jika ada
-            $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
-
+            //$fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
+            $fotoSantri = "";
 
             // 5. Render HTML ke PDF
             $html = view('backend/santri/pdf_template', [
