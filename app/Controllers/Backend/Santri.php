@@ -524,35 +524,54 @@ class Santri extends BaseController
 
     public function generatePDF()
     {
-        // 1. Validasi request AJAX
-        if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['message' => 'AKSES TIDAK DIIZINKAN'
-            ]);
-        }
+        // Inisialisasi log
+        $logs = [];
 
         try {
-            // 2. Ambil dan validasi data
+            // 1. Validasi request AJAX
+            $logs[] = "ℹ️ INFO: Validasi request AJAX";
+            if (!$this->request->isAJAX()) {
+                $logs[] = "ERROR: Bukan request AJAX";
+                return $this->response->setStatusCode(403)->setJSON([
+                    'message' => 'Akses tidak diizinkan',
+                    'logs' => $logs
+                ]);
+            }
+
+            // 2. Validasi data
             $data = $this->request->getJSON(true);
+            $logs[] = "✓ OK: Data diterima";
+            
             if (empty($data)) {
-                throw new \Exception('TIDAK ADA DATA YANG DIKIRIM');
+                throw new \Exception('Tidak ada data yang dikirim');
             }
 
             if (empty($data['printNamaSantri'])) {
-                throw new \Exception('NAMA SANTRI WAJIB DIISI UNTUK MENCETAK PDF');
+                throw new \Exception('Nama santri wajib diisi untuk mencetak PDF');
             }
 
-            // 3. Siapkan konfigurasi DOMPDF
+            // 3. Konfigurasi DOMPDF
+            $logs[] = "ℹ️ INFO: Inisialisasi Konfigurasi DOMPDF";
             $options = new \Dompdf\Options();
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isRemoteEnabled', true);
             $options->set('isPhpEnabled', true);
             $dompdf = new \Dompdf\Dompdf($options);
+            $logs[] = "✓ OK: Konfigurasi DOMPDF berhasil";
 
-            // 4. Proses foto santri jika ada
-            //$fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
-            $fotoSantri = "";
+            // 4. Proses foto
+            try {
+                $logs[] = "ℹ️ INFO: Initial proses foto santri untuk memastikan format gambar valid";
+                $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
+                $logs[] = "✓ OK: Foto santri berhasil diproses";
+            } catch (\Exception $e) {
+                $logs[] = "⚠️ Foto tidak tersedia: " . $e->getMessage();
+                $fotoSantri = null;
+                $logs[] = " ℹ️ INFO: Foto santri tidak tersedia, dan akan dikosongkan";
+            }
 
-            // 5. Render HTML ke PDF
+            // 5. Render HTML dan PDF
+            $logs[] = "ℹ️ INFO: Render HTML dan PDF";
             $html = view('backend/santri/pdf_template', [
                 'data' => $data,
                 'fotoSantri' => $fotoSantri
@@ -561,16 +580,34 @@ class Santri extends BaseController
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
+            $logs[] = "✓ OK: PDF berhasil dibuat";
 
-            // 6. Return PDF response
+            // Simpan log ke file
+            $this->saveLog($logs);
+            
             return $this->response
                 ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('X-Debug-Logs', json_encode($logs))
                 ->setBody($dompdf->output());
+
         } catch (\Exception $e) {
+            $logs[] = "❌ ERROR: " . $e->getMessage();
+            $this->saveLog($logs);
+
             return $this->response->setStatusCode(500)->setJSON([
-                'message' => 'GAGAL MEMBUAT PDF: ' . strtoupper($e->getMessage())
+                'message' => 'Gagal membuat PDF: ' . strtoupper($e->getMessage()),
+                'logs' => $logs
             ]);
         }
+    }
+
+    // Fungsi helper untuk menyimpan log
+    private function saveLog($logs)
+    {
+        $logFile = WRITEPATH . 'logs/pdfGeneration.log';
+        $logMessage = "\n=== " . date('Y-m-d H:i:s') . " ===\n";
+        $logMessage .= implode("\n", $logs) . "\n";
+        file_put_contents($logFile, $logMessage, FILE_APPEND);
     }
 
     /**
@@ -580,56 +617,74 @@ class Santri extends BaseController
      */
     private function processFotoSantri(?string $base64Image): ?string
     {
-        if (empty($base64Image)) {
-            throw new \Exception('FOTO SANTRI TIDAK BOLEH KOSONG');
-        }
-
-        // Validasi format base64
-        if (!preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
-            throw new \Exception('FORMAT GAMBAR TIDAK VALID - HARUS BASE64');
-        }
-
-        // Extract data gambar
-        $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
-        $imageData = base64_decode($base64Image);
-
-        if (!$imageData) {
-            throw new \Exception('GAGAL DECODE BASE64 IMAGE');
-        }
-
-        // Konversi ke image
-        $srcImage = imagecreatefromstring($imageData);
-        if (!$srcImage) {
-            throw new \Exception('GAGAL MEMBUAT IMAGE DARI STRING DATA');
-        }
+        $logs = [];
 
         try {
+            if (empty($base64Image)) {
+                throw new \Exception('Foto santri tidak boleh kosong');
+            }
+
+            // Validasi format base64
+            if (!preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+                throw new \Exception('Format gambar tidak valid - harus base64');
+            }
+            $logs[] = "✓ OK: Format base64 valid";
+
+            // Extract data gambar
+            $logs[] = "ℹ️ INFO: Extract data gambar";
+            $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
+            $imageData = base64_decode($base64Image);
+
+            if (!$imageData) {
+                throw new \Exception('Gagal decode base64 image');
+            }
+            $logs[] = "✓ OK: Base64 berhasil di-decode";
+
+            // Konversi ke image
+            $logs[] = "ℹ️ INFO: Konversi ke image";
+            $srcImage = imagecreatefromstring($imageData);
+            if (!$srcImage) {
+                throw new \Exception('Gagal membuat image dari string data');
+            }
+            $logs[] = "✓ OK: Image berhasil dibuat dari string";
+
             // Buat file JPEG temporary
+            $logs[] = "ℹ️ INFO: Buat file JPEG temporary";
             $jpegFile = tempnam(sys_get_temp_dir(), 'jpg');
             if (!$jpegFile) {
-                throw new \Exception('GAGAL MEMBUAT FILE TEMPORARY');
+                throw new \Exception('Gagal membuat file temporary');
             }
+            $logs[] = "✓ OK: File temporary berhasil dibuat";
 
             // Simpan sebagai JPEG
+            $logs[] = "ℹ️ INFO: Simpan sebagai JPEG";
             if (!imagejpeg($srcImage, $jpegFile, 90)) {
-                throw new \Exception('GAGAL MENYIMPAN GAMBAR KE JPEG');
+                throw new \Exception('Gagal menyimpan gambar ke JPEG');
             }
+            $logs[] = "✓ OK: Gambar berhasil disimpan sebagai JPEG";
 
             // Baca data JPEG
+            $logs[] = "ℹ️ INFO: Baca data JPEG";
             $jpegData = file_get_contents($jpegFile);
             if (!$jpegData) {
-                throw new \Exception('GAGAL MEMBACA FILE JPEG');
+                throw new \Exception('Gagal membaca file JPEG');
             }
+            $logs[] = "✓ OK: File JPEG berhasil dibaca";
 
-            return 'data:image/jpeg;base64,' . base64_encode($jpegData);
-        } finally {
             // Cleanup
-            if (isset($srcImage)) {
-                imagedestroy($srcImage);
-            }
-            if (isset($jpegFile) && file_exists($jpegFile)) {
+            $logs[] = "ℹ️ INFO: Cleanup image dan file temporary";
+            imagedestroy($srcImage);
+            if (file_exists($jpegFile)) {
                 unlink($jpegFile);
             }
+            $logs[] = "✓ OK: Cleanup berhasil dilakukan";
+
+            $this->saveLog($logs);
+            return 'data:image/jpeg;base64,' . base64_encode($jpegData);
+        } catch (\Exception $e) {
+            $logs[] = "❌ ERROR: " . $e->getMessage();
+            $this->saveLog($logs);
+            throw $e;
         }
     }
 }

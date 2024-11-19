@@ -1888,8 +1888,6 @@ $required = '';
                 </div>
             </div>
             <div class="modal-footer justify-content-between">
-
-
                 <button type="button" class="btn btn-success" onclick="printPDF()">
                     <i class="fas fa-print"></i> Cetak PDF
                 </button>
@@ -2188,8 +2186,6 @@ $required = '';
         };
 
         // Kirim data ke endpoint PDF menggunakan fetch
-        // ... kode sebelumnya ...
-
         fetch('<?= base_url('backend/santri/generatePDF') ?>', {
                 method: 'POST',
                 headers: {
@@ -2199,23 +2195,22 @@ $required = '';
                 body: JSON.stringify(previewData)
             })
             .then(response => {
-                // Cek status response
+
                 if (!response.ok) {
-                    // Jika response bukan PDF, parse sebagai JSON untuk mendapat pesan error
-                    if (response.headers.get('content-type')?.includes('application/json')) {
-                        return response.json().then(data => {
-                            throw new Error(data.message || 'Terjadi kesalahan saat membuat PDF');
-                        });
-                    }
-                    throw new Error('Gagal membuat PDF');
+                    return response.json().then(error => {
+                        // Tampilkan log error
+                        if (error.logs) {
+                            console.log('Error Logs:', error.logs);
+                        }
+                        throw error;
+                    });
                 }
                 return response.blob();
             })
             .then(blob => {
-                // Tutup loading spinner
+                // Tutup loading modal
                 Swal.close();
-
-                // Proses blob PDF seperti sebelumnya
+                // Handle PDF blob
                 const url = window.URL.createObjectURL(blob);
                 const namaSantri = previewData.printNamaSantri || 'Santri';
                 const cleanNama = namaSantri.replace(/[^a-zA-Z0-9]/g, '_');
