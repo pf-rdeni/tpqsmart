@@ -1168,149 +1168,116 @@ $required = '';
                                             </div>
                                         </div>
                                     </div>
-                                    <div id="DataAlamatSantriDiv">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="StatusMukim">Status MUKIM</label>
-                                                    <input type="text" class="form-control" id="StatusMukim" name="StatusMukim" value="Tidak Mukim" readonly>
-                                                </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="StatusMukim">Status MUKIM</label>
+                                                <input type="text" class="form-control" id="StatusMukim" name="StatusMukim" value="Tidak Mukim" readonly>
                                             </div>
                                         </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="StatusTempatTinggal">Status Tempat Tinggal <span class="text-danger font-weight-bold">*</span></label>
-                                                    <select class="form-control" id="StatusTempatTinggal" name="StatusTempatTinggal" <?= $required ?>>
-                                                        <option value="">Pilih Status Tempat Tinggal</option>
-                                                        <script>
-                                                            /* ===== Region: Memperbarui Pilihan Status Tempat Tinggal Santri ===== 
-                                                             * Fungsi ini digunakan untuk memperbarui pilihan status tempat tinggal santri
-                                                             * berdasarkan status orang tua (hidup/meninggal) dan lokasi tinggal mereka
-                                                             *
-                                                             * Alur kerja:
-                                                             * 1. Mengambil elemen select status tempat tinggal
-                                                             * 2. Mengambil status ayah dan ibu (hidup/meninggal)
-                                                             * 3. Mengambil status wali yang dipilih
-                                                             * 4. Memperbarui pilihan berdasarkan:
-                                                             *    - Jika ayah masih hidup dan tidak di luar negeri, tambah opsi tinggal dengan ayah
-                                                             *    - Jika ibu masih hidup dan tidak di luar negeri/tidak tinggal dengan ayah, tambah opsi tinggal dengan ibu  
-                                                             *    - Jika wali sudah dipilih, tambah opsi tinggal dengan wali
-                                                             *    - Tambah pilihan statis (asrama pesantren dan lainnya)
-                                                             * 5. Memperbarui pilihan saat ada perubahan status orang tua/wali
-                                                             * 6. Memperbarui pilihan saat ada perubahan lokasi tinggal orang tua
-                                                             */
-                                                            document.addEventListener('DOMContentLoaded', function() {
-                                                                const statusTempatTinggal = document.getElementById('StatusTempatTinggal');
-                                                                const statusAyah = document.getElementById('StatusAyah');
-                                                                const statusIbu = document.getElementById('StatusIbu');
-                                                                const statusWali = document.getElementById('StatusWali');
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="StatusTempatTinggalSantri">Status Tempat Tinggal <span class="text-danger font-weight-bold">*</span></label>
+                                                <select class="form-control" id="StatusTempatTinggalSantri" name="StatusTempatTinggalSantri" <?= $required ?>>
+                                                    <option value="">Pilih Status Tempat Tinggal</option>
+                                                    <script>
+                                                        /* ===== Region: Mengupdate Pilihan Status Tempat Tinggal Santri berdasarkan Status Orang Tua dan Wali ===== 
+                                                         * Fungsi ini berfungsi untuk mengupdate pilihan status tempat tinggal santri berdasarkan status orang tua (hidup/meninggal) dan lokasi tinggal mereka, serta status wali.
+                                                         *
+                                                         * Alur kerja:
+                                                         * 1. Mengambil elemen select status tempat tinggal santri.
+                                                         * 2. Mengambil status ayah dan ibu (hidup/meninggal).
+                                                         * 3. Mengambil status wali yang dipilih.
+                                                         * 4. Mengupdate pilihan berdasarkan:
+                                                         *    - Jika ayah masih hidup dan tidak tinggal di luar negeri, tambah opsi 'Tinggal dengan Ayah Kandung'.
+                                                         *    - Jika ibu masih hidup dan tidak tinggal di luar negeri/tidak tinggal dengan ayah, tambah opsi 'Tinggal dengan Ibu Kandung'.
+                                                         *    - Jika wali sudah dipilih, tambah opsi 'Tinggal dengan Wali'.
+                                                         *    - Tambah pilihan statis lainnya seperti 'Asrama Pesantren' dan 'Lainnya'.
+                                                         * 5. Mengupdate pilihan saat ada perubahan status orang tua/wali.
+                                                         * 6. Mengupdate pilihan saat ada perubahan lokasi tinggal orang tua.
+                                                         */
+                                                        document.addEventListener('DOMContentLoaded', function() {
+                                                            const StatusTempatTinggalSantri = document.getElementById('StatusTempatTinggalSantri');
+                                                            const statusAyah = document.getElementById('StatusAyah');
+                                                            const statusIbu = document.getElementById('StatusIbu');
+                                                            const statusWali = document.getElementById('StatusWali');
 
-                                                                function updateOptions() {
-                                                                    // Reset pilihan
-                                                                    statusTempatTinggal.innerHTML = '<option value="">Pilih Status Tempat Tinggal</option>';
+                                                            function updateOptions() {
+                                                                // Reset pilihan
+                                                                StatusTempatTinggalSantri.innerHTML = '<option value="">Pilih Status Tempat Tinggal</option>';
 
-                                                                    // Tambahkan pilihan tempat tinggal berdasarkan status orang tua (hidup/meninggal) dan lokasi tinggal
-                                                                    // Tambahkan opsi tinggal dengan ayah jika ayah masih hidup dan tidak tinggal di luar negeri
-                                                                    if (statusAyah.value === 'Masih Hidup' && !document.getElementById('TinggalDiluarNegeriAyah').checked) {
-                                                                        statusTempatTinggal.innerHTML += '<option value="Tinggal dengan Ayah Kandung">Tinggal dengan Ayah Kandung</option>';
-                                                                    }
-                                                                    // Tambahkan opsi tinggal dengan ibu jika ibu masih hidup dan tidak tinggal di luar negeri
-                                                                    // atau jika ibu tidak tinggal bersama ayah
-                                                                    if ((statusIbu.value === 'Masih Hidup' && !document.getElementById('TinggalDiluarNegeriIbu').checked) || (statusIbu.value === 'Masih Hidup' && document.getElementById('AlamatIbuSamaDenganAyah').checked)) {
-                                                                        statusTempatTinggal.innerHTML += '<option value="Tinggal dengan Ibu Kandung">Tinggal dengan Ibu Kandung</option>';
-                                                                    }
-                                                                    // jika wali sudah diisi
-                                                                    if (statusWali.value && statusWali.value !== '') {
-                                                                        statusTempatTinggal.innerHTML += '<option value="Tinggal dengan Wali">Tinggal dengan Wali</option>';
-                                                                    }
-
-                                                                    // Tambahkan pilihan statis lainnya
-                                                                    statusTempatTinggal.innerHTML += `
+                                                                // Tambahkan pilihan tempat tinggal berdasarkan status orang tua (hidup/meninggal) dan lokasi tinggal
+                                                                // Tambahkan opsi tinggal dengan ayah jika ayah masih hidup dan tidak tinggal di luar negeri
+                                                                if (statusAyah.value === 'Masih Hidup' && !document.getElementById('TinggalDiluarNegeriAyah').checked) {
+                                                                    StatusTempatTinggalSantri.innerHTML += '<option value="Tinggal dengan Ayah Kandung">Tinggal dengan Ayah Kandung</option>';
+                                                                }
+                                                                // Tambahkan opsi tinggal dengan ibu jika ibu masih hidup dan tidak tinggal di luar negeri
+                                                                // dan ibu tidak tinggal bersama ayah
+                                                                const checkTinggalDiluarNegeriIbu = document.getElementById('TinggalDiluarNegeriIbu');
+                                                                const checkAlamatIbuSamaDenganAyah = document.getElementById('AlamatIbuSamaDenganAyah');
+                                                                if (statusIbu.value === 'Masih Hidup' && !checkTinggalDiluarNegeriIbu.checked && !checkAlamatIbuSamaDenganAyah.checked) {
+                                                                    StatusTempatTinggalSantri.innerHTML += '<option value="Tinggal dengan Ibu Kandung">Tinggal dengan Ibu Kandung</option>';
+                                                                }
+                                                                // jika wali sudah diisi
+                                                                if (statusWali.value && statusWali.value == 'Saudara') {
+                                                                    StatusTempatTinggalSantri.innerHTML += '<option value="Tinggal dengan Wali">Tinggal dengan Wali</option>';
+                                                                }
+                                                                // Tambahkan pilihan statis lainnya
+                                                                StatusTempatTinggalSantri.innerHTML += `
                                                                         <option value="Lainnya">Lainnya</option>
                                                                     `;
-                                                                }
+                                                            }
 
-                                                                // Perbarui pilihan saat status orang tua berubah
-                                                                statusAyah.addEventListener('change', updateOptions);
-                                                                statusIbu.addEventListener('change', updateOptions);
-                                                                statusWali.addEventListener('change', updateOptions);
+                                                            // Perbarui pilihan saat status orang tua berubah
+                                                            statusAyah.addEventListener('change', updateOptions);
+                                                            statusIbu.addEventListener('change', updateOptions);
+                                                            statusWali.addEventListener('change', updateOptions);
 
-                                                                // Initial update
-                                                                updateOptions();
+                                                            // Initial update
+                                                            updateOptions();
 
-                                                                // Update saat checkbox tinggal di luar negeri berubah
-                                                                document.getElementById('TinggalDiluarNegeriAyah').addEventListener('change', updateOptions);
-                                                                document.getElementById('TinggalDiluarNegeriIbu').addEventListener('change', updateOptions);
-                                                                // Update saat checkbox alamat ibu sama dengan ayah berubah
-                                                                document.getElementById('AlamatIbuSamaDenganAyah').addEventListener('change', updateOptions);
-                                                            });
-
-                                                            /* ===== Region: Menangani Perubahan Status Tempat Tinggal ===== */
-                                                            /* ===== Fungsi untuk menangani perubahan status tempat tinggal ===== */
-                                                            document.addEventListener('DOMContentLoaded', function() {
-                                                                const statusTempatTinggal = document.getElementById('StatusTempatTinggal');
-                                                                const alamatSantriFields = [
-                                                                    'ProvinsiSantri',
-                                                                    'KabupatenKotaSantri',
-                                                                    'KecamatanSantri',
-                                                                    'KelurahanDesaSantri',
-                                                                    'RWSantri',
-                                                                    'RTSantri',
-                                                                    'AlamatSantri',
-                                                                    'KodePosSantri'
-                                                                ].map(id => {
-                                                                    // Cari parent div.form-group dari input
-                                                                    const element = document.getElementById(id);
-                                                                    return element.closest('.form-group');
-                                                                });
-
-                                                                function toggleAlamatSantriFields() {
-                                                                    const selectedValue = statusTempatTinggal.value;
-                                                                    const display = (selectedValue === 'Tinggal dengan Ayah Kandung' ||
-                                                                        selectedValue === 'Tinggal dengan Ibu Kandung') ? 'none' : 'block';
-
-                                                                    alamatSantriFields.forEach(field => {
-                                                                        if (field) {
-                                                                            field.style.display = display;
-                                                                        }
-                                                                    });
-                                                                }
-
-                                                                // Tambahkan event listener untuk perubahan status tempat tinggal
-                                                                statusTempatTinggal.addEventListener('change', toggleAlamatSantriFields);
-
-                                                                // Panggil fungsi saat halaman dimuat untuk mengatur status awal
-                                                                toggleAlamatSantriFields();
-                                                            });
-                                                            /* ===== End of Region: Menangani Perubahan Status Tempat Tinggal ===== */
-                                                        </script>
-                                                    </select>
-                                                    <span id="StatusTempatTinggalError" class="text-danger" style="display:none;">Status tempat tinggal diperlukan.</span>
-                                                </div>
+                                                            // Update saat checkbox tinggal di luar negeri berubah
+                                                            document.getElementById('TinggalDiluarNegeriAyah').addEventListener('change', updateOptions);
+                                                            document.getElementById('TinggalDiluarNegeriIbu').addEventListener('change', updateOptions);
+                                                            // Update saat checkbox alamat ibu sama dengan ayah berubah
+                                                            document.getElementById('AlamatIbuSamaDenganAyah').addEventListener('change', updateOptions);
+                                                        });
+                                                    </script>
+                                                </select>
+                                                <span id="StatusTempatTinggalSantriError" class="text-danger" style="display:none;">Status tempat tinggal diperlukan.</span>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div id="DataAlamatSantriProvinsiDiv">
                                         <div class="row">
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="ProvinsiSantri">Provinsi</label>
                                                     <input type="text" class="form-control" id="ProvinsiSantri" name="ProvinsiSantri" value="Kepulauan Riau" readonly>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="KabupatenKotaSantri">Kabupaten/Kota</label>
                                                     <input type="text" class="form-control" id="KabupatenKotaSantri" name="KabupatenKotaSantri" value="Bintan" readonly>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="KecamatanSantri">Kecamatan</label>
                                                     <input type="text" class="form-control" id="KecamatanSantri" name="KecamatanSantri" value="Seri Kuala Lobam" readonly>
                                                 </div>
                                             </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="KodePosSantri">Kode Pos</span></label>
+                                                    <input type="text" class="form-control number-only" id="KodePosSantri" name="KodePosSantri" value="29152" readonly>
+                                                </div>
+                                            </div>
                                         </div>
-
                                         <div class="row">
                                             <div class="col-md-4">
                                                 <div class="form-group">
@@ -1349,12 +1316,7 @@ $required = '';
                                                     <span id="AlamatSantriError" class="text-danger" style="display:none;">Alamat diperlukan.</span>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="KodePosSantri">Kode Pos</span></label>
-                                                    <input type="text" class="form-control number-only" id="KodePosSantri" name="KodePosSantri" value="29152" readonly>
-                                                </div>
-                                            </div>
+
                                         </div>
                                     </div>
                                     <!-- bagian data jarak tempat tinggal santri ke lembaga -->
@@ -1823,7 +1785,7 @@ $required = '';
                                                     <table class="table table-bordered">
                                                         <tr>
                                                             <th width="30%">Status Tempat Tinggal</th>
-                                                            <td id="previewStatusTempatTinggal"></td>
+                                                            <td id="previewStatusTempatTinggalSantri"></td>
                                                         </tr>
                                                         <tbody id="previewAlamatSantriLainya">
                                                             <tr>
@@ -2070,12 +2032,12 @@ $required = '';
 
         // Alamat Santri
         // check status tempat tinggal  
-        const statusTempatTinggal = document.getElementById('StatusTempatTinggal').value;
-        document.getElementById('previewStatusTempatTinggal').textContent = statusTempatTinggal;
+        const StatusTempatTinggalSantri = document.getElementById('StatusTempatTinggalSantri').value;
+        document.getElementById('previewStatusTempatTinggalSantri').textContent = StatusTempatTinggalSantri;
         document.getElementById('previewStatusMukim').textContent = document.getElementById('StatusMukim').value;
         //jika status tempat tinggal lainnya maka tampilkan alamat santri   
         const dataAlamatSantri = document.getElementById('previewAlamatSantriLainya');
-        if (statusTempatTinggal === 'Lainnya' || statusTempatTinggal === 'Tinggal dengan Wali' || statusTempatTinggal === '') {
+        if (StatusTempatTinggalSantri === 'Lainnya' || StatusTempatTinggalSantri === 'Tinggal dengan Wali' || StatusTempatTinggalSantri === '') {
             dataAlamatSantri.style.display = 'table-row-group';
             document.getElementById('previewAlamatSantri').textContent = document.getElementById('AlamatSantri').value;
             document.getElementById('previewRTSantri').textContent = document.getElementById('RTSantri').value;
@@ -3865,25 +3827,41 @@ $required = '';
 
 
     /* ===== Region: Toggle Address Fields =====
-     * Fungsi umum untuk menangani toggle fields alamat
-     * Digunakan untuk:
-     * 1. Toggle alamat luar negeri (Ayah/Ibu) - Menyembunyikan/menampilkan field alamat ketika checkbox luar negeri dicentang
-     * 2. Toggle alamat Ibu sama dengan Ayah - Menyembunyikan/menampilkan field alamat ibu ketika checkbox sama dengan ayah dicentang
-     * 3. Mengatur visibilitas field berdasarkan status checkbox
-     * 4. Menangani perubahan status ibu dan ayah seleks secara dinamis
+     * Fungsi ini digunakan untuk mengatur visibilitas field alamat berdasarkan status checkbox.
+     * Fungsi ini dapat digunakan untuk:
+     * 1. Menyembunyikan/menampilkan field alamat luar negeri untuk Ayah dan Ibu ketika checkbox 'Tinggal Di Luar Negeri' dicentang.
+     * 2. Menyembunyikan/menampilkan field alamat Ibu ketika checkbox 'Alamat Ibu Sama Dengan Ayah' dicentang.
+     * 3. Mengatur visibilitas field alamat berdasarkan status checkbox.
+     * 4. Menangani perubahan status ibu dan ayah secara dinamis.
      */
-    function toggleDataDanAlamat(checkboxId, fieldsToToggle) {
-        const checkbox = document.getElementById(checkboxId);
+    function toggleDataDanAlamat(elementId, fieldsToToggle, options = {}) {
+        const element = document.getElementById(elementId);
         const fields = document.querySelectorAll(fieldsToToggle);
 
         function toggleFields() {
+            let shouldHide = false;
+
+            if (element.type === 'checkbox') {
+                // Untuk checkbox, gunakan checked state
+                shouldHide = element.checked;
+            } else if (element.tagName === 'SELECT') {
+                // Untuk select, periksa nilai yang dipilih
+                if (options.hideOn) {
+                    // Sembunyikan jika nilai cocok dengan hideOn
+                    shouldHide = options.hideOn.includes(element.value);
+                } else if (options.showOn) {
+                    // Sembunyikan jika nilai TIDAK cocok dengan showOn
+                    shouldHide = !options.showOn.includes(element.value);
+                }
+            }
+
             fields.forEach(field => {
-                field.style.display = checkbox.checked ? 'none' : 'block';
+                field.style.display = shouldHide ? 'none' : 'block';
             });
         }
 
-        // Event listener untuk perubahan checkbox
-        checkbox.addEventListener('change', toggleFields);
+        // Event listener untuk perubahan elemen
+        element.addEventListener(element.type === 'checkbox' ? 'change' : 'input', toggleFields);
 
         // Set status awal saat halaman dimuat
         toggleFields();
@@ -3897,7 +3875,9 @@ $required = '';
         const statusIbu = document.getElementById('StatusIbu');
         const dataAlamatIbuDiv = document.getElementById('DataAlamatIbuDiv');
         const alamatIbuSamaDenganAyahDiv = document.getElementById('AlamatIbuSamaDenganAyahDiv');
+        const statusTempatTinggalSantri = document.getElementById('StatusTempatTinggalSantri');
 
+        // fungsi untuk toggle alamat ayah
         function toggleAlamatAyah() {
             if (statusAyah.value !== 'Masih Hidup') {
                 dataAlamatAyahDiv.style.display = 'none';
@@ -3922,6 +3902,7 @@ $required = '';
             }
         }
 
+        // fungsi untuk toggle alamat ibu
         function toggleAlamatIbu() {
             if (statusIbu.value !== 'Masih Hidup') {
                 dataAlamatIbuDiv.style.display = 'none';
@@ -3941,13 +3922,30 @@ $required = '';
             }
         }
 
+        // fungsi untuk toggle alamat santri
+        function toggleAlamatSantri() {
+            if (statusTempatTinggalSantri.value !== 'Lainnya' || statusTempatTinggalSantri.value !== '') {
+                // Untuk select dengan hideOn
+                toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv', {
+                    hideOn: ['Tinggal dengan Ayah Kandung', 'Tinggal dengan Ibu Kandung', '']
+                });
+            } else {
+                // Untuk select dengan showOn
+                toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv', {
+                    showOn: ['Lainnya']
+                });
+            }
+        }
+
         // Event listeners untuk perubahan status
         statusAyah.addEventListener('change', toggleAlamatAyah);
         statusIbu.addEventListener('change', toggleAlamatIbu);
+        //statusTempatTinggalSantri.addEventListener('change', toggleAlamatSantri);
 
         // Set status awal
         toggleAlamatAyah();
         toggleAlamatIbu();
+        toggleAlamatSantri();
 
         // Toggle untuk alamat luar negeri
         toggleDataDanAlamat('TinggalDiluarNegeriAyah', '#DataAlamatAyahProvinsiDiv'); // Hanya kolom alamat ayah yang aktif jika luar daerah atau luar negeri
@@ -3955,6 +3953,9 @@ $required = '';
 
         // Toggle untuk alamat Ibu sama dengan Ayah
         toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
+
+        // toggle untuk status tempat tinggal santri
+        toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv');
 
 
 
@@ -3982,10 +3983,10 @@ $required = '';
 
     // Fungsi untuk menyalin alamat berdasarkan status tempat tinggal santri
     function copyAlamatSantri() {
-        const statusTempatTinggal = document.getElementById('StatusTempatTinggal').value;
+        const StatusTempatTinggalSantri = document.getElementById('StatusTempatTinggalSantri').value;
 
         // Jika tinggal dengan ayah
-        if (statusTempatTinggal === 'Tinggal dengan Ayah Kandung') {
+        if (StatusTempatTinggalSantri === 'Tinggal dengan Ayah Kandung') {
             document.getElementById('AlamatSantri').value = document.getElementById('AlamatAyah').value;
             document.getElementById('RTSantri').value = document.getElementById('RTAyah').value;
             document.getElementById('RWSantri').value = document.getElementById('RWAyah').value;
@@ -3996,7 +3997,7 @@ $required = '';
             document.getElementById('KodePosSantri').value = document.getElementById('KodePosAyah').value;
         }
         // Jika tinggal dengan ibu
-        else if (statusTempatTinggal === 'Tinggal dengan Ibu Kandung') {
+        else if (StatusTempatTinggalSantri === 'Tinggal dengan Ibu Kandung') {
             document.getElementById('AlamatSantri').value = document.getElementById('AlamatIbu').value;
             document.getElementById('RTSantri').value = document.getElementById('RTIbu').value;
             document.getElementById('RWSantri').value = document.getElementById('RWIbu').value;
