@@ -7,7 +7,8 @@ use App\Models\SantriModel;
 use App\Models\EncryptModel;
 use App\Models\HelpFunctionModel;
 use App\Models\SantriBaruModel;
-
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class Santri extends BaseController
 {
@@ -552,11 +553,11 @@ class Santri extends BaseController
 
             // 3. Konfigurasi DOMPDF
             $logs[] = "ℹ️ INFO: Inisialisasi Konfigurasi DOMPDF";
-            $options = new \Dompdf\Options();
+            $options = new Options();
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isRemoteEnabled', true);
             $options->set('isPhpEnabled', true);
-            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf = new Dompdf($options);
             $logs[] = "✓ OK: Konfigurasi DOMPDF berhasil";
 
             // 4. Proses foto
