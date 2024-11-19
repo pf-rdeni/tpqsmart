@@ -594,8 +594,7 @@ class Santri extends BaseController
             $logs[] = "❌ ERROR: " . $e->getMessage();
             $this->saveLog($logs);
 
-            return $this->response->setStatusCode(500)->setJSON([
-                'message' => 'Gagal membuat PDF: ' . strtoupper($e->getMessage()),
+            return $this->response->setStatusCode(500)->setJSON(['message' => 'Gagal membuat PDF: ' . $e->getMessage(),
                 'logs' => $logs
             ]);
         }
