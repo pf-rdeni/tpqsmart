@@ -1215,14 +1215,10 @@ $required = '';
                                                                     StatusTempatTinggalSantri.innerHTML += '<option value="Tinggal dengan Ayah Kandung">Tinggal dengan Ayah Kandung</option>';
                                                                 }
                                                                 // Tambahkan opsi tinggal dengan ibu jika ibu masih hidup dan tidak tinggal di luar negeri
-                                                                // dan ibu tidak tinggal bersama ayah
-                                                                const checkTinggalDiluarNegeriIbu = document.getElementById('TinggalDiluarNegeriIbu');
-                                                                const checkAlamatIbuSamaDenganAyah = document.getElementById('AlamatIbuSamaDenganAyah');
-                                                                if (statusIbu.value === 'Masih Hidup' && !checkTinggalDiluarNegeriIbu.checked && !checkAlamatIbuSamaDenganAyah.checked) {
+                                                                if (statusIbu.value === 'Masih Hidup' && !document.getElementById('TinggalDiluarNegeriIbu').checked) {
                                                                     StatusTempatTinggalSantri.innerHTML += '<option value="Tinggal dengan Ibu Kandung">Tinggal dengan Ibu Kandung</option>';
-                                                                }
-                                                                // jika wali sudah diisi
-                                                                if (statusWali.value && statusWali.value == 'Saudara') {
+                                                                } // jika wali sudah diisi
+                                                                if (statusWali.value == 'Saudara') {
                                                                     StatusTempatTinggalSantri.innerHTML += '<option value="Tinggal dengan Wali">Tinggal dengan Wali</option>';
                                                                 }
                                                                 // Tambahkan pilihan statis lainnya
@@ -3867,6 +3863,8 @@ $required = '';
         toggleFields();
     }
 
+
+
     // Inisialisasi semua toggle address fields
     document.addEventListener('DOMContentLoaded', function() {
         // Cek status ayah dan sembunyikan/tampilkan field alamat
@@ -3877,7 +3875,11 @@ $required = '';
         const alamatIbuSamaDenganAyahDiv = document.getElementById('AlamatIbuSamaDenganAyahDiv');
         const statusTempatTinggalSantri = document.getElementById('StatusTempatTinggalSantri');
 
-        // fungsi untuk toggle alamat ayah
+        // Event listeners untuk perubahan status
+        statusAyah.addEventListener('change', toggleAlamatAyah);
+        statusIbu.addEventListener('change', toggleAlamatIbu);
+        statusTempatTinggalSantri.addEventListener('change', toggleAlamatSantri);
+        // fungsi untuk toggle alamat ayah  
         function toggleAlamatAyah() {
             if (statusAyah.value !== 'Masih Hidup') {
                 dataAlamatAyahDiv.style.display = 'none';
@@ -3936,11 +3938,6 @@ $required = '';
                 });
             }
         }
-
-        // Event listeners untuk perubahan status
-        statusAyah.addEventListener('change', toggleAlamatAyah);
-        statusIbu.addEventListener('change', toggleAlamatIbu);
-        //statusTempatTinggalSantri.addEventListener('change', toggleAlamatSantri);
 
         // Set status awal
         toggleAlamatAyah();
