@@ -63,11 +63,11 @@
     <table>
         <tr>
             <th>Nama TPQ</th>
-            <td><?= $data['printIdTpq'] ?? '-' ?></td>
+            <td><?= $data['printNamaTpq'] ?? '-' ?></td>
         </tr>
         <tr>
             <th>Nama Kelas</th>
-            <td><?= $data['printIdKelas'] ?? '-' ?></td>
+            <td><?= $data['printNamaKelas'] ?? '-' ?></td>
         </tr>
         <tr>
             <th>NIK Santri</th>
@@ -124,11 +124,11 @@
         </tr>
         <tr>
             <th>RT</th>
-            <td><?= $data['printRTSantri'] ?? '-' ?></td>
+            <td><?= $data['printRtSantri'] ?? '-' ?></td>
         </tr>
         <tr>
             <th>RW</th>
-            <td><?= $data['printRWSantri'] ?? '-' ?></td>
+            <td><?= $data['printRwSantri'] ?? '-' ?></td>
         </tr>
         <tr>
             <th>Desa/Kelurahan</th>

@@ -67,9 +67,22 @@ class Santri extends BaseController
 
         // Fungsi untuk menangani upload file dengan nama yang menyertakan IdSantri
         $handleUpload = function ($file, $prefix) use ($IdSantri) {
-            if ($file && $file->isValid() && !$file->hasMoved()) {
+            try {
+                if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
+                    return null;
+                }
+
+                if (!$file->isValid()) {
+                    throw new \Exception('File tidak valid: ' . $file->getErrorString());
+                }
+
+                if ($file->hasMoved()) {
+                    throw new \Exception('File sudah dipindahkan sebelumnya');
+                }
+
                 $randomNumber = uniqid();
                 $newName = $prefix . '_' . $IdSantri . '_' . $randomNumber . '.' . $file->getExtension();
+                
                 // Tentukan path berdasarkan environment
                 if (ENVIRONMENT === 'production') {
                     $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';  // Path di server production
@@ -77,17 +90,42 @@ class Santri extends BaseController
                     $uploadPath = ROOTPATH . 'public/uploads/santri/';
                 }
 
+                // Validasi direktori upload
+                if (!is_dir($uploadPath)) {
+                    throw new \Exception('Direktori upload tidak ditemukan: ' . $uploadPath);
+                }
+
+                if (!is_writable($uploadPath)) {
+                    throw new \Exception('Direktori upload tidak dapat ditulis: ' . $uploadPath);
+                }
+
                 $targetPath = $uploadPath . $newName;
 
                 // Hapus file lama jika ada
                 if (file_exists($targetPath)) {
-                    unlink($targetPath);
+                    if (!unlink($targetPath)) {
+                        throw new \Exception('Gagal menghapus file lama: ' . $targetPath);
+                    }
                 }
 
-                $file->move($uploadPath, $newName, true); // true untuk overwrite
+                // Pindahkan file
+                if (!$file->move($uploadPath, $newName, true)) {
+                    throw new \Exception('Gagal memindahkan file ke: ' . $targetPath);
+                }
+
                 return $newName;
+            } catch (\Exception $e) {
+                log_message('error', '[File Upload] ' . $e->getMessage());
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal mengupload file: ' . $e->getMessage(),
+                    'error_details' => [
+                        'file' => $prefix,
+                        'error' => $e->getMessage(),
+                        'trace' => ENVIRONMENT === 'development' ? $e->getTraceAsString() : null
+                    ]
+                ]);
             }
-            return null;
         };
 
         // Handle upload untuk setiap file dan simpan nama file ke variabel
@@ -229,6 +267,8 @@ class Santri extends BaseController
             'TitikKoordinatSantri' => $this->request->getPost('TitikKoordinatSantri'),
         ];
 
+        
+      
         // Simpan data ke database
         // Ubah nilai array menjadi lowercase kemudian ucwords sebelum insert
         $processedData = array_map(function ($value) {
@@ -246,9 +286,17 @@ class Santri extends BaseController
         $result = $this->DataSantriBaru->insert($processedData);
 
         if ($result) {
-            return redirect()->to('backend/santri/createEmisStep')->with('success', 'Data santri berhasil disimpan');
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data santri berhasil disimpan',
+                'redirect' => base_url('backend/santri/showSuccessEmisStep/' . $lastSantri['IdSantri'])
+            ]);
         } else {
-            return redirect()->back()->withInput()->with('error', 'Gagal menyimpan data santri');
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan data santri',
+                'errors' => $this->DataSantriBaru->errors()
+            ]);
         }
     }
 
@@ -398,6 +446,7 @@ class Santri extends BaseController
             'message' => 'Gagal mengupload file'
         ]);
     }
+   
 
     public function generatePDF()
     {
@@ -562,5 +611,111 @@ class Santri extends BaseController
             $this->saveLog($logs);
             throw $e;
         }
+    }
+
+    public function generatePDFSantriBaru($IdSantri = null)
+    {
+        try {
+            // Validasi ID Santri
+            if (!$IdSantri) {
+                throw new \Exception('ID Santri tidak ditemukan');
+            }
+
+            // Ambil data santri dari database dengan join ke tabel kelas dan TPQ
+            $dataSantri = $this->DataSantriBaru
+                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+                ->where('tbl_santri_baru.IdSantri', $IdSantri)
+                ->first();
+
+            if (!$dataSantri) {
+                throw new \Exception('Data santri tidak ditemukan');
+            }
+
+            // Siapkan data untuk template
+            $data = [
+                //nama tpq dan nama kelas
+                'printNamaTpq' => $dataSantri['NamaTpq'],  // Menggunakan NamaTpq dari hasil join
+                'printNamaKelas' => $dataSantri['NamaKelas'],  // Menggunakan NamaKelas dari hasil join
+                //data santri
+                'printNamaSantri' => $dataSantri['NamaSantri'],
+                'printNikSantri' => $dataSantri['NikSantri'],
+                'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . $dataSantri['TanggalLahirSantri'],
+                'printJenisKelamin' => $dataSantri['JenisKelamin'],
+                'printAlamatSantri' => $dataSantri['AlamatSantri'],
+                'printAnakKe' => $dataSantri['AnakKe'],
+                'printJumlahSaudara' => $dataSantri['JumlahSaudara'],
+                'printHobi' => $dataSantri['Hobi'],
+                'printCitaCita' => $dataSantri['CitaCita'],
+                //data ayah dan ibu
+                'printNamaAyah' => $dataSantri['NamaAyah'],
+                'printNamaIbu' => $dataSantri['NamaIbu'],
+                //data alamat
+                'printRtSantri' => $dataSantri['RtSantri'],
+                'printRwSantri' => $dataSantri['RwSantri'],
+                'printKelurahanDesaSantri' => $dataSantri['KelurahanDesaSantri'],
+                'printKecamatanSantri' => $dataSantri['KecamatanSantri'],
+                'printKabupatenKotaSantri' => $dataSantri['KabupatenKotaSantri'],
+                'printProvinsiSantri' => $dataSantri['ProvinsiSantri'],
+                'printKodePosSantri' => $dataSantri['KodePosSantri'],
+                //data jarak dan transportasi
+                'printJarakTempuhSantri' => $dataSantri['JarakTempuhSantri'],
+                'printTransportasiSantri' => $dataSantri['TransportasiSantri'],
+                'printWaktuTempuhSantri' => $dataSantri['WaktuTempuhSantri'],
+
+            ];
+
+            // Jika ada foto, proses foto
+            if (!empty($dataSantri['PhotoProfil'])) {
+                $fotoPath = ROOTPATH . 'public/uploads/santri/' . $dataSantri['PhotoProfil'];
+                if (file_exists($fotoPath)) {
+                    $fotoData = file_get_contents($fotoPath);
+                    $data['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
+                }
+            }
+
+            // Konfigurasi DOMPDF
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $dompdf = new Dompdf($options);
+
+            // Render HTML
+            $html = view('backend/santri/pdf_template', [
+                'data' => $data,
+                'fotoSantri' => $data['printFotoSantri']
+            ]);
+
+            // Generate PDF
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Output PDF
+            $filename = 'Data_Santri_' . $dataSantri['NamaSantri'] . '.pdf';
+            $dompdf->stream($filename, ['Attachment' => false]);
+
+            return;
+        } catch (\Exception $e) {
+            // Log error
+            log_message('error', '[generatePDFSantriBaru] Error: ' . $e->getMessage());
+
+            // Redirect dengan pesan error
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    // fungsi baru untuk showSuccessEmisStep
+    public function showSuccessEmisStep($IdSantri = null)
+    {
+        //ambil data santri dari database   
+        $dataSantri = $this->DataSantriBaru->where('IdSantri', $IdSantri)->first();
+        $data = [
+            'page_title' => 'Data Santri Baru Berhasil Dikirim',
+            'dataSantri' => $dataSantri
+        ];
+        return view('backend/santri/successEmisStep', $data);
     }
 }

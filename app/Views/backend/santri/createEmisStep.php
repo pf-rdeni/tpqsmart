@@ -1470,7 +1470,6 @@ if (ENVIRONMENT === 'production') {
                         <li>Data yang terkirim tidak dapat diubah</li>
                         <li><small>Tekan tombol <strong>[Kirim Data]</strong> jika sudah yakin</small></li>
                         <li><small>Tekan tombol <strong>[Ubah Data]</strong> untuk memperbaiki</small></li>
-                        <li><small>Tekan tombol <strong>[Cetak PDF]</strong> untuk menyimpan salinan data</small></li>
                     </ul>
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -1895,14 +1894,9 @@ if (ENVIRONMENT === 'production') {
                     </div>
                 </div>
             </div>
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-success" onclick="printPDF()">
-                    <i class="fas fa-print"></i> Cetak PDF
-                </button>
-                <div>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Ubah Data</button>
-                    <button type="submit" class="btn btn-primary" onclick="submitForm()">Kirim Data</button>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Ubah Data</button>
+                <button type="submit" class="btn btn-primary" onclick="submitForm()">Kirim Data</button>
             </div>
         </div>
     </div>
@@ -2174,152 +2168,62 @@ if (ENVIRONMENT === 'production') {
         return true; // Ganti dengan logika validasi yang sesuai
     }
 
+    /* ===== Region: Submit Form dengan AJAX ===== */
     function submitForm() {
-        document.getElementById('santriForm').submit();
-    }
-    /* ===== End Region: preview menampilkan data santri ===== */
-
-    /* ===== Region: Print PDF Data Santri ===== 
-     * Fungsi ini dipanggil saat tombol "Cetak PDF" diklik
-     * Membuat file PDF dari data santri yang telah diisi
-     * Menggunakan library SweetAlert2 untuk notifikasi
-     * Menggunakan fetch untuk mengirim data ke endpoint PDF
-     */
-    function printPDF() {
-        // Tampilkan loading spinner
+        // Tampilkan loading indicator
         Swal.fire({
-            title: 'Sedang menyiapkan PDF...',
-            allowOutsideClick: true, // Izinkan klik di luar modal
-            showCloseButton: true, // Tampilkan tombol close
-            showConfirmButton: false, // Sembunyikan tombol konfirmasi
+            title: 'Menyimpan Data',
+            text: 'Mohon tunggu...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
             didOpen: () => {
                 Swal.showLoading();
             }
-        }).then((result) => {
-            // Jika user menutup modal loading
-            if (result.dismiss === Swal.DismissReason.close) {
-                // Batalkan request jika masih berjalan
-                // Dan bersihkan resources
-                console.log('PDF generation cancelled by user');
-            }
         });
 
-        // Kumpulkan data dari modal preview
-        const previewData = {
-            // Data Santri
-            printIdTpq: document.getElementById('previewIdTpq').textContent,
-            printIdKelas: document.getElementById('previewIdKelas').textContent,
-            printNikSantri: document.getElementById('previewNikSantri').textContent,
-            printNoKkSantri: document.getElementById('previewNoKkSantri').textContent,
-            printNamaSantri: document.getElementById('previewNamaSantri').textContent,
-            printTempatTTL: document.getElementById('previewTtl').textContent,
-            printNamaKepalaKeluarga: document.getElementById('previewNamaKepalaKeluarga').textContent,
-            printJenisKelamin: document.getElementById('previewJenisKelamin').textContent,
-            printAnakKe: document.getElementById('previewAnakKe').textContent,
-            printJumlahSaudara: document.getElementById('previewJumlahSaudara').textContent,
-            printCitaCita: document.getElementById('previewCitaCita').textContent,
-            printHobi: document.getElementById('previewHobi').textContent,
-            printKebutuhanKhusus: document.getElementById('previewKebutuhanKhusus').textContent,
-            printKebutuhanDisabilitas: document.getElementById('previewKebutuhanDisabilitas').textContent,
-            printYangMembiayaiSekolah: document.getElementById('previewYangMembiayaiSekolah').textContent,
-            printNoHpSantri: document.getElementById('previewNoHpSantri').textContent,
-            printEmailSantri: document.getElementById('previewEmailSantri').textContent,
-            // Ambil base64 foto dari preview
-            printFotoSantri: document.getElementById('previewFotoSantri').src,
+        // Ambil form element
+        const form = document.getElementById('santriForm');
+        const formData = new FormData(form);
 
-            // Data Orang Tua
-            printNamaAyah: document.getElementById('previewNamaAyah').textContent,
-            printNikAyah: document.getElementById('previewNikAyah').textContent,
-            printStatusAyah: document.getElementById('previewStatusAyah').textContent,
-            printPendidikanAyah: document.getElementById('previewPendidikanAyah').textContent,
-            printPekerjaanAyah: document.getElementById('previewPekerjaanAyah').textContent,
-            printPenghasilanAyah: document.getElementById('previewPenghasilanAyah').textContent,
-            printNoHpAyah: document.getElementById('previewNoHpAyah').textContent,
-
-            // Data Ibu
-            printNamaIbu: document.getElementById('previewNamaIbu').textContent,
-            printNikIbu: document.getElementById('previewNikIbu').textContent,
-            printStatusIbu: document.getElementById('previewStatusIbu').textContent,
-            printPendidikanIbu: document.getElementById('previewPendidikanIbu').textContent,
-            printPekerjaanIbu: document.getElementById('previewPekerjaanIbu').textContent,
-            printPenghasilanIbu: document.getElementById('previewPenghasilanIbu').textContent,
-            printNoHpIbu: document.getElementById('previewNoHpIbu').textContent,
-
-            // Data Alamat
-            printAlamatSantri: document.getElementById('previewAlamatSantri').textContent,
-            printRTSantri: document.getElementById('previewRTSantri').textContent,
-            printRWSantri: document.getElementById('previewRWSantri').textContent,
-            printKelurahanDesaSantri: document.getElementById('previewKelurahanDesaSantri').textContent,
-            printKecamatanSantri: document.getElementById('previewKecamatanSantri').textContent,
-            printKabupatenKotaSantri: document.getElementById('previewKabupatenKotaSantri').textContent,
-            printProvinsiSantri: document.getElementById('previewProvinsiSantri').textContent,
-            printKodePosSantri: document.getElementById('previewKodePosSantri').textContent,
-            printJarakTempuhSantri: document.getElementById('previewJarakTempuhSantri').textContent,
-            printTransportasiSantri: document.getElementById('previewTransportasiSantri').textContent,
-            printWaktuTempuhSantri: document.getElementById('previewWaktuTempuhSantri').textContent
-        };
-
-        // Kirim data ke endpoint PDF menggunakan fetch
-        fetch('<?= base_url('backend/santri/generatePDF') ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify(previewData)
-            })
-            .then(response => {
-
-                if (!response.ok) {
-                    return response.json().then(error => {
-                        // Tampilkan log error
-                        if (error.logs) {
-                            console.log('Error Logs:', error.logs);
-                        }
-                        throw error;
+        // Kirim data dengan AJAX
+        $.ajax({
+            url: form.getAttribute('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: 'Data santri berhasil disimpan',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.href = response.redirect;
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: response.message || 'Terjadi kesalahan saat menyimpan data'
                     });
                 }
-                return response.blob();
-            })
-            .then(blob => {
-                // Tutup loading modal
-                Swal.close();
-                // Handle PDF blob
-                const url = window.URL.createObjectURL(blob);
-                const namaSantri = previewData.printNamaSantri || 'Santri';
-                const cleanNama = namaSantri.replace(/[^a-zA-Z0-9]/g, '_');
-
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Data_${cleanNama}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-
-                // Notifikasi sukses
-                Swal.fire({
-                    icon: 'success',
-                    title: 'PDF berhasil dibuat!',
-                    text: 'File PDF telah diunduh ke perangkat Anda.',
-                    timer: 2000,
-                    showConfirmButton: true
-                });
-            })
-            .catch(error => {
+            },
+            error: function(xhr, status, error) {
                 console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal membuat PDF',
-                    text: error.message || 'Terjadi kesalahan saat membuat file PDF. Silakan coba lagi.',
-                    confirmButtonText: 'Tutup'
+                    title: 'Error',
+                    text: 'Terjadi kesalahan saat menghubungi server'
                 });
-            });
-
-        // ... kode setelahnya ...
+            }
+        });
     }
-    /* ===== End Region: Print PDF Data Santri ===== */
+    /* ===== End Region: Submit Form dengan AJAX ===== */
+
     /* ===== End Region: Preview Menampilkan Data Santri    ===== */
 
     /* ===== Region: Inisialisasi Stepper Form =====
@@ -2470,27 +2374,6 @@ if (ENVIRONMENT === 'production') {
         return false;
     }
     /* ===== End Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
-
-    /* ===== Region: Validasi Input saat Submit Form =====
-     * Validasi input saat submit form
-     */
-    document.getElementById('santriForm').addEventListener('submit', function(event) {
-        let isValid = true;
-        let allRequiredFields = document.querySelectorAll('.form-control[required]');
-
-        allRequiredFields.forEach(function(field) {
-            validateField(field);
-            if (field.classList.contains('is-invalid')) {
-                isValid = false;
-            }
-        });
-
-        if (!isValid) {
-            event.preventDefault(); // Mencegah pengiriman form jika ada yang tidak valid
-            alert('Mohon isi semua bidang yang harus diisi sebelum mengirim formulir.');
-        }
-    });
-    /* ===== End Region: Validasi Input saat Submit Form ===== */
 
     /* ===== Region: Validasi Input Form =====
      * Validasi input form dan tampilkan error secara dinamis semua input

@@ -93,7 +93,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                 <tr>
                     <td>
                         <?php
-                $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                        $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
                         ?>
                         <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
                             alt="PhotoProfil"
@@ -113,7 +113,8 @@ function renderTpqTable($dataTpq, $tpqLevel)
                     </td>
                     <td><?= $santri['NamaSantri']; ?></td>
                     <td>
-                        <a href="" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a>
+                        <a href="javascript:void(0)" onclick="viewDetail(<?= $santri['IdSantri'] ?>)" class="btn btn-success btn-sm"><i class="fas fa-info-circle"></i></a>
+                        <a href="javascript:void(0)" onclick="printPdf(<?= $santri['IdSantri'] ?>)" class="btn btn-primary btn-sm"><i class="fas fa-print"></i></a>
                     </td>
                 </tr>
             <?php endforeach ?>
@@ -166,6 +167,35 @@ function renderTpqTable($dataTpq, $tpqLevel)
             "info": true,
             "autoWidth": false,
             "responsive": true,
+        });
+    }
+
+    /*=== fungsi untuk mencetak pdf ===*/
+    function printPdf(idSantri) {
+        Swal.fire({
+            title: 'Cetak PDF',
+            text: "Apakah anda yakin ingin mencetak data santri ini?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Cetak!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.open(`<?= base_url('backend/santri/generatePDFSantriBaru/') ?>${idSantri}`, '_blank');
+            }
+        });
+    }
+
+    /*=== fungsi untuk melihat detail santri ===*/
+    function viewDetail(idSantri) {
+        Swal.fire({
+            title: 'Detail Santri',
+            text: "Informasi saat ini belum tersedia.",
+            icon: 'info',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'OK'
         });
     }
 </script>

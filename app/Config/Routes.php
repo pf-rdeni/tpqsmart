@@ -51,6 +51,7 @@ $routes->get('kelas/delete/(:num)', 'Kelas::delete/$1');  // Delete a specific r
 $routes->get('backend/kelas/showListSantriPerKelas/(:any)', 'Kelas::showListSantriPerKelas/$1');
 $routes->get('backend/kelas/updateNaikKelas/(:num)/(:num)', 'Kelas::updateNaikKelas/$1/$2');
 $routes->get('backend/kelas/showSantriPerKelas/(:any)', 'Kelas::showSantriPerKelas/$1');
+$routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'Backend\Santri::showSuccessEmisStep/$1');
 
 //Tabel Materi
 $routes->get('materipelajaran', 'MateriPelajaran::index');
