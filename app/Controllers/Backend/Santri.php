@@ -289,7 +289,7 @@ class Santri extends BaseController
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Data santri berhasil disimpan',
-                'redirect' => base_url('backend/santri/showSuccessEmisStep/' . $lastSantri['IdSantri'])
+                'redirect' => base_url('backend/santri/showSuccessEmisStep/' . $IdSantri)
             ]);
         } else {
             return $this->response->setJSON([
