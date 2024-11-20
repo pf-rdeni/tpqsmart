@@ -12,7 +12,7 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
-            <h5>Data Pendaftaran Santri Baru</h5>
+            <h5>Data Pendaftaran Santri Terbaru</h5>
             <table id="example1" class="table table-bordered table-striped">
                 <thead>
                     <tr>
@@ -32,7 +32,7 @@
                         <tr>
                             <td>
                                 <?php
-                        $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                                $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
                                 ?>
                                 <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
                                     alt="PhotoProfil"
@@ -95,9 +95,13 @@
                 </tfoot>
             </table>
         </div>
+        <div class="card-footer">
+        </div>
         <!-- /.card-body -->
-        <div class="card-body">
+        <div class="card-header">
             <h5>Data Santri Baru berdasarkan TPQ</h5>
+        </div>
+        <div class="card-body">
             <table id="example3" class="table table-bordered table-striped">
                 <thead>
                     <tr>
