@@ -1,8 +1,13 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
 <?php echo session()->getFlashdata('pesan');
-$required = '';
-//$required = 'required';
+// Cek environment untuk menentukan nilai $required
+if (ENVIRONMENT === 'production') {
+    $required = 'required';
+} else {
+    $required = '';
+}
+?>
 
 ?>
 
