@@ -11,4 +11,4 @@ deployment:
     # Daftar Santri Baru deployment
     - export DEPLOYPATH=/home/u1525344/daftarsantribaru/app
     - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Views/backend/santri $DEPLOYPATH/Views/backend
-    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Controllers/Backend/Santri.php $DEPLOYPATH/Controllers/Backend/Santri.php
+    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Controllers/Backend/Santri.php $DEPLOYPATH/Controllers/Backend/
