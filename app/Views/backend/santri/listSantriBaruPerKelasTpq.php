@@ -93,7 +93,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                 <tr>
                     <td>
                         <?php
-                        $uploadPath = (ENVIRONMENT === 'production') ? '/home/u1525344/public_html/tpqsmart/uploads/santri/' : base_url('uploads/santri/');
+                $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
                         ?>
                         <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
                             alt="PhotoProfil"
