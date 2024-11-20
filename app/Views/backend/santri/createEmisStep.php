@@ -2200,7 +2200,7 @@ if (ENVIRONMENT === 'production') {
                         title: 'Berhasil',
                         text: 'Data santri berhasil disimpan',
                         showConfirmButton: false,
-                        timer: 1500
+                        //timer: 1500
                     }).then(() => {
                         window.location.href = response.redirect;
                     });
