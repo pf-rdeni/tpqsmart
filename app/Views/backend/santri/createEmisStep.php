@@ -278,14 +278,43 @@ if (ENVIRONMENT === 'production') {
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <label for="NoHpSantri">No Handphone</label>
-                                                <input type="text" class="form-control" id="NoHpSantri" name="NoHpSantri" placeholder="Masukkan nomor handphone">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <label for="NoHpSantri">No Handphone</label>
+                                                    <div class="d-flex align-items-center">
+                                                        <input class="form-check-input mr-2" type="checkbox" id="NoHpSantriBelumPunya" name="NoHpSantriBelumPunya" checked>
+                                                        <small class="form-check-label text-primary mb-0">Tidak memiliki nomor handphone</small>
+                                                    </div>
+                                                </div>
+                                                <input type="text" class="form-control" id="NoHpSantri" name="NoHpSantri" placeholder="Masukkan nomor handphone" readonly>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="EmailSantri">Alamat Email</label>
-                                                <input type="email" class="form-control" id="EmailSantri" name="EmailSantri" placeholder="Contoh: nama@email.com">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <label for="EmailSantri">Alamat Email</label>
+                                                    <div class="d-flex align-items-center">
+                                                        <input class="form-check-input mr-2" type="checkbox" id="EmailSantriBelumPunya" name="EmailSantriBelumPunya" checked>
+                                                        <small class="form-check-label text-primary mb-0">Tidak memiliki alamat email</small>
+                                                    </div>
+                                                </div>
+                                                <input type="email" class="form-control" id="EmailSantri" name="EmailSantri" placeholder="Contoh: nama@email.com" readonly>
                                             </div>
                                         </div>
+                                        <script>
+                                            document.getElementById('NoHpSantriBelumPunya').addEventListener('change', function() {
+                                                const noHpInput = document.getElementById('NoHpSantri');
+                                                noHpInput.readOnly = this.checked;
+                                                if (this.checked) {
+                                                    noHpInput.value = '';
+                                                }
+                                            });
+
+                                            document.getElementById('EmailSantriBelumPunya').addEventListener('change', function() {
+                                                const emailInput = document.getElementById('EmailSantri');
+                                                emailInput.readOnly = this.checked;
+                                                if (this.checked) {
+                                                    emailInput.value = '';
+                                                }
+                                            });
+                                        </script>
                                     </div>
                                     <div class="form-group">
                                         <div class="row">
@@ -2701,13 +2730,14 @@ if (ENVIRONMENT === 'production') {
         // Cek format awal nomor
         const isValidStart = phoneNumber.startsWith('+62') ||
             phoneNumber.startsWith('08') ||
-            phoneNumber.startsWith('8');
+            phoneNumber.startsWith('8') ||
+            phoneNumber.startsWith('62');
 
         if (!isValidStart) {
             input.classList.add('is-invalid');
             input.classList.remove('is-valid');
             if (errorElement) {
-                errorElement.textContent = 'Nomor handphone harus diawali dengan +62, 08, atau 8';
+                errorElement.textContent = 'Nomor handphone harus diawali dengan +62, 62, 08, atau 8';
                 errorElement.style.display = 'block';
             }
             return false;
@@ -2718,6 +2748,8 @@ if (ENVIRONMENT === 'production') {
             phoneNumber = '+62' + phoneNumber.substring(1);
         } else if (phoneNumber.startsWith('8')) {
             phoneNumber = '+62' + phoneNumber;
+        } else if (phoneNumber.startsWith('62')) {
+            phoneNumber = '+' + phoneNumber;
         }
 
         // Validasi panjang nomor (tidak termasuk +62)
