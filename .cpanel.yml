@@ -13,3 +13,4 @@ deployment:
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Views/backend/santri/createEmisStep.php $DEPLOYPATH/Views/backend/santri/createEmisStep.php
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Views/backend/santri/listSantriBaru.php $DEPLOYPATH/Views/backend/santri/listSantriBaru.php
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Views/backend/santri/listSantriBaruPerKelasTpq.php $DEPLOYPATH/Views/backend/santri/listSantriBaruPerKelasTpq.php
+    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Controllers/Backend/Santri.php $DEPLOYPATH/Controllers/Backend/Santri.php
