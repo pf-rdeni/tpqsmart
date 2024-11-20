@@ -6,6 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
+    //$required = 'required';
 }
 ?>
 
@@ -1496,11 +1497,11 @@ if (ENVIRONMENT === 'production') {
                                     <!-- Tab Data Santri -->
                                     <div class="tab-pane fade show active" id="dataSantri" role="tabpanel" aria-labelledby="custom-tabs-santri-tab">
                                         <div class="row">
-                                            <div class="col-md-3 text-center">
+                                            <div class="col-md-12 mt-3 text-center">
                                                 <img id="previewFotoSantri" src="" alt="Foto Santri" class="img-thumbnail mb-2" style="max-width: 200px">
                                                 <p class="font-weight-bold" id="previewNamaSantri"></p>
                                             </div>
-                                            <div class="col-md-9">
+                                            <div class="col-md-12 mt-3">
                                                 <div class="table-responsive">
                                                     <table class="table table-bordered">
                                                         <tr>
@@ -1514,6 +1515,10 @@ if (ENVIRONMENT === 'production') {
                                                         <tr>
                                                             <th>NIK</th>
                                                             <td id="previewNikSantri"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>NISN</th>
+                                                            <td id="previewNisn"></td>
                                                         </tr>
                                                         <tr>
                                                             <th>Nama Kepala Keluarga</th>
@@ -1572,7 +1577,7 @@ if (ENVIRONMENT === 'production') {
                                     <!-- Tab Data Orang Tua -->
                                     <div class="tab-pane fade" id="dataOrangTua" role="tabpanel" aria-labelledby="custom-tabs-orangtua-tab">
                                         <div class="row">
-                                            <div class="col-md-6" id="previewDataAyahAllDiv">
+                                            <div class="col-md-12 mt-3" id="previewDataAyahAllDiv">
                                                 <h6 class="font-weight-bold">Data Ayah</h6>
                                                 <div class="table-responsive">
                                                     <table class="table table-bordered">
@@ -1621,7 +1626,7 @@ if (ENVIRONMENT === 'production') {
                                                     </table>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6" id="previewDataIbuDiv">
+                                            <div class="col-md-12 mt-3" id="previewDataIbuDiv">
                                                 <h6 class="font-weight-bold">Data Ibu</h6>
                                                 <div class="table-responsive">
                                                     <table class="table table-bordered">
@@ -1712,6 +1717,23 @@ if (ENVIRONMENT === 'production') {
                                                                 <td id="previewKewarganegaraanWali"></td>
                                                             </tr>
                                                         </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <!-- tabel untuk nomor KKS dan PKH -->
+                                            <div class="col-md-12 mt-3" id="previewDataNomorKksPkhDiv">
+                                                <!-- tabel unutk KKS nomor dan file -->
+                                                <h6 class="font-weight-bold">Lainnya</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered">
+                                                        <tr>
+                                                            <th width="30%">Nomor / File KKS</th>
+                                                            <td><span id="previewNomorKks"></span> / <span id="previewFileKks"></span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Nomor / File PKH</th>
+                                                            <td><span id="previewNomorPkh"></span> / <span id="previewFilePkh"></span></td>
+                                                        </tr>
                                                     </table>
                                                 </div>
                                             </div>
@@ -1912,11 +1934,12 @@ if (ENVIRONMENT === 'production') {
             const selectedOption = kelasSelect.options[kelasSelect.selectedIndex];
             return selectedOption ? selectedOption.text : '';
         })();
-        document.getElementById('previewNamaSantri').textContent = document.getElementById('NamaSantri').value;
+        document.getElementById('previewNamaSantri').textContent = document.getElementById('NamaSantri').value || '-';
         document.getElementById('previewNikSantri').textContent = document.getElementById('NikSantri').value || '-';
+        document.getElementById('previewNisn').textContent = document.getElementById('NISN').value || '-';
         document.getElementById('previewNoKkSantri').textContent = document.getElementById('IdKartuKeluarga').value || '-';
         document.getElementById('previewNamaKepalaKeluarga').textContent = document.getElementById('NamaKepalaKeluarga').value || '-';
-        document.getElementById('previewJenisKelamin').textContent = document.getElementById('JenisKelamin').value;
+        document.getElementById('previewJenisKelamin').textContent = document.getElementById('JenisKelamin').value || '-';
         document.getElementById('previewAnakKe').textContent = document.getElementById('AnakKe').value || '-';
         document.getElementById('previewJumlahSaudara').textContent = document.getElementById('JumlahSaudara').value || '-';
         document.getElementById('previewCitaCita').textContent = document.getElementById('CitaCita').value || '-';
@@ -1950,9 +1973,9 @@ if (ENVIRONMENT === 'production') {
         document.getElementById('previewTtl').textContent = `${tempat}, ${tanggal}`;
 
         // Bagian Data Ayah
-        const statusAyah = document.getElementById('StatusAyah').value;
+        const statusAyah = document.getElementById('StatusAyah').value || '-';
         document.getElementById('previewStatusAyah').textContent = statusAyah;
-        document.getElementById('previewNamaAyah').textContent = document.getElementById('NamaAyah').value;
+        document.getElementById('previewNamaAyah').textContent = document.getElementById('NamaAyah').value || '-';
         // Dapatkan tbody data ayah lainnya
         const dataAyahLainnya = document.getElementById('previewDataAyahLainnya');
 
@@ -1961,9 +1984,9 @@ if (ENVIRONMENT === 'production') {
             dataAyahLainnya.style.display = 'table-row-group';
 
             document.getElementById('previewNikAyah').textContent = document.getElementById('NikAyah').value || '-';
-            document.getElementById('previewPendidikanAyah').textContent = document.getElementById('PendidikanAyah').value;
-            document.getElementById('previewPekerjaanAyah').textContent = document.getElementById('PekerjaanUtamaAyah').value;
-            document.getElementById('previewPenghasilanAyah').textContent = document.getElementById('PenghasilanUtamaAyah').value;
+            document.getElementById('previewPendidikanAyah').textContent = document.getElementById('PendidikanAyah').value || '-';
+            document.getElementById('previewPekerjaanAyah').textContent = document.getElementById('PekerjaanUtamaAyah').value || '-';
+            document.getElementById('previewPenghasilanAyah').textContent = document.getElementById('PenghasilanUtamaAyah').value || '-';
             document.getElementById('previewNoHpAyah').textContent = document.getElementById('NoHpAyah').value || '-';
             const tempatAyah = document.getElementById('TempatLahirAyah').value;
             const tanggalAyah = new Date(document.getElementById('TanggalLahirAyah').value)
@@ -1973,23 +1996,30 @@ if (ENVIRONMENT === 'production') {
                     year: 'numeric'
                 });
             document.getElementById('previewTtlAyah').textContent = `${tempatAyah}, ${tanggalAyah}`;
-            document.getElementById('previewKewarganegaraanAyah').textContent = document.getElementById('KewarganegaraanAyah').value;
-            document.getElementById('previewFileKkAyah').textContent = document.getElementById('FileKkAyah').files[0]?.name || '-';
+            document.getElementById('previewKewarganegaraanAyah').textContent = document.getElementById('KewarganegaraanAyah').value || '-';
+
+            //jika checkbok kk ayah sama dengan santri maka copy file kk santri ke file kk ayah
+            const kkAyahSamaDenganSantri = document.getElementById('KkAyahSamaDenganSantri').checked;
+            if (kkAyahSamaDenganSantri) {
+                document.getElementById('previewFileKkAyah').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
+            } else {
+                document.getElementById('previewFileKkAyah').textContent = document.getElementById('FileKkAyah').files[0]?.name || '-';
+            }
         } else {
             // Sembunyikan tbody data ayah
             dataAyahLainnya.style.display = 'none';
         }
         // Bagian Data Ibu
-        const statusIbu = document.getElementById('StatusIbu').value;
+        const statusIbu = document.getElementById('StatusIbu').value || '-';
         document.getElementById('previewStatusIbu').textContent = statusIbu;
-        document.getElementById('previewNamaIbu').textContent = document.getElementById('NamaIbu').value;
+        document.getElementById('previewNamaIbu').textContent = document.getElementById('NamaIbu').value || '-';
         const dataIbuLainnya = document.getElementById('previewDataIbuLainya');
         if (statusIbu === 'Masih Hidup') {
             dataIbuLainnya.style.display = 'table-row-group';
             document.getElementById('previewNikIbu').textContent = document.getElementById('NikIbu').value || '-';
-            document.getElementById('previewPendidikanIbu').textContent = document.getElementById('PendidikanIbu').value;
-            document.getElementById('previewPekerjaanIbu').textContent = document.getElementById('PekerjaanUtamaIbu').value;
-            document.getElementById('previewPenghasilanIbu').textContent = document.getElementById('PenghasilanUtamaIbu').value;
+            document.getElementById('previewPendidikanIbu').textContent = document.getElementById('PendidikanIbu').value || '-';
+            document.getElementById('previewPekerjaanIbu').textContent = document.getElementById('PekerjaanUtamaIbu').value || '-';
+            document.getElementById('previewPenghasilanIbu').textContent = document.getElementById('PenghasilanUtamaIbu').value || '-';
             document.getElementById('previewNoHpIbu').textContent = document.getElementById('NoHpIbu').value || '-';
             const tempatIbu = document.getElementById('TempatLahirIbu').value;
             const tanggalIbu = new Date(document.getElementById('TanggalLahirIbu').value)
@@ -1999,14 +2029,21 @@ if (ENVIRONMENT === 'production') {
                     year: 'numeric'
                 });
             document.getElementById('previewTtlIbu').textContent = `${tempatIbu}, ${tanggalIbu}`;
-            document.getElementById('previewKewarganegaraanIbu').textContent = document.getElementById('KewarganegaraanIbu').value;
-            document.getElementById('previewFileKkIbu').textContent = document.getElementById('FileKkIbu').files[0]?.name || '-';
+            document.getElementById('previewKewarganegaraanIbu').textContent = document.getElementById('KewarganegaraanIbu').value || '-';
+
+            //jika checkbok kk ibu sama dengan ayah atau santri maka copy file kk santri ke file kk ibu            
+            const kkIbuSamaDenganAyahAtauSantri = document.getElementById('KkIbuSamaDenganAyahAtauSantri').checked;
+            if (kkIbuSamaDenganAyahAtauSantri) {
+                document.getElementById('previewFileKkIbu').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
+            } else {
+                document.getElementById('previewFileKkIbu').textContent = document.getElementById('FileKkIbu').files[0]?.name || '-';
+            }
         } else {
             dataIbuLainnya.style.display = 'none';
         }
 
         // Bagian Data Wali 
-        const statusWali = document.getElementById('StatusWali').value;
+        const statusWali = document.getElementById('StatusWali').value || '-';
         document.getElementById('previewStatusWali').textContent = statusWali;
         //jika status wali lainya atau saudara maka tampilkan data wali
         const dataWaliLainnya = document.getElementById('previewDataWaliLainya');
@@ -2033,6 +2070,13 @@ if (ENVIRONMENT === 'production') {
             dataWaliLainnya.style.display = 'none';
         }
 
+        // untuk KKS dan PKH
+        document.getElementById('previewNomorKks').textContent = document.getElementById('NomorKKS').value || '-';
+        document.getElementById('previewNomorPkh').textContent = document.getElementById('NomorPKH').value || '-';
+        // untuk File KKS dan PKH
+        document.getElementById('previewFileKks').textContent = document.getElementById('FileKKS').files[0]?.name || '-';
+        document.getElementById('previewFilePkh').textContent = document.getElementById('FilePKH').files[0]?.name || '-';
+
         // Bagian  Alamat Ayah
         const previewDataAlamatAyahDiv = document.getElementById('previewDataAlamatAyahDiv');
         if (statusAyah === 'Masih Hidup') {
@@ -2043,18 +2087,18 @@ if (ENVIRONMENT === 'production') {
             const ayahTinggalDiLuarNegeri = document.getElementById('TinggalDiluarNegeriAyah').checked;
             if (ayahTinggalDiLuarNegeri) {
                 previewDataAlamatDetailAyahLainya.style.display = 'none';
-                document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value;
+                document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value || '-';
             } else {
                 previewDataAlamatDetailAyahLainya.style.display = 'table-row-group';
-                document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value;
-                document.getElementById('previewStatusKepemilikanRumahAyah').textContent = document.getElementById('StatusKepemilikanRumahAyah').value;
-                document.getElementById('previewRTAyah').textContent = document.getElementById('RTAyah').value;
-                document.getElementById('previewRWAyah').textContent = document.getElementById('RWAyah').value;
-                document.getElementById('previewKelurahanDesaAyah').textContent = document.getElementById('KelurahanDesaAyah').value;
-                document.getElementById('previewKecamatanAyah').textContent = document.getElementById('KecamatanAyah').value;
-                document.getElementById('previewKabupatenKotaAyah').textContent = document.getElementById('KabupatenKotaAyah').value;
-                document.getElementById('previewProvinsiAyah').textContent = document.getElementById('ProvinsiAyah').value;
-                document.getElementById('previewKodePosAyah').textContent = document.getElementById('KodePosAyah').value;
+                document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value || '-';
+                document.getElementById('previewStatusKepemilikanRumahAyah').textContent = document.getElementById('StatusKepemilikanRumahAyah').value || '-';
+                document.getElementById('previewRTAyah').textContent = document.getElementById('RTAyah').value || '-';
+                document.getElementById('previewRWAyah').textContent = document.getElementById('RWAyah').value || '-';
+                document.getElementById('previewKelurahanDesaAyah').textContent = document.getElementById('KelurahanDesaAyah').value || '-';
+                document.getElementById('previewKecamatanAyah').textContent = document.getElementById('KecamatanAyah').value || '-';
+                document.getElementById('previewKabupatenKotaAyah').textContent = document.getElementById('KabupatenKotaAyah').value || '-';
+                document.getElementById('previewProvinsiAyah').textContent = document.getElementById('ProvinsiAyah').value || '-';
+                document.getElementById('previewKodePosAyah').textContent = document.getElementById('KodePosAyah').value || '-';
             }
         } else {
             previewDataAlamatAyahDiv.style.display = 'none';
@@ -2074,18 +2118,18 @@ if (ENVIRONMENT === 'production') {
                 const ibuTinggalDiLuarNegeri = document.getElementById('TinggalDiluarNegeriIbu').checked;
                 if (ibuTinggalDiLuarNegeri) {
                     previewDataAlamatDetailIbuLainya.style.display = 'none';
-                    document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value;
+                    document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value || '-';
                 } else {
                     previewDataAlamatDetailIbuLainya.style.display = 'table-row-group';
-                    document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value;
-                    document.getElementById('previewStatusKepemilikanRumahIbu').textContent = document.getElementById('StatusKepemilikanRumahIbu').value;
-                    document.getElementById('previewRTIbu').textContent = document.getElementById('RTIbu').value;
-                    document.getElementById('previewRWIbu').textContent = document.getElementById('RWIbu').value;
-                    document.getElementById('previewKelurahanDesaIbu').textContent = document.getElementById('KelurahanDesaIbu').value;
-                    document.getElementById('previewKecamatanIbu').textContent = document.getElementById('KecamatanIbu').value;
-                    document.getElementById('previewKabupatenKotaIbu').textContent = document.getElementById('KabupatenKotaIbu').value;
-                    document.getElementById('previewProvinsiIbu').textContent = document.getElementById('ProvinsiIbu').value;
-                    document.getElementById('previewKodePosIbu').textContent = document.getElementById('KodePosIbu').value;
+                    document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value || '-';
+                    document.getElementById('previewStatusKepemilikanRumahIbu').textContent = document.getElementById('StatusKepemilikanRumahIbu').value || '-';
+                    document.getElementById('previewRTIbu').textContent = document.getElementById('RTIbu').value || '-';
+                    document.getElementById('previewRWIbu').textContent = document.getElementById('RWIbu').value || '-';
+                    document.getElementById('previewKelurahanDesaIbu').textContent = document.getElementById('KelurahanDesaIbu').value || '-';
+                    document.getElementById('previewKecamatanIbu').textContent = document.getElementById('KecamatanIbu').value || '-';
+                    document.getElementById('previewKabupatenKotaIbu').textContent = document.getElementById('KabupatenKotaIbu').value || '-';
+                    document.getElementById('previewProvinsiIbu').textContent = document.getElementById('ProvinsiIbu').value || '-';
+                    document.getElementById('previewKodePosIbu').textContent = document.getElementById('KodePosIbu').value || '-';
                 }
             }
         } else {

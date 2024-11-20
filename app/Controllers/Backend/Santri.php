@@ -68,187 +68,51 @@ class Santri extends BaseController
         // Fungsi untuk menangani upload file dengan nama yang menyertakan IdSantri
         $handleUpload = function ($file, $prefix) use ($IdSantri) {
             if ($file && $file->isValid() && !$file->hasMoved()) {
-                $newName = strtoupper($prefix . '_'. $IdSantri . '.' . $file->getExtension());
-                $targetPath = ROOTPATH . 'public/uploads/santri/' . $newName;
+                $randomNumber = uniqid();
+                $newName = $prefix . '_' . $IdSantri . '_' . $randomNumber . '.' . $file->getExtension();
+                // Tentukan path berdasarkan environment
+                if (ENVIRONMENT === 'production') {
+                    $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';  // Path di server production
+                } else {
+                    $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                }
+
+                $targetPath = $uploadPath . $newName;
 
                 // Hapus file lama jika ada
                 if (file_exists($targetPath)) {
                     unlink($targetPath);
                 }
 
-                $file->move(ROOTPATH . 'public/uploads/santri', $newName, true); // true untuk overwrite
+                $file->move($uploadPath, $newName, true); // true untuk overwrite
                 return $newName;
             }
             return null;
         };
 
         // Handle upload untuk setiap file dan simpan nama file ke variabel
-        $photoProfilName = $handleUpload($this->request->getFile('PhotoProfil'), 'PROFILE');
-        $namaFileKIP = $handleUpload($this->request->getFile('FileKIP'), 'KIP'); 
-        $namaFileKkSantri = $handleUpload($this->request->getFile('FileKkSantri'), 'KK_SANTRI');
-        $namaFileKkAyah = $handleUpload($this->request->getFile('FileKKAyah'), 'KK_AYAH');
-        $namaFileKkIbu = $handleUpload($this->request->getFile('FileKKIbu'), 'KK_IBU');
+        $photoProfilName = $handleUpload($this->request->getFile('PhotoProfil'), 'Profile');
+        $namaFileKIP = $handleUpload($this->request->getFile('FileKIP'), 'Kip');
+        $namaFileKkSantri = $handleUpload($this->request->getFile('FileKkSantri'), 'KkSantri');
+        $namaFileKkAyah = $handleUpload($this->request->getFile('FileKKAyah'), 'KkAyah');
+        $namaFileKkIbu = $handleUpload($this->request->getFile('FileKKIbu'), 'KkIbu');
+        $namaFileKKS = $handleUpload($this->request->getFile('FileKKS'), 'Kks');
+        $namaFilePKH = $handleUpload($this->request->getFile('FilePKH'), 'Pkh');
         // Update data yang akan disimpan dengan nama file yang baru
         $data['PhotoProfil'] = $photoProfilName;
         $data['FileKIP'] = $namaFileKIP;
         $data['FileKkSantri'] = $namaFileKkSantri; 
         $data['FileKkAyah'] = $namaFileKkAyah;
         $data['FileKkIbu'] = $namaFileKkIbu;
+        $data['FileKKS'] = $namaFileKKS;
+        $data['FilePKH'] = $namaFilePKH;
 
         // Handling checkbok kksamaayah sama dengan santri maka file kk ayah sama dengan file kk santri
-        if($this->request->getPost('KKSamaAyah') == 'on')
+        if ($this->request->getPost('KkAyahSamaDenganSantri') == 'on')
             $namaFileKkAyah = $namaFileKkSantri;
-        if($this->request->getPost('KKSamaDenganAyah') == 'on')
+        if ($this->request->getPost('KkIbuSamaDenganAyahAtauSantri') == 'on')
             $namaFileKkIbu = $namaFileKkSantri;
 
-
-        // Data Wali Santri
-        $statusWali = $this->request->getPost('StatusWali');
-
-        if($statusWali == 'Ayah Kandung' || $statusWali == 'Ibu Kandung')
-        {
-            $orangTua = ($statusWali == 'Ayah Kandung') ? 'Ayah' : 'Ibu';
-            // variable untuk data wali santri
-            $namaWali = $this->request->getPost('Nama' . $orangTua);
-            $statusWali = $this->request->getPost('Status' . $orangTua);  
-            $nikWali = $this->request->getPost('Nik' . $orangTua);
-            $kewarganegaraanWali = $this->request->getPost('Kewarganegaraan' . $orangTua);
-            $tempatLahirWali = $this->request->getPost('TempatLahir' . $orangTua);
-            $tanggalLahirWali = $this->request->getPost('TanggalLahir' . $orangTua);
-            $pendidikanWali = $this->request->getPost('Pendidikan' . $orangTua);
-            $pekerjaanUtamaWali = $this->request->getPost('PekerjaanUtama' . $orangTua);
-            $penghasilanUtamaWali = $this->request->getPost('PenghasilanUtama' . $orangTua);
-            $noHpWali = $this->request->getPost('NoHp' . $orangTua);
-        }
-        else{
-            $statusWali = $this->request->getPost('StatusWali');
-            $namaWali = $this->request->getPost('NamaWali');
-            $nikWali = $this->request->getPost('NikWali');
-            $kewarganegaraanWali = $this->request->getPost('KewarganegaraanWali');
-            $tempatLahirWali = $this->request->getPost('TempatLahirWali');
-            $tanggalLahirWali = $this->request->getPost('TanggalLahirWali');
-            $pendidikanWali = $this->request->getPost('PendidikanWali');
-            $pekerjaanUtamaWali = $this->request->getPost('PekerjaanUtamaWali');
-            $penghasilanUtamaWali = $this->request->getPost('PenghasilanUtamaWali');
-            $noHpWali = $this->request->getPost('NoHpWali');
-        }
-
-        // Alamat Tempat Tinggal Ayah Ibu dna santri
-
-        // Variable untuk data alamat ayah
-        $statusKepemilikanRumahAyah = "";
-        $provinsiAyah = "";
-        $kabupatenKotaAyah = "";
-        $kecamatanAyah = "";
-        $kelurahanDesaAyah = "";
-        $rwAyah = "";
-        $rtAyah = "";
-        $kodePosAyah = "";
-        $alamatAyah = "";
-
-        // Variable untuk data alamat ibu
-        $statusKepemilikanRumahIbu = "";
-        $provinsiIbu = "";
-        $kabupatenKotaIbu = "";
-        $kecamatanIbu = "";
-        $kelurahanDesaIbu = "";
-        $rwIbu = "";
-        $rtIbu = "";
-        $kodePosIbu = "";
-        $alamatIbu = "";
-
-        // Tinggal Diluar Negeri
-        $tinggalDiluarNegeriAyah = $this->request->getPost('TinggalDiluarNegeriAyah');
-        if ($tinggalDiluarNegeriAyah == 'on')
-        {
-            $alamatAyah = $this->request->getPost('AlamatAyah');
-        }
-        else if($this->request->getPost('StatusAyah') == 'Masih Hidup'){
-            // Variable untuk data alamat ayah
-            $statusKepemilikanRumahAyah = $this->request->getPost('StatusKepemilikanRumahAyah');
-            $provinsiAyah = $this->request->getPost('ProvinsiAyah');
-            $kabupatenKotaAyah = $this->request->getPost('KabupatenKotaAyah');
-            $kecamatanAyah = $this->request->getPost('KecamatanAyah');
-            $kelurahanDesaAyah = $this->request->getPost('KelurahanDesaAyah');
-            $rtAyah = $this->request->getPost('RTAyah');
-            $rwAyah = $this->request->getPost('RWAyah');
-            $alamatAyah = $this->request->getPost('AlamatAyah');
-            $kodePosAyah = $this->request->getPost('KodePosAyah');
-        }
-        
-        
-        // handling tempat tinggal ibu jika sama dengan ayah kandung maka alamat ibu sama dengan alamat ayah
-        if($this->request->getPost('AlamatIbuSamaDenganAyah') == 'on')
-        {
-            if($tinggalDiluarNegeriAyah == 'on')
-                $tinggalDiluarNegeriIbu = 'on'; 
-            else
-            {
-                $tinggalDiluarNegeriIbu = 'off';
-                $statusKepemilikanRumahIbu = $statusKepemilikanRumahAyah;   
-                $alamatIbu = $alamatAyah;
-                $provinsiIbu = $provinsiAyah;
-                $kabupatenKotaIbu = $kabupatenKotaAyah;
-                $kecamatanIbu = $kecamatanAyah;
-                $kelurahanDesaIbu = $kelurahanDesaAyah;
-                $rtIbu = $rtAyah;
-                $rwIbu = $rwAyah;
-                $kodePosIbu = $kodePosAyah;
-            }
-        }
-        else
-        {
-            $tinggalDiluarNegeriIbu = $this->request->getPost('TinggalDiluarNegeriIbu');
-            if($tinggalDiluarNegeriIbu == 'on')
-                $alamatIbu = $this->request->getPost('AlamatIbu');
-            else
-            {
-                $tinggalDiluarNegeriIbu = 'off';
-                $statusKepemilikanRumahIbu = $this->request->getPost('StatusKepemilikanRumahIbu');  
-                $alamatIbu = $this->request->getPost('AlamatIbu');
-                $provinsiIbu = $this->request->getPost('ProvinsiIbu');
-                $kabupatenKotaIbu = $this->request->getPost('KabupatenKotaIbu');
-                $kecamatanIbu = $this->request->getPost('KecamatanIbu');
-                $kelurahanDesaIbu = $this->request->getPost('KelurahanDesaIbu');
-                $rtIbu = $this->request->getPost('RTIbu');
-                $rwIbu = $this->request->getPost('RWIbu');
-                $kodePosIbu = $this->request->getPost('KodePosIbu');    
-            }       
-        }
-
-        // buatkan data alamat santri jika sama dengan ayah kandung maka alamat santri sama dengan alamat ayah atau sama dengan alamat ibu
-        // Set alamat santri berdasarkan status tempat tinggal
-        // Ambil status tempat tinggal santri dari form
-        $statusTinggal = $this->request->getPost('StatusTempatTinggal');
-
-        // Cek apakah santri tinggal dengan orang tua
-        if($statusTinggal == 'Tinggal dengan Ayah Kandung' || $statusTinggal == 'Tinggal dengan Ibu Kandung') {
-            
-            // Tentukan apakah tinggal dengan ayah atau ibu
-            $orangTua = ($statusTinggal == 'Tinggal dengan Ayah Kandung') ? 'Ayah' : 'Ibu';
-
-            // Salin data alamat dari orang tua ke santri
-            $alamatSantri= $this->request->getPost('Alamat' . $orangTua);
-            $provinsiSantri = $this->request->getPost('Provinsi' . $orangTua); 
-            $kabupatenKotaSantri = $this->request->getPost('KabupatenKota' . $orangTua);
-            $kecamatanSantri = $this->request->getPost('Kecamatan' . $orangTua);
-            $kelurahanDesaSantri = $this->request->getPost('KelurahanDesa' . $orangTua);
-            $rtSantri = $this->request->getPost('RT' . $orangTua);
-            $rwSantri = $this->request->getPost('RW' . $orangTua);
-            $kodePosSantri = $this->request->getPost('KodePos' . $orangTua);
-        }
-        // Jika tidak tinggal dengan orang tua, ambil alamat santri dari form
-        else {
-            $alamatSantri = $this->request->getPost('AlamatSantri');        
-            $provinsiSantri = $this->request->getPost('ProvinsiSantri');
-            $kabupatenKotaSantri = $this->request->getPost('KabupatenKotaSantri'); 
-            $kecamatanSantri = $this->request->getPost('KecamatanSantri');
-            $kelurahanDesaSantri = $this->request->getPost('KelurahanDesaSantri');
-            $rtSantri = $this->request->getPost('RTSantri');
-            $rwSantri = $this->request->getPost('RWSantri');
-            $kodePosSantri = $this->request->getPost('KodePosSantri');
-        }
-   
         // Siapkan data untuk disimpan
         $data = [
             // Data TPQ
@@ -310,64 +174,76 @@ class Santri extends BaseController
             'FileKkIbu' => $namaFileKkIbu,
 
             // Data Wali
-            'StatusWali' => $statusWali,
-            'NamaWali' => $namaWali,
-            'NikWali' => $nikWali, 
-            'KewarganegaraanWali' => $kewarganegaraanWali,
-            'TempatLahirWali' => $tempatLahirWali,
-            'TanggalLahirWali' => $tanggalLahirWali,
-            'PendidikanWali' => $pendidikanWali,
-            'PekerjaanUtamaWali' => $pekerjaanUtamaWali,
-            'PenghasilanUtamaWali' => $penghasilanUtamaWali,
-            'NoHpWali' => $noHpWali,
+            'StatusWali' => $this->request->getPost('StatusWali'),
+            'NamaWali' => $this->request->getPost('NamaWali'),
+            'NikWali' => $this->request->getPost('NikWali'),
+            'KewarganegaraanWali' => $this->request->getPost('KewarganegaraanWali'),
+            'TempatLahirWali' => $this->request->getPost('TempatLahirWali'),
+            'TanggalLahirWali' => $this->request->getPost('TanggalLahirWali'),
+            'PendidikanWali' => $this->request->getPost('PendidikanWali'),
+            'PekerjaanUtamaWali' => $this->request->getPost('PekerjaanUtamaWali'),
+            'PenghasilanUtamaWali' => $this->request->getPost('PenghasilanUtamaWali'),
+            'NoHpWali' => $this->request->getPost('NoHpWali'),
+            'NomorPKH' => $this->request->getPost('NomorPKH'),
+            'NomorKKS' => $this->request->getPost('NomorKKS'),
+            'FilePKH' => $namaFilePKH,
+            'FileKKS' => $namaFileKKS,
 
             // Data Alamat Ayah
-            'TinggalDiluarNegeriAyah' => $tinggalDiluarNegeriAyah,  
-            'StatusKepemilikanRumahAyah' => $statusKepemilikanRumahAyah,
-            'ProvinsiAyah' => $provinsiAyah,
-            'KabupatenKotaAyah' => $kabupatenKotaAyah,
-            'KecamatanAyah' => $kecamatanAyah,
-            'KelurahanDesaAyah' => $kelurahanDesaAyah,
-            'RtAyah' => $rtAyah,
-            'RwAyah' => $rwAyah,
-            'AlamatAyah' => $alamatAyah,
-            'KodePosAyah' => $kodePosAyah,
+            'TinggalDiluarNegeriAyah' => $this->request->getPost('TinggalDiluarNegeriAyah'),
+            'StatusKepemilikanRumahAyah' => $this->request->getPost('StatusKepemilikanRumahAyah'),
+            'ProvinsiAyah' => $this->request->getPost('ProvinsiAyah'),
+            'KabupatenKotaAyah' => $this->request->getPost('KabupatenKotaAyah'),
+            'KecamatanAyah' => $this->request->getPost('KecamatanAyah'),
+            'KelurahanDesaAyah' => $this->request->getPost('KelurahanDesaAyah'),
+            'RtAyah' => $this->request->getPost('RTAyah'),
+            'RwAyah' => $this->request->getPost('RWAyah'),
+            'AlamatAyah' => $this->request->getPost('AlamatAyah'),
+            'KodePosAyah' => $this->request->getPost('KodePosAyah'),
 
             // Data Alamat Ibu
-            'TinggalDiluarNegeriIbu' => $tinggalDiluarNegeriIbu,  
-            'StatusKepemilikanRumahIbu' => $statusKepemilikanRumahIbu,
-            'ProvinsiIbu' => $provinsiIbu,
-            'KabupatenKotaIbu' => $kabupatenKotaIbu,
-            'KecamatanIbu' => $kecamatanIbu,
-            'KelurahanDesaIbu' => $kelurahanDesaIbu,
-            'RtIbu' => $rtIbu,
-            'RwIbu' => $rwIbu,
-            'AlamatIbu' => $alamatIbu,
-            'KodePosIbu' => $kodePosIbu,
+            'TinggalDiluarNegeriIbu' => $this->request->getPost('TinggalDiluarNegeriIbu'),
+            'StatusKepemilikanRumahIbu' => $this->request->getPost('StatusKepemilikanRumahIbu'),
+            'ProvinsiIbu' => $this->request->getPost('ProvinsiIbu'),
+            'KabupatenKotaIbu' => $this->request->getPost('KabupatenKotaIbu'),
+            'KecamatanIbu' => $this->request->getPost('KecamatanIbu'),
+            'KelurahanDesaIbu' => $this->request->getPost('KelurahanDesaIbu'),
+            'RtIbu' => $this->request->getPost('RTIbu'),
+            'RwIbu' => $this->request->getPost('RWIbu'),
+            'AlamatIbu' => $this->request->getPost('AlamatIbu'),
+            'KodePosIbu' => $this->request->getPost('KodePosIbu'),
 
             // Data Alamat Santri
             'WaliSantri' => $this->request->getPost('WaliSantri'),
-            'ProvinsiSantri' => $provinsiSantri,
-            'KabupatenKotaSantri' => $kabupatenKotaSantri,
-            'KecamatanSantri' => $kecamatanSantri,
-            'KelurahanDesaSantri' => $kelurahanDesaSantri,
-            'RtSantri' => $rtSantri,
-            'RtSantri' => $rwSantri,
-            'AlamatSantri' => $alamatSantri,
-            'KodePosSantri' => $kodePosSantri,
+            'ProvinsiSantri' => $this->request->getPost('ProvinsiSantri'),
+            'KabupatenKotaSantri' => $this->request->getPost('KabupatenKotaSantri'),
+            'KecamatanSantri' => $this->request->getPost('KecamatanSantri'),
+            'KelurahanDesaSantri' => $this->request->getPost('KelurahanDesaSantri'),
+            'RtSantri' => $this->request->getPost('RTSantri'),
+            'RwSantri' => $this->request->getPost('RWSantri'),
+            'AlamatSantri' => $this->request->getPost('AlamatSantri'),
+            'KodePosSantri' => $this->request->getPost('KodePosSantri'),
             'JarakTempuhSantri' => $this->request->getPost('JarakTempuhSantri'),
             'TransportasiSantri' => $this->request->getPost('TransportasiSantri'),
             'WaktuTempuhSantri' => $this->request->getPost('WaktuTempuhSantri'),
             'TitikKoordinatSantri' => $this->request->getPost('TitikKoordinatSantri'),
         ];
-        // Ubah semua value dalam array $data menjadi uppercase
-        $data = array_map(function($value) {
-            // Hanya ubah jika value adalah string dan tidak null
-            return is_string($value) ? strtoupper($value) : $value;
-        }, $data);
-        // Ambil data dari form
+
         // Simpan data ke database
-        $result = $this->DataSantriBaru->insert($data);
+        // Ubah nilai array menjadi lowercase kemudian ucwords sebelum insert
+        $processedData = array_map(function ($value) {
+            // Skip jika value adalah null atau file
+            if ($value === null || strpos($value, '.') !== false) {
+                return $value;
+            }
+            // Hanya proses string
+            if (is_string($value)) {
+                return ucwords(strtolower($value));
+            }
+            return $value;
+        }, $data);
+
+        $result = $this->DataSantriBaru->insert($processedData);
 
         if ($result) {
             return redirect()->to('backend/santri/createEmisStep')->with('success', 'Data santri berhasil disimpan');
