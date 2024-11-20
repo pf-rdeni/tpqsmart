@@ -4062,49 +4062,50 @@ if (ENVIRONMENT === 'production') {
         document.getElementById('AlamatIbuSamaDenganAyah').addEventListener('change', copyAlamatAyahKeIbu);
     });
     /* ===== End Region: Toggle Address Fields ===== */
-    // Fungsi untuk menyalin data alamat ayah ke alamat ibu
-    function copyAlamatAyahKeIbu() {
-        const alamatIbuSamaDenganAyah = document.getElementById('AlamatIbuSamaDenganAyah');
 
-        if (alamatIbuSamaDenganAyah.checked) {
-            // Salin data alamat dari ayah ke ibu
-            document.getElementById('StatusKepemilikanRumahIbu').value = document.getElementById('StatusKepemilikanRumahAyah').value;
-            document.getElementById('AlamatIbu').value = document.getElementById('AlamatAyah').value;
-            document.getElementById('RTIbu').value = document.getElementById('RTAyah').value;
-            document.getElementById('RWIbu').value = document.getElementById('RWAyah').value;
-            document.getElementById('KelurahanDesaIbu').value = document.getElementById('KelurahanDesaAyah').value;
-            document.getElementById('KecamatanIbu').value = document.getElementById('KecamatanAyah').value;
-            document.getElementById('KabupatenKotaIbu').value = document.getElementById('KabupatenKotaAyah').value;
-            document.getElementById('ProvinsiIbu').value = document.getElementById('ProvinsiAyah').value;
-            document.getElementById('KodePosIbu').value = document.getElementById('KodePosAyah').value;
+    /* ===== Region: Copy Address Fields =====
+     * Menyalin data alamat dari sumber ke tujuan
+     * @param {string} source - Prefix ID elemen sumber (contoh: 'Ayah', 'Ibu')
+     * @param {string} target - Prefix ID elemen tujuan (contoh: 'Ibu', 'Santri')
+     */
+    function copyAlamat(source, target) {
+        const fields = [
+            'StatusKepemilikanRumah',
+            'Alamat',
+            'RT',
+            'RW',
+            'KelurahanDesa',
+            'Kecamatan',
+            'KabupatenKota',
+            'Provinsi',
+            'KodePos'
+        ];
+
+        fields.forEach(field => {
+            const sourceElement = document.getElementById(field + source);
+            const targetElement = document.getElementById(field + target);
+
+            if (sourceElement && targetElement) {
+                targetElement.value = sourceElement.value;
+            }
+        });
+    }
+
+    // Handler untuk checkbox alamat ibu sama dengan ayah
+    function copyAlamatAyahKeIbu() {
+        if (document.getElementById('AlamatIbuSamaDenganAyah').checked) {
+            copyAlamat('Ayah', 'Ibu');
         }
     }
 
-    // Fungsi untuk menyalin alamat berdasarkan status tempat tinggal santri
+    // Handler untuk select status tempat tinggal santri
     function copyAlamatSantri() {
-        const StatusTempatTinggalSantri = document.getElementById('StatusTempatTinggalSantri').value;
+        const statusTinggal = document.getElementById('StatusTempatTinggalSantri').value;
 
-        // Jika tinggal dengan ayah
-        if (StatusTempatTinggalSantri === 'Tinggal dengan Ayah Kandung') {
-            document.getElementById('AlamatSantri').value = document.getElementById('AlamatAyah').value;
-            document.getElementById('RTSantri').value = document.getElementById('RTAyah').value;
-            document.getElementById('RWSantri').value = document.getElementById('RWAyah').value;
-            document.getElementById('KelurahanDesaSantri').value = document.getElementById('KelurahanDesaAyah').value;
-            document.getElementById('KecamatanSantri').value = document.getElementById('KecamatanAyah').value;
-            document.getElementById('KabupatenKotaSantri').value = document.getElementById('KabupatenKotaAyah').value;
-            document.getElementById('ProvinsiSantri').value = document.getElementById('ProvinsiAyah').value;
-            document.getElementById('KodePosSantri').value = document.getElementById('KodePosAyah').value;
-        }
-        // Jika tinggal dengan ibu
-        else if (StatusTempatTinggalSantri === 'Tinggal dengan Ibu Kandung') {
-            document.getElementById('AlamatSantri').value = document.getElementById('AlamatIbu').value;
-            document.getElementById('RTSantri').value = document.getElementById('RTIbu').value;
-            document.getElementById('RWSantri').value = document.getElementById('RWIbu').value;
-            document.getElementById('KelurahanDesaSantri').value = document.getElementById('KelurahanDesaIbu').value;
-            document.getElementById('KecamatanSantri').value = document.getElementById('KecamatanIbu').value;
-            document.getElementById('KabupatenKotaSantri').value = document.getElementById('KabupatenKotaIbu').value;
-            document.getElementById('ProvinsiSantri').value = document.getElementById('ProvinsiIbu').value;
-            document.getElementById('KodePosSantri').value = document.getElementById('KodePosIbu').value;
+        if (statusTinggal === 'Tinggal dengan Ayah Kandung') {
+            copyAlamat('Ayah', 'Santri');
+        } else if (statusTinggal === 'Tinggal dengan Ibu Kandung') {
+            copyAlamat('Ibu', 'Santri');
         }
     }
 </script>

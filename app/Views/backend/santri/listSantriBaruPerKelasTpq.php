@@ -92,7 +92,10 @@ function renderTpqTable($dataTpq, $tpqLevel)
             <?php foreach ($dataTpq as $santri) : ?>
                 <tr>
                     <td>
-                        <img src="<?= $santri['PhotoProfil'] ? base_url('uploads/santri/' . $santri['PhotoProfil']) : base_url('images/no-photo.jpg'); ?>"
+                        <?php
+                        $uploadPath = (ENVIRONMENT === 'production') ? '/home/u1525344/public_html/tpqsmart/uploads/santri/' : base_url('uploads/santri/');
+                        ?>
+                        <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
                             alt="PhotoProfil"
                             class="img-fluid popup-image"
                             width="30"
@@ -102,7 +105,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                             onclick="showPopup(this)"
                             style="cursor: pointer;">
                         <div class="image-popup" style="display: none; position: absolute; z-index: 1000;">
-                            <img src="<?= $santri['PhotoProfil'] ? base_url('uploads/santri/' . $santri['PhotoProfil']) : base_url('images/no-photo.jpg'); ?>"
+                            <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
                                 alt="PhotoProfil"
                                 width="200"
                                 height="250">
