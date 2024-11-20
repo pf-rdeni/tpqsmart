@@ -1073,7 +1073,7 @@ if (ENVIRONMENT === 'production') {
                                             <div class="col-md-12">
                                                 <div class="form-check" id="AlamatIbuSamaDenganAyahDiv">
                                                     <input class="form-check-input" type="checkbox" id="AlamatIbuSamaDenganAyah" name="AlamatIbuSamaDenganAyah" checked>
-                                                    <label class="form-check-label" for="AlamatIbuSamaDenganAyah">Sama Dengan Ayah Kandung</label>
+                                                    <label class="form-check-label" for="AlamatIbuSamaDenganAyah">Alamat Ibu Sama Dengan Ayah Kandung</label>
                                                     <small class="form-text text-primary">
                                                         <i class="fas fa-info-circle"></i> Centang dirubah jika ibu dan ayah tinggal di rumah yang berbeda
                                                     </small>
@@ -1721,85 +1721,89 @@ if (ENVIRONMENT === 'production') {
                                     <!-- Tab Data Alamat -->
                                     <div class="tab-pane fade" id="dataAlamat" role="tabpanel" aria-labelledby="custom-tabs-alamat-tab">
                                         <div class="row">
-                                            <div class="col-md-6">
-                                                <h6 class="font-weight-bold">Alamat Ayah</h6>
+                                            <div class="col-md-12 mt-3" id="previewDataAlamatAyahDiv">
+                                                <h6 class="font-weight-bold" id="labelAlamatAyah">Alamat Ayah Kandung</h6>
                                                 <div class="table-responsive">
                                                     <table class="table table-bordered">
                                                         <tr>
-                                                            <th width="30%">Status Kepemilikan</th>
-                                                            <td id="previewStatusKepemilikanRumahAyah"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Alamat</th>
+                                                            <th width="30%">Alamat</th>
                                                             <td id="previewAlamatAyah"></td>
                                                         </tr>
-                                                        <tr>
-                                                            <th>RT/RW</th>
-                                                            <td><span id="previewRTAyah"></span>/<span id="previewRWAyah"></span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kelurahan/Desa</th>
-                                                            <td id="previewKelurahanDesaAyah"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kecamatan</th>
-                                                            <td id="previewKecamatanAyah"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kabupaten/Kota</th>
-                                                            <td id="previewKabupatenKotaAyah"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Provinsi</th>
-                                                            <td id="previewProvinsiAyah"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kode Pos</th>
-                                                            <td id="previewKodePosAyah"></td>
-                                                        </tr>
+                                                        <tbody id="previewDataAlamatDetailAyahLainya">
+                                                            <tr>
+                                                                <th>Status Kepemilikan</th>
+                                                                <td id="previewStatusKepemilikanRumahAyah"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>RT/RW</th>
+                                                                <td><span id="previewRTAyah"></span>/<span id="previewRWAyah"></span></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Kelurahan/Desa</th>
+                                                                <td id="previewKelurahanDesaAyah"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Kecamatan</th>
+                                                                <td id="previewKecamatanAyah"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Kabupaten/Kota</th>
+                                                                <td id="previewKabupatenKotaAyah"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Provinsi</th>
+                                                                <td id="previewProvinsiAyah"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Kode Pos</th>
+                                                                <td id="previewKodePosAyah"></td>
+                                                            </tr>
+                                                        </tbody>
                                                     </table>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <h6 class="font-weight-bold">Alamat Ibu</h6>
+                                            <div class="col-md-12 mt-3" id="previewDataAlamatIbuDiv">
+                                                <h6 class="font-weight-bold" id="labelAlamatIbu">Alamat Ibu Kandung</h6>
                                                 <div class="table-responsive">
                                                     <table class="table table-bordered">
                                                         <tr>
-                                                            <th width="30%">Status Kepemilikan</th>
-                                                            <td id="previewStatusKepemilikanRumahIbu"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Alamat</th>
+                                                            <th width="30%">Alamat</th>
                                                             <td id="previewAlamatIbu"></td>
                                                         </tr>
-                                                        <tr>
-                                                            <th>RT/RW</th>
-                                                            <td><span id="previewRTIbu"></span>/<span id="previewRWIbu"></span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kelurahan/Desa</th>
-                                                            <td id="previewKelurahanDesaIbu"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kecamatan</th>
-                                                            <td id="previewKecamatanIbu"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kabupaten/Kota</th>
-                                                            <td id="previewKabupatenKotaIbu"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Provinsi</th>
-                                                            <td id="previewProvinsiIbu"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kode Pos</th>
-                                                            <td id="previewKodePosIbu"></td>
-                                                        </tr>
+                                                        <tbody id="previewDataAlamatDetailIbuLainya">
+                                                            <tr>
+                                                                <th>Status Kepemilikan</th>
+                                                                <td id="previewStatusKepemilikanRumahIbu"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>RT/RW</th>
+                                                                <td><span id="previewRTIbu"></span>/<span id="previewRWIbu"></span></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Kelurahan/Desa</th>
+                                                                <td id="previewKelurahanDesaIbu"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Kecamatan</th>
+                                                                <td id="previewKecamatanIbu"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Kabupaten/Kota</th>
+                                                                <td id="previewKabupatenKotaIbu"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Provinsi</th>
+                                                                <td id="previewProvinsiIbu"></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Kode Pos</th>
+                                                                <td id="previewKodePosIbu"></td>
+                                                            </tr>
+                                                        </tbody>
                                                     </table>
                                                 </div>
                                             </div>
-                                            <div class="col-md-12 mt-3">
+                                            <div class="col-md-12 mt-3" id="previewDataAlamatSantriDiv">
                                                 <h6 class="font-weight-bold">Alamat Santri</h6>
                                                 <div class="table-responsive">
                                                     <table class="table table-bordered">
@@ -2028,27 +2032,65 @@ if (ENVIRONMENT === 'production') {
         } else {
             dataWaliLainnya.style.display = 'none';
         }
+
         // Bagian  Alamat Ayah
-        document.getElementById('previewStatusKepemilikanRumahAyah').textContent = document.getElementById('StatusKepemilikanRumahAyah').value;
-        document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value;
-        document.getElementById('previewRTAyah').textContent = document.getElementById('RTAyah').value;
-        document.getElementById('previewRWAyah').textContent = document.getElementById('RWAyah').value;
-        document.getElementById('previewKelurahanDesaAyah').textContent = document.getElementById('KelurahanDesaAyah').value;
-        document.getElementById('previewKecamatanAyah').textContent = document.getElementById('KecamatanAyah').value;
-        document.getElementById('previewKabupatenKotaAyah').textContent = document.getElementById('KabupatenKotaAyah').value;
-        document.getElementById('previewProvinsiAyah').textContent = document.getElementById('ProvinsiAyah').value;
-        document.getElementById('previewKodePosAyah').textContent = document.getElementById('KodePosAyah').value;
+        const previewDataAlamatAyahDiv = document.getElementById('previewDataAlamatAyahDiv');
+        if (statusAyah === 'Masih Hidup') {
+            previewDataAlamatAyahDiv.style.display = 'block';
+            document.getElementById('labelAlamatAyah').textContent = "Alamat Ayah Kandung";
+
+            const previewDataAlamatDetailAyahLainya = document.getElementById('previewDataAlamatDetailAyahLainya');
+            const ayahTinggalDiLuarNegeri = document.getElementById('TinggalDiluarNegeriAyah').checked;
+            if (ayahTinggalDiLuarNegeri) {
+                previewDataAlamatDetailAyahLainya.style.display = 'none';
+                document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value;
+            } else {
+                previewDataAlamatDetailAyahLainya.style.display = 'table-row-group';
+                document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value;
+                document.getElementById('previewStatusKepemilikanRumahAyah').textContent = document.getElementById('StatusKepemilikanRumahAyah').value;
+                document.getElementById('previewRTAyah').textContent = document.getElementById('RTAyah').value;
+                document.getElementById('previewRWAyah').textContent = document.getElementById('RWAyah').value;
+                document.getElementById('previewKelurahanDesaAyah').textContent = document.getElementById('KelurahanDesaAyah').value;
+                document.getElementById('previewKecamatanAyah').textContent = document.getElementById('KecamatanAyah').value;
+                document.getElementById('previewKabupatenKotaAyah').textContent = document.getElementById('KabupatenKotaAyah').value;
+                document.getElementById('previewProvinsiAyah').textContent = document.getElementById('ProvinsiAyah').value;
+                document.getElementById('previewKodePosAyah').textContent = document.getElementById('KodePosAyah').value;
+            }
+        } else {
+            previewDataAlamatAyahDiv.style.display = 'none';
+        }
 
         // Alamat Ibu
-        document.getElementById('previewStatusKepemilikanRumahIbu').textContent = document.getElementById('StatusKepemilikanRumahIbu').value;
-        document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value;
-        document.getElementById('previewRTIbu').textContent = document.getElementById('RTIbu').value;
-        document.getElementById('previewRWIbu').textContent = document.getElementById('RWIbu').value;
-        document.getElementById('previewKelurahanDesaIbu').textContent = document.getElementById('KelurahanDesaIbu').value;
-        document.getElementById('previewKecamatanIbu').textContent = document.getElementById('KecamatanIbu').value;
-        document.getElementById('previewKabupatenKotaIbu').textContent = document.getElementById('KabupatenKotaIbu').value;
-        document.getElementById('previewProvinsiIbu').textContent = document.getElementById('ProvinsiIbu').value;
-        document.getElementById('previewKodePosIbu').textContent = document.getElementById('KodePosIbu').value;
+        const previewDataAlamatIbuDiv = document.getElementById('previewDataAlamatIbuDiv');
+        if (statusIbu === 'Masih Hidup') {
+            previewDataAlamatIbuDiv.style.display = 'block';
+            document.getElementById('labelAlamatIbu').textContent = "Alamat Ibu Kandung";
+            const alamatIbuSamaDenganAyah = document.getElementById('AlamatIbuSamaDenganAyah').checked;
+            if (alamatIbuSamaDenganAyah) {
+                previewDataAlamatIbuDiv.style.display = 'none';
+                document.getElementById('labelAlamatAyah').textContent = "Alamat Orang Tua Kandung";
+            } else {
+                const previewDataAlamatDetailIbuLainya = document.getElementById('previewDataAlamatDetailIbuLainya');
+                const ibuTinggalDiLuarNegeri = document.getElementById('TinggalDiluarNegeriIbu').checked;
+                if (ibuTinggalDiLuarNegeri) {
+                    previewDataAlamatDetailIbuLainya.style.display = 'none';
+                    document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value;
+                } else {
+                    previewDataAlamatDetailIbuLainya.style.display = 'table-row-group';
+                    document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value;
+                    document.getElementById('previewStatusKepemilikanRumahIbu').textContent = document.getElementById('StatusKepemilikanRumahIbu').value;
+                    document.getElementById('previewRTIbu').textContent = document.getElementById('RTIbu').value;
+                    document.getElementById('previewRWIbu').textContent = document.getElementById('RWIbu').value;
+                    document.getElementById('previewKelurahanDesaIbu').textContent = document.getElementById('KelurahanDesaIbu').value;
+                    document.getElementById('previewKecamatanIbu').textContent = document.getElementById('KecamatanIbu').value;
+                    document.getElementById('previewKabupatenKotaIbu').textContent = document.getElementById('KabupatenKotaIbu').value;
+                    document.getElementById('previewProvinsiIbu').textContent = document.getElementById('ProvinsiIbu').value;
+                    document.getElementById('previewKodePosIbu').textContent = document.getElementById('KodePosIbu').value;
+                }
+            }
+        } else {
+            previewDataAlamatIbuDiv.style.display = 'none';
+        }
 
         // Alamat Santri
         // check status tempat tinggal  
@@ -2091,8 +2133,14 @@ if (ENVIRONMENT === 'production') {
     function submitForm() {
         document.getElementById('santriForm').submit();
     }
+    /* ===== End Region: preview menampilkan data santri ===== */
 
-    /* ===== Region: Print PDF Data Santri ===== */
+    /* ===== Region: Print PDF Data Santri ===== 
+     * Fungsi ini dipanggil saat tombol "Cetak PDF" diklik
+     * Membuat file PDF dari data santri yang telah diisi
+     * Menggunakan library SweetAlert2 untuk notifikasi
+     * Menggunakan fetch untuk mengirim data ke endpoint PDF
+     */
     function printPDF() {
         // Tampilkan loading spinner
         Swal.fire({
