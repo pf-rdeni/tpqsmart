@@ -9,8 +9,6 @@ if (ENVIRONMENT === 'production') {
 }
 ?>
 
-?>
-
 <div class="modal-body">
     <div class="row">
         <div class="col-md-12">
@@ -298,23 +296,6 @@ if (ENVIRONMENT === 'production') {
                                                 <input type="email" class="form-control" id="EmailSantri" name="EmailSantri" placeholder="Contoh: nama@email.com" readonly>
                                             </div>
                                         </div>
-                                        <script>
-                                            document.getElementById('NoHpSantriBelumPunya').addEventListener('change', function() {
-                                                const noHpInput = document.getElementById('NoHpSantri');
-                                                noHpInput.readOnly = this.checked;
-                                                if (this.checked) {
-                                                    noHpInput.value = '';
-                                                }
-                                            });
-
-                                            document.getElementById('EmailSantriBelumPunya').addEventListener('change', function() {
-                                                const emailInput = document.getElementById('EmailSantri');
-                                                emailInput.readOnly = this.checked;
-                                                if (this.checked) {
-                                                    emailInput.value = '';
-                                                }
-                                            });
-                                        </script>
                                     </div>
                                     <div class="form-group">
                                         <div class="row">
@@ -395,7 +376,7 @@ if (ENVIRONMENT === 'production') {
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
                                                         <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
-                                                        <label class="custom-file-label" for="FileKkSantri">Unggah KK</label>
+                                                        <label class="custom-file-label" for="FileKkSantri">Upload KK</label>
                                                     </div>
                                                 </div>
                                                 <span id="FileKkSantriError" class="text-danger d-none">Upload KK Santri diperlukan.</span>
@@ -415,7 +396,7 @@ if (ENVIRONMENT === 'production') {
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
                                                         <input type="file" class="form-control" id="FileKIP" name="FileKIP" accept=".pdf,.jpg,.jpeg,.png">
-                                                        <label class="custom-file-label" for="FileKIP">Unggah KIP</label>
+                                                        <label class="custom-file-label" for="FileKIP">Upload KIP</label>
                                                     </div>
                                                 </div>
                                                 <small id="FileKIPError" class="text-danger d-none"></small>
@@ -747,6 +728,9 @@ if (ENVIRONMENT === 'production') {
                                             </select>
                                             <span id="StatusWaliError" class="text-danger" style="display:none;">Status Wali diperlukan.</span>
                                             <script>
+                                                /* ===== Region: Update opsi wali ===== 
+                                                 * Fungsi ini memperbarui opsi wali berdasarkan status ayah dan ibu.
+                                                 */
                                                 document.addEventListener('DOMContentLoaded', function() {
                                                     const waliSelect = document.getElementById('StatusWali');
                                                     const statusAyah = document.getElementById('StatusAyah');
@@ -901,6 +885,9 @@ if (ENVIRONMENT === 'production') {
                                         </div>
                                     </div>
                                     <script>
+                                        /* ===== Region: Menampilkan data wali ===== 
+                                         * Fungsi ini menampilkan data wali yang perlu di isi berdasarkan status wali yang dipilih.
+                                         */
                                         document.getElementById('StatusWali').addEventListener('change', function() {
                                             var dataWali = document.getElementById('dataWali');
                                             if (this.value === 'Saudara') {
@@ -931,7 +918,7 @@ if (ENVIRONMENT === 'production') {
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="FileKKS">Unggah File KKS</label>
+                                                <label for="FileKKS">Upload File KKS</label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
                                                         <input type="file" class="form-control" id="FileKKS" name="FileKKS" accept=".pdf,.jpg,.jpeg,.png">
@@ -943,7 +930,7 @@ if (ENVIRONMENT === 'production') {
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="FilePKH">Unggah File PKH</label>
+                                                <label for="FilePKH">Upload File PKH</label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
                                                         <input type="file" class="form-control" id="FilePKH" name="FilePKH" accept=".pdf,.jpg,.jpeg,.png">
@@ -1227,9 +1214,9 @@ if (ENVIRONMENT === 'production') {
                                                          * 3. Mengambil status wali yang dipilih.
                                                          * 4. Mengupdate pilihan berdasarkan:
                                                          *    - Jika ayah masih hidup dan tidak tinggal di luar negeri, tambah opsi 'Tinggal dengan Ayah Kandung'.
-                                                         *    - Jika ibu masih hidup dan tidak tinggal di luar negeri/tidak tinggal dengan ayah, tambah opsi 'Tinggal dengan Ibu Kandung'.
-                                                         *    - Jika wali sudah dipilih, tambah opsi 'Tinggal dengan Wali'.
-                                                         *    - Tambah pilihan statis lainnya seperti 'Asrama Pesantren' dan 'Lainnya'.
+                                                         *    - Jika ibu masih hidup dan tidak tinggal di luar negeri, tambah opsi 'Tinggal dengan Ibu Kandung'.
+                                                         *    - Jika wali berstatus 'Saudara', tambah opsi 'Tinggal dengan Wali'.
+                                                         *    - Tambah pilihan statis 'Lainnya'.
                                                          * 5. Mengupdate pilihan saat ada perubahan status orang tua/wali.
                                                          * 6. Mengupdate pilihan saat ada perubahan lokasi tinggal orang tua.
                                                          */
@@ -1406,33 +1393,36 @@ if (ENVIRONMENT === 'production') {
                                             <div class="form-group">
                                                 <label for="TitikKoordinatSantri">Titik Koordinat</label>
                                                 <div class="input-group">
-                                                    <input type="text" class="form-control" id="TitikKoordinatSantri" name="TitikKoordinatSantri" placeholder="Titik Koordinat" readonly <?= $required ?>>
+                                                    <input type="text" class="form-control" id="TitikKoordinatSantri" name="TitikKoordinatSantri" placeholder="Titik Koordinat" readonly>
                                                     <div class="input-group-append">
                                                         <button class="btn btn-outline-secondary" type="button" id="getLocationBtn">
                                                             <i class="fas fa-map-marker-alt"></i> Dapatkan Lokasi
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <small class="form-text text-muted">Klik tombol untuk mendapatkan koordinat otomatis</small>
+                                                <small class="form-text text-primary">Klik tombol <strong>Dapatkan Lokasi</strong> untuk mendapatkan koordinat otomatis</small>
                                                 <span id="TitikKoordinatSantriError" class="text-danger" style="display:none;">Titik koordinat diperlukan.</span>
-
                                                 <script>
                                                     document.getElementById('getLocationBtn').addEventListener('click', function() {
+                                                        // Reset tampilan field dan error message
+                                                        const koordinatField = document.getElementById('TitikKoordinatSantri');
+                                                        const errorSpan = document.getElementById('TitikKoordinatSantriError');
+
+                                                        koordinatField.style.border = '1px solid #ced4da'; // Reset border ke default
+                                                        koordinatField.style.backgroundColor = ''; // Reset background
+                                                        errorSpan.style.display = 'none'; // Sembunyikan pesan error
+
                                                         if (navigator.geolocation) {
                                                             navigator.geolocation.getCurrentPosition(function(position) {
                                                                 var lat = position.coords.latitude;
                                                                 var lng = position.coords.longitude;
-                                                                document.getElementById('TitikKoordinatSantri').value = lat + ', ' + lng;
-                                                                validateField(document.getElementById('TitikKoordinatSantri'));
+                                                                koordinatField.value = lat + ', ' + lng;
+                                                                validateField(koordinatField);
                                                             }, function() {
                                                                 alert('Tidak dapat mengakses lokasi. Pastikan Anda mengizinkan akses lokasi.');
                                                             });
                                                         } else {
                                                             alert('Geolocation tidak didukung oleh browser Anda.');
-                                                        }
-                                                        if (validateField(document.getElementById('TitikKoordinatSantri'))) {
-                                                            // Hapus background merah saat input valid
-                                                            document.getElementById('TitikKoordinatSantri').style.backgroundColor = '';
                                                         }
                                                     });
                                                 </script>
@@ -2839,6 +2829,33 @@ if (ENVIRONMENT === 'production') {
         });
     });
     /* ===== End Region: Event listener untuk input nomor handphone ===== */
+
+    /* ===== Region: Validasi Nomor Handphone dan Email santri ===== 
+     * Fungsi ini memvalidasi nomor handphone dan email santri dengan ketentuan:
+     * 1. Memastikan input nomor handphone tidak boleh diubah jika checkbox tidak dicentang
+     * 2. Menghapus nilai input nomor handphone jika checkbox dicentang
+     * 3. Menghapus pesan error jika input nomor handphone valid
+     */
+    document.getElementById('NoHpSantriBelumPunya').addEventListener('change', function() {
+        const noHpInput = document.getElementById('NoHpSantri');
+        noHpInput.readOnly = this.checked;
+        if (this.checked) {
+            noHpInput.value = '';
+            noHpInput.classList.remove('is-invalid');
+            document.getElementById('NoHpSantriError').style.display = 'none';
+        }
+    });
+
+    document.getElementById('EmailSantriBelumPunya').addEventListener('change', function() {
+        const emailInput = document.getElementById('EmailSantri');
+        emailInput.readOnly = this.checked;
+        if (this.checked) {
+            emailInput.value = '';
+            emailInput.classList.remove('is-invalid');
+            document.getElementById('EmailSantriError').style.display = 'none';
+        }
+    });
+    /* ===== End Region: Validasi Nomor Handphone dan Email santri ===== */
 
     /* ===== Region: Validasi Nama Kepala Keluarga =====
      * Fungsi ini memvalidasi input nama kepala keluarga
