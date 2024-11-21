@@ -745,6 +745,8 @@ class Santri extends BaseController
                 'fotoSantri' => $data['printFotoSantri'] ?? null
             ]);
 
+            $this->saveLog($html);
+
             // log generate Load HTML ke DOMPDF 
             $this->saveLog("ℹ️ INFO: Memulai generate PDF");
             $dompdf->loadHtml($html);
