@@ -701,18 +701,19 @@ class Santri extends BaseController
             // Proses foto
             $this->saveLog("ℹ️ INFO: Memproses foto santri");
             if (!empty($dataSantri['PhotoProfil'])) {
+                $fotoData = null;
                 if (ENVIRONMENT === 'production') {
                     $this->saveLog("ℹ️ INFO: Menggunakan path production untuk foto");
                     $fotoPath = 'https://tpqsmart.simpedis.com/uploads/santri/' . $dataSantri['PhotoProfil'];
                     $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
-                    // $context = stream_context_create([
-                    //     'ssl' => [
-                    //         'verify_peer' => false,
-                    //         'verify_peer_name' => false,
-                    //     ]
-                    // ]);
-                    // $fotoData = file_get_contents($fotoPath, false, $context);
-                    $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
+                    $context = stream_context_create([
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                        ]
+                    ]);
+                    $fotoData = file_get_contents($fotoPath, false, $context);
+                    //$fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
                     $this->saveLog("ℹ️ INFO: Foto data berhasil diambil");
                 } else {
                     $this->saveLog("ℹ️ INFO: Menggunakan path development untuk foto");
