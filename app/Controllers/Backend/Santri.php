@@ -747,7 +747,7 @@ class Santri extends BaseController
             $this->saveLog("ℹ️ INFO: Memulai generate HTML");
             $html = view('backend/santri/pdf_template', [
                 'data' => $data,
-                'fotoSantri' => $data['printFotoSantri'] ?? null
+                'fotoSantri' => $data['printFotoSantri'] = null
             ]);
 
             $this->saveLog($html);
