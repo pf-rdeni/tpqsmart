@@ -553,7 +553,15 @@ class Santri extends BaseController
     {
         $logFile = WRITEPATH . 'logs/pdfGeneration.log';
         $logMessage = "\n=== " . date('Y-m-d H:i:s') . " ===\n";
-        $logMessage .= implode("\n", $logs) . "\n";
+
+        // Periksa apakah $logs adalah array atau string
+        if (is_array($logs)) {
+            $logMessage .= implode("\n", $logs);
+        } else {
+            $logMessage .= $logs;
+        }
+
+        $logMessage .= "\n";
         file_put_contents($logFile, $logMessage, FILE_APPEND);
     }
 
