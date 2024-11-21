@@ -534,10 +534,15 @@ class Santri extends BaseController
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
             $this->saveLog("✓ OK: PDF berhasil dibuat");
-            
-            return $this->response
-                ->setHeader('Content-Type', 'application/pdf')
-                ->setBody($dompdf->output());
+
+            // Tambahkan header untuk menandai ini sebagai PDF
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="Data_Santri.pdf"');
+
+            // Keluarkan PDF ke browser
+            $dompdf->stream('Data_Santri.pdf', array('Attachment' => false));
+
+            return;
 
         } catch (\Exception $e) {
             $this->saveLog("❌ ERROR: " . $e->getMessage());
@@ -753,10 +758,13 @@ class Santri extends BaseController
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
             $this->saveLog("✓ OK: PDF berhasil di-generate");
+            // Tambahkan header untuk menandai ini sebagai PDF
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="Data_Santri.pdf"');
 
-            // Output PDF
-            $filename = 'Data_Santri_' . $dataSantri['NamaSantri'] . '.pdf';
-            $dompdf->stream($filename, ['Attachment' => false]);
+            // Keluarkan PDF ke browser
+            $dompdf->stream('Data_Santri.pdf', array('Attachment' => false));
+
             return;
 
         } catch (\Exception $e) {
