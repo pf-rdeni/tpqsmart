@@ -705,13 +705,13 @@ class Santri extends BaseController
                     $this->saveLog("ℹ️ INFO: Menggunakan path production untuk foto");
                     $fotoPath = 'https://tpqsmart.simpedis.com/uploads/santri/' . $dataSantri['PhotoProfil'];
                     $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
-                    // $context = stream_context_create([
-                    //     'ssl' => [
-                    //         'verify_peer' => false,
-                    //         'verify_peer_name' => false,
-                    //     ]
-                    // ]);
-                    // $fotoData = file_get_contents($fotoPath, false, $context);
+                    $context = stream_context_create([
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                        ]
+                    ]);
+                    $fotoData = file_get_contents($fotoPath, false, $context);
                     $this->saveLog("ℹ️ INFO: Foto data berhasil diambil");
                 } else {
                     $this->saveLog("ℹ️ INFO: Menggunakan path development untuk foto");
