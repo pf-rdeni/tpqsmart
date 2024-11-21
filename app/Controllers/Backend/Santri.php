@@ -46,256 +46,288 @@ class Santri extends BaseController
     // fungsi untuk menyimpan
     public function save()
     {
-        $IdSantri = "";
-        // Ambil tahun saat ini
-        $tahunSekarang = date('Y');
-        
-        // Cari IdSantri terakhir dengan awalan tahun ini
-        $lastSantri = $this->DataSantriBaru->like('IdSantri', $tahunSekarang, 'after')
-                                          ->orderBy('IdSantri', 'DESC')
-                                          ->first();
-        
-        if ($lastSantri) {
-            // Jika sudah ada santri tahun ini, ambil nomor urut terakhir dan tambah 1
-            $lastNumber = intval(substr($lastSantri['IdSantri'], 4));
-            $newNumber = $lastNumber + 1;
-            $IdSantri= $tahunSekarang . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
-        } else {
-            // Jika belum ada santri tahun ini, mulai dari 0001
-            $IdSantri = $tahunSekarang . '0001';
-        }
+        // Inisialisasi log
+        $logs = [];
+        $logs[] = "ℹ️ INFO: Memulai proses save data santri";
 
-        // Fungsi untuk menangani upload file dengan nama yang menyertakan IdSantri
-        $handleUpload = function ($file, $prefix) use ($IdSantri) {
-            try {
-                if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
-                    return null;
-                }
+        try {
+            $IdSantri = "";
+            // Ambil tahun saat ini
+            $tahunSekarang = date('Y');
+            $logs[] = "ℹ️ INFO: Tahun sekarang: " . $tahunSekarang;
 
-                if (!$file->isValid()) {
-                    throw new \Exception('File tidak valid: ' . $file->getErrorString());
-                }
+            // Cari IdSantri terakhir
+            $lastSantri = $this->DataSantriBaru->like('IdSantri', $tahunSekarang, 'after')
+                ->orderBy('IdSantri', 'DESC')
+                ->first();
 
-                if ($file->hasMoved()) {
-                    throw new \Exception('File sudah dipindahkan sebelumnya');
-                }
-
-                $randomNumber = uniqid();
-                $newName = $prefix . '_' . $IdSantri . '_' . $randomNumber . '.' . $file->getExtension();
-                
-                // Tentukan path berdasarkan environment
-                if (ENVIRONMENT === 'production') {
-                    $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';  // Path di server production
-                } else {
-                    $uploadPath = ROOTPATH . 'public/uploads/santri/';
-                }
-
-                // Validasi direktori upload
-                if (!is_dir($uploadPath)) {
-                    throw new \Exception('Direktori upload tidak ditemukan: ' . $uploadPath);
-                }
-
-                if (!is_writable($uploadPath)) {
-                    throw new \Exception('Direktori upload tidak dapat ditulis: ' . $uploadPath);
-                }
-
-                $targetPath = $uploadPath . $newName;
-
-                // Hapus file lama jika ada
-                if (file_exists($targetPath)) {
-                    if (!unlink($targetPath)) {
-                        throw new \Exception('Gagal menghapus file lama: ' . $targetPath);
-                    }
-                }
-
-                // Pindahkan file
-                if (!$file->move($uploadPath, $newName, true)) {
-                    throw new \Exception('Gagal memindahkan file ke: ' . $targetPath);
-                }
-
-                return $newName;
-            } catch (\Exception $e) {
-                log_message('error', '[File Upload] ' . $e->getMessage());
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Gagal mengupload file: ' . $e->getMessage(),
-                    'error_details' => [
-                        'file' => $prefix,
-                        'error' => $e->getMessage(),
-                        'trace' => ENVIRONMENT === 'development' ? $e->getTraceAsString() : null
-                    ]
-                ]);
+            if ($lastSantri) {
+                $lastNumber = intval(substr($lastSantri['IdSantri'], 4));
+                $newNumber = $lastNumber + 1;
+                $IdSantri = $tahunSekarang . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+                $logs[] = "✓ OK: ID Santri baru dibuat: " . $IdSantri;
+            } else {
+                $IdSantri = $tahunSekarang . '0001';
+                $logs[] = "✓ OK: ID Santri pertama dibuat: " . $IdSantri;
             }
-        };
 
-        // Handle upload untuk setiap file dan simpan nama file ke variabel
-        $photoProfilName = $handleUpload($this->request->getFile('PhotoProfil'), 'Profile');
-        $namaFileKIP = $handleUpload($this->request->getFile('FileKIP'), 'Kip');
-        $namaFileKkSantri = $handleUpload($this->request->getFile('FileKkSantri'), 'KkSantri');
-        $namaFileKkAyah = $handleUpload($this->request->getFile('FileKKAyah'), 'KkAyah');
-        $namaFileKkIbu = $handleUpload($this->request->getFile('FileKKIbu'), 'KkIbu');
-        $namaFileKKS = $handleUpload($this->request->getFile('FileKKS'), 'Kks');
-        $namaFilePKH = $handleUpload($this->request->getFile('FilePKH'), 'Pkh');
-        // Update data yang akan disimpan dengan nama file yang baru
-        $data['PhotoProfil'] = $photoProfilName;
-        $data['FileKIP'] = $namaFileKIP;
-        $data['FileKkSantri'] = $namaFileKkSantri; 
-        $data['FileKkAyah'] = $namaFileKkAyah;
-        $data['FileKkIbu'] = $namaFileKkIbu;
-        $data['FileKKS'] = $namaFileKKS;
-        $data['FilePKH'] = $namaFilePKH;
+            // Fungsi untuk menangani upload file dengan nama yang menyertakan IdSantri
+            $handleUpload = function ($file, $prefix) use ($IdSantri) {
+                try {
+                    if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
+                        return null;
+                    }
 
-        // Handling checkbok kksamaayah sama dengan santri maka file kk ayah sama dengan file kk santri
-        if ($this->request->getPost('KkAyahSamaDenganSantri') == 'on')
+                    if (!$file->isValid()) {
+                        throw new \Exception('File tidak valid: ' . $file->getErrorString());
+                    }
+
+                    if ($file->hasMoved()) {
+                        throw new \Exception('File sudah dipindahkan sebelumnya');
+                    }
+
+                    $randomNumber = uniqid();
+                    $newName = $prefix . '_' . $IdSantri . '_' . $randomNumber . '.' . $file->getExtension();
+
+                    // Tentukan path berdasarkan environment
+                    if (ENVIRONMENT === 'production') {
+                        $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';  // Path di server production
+                    } else {
+                        $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                    }
+
+                    // Validasi direktori upload
+                    if (!is_dir($uploadPath)) {
+                        $logs[] = "❌ ERROR: Direktori upload tidak ditemukan: " . $uploadPath;
+                        throw new \Exception('Direktori upload tidak ditemukan: ' . $uploadPath);
+                    }
+
+                    if (!is_writable($uploadPath)) {
+                        $logs[] = "❌ ERROR: Direktori upload tidak dapat ditulis: " . $uploadPath;
+                        throw new \Exception('Direktori upload tidak dapat ditulis: ' . $uploadPath);
+                    }
+
+                    $targetPath = $uploadPath . $newName;
+
+                    // Hapus file lama jika ada
+                    if (file_exists($targetPath)) {
+                        if (!unlink($targetPath)) {
+                            $logs[] = "❌ ERROR: Gagal menghapus file lama: " . $targetPath;
+                            throw new \Exception('Gagal menghapus file lama: ' . $targetPath);
+                        }
+                    }
+
+                    // Pindahkan file
+                    if (!$file->move($uploadPath, $newName, true)) {
+                        $logs[] = "❌ ERROR: Gagal memindahkan file ke: " . $targetPath;
+                        throw new \Exception('Gagal memindahkan file ke: ' . $targetPath);
+                    }
+
+                    return $newName;
+                } catch (\Exception $e) {
+                    $logs[] = "❌ ERROR: Gagal mengupload file: " . $e->getMessage();
+                    log_message('error', '[File Upload] ' . $e->getMessage());
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Gagal mengupload file: ' . $e->getMessage(),
+                        'error_details' => [
+                            'file' => $prefix,
+                            'error' => $e->getMessage(),
+                            'trace' => ENVIRONMENT === 'development' ? $e->getTraceAsString() : null
+                        ]
+                    ]);
+                }
+            };
+
+            // Handle upload untuk setiap file dan simpan nama file ke variabel
+            $photoProfilName = $handleUpload($this->request->getFile('PhotoProfil'), 'Profile');
+            $namaFileKIP = $handleUpload($this->request->getFile('FileKIP'), 'Kip');
+            $namaFileKkSantri = $handleUpload($this->request->getFile('FileKkSantri'), 'KkSantri');
+            $namaFileKkAyah = $handleUpload($this->request->getFile('FileKKAyah'), 'KkAyah');
+            $namaFileKkIbu = $handleUpload($this->request->getFile('FileKKIbu'), 'KkIbu');
+            $namaFileKKS = $handleUpload($this->request->getFile('FileKKS'), 'Kks');
+            $namaFilePKH = $handleUpload($this->request->getFile('FilePKH'), 'Pkh');
+            // Update data yang akan disimpan dengan nama file yang baru
+            $data['PhotoProfil'] = $photoProfilName;
+            $data['FileKIP'] = $namaFileKIP;
+            $data['FileKkSantri'] = $namaFileKkSantri;
+            $data['FileKkAyah'] = $namaFileKkAyah;
+            $data['FileKkIbu'] = $namaFileKkIbu;
+            $data['FileKKS'] = $namaFileKKS;
+            $data['FilePKH'] = $namaFilePKH;
+
+            // Handling checkbok kksamaayah sama dengan santri maka file kk ayah sama dengan file kk santri
+            if ($this->request->getPost('KkAyahSamaDenganSantri') == 'on')
             $namaFileKkAyah = $namaFileKkSantri;
-        if ($this->request->getPost('KkIbuSamaDenganAyahAtauSantri') == 'on')
+            if ($this->request->getPost('KkIbuSamaDenganAyahAtauSantri') == 'on')
             $namaFileKkIbu = $namaFileKkSantri;
 
-        // Siapkan data untuk disimpan
-        $data = [
-            // Data TPQ
-            'IdTpq' => $this->request->getPost('IdTpq'),
-            'IdKelas' => $this->request->getPost('IdKelas'),
-            'Agama' => 'Islam',
-            // Data Santri
-            'IdSantri' => $IdSantri,
-            'PhotoProfil' => $photoProfilName,
-            'NikSantri' => $this->request->getPost('NikSantri'),
-            'NamaSantri' => $this->request->getPost('NamaSantri'),
-            'JenisKelamin' => $this->request->getPost('JenisKelamin'),
-            'NISN' => $this->request->getPost('NISN'),
-            'TempatLahirSantri' => $this->request->getPost('TempatLahirSantri'),
-            'TanggalLahirSantri' => $this->request->getPost('TanggalLahirSantri'),
-            'AnakKe' => $this->request->getPost('AnakKe'),
-            'JumlahSaudara' => $this->request->getPost('JumlahSaudara'),
-            'CitaCita' => $this->request->getPost('CitaCita'),
-            'CitaCitaLainya' => $this->request->getPost('CitaCitaLainya'),
-            'Hobi' => $this->request->getPost('Hobi'),
-            'HobiLainya' => $this->request->getPost('HobiLainya'),
-            'NoHpSantri' => $this->request->getPost('NoHpSantri'),
-            'EmailSantri' => $this->request->getPost('EmailSantri'),
-            'KebutuhanKhusus' => $this->request->getPost('KebutuhanKhusus'),
-            'KebutuhanKhususLainya' => $this->request->getPost('KebutuhanKhususLainya'),
-            'KebutuhanDisabilitas' => $this->request->getPost('KebutuhanDisabilitas'),
-            'KebutuhanDisabilitasLainya' => $this->request->getPost('KebutuhanDisabilitasLainya'),
-            'YangBiayaSekolah' => $this->request->getPost('YangBiayaSekolah'),
-            'NamaKepalaKeluarga' => $this->request->getPost('NamaKepalaKeluarga'),
-            'NoKIP' => $this->request->getPost('NoKIP'),
-            'IdKartuKeluarga' => $this->request->getPost('IdKartuKeluarga'),
-            'FileKIP' => $namaFileKIP,
-            'FileKkSantri' => $namaFileKkSantri,
+            // Siapkan data untuk disimpan
+            $data = [
+                // Data TPQ
+                'IdTpq' => $this->request->getPost('IdTpq'),
+                'IdKelas' => $this->request->getPost('IdKelas'),
+                'Agama' => 'Islam',
+                // Data Santri
+                'IdSantri' => $IdSantri,
+                'PhotoProfil' => $photoProfilName,
+                'NikSantri' => $this->request->getPost('NikSantri'),
+                'NamaSantri' => $this->request->getPost('NamaSantri'),
+                'JenisKelamin' => $this->request->getPost('JenisKelamin'),
+                'NISN' => $this->request->getPost('NISN'),
+                'TempatLahirSantri' => $this->request->getPost('TempatLahirSantri'),
+                'TanggalLahirSantri' => $this->request->getPost('TanggalLahirSantri'),
+                'AnakKe' => $this->request->getPost('AnakKe'),
+                'JumlahSaudara' => $this->request->getPost('JumlahSaudara'),
+                'CitaCita' => $this->request->getPost('CitaCita'),
+                'CitaCitaLainya' => $this->request->getPost('CitaCitaLainya'),
+                'Hobi' => $this->request->getPost('Hobi'),
+                'HobiLainya' => $this->request->getPost('HobiLainya'),
+                'NoHpSantri' => $this->request->getPost('NoHpSantri'),
+                'EmailSantri' => $this->request->getPost('EmailSantri'),
+                'KebutuhanKhusus' => $this->request->getPost('KebutuhanKhusus'),
+                'KebutuhanKhususLainya' => $this->request->getPost('KebutuhanKhususLainya'),
+                'KebutuhanDisabilitas' => $this->request->getPost('KebutuhanDisabilitas'),
+                'KebutuhanDisabilitasLainya' => $this->request->getPost('KebutuhanDisabilitasLainya'),
+                'YangBiayaSekolah' => $this->request->getPost('YangBiayaSekolah'),
+                'NamaKepalaKeluarga' => $this->request->getPost('NamaKepalaKeluarga'),
+                'NoKIP' => $this->request->getPost('NoKIP'),
+                'IdKartuKeluarga' => $this->request->getPost('IdKartuKeluarga'),
+                'FileKIP' => $namaFileKIP,
+                'FileKkSantri' => $namaFileKkSantri,
 
-            // Data Ayah
-            'NamaAyah' => $this->request->getPost('NamaAyah'),
-            'StatusAyah' => $this->request->getPost('StatusAyah'),
-            'NikAyah' => $this->request->getPost('NikAyah'),
-            'KewarganegaraanAyah' => $this->request->getPost('KewarganegaraanAyah'),
-            'TempatLahirAyah' => $this->request->getPost('TempatLahirAyah'),
-            'TanggalLahirAyah' => $this->request->getPost('TanggalLahirAyah'),
-            'PendidikanAyah' => $this->request->getPost('PendidikanAyah'),
-            'PekerjaanUtamaAyah' => $this->request->getPost('PekerjaanUtamaAyah'),
-            'PenghasilanUtamaAyah' => $this->request->getPost('PenghasilanUtamaAyah'),
-            'NoHpAyah' => $this->request->getPost('NoHpAyah'),
-            'FileKkAyah' => $namaFileKkAyah,
+                // Data Ayah
+                'NamaAyah' => $this->request->getPost('NamaAyah'),
+                'StatusAyah' => $this->request->getPost('StatusAyah'),
+                'NikAyah' => $this->request->getPost('NikAyah'),
+                'KewarganegaraanAyah' => $this->request->getPost('KewarganegaraanAyah'),
+                'TempatLahirAyah' => $this->request->getPost('TempatLahirAyah'),
+                'TanggalLahirAyah' => $this->request->getPost('TanggalLahirAyah'),
+                'PendidikanAyah' => $this->request->getPost('PendidikanAyah'),
+                'PekerjaanUtamaAyah' => $this->request->getPost('PekerjaanUtamaAyah'),
+                'PenghasilanUtamaAyah' => $this->request->getPost('PenghasilanUtamaAyah'),
+                'NoHpAyah' => $this->request->getPost('NoHpAyah'),
+                'FileKkAyah' => $namaFileKkAyah,
 
-            // Data Ibu
-            'NamaIbu' => $this->request->getPost('NamaIbu'),
-            'StatusIbu' => $this->request->getPost('StatusIbu'),
-            'NikIbu' => $this->request->getPost('NikIbu'),
-            'KewarganegaraanIbu' => $this->request->getPost('KewarganegaraanIbu'),
-            'TempatLahirIbu' => $this->request->getPost('TempatLahirIbu'),
-            'TanggalLahirIbu' => $this->request->getPost('TanggalLahirIbu'),
-            'PendidikanIbu' => $this->request->getPost('PendidikanIbu'),
-            'PekerjaanUtamaIbu' => $this->request->getPost('PekerjaanUtamaIbu'),
-            'PenghasilanUtamaIbu' => $this->request->getPost('PenghasilanUtamaIbu'),
-            'NoHpIbu' => $this->request->getPost('NoHpIbu'),
-            'FileKkIbu' => $namaFileKkIbu,
+                // Data Ibu
+                'NamaIbu' => $this->request->getPost('NamaIbu'),
+                'StatusIbu' => $this->request->getPost('StatusIbu'),
+                'NikIbu' => $this->request->getPost('NikIbu'),
+                'KewarganegaraanIbu' => $this->request->getPost('KewarganegaraanIbu'),
+                'TempatLahirIbu' => $this->request->getPost('TempatLahirIbu'),
+                'TanggalLahirIbu' => $this->request->getPost('TanggalLahirIbu'),
+                'PendidikanIbu' => $this->request->getPost('PendidikanIbu'),
+                'PekerjaanUtamaIbu' => $this->request->getPost('PekerjaanUtamaIbu'),
+                'PenghasilanUtamaIbu' => $this->request->getPost('PenghasilanUtamaIbu'),
+                'NoHpIbu' => $this->request->getPost('NoHpIbu'),
+                'FileKkIbu' => $namaFileKkIbu,
 
-            // Data Wali
-            'StatusWali' => $this->request->getPost('StatusWali'),
-            'NamaWali' => $this->request->getPost('NamaWali'),
-            'NikWali' => $this->request->getPost('NikWali'),
-            'KewarganegaraanWali' => $this->request->getPost('KewarganegaraanWali'),
-            'TempatLahirWali' => $this->request->getPost('TempatLahirWali'),
-            'TanggalLahirWali' => $this->request->getPost('TanggalLahirWali'),
-            'PendidikanWali' => $this->request->getPost('PendidikanWali'),
-            'PekerjaanUtamaWali' => $this->request->getPost('PekerjaanUtamaWali'),
-            'PenghasilanUtamaWali' => $this->request->getPost('PenghasilanUtamaWali'),
-            'NoHpWali' => $this->request->getPost('NoHpWali'),
-            'NomorPKH' => $this->request->getPost('NomorPKH'),
-            'NomorKKS' => $this->request->getPost('NomorKKS'),
-            'FilePKH' => $namaFilePKH,
-            'FileKKS' => $namaFileKKS,
+                // Data Wali
+                'StatusWali' => $this->request->getPost('StatusWali'),
+                'NamaWali' => $this->request->getPost('NamaWali'),
+                'NikWali' => $this->request->getPost('NikWali'),
+                'KewarganegaraanWali' => $this->request->getPost('KewarganegaraanWali'),
+                'TempatLahirWali' => $this->request->getPost('TempatLahirWali'),
+                'TanggalLahirWali' => $this->request->getPost('TanggalLahirWali'),
+                'PendidikanWali' => $this->request->getPost('PendidikanWali'),
+                'PekerjaanUtamaWali' => $this->request->getPost('PekerjaanUtamaWali'),
+                'PenghasilanUtamaWali' => $this->request->getPost('PenghasilanUtamaWali'),
+                'NoHpWali' => $this->request->getPost('NoHpWali'),
+                'NomorPKH' => $this->request->getPost('NomorPKH'),
+                'NomorKKS' => $this->request->getPost('NomorKKS'),
+                'FilePKH' => $namaFilePKH,
+                'FileKKS' => $namaFileKKS,
 
-            // Data Alamat Ayah
-            'TinggalDiluarNegeriAyah' => $this->request->getPost('TinggalDiluarNegeriAyah'),
-            'StatusKepemilikanRumahAyah' => $this->request->getPost('StatusKepemilikanRumahAyah'),
-            'ProvinsiAyah' => $this->request->getPost('ProvinsiAyah'),
-            'KabupatenKotaAyah' => $this->request->getPost('KabupatenKotaAyah'),
-            'KecamatanAyah' => $this->request->getPost('KecamatanAyah'),
-            'KelurahanDesaAyah' => $this->request->getPost('KelurahanDesaAyah'),
-            'RtAyah' => $this->request->getPost('RTAyah'),
-            'RwAyah' => $this->request->getPost('RWAyah'),
-            'AlamatAyah' => $this->request->getPost('AlamatAyah'),
-            'KodePosAyah' => $this->request->getPost('KodePosAyah'),
+                // Data Alamat Ayah
+                'TinggalDiluarNegeriAyah' => $this->request->getPost('TinggalDiluarNegeriAyah'),
+                'StatusKepemilikanRumahAyah' => $this->request->getPost('StatusKepemilikanRumahAyah'),
+                'ProvinsiAyah' => $this->request->getPost('ProvinsiAyah'),
+                'KabupatenKotaAyah' => $this->request->getPost('KabupatenKotaAyah'),
+                'KecamatanAyah' => $this->request->getPost('KecamatanAyah'),
+                'KelurahanDesaAyah' => $this->request->getPost('KelurahanDesaAyah'),
+                'RtAyah' => $this->request->getPost('RTAyah'),
+                'RwAyah' => $this->request->getPost('RWAyah'),
+                'AlamatAyah' => $this->request->getPost('AlamatAyah'),
+                'KodePosAyah' => $this->request->getPost('KodePosAyah'),
 
-            // Data Alamat Ibu
-            'TinggalDiluarNegeriIbu' => $this->request->getPost('TinggalDiluarNegeriIbu'),
-            'StatusKepemilikanRumahIbu' => $this->request->getPost('StatusKepemilikanRumahIbu'),
-            'ProvinsiIbu' => $this->request->getPost('ProvinsiIbu'),
-            'KabupatenKotaIbu' => $this->request->getPost('KabupatenKotaIbu'),
-            'KecamatanIbu' => $this->request->getPost('KecamatanIbu'),
-            'KelurahanDesaIbu' => $this->request->getPost('KelurahanDesaIbu'),
-            'RtIbu' => $this->request->getPost('RTIbu'),
-            'RwIbu' => $this->request->getPost('RWIbu'),
-            'AlamatIbu' => $this->request->getPost('AlamatIbu'),
-            'KodePosIbu' => $this->request->getPost('KodePosIbu'),
+                // Data Alamat Ibu
+                'TinggalDiluarNegeriIbu' => $this->request->getPost('TinggalDiluarNegeriIbu'),
+                'StatusKepemilikanRumahIbu' => $this->request->getPost('StatusKepemilikanRumahIbu'),
+                'ProvinsiIbu' => $this->request->getPost('ProvinsiIbu'),
+                'KabupatenKotaIbu' => $this->request->getPost('KabupatenKotaIbu'),
+                'KecamatanIbu' => $this->request->getPost('KecamatanIbu'),
+                'KelurahanDesaIbu' => $this->request->getPost('KelurahanDesaIbu'),
+                'RtIbu' => $this->request->getPost('RTIbu'),
+                'RwIbu' => $this->request->getPost('RWIbu'),
+                'AlamatIbu' => $this->request->getPost('AlamatIbu'),
+                'KodePosIbu' => $this->request->getPost('KodePosIbu'),
 
-            // Data Alamat Santri
-            'WaliSantri' => $this->request->getPost('WaliSantri'),
-            'ProvinsiSantri' => $this->request->getPost('ProvinsiSantri'),
-            'KabupatenKotaSantri' => $this->request->getPost('KabupatenKotaSantri'),
-            'KecamatanSantri' => $this->request->getPost('KecamatanSantri'),
-            'KelurahanDesaSantri' => $this->request->getPost('KelurahanDesaSantri'),
-            'RtSantri' => $this->request->getPost('RTSantri'),
-            'RwSantri' => $this->request->getPost('RWSantri'),
-            'AlamatSantri' => $this->request->getPost('AlamatSantri'),
-            'KodePosSantri' => $this->request->getPost('KodePosSantri'),
-            'JarakTempuhSantri' => $this->request->getPost('JarakTempuhSantri'),
-            'TransportasiSantri' => $this->request->getPost('TransportasiSantri'),
-            'WaktuTempuhSantri' => $this->request->getPost('WaktuTempuhSantri'),
-            'TitikKoordinatSantri' => $this->request->getPost('TitikKoordinatSantri'),
-        ];
+                // Data Alamat Santri
+                'WaliSantri' => $this->request->getPost('WaliSantri'),
+                'ProvinsiSantri' => $this->request->getPost('ProvinsiSantri'),
+                'KabupatenKotaSantri' => $this->request->getPost('KabupatenKotaSantri'),
+                'KecamatanSantri' => $this->request->getPost('KecamatanSantri'),
+                'KelurahanDesaSantri' => $this->request->getPost('KelurahanDesaSantri'),
+                'RtSantri' => $this->request->getPost('RTSantri'),
+                'RwSantri' => $this->request->getPost('RWSantri'),
+                'AlamatSantri' => $this->request->getPost('AlamatSantri'),
+                'KodePosSantri' => $this->request->getPost('KodePosSantri'),
+                'JarakTempuhSantri' => $this->request->getPost('JarakTempuhSantri'),
+                'TransportasiSantri' => $this->request->getPost('TransportasiSantri'),
+                'WaktuTempuhSantri' => $this->request->getPost('WaktuTempuhSantri'),
+                'TitikKoordinatSantri' => $this->request->getPost('TitikKoordinatSantri'),
+            ];
 
-        
-      
-        // Simpan data ke database
-        // Ubah nilai array menjadi lowercase kemudian ucwords sebelum insert
-        $processedData = array_map(function ($value) {
-            // Skip jika value adalah null atau file
-            if ($value === null || strpos($value, '.') !== false) {
-                return $value;
+
+
+            // Simpan data ke database
+            // Ubah nilai array menjadi lowercase kemudian ucwords sebelum insert
+            try {
+                $processedData = array_map(function ($value) {
+                    try {
+                        // Skip jika value adalah null atau file
+                        if ($value === null || strpos($value, '.') !== false) {
+                            return $value;
+                        }
+                        // Hanya proses string 
+                        if (is_string($value)) {
+                            return ucwords(strtolower($value));
+                        }
+                        return $value;
+                    } catch (\Exception $e) {
+                        $logs[] = "❌ ERROR: Gagal memproses data: " . $e->getMessage();
+                        log_message('error', 'Error saat memproses data: ' . $e->getMessage());
+                        // Kembalikan nilai asli jika terjadi error
+                        return $value;
+                    }
+                }, $data);
+            } catch (\Exception $e) {
+                $logs[] = "❌ ERROR: Gagal memproses data: " . $e->getMessage();
+                throw new \Exception('Gagal memproses data: ' . $e->getMessage());
             }
-            // Hanya proses string
-            if (is_string($value)) {
-                return ucwords(strtolower($value));
+
+            $result = $this->DataSantriBaru->insert($processedData);
+
+            if ($result) {
+                $logs[] = "✓ OK: Data berhasil disimpan";
+                $this->saveLog($logs); // Menggunakan existing saveLog function
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Data santri berhasil disimpan',
+                    'redirect' => base_url('backend/santri/showSuccessEmisStep/' . $IdSantri)
+                ]);
+            } else {
+                $logs[] = "❌ ERROR: Gagal menyimpan data: " . json_encode($this->DataSantriBaru->errors());
+                throw new \Exception('Gagal menyimpan data: ' . json_encode($this->DataSantriBaru->errors()));
             }
-            return $value;
-        }, $data);
-
-        $result = $this->DataSantriBaru->insert($processedData);
-
-        if ($result) {
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Data santri berhasil disimpan',
-                'redirect' => base_url('backend/santri/showSuccessEmisStep/' . $IdSantri)
-            ]);
-        } else {
+        } catch (\Exception $e) {
+            $logs[] = "❌ ERROR: " . $e->getMessage();
+            $this->saveLog($logs); // Menggunakan existing saveLog function
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Gagal menyimpan data santri',
-                'errors' => $this->DataSantriBaru->errors()
+                'message' => 'Gagal menyimpan data santri: ' . $e->getMessage(),
+                'errors' => $this->DataSantriBaru->errors(),
+                'logs' => $logs
             ]);
         }
     }
@@ -651,6 +683,7 @@ class Santri extends BaseController
                 //data ayah dan ibu
                 'printNamaAyah' => $dataSantri['NamaAyah'],
                 'printNamaIbu' => $dataSantri['NamaIbu'],
+                'printFotoSantri' => null,
                 //data alamat
                 'printRtSantri' => $dataSantri['RtSantri'],
                 'printRwSantri' => $dataSantri['RwSantri'],
@@ -668,9 +701,23 @@ class Santri extends BaseController
 
             // Jika ada foto, proses foto
             if (!empty($dataSantri['PhotoProfil'])) {
-                $fotoPath = ROOTPATH . 'public/uploads/santri/' . $dataSantri['PhotoProfil'];
-                if (file_exists($fotoPath)) {
-                    $fotoData = file_get_contents($fotoPath);
+                // Tentukan path berdasarkan environment
+                if (ENVIRONMENT === 'production') {
+                    $fotoPath = 'https://tpqsmart.simpedis.com/uploads/santri/' . $dataSantri['PhotoProfil'];
+                    // Gunakan file_get_contents dengan konteks stream untuk HTTPS
+                    $context = stream_context_create([
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                        ]
+                    ]);
+                    $fotoData = file_get_contents($fotoPath, false, $context);
+                } else {
+                    $fotoPath = ROOTPATH . 'public/uploads/santri/' . $dataSantri['PhotoProfil'];
+                    $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
+                }
+
+                if ($fotoData) {
                     $data['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
                 }
             }
