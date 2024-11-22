@@ -8,6 +8,7 @@ if (ENVIRONMENT === 'production') {
     $required = '';
     //$required = 'required';
 }
+$required = '';
 ?>
 
 <div class="modal-body">
@@ -2139,21 +2140,21 @@ if (ENVIRONMENT === 'production') {
         const dataAlamatSantri = document.getElementById('previewAlamatSantriLainya');
         if (StatusTempatTinggalSantri === 'Lainnya' || StatusTempatTinggalSantri === 'Tinggal dengan Wali' || StatusTempatTinggalSantri === '') {
             dataAlamatSantri.style.display = 'table-row-group';
-            document.getElementById('previewAlamatSantri').textContent = document.getElementById('AlamatSantri').value;
-            document.getElementById('previewRTSantri').textContent = document.getElementById('RTSantri').value;
-            document.getElementById('previewRWSantri').textContent = document.getElementById('RWSantri').value;
-            document.getElementById('previewKelurahanDesaSantri').textContent = document.getElementById('KelurahanDesaSantri').value;
-            document.getElementById('previewKecamatanSantri').textContent = document.getElementById('KecamatanSantri').value;
-            document.getElementById('previewKabupatenKotaSantri').textContent = document.getElementById('KabupatenKotaSantri').value;
-            document.getElementById('previewProvinsiSantri').textContent = document.getElementById('ProvinsiSantri').value;
-            document.getElementById('previewKodePosSantri').textContent = document.getElementById('KodePosSantri').value;
-            document.getElementById('previewJarakTempuhSantri').textContent = document.getElementById('JarakTempuhSantri').value;
-            document.getElementById('previewTransportasiSantri').textContent = document.getElementById('TransportasiSantri').value;
-            document.getElementById('previewWaktuTempuhSantri').textContent = document.getElementById('WaktuTempuhSantri').value;
-            document.getElementById('previewTitikKoordinatSantri').textContent = document.getElementById('TitikKoordinatSantri').value;
+            document.getElementById('previewAlamatSantri').textContent = document.getElementById('AlamatSantri').value || '-';
+            document.getElementById('previewRTSantri').textContent = document.getElementById('RTSantri').value || '-';
+            document.getElementById('previewRWSantri').textContent = document.getElementById('RWSantri').value || '-';
+            document.getElementById('previewKelurahanDesaSantri').textContent = document.getElementById('KelurahanDesaSantri').value || '-';
+            document.getElementById('previewKecamatanSantri').textContent = document.getElementById('KecamatanSantri').value || '-';
+            document.getElementById('previewKabupatenKotaSantri').textContent = document.getElementById('KabupatenKotaSantri').value || '-';
+            document.getElementById('previewProvinsiSantri').textContent = document.getElementById('ProvinsiSantri').value || '-';
+            document.getElementById('previewKodePosSantri').textContent = document.getElementById('KodePosSantri').value || '-';
         } else {
             dataAlamatSantri.style.display = 'none';
         }
+        document.getElementById('previewJarakTempuhSantri').textContent = document.getElementById('JarakTempuhSantri').value || '-';
+        document.getElementById('previewTransportasiSantri').textContent = document.getElementById('TransportasiSantri').value || '-';
+        document.getElementById('previewWaktuTempuhSantri').textContent = document.getElementById('WaktuTempuhSantri').value || '-';
+        document.getElementById('previewTitikKoordinatSantri').textContent = document.getElementById('TitikKoordinatSantri').value || '-';
         // Tampilkan modal
         $('#previewModal').modal('show');
     }
