@@ -701,18 +701,30 @@ class Santri extends BaseController
             // Proses foto
             $this->saveLog("ℹ️ INFO: Memproses foto santri");
             if (!empty($dataSantri['PhotoProfil'])) {
-
-                $this->saveLog("ℹ️ INFO: Menggunakan path development untuk foto");
                 // Tentukan path berdasarkan environment
                 if (ENVIRONMENT === 'production') {
-                    $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';  // Path di server production
+                    $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';
+                    // Gunakan curl untuk mengambil foto dari URL
+                    $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
+                    $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
+
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $fotoPath);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                    $fotoData = curl_exec($ch);
+
+                    if (curl_errno($ch)) {
+                        $this->saveLog("⚠️ WARN: Gagal mengambil foto: " . curl_error($ch));
+                        $fotoData = null;
+                    }
+                    curl_close($ch);
                 } else {
                     $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                    $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
+                    $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
+                    $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
                 }
-
-                $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
-                $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
-                $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
 
                 if ($fotoData) {
                     $data['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
