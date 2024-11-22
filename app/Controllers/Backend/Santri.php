@@ -46,15 +46,17 @@ class Santri extends BaseController
     // fungsi untuk menyimpan
     public function save()
     {
+        // log header ================================
+        log_message('info', 'Santri: save - Header');
         // Inisialisasi log
         $logs = [];
-        $logs[] = "ℹ️ INFO: Memulai proses save data santri";
+        log_message('info', 'Santri: save - Memulai proses save data santri');
 
         try {
             $IdSantri = "";
             // Ambil tahun saat ini
             $tahunSekarang = date('Y');
-            $logs[] = "ℹ️ INFO: Tahun sekarang: " . $tahunSekarang;
+            log_message('info', 'Santri: save - Tahun sekarang: ' . $tahunSekarang);
 
             // Cari IdSantri terakhir
             $lastSantri = $this->DataSantriBaru->like('IdSantri', $tahunSekarang, 'after')
@@ -65,88 +67,21 @@ class Santri extends BaseController
                 $lastNumber = intval(substr($lastSantri['IdSantri'], 4));
                 $newNumber = $lastNumber + 1;
                 $IdSantri = $tahunSekarang . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
-                $logs[] = "✓ OK: ID Santri baru dibuat: " . $IdSantri;
+                log_message('info', 'Santri: save - ID Santri baru dibuat: ' . $IdSantri);
             } else {
                 $IdSantri = $tahunSekarang . '0001';
-                $logs[] = "✓ OK: ID Santri pertama dibuat: " . $IdSantri;
+                log_message('info', 'Santri: save - ID Santri pertama dibuat: ' . $IdSantri);
             }
 
-            // Fungsi untuk menangani upload file dengan nama yang menyertakan IdSantri
-            $handleUpload = function ($file, $prefix) use ($IdSantri) {
-                try {
-                    if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
-                        return null;
-                    }
-
-                    if (!$file->isValid()) {
-                        throw new \Exception('File tidak valid: ' . $file->getErrorString());
-                    }
-
-                    if ($file->hasMoved()) {
-                        throw new \Exception('File sudah dipindahkan sebelumnya');
-                    }
-
-                    $randomNumber = uniqid();
-                    $newName = $prefix . '_' . $IdSantri . '_' . $randomNumber . '.' . $file->getExtension();
-
-                    // Tentukan path berdasarkan environment
-                    if (ENVIRONMENT === 'production') {
-                        $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';  // Path di server production
-                    } else {
-                        $uploadPath = ROOTPATH . 'public/uploads/santri/';
-                    }
-
-                    // Validasi direktori upload
-                    if (!is_dir($uploadPath)) {
-                        $logs[] = "❌ ERROR: Direktori upload tidak ditemukan: " . $uploadPath;
-                        throw new \Exception('Direktori upload tidak ditemukan: ' . $uploadPath);
-                    }
-
-                    if (!is_writable($uploadPath)) {
-                        $logs[] = "❌ ERROR: Direktori upload tidak dapat ditulis: " . $uploadPath;
-                        throw new \Exception('Direktori upload tidak dapat ditulis: ' . $uploadPath);
-                    }
-
-                    $targetPath = $uploadPath . $newName;
-
-                    // Hapus file lama jika ada
-                    if (file_exists($targetPath)) {
-                        if (!unlink($targetPath)) {
-                            $logs[] = "❌ ERROR: Gagal menghapus file lama: " . $targetPath;
-                            throw new \Exception('Gagal menghapus file lama: ' . $targetPath);
-                        }
-                    }
-
-                    // Pindahkan file
-                    if (!$file->move($uploadPath, $newName, true)) {
-                        $logs[] = "❌ ERROR: Gagal memindahkan file ke: " . $targetPath;
-                        throw new \Exception('Gagal memindahkan file ke: ' . $targetPath);
-                    }
-
-                    return $newName;
-                } catch (\Exception $e) {
-                    $logs[] = "❌ ERROR: Gagal mengupload file: " . $e->getMessage();
-                    log_message('error', '[File Upload] ' . $e->getMessage());
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => 'Gagal mengupload file: ' . $e->getMessage(),
-                        'error_details' => [
-                            'file' => $prefix,
-                            'error' => $e->getMessage(),
-                            'trace' => ENVIRONMENT === 'development' ? $e->getTraceAsString() : null
-                        ]
-                    ]);
-                }
-            };
-
             // Handle upload untuk setiap file dan simpan nama file ke variabel
-            $photoProfilName = $handleUpload($this->request->getFile('PhotoProfil'), 'Profile');
-            $namaFileKIP = $handleUpload($this->request->getFile('FileKIP'), 'Kip');
-            $namaFileKkSantri = $handleUpload($this->request->getFile('FileKkSantri'), 'KkSantri');
-            $namaFileKkAyah = $handleUpload($this->request->getFile('FileKKAyah'), 'KkAyah');
-            $namaFileKkIbu = $handleUpload($this->request->getFile('FileKKIbu'), 'KkIbu');
-            $namaFileKKS = $handleUpload($this->request->getFile('FileKKS'), 'Kks');
-            $namaFilePKH = $handleUpload($this->request->getFile('FilePKH'), 'Pkh');
+            $photoProfilName = $this->uploadFile($this->request->getFile('PhotoProfil'), 'Profile', $IdSantri);
+            $namaFileKIP = $this->uploadFile($this->request->getFile('FileKIP'), 'Kip', $IdSantri);
+            $namaFileKkSantri = $this->uploadFile($this->request->getFile('FileKkSantri'), 'KkSantri', $IdSantri);
+            $namaFileKkAyah = $this->uploadFile($this->request->getFile('FileKKAyah'), 'KkAyah', $IdSantri);
+            $namaFileKkIbu = $this->uploadFile($this->request->getFile('FileKKIbu'), 'KkIbu', $IdSantri);
+            $namaFileKKS = $this->uploadFile($this->request->getFile('FileKKS'), 'Kks', $IdSantri);
+            $namaFilePKH = $this->uploadFile($this->request->getFile('FilePKH'), 'Pkh', $IdSantri);
+
             // Update data yang akan disimpan dengan nama file yang baru
             $data['PhotoProfil'] = $photoProfilName;
             $data['FileKIP'] = $namaFileKIP;
@@ -282,6 +217,7 @@ class Santri extends BaseController
 
             // Simpan data ke database
             // Ubah nilai array menjadi lowercase kemudian ucwords sebelum insert
+            log_message('info', 'Santri: save - Memproses data merubah nilai array menjadi lowercase kemudian ucwords');
             try {
                 $processedData = array_map(function ($value) {
                     try {
@@ -295,48 +231,49 @@ class Santri extends BaseController
                         }
                         return $value;
                     } catch (\Exception $e) {
-                        $logs[] = "❌ ERROR: Gagal memproses data: " . $e->getMessage();
-                        log_message('error', 'Error saat memproses data: ' . $e->getMessage());
+                        log_message('error', 'Santri: save - Error saat memproses data: ' . $e->getMessage());
                         // Kembalikan nilai asli jika terjadi error
                         return $value;
                     }
                 }, $data);
             } catch (\Exception $e) {
-                $logs[] = "❌ ERROR: Gagal memproses data: " . $e->getMessage();
+                log_message('error', 'Santri: save - Error saat memproses data: ' . $e->getMessage());
                 throw new \Exception('Gagal memproses data: ' . $e->getMessage());
             }
 
             $result = $this->DataSantriBaru->insert($processedData);
 
             if ($result) {
-                $logs[] = "✓ OK: Data berhasil disimpan";
-                $this->saveLog($logs); // Menggunakan existing saveLog function
+                log_message('info', 'Santri: save - Data berhasil disimpan');
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Data santri berhasil disimpan',
                     'redirect' => base_url('backend/santri/showSuccessEmisStep/' . $IdSantri)
                 ]);
             } else {
-                $logs[] = "❌ ERROR: Gagal menyimpan data: " . json_encode($this->DataSantriBaru->errors());
+                log_message('error', 'Santri: save - Gagal menyimpan data: ' . json_encode($this->DataSantriBaru->errors()));
                 throw new \Exception('Gagal menyimpan data: ' . json_encode($this->DataSantriBaru->errors()));
             }
         } catch (\Exception $e) {
-            $logs[] = "❌ ERROR: " . $e->getMessage();
-            $this->saveLog($logs); // Menggunakan existing saveLog function
+            log_message('error', 'Santri: save - Error saat menyimpan data: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal menyimpan data santri: ' . $e->getMessage(),
                 'errors' => $this->DataSantriBaru->errors(),
-                'logs' => $logs
             ]);
         }
     }
 
     // Endpoint untuk cek NIK santri baru
-    public function getNikSantri($nik)
+    public function getNikSantri($NikSantri)
     {
         $santriModel = new SantriBaruModel();
-        $santri = $santriModel->getSantriByNIK($nik);
+        $santri = $santriModel
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.NikSantri', $NikSantri)
+            ->first();
 
         // Set response dengan properti exists
         return $this->response->setJSON([
@@ -456,115 +393,6 @@ class Santri extends BaseController
         return view('backend/santri/kontakSantri', $data);
     }
 
-    // Testing Dropzone 
-    public function upload()
-    {
-        if ($this->request->getFile('file')) {
-            $file = $this->request->getFile('file');
-            if ($file->isValid() && !$file->hasMoved()) {
-                $newName = $file->getRandomName();
-                $file->move('./uploads/santri', $newName);
-
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'File berhasil diupload',
-                    'filename' => $newName
-                ]);
-            }
-        }
-
-        return $this->response->setJSON([
-            'success' => false,
-            'message' => 'Gagal mengupload file'
-        ]);
-    }
-
-
-    // public function generatePDF()
-    // {
-    //     try {
-    //         // 1. Validasi request AJAX
-    //         $this->saveLog("ℹ️ INFO: Validasi request AJAX");
-    //         if (!$this->request->isAJAX()) {
-    //             $this->saveLog("ERROR: Bukan request AJAX");
-    //             return $this->response->setStatusCode(403)->setJSON([
-    //                 'message' => 'Akses tidak diizinkan'
-    //             ]);
-    //         }
-
-    //         // 2. Validasi data
-    //         $data = $this->request->getJSON(true);
-    //         $this->saveLog("✓ OK: Data diterima");
-
-    //         if (empty($data)) {
-    //             throw new \Exception('Tidak ada data yang dikirim');
-    //         }
-
-    //         if (empty($data['printNamaSantri'])) {
-    //             throw new \Exception('Nama santri wajib diisi untuk mencetak PDF');
-    //         }
-
-    //         // 3. Konfigurasi DOMPDF
-    //         $this->saveLog("ℹ️ INFO: Inisialisasi Konfigurasi DOMPDF");
-    //         $options = new Options();
-    //         $options->set('isHtml5ParserEnabled', true);
-    //         $options->set('isRemoteEnabled', true);
-    //         $options->set('isPhpEnabled', true);
-    //         $dompdf = new Dompdf($options);
-    //         $this->saveLog("✓ OK: Konfigurasi DOMPDF berhasil");
-
-    //         // 4. Proses foto
-    //         try {
-    //             $this->saveLog("ℹ️ INFO: Initial proses foto santri untuk memastikan format gambar valid");
-    //             $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
-    //             $this->saveLog("✓ OK: Foto santri berhasil diproses");
-    //         } catch (\Exception $e) {
-    //             $this->saveLog("⚠️ Foto tidak tersedia: " . $e->getMessage());
-    //             $fotoSantri = null;
-    //             $this->saveLog(" ℹ️ INFO: Foto santri tidak tersedia, dan akan dikosongkan");
-    //         }
-
-    //         // 5. Render HTML dan PDF
-    //         $this->saveLog("ℹ️ INFO: Render HTML dan PDF");
-    //         $html = view('backend/santri/pdf_template', [
-    //             'data' => $data,
-    //             'fotoSantri' => $fotoSantri
-    //         ]);
-
-    //         $dompdf->loadHtml($html);
-    //         $dompdf->setPaper('A4', 'portrait');
-    //         $dompdf->render();
-    //         $this->saveLog("✓ OK: PDF berhasil dibuat");
-
-    //         return $this->response
-    //         ->setHeader('Content-Type', 'application/pdf')
-    //         ->setBody($dompdf->output());
-    //     } catch (\Exception $e) {
-    //         $this->saveLog("❌ ERROR: " . $e->getMessage());
-
-    //         return $this->response->setStatusCode(500)->setJSON([
-    //             'message' => 'Gagal membuat PDF: ' . $e->getMessage()
-    //         ]);
-    //     }
-    // }
-
-    // Fungsi helper untuk menyimpan log
-    private function saveLog($logs)
-    {
-        $logFile = WRITEPATH . 'logs/pdfGeneration.log';
-        $logMessage = "\n=== " . date('Y-m-d H:i:s') . " ===\n";
-
-        // Periksa apakah $logs adalah array atau string
-        if (is_array($logs)) {
-            $logMessage .= implode("\n", $logs);
-        } else {
-            $logMessage .= $logs;
-        }
-
-        $logMessage .= "\n";
-        file_put_contents($logFile, $logMessage, FILE_APPEND);
-    }
-
     /**
      * Proses foto santri dari base64 ke format yang sesuai
      * @param string|null $base64Image
@@ -572,6 +400,7 @@ class Santri extends BaseController
      */
     private function processFotoSantri(?string $base64Image): ?string
     {
+        log_message('info', 'Santri: processFotoSantri - Header');
         try {
             if (empty($base64Image)) {
                 throw new \Exception('Foto santri tidak boleh kosong');
@@ -581,88 +410,100 @@ class Santri extends BaseController
             if (!preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
                 throw new \Exception('Format gambar tidak valid - harus base64');
             }
-            $this->saveLog("✓ OK: Format base64 valid");
+            log_message('info', 'Santri: processFotoSantri - Format base64 valid');
 
             // Extract data gambar
-            $this->saveLog("ℹ️ INFO: Extract data gambar");
+            log_message('info', 'Santri: processFotoSantri - Extract data gambar');
             $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
             $imageData = base64_decode($base64Image);
 
             if (!$imageData) {
                 throw new \Exception('Gagal decode base64 image');
             }
-            $this->saveLog("✓ OK: Base64 berhasil di-decode");
+            log_message('info', 'Santri: processFotoSantri - Base64 berhasil di-decode');
 
             // Konversi ke image
-            $this->saveLog("ℹ️ INFO: Konversi ke image");
+            log_message('info', 'Santri: processFotoSantri - Konversi ke image');
             $srcImage = imagecreatefromstring($imageData);
             if (!$srcImage) {
                 throw new \Exception('Gagal membuat image dari string data');
             }
-            $this->saveLog("✓ OK: Image berhasil dibuat dari string");
+            log_message('info', 'Santri: processFotoSantri - Image berhasil dibuat dari string');
 
             // Buat file JPEG temporary
-            $this->saveLog("ℹ️ INFO: Buat file JPEG temporary");
+            log_message('info', 'Santri: processFotoSantri - Buat file JPEG temporary');
             $jpegFile = tempnam(sys_get_temp_dir(), 'jpg');
             if (!$jpegFile) {
                 throw new \Exception('Gagal membuat file temporary');
             }
-            $this->saveLog("✓ OK: File temporary berhasil dibuat");
+            log_message('info', 'Santri: processFotoSantri - File temporary berhasil dibuat');
 
             // Simpan sebagai JPEG
-            $this->saveLog("ℹ️ INFO: Simpan sebagai JPEG");
+            log_message('info', 'Santri: processFotoSantri - Simpan sebagai JPEG');
             if (!imagejpeg($srcImage, $jpegFile, 90)) {
                 throw new \Exception('Gagal menyimpan gambar ke JPEG');
             }
-            $this->saveLog("✓ OK: Gambar berhasil disimpan sebagai JPEG");
+            log_message('info', 'Santri: processFotoSantri - Gambar berhasil disimpan sebagai JPEG');
 
             // Baca data JPEG
-            $this->saveLog("ℹ️ INFO: Baca data JPEG");
+            log_message('info', 'Santri: processFotoSantri - Baca data JPEG');
             $jpegData = file_get_contents($jpegFile);
             if (!$jpegData) {
                 throw new \Exception('Gagal membaca file JPEG');
             }
-            $this->saveLog("✓ OK: File JPEG berhasil dibaca");
+            log_message('info', 'Santri: processFotoSantri - File JPEG berhasil dibaca');
 
             // Cleanup
-            $this->saveLog("ℹ️ INFO: Cleanup image dan file temporary");
+            log_message('info', 'Santri: processFotoSantri - Cleanup image dan file temporary');
             imagedestroy($srcImage);
             if (file_exists($jpegFile)) {
                 unlink($jpegFile);
             }
-            $this->saveLog("✓ OK: Cleanup berhasil dilakukan");
-
+            log_message('info', 'Santri: processFotoSantri - Cleanup berhasil dilakukan');
+            log_message('info', 'Santri: processFotoSantri - Footer');
             return 'data:image/jpeg;base64,' . base64_encode($jpegData);
         } catch (\Exception $e) {
-            $this->saveLog("❌ ERROR: " . $e->getMessage());
+            log_message('error', 'Santri: processFotoSantri - Error saat memproses foto santri: ' . $e->getMessage());
+            log_message('info', 'Santri: processFotoSantri - Footer');
             throw $e;
         }
     }
 
+    // Tambahkan fungsi baru
+    private function getDataSantri($IdSantri)
+    {
+        log_message('info', 'Santri: getDataSantri - Mengambil data santri dari database');
+
+        $dataSantri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri)
+            ->first();
+
+        if (!$dataSantri) {
+            log_message('error', 'Santri: getDataSantri - Data santri tidak ditemukan');
+            throw new \Exception('Data santri tidak ditemukan');
+        }
+
+        log_message('info', 'Santri: getDataSantri - Data santri berhasil diambil');
+        return $dataSantri;
+    }
+
     public function generatePDFSantriBaru($IdSantri = null)
     {
+        log_message('info', 'Santri: generatePDFSantriBaru - Header');
+        log_message('info', 'Santri: generatePDFSantriBaru - Menggunakan fungsi generatePDFSantriBaru(variable: IdSantri)');
+        log_message('info', 'Santri: generatePDFSantriBaru - Memulai generate PDF Santri Baru');
         try {
-            // Validasi ID Santri
             if (!$IdSantri) {
-                $this->saveLog("❌ ERROR: ID Santri tidak ditemukan");
+                log_message('error', 'Santri: generatePDFSantriBaru - ID Santri tidak ditemukan');
                 throw new \Exception('ID Santri tidak ditemukan');
             }
-            $this->saveLog("✓ OK: ID Santri valid: " . $IdSantri);
+            log_message('info', 'Santri: generatePDFSantriBaru - ID Santri valid: ' . $IdSantri);
 
-            // Ambil data santri dari database
-            $this->saveLog("ℹ️ INFO: Mengambil data santri dari database");
-            $dataSantri = $this->DataSantriBaru
-                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-                ->where('tbl_santri_baru.IdSantri', $IdSantri)
-                ->first();
-
-            if (!$dataSantri) {
-                $this->saveLog("❌ ERROR: Data santri tidak ditemukan");
-                throw new \Exception('Data santri tidak ditemukan');
-            }
-            $this->saveLog("✓ OK: Data santri berhasil diambil");
+            // Gunakan fungsi getDataSantri
+            $dataSantri = $this->getDataSantri($IdSantri);
 
             // Siapkan data untuk template
             $data = [
@@ -699,84 +540,78 @@ class Santri extends BaseController
             ];
 
             // Proses foto
-            $this->saveLog("ℹ️ INFO: Memproses foto santri");
+            log_message('info', 'Santri: generatePDFSantriBaru - Memproses foto santri');
             if (!empty($dataSantri['PhotoProfil'])) {
                 // Tentukan path berdasarkan environment
                 if (ENVIRONMENT === 'production') {
-                    $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';
-                    // Gunakan curl untuk mengambil foto dari URL
+                    log_message('info', 'Santri: generatePDFSantriBaru - Environment: production');
+
+                    $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
                     $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
-                    $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
-
-                    $ch = curl_init();
-                    curl_setopt($ch, CURLOPT_URL, $fotoPath);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    $fotoData = curl_exec($ch);
-
-                    if (curl_errno($ch)) {
-                        $this->saveLog("⚠️ WARN: Gagal mengambil foto: " . curl_error($ch));
-                        $fotoData = null;
-                    }
-                    curl_close($ch);
+                    log_message('info', 'Santri: generatePDFSantriBaru - Path foto: ' . $fotoPath);
+                    $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
                 } else {
+                    log_message('info', 'Santri: generatePDFSantriBaru - Environment: development');
                     $uploadPath = ROOTPATH . 'public/uploads/santri/';
                     $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
-                    $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
+                    log_message('info', 'Santri: generatePDFSantriBaru - Path foto: ' . $fotoPath);
                     $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
                 }
 
                 if ($fotoData) {
                     $data['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
-                    $this->saveLog("✓ OK: Foto berhasil diproses");
+                    log_message('info', 'Santri: generatePDFSantriBaru - Foto berhasil diproses');
                 } else {
-                    $this->saveLog("⚠️ WARN: Foto tidak ditemukan di path: " . $fotoPath);
+                    log_message('error', 'Santri: generatePDFSantriBaru - Foto tidak ditemukan di path: ' . $fotoPath);
                 }
             }
 
             try {
-                $this->saveLog("ℹ️ INFO: Initial proses foto santri untuk memastikan format gambar valid");
+                log_message('info', 'Santri: generatePDFSantriBaru - Initial proses foto santri untuk memastikan format gambar valid');
                 $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
-                $this->saveLog("✓ OK: Foto santri berhasil diproses");
+                log_message('info', 'Santri: generatePDFSantriBaru - Foto santri berhasil diproses');
             } catch (\Exception $e) {
-                $this->saveLog("⚠️ Foto tidak tersedia: " . $e->getMessage());
+                log_message('error', 'Santri: generatePDFSantriBaru - Foto tidak tersedia: ' . $e->getMessage());
                 $fotoSantri = null;
-                $this->saveLog(" ℹ️ INFO: Foto santri tidak tersedia, dan akan dikosongkan");
+                log_message('info', 'Santri: generatePDFSantriBaru - Foto santri tidak tersedia, dan akan dikosongkan');
             }
             // Konfigurasi DOMPDF
-            $this->saveLog("ℹ️ INFO: Mengkonfigurasi DOMPDF");
+            log_message('info', 'Santri: generatePDFSantriBaru - Mengkonfigurasi DOMPDF');
             $options = new Options();
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isRemoteEnabled', true);
             $options->set('isPhpEnabled', true);
             $dompdf = new Dompdf($options);
-            $this->saveLog("✓ OK: Konfigurasi DOMPDF berhasil");
+            log_message('info', 'Santri: generatePDFSantriBaru - Konfigurasi DOMPDF berhasil');
 
             // Generate PDF
-            $this->saveLog("ℹ️ INFO: Memulai generate HTML");
+            log_message('info', 'Santri: generatePDFSantriBaru - Memulai generate HTML');
             $html = view('backend/santri/pdf_template', [
                 'data' => $data,
                 'fotoSantri' => $fotoSantri
             ]);
 
             // log generate Load HTML ke DOMPDF 
-            $this->saveLog("ℹ️ INFO: Memulai generate PDF");
+            log_message('info', 'Santri: generatePDFSantriBaru - Memulai generate PDF');
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
-            $this->saveLog("✓ OK: PDF berhasil di-generate");
+            log_message('info', 'Santri: generatePDFSantriBaru - PDF berhasil di-generate');
 
             // Output PDF dengan header yang benar
             $filename = 'Data_Santri_' . str_replace(' ', '_', $dataSantri['NamaSantri']) . '.pdf';
-
+            // log footer 
+            log_message('info', 'Santri: generatePDFSantriBaru - Footer');
             return $this->response
                 ->setHeader('Content-Type', 'application/pdf')
                 ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
                 ->setBody($dompdf->output());
 
         } catch (\Exception $e) {
-            $this->saveLog("❌ ERROR: " . $e->getMessage());
-            log_message('error', '[generatePDFSantriBaru] Error: ' . $e->getMessage());
+            log_message('error', 'Santri: generatePDFSantriBaru - Error: ' . $e->getMessage());
+
+            // log footer ================================
+            log_message('info', 'Santri: generatePDFSantriBaru - Footer');
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
@@ -791,5 +626,78 @@ class Santri extends BaseController
             'dataSantri' => $dataSantri
         ];
         return view('backend/santri/successEmisStep', $data);
+    }
+
+    private function uploadFile($file, $prefix, $IdSantri)
+    {
+        log_message('info', 'Santri: uploadFile - Header');
+        try {
+            if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
+                log_message('info', 'Santri: uploadFile - File tidak ditemukan');
+                return null;
+            }
+
+            if (!$file->isValid()) {
+                log_message('error', 'Santri: uploadFile - File tidak valid: ' . $file->getErrorString());
+                throw new \Exception('File tidak valid: ' . $file->getErrorString());
+            }
+
+            if ($file->hasMoved()) {
+                log_message('error', 'Santri: uploadFile - File sudah dipindahkan sebelumnya');
+                throw new \Exception('File sudah dipindahkan sebelumnya');
+            }
+
+            $randomNumber = uniqid();
+            $newName = $prefix . '_' . $IdSantri . '_' . $randomNumber . '.' . $file->getExtension();
+
+            // Tentukan path berdasarkan environment
+            if (ENVIRONMENT === 'production') {
+                log_message('info', 'Santri: uploadFile - Environment: production');
+                $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';  // https://tpqsmart.simpedis.com/uploads/santri/  
+            } else {
+                log_message('info', 'Santri: uploadFile - Environment: development');
+                $uploadPath = ROOTPATH . 'public/uploads/santri/';
+            }
+
+            // Validasi direktori upload
+            if (!is_dir($uploadPath)) {
+                log_message('error', 'Santri: uploadFile - Direktori upload tidak ditemukan: ' . $uploadPath);
+                throw new \Exception('Direktori upload tidak ditemukan: ' . $uploadPath);
+            }
+
+            if (!is_writable($uploadPath)) {
+                log_message('error', 'Santri: uploadFile - Direktori upload tidak dapat ditulis: ' . $uploadPath);
+                throw new \Exception('Direktori upload tidak dapat ditulis: ' . $uploadPath);
+            }
+
+            $targetPath = $uploadPath . $newName;
+
+            // Hapus file lama jika ada
+            if (file_exists($targetPath)) {
+                if (!unlink($targetPath)) {
+                    log_message('error', 'Santri: uploadFile - Gagal menghapus file lama: ' . $targetPath);
+                    throw new \Exception('Gagal menghapus file lama: ' . $targetPath);
+                }
+            }
+
+            // Pindahkan file
+            if (!$file->move($uploadPath, $newName, true)) {
+                log_message('error', 'Santri: uploadFile - Gagal memindahkan file ke: ' . $targetPath);
+                throw new \Exception('Gagal memindahkan file ke: ' . $targetPath);
+            }
+
+            return $newName;
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: uploadFile - File Upload Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupload file: ' . $e->getMessage(),
+                'error_details' => [
+                    'file' => $prefix,
+                    'error' => $e->getMessage(),
+                    'trace' => ENVIRONMENT === 'development' ? $e->getTraceAsString() : null
+                ]
+            ]);
+        }
     }
 }

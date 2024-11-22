@@ -3350,7 +3350,7 @@ if (ENVIRONMENT === 'production') {
                     .then(response => response.json())
                     .then(data => {
                         if (data.exists) {
-                            tampilkanError(`NIK ${nilai} sudah terdaftar atas nama santri: ${data.data.NamaSantri}. Mohon periksa kembali NIK yang dimasukkan.`);
+                            tampilkanError(`NIK ${nilai} sudah terdaftar atas nama santri: ${data.data.NamaSantri} - ${data.data.NamaKelas} - ${data.data.NamaTpq}. Mohon periksa kembali NIK yang dimasukkan.`);
                             return false;
                         }
                         sembunyikanError();
