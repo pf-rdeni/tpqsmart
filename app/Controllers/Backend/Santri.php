@@ -737,10 +737,14 @@ class Santri extends BaseController
             $dompdf->render();
             $this->saveLog("✓ OK: PDF berhasil di-generate");
 
-            // Output PDF
-            $filename = 'Data_Santri_' . $dataSantri['NamaSantri'] . '.pdf';
-            $dompdf->stream($filename, ['Attachment' => false]);
-            return;
+            // Output PDF dengan header yang benar
+            $filename = 'Data_Santri_' . str_replace(' ', '_', $dataSantri['NamaSantri']) . '.pdf';
+
+            return $this->response
+                ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+                ->setBody($dompdf->output());
+
         } catch (\Exception $e) {
             $this->saveLog("❌ ERROR: " . $e->getMessage());
             log_message('error', '[generatePDFSantriBaru] Error: ' . $e->getMessage());
