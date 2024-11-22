@@ -8,7 +8,7 @@ if (ENVIRONMENT === 'production') {
     $required = '';
     //$required = 'required';
 }
-$required = '';
+
 ?>
 
 <div class="modal-body">
@@ -77,11 +77,11 @@ $required = '';
                                         <label for="KelurahanDesaTpq">Lokasi TPQ<span class="text-danger font-weight-bold">*</span></label>
                                         <select class="form-control" id="KelurahanDesaTpq" name="KelurahanDesaTpq" <?= $required ?>>
                                             <option value="">Pilih Lokasi TPQ</option>
-                                            <option value="TELUK SASAH">TELUK SASAH</option>
-                                            <option value="BUSUNG">BUSUNG</option>
-                                            <option value="KUALA SEMPANG">KUALA SEMPANG</option>
-                                            <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
-                                            <option value="TELUK LOBAM">TELUK LOBAM</option>
+                                            <option value="Teluk Sasah">Teluk Sasah</option>
+                                            <option value="Busung">Busung</option>
+                                            <option value="Kuala Sempang">Kuala Sempang</option>
+                                            <option value="Tanjung Permai">Tanjung Permai</option>
+                                            <option value="Teluk Lobam">Teluk Lobam</option>
                                         </select>
                                         <span id="KelurahanDesaTpqError" class="text-danger" style="display:none;">Desa/Kelurahan diperlukan.</span>
                                     </div>
@@ -1026,11 +1026,11 @@ $required = '';
                                                         <label for="KelurahanDesaAyah">Kelurahan/Desa</label>
                                                         <select class="form-control" id="KelurahanDesaAyah" name="KelurahanDesaAyah">
                                                             <option value="">Pilih Kelurahan/Desa</option>
-                                                            <option value="TELUK LOBAM">TELUK LOBAM</option>
-                                                            <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
-                                                            <option value="BUSUNG">BUSUNG</option>
-                                                            <option value="TELUK SASAH">TELUK SASAH</option>
-                                                            <option value="KUALA SEMPANG">KUALA SEMPANG</option>
+                                                            <option value="Teluk Lobam">Teluk Lobam</option>
+                                                            <option value="Tanjung Permai">Tanjung Permai</option>
+                                                            <option value="Busung">Busung</option>
+                                                            <option value="Teluk Sasah">Teluk Sasah</option>
+                                                            <option value="Kuala Sempang">Kuala Sempang</option>
                                                         </select>
                                                         <span id="KelurahanDesaAyahError" class="text-danger" style="display:none;">Kelurahan/Desa diperlukan.</span>
                                                     </div>
@@ -1145,11 +1145,11 @@ $required = '';
                                                             <label for="KelurahanDesaIbu">Kelurahan/Desa</label>
                                                             <select class="form-control" id="KelurahanDesaIbu" name="KelurahanDesaIbu">
                                                                 <option value="">Pilih Kelurahan/Desa</option>
-                                                                <option value="TELUK LOBAM">TELUK LOBAM</option>
-                                                                <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
-                                                                <option value="BUSUNG">BUSUNG</option>
-                                                                <option value="TELUK SASAH">TELUK SASAH</option>
-                                                                <option value="KUALA SEMPANG">KUALA SEMPANG</option>
+                                                                <option value="Teluk Lobam">Teluk Lobam</option>
+                                                                <option value="Tanjung Permai">Tanjung Permai</option>
+                                                                <option value="Busung">Busung</option>
+                                                                <option value="Teluk Sasah">Teluk Sasah</option>
+                                                                <option value="Kuala Sempang">Kuala Sempang</option>
                                                             </select>
                                                             <span id="KelurahanDesaIbuError" class="text-danger" style="display:none;">Kelurahan/Desa diperlukan.</span>
                                                         </div>
@@ -1303,11 +1303,11 @@ $required = '';
                                                     <label for="KelurahanDesaSantri">Kelurahan/Desa</label>
                                                     <select class="form-control" id="KelurahanDesaSantri" name="KelurahanDesaSantri">
                                                         <option value="">Pilih Kelurahan/Desa</option>
-                                                        <option value="TELUK LOBAM">TELUK LOBAM</option>
-                                                        <option value="TANJUNG PERMAI">TANJUNG PERMAI</option>
-                                                        <option value="BUSUNG">BUSUNG</option>
-                                                        <option value="TELUK SASAH">TELUK SASAH</option>
-                                                        <option value="KUALA SEMPANG">KUALA SEMPANG</option>
+                                                        <option value="Teluk Lobam">Teluk Lobam</option>
+                                                        <option value="Tanjung Permai">Tanjung Permai</option>
+                                                        <option value="Busung">Busung</option>
+                                                        <option value="Teluk Sasah">Teluk Sasah</option>
+                                                        <option value="Kuala Sempang">Kuala Sempang</option>
                                                     </select>
                                                     <span id="KelurahanDesaSantriError" class="text-danger" style="display:none;">Kelurahan/Desa diperlukan.</span>
                                                 </div>
@@ -1895,9 +1895,11 @@ $required = '';
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Ubah Data</button>
-                <button type="submit" class="btn btn-primary" onclick="submitForm()">Kirim Data</button>
+            <div class="modal-footer justify-content-between">
+                <div>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Ubah Data</button>
+                    <button type="submit" class="btn btn-primary" onclick="submitForm()">Kirim Data</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2370,6 +2372,24 @@ $required = '';
         // Lanjut ke step berikutnya jika semua validasi berhasil
         if (isValid) {
             stepper.next();
+
+            // Scroll ke atas dengan smooth scroll dan delay untuk animasi stepper
+            setTimeout(() => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+
+                // Cari input pertama yang visible di step berikutnya
+                const nextStep = document.querySelector('.bs-stepper-pane.active');
+                if (nextStep) {
+                    const firstInput = nextStep.querySelector('input:not([type="hidden"]), select, textarea');
+                    if (firstInput) {
+                        firstInput.focus();
+                    }
+                }
+            }, 300);
+
             return true;
         }
         return false;

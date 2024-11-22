@@ -50,15 +50,16 @@
 </head>
 
 <body>
-    <div class="header">
+    <div class="header" style="text-align: left;">
         <h2>DATA SANTRI</h2>
     </div>
 
     <?php if ($fotoSantri): ?>
         <img src="<?= $fotoSantri ?>" class="foto-santri">
     <?php endif; ?>
+    <!-- informasi berikut adalah sekilas data santri yang sudah masuk -->
+    <p><i class="fas fa-info-circle"></i> Informasi berikut adalah sekilas data santri yang sudah masuk</p>
 
-    <!-- Data Santri -->
     <div class="section-title">Data Pribadi Santri</div>
     <table>
         <tr>
@@ -68,14 +69,6 @@
         <tr>
             <th>Nama Kelas</th>
             <td><?= $data['printNamaKelas'] ?? '-' ?></td>
-        </tr>
-        <tr>
-            <th>NIK Santri</th>
-            <td><?= $data['printNikSantri'] ?? '-' ?></td>
-        </tr>
-        <tr>
-            <th>No. KK Santri</th>
-            <td><?= $data['printNoKkSantri'] ?? '-' ?></td>
         </tr>
         <tr>
             <th>Nama Santri</th>
