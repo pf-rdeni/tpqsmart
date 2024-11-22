@@ -172,30 +172,20 @@ function renderTpqTable($dataTpq, $tpqLevel)
 
     /*=== fungsi untuk mencetak pdf ===*/
     function printPdf(idSantri) {
-        <?php if (ENVIRONMENT === 'production'): ?>
-            Swal.fire({
-                title: 'Informasi',
-                text: "Maaf, fungsi cetak PDF saat ini belum tersedia di production",
-                icon: 'info',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-        <?php else: ?>
-            Swal.fire({
-                title: 'Cetak PDF',
-                text: "Apakah anda yakin ingin mencetak data santri ini?",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Cetak!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.open(`<?= base_url('backend/santri/generatePDFSantriBaru/') ?>${idSantri}`, '_blank');
-                }
-            });
-        <?php endif; ?>
+        Swal.fire({
+            title: 'Cetak PDF',
+            text: "Apakah anda yakin ingin mencetak data santri ini?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Cetak!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.open(`<?= base_url('backend/santri/generatePDFSantriBaru/') ?>${idSantri}`, '_blank');
+            }
+        });
     }
 
     /*=== fungsi untuk melihat detail santri ===*/
