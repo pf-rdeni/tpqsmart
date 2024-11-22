@@ -649,13 +649,10 @@ class Santri extends BaseController
         try {
             // Validasi ID Santri
             if (!$IdSantri) {
-                $this->saveLog("❌ ERROR: ID Santri tidak ditemukan");
                 throw new \Exception('ID Santri tidak ditemukan');
             }
-            $this->saveLog("✓ OK: ID Santri valid: " . $IdSantri);
 
             // Ambil data santri dari database
-            $this->saveLog("ℹ️ INFO: Mengambil data santri dari database");
             $dataSantri = $this->DataSantriBaru
                 ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
                 ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
@@ -664,10 +661,8 @@ class Santri extends BaseController
                 ->first();
 
             if (!$dataSantri) {
-                $this->saveLog("❌ ERROR: Data santri tidak ditemukan");
                 throw new \Exception('Data santri tidak ditemukan');
             }
-            $this->saveLog("✓ OK: Data santri berhasil diambil");
 
             // Siapkan data untuk template
             $data = [
@@ -703,73 +698,90 @@ class Santri extends BaseController
 
             ];
 
-            // Proses foto
-            $this->saveLog("ℹ️ INFO: Memproses foto santri");
+            // Proses foto dengan penanganan error yang lebih baik
             if (!empty($dataSantri['PhotoProfil'])) {
-                $fotoData = null;
-                if (ENVIRONMENT === 'production') {
-                    $this->saveLog("ℹ️ INFO: Menggunakan path production untuk foto");
-                    $fotoPath = 'https://tpqsmart.simpedis.com/uploads/santri/' . $dataSantri['PhotoProfil'];
-                    $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
-                    $context = stream_context_create([
-                        'ssl' => [
-                            'verify_peer' => false,
-                            'verify_peer_name' => false,
-                        ]
-                    ]);
-                    $fotoData = file_get_contents($fotoPath, false, $context);
-                    //$fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
-                    $this->saveLog("ℹ️ INFO: Foto data berhasil diambil");
-                } else {
-                    $this->saveLog("ℹ️ INFO: Menggunakan path development untuk foto");
-                    $fotoPath = ROOTPATH . 'public/uploads/santri/' . $dataSantri['PhotoProfil'];
-                    $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
-                }
+                try {
+                    if (ENVIRONMENT === 'production') {
+                        $fotoUrl = 'https://tpqsmart.simpedis.com/uploads/santri/' . $dataSantri['PhotoProfil'];
 
-                if ($fotoData) {
-                    $data['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
-                    $this->saveLog("✓ OK: Foto berhasil diproses");
-                } else {
-                    $this->saveLog("⚠️ WARN: Foto tidak ditemukan di path: " . $fotoPath);
+                        // Gunakan cURL untuk mengambil gambar
+                        $ch = curl_init();
+                        curl_setopt($ch, CURLOPT_URL, $fotoUrl);
+                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                        $fotoData = curl_exec($ch);
+
+                        if (curl_errno($ch)) {
+                            throw new \Exception('Gagal mengambil foto: ' . curl_error($ch));
+                        }
+                        curl_close($ch);
+                    } else {
+                        $fotoPath = ROOTPATH . 'public/uploads/santri/' . $dataSantri['PhotoProfil'];
+                        if (!file_exists($fotoPath)) {
+                            throw new \Exception('File foto tidak ditemukan');
+                        }
+                        $fotoData = file_get_contents($fotoPath);
+                    }
+
+                    if ($fotoData) {
+                        $data['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
+                    }
+                } catch (\Exception $e) {
+                    log_message('error', 'Error processing photo: ' . $e->getMessage());
+                    $data['printFotoSantri'] = null; // Set null jika gagal memproses foto
                 }
             }
 
-            // Konfigurasi DOMPDF
-            $this->saveLog("ℹ️ INFO: Mengkonfigurasi DOMPDF");
+            // Konfigurasi DOMPDF dengan error handling
             $options = new Options();
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isRemoteEnabled', true);
             $options->set('isPhpEnabled', true);
-            $dompdf = new Dompdf($options);
-            $this->saveLog("✓ OK: Konfigurasi DOMPDF berhasil");
+            $options->set('debugKeepTemp', true);
+            $options->set('debugCss', true);
+            $options->set('debugLayout', true);
+            $options->set('debugLayoutLines', true);
+            $options->set('debugLayoutBlocks', true);
+            $options->set('debugLayoutInline', true);
+            $options->set('debugLayoutPaddingBox', true);
 
-            // Generate PDF
-            $this->saveLog("ℹ️ INFO: Memulai generate HTML");
+            $dompdf = new Dompdf($options);
+
+            // Generate PDF dengan error handling
             $html = view('backend/santri/pdf_template', [
                 'data' => $data,
-                'fotoSantri' => $data['printFotoSantri'] = null
+                'fotoSantri' => $data['printFotoSantri']
             ]);
 
-            $this->saveLog($html);
-
-            // log generate Load HTML ke DOMPDF 
-            $this->saveLog("ℹ️ INFO: Memulai generate PDF");
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-            $this->saveLog("✓ OK: PDF berhasil di-generate");
-            // Tambahkan header untuk menandai ini sebagai PDF
+
+            // Tambahkan try-catch untuk render
+            try {
+                $dompdf->render();
+            } catch (\Exception $e) {
+                throw new \Exception('Gagal render PDF: ' . $e->getMessage());
+            }
+
+            // Set header dan output dengan penanganan error
             header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="Data_Santri.pdf"');
+            header('Content-Disposition: inline; filename="Data_Santri_' . $IdSantri . '.pdf"');
 
-            // Keluarkan PDF ke browser
-            $dompdf->stream('Data_Santri.pdf', array('Attachment' => false));
-
-            return;
-
+            echo $dompdf->output();
+            exit();
         } catch (\Exception $e) {
-            $this->saveLog("❌ ERROR: " . $e->getMessage());
             log_message('error', '[generatePDFSantriBaru] Error: ' . $e->getMessage());
+
+            // Jika request AJAX, return JSON response
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal membuat PDF: ' . $e->getMessage()
+                ]);
+            }
+            
+            // Jika bukan AJAX, redirect dengan pesan error
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
