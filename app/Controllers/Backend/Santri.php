@@ -480,73 +480,73 @@ class Santri extends BaseController
     }
 
 
-    public function generatePDF()
-    {
-        try {
-            // 1. Validasi request AJAX
-            $this->saveLog("ℹ️ INFO: Validasi request AJAX");
-            if (!$this->request->isAJAX()) {
-                $this->saveLog("ERROR: Bukan request AJAX");
-                return $this->response->setStatusCode(403)->setJSON([
-                    'message' => 'Akses tidak diizinkan'
-                ]);
-            }
+    // public function generatePDF()
+    // {
+    //     try {
+    //         // 1. Validasi request AJAX
+    //         $this->saveLog("ℹ️ INFO: Validasi request AJAX");
+    //         if (!$this->request->isAJAX()) {
+    //             $this->saveLog("ERROR: Bukan request AJAX");
+    //             return $this->response->setStatusCode(403)->setJSON([
+    //                 'message' => 'Akses tidak diizinkan'
+    //             ]);
+    //         }
 
-            // 2. Validasi data
-            $data = $this->request->getJSON(true);
-            $this->saveLog("✓ OK: Data diterima");
+    //         // 2. Validasi data
+    //         $data = $this->request->getJSON(true);
+    //         $this->saveLog("✓ OK: Data diterima");
 
-            if (empty($data)) {
-                throw new \Exception('Tidak ada data yang dikirim');
-            }
+    //         if (empty($data)) {
+    //             throw new \Exception('Tidak ada data yang dikirim');
+    //         }
 
-            if (empty($data['printNamaSantri'])) {
-                throw new \Exception('Nama santri wajib diisi untuk mencetak PDF');
-            }
+    //         if (empty($data['printNamaSantri'])) {
+    //             throw new \Exception('Nama santri wajib diisi untuk mencetak PDF');
+    //         }
 
-            // 3. Konfigurasi DOMPDF
-            $this->saveLog("ℹ️ INFO: Inisialisasi Konfigurasi DOMPDF");
-            $options = new Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            $options->set('isPhpEnabled', true);
-            $dompdf = new Dompdf($options);
-            $this->saveLog("✓ OK: Konfigurasi DOMPDF berhasil");
+    //         // 3. Konfigurasi DOMPDF
+    //         $this->saveLog("ℹ️ INFO: Inisialisasi Konfigurasi DOMPDF");
+    //         $options = new Options();
+    //         $options->set('isHtml5ParserEnabled', true);
+    //         $options->set('isRemoteEnabled', true);
+    //         $options->set('isPhpEnabled', true);
+    //         $dompdf = new Dompdf($options);
+    //         $this->saveLog("✓ OK: Konfigurasi DOMPDF berhasil");
 
-            // 4. Proses foto
-            try {
-                $this->saveLog("ℹ️ INFO: Initial proses foto santri untuk memastikan format gambar valid");
-                $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
-                $this->saveLog("✓ OK: Foto santri berhasil diproses");
-            } catch (\Exception $e) {
-                $this->saveLog("⚠️ Foto tidak tersedia: " . $e->getMessage());
-                $fotoSantri = null;
-                $this->saveLog(" ℹ️ INFO: Foto santri tidak tersedia, dan akan dikosongkan");
-            }
+    //         // 4. Proses foto
+    //         try {
+    //             $this->saveLog("ℹ️ INFO: Initial proses foto santri untuk memastikan format gambar valid");
+    //             $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
+    //             $this->saveLog("✓ OK: Foto santri berhasil diproses");
+    //         } catch (\Exception $e) {
+    //             $this->saveLog("⚠️ Foto tidak tersedia: " . $e->getMessage());
+    //             $fotoSantri = null;
+    //             $this->saveLog(" ℹ️ INFO: Foto santri tidak tersedia, dan akan dikosongkan");
+    //         }
 
-            // 5. Render HTML dan PDF
-            $this->saveLog("ℹ️ INFO: Render HTML dan PDF");
-            $html = view('backend/santri/pdf_template', [
-                'data' => $data,
-                'fotoSantri' => $fotoSantri
-            ]);
+    //         // 5. Render HTML dan PDF
+    //         $this->saveLog("ℹ️ INFO: Render HTML dan PDF");
+    //         $html = view('backend/santri/pdf_template', [
+    //             'data' => $data,
+    //             'fotoSantri' => $fotoSantri
+    //         ]);
 
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-            $this->saveLog("✓ OK: PDF berhasil dibuat");
+    //         $dompdf->loadHtml($html);
+    //         $dompdf->setPaper('A4', 'portrait');
+    //         $dompdf->render();
+    //         $this->saveLog("✓ OK: PDF berhasil dibuat");
 
-            return $this->response
-            ->setHeader('Content-Type', 'application/pdf')
-            ->setBody($dompdf->output());
-        } catch (\Exception $e) {
-            $this->saveLog("❌ ERROR: " . $e->getMessage());
+    //         return $this->response
+    //         ->setHeader('Content-Type', 'application/pdf')
+    //         ->setBody($dompdf->output());
+    //     } catch (\Exception $e) {
+    //         $this->saveLog("❌ ERROR: " . $e->getMessage());
 
-            return $this->response->setStatusCode(500)->setJSON([
-                'message' => 'Gagal membuat PDF: ' . $e->getMessage()
-            ]);
-        }
-    }
+    //         return $this->response->setStatusCode(500)->setJSON([
+    //             'message' => 'Gagal membuat PDF: ' . $e->getMessage()
+    //         ]);
+    //     }
+    // }
 
     // Fungsi helper untuk menyimpan log
     private function saveLog($logs)
@@ -703,7 +703,15 @@ class Santri extends BaseController
             if (!empty($dataSantri['PhotoProfil'])) {
 
                 $this->saveLog("ℹ️ INFO: Menggunakan path development untuk foto");
-                $fotoPath = ROOTPATH . 'public/uploads/santri/' . $dataSantri['PhotoProfil'];
+                // Tentukan path berdasarkan environment
+                if (ENVIRONMENT === 'production') {
+                    $uploadPath = 'https://tpqsmart.simpedis.com/uploads/santri/';  // Path di server production
+                } else {
+                    $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                }
+
+                $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
+                $this->saveLog("ℹ️ INFO: Path foto: " . $fotoPath);
                 $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
 
                 if ($fotoData) {
