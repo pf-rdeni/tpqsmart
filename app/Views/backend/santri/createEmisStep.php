@@ -91,7 +91,7 @@ if (ENVIRONMENT === 'production') {
                                         <select class="form-control" id="IdTpq" name="IdTpq" <?= $required ?>>
                                             <option value="">Pilih Nama TPQ sesuai Desa/Kelurahan</option>
                                             <?php foreach ($dataTpq as $tpq): ?>
-                                                <option value="<?= $tpq['IdTpq'] ?>"><?= $tpq['NamaTpq'] ?> - <?= $tpq['Alamat'] ?></option>
+                                                <option value="<?= $tpq['IdTpq'] ?>" data-kelurahan="<?= ucwords(strtolower($tpq['Alamat'])) ?>"><?= $tpq['NamaTpq'] ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                         <span id="IdTpqError" class="text-danger" style="display:none;">Nama TPQ diperlukan.</span>
@@ -2459,6 +2459,8 @@ if (ENVIRONMENT === 'production') {
     document.addEventListener('DOMContentLoaded', function() {
         const kelurahanSelect = document.getElementById('KelurahanDesaTpq');
         const tpqSelect = document.getElementById('IdTpq');
+
+        // Simpan semua opsi TPQ asli
         const originalTpqOptions = Array.from(tpqSelect.options);
 
         // Sembunyikan select TPQ saat pertama kali
@@ -2467,19 +2469,28 @@ if (ENVIRONMENT === 'production') {
         kelurahanSelect.addEventListener('change', function() {
             const selectedKelurahan = this.value;
 
-            // Reset TPQ select
+            // Reset dan tampilkan TPQ dropdown
             tpqSelect.innerHTML = '<option value="">Pilih Nama TPQ</option>';
 
             if (selectedKelurahan) {
-                // Tampilkan select TPQ
-                tpqSelect.parentElement.style.display = 'block';
-
                 // Filter TPQ berdasarkan kelurahan yang dipilih
-                originalTpqOptions.forEach(option => {
-                    if (option.value && option.text.includes(selectedKelurahan)) {
-                        tpqSelect.add(option.cloneNode(true));
-                    }
+                const filteredOptions = originalTpqOptions.filter(option => {
+                    return option.dataset.kelurahan === selectedKelurahan;
                 });
+
+                // Tambahkan opsi yang sesuai
+                filteredOptions.forEach(option => {
+                    const newOption = option.cloneNode(true);
+                    tpqSelect.appendChild(newOption);
+                });
+
+                // Tampilkan select TPQ jika ada opsi yang sesuai
+                tpqSelect.parentElement.style.display = filteredOptions.length > 0 ? 'block' : 'none';
+
+                // Log untuk debugging
+                console.log('Kelurahan terpilih:', selectedKelurahan);
+                console.log('Jumlah TPQ terfilter:', filteredOptions.length);
+                console.log('TPQ options:', filteredOptions);
             } else {
                 // Sembunyikan select TPQ jika tidak ada kelurahan yang dipilih
                 tpqSelect.parentElement.style.display = 'none';
