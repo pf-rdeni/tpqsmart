@@ -714,6 +714,15 @@ class Santri extends BaseController
                 }
             }
 
+            try {
+                $this->saveLog("ℹ️ INFO: Initial proses foto santri untuk memastikan format gambar valid");
+                $fotoSantri = $this->processFotoSantri($data['printFotoSantri'] ?? null);
+                $this->saveLog("✓ OK: Foto santri berhasil diproses");
+            } catch (\Exception $e) {
+                $this->saveLog("⚠️ Foto tidak tersedia: " . $e->getMessage());
+                $fotoSantri = null;
+                $this->saveLog(" ℹ️ INFO: Foto santri tidak tersedia, dan akan dikosongkan");
+            }
             // Konfigurasi DOMPDF
             $this->saveLog("ℹ️ INFO: Mengkonfigurasi DOMPDF");
             $options = new Options();
@@ -727,7 +736,7 @@ class Santri extends BaseController
             $this->saveLog("ℹ️ INFO: Memulai generate HTML");
             $html = view('backend/santri/pdf_template', [
                 'data' => $data,
-                'fotoSantri' => $data['printFotoSantri'] ?? null
+                'fotoSantri' => $fotoSantri
             ]);
 
             // log generate Load HTML ke DOMPDF 
