@@ -125,6 +125,11 @@ class SantriBaruModel extends Model
         return $this->where('NikSantri', $nikSantri)->first();
     }
 
+    public function getDetailSantri($IdSantri)
+    {
+        return $this->where('IdSantri', $IdSantri)->first();
+    }
+
     public function getSantriByTPQ($idTpq)
     {
         return $this->where('IdTpq', $idTpq)->findAll();

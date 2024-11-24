@@ -51,7 +51,7 @@
                 </div>
                 <div class="card-body">
                     <div class="tab-content" id="custom-tabs-one-tabContent">
-                        <div class="tab-pane fade show" id="custom-tabs-one-tk" role="tabpanel" aria-labelledby="custom-tabs-one-tk-tab">
+                        <div class="tab-pane fade" id="custom-tabs-one-tk" role="tabpanel" aria-labelledby="custom-tabs-one-tk-tab">
                             <?= renderTpqTable($dataSantriTK, 1) ?>
                         </div>
                         <div class="tab-pane fade" id="custom-tabs-one-tka" role="tabpanel" aria-labelledby="custom-tabs-one-tka-tab">
@@ -60,23 +60,23 @@
                         <div class="tab-pane fade" id="custom-tabs-one-tkb" role="tabpanel" aria-labelledby="custom-tabs-one-tkb-tab">
                             <?= renderTpqTable($dataSantriTKB, 3) ?>
                         </div>
-                        <div class="tab-pane fade show active" id="custom-tabs-one-tpq1" role="tabpanel" aria-labelledby="custom-tabs-one-tpq1-tab">
-                            <?= renderTpqTable($dataSantriTPQ1, 3) ?>
+                        <div class="tab-pane fade active show" id="custom-tabs-one-tpq1" role="tabpanel" aria-labelledby="custom-tabs-one-tpq1-tab">
+                            <?= renderTpqTable($dataSantriTPQ1, 4) ?>
                         </div>
                         <div class="tab-pane fade" id="custom-tabs-one-tpq2" role="tabpanel" aria-labelledby="custom-tabs-one-tpq2-tab">
-                            <?= renderTpqTable($dataSantriTPQ2, 4) ?>
+                            <?= renderTpqTable($dataSantriTPQ2, 5) ?>
                         </div>
                         <div class="tab-pane fade" id="custom-tabs-one-tpq3" role="tabpanel" aria-labelledby="custom-tabs-one-tpq3-tab">
-                            <?= renderTpqTable($dataSantriTPQ3, 5) ?>
+                            <?= renderTpqTable($dataSantriTPQ3, 6) ?>
                         </div>
                         <div class="tab-pane fade" id="custom-tabs-one-tpq4" role="tabpanel" aria-labelledby="custom-tabs-one-tpq4-tab">
-                            <?= renderTpqTable($dataSantriTPQ4, 6) ?>
+                            <?= renderTpqTable($dataSantriTPQ4, 7) ?>
                         </div>
                         <div class="tab-pane fade" id="custom-tabs-one-tpq5" role="tabpanel" aria-labelledby="custom-tabs-one-tpq5-tab">
-                            <?= renderTpqTable($dataSantriTPQ5, 7) ?>
+                            <?= renderTpqTable($dataSantriTPQ5, 8) ?>
                         </div>
                         <div class="tab-pane fade" id="custom-tabs-one-tpq6" role="tabpanel" aria-labelledby="custom-tabs-one-tpq6-tab">
-                            <?= renderTpqTable($dataSantriTPQ6, 8) ?>
+                            <?= renderTpqTable($dataSantriTPQ6, 9) ?>
                         </div>
                     </div>
                 </div>
@@ -85,6 +85,127 @@
         </div>
     </div>
 </div>
+
+<!-- Tambahkan Modal Detail Santri -->
+<div class="modal fade" id="modalDetailSantri" tabindex="-1" role="dialog" aria-labelledby="modalDetailSantriLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="modalDetailSantriLabel">Data Santri</h5>
+                    <p class="mb-0"><i class="fas fa-info-circle"></i> Informasi berikut adalah sekilas data santri yang sudah masuk</p>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <img id="santriPhoto" src="" alt="Foto Santri" class="img-fluid rounded" style="max-width: 200px;">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="section-title" style="background-color: #4CAF50; color: white; padding: 5px 10px; margin: 15px 0;">Data Pribadi Santri</div>
+                        <table class="table table-bordered">
+                            <tr>
+                                <td width="30%">Nama Santri</td>
+                                <th id="namaSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>ID Santri</td>
+                                <th id="idSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>Tempat, Tgl Lahir</td>
+                                <th id="ttlSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>Jenis Kelamin</td>
+                                <th id="jenisKelamin"></th>
+                            </tr>
+                            <tr>
+                                <td>Anak Ke</td>
+                                <th id="anakKe"></th>
+                            </tr>
+                            <tr>
+                                <td>Jumlah Saudara</td>
+                                <th id="jumlahSaudara"></th>
+                            </tr>
+                            <tr>
+                                <td>Hobi</td>
+                                <th id="hobi"></th>
+                            </tr>
+                            <tr>
+                                <td>Cita-Cita</td>
+                                <th id="citaCita"></th>
+                            </tr>
+                            <tr>
+                                <td>Nama Ayah</td>
+                                <th id="namaAyah"></th>
+                            </tr>
+                            <tr>
+                                <td>Nama Ibu</td>
+                                <th id="namaIbu"></th>
+                            </tr>
+                        </table>
+                        <div class="section-title" style="background-color: #4CAF50; color: white; padding: 5px 10px; margin: 15px 0;">Data Alamat Santri</div>
+                        <table class="table table-bordered">
+                            <tr>
+                                <td>Alamat</td>
+                                <th id="alamatSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>RW Santri</td>
+                                <th id="rwSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>RT Santri</td>
+                                <th id="rtSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>Kecamatan Santri</td>
+                                <th id="kecamatanSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>Kelurahan/Desa Santri</td>
+                                <th id="kelurahanDesaSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>Kabupaten/Kota Santri</td>
+                                <th id="kabupatenKotaSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>Provinsi Santri</td>
+                                <th id="provinsiSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>Kode Pos Santri</td>
+                                <th id="kodePosSantri"></th>
+                            </tr>
+                            <tr>
+                                <td>Jarak Ke Lembaga</td>
+                                <th id="jarakKeLembaga"></th>
+                            </tr>
+                            <tr>
+                                <td>Waktu Tempuh</td>
+                                <th id="waktuTempuh"></th>
+                            </tr>
+                            <tr>
+                                <td>Transportasi</td>
+                                <th id="transportasi"></th>
+                            </tr>
+
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 
 // fungsi untuk menampilkan data table per kelas tpq
@@ -170,7 +291,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
         }).buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
     }
 
-    // Inisialisasi untuk semua tabel TPQ (1-6)
+    /*=== Inisialisasi untuk semua tabel TK, TKA, TKB, dan TPQ (1-6) ===*/
     for (let i = 1; i <= 9; i++) {
         initializeDataTable(`#tableSantriBaruPerKelasTpq${i}`, false, [], {
             "lengthChange": false,
@@ -202,12 +323,68 @@ function renderTpqTable($dataTpq, $tpqLevel)
 
     /*=== fungsi untuk melihat detail santri ===*/
     function viewDetail(idSantri) {
-        Swal.fire({
-            title: 'Detail Santri',
-            text: "Informasi saat ini belum tersedia.",
-            icon: 'info',
-            confirmButtonColor: '#3085d6',
-            confirmButtonText: 'OK'
+        $.ajax({
+            url: `<?= base_url('backend/santri/getDetailSantri/') ?>${idSantri}`,
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        title: 'Success',
+                        text: "Berhasil mengambil data santri",
+                        icon: 'success',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK',
+                        timer: 1000
+                    }).then(() => {
+                        const data = response.data;
+                        const uploadPath = '<?= (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/') ?>';
+
+                        // Update elemen modal dengan data santri
+                        $('#santriPhoto').attr('src', data.PhotoProfil ? uploadPath + data.PhotoProfil : '<?= base_url('images/no-photo.jpg') ?>');
+                        $('#namaSantri').text(data.NamaSantri);
+                        $('#idSantri').text(data.IdSantri);
+                        $('#ttlSantri').text(`${data.TempatLahirSantri}, ${data.TanggalLahirSantri}`);
+                        $('#jenisKelamin').text(data.JenisKelamin);
+                        $('#anakKe').text(data.AnakKe);
+                        $('#jumlahSaudara').text(data.JumlahSaudara);
+                        $('#hobi').text(data.Hobi);
+                        $('#citaCita').text(data.CitaCita);
+                        $('#namaAyah').text(data.NamaAyah);
+                        $('#namaIbu').text(data.NamaIbu);
+                        $('#alamatSantri').text(data.AlamatSantri);
+                        $('#rwSantri').text(data.RwSantri);
+                        $('#rtSantri').text(data.RtSantri);
+                        $('#kecamatanSantri').text(data.KecamatanSantri);
+                        $('#kelurahanDesaSantri').text(data.KelurahanDesaSantri);
+                        $('#kabupatenKotaSantri').text(data.KabupatenKotaSantri);
+                        $('#provinsiSantri').text(data.ProvinsiSantri);
+                        $('#kodePosSantri').text(data.KodePosSantri);
+                        $('#jarakKeLembaga').text(data.JarakTempuhSantri);
+                        $('#waktuTempuh').text(data.WaktuTempuhSantri);
+                        $('#transportasi').text(data.TransportasiSantri);
+                        // Tampilkan modal setelah Swal.fire selesai
+                        $('#modalDetailSantri').modal('show');
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: response.message || "Terjadi kesalahan saat mengambil data santri",
+                        icon: 'error',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK',
+                        timer: 2000
+                    });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: "Gagal mengambil data santri",
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                });
+            }
         });
     }
 </script>

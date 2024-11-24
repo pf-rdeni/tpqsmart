@@ -286,6 +286,16 @@ class Santri extends BaseController
         ]);
     }
 
+    // Endpoint untuk mendapatkan detail santri baru
+    public function getDetailSantri($IdSantri)
+    {
+        $santri = $this->DataSantriBaru->getDetailSantri($IdSantri);
+        return $this->response->setJSON([
+            'success' => !empty($santri),
+            'data' => $santri
+        ]);
+    }
+
     public function show()
     {
         $IdTpq = session()->get('IdTpq');
