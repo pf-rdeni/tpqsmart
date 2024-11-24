@@ -19,27 +19,33 @@
             <br>
             <div class="card card-primary card-tabs">
                 <div class="card-header p-0 pt-1">
-                    <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
-                        <li class="nav-item">
-                            <a class="nav-link" id="custom-tabs-one-tk-tab" data-toggle="pill" href="#custom-tabs-one-tk" role="tab" aria-controls="custom-tabs-one-tk" aria-selected="false">TK</a>
+                    <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="custom-tabs-one-tab" role="tablist">
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tk-tab" data-toggle="pill" href="#custom-tabs-one-tk" role="tab" aria-controls="custom-tabs-one-tk" aria-selected="false">TK</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" id="custom-tabs-one-tpq1-tab" data-toggle="pill" href="#custom-tabs-one-tpq1" role="tab" aria-controls="custom-tabs-one-tpq1" aria-selected="true">TPQ1</a>
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tka-tab" data-toggle="pill" href="#custom-tabs-one-tka" role="tab" aria-controls="custom-tabs-one-tka" aria-selected="false">TKA</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="custom-tabs-one-tpq2-tab" data-toggle="pill" href="#custom-tabs-one-tpq2" role="tab" aria-controls="custom-tabs-one-tpq2" aria-selected="false">TPQ2</a>
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tkb-tab" data-toggle="pill" href="#custom-tabs-one-tkb" role="tab" aria-controls="custom-tabs-one-tkb" aria-selected="false">TKB</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="custom-tabs-one-tpq3-tab" data-toggle="pill" href="#custom-tabs-one-tpq3" role="tab" aria-controls="custom-tabs-one-tpq3" aria-selected="false">TPQ3</a>
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center active" id="custom-tabs-one-tpq1-tab" data-toggle="pill" href="#custom-tabs-one-tpq1" role="tab" aria-controls="custom-tabs-one-tpq1" aria-selected="true">TPQ1</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="custom-tabs-one-tpq4-tab" data-toggle="pill" href="#custom-tabs-one-tpq4" role="tab" aria-controls="custom-tabs-one-tpq4" aria-selected="false">TPQ4</a>
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq2-tab" data-toggle="pill" href="#custom-tabs-one-tpq2" role="tab" aria-controls="custom-tabs-one-tpq2" aria-selected="false">TPQ2</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="custom-tabs-one-tpq5-tab" data-toggle="pill" href="#custom-tabs-one-tpq5" role="tab" aria-controls="custom-tabs-one-tpq5" aria-selected="false">TPQ5</a>
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq3-tab" data-toggle="pill" href="#custom-tabs-one-tpq3" role="tab" aria-controls="custom-tabs-one-tpq3" aria-selected="false">TPQ3</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="custom-tabs-one-tpq6-tab" data-toggle="pill" href="#custom-tabs-one-tpq6" role="tab" aria-controls="custom-tabs-one-tpq6" aria-selected="false">TPQ6</a>
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq4-tab" data-toggle="pill" href="#custom-tabs-one-tpq4" role="tab" aria-controls="custom-tabs-one-tpq4" aria-selected="false">TPQ4</a>
+                        </li>
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq5-tab" data-toggle="pill" href="#custom-tabs-one-tpq5" role="tab" aria-controls="custom-tabs-one-tpq5" aria-selected="false">TPQ5</a>
+                        </li>
+                        <li class="nav-item flex-fill">
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq6-tab" data-toggle="pill" href="#custom-tabs-one-tpq6" role="tab" aria-controls="custom-tabs-one-tpq6" aria-selected="false">TPQ6</a>
                         </li>
                     </ul>
                 </div>
@@ -47,6 +53,12 @@
                     <div class="tab-content" id="custom-tabs-one-tabContent">
                         <div class="tab-pane fade show" id="custom-tabs-one-tk" role="tabpanel" aria-labelledby="custom-tabs-one-tk-tab">
                             <?= renderTpqTable($dataSantriTK, 1) ?>
+                        </div>
+                        <div class="tab-pane fade" id="custom-tabs-one-tka" role="tabpanel" aria-labelledby="custom-tabs-one-tka-tab">
+                            <?= renderTpqTable($dataSantriTKA, 2) ?>
+                        </div>
+                        <div class="tab-pane fade" id="custom-tabs-one-tkb" role="tabpanel" aria-labelledby="custom-tabs-one-tkb-tab">
+                            <?= renderTpqTable($dataSantriTKB, 3) ?>
                         </div>
                         <div class="tab-pane fade show active" id="custom-tabs-one-tpq1" role="tabpanel" aria-labelledby="custom-tabs-one-tpq1-tab">
                             <?= renderTpqTable($dataSantriTPQ1, 3) ?>

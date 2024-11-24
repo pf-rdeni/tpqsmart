@@ -354,8 +354,8 @@ class Santri extends BaseController
         $data = [
             'page_title' => 'Data Santri Baru Per Kelas TPQ',
             'dataSantriTK' => $santriPerKelas['TK'],
-            // 'dataSantriTKA' => $santriPerKelas['TKA'],
-            // 'dataSantriTKB' => $santriPerKelas['TKB'],
+            'dataSantriTKA' => $santriPerKelas['TKA'],
+            'dataSantriTKB' => $santriPerKelas['TKB'],
             'dataSantriTPQ1' => $santriPerKelas['TPQ1'],
             'dataSantriTPQ2' => $santriPerKelas['TPQ2'],
             'dataSantriTPQ3' => $santriPerKelas['TPQ3'],
