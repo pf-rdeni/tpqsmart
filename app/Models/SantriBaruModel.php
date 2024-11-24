@@ -33,7 +33,10 @@ class SantriBaruModel extends Model
         // Alamat Ayah
         'TinggalDiluarNegeriAyah', 'StatusKepemilikanRumahAyah', 'ProvinsiAyah',
         'KabupatenKotaAyah', 'KecamatanAyah', 'KelurahanDesaAyah',
-        'RWAyah', 'RTAyah', 'AlamatAyah', 'KodePosAyah',
+        'RwAyah',
+        'RtAyah',
+        'AlamatAyah',
+        'KodePosAyah',
         
         // Data Ibu
         'NamaIbu', 'StatusIbu', 'NikIbu', 'KewarganegaraanIbu',
@@ -44,7 +47,10 @@ class SantriBaruModel extends Model
         // Alamat Ibu
         'AlamatIbuSamaDenganAyah', 'TinggalDiluarNegeriIbu',
         'StatusKepemilikanRumahIbu', 'ProvinsiIbu', 'KabupatenKotaIbu',
-        'KecamatanIbu', 'KelurahanDesaIbu', 'RWIbu', 'RTIbu',
+        'KecamatanIbu',
+        'KelurahanDesaIbu',
+        'RwIbu',
+        'RtIbu',
         'AlamatIbu', 'KodePosIbu',
         
         // Data Wali

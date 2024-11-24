@@ -405,8 +405,8 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" onclick="stepper.previous()">Sebelumnya</button>
-                                    <button type="button" class="btn btn-primary" onclick="validateAndNext('santri-part')">Selanjutnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('Tpq-Part')">Sebelumnya</button>
+                                    <button type="button" class="btn btn-primary" onclick="validateAndNext('Santri-Part')">Selanjutnya</button>
                                 </div>
                                 <!-- Bagian Profil Orang Tua atau Wali -->
                                 <div id="ortu-part" class="content" role="tabpanel" aria-labelledby="ortu-part-trigger">
@@ -943,7 +943,7 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" onclick="stepper.previous()">Sebelumnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('data-santri-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('ortu-part')">Selanjutnya</button>
                                 </div>
                                 <!-- Bagian Alamat Orang Tua dan Santri beserta jarak tempat tinggal santri ke lembaga-->
@@ -993,7 +993,7 @@ if (ENVIRONMENT === 'production') {
                                                 </div>
                                             </div>
 
-                                            <div class="row">
+                                            <div class="row" style="display: none;">
                                                 <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label for="ProvinsiAyah">Provinsi</label>
@@ -1037,16 +1037,16 @@ if (ENVIRONMENT === 'production') {
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
-                                                        <label for="RWAyah">RW</label>
-                                                        <input type="text" class="form-control" id="RWAyah" name="RWAyah" placeholder="Masukkan RW">
-                                                        <span id="RWAyahError" class="text-danger" style="display:none;">RW diperlukan.</span>
+                                                        <label for="RwAyah">RW</label>
+                                                        <input type="text" class="form-control" id="RwAyah" name="RwAyah" placeholder="Masukkan RW">
+                                                        <span id="RwAyahError" class="text-danger" style="display:none;">RW diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
-                                                        <label for="RTAyah">RT</label>
-                                                        <input type="text" class="form-control" id="RTAyah" name="RTAyah" placeholder="Masukkan RT">
-                                                        <span id="RTAyahError" class="text-danger" style="display:none;">RT diperlukan.</span>
+                                                        <label for="RtAyah">RT</label>
+                                                        <input type="text" class="form-control" id="RtAyah" name="RtAyah" placeholder="Masukkan RT">
+                                                        <span id="RtAyahError" class="text-danger" style="display:none;">RT diperlukan.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1113,7 +1113,7 @@ if (ENVIRONMENT === 'production') {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="row">
+                                                <div class="row" style="display: none;">
                                                     <div class="col-md-3">
                                                         <div class="form-group">
                                                             <label for="ProvinsiIbu">Provinsi</label>
@@ -1156,16 +1156,16 @@ if (ENVIRONMENT === 'production') {
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="RWIbu">RW</label>
-                                                            <input type="text" class="form-control" id="RWIbu" name="RWIbu" placeholder="Masukkan RW">
-                                                            <span id="RWIbuError" class="text-danger" style="display:none;">RW diperlukan.</span>
+                                                            <label for="RwIbu">RW</label>
+                                                            <input type="text" class="form-control" id="RwIbu" name="RwIbu" placeholder="Masukkan RW">
+                                                            <span id="RwIbuError" class="text-danger" style="display:none;">RW diperlukan.</span>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="RTIbu">RT</label>
-                                                            <input type="text" class="form-control" id="RTIbu" name="RTIbu" placeholder="Masukkan RT">
-                                                            <span id="RTIbuError" class="text-danger" style="display:none;">RT diperlukan.</span>
+                                                            <label for="RtIbu">RT</label>
+                                                            <input type="text" class="form-control" id="RtIbu" name="RtIbu" placeholder="Masukkan RT">
+                                                            <span id="RtIbuError" class="text-danger" style="display:none;">RT diperlukan.</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1271,7 +1271,7 @@ if (ENVIRONMENT === 'production') {
                                         </div>
                                     </div>
                                     <div id="DataAlamatSantriProvinsiDiv">
-                                        <div class="row">
+                                        <div class="row" style="display: none;">
                                             <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="ProvinsiSantri">Provinsi</label>
@@ -1314,21 +1314,21 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label for="RWSantri">RW</label>
-                                                    <input type="text" class="form-control" id="RWSantri" name="RWSantri" placeholder="Masukkan RW">
-                                                    <span id="RWSantriError" class="text-danger" style="display:none;">RW diperlukan.</span>
+                                                    <label for="RwSantri">RW</label>
+                                                    <input type="text" class="form-control" id="RwSantri" name="RwSantri" placeholder="Masukkan RW">
+                                                    <span id="RwSantriError" class="text-danger" style="display:none;">RW diperlukan.</span>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label for="RTSantri">RT</label>
-                                                    <input type="text" class="form-control" id="RTSantri" name="RTSantri" placeholder="Masukkan RT">
-                                                    <span id="RTSantriError" class="text-danger" style="display:none;">RT diperlukan.</span>
+                                                    <label for="RtSantri">RT</label>
+                                                    <input type="text" class="form-control" id="RtSantri" name="RtSantri" placeholder="Masukkan RT">
+                                                    <span id="RtSantriError" class="text-danger" style="display:none;">RT diperlukan.</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="row">
-                                            <div class="col-md-8">
+                                            <div class="col-md-12">
                                                 <div class="form-group">
                                                     <label for="AlamatSantri">Alamat</label>
                                                     <input type="text" class="form-control" id="AlamatSantri" name="AlamatSantri" placeholder="Masukkan Alamat">
@@ -1433,7 +1433,7 @@ if (ENVIRONMENT === 'production') {
                                     </div>
                                     <!-- bagian tombol navigasi -->
 
-                                    <button type="button" class="btn btn-secondary" onclick="stepper.previous()">Sebelumnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('Ortu-Part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="showPreview()">Pratinjau</button>
                                 </div>
                             </form>
@@ -1758,7 +1758,7 @@ if (ENVIRONMENT === 'production') {
                                                             </tr>
                                                             <tr>
                                                                 <th>RT/RW</th>
-                                                                <td><span id="previewRTAyah"></span>/<span id="previewRWAyah"></span></td>
+                                                                <td><span id="previewRtAyah"></span>/<span id="previewRwAyah"></span></td>
                                                             </tr>
                                                             <tr>
                                                                 <th>Kelurahan/Desa</th>
@@ -1799,7 +1799,7 @@ if (ENVIRONMENT === 'production') {
                                                             </tr>
                                                             <tr>
                                                                 <th>RT/RW</th>
-                                                                <td><span id="previewRTIbu"></span>/<span id="previewRWIbu"></span></td>
+                                                                <td><span id="previewRtIbu"></span>/<span id="previewRwIbu"></span></td>
                                                             </tr>
                                                             <tr>
                                                                 <th>Kelurahan/Desa</th>
@@ -1844,7 +1844,7 @@ if (ENVIRONMENT === 'production') {
                                                             </tr>
                                                             <tr>
                                                                 <th>RT/RW</th>
-                                                                <td><span id="previewRTSantri"></span>/<span id="previewRWSantri"></span></td>
+                                                                <td><span id="previewRtSantri"></span>/<span id="previewRwSantri"></span></td>
                                                             </tr>
                                                             <tr>
                                                                 <th>Kelurahan/Desa</th>
@@ -2089,8 +2089,8 @@ if (ENVIRONMENT === 'production') {
                 previewDataAlamatDetailAyahLainya.style.display = 'table-row-group';
                 document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value || '-';
                 document.getElementById('previewStatusKepemilikanRumahAyah').textContent = document.getElementById('StatusKepemilikanRumahAyah').value || '-';
-                document.getElementById('previewRTAyah').textContent = document.getElementById('RTAyah').value || '-';
-                document.getElementById('previewRWAyah').textContent = document.getElementById('RWAyah').value || '-';
+                document.getElementById('previewRtAyah').textContent = document.getElementById('RtAyah').value || '-';
+                document.getElementById('previewRwAyah').textContent = document.getElementById('RwAyah').value || '-';
                 document.getElementById('previewKelurahanDesaAyah').textContent = document.getElementById('KelurahanDesaAyah').value || '-';
                 document.getElementById('previewKecamatanAyah').textContent = document.getElementById('KecamatanAyah').value || '-';
                 document.getElementById('previewKabupatenKotaAyah').textContent = document.getElementById('KabupatenKotaAyah').value || '-';
@@ -2120,8 +2120,8 @@ if (ENVIRONMENT === 'production') {
                     previewDataAlamatDetailIbuLainya.style.display = 'table-row-group';
                     document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value || '-';
                     document.getElementById('previewStatusKepemilikanRumahIbu').textContent = document.getElementById('StatusKepemilikanRumahIbu').value || '-';
-                    document.getElementById('previewRTIbu').textContent = document.getElementById('RTIbu').value || '-';
-                    document.getElementById('previewRWIbu').textContent = document.getElementById('RWIbu').value || '-';
+                    document.getElementById('previewRtIbu').textContent = document.getElementById('RtIbu').value || '-';
+                    document.getElementById('previewRwIbu').textContent = document.getElementById('RwIbu').value || '-';
                     document.getElementById('previewKelurahanDesaIbu').textContent = document.getElementById('KelurahanDesaIbu').value || '-';
                     document.getElementById('previewKecamatanIbu').textContent = document.getElementById('KecamatanIbu').value || '-';
                     document.getElementById('previewKabupatenKotaIbu').textContent = document.getElementById('KabupatenKotaIbu').value || '-';
@@ -2143,8 +2143,8 @@ if (ENVIRONMENT === 'production') {
         if (StatusTempatTinggalSantri === 'Lainnya' || StatusTempatTinggalSantri === 'Tinggal dengan Wali' || StatusTempatTinggalSantri === '') {
             dataAlamatSantri.style.display = 'table-row-group';
             document.getElementById('previewAlamatSantri').textContent = document.getElementById('AlamatSantri').value || '-';
-            document.getElementById('previewRTSantri').textContent = document.getElementById('RTSantri').value || '-';
-            document.getElementById('previewRWSantri').textContent = document.getElementById('RWSantri').value || '-';
+            document.getElementById('previewRtSantri').textContent = document.getElementById('RtSantri').value || '-';
+            document.getElementById('previewRwSantri').textContent = document.getElementById('RwSantri').value || '-';
             document.getElementById('previewKelurahanDesaSantri').textContent = document.getElementById('KelurahanDesaSantri').value || '-';
             document.getElementById('previewKecamatanSantri').textContent = document.getElementById('KecamatanSantri').value || '-';
             document.getElementById('previewKabupatenKotaSantri').textContent = document.getElementById('KabupatenKotaSantri').value || '-';
@@ -2220,7 +2220,7 @@ if (ENVIRONMENT === 'production') {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Terjadi kesalahan saat menghubungi server'
+                    text: response.message || 'Terjadi kesalahan saat menghubungi server'
                 });
             }
         });
@@ -2247,12 +2247,29 @@ if (ENVIRONMENT === 'production') {
     });
     /* ===== End Region: Inisialisasi Stepper Form ===== */
 
+    function validateAndPrevious(stepId) {
+        stepper.previous();
+        //scroll kebawah
+        window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: 'smooth'
+        });
+        return true;
+    }
+
     /* ===== Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya =====
      * Memvalidasi input dan melanjutkan ke langkah berikutnya
      * @param {string} stepId - ID dari langkah yang sedang divalidasi
      */
 
     /* ===== Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
+    // Tambahkan variabel untuk melacak status scroll setiap bagian
+    const scrollStatus = {
+        'santri-part': false,
+        'ortu-part': false,
+        'alamat-part': false
+    };
+
     function validateAndNext(stepId) {
         let isValid = true;
         let firstInvalidField = null;
@@ -2373,22 +2390,28 @@ if (ENVIRONMENT === 'production') {
         if (isValid) {
             stepper.next();
 
-            // Scroll ke atas dengan smooth scroll dan delay untuk animasi stepper
-            setTimeout(() => {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
+            // Cek apakah bagian ini sudah pernah di-scroll
+            if (!scrollStatus[stepId]) {
+                // Scroll ke atas dengan smooth scroll dan delay untuk animasi stepper
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
 
-                // Cari input pertama yang visible di step berikutnya
-                const nextStep = document.querySelector('.bs-stepper-pane.active');
-                if (nextStep) {
-                    const firstInput = nextStep.querySelector('input:not([type="hidden"]), select, textarea');
-                    if (firstInput) {
-                        firstInput.focus();
+                    // Cari input pertama yang visible di step berikutnya
+                    const nextStep = document.querySelector('.bs-stepper-pane.active');
+                    if (nextStep) {
+                        const firstInput = nextStep.querySelector('input:not([type="hidden"]), select, textarea');
+                        if (firstInput) {
+                            firstInput.focus();
+                        }
                     }
-                }
-            }, 300);
+                }, 300);
+
+                // Tandai bahwa bagian ini sudah di-scroll
+                scrollStatus[stepId] = true;
+            }
 
             return true;
         }
@@ -2487,10 +2510,6 @@ if (ENVIRONMENT === 'production') {
                 // Tampilkan select TPQ jika ada opsi yang sesuai
                 tpqSelect.parentElement.style.display = filteredOptions.length > 0 ? 'block' : 'none';
 
-                // Log untuk debugging
-                console.log('Kelurahan terpilih:', selectedKelurahan);
-                console.log('Jumlah TPQ terfilter:', filteredOptions.length);
-                console.log('TPQ options:', filteredOptions);
             } else {
                 // Sembunyikan select TPQ jika tidak ada kelurahan yang dipilih
                 tpqSelect.parentElement.style.display = 'none';
@@ -4031,8 +4050,8 @@ if (ENVIRONMENT === 'production') {
         const fields = [
             'StatusKepemilikanRumah',
             'Alamat',
-            'RT',
-            'RW',
+            'Rt',
+            'Rw',
             'KelurahanDesa',
             'Kecamatan',
             'KabupatenKota',

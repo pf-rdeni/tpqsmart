@@ -180,8 +180,8 @@ class Santri extends BaseController
                 'KabupatenKotaAyah' => $this->request->getPost('KabupatenKotaAyah'),
                 'KecamatanAyah' => $this->request->getPost('KecamatanAyah'),
                 'KelurahanDesaAyah' => $this->request->getPost('KelurahanDesaAyah'),
-                'RtAyah' => $this->request->getPost('RTAyah'),
-                'RwAyah' => $this->request->getPost('RWAyah'),
+                'RtAyah' => $this->request->getPost('RtAyah'),
+                'RwAyah' => $this->request->getPost('RwAyah'),
                 'AlamatAyah' => $this->request->getPost('AlamatAyah'),
                 'KodePosAyah' => $this->request->getPost('KodePosAyah'),
 
@@ -192,8 +192,8 @@ class Santri extends BaseController
                 'KabupatenKotaIbu' => $this->request->getPost('KabupatenKotaIbu'),
                 'KecamatanIbu' => $this->request->getPost('KecamatanIbu'),
                 'KelurahanDesaIbu' => $this->request->getPost('KelurahanDesaIbu'),
-                'RtIbu' => $this->request->getPost('RTIbu'),
-                'RwIbu' => $this->request->getPost('RWIbu'),
+                'RtIbu' => $this->request->getPost('RtIbu'),
+                'RwIbu' => $this->request->getPost('RwIbu'),
                 'AlamatIbu' => $this->request->getPost('AlamatIbu'),
                 'KodePosIbu' => $this->request->getPost('KodePosIbu'),
 
@@ -203,8 +203,8 @@ class Santri extends BaseController
                 'KabupatenKotaSantri' => $this->request->getPost('KabupatenKotaSantri'),
                 'KecamatanSantri' => $this->request->getPost('KecamatanSantri'),
                 'KelurahanDesaSantri' => $this->request->getPost('KelurahanDesaSantri'),
-                'RtSantri' => $this->request->getPost('RTSantri'),
-                'RwSantri' => $this->request->getPost('RWSantri'),
+                'RtSantri' => $this->request->getPost('RtSantri'),
+                'RwSantri' => $this->request->getPost('RwSantri'),
                 'AlamatSantri' => $this->request->getPost('AlamatSantri'),
                 'KodePosSantri' => $this->request->getPost('KodePosSantri'),
                 'JarakTempuhSantri' => $this->request->getPost('JarakTempuhSantri'),
@@ -243,23 +243,27 @@ class Santri extends BaseController
 
             $result = $this->DataSantriBaru->insert($processedData);
 
-            if ($result) {
-                log_message('info', 'Santri: save - Data berhasil disimpan');
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Data santri berhasil disimpan',
-                    'redirect' => base_url('backend/santri/showSuccessEmisStep/' . $IdSantri)
-                ]);
-            } else {
-                log_message('error', 'Santri: save - Gagal menyimpan data: ' . json_encode($this->DataSantriBaru->errors()));
-                throw new \Exception('Gagal menyimpan data: ' . json_encode($this->DataSantriBaru->errors()));
+            if ($result === false) {
+                // Ambil error dari model
+                $errors = $this->DataSantriBaru->errors();
+                log_message('error', 'Santri: save - Gagal menyimpan data: ' . json_encode($errors));
+                throw new \Exception('Gagal menyimpan data: ' . json_encode($errors));
             }
+
+            log_message('info', 'Santri: save - Data berhasil disimpan');
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data santri berhasil disimpan',
+                'redirect' => base_url('backend/santri/showSuccessEmisStep/' . $IdSantri)
+            ]);
+
         } catch (\Exception $e) {
             log_message('error', 'Santri: save - Error saat menyimpan data: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal menyimpan data santri: ' . $e->getMessage(),
-                'errors' => $this->DataSantriBaru->errors(),
+                'errors' => $this->DataSantriBaru->errors(), // Menambahkan detail error
+                'debug' => ENVIRONMENT === 'development' ? $e->getTraceAsString() : null
             ]);
         }
     }
