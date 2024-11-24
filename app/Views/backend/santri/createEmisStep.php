@@ -4097,6 +4097,83 @@ if (ENVIRONMENT === 'production') {
             copyAlamat('Ibu', 'Santri');
         }
     }
+
+    /* ===== Region: Validasi RT RW ===== 
+     * Validasi RT dan RW hanya menerima angka 1-3 digit
+     * @param {HTMLElement} input - Elemen input yang akan divalidasi   
+     * @returns {boolean} - Apakah validasi berhasil atau tidak
+     */
+    function validateRtRw(input) {
+        const errorElement = document.getElementById(input.id + 'Error');
+
+        // Hapus karakter non-angka
+        input.value = input.value.replace(/\D/g, '').slice(0, 3);
+
+        // Validasi
+        let isValid = true;
+        let errorMessage = '';
+
+        if (!input.value) {
+            isValid = false;
+            errorMessage = input.id.includes('Rt') ? 'RT diperlukan.' : 'RW diperlukan.';
+        }
+
+        // Update UI
+        if (!isValid) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            input.style.borderColor = '#dc3545';
+            if (errorElement) {
+                errorElement.textContent = errorMessage;
+                errorElement.style.display = 'block';
+            }
+        } else {
+            input.classList.remove('is-invalid');
+            input.classList.add('is-valid');
+            input.style.borderColor = '#28a745';
+            if (errorElement) {
+                errorElement.style.display = 'none';
+            }
+        }
+
+        return isValid;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const rtRwInputs = [
+            'RtAyah', 'RwAyah',
+            'RtIbu', 'RwIbu',
+            'RtSantri', 'RwSantri'
+        ];
+
+        rtRwInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                // Validasi saat input
+                input.addEventListener('input', function() {
+                    // Hapus karakter non-angka dan batasi hingga 3 digit
+                    this.value = this.value.replace(/\D/g, '').slice(0, 3);
+                    validateRtRw(this);
+                });
+
+                // Cegah input karakter non-angka
+                input.addEventListener('keypress', function(e) {
+                    if (!/[0-9]/.test(String.fromCharCode(e.which))) {
+                        e.preventDefault();
+                    }
+                });
+
+                // Tangani paste
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    this.value = pastedText.replace(/\D/g, '').slice(0, 3);
+                    validateRtRw(this);
+                });
+            }
+        });
+    });
+    /* ===== End Region: Validasi RT RW ===== */
 </script>
 
 <?= $this->endSection(); ?>
