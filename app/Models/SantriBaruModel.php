@@ -52,9 +52,12 @@ class SantriBaruModel extends Model
         'RwIbu',
         'RtIbu',
         'AlamatIbu', 'KodePosIbu',
-        
+
         // Data Wali
-        'Wali', 'NamaWali', 'NikWali', 'KewarganegaraanWali',
+        'StatusWali',
+        'NamaWali',
+        'NikWali',
+        'KewarganegaraanWali',
         'TempatLahirWali', 'TanggalLahirWali', 'PendidikanWali',
         'PekerjaanUtamaWali', 'PenghasilanUtamaWali', 'NoHpWali',
         
