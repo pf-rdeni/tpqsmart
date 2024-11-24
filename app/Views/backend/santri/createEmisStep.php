@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-    //$required = 'required';
+    $required = 'required';
 }
 
 ?>
@@ -405,8 +405,8 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('Tpq-Part')">Sebelumnya</button>
-                                    <button type="button" class="btn btn-primary" onclick="validateAndNext('Santri-Part')">Selanjutnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('tpq-part')">Sebelumnya</button>
+                                    <button type="button" class="btn btn-primary" onclick="validateAndNext('santri-part')">Selanjutnya</button>
                                 </div>
                                 <!-- Bagian Profil Orang Tua atau Wali -->
                                 <div id="ortu-part" class="content" role="tabpanel" aria-labelledby="ortu-part-trigger">
@@ -943,7 +943,7 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('data-santri-part')">Sebelumnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('santri-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('ortu-part')">Selanjutnya</button>
                                 </div>
                                 <!-- Bagian Alamat Orang Tua dan Santri beserta jarak tempat tinggal santri ke lembaga-->
@@ -1433,7 +1433,7 @@ if (ENVIRONMENT === 'production') {
                                     </div>
                                     <!-- bagian tombol navigasi -->
 
-                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('Ortu-Part')">Sebelumnya</button>
+                                    <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('ortu-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="showPreview()">Pratinjau</button>
                                 </div>
                             </form>
