@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-    $required = 'required';
+    //$required = 'required';
 }
 
 ?>
@@ -157,7 +157,7 @@ if (ENVIRONMENT === 'production') {
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label for="NamaSantri">Nama Santri<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control name-input" id="NamaSantri" name="NamaSantri" placeholder="Masukkan nama lengkap" <?= $required ?>>
+                                                            <input type="text" class="form-control text-input" id="NamaSantri" name="NamaSantri" placeholder="Masukkan nama lengkap" <?= $required ?>>
                                                             <span id="NamaSantriError" class="text-danger" style="display:none;">Nama Santri diperlukan.</span>
                                                         </div>
                                                     </div>
@@ -193,7 +193,7 @@ if (ENVIRONMENT === 'production') {
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label for="TempatLahirSantri">Tempat Lahir<span class="text-danger font-weight-bold">*</span></label>
-                                                            <input type="text" class="form-control name-input" id="TempatLahirSantri" name="TempatLahirSantri" placeholder="Ketik Tempat Lahir Santri" <?= $required ?>>
+                                                            <input type="text" class="form-control text-input" id="TempatLahirSantri" name="TempatLahirSantri" placeholder="Ketik Tempat Lahir Santri" <?= $required ?>>
                                                             <span id="TempatLahirSantriError" class="text-danger" style="display:none;">Tempat Lahir diperlukan.</span>
                                                         </div>
                                                     </div>
@@ -353,7 +353,7 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="NamaKepalaKeluarga">Nama Kepala Keluarga<span class="text-danger font-weight-bold">*</span></label>
-                                                <input type="text" class="form-control name-input" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Masukkan nama kepala keluarga" <?= $required ?>>
+                                                <input type="text" class="form-control text-input" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Masukkan nama kepala keluarga" <?= $required ?>>
                                                 <span id="NamaKepalaKeluargaError" class="text-danger" style="display:none;">Nama Kepala Keluarga diperlukan.</span>
                                                 <div class="form-check mt-2">
                                                     <input type="checkbox" class="form-check-input" id="NamaKepalaKeluargaSamaDenganAyah" name="NamaKepalaKeluargaSamaDenganAyah">
@@ -426,7 +426,7 @@ if (ENVIRONMENT === 'production') {
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <label for="NamaAyah">Nama Ayah Kandung<span class="text-danger font-weight-bold">*</span></label>
-                                                <input type="text" class="form-control name-input" id="NamaAyah" name="NamaAyah" placeholder="Ketik nama lengkap ayah kandung" <?= $required ?>>
+                                                <input type="text" class="form-control text-input" id="NamaAyah" name="NamaAyah" placeholder="Ketik nama lengkap ayah kandung" <?= $required ?>>
                                                 <span id="NamaAyahError" class="text-danger" style="display:none;">Nama Ayah Kandung diperlukan.</span>
                                             </div>
                                             <div class="col-md-6">
@@ -571,7 +571,7 @@ if (ENVIRONMENT === 'production') {
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="NamaIbu">Nama Ibu Kandung<span class="text-danger font-weight-bold">*</span></label>
-                                                    <input type="text" class="form-control name-input" id="NamaIbu" name="NamaIbu" placeholder="Ketik nama lengkap ibu kandung" <?= $required ?>>
+                                                    <input type="text" class="form-control text-input" id="NamaIbu" name="NamaIbu" placeholder="Ketik nama lengkap ibu kandung" <?= $required ?>>
                                                     <span id="NamaIbuError" class="text-danger" style="display:none;">Nama Ibu Kandung diperlukan.</span>
                                                 </div>
                                             </div>
@@ -785,7 +785,7 @@ if (ENVIRONMENT === 'production') {
                                                 <div class="col-md-4">
                                                     <div class="form-group">
                                                         <label for="NamaWali">Nama Wali<span class="text-danger font-weight-bold">*</span></label>
-                                                        <input type="text" class="form-control name-input" id="NamaWali" name="NamaWali" placeholder="Masukkan nama wali">
+                                                        <input type="text" class="form-control text-input" id="NamaWali" name="NamaWali" placeholder="Masukkan nama wali">
                                                         <span id="NamaWaliError" class="text-danger" style="display:none;">Nama Wali diperlukan.</span>
                                                     </div>
                                                 </div>
@@ -2954,89 +2954,100 @@ if (ENVIRONMENT === 'production') {
     });
     /* ===== End Region: Validasi Input Angka ===== */
 
-    /* ===== Region: Validasi Input Angka =====
-     * Fungsi ini memvalidasi input angka dengan ketentuan:
-     * 1. Hanya menerima angka dan tanda minus
-     * 2. Menghapus karakter non-angka kecuali tanda minus di awal
-     * 3. Menghapus angka nol di awal jika bukan angka desimal
-     * 4. Diterapkan pada input-input angka lainnya
-     */
-    function validateNumberInput(input) {
-        // Hapus karakter non-angka kecuali tanda minus di awal
-        input.value = input.value.replace(/^-?\d*\.?\d*$/, function(match) {
-            return match === '' ? '' : Number(match).toString();
-        });
-
-        // Hapus angka nol di awal jika bukan angka desimal
-        if (input.value.length > 1 && input.value[0] === '0' && input.value[1] !== '.') {
-            input.value = input.value.replace(/^0+/, '');
-        }
-    }
-
-    // Menambahkan event listener untuk semua input dengan type="number"
-    document.querySelectorAll('input[type="number"]').forEach(function(input) {
-        ['input', 'keydown', 'keyup', 'mousedown', 'mouseup', 'select', 'contextmenu', 'drop'].forEach(function(event) {
-            input.addEventListener(event, function() {
-                validateNumberInput(this);
-            });
-        });
-
-        // Mencegah input karakter yang tidak diizinkan
-        input.addEventListener('keypress', function(e) {
-            var allowedChars = /[0-9\.-]/;
-            if (!allowedChars.test(e.key)) {
-                e.preventDefault();
-            }
-        });
-
-        // Mencegah paste konten non-angka
-        input.addEventListener('paste', function(e) {
-            e.preventDefault();
-            var pastedText = (e.clipboardData || window.clipboardData).getData('text');
-            this.value = pastedText.replace(/[^\d.-]/g, '');
-            validateNumberInput(this);
-        });
-
-        // Mencegah wheel event untuk mengubah nilai
-        input.addEventListener('wheel', function(e) {
-            e.preventDefault();
-        });
-    });
-
     /* ===== Region: Validasi Input Nama dan Tempat =====
      * Fungsi untuk memvalidasi input nama dan tempat lahir
-     * Hanya menerima huruf, spasi, tanda petik, titik dan tanda hubung
+     * Menerima huruf, spasi, tanda petik, titik, koma, tanda hubung dan titel/gelar sesuai EYD
      * @param {HTMLElement} input - Elemen input yang akan dicek validasinya
      */
     function validateNameInput(input) {
-        const regex = /^[A-Za-z\s'.-]+$/;
-        const errorElement = document.getElementById(input.id + 'Error');
+        // Daftar titel/gelar yang diizinkan sesuai EYD
+        const titles = {
+            // Gelar akademik
+            'sarjana': {
+                'umum': ['S.H.', 'S.E.', 'S.Kom.', 'S.Pd.', 'S.Ag.', 'S.IP.', 'S.Sos.', 'S.Farm.', 'S.T.', 'S.Pt.', 'S.P.'],
+                'profesi': ['Apt.', 'Akt.'],
+                'spesialis': ['Sp.A.', 'Sp.B.', 'Sp.JP.', 'Sp.M.', 'Sp.OG.', 'Sp.P.', 'Sp.PD.', 'Sp.Rad.', 'Sp.S.', 'Sp.THT-KL.']
+            },
+            // Gelar magister
+            'magister': ['M.H.', 'M.M.', 'M.Kom.', 'M.Pd.', 'M.Ag.', 'M.Si.', 'M.Sc.', 'M.Sn.', 'M.T.', 'M.Kes.', 'M.Hum.'],
+            // Gelar doktor
+            'doktor': ['Dr.', 'DR.', 'Ph.D.'],
+            // Gelar profesor
+            'profesor': ['Prof.'],
+            // Gelar profesi
+            'profesi': ['dr.', 'drg.', 'Ir.'],
+            // Gelar keagamaan
+            'agama': ['H.', 'Hj.', 'K.H.', 'Ust.', 'Ustdz.', 'Lc.']
+        };
 
-        if (!regex.test(input.value)) {
-            input.value = input.value.replace(/[^A-Za-z\s'.-]/g, '');
-            errorElement.textContent = 'Hanya huruf, spasi, tanda petik, titik, dan tanda hubung diizinkan.';
+        // Flatten array titel untuk pengecekan
+        const flatTitles = Object.values(titles).reduce((acc, curr) => {
+            if (Array.isArray(curr)) {
+                acc.push(...curr);
+            } else {
+                Object.values(curr).forEach(arr => acc.push(...arr));
+            }
+            return acc;
+        }, []);
+
+        const regex = /^[A-Za-z\s'.,\-]+$/;
+        const errorElement = document.getElementById(input.id + 'Error');
+        let value = input.value;
+
+        if (!regex.test(value)) {
+            input.value = value.replace(/[^A-Za-z\s'.,\-]/g, '');
+            errorElement.textContent = 'Hanya huruf, spasi, tanda petik, titik, koma dan tanda hubung diizinkan.';
             errorElement.style.display = 'block';
             input.classList.add('is-invalid');
-        } else if (input.value.trim() === '') {
+            return;
+        }
+
+        if (value.trim() === '') {
             errorElement.textContent = 'Bidang ini tidak boleh kosong.';
             errorElement.style.display = 'block';
             input.classList.add('is-invalid');
-        } else {
-            errorElement.style.display = 'none';
-            input.classList.remove('is-invalid');
-            input.classList.add('is-valid');
+            return;
         }
+
+        // Format nama sesuai EYD
+        let words = value.split(' ');
+        let formattedWords = words.map((word, index) => {
+            // Cek apakah kata adalah titel yang diizinkan
+            const isTitleMatch = flatTitles.find(title =>
+                title.toLowerCase() === word.toLowerCase() ||
+                title.toLowerCase() === word.toLowerCase() + '.'
+            );
+
+            if (isTitleMatch) {
+                // Kembalikan titel dengan format yang benar
+                return isTitleMatch;
+            }
+
+            // Kata penghubung dalam nama
+            const connectors = ['bin', 'binti', 'dari', 'van', 'der', 'di', 'al'];
+            if (connectors.includes(word.toLowerCase()) && index !== 0) {
+                return word.toLowerCase();
+            }
+
+            // Kapitalisasi kata normal
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        });
+
+        // Gabungkan kembali dengan spasi
+        input.value = formattedWords.join(' ');
+        errorElement.style.display = 'none';
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
     }
 
-    // Event listener untuk semua input nama dan tempat
-    document.querySelectorAll('.name-input').forEach(function(input) {
+    // Event listeners untuk input nama
+    document.querySelectorAll('.text-input').forEach(function(input) {
         input.addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^A-Za-z\s'.-]/g, '');
             validateNameInput(this);
         });
 
         input.addEventListener('keypress', function(e) {
-            if (!/[A-Za-z\s'.-]/.test(e.key)) {
+            if (!/[A-Za-z\s'.,\-]/.test(e.key)) {
                 e.preventDefault();
             }
         });
@@ -3044,7 +3055,7 @@ if (ENVIRONMENT === 'production') {
         input.addEventListener('paste', function(e) {
             e.preventDefault();
             const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-            const cleanedText = pastedText.replace(/[^A-Za-z\s'.-]/g, '');
+            const cleanedText = pastedText.replace(/[^A-Za-z\s'.,\-]/g, '');
             document.execCommand('insertText', false, cleanedText);
             validateNameInput(this);
         });
