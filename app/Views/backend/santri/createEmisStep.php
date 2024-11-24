@@ -138,7 +138,7 @@ if (ENVIRONMENT === 'production') {
                                                     </div>
                                                 </div> <small class="text-center d-block mb-2 text-muted">
                                                     <i class="fas fa-exclamation-circle"></i>
-                                                    Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 2MB
+                                                    Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 5MB
                                                 </small>
                                                 <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?> style="display: none;">
                                                 <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
@@ -2520,7 +2520,7 @@ if (ENVIRONMENT === 'production') {
 
     /* ===== Region: Menampilkan preview foto profil =====
      * Fungsi ini menampilkan preview foto profil dari input file
-     * Validasi file: ukuran maksimal 2MB, tipe file JPG, JPEG, atau PNG
+     * Validasi file: ukuran maksimal 5MB, tipe file JPG, JPEG, atau PNG
      * Menampilkan preview foto dan menampilkan pesan error jika ada
      */
     function previewPhoto(input) {
@@ -2532,9 +2532,9 @@ if (ENVIRONMENT === 'production') {
         if (input.files && input.files[0]) {
             const file = input.files[0];
 
-            // Validasi ukuran (max 2MB)
-            if (file.size > 2 * 1024 * 1024) {
-                errorDiv.innerHTML = 'Ukuran file ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB) terlalu besar (maksimal 2MB)';
+            // Validasi ukuran (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                errorDiv.innerHTML = 'Ukuran file ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(5) + ' MB) terlalu besar (maksimal 5MB)';
                 errorDiv.style.display = 'block';
                 input.value = '';
                 preview.src = '/images/no-photo.jpg';
@@ -3281,7 +3281,7 @@ if (ENVIRONMENT === 'production') {
      * @returns {boolean} - true jika file valid, false jika tidak valid
      *
      * Validasi yang dilakukan:
-     * 1. Ukuran file maksimal 2MB
+     * 1. Ukuran file maksimal 5MB
      * 2. Format file harus JPG, PNG, atau PDF
      * 3. Menampilkan pesan error jika validasi gagal
      * 4. Mengupdate label file jika validasi berhasil
@@ -3296,7 +3296,7 @@ if (ENVIRONMENT === 'production') {
         if (file) {
             const fileSize = file.size;
             const fileType = file.type;
-            const maxSize = 2 * 1024 * 1024; // 2MB
+            const maxSize = 5 * 1024 * 1024; // 5MB
             const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
 
             // Validasi ukuran dan tipe file
@@ -3313,7 +3313,7 @@ if (ENVIRONMENT === 'production') {
                         errorMsg.push(`Format file yang dipilih "${file.name}" (${fileType}) tidak valid. Format harus JPG, PNG, atau PDF`);
                     }
                     if (fileSize > maxSize) {
-                        errorMsg.push(`Ukuran file "${file.name}" (${(fileSize/1024/1024).toFixed(2)}MB) melebihi batas maximal 2MB`);
+                        errorMsg.push(`Ukuran file "${file.name}" (${(fileSize/1024/1024).toFixed(5)}MB) melebihi batas maximal 5MB`);
                     }
                     errorElement.textContent = errorMsg.join(' dan ');
                     errorElement.classList.remove('d-none');
