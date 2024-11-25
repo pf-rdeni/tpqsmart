@@ -20,31 +20,31 @@
             <div class="card card-primary card-tabs">
                 <div class="card-header p-0 pt-1">
                     <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="custom-tabs-one-tab" role="tablist">
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tk-tab" data-toggle="pill" href="#custom-tabs-one-tk" role="tab" aria-controls="custom-tabs-one-tk" aria-selected="false">TK</a>
                         </li>
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tka-tab" data-toggle="pill" href="#custom-tabs-one-tka" role="tab" aria-controls="custom-tabs-one-tka" aria-selected="false">TKA</a>
                         </li>
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tkb-tab" data-toggle="pill" href="#custom-tabs-one-tkb" role="tab" aria-controls="custom-tabs-one-tkb" aria-selected="false">TKB</a>
                         </li>
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center active" id="custom-tabs-one-tpq1-tab" data-toggle="pill" href="#custom-tabs-one-tpq1" role="tab" aria-controls="custom-tabs-one-tpq1" aria-selected="true">TPQ1</a>
                         </li>
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tpq2-tab" data-toggle="pill" href="#custom-tabs-one-tpq2" role="tab" aria-controls="custom-tabs-one-tpq2" aria-selected="false">TPQ2</a>
                         </li>
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tpq3-tab" data-toggle="pill" href="#custom-tabs-one-tpq3" role="tab" aria-controls="custom-tabs-one-tpq3" aria-selected="false">TPQ3</a>
                         </li>
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tpq4-tab" data-toggle="pill" href="#custom-tabs-one-tpq4" role="tab" aria-controls="custom-tabs-one-tpq4" aria-selected="false">TPQ4</a>
                         </li>
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tpq5-tab" data-toggle="pill" href="#custom-tabs-one-tpq5" role="tab" aria-controls="custom-tabs-one-tpq5" aria-selected="false">TPQ5</a>
                         </li>
-                        <li class="nav-item flex-fill">
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tpq6-tab" data-toggle="pill" href="#custom-tabs-one-tpq6" role="tab" aria-controls="custom-tabs-one-tpq6" aria-selected="false">TPQ6</a>
                         </li>
                     </ul>
@@ -194,7 +194,14 @@
                                 <td>Transportasi</td>
                                 <th id="transportasi"></th>
                             </tr>
-
+                            <tr>
+                                <td>Titik Koordinat & Arah</td>
+                                <th>
+                                    <span id="titikKoordinatSantri"></span>
+                                    <br>
+                                    <span id="googleMapLink"></span>
+                                </th>
+                            </tr>
                         </table>
                     </div>
                 </div>
@@ -362,7 +369,14 @@ function renderTpqTable($dataTpq, $tpqLevel)
                         $('#jarakKeLembaga').text(data.JarakTempuhSantri);
                         $('#waktuTempuh').text(data.WaktuTempuhSantri);
                         $('#transportasi').text(data.TransportasiSantri);
-                        // Tampilkan modal setelah Swal.fire selesai
+                        $('#titikKoordinatSantri').text(data.TitikKoordinatSantri);
+                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        const coordinates = data.TitikKoordinatSantri;
+                        const mapUrl = isMobile ?
+                            `geo:0,0?q=${encodeURIComponent(coordinates)}` :
+                            `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(coordinates)}`;
+
+                        $('#googleMapLink').html(`<a href="${mapUrl}" target="_blank" rel="noopener noreferrer">Lihat di Google Maps</a>`);
                         $('#modalDetailSantri').modal('show');
                     });
                 } else {
