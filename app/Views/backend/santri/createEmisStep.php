@@ -2312,6 +2312,10 @@ if (ENVIRONMENT === 'production') {
                 } else if (!validateTanggalLahir()) {
                     setInvalidField(field);
                 }
+            } else if (field.id === 'NikSantri' || field.id === 'NikAyah' || field.id === 'NikIbu' || field.id === 'IdKartuKeluarga') {
+                if (field.value.length !== 16) {
+                    setInvalidField(field);
+                }
             }
             // Validasi umum untuk field lainnya
             else if (!field.value.trim()) {
