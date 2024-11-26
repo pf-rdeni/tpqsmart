@@ -2313,7 +2313,10 @@ if (ENVIRONMENT === 'production') {
                     setInvalidField(field);
                 }
             } else if (field.id === 'NikSantri' || field.id === 'NikAyah' || field.id === 'NikIbu' || field.id === 'IdKartuKeluarga') {
-                if (field.value.length !== 16) {
+                if (!field.value.trim()) {
+                    validateField(field);
+                    setInvalidField(field);
+                } else if (field.value.length !== 16) {
                     setInvalidField(field);
                 }
             }
