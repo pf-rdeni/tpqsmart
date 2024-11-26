@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-    //$required = 'required';
+    $required = 'required';
 }
 
 ?>
@@ -140,7 +140,7 @@ if (ENVIRONMENT === 'production') {
                                                     <i class="fas fa-exclamation-circle"></i>
                                                     Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 5MB
                                                 </small>
-                                                <input class="form-control custom-file-input" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?> style="display: none;">
+                                                <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?> style="display: none;">
                                                 <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                             </div>
                                             <div class="col-md-9">
@@ -2394,15 +2394,15 @@ if (ENVIRONMENT === 'production') {
             if (!scrollStatus[stepId]) {
                 // Scroll ke atas dengan smooth scroll dan delay untuk animasi stepper
                 setTimeout(() => {
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
+                    // window.scrollTo({
+                    //     top: 0,
+                    //     behavior: 'smooth'
+                    // });
 
                     // Cari input pertama yang visible di step berikutnya
                     const nextStep = document.querySelector('.bs-stepper-pane.active');
                     if (nextStep) {
-                        const firstInput = nextStep.querySelector('input:not([type="hidden"]), select, textarea');
+                        const firstInput = nextStep.querySelector('input:not([type="hidden"]):not([readonly]), input[type="file"], select, textarea');
                         if (firstInput) {
                             firstInput.focus();
                         }
@@ -3070,28 +3070,17 @@ if (ENVIRONMENT === 'production') {
      * Memastikan setiap input file memiliki elemen error message
      * 
      * Fungsi ini memastikan bahwa setiap input file memiliki elemen error message yang sesuai
-     * untuk menampilkan pesan validasi. Jika elemen error belum ada, maka akan dibuat secara otomatis.
      * 
      * Fitur yang disediakan:
-     * - Pengecekan elemen error message
-     * - Pembuatan elemen error otomatis jika belum ada
      * - Penambahan event listener untuk validasi file
      * - Inisialisasi preview file
      */
     // Pastikan setiap input file memiliki elemen error message
     document.addEventListener('DOMContentLoaded', function() {
-        const fileInputs = document.querySelectorAll('input[type="file"]');
+        const fileInputs = document.querySelectorAll('input[type="file"]:not(#PhotoProfil)');
         fileInputs.forEach(input => {
             const inputId = input.id;
             let errorElement = document.getElementById(inputId + 'Error');
-
-            // Buat elemen error jika belum ada
-            if (!errorElement) {
-                errorElement = document.createElement('small');
-                errorElement.id = inputId + 'Error';
-                errorElement.className = 'text-danger'; // Hapus d-none dari class awal
-                input.parentNode.parentNode.appendChild(errorElement);
-            }
 
             // Tambahkan event listener
             input.addEventListener('change', function() {
@@ -3301,8 +3290,10 @@ if (ENVIRONMENT === 'production') {
         const fileInput = document.getElementById(inputId);
         const file = fileInput.files[0];
         const errorElement = document.getElementById(inputId + 'Error');
-        const fileLabel = fileInput.closest('.custom-file').querySelector('.custom-file-label');
-
+        let fileLabel;
+        if (!inputId.includes('PhotoProfil')) {
+            fileLabel = fileInput.closest('.custom-file').querySelector('.custom-file-label');
+        }
 
         if (file) {
             const fileSize = file.size;
@@ -3313,7 +3304,7 @@ if (ENVIRONMENT === 'production') {
             // Validasi ukuran dan tipe file
             if (fileSize > maxSize || !allowedTypes.includes(fileType)) {
                 fileInput.value = ''; // Clear input
-                if (fileLabel) {
+                if (fileLabel && !inputId.includes('PhotoProfil')) {
                     fileLabel.textContent = 'Pilih file';
                 }
 
@@ -3372,7 +3363,8 @@ if (ENVIRONMENT === 'production') {
      * - Blur: Validasi saat input kehilangan fokus
      */
     // Fungsi validasi NIK yang dapat digunakan ulang
-    function validasiNomorKkNik(inputId, type) {
+    function validasiNomorKkNik(inputId) {
+
         const input = document.getElementById(inputId);
         if (!input) return;
 
@@ -3386,17 +3378,17 @@ if (ENVIRONMENT === 'production') {
         function validasiNomor(input) {
             const nilai = input.value.replace(/\D/g, ''); // Hapus karakter non-digit
             const pola = /^[1-9]\d{15}$/;
-            const docType = type.toUpperCase(); // NIK atau KK
+            const docTypeLabel = inputId.includes('Nik') ? 'NIK' : 'KK';
 
             // Validasi dasar
             if (nilai === '') {
-                tampilkanError(`${docType} harus diisi.`);
+                tampilkanError(`${docTypeLabel} harus diisi.`);
                 return false;
             } else if (nilai === '0000000000000000') {
-                tampilkanError(`${docType} tidak boleh terdiri dari 16 angka 0.`);
+                tampilkanError(`${docTypeLabel} tidak boleh terdiri dari 16 angka 0.`);
                 return false;
             } else if (!pola.test(nilai)) {
-                tampilkanError(`${docType} harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0.`);
+                tampilkanError(`${docTypeLabel} harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0.`);
                 return false;
             }
 
@@ -3481,12 +3473,12 @@ if (ENVIRONMENT === 'production') {
     // Inisialisasi validator untuk NIK dan KK
     document.addEventListener('DOMContentLoaded', function() {
         // Validasi untuk NIK
-        validasiNomorKkNik('NikSantri', 'NIK');
-        validasiNomorKkNik('NikAyah', 'NIK');
-        validasiNomorKkNik('NikIbu', 'NIK');
+        validasiNomorKkNik('NikSantri');
+        validasiNomorKkNik('NikAyah');
+        validasiNomorKkNik('NikIbu');
 
         // Validasi untuk KK
-        validasiNomorKkNik('IdKartuKeluarga', 'KK');
+        validasiNomorKkNik('IdKartuKeluarga');
     });
 
     /* ===== End Region: Validasi NIK ===== */
