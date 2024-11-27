@@ -2271,66 +2271,61 @@ if (ENVIRONMENT === 'production') {
     };
 
     function validateAndNext(stepId) {
-        let isValid = true;
         let firstInvalidField = null;
 
-        // Fungsi untuk set field invalid
-        function setInvalidField(field) {
+        // Fungsi helper untuk menandai field tidak valid
+        const setInvalid = (field) => {
             if (!firstInvalidField) {
                 firstInvalidField = field;
-                isValid = false;
             }
-        }
+        };
 
-        // Validasi khusus untuk step santri-part
+        // Validasi khusus untuk PhotoProfil di step santri-part
         if (stepId === 'santri-part') {
-            // 1. Validasi foto profil (prioritas pertama)
             const photoProfil = document.getElementById('PhotoProfil');
             const photoPreview = document.getElementById('previewPhotoProfil');
             const photoError = document.getElementById('PhotoProfilError');
 
-            if (!photoProfil.files && photoProfil.hasAttribute('required') || !photoProfil.files[0] && photoProfil.hasAttribute('required')) {
-                isValid = false;
+            if (!photoProfil.files?.[0] && photoProfil.hasAttribute('required')) {
                 photoError.innerHTML = 'Foto profil harus diupload';
                 photoError.style.display = 'block';
                 photoPreview.style.border = '2px solid #dc3545';
-                setInvalidField(photoProfil);
-            } else {
-                photoError.style.display = 'none';
-                photoPreview.style.border = '2px solid #28a745';
+                setInvalid(photoProfil);
             }
         }
 
-        // Validasi field required lainnya
-        const requiredFields = document.querySelectorAll('#' + stepId + ' .form-control[required]');
-        requiredFields.forEach(field => {
-            // Validasi khusus untuk tanggal lahir
-            if (field.id === 'TanggalLahirSantri') {
-                if (!field.value.trim()) {
-                    validateField(field);
-                    setInvalidField(field);
-                } else if (!validateTanggalLahir()) {
-                    setInvalidField(field);
-                }
-            } else if (field.id === 'NikSantri' || field.id === 'NikAyah' || field.id === 'NikIbu' || field.id === 'IdKartuKeluarga') {
-                if (!field.value.trim()) {
-                    validateField(field);
-                    setInvalidField(field);
-                } else if (field.value.length !== 16) {
-                    setInvalidField(field);
-                }
-            }
-            // Validasi umum untuk field lainnya
-            else if (!field.value.trim()) {
+        // Validasi semua field required
+        document.querySelectorAll(`#${stepId} .form-control[required]`).forEach(field => {
+            const value = field.value.trim();
+
+            // Skip validasi jika field kosong
+            if (!value) {
                 validateField(field);
-                setInvalidField(field);
+                setInvalid(field);
+                return;
+            }
+
+            // Validasi khusus per tipe field
+            switch (field.id) {
+                case 'TanggalLahirSantri':
+                    if (!validateTanggalLahir()) setInvalid(field);
+                    break;
+
+                case 'NikSantri':
+                case 'NikAyah':
+                case 'NikIbu':
+                case 'IdKartuKeluarga':
+                    if (value.length !== 16) setInvalid(field);
+                    break;
+
+                default:
+                    validateField(field);
             }
         });
 
-        // Jika ada field invalid, fokus ke field tersebut
+        // Jika ada field invalid, fokus dan scroll ke field tersebut
         if (firstInvalidField) {
-            // Handle scroll dan fokus
-            if (firstInvalidField.id === 'PhotoProfil' && firstInvalidField.hasAttribute('required')) {
+            if (firstInvalidField.id === 'PhotoProfil') {
                 // Scroll ke preview foto
                 document.getElementById('previewPhotoProfil').scrollIntoView({
                     behavior: 'smooth',
@@ -2349,80 +2344,104 @@ if (ENVIRONMENT === 'production') {
                     }
                 }, 300);
             } else {
-                // Scroll ke field invalid
+                // Scroll ke field invalid lainnya
                 firstInvalidField.scrollIntoView({
                     behavior: 'smooth',
                     block: 'center'
                 });
 
-                // Efek blinking untuk field
-                let blinkCount = 0;
-                // Tambahkan transisi CSS untuk efek smooth
-                firstInvalidField.style.transition = 'background-color 0.3s ease-in-out';
-
-                const blinkInterval = setInterval(() => {
-                    firstInvalidField.style.backgroundColor =
-                        blinkCount % 2 === 0 ? '#ffd6dc' : 'white';
-                    blinkCount++;
-                    if (blinkCount >= 4) { // 2x blinking
-                        clearInterval(blinkInterval);
-                        firstInvalidField.style.backgroundColor = '#ffd6dc'; // Set warna merah muda
-
-                        // Tambahkan event listener untuk menghapus background merah saat input valid
-                        firstInvalidField.addEventListener('input', function() {
-                            if (this.value.trim() !== '') {
-                                // Tambahkan transisi saat menghapus background
-                                this.style.transition = 'background-color 0.3s ease-in-out';
-                                this.style.backgroundColor = '';
-
-                                // Hapus transisi setelah selesai untuk menghindari efek pada interaksi lainnya
-                                setTimeout(() => {
-                                    this.style.transition = '';
-                                }, 300);
-                            }
-                        });
-                    }
-                }, 600);
-
-                // Set focus setelah scroll selesai
                 setTimeout(() => {
                     firstInvalidField.focus();
+
+                    // Tambahkan transisi CSS untuk efek smooth
+                    firstInvalidField.style.transition = 'background-color 0.3s ease-in-out';
+
+                    let blinkCount = 0;
+                    const blinkInterval = setInterval(() => {
+                        firstInvalidField.style.backgroundColor =
+                            blinkCount % 2 === 0 ? '#ffd6dc' : 'white';
+                        blinkCount++;
+                        if (blinkCount >= 4) { // 2x blinking
+                            clearInterval(blinkInterval);
+                            firstInvalidField.style.backgroundColor = '#ffd6dc';
+
+                            // Event listener untuk menghapus background merah saat input valid
+                            firstInvalidField.addEventListener('input', function() {
+                                if (this.value.trim() !== '') {
+                                    this.style.transition = 'background-color 0.3s ease-in-out';
+                                    this.style.backgroundColor = '';
+                                    setTimeout(() => {
+                                        this.style.transition = '';
+                                    }, 300);
+                                }
+                            });
+                        }
+                    }, 600);
                 }, 800);
             }
-
             return false;
         }
 
-        // Lanjut ke step berikutnya jika semua validasi berhasil
-        if (isValid) {
-            stepper.next();
+        stepper.next();
 
-            // Cek apakah bagian ini sudah pernah di-scroll
-            if (!scrollStatus[stepId]) {
-                // Scroll ke atas dengan smooth scroll dan delay untuk animasi stepper
-                setTimeout(() => {
-                    // window.scrollTo({
-                    //     top: 0,
-                    //     behavior: 'smooth'
-                    // });
-
-                    // Cari input pertama yang visible di step berikutnya
-                    const nextStep = document.querySelector('.bs-stepper-pane.active');
-                    if (nextStep) {
-                        const firstInput = nextStep.querySelector('input:not([type="hidden"]):not([readonly]), input[type="file"], select, textarea');
-                        if (firstInput) {
-                            firstInput.focus();
+        // Cek apakah bagian ini sudah pernah di-scroll
+        if (!scrollStatus[stepId]) {
+            // Scroll ke atas dengan smooth scroll dan delay untuk animasi stepper
+            setTimeout(() => {
+                // Tentukan field pertama berdasarkan step berikutnya
+                let firstField;
+                switch (stepId) {
+                    case 'tpq-part':
+                        firstField = document.getElementById('previewPhotoProfil');
+                        break;
+                    case 'santri-part':
+                        //jika nama ayah sudah diisi maka fokus ke status ayah
+                        if (document.getElementById('NamaAyah').value !== '') {
+                            firstField = document.getElementById('StatusAyahHidup');
+                        } else {
+                            firstField = document.getElementById('NamaAyah');
                         }
-                    }
-                }, 300);
+                        break;
+                    case 'ortu-part':
+                        //jika status ayah masih hidup maka fokus ke tempat tinggal ayah
+                        if (document.getElementById('StatusAyahHidup').value === 'Hidup') {
+                            firstField = document.getElementById('StatusTempatTinggalAyah');
+                        } else if (document.getElementById('StatusIbuHidup').value === 'Hidup') {
+                            firstField = document.getElementById('StatusTempatTinggalIbu');
+                        } else {
+                            firstField = document.getElementById('StatusTempatTinggalSantri');
+                        }
+                        break;
+                }
 
-                // Tandai bahwa bagian ini sudah di-scroll
-                scrollStatus[stepId] = true;
-            }
+                // Fokus ke field pertama jika ditemukan dan atur posisi scroll
+                if (firstField) {
+                    firstField.focus();
 
-            return true;
+                    // Hitung posisi elemen relatif terhadap viewport
+                    const rect = firstField.getBoundingClientRect();
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+                    // Scroll dengan offset 100px dari atas viewport
+                    const targetPosition = rect.top + scrollTop - 100;
+
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 100); // Delay fokus dan scroll setelah transisi stepper
+
+            // Tandai bahwa bagian ini sudah di-scroll
+            scrollStatus[stepId] = true;
+        } else {
+            //scrull ke bawah
+            window.scrollTo({
+                top: document.documentElement.scrollHeight,
+                behavior: 'smooth'
+            });
         }
-        return false;
+        return true;
     }
     /* ===== End Region: Validasi Input dan Lanjutkan ke Langkah Berikutnya ===== */
 
@@ -2489,12 +2508,14 @@ if (ENVIRONMENT === 'production') {
     document.addEventListener('DOMContentLoaded', function() {
         const kelurahanSelect = document.getElementById('KelurahanDesaTpq');
         const tpqSelect = document.getElementById('IdTpq');
+        const kelasSelect = document.getElementById('IdKelas');
 
         // Simpan semua opsi TPQ asli
         const originalTpqOptions = Array.from(tpqSelect.options);
 
         // Sembunyikan select TPQ saat pertama kali
         tpqSelect.parentElement.style.display = 'none';
+        kelasSelect.parentElement.style.display = 'none';
 
         kelurahanSelect.addEventListener('change', function() {
             const selectedKelurahan = this.value;
@@ -2516,10 +2537,12 @@ if (ENVIRONMENT === 'production') {
 
                 // Tampilkan select TPQ jika ada opsi yang sesuai
                 tpqSelect.parentElement.style.display = filteredOptions.length > 0 ? 'block' : 'none';
+                kelasSelect.parentElement.style.display = 'block';
 
             } else {
                 // Sembunyikan select TPQ jika tidak ada kelurahan yang dipilih
                 tpqSelect.parentElement.style.display = 'none';
+                kelasSelect.parentElement.style.display = 'none';
             }
         });
     });
