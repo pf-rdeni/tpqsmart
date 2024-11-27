@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-    //$required = 'required';
+    $required = 'required';
 }
 
 ?>
@@ -369,7 +369,7 @@ if (ENVIRONMENT === 'production') {
                                             <div class="col-md-6">
                                                 <label for="IdKartuKeluarga">No Kartu Keluarga (KK)<span class="text-danger font-weight-bold">*</span></label>
                                                 <input type="text" class="form-control" id="IdKartuKeluarga" name="IdKartuKeluarga" placeholder="Masukkan nomor KK"
-                                                    pattern="^[1-9]\d{15}$" maxlength="16" oninput="this.value = this.value.replace(/[^1-9]/g, '')" <?= $required ?>>
+                                                    pattern="^[1-9]\d{15}$" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
                                                 <small class="text-muted">Nomor KK harus 16 digit angka</small>
                                                 <span id="IdKartuKeluargaError" class="text-danger" style="display:none;">No Kartu Keluarga diperlukan.</span>
                                             </div>
@@ -583,7 +583,7 @@ if (ENVIRONMENT === 'production') {
                                                         <div class="input-group">
                                                             <div class="custom-file">
                                                                 <input type="file" class="form-control" id="FileKkAyah" name="FileKkAyah" onchange="validateFile('FileKkAyah')" accept=".pdf,.jpg,.jpeg,.png">
-                                                                <label class="custom-file-label" for="FileKkAyah">Pilih file KK Ayah</label>
+                                                                <label class="custom-file-label" for="FileKkAyah">Upload KK Ayah</label>
                                                             </div>
                                                             <!-- div input-group-append dihapus -->
                                                         </div>
@@ -739,7 +739,7 @@ if (ENVIRONMENT === 'production') {
                                                         <div class="input-group">
                                                             <div class="custom-file">
                                                                 <input type="file" class="form-control" id="FileKkIbu" name="FileKkIbu" onchange="validateFile('FileKkIbu')" accept=".pdf,.jpg,.jpeg,.png">
-                                                                <label class="custom-file-label" for="FileKkIbu">Pilih file KK Ibu</label>
+                                                                <label class="custom-file-label" for="FileKkIbu">Upload KK Ibu</label>
                                                             </div>
                                                             <!-- div input-group-append dihapus -->
                                                         </div>
@@ -934,47 +934,112 @@ if (ENVIRONMENT === 'production') {
                                             }
                                         });
                                     </script>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label for="NomorKKS">Nomor KKS</label>
+
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-check mt-2">
+                                                    <input type="checkbox" class="form-check-input" id="MemilikiNomorKKS" name="MemilikiNomorKKS">
+                                                    <label class="form-check-label small text-primary" for="MemilikiNomorKKS">
+                                                        Checlist Jika Memiliki Nomor Kartu Keluarga Sejahtera (KKS)?
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <script>
+                                            document.getElementById('MemilikiNomorKKS').addEventListener('change', function() {
+                                                const kksDiv = document.getElementById('KKSDiv');
+                                                const nomorKKS = document.getElementById('NomorKKS');
+                                                const fileKKS = document.getElementById('FileKKS');
+
+                                                kksDiv.style.display = this.checked ? 'block' : 'none';
+
+                                                // Tambahkan atau hapus atribut required berdasarkan status checkbox
+                                                if (this.checked) {
+                                                    nomorKKS.setAttribute('<?= $required ?>');
+                                                    fileKKS.setAttribute('<?= $required ?>');
+                                                } else {
+                                                    nomorKKS.removeAttribute('required');
+                                                    fileKKS.removeAttribute('required');
+                                                    // Reset nilai saat unchecked
+                                                    nomorKKS.value = '';
+                                                    fileKKS.value = '';
+                                                }
+                                            });
+                                        </script>
+                                    </div>
+                                    <div class="form-group" id="KKSDiv" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="NomorKKS">Nomor KKS <span class="text-danger font-weight-bold">*</span></label>
                                                 <input type="text" class="form-control" id="NomorKKS" name="NomorKKS" placeholder="Masukkan Nomor Kartu Keluarga Sejahtera (KKS)"
                                                     pattern="[0-9]{6}" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                 <small class="text-muted">Nomor KKS harus 6 digit angka</small>
+                                                <span id="NomorKKSError" class="text-danger" style="display:none;">Nomor KKS diperlukan.</span>
                                             </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label for="NomorPKH">Nomor PKH</label>
-                                                <input type="text" class="form-control" id="NomorPKH" name="NomorPKH" placeholder="Masukkan Nomor Program Keluarga Harapan (PKH)"
-                                                    pattern="[0-9]{14}" maxlength="14" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                                                <small class="text-muted">Nomor PKH harus 14 digit angka</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label for="FileKKS">Upload File KKS</label>
+                                            <div class="col-md-6">
+                                                <label for="FileKKS">Upload File KKS <span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
                                                         <input type="file" class="form-control" id="FileKKS" name="FileKKS" accept=".pdf,.jpg,.jpeg,.png">
-                                                        <label class="custom-file-label" for="FileKKS">Pilih file KKS</label>
+                                                        <label class="custom-file-label" for="FileKKS">Upload KKS</label>
                                                     </div>
                                                 </div>
-                                                <small id="FileKKSError" class="text-danger d-none"></small>
+                                                <span id="FileKKSError" class="text-danger d-none"></span>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label for="FilePKH">Upload File PKH</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-check mt-2">
+                                                    <input type="checkbox" class="form-check-input" id="MemilikiNoPKH" name="MemilikiNoPKH">
+                                                    <label class="form-check-label small text-primary" for="MemilikiNoPKH">
+                                                        Checlist Jika Memiliki No Program Keluarga Harapan (PKH)?
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <script>
+                                            document.getElementById('MemilikiNoPKH').addEventListener('change', function() {
+                                                const pkhDiv = document.getElementById('PKHDiv');
+                                                const nomorPKH = document.getElementById('NomorPKH');
+                                                const filePKH = document.getElementById('FilePKH');
+
+                                                pkhDiv.style.display = this.checked ? 'block' : 'none';
+
+                                                // Tambahkan atau hapus atribut required berdasarkan status checkbox
+                                                if (this.checked) {
+                                                    nomorPKH.setAttribute('<?= $required ?>');
+                                                    filePKH.setAttribute('<?= $required ?>');
+                                                } else {
+                                                    nomorPKH.removeAttribute('required');
+                                                    filePKH.removeAttribute('required');
+                                                    // Reset nilai saat unchecked
+                                                    nomorPKH.value = '';
+                                                    filePKH.value = '';
+                                                }
+                                            });
+                                        </script>
+                                    </div>
+                                    <div class="form-group" id="PKHDiv" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="NomorPKH">Nomor PKH <span class="text-danger font-weight-bold">*</span></label>
+                                                <input type="text" class="form-control" id="NomorPKH" name="NomorPKH" placeholder="Masukkan Nomor Program Keluarga Harapan (PKH)"
+                                                    pattern="[0-9]{14}" maxlength="14" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                                <small class="text-muted">Nomor PKH harus 14 digit angka</small>
+                                                <span id="NomorPKHError" class="text-danger" style="display:none;">Nomor PKH diperlukan.</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="FilePKH">Upload File PKH <span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
                                                         <input type="file" class="form-control" id="FilePKH" name="FilePKH" accept=".pdf,.jpg,.jpeg,.png">
-                                                        <label class="custom-file-label" for="FilePKH">Pilih file PKH</label>
+                                                        <label class="custom-file-label" for="FilePKH">Upload PKH</label>
                                                     </div>
                                                 </div>
-                                                <small id="FilePKHError" class="text-danger d-none"></small>
+                                                <span id="FilePKHError" class="text-danger d-none">Upload PKH diperlukan.</span>
                                             </div>
                                         </div>
                                     </div>
@@ -2322,7 +2387,7 @@ if (ENVIRONMENT === 'production') {
             const photoError = document.getElementById('PhotoProfilError');
 
             if (!photoProfil.files?.[0] && photoProfil.hasAttribute('required')) {
-                photoError.innerHTML = 'Foto profil harus diupload';
+                photoError.innerHTML = 'Photo profil santri diperlukan';
                 photoError.style.display = 'block';
                 photoPreview.style.border = '2px solid #dc3545';
                 setInvalid(photoProfil);
@@ -3282,7 +3347,7 @@ if (ENVIRONMENT === 'production') {
         // Reset input file
         fileInput.value = '';
         if (fileLabel) {
-            fileLabel.textContent = 'Pilih file';
+            fileLabel.textContent = 'Upload file';
         }
 
         // Sembunyikan preview
@@ -3369,9 +3434,6 @@ if (ENVIRONMENT === 'production') {
             // Validasi ukuran dan tipe file
             if (fileSize > maxSize || !allowedTypes.includes(fileType)) {
                 fileInput.value = ''; // Clear input
-                if (fileLabel && !inputId.includes('PhotoProfil')) {
-                    fileLabel.textContent = 'Pilih file';
-                }
 
                 if (errorElement) {
                     cancelFileUpload(inputId);
@@ -4017,8 +4079,10 @@ if (ENVIRONMENT === 'production') {
     document.addEventListener('DOMContentLoaded', function() {
         // Cek status ayah dan sembunyikan/tampilkan field alamat
         const statusAyah = document.getElementById('StatusAyah');
+        const dataProfilAyahDiv = document.getElementById('DataProfilAyahDetailDiv');
         const dataAlamatAyahDiv = document.getElementById('DataAlamatAyahDiv');
         const statusIbu = document.getElementById('StatusIbu');
+        const dataProfilIbuDiv = document.getElementById('DataProfilIbuDetailDiv');
         const dataAlamatIbuDiv = document.getElementById('DataAlamatIbuDiv');
         const alamatIbuSamaDenganAyahDiv = document.getElementById('AlamatIbuSamaDenganAyahDiv');
         const statusTempatTinggalSantri = document.getElementById('StatusTempatTinggalSantri');
@@ -4038,17 +4102,18 @@ if (ENVIRONMENT === 'production') {
                     alamatIbuSamaDenganAyahDiv.style.display = 'none';
                 }
                 // sembunyikan data profil ayah
-                document.getElementById('DataProfilAyahDetailDiv').style.display = 'none';
+                dataProfilAyahDiv.style.display = 'none';
             } else {
                 dataAlamatAyahDiv.style.display = 'block';
+                // tampilkan data profil ayah
+                dataProfilAyahDiv.style.display = 'block';
+
                 // jika status ibu bukan hidup, maka check alamat ibu sama dengan ayah  
                 if (statusIbu.value === 'Masih Hidup') {
                     alamatIbuSamaDenganAyahDiv.style.display = 'block';
                     document.getElementById('AlamatIbuSamaDenganAyah').checked = true;
                     toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
                 }
-                // tampilkan data profil ayah
-                document.getElementById('DataProfilAyahDetailDiv').style.display = 'block';
             }
         }
 
@@ -4057,7 +4122,7 @@ if (ENVIRONMENT === 'production') {
             if (statusIbu.value !== 'Masih Hidup') {
                 dataAlamatIbuDiv.style.display = 'none';
                 // sembunyikan data profil ibu
-                document.getElementById('DataProfilIbuDetailDiv').style.display = 'none';
+                dataProfilIbuDiv.style.display = 'none';
             } else {
                 dataAlamatIbuDiv.style.display = 'block';
                 // jika status ayah bukan hidup, maka uncheck alamat ibu sama dengan ayah  
@@ -4068,7 +4133,7 @@ if (ENVIRONMENT === 'production') {
                     alamatIbuSamaDenganAyahDiv.style.display = 'none';
                 }
                 // tampilkan data profil ibu
-                document.getElementById('DataProfilIbuDetailDiv').style.display = 'block';
+                dataProfilIbuDiv.style.display = 'block';
             }
         }
 
