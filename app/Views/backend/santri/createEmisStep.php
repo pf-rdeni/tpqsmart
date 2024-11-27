@@ -4132,7 +4132,7 @@ if (ENVIRONMENT === 'production') {
         // fungsi untuk toggle alamat ayah  
         function toggleAlamatAyah() {
             const isAyahHidup = statusAyah.value === 'Masih Hidup';
-            const requiredFields = [
+            const requiredDataProfilFields = [
                 'NoHpAyah', 'NikAyah', 'TempatLahirAyah', 'TanggalLahirAyah',
                 'PekerjaanUtamaAyah', 'PenghasilanUtamaAyah', 'PendidikanAyah'
             ];
@@ -4142,7 +4142,7 @@ if (ENVIRONMENT === 'production') {
             dataProfilAyahDiv.style.display = isAyahHidup ? 'block' : 'none';
 
             // Set atau hapus required attribute dan reset nilai
-            requiredFields.forEach(field => {
+            requiredDataProfilFields.forEach(field => {
                 const element = document.getElementById(field);
                 if (isAyahHidup) {
                     element.setAttribute('required', '<?= $required ?>');
@@ -4163,7 +4163,7 @@ if (ENVIRONMENT === 'production') {
         // fungsi untuk toggle alamat ibu
         function toggleAlamatIbu() {
             const isIbuHidup = statusIbu.value === 'Masih Hidup';
-            const requiredFields = ['NoHpIbu', 'NikIbu', 'TempatLahirIbu', 'TanggalLahirIbu',
+            const requiredDataProfilFields = ['NoHpIbu', 'NikIbu', 'TempatLahirIbu', 'TanggalLahirIbu',
                 'PekerjaanUtamaIbu', 'PenghasilanUtamaIbu', 'PendidikanIbu'
             ];
 
@@ -4172,7 +4172,7 @@ if (ENVIRONMENT === 'production') {
             dataProfilIbuDiv.style.display = isIbuHidup ? 'block' : 'none';
 
             // Handle required fields dan reset nilai
-            requiredFields.forEach(field => {
+            requiredDataProfilFields.forEach(field => {
                 const element = document.getElementById(field);
                 if (isIbuHidup) {
                     element.setAttribute('required', '<?= $required ?>');
@@ -4194,15 +4194,29 @@ if (ENVIRONMENT === 'production') {
 
         // fungsi untuk toggle alamat santri
         function toggleAlamatSantri() {
+            const requiredDataAlamatFields = ['AlamatSantri', 'RtSantri', 'RwSantri', 'KelurahanDesaSantri',
+                'KecamatanSantri', 'KabupatenKotaSantri', 'ProvinsiSantri', 'KodePosSantri'
+            ];
+
             if (statusTempatTinggalSantri.value !== 'Lainnya' || statusTempatTinggalSantri.value !== '') {
                 // Untuk select dengan hideOn
                 toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv', {
                     hideOn: ['Tinggal dengan Ayah Kandung', 'Tinggal dengan Ibu Kandung', '']
                 });
+
+                requiredDataAlamatFields.forEach(field => {
+                    const element = document.getElementById(field);
+                    element.removeAttribute('required');
+                });
             } else {
                 // Untuk select dengan showOn
                 toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv', {
                     showOn: ['Lainnya']
+                });
+
+                requiredDataAlamatFields.forEach(field => {
+                    const element = document.getElementById(field);
+                    element.setAttribute('required', '<?= $required ?>');
                 });
             }
         }
@@ -4221,8 +4235,6 @@ if (ENVIRONMENT === 'production') {
 
         // toggle untuk status tempat tinggal santri
         toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv');
-
-
 
         // Event listener untuk checkbox AlamatIbuSamaDenganAyah
         document.getElementById('AlamatIbuSamaDenganAyah').addEventListener('change', copyAlamatAyahKeIbu);
