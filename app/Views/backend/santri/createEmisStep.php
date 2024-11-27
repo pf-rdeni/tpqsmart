@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-    $required = 'required';
+    //$required = 'required';
 }
 
 ?>
@@ -276,7 +276,7 @@ if (ENVIRONMENT === 'production') {
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <div class="row">
+                                        <div class="row" style="display: none;">
                                             <div class="col-md-6">
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <label for="NoHpSantri">No Handphone</label>
@@ -351,14 +351,14 @@ if (ENVIRONMENT === 'production') {
                                                 </select>
                                                 <span id="YangBiayaSekolahError" class="text-danger" style="display:none;">Yang Membiayai Sekolah diperlukan.</span>
                                             </div>
-                                            <div class="col-md-6">
+                                            <div class="col-md-12">
                                                 <label for="NamaKepalaKeluarga">Nama Kepala Keluarga<span class="text-danger font-weight-bold">*</span></label>
                                                 <input type="text" class="form-control text-input" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Masukkan nama kepala keluarga" <?= $required ?>>
                                                 <span id="NamaKepalaKeluargaError" class="text-danger" style="display:none;">Nama Kepala Keluarga diperlukan.</span>
-                                                <div class="form-check mt-2">
-                                                    <input type="checkbox" class="form-check-input" id="NamaKepalaKeluargaSamaDenganAyah" name="NamaKepalaKeluargaSamaDenganAyah">
+                                                <div class="form-check">
+                                                    <input type="checkbox" class="form-check-input" id="NamaKepalaKeluargaSamaDenganAyah" name="NamaKepalaKeluargaSamaDenganAyah" style="transform: scale(1.2);">
                                                     <label class="form-check-label small text-primary" for="NamaKepalaKeluargaSamaDenganAyah">
-                                                        Checklist Jika Nama Kepala Keluarga Sama Dengan Ayah Kandung
+                                                        &nbsp;<i class="fas fa-check"></i> Checklist Jika Nama Kepala Keluarga Sama Dengan Ayah Kandung
                                                     </label>
                                                 </div>
                                             </div>
@@ -387,11 +387,11 @@ if (ENVIRONMENT === 'production') {
                                     </div>
                                     <div class="form-group">
                                         <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-check mt-2">
-                                                    <input type="checkbox" class="form-check-input" id="MemilikiNoKIP" name="MemilikiNoKIP">
-                                                    <label class="form-check-label small text-primary" for="MemilikiNoKIP">
-                                                        Checlist Jika Memiliki No Kartu Indonesia Pintar?
+                                            <div class="col-md-12">
+                                                <div class="form-check pl-4">
+                                                    <input type="checkbox" class="form-check-input" id="MemilikiNoKIP" name="MemilikiNoKIP" style="transform: scale(1.2);">
+                                                    <label class="form-check-label text-primary" for="MemilikiNoKIP">
+                                                        &nbsp;<i class="fas fa-check"></i> Checklist Jika Memiliki Kartu Indonesia Pintar?
                                                     </label>
                                                 </div>
                                             </div>
@@ -937,11 +937,11 @@ if (ENVIRONMENT === 'production') {
 
                                     <div class="form-group">
                                         <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-check mt-2">
-                                                    <input type="checkbox" class="form-check-input" id="MemilikiNomorKKS" name="MemilikiNomorKKS">
-                                                    <label class="form-check-label small text-primary" for="MemilikiNomorKKS">
-                                                        Checlist Jika Memiliki Nomor Kartu Keluarga Sejahtera (KKS)?
+                                            <div class="col-md-12">
+                                                <div class="form-check pl-4">
+                                                    <input type="checkbox" class="form-check-input" id="MemilikiNomorKKS" name="MemilikiNomorKKS" style="transform: scale(1.2);">
+                                                    <label class="form-check-label text-primary" for="MemilikiNomorKKS">
+                                                        &nbsp;<i class="fas fa-check"></i> Checklist Jika Memiliki Nomor Kartu Keluarga Sejahtera (KKS)?
                                                     </label>
                                                 </div>
                                             </div>
@@ -991,11 +991,11 @@ if (ENVIRONMENT === 'production') {
                                     </div>
                                     <div class="form-group">
                                         <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-check mt-2">
-                                                    <input type="checkbox" class="form-check-input" id="MemilikiNoPKH" name="MemilikiNoPKH">
-                                                    <label class="form-check-label small text-primary" for="MemilikiNoPKH">
-                                                        Checlist Jika Memiliki No Program Keluarga Harapan (PKH)?
+                                            <div class="col-md-12">
+                                                <div class="form-check pl-4">
+                                                    <input type="checkbox" class="form-check-input" id="MemilikiNoPKH" name="MemilikiNoPKH" style="transform: scale(1.2);">
+                                                    <label class="form-check-label text-primary" for="MemilikiNoPKH">
+                                                        &nbsp;<i class="fas fa-check"></i> Checklist Jika Memiliki No Program Keluarga Harapan (PKH)?
                                                     </label>
                                                 </div>
                                             </div>
@@ -4103,10 +4103,35 @@ if (ENVIRONMENT === 'production') {
                 }
                 // sembunyikan data profil ayah
                 dataProfilAyahDiv.style.display = 'none';
+                // remove required attribute
+                document.getElementById('NoHpAyah').removeAttribute('required');
+                document.getElementById('NikAyah').removeAttribute('required');
+                document.getElementById('TempatLahirAyah').removeAttribute('required');
+                document.getElementById('TanggalLahirAyah').removeAttribute('required');
+                document.getElementById('PekerjaanUtamaAyah').removeAttribute('required');
+                document.getElementById('PenghasilanUtamaAyah').removeAttribute('required');
+                document.getElementById('PendidikanAyah').removeAttribute('required');
+                //reset value
+                document.getElementById('NoHpAyah').value = '';
+                document.getElementById('NikAyah').value = '';
+                document.getElementById('TempatLahirAyah').value = '';
+                document.getElementById('TanggalLahirAyah').value = '';
+                document.getElementById('PekerjaanUtamaAyah').value = '';
+                document.getElementById('PenghasilanUtamaAyah').value = '';
+                document.getElementById('PendidikanAyah').value = '';
             } else {
                 dataAlamatAyahDiv.style.display = 'block';
                 // tampilkan data profil ayah
                 dataProfilAyahDiv.style.display = 'block';
+                // set required attribute
+                document.getElementById('NoHpAyah').setAttribute('<?= $required ?>');
+                document.getElementById('NikAyah').setAttribute('<?= $required ?>');
+                document.getElementById('TempatLahirAyah').setAttribute('<?= $required ?>');
+                document.getElementById('TanggalLahirAyah').setAttribute('<?= $required ?>');
+                document.getElementById('PekerjaanUtamaAyah').setAttribute('<?= $required ?>');
+                document.getElementById('PenghasilanUtamaAyah').setAttribute('<?= $required ?>');
+                document.getElementById('PendidikanAyah').setAttribute('<?= $required ?>');
+
 
                 // jika status ibu bukan hidup, maka check alamat ibu sama dengan ayah  
                 if (statusIbu.value === 'Masih Hidup') {
@@ -4123,6 +4148,22 @@ if (ENVIRONMENT === 'production') {
                 dataAlamatIbuDiv.style.display = 'none';
                 // sembunyikan data profil ibu
                 dataProfilIbuDiv.style.display = 'none';
+                // remove required attribute
+                document.getElementById('NoHpIbu').removeAttribute('required');
+                document.getElementById('NikIbu').removeAttribute('required');
+                document.getElementById('TempatLahirIbu').removeAttribute('required');
+                document.getElementById('TanggalLahirIbu').removeAttribute('required');
+                document.getElementById('PekerjaanUtamaIbu').removeAttribute('required');
+                document.getElementById('PenghasilanUtamaIbu').removeAttribute('required');
+                document.getElementById('PendidikanIbu').removeAttribute('required');
+                //reset value
+                document.getElementById('NoHpIbu').value = '';
+                document.getElementById('NikIbu').value = '';
+                document.getElementById('TempatLahirIbu').value = '';
+                document.getElementById('TanggalLahirIbu').value = '';
+                document.getElementById('PekerjaanUtamaIbu').value = '';
+                document.getElementById('PenghasilanUtamaIbu').value = '';
+                document.getElementById('PendidikanIbu').value = '';
             } else {
                 dataAlamatIbuDiv.style.display = 'block';
                 // jika status ayah bukan hidup, maka uncheck alamat ibu sama dengan ayah  
@@ -4134,6 +4175,14 @@ if (ENVIRONMENT === 'production') {
                 }
                 // tampilkan data profil ibu
                 dataProfilIbuDiv.style.display = 'block';
+                // set required attribute
+                document.getElementById('NoHpIbu').setAttribute('<?= $required ?>');
+                document.getElementById('NikIbu').setAttribute('<?= $required ?>');
+                document.getElementById('TempatLahirIbu').setAttribute('<?= $required ?>');
+                document.getElementById('TanggalLahirIbu').setAttribute('<?= $required ?>');
+                document.getElementById('PekerjaanUtamaIbu').setAttribute('<?= $required ?>');
+                document.getElementById('PenghasilanUtamaIbu').setAttribute('<?= $required ?>');
+                document.getElementById('PendidikanIbu').setAttribute('<?= $required ?>');
             }
         }
 
