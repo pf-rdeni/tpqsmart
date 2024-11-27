@@ -289,7 +289,13 @@ class Santri extends BaseController
     // Endpoint untuk mendapatkan detail santri baru
     public function getDetailSantri($IdSantri)
     {
-        $santri = $this->DataSantriBaru->getDetailSantri($IdSantri);
+        $santri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri)
+            ->first();
+        
         return $this->response->setJSON([
             'success' => !empty($santri),
             'data' => $santri
@@ -371,6 +377,7 @@ class Santri extends BaseController
 
         $data = [
             'page_title' => 'Data Santri Baru Per Kelas TPQ',
+            'dataSantriAll' => $santriAll,
             'dataSantriTK' => $santriPerKelas['TK'],
             'dataSantriTKA' => $santriPerKelas['TKA'],
             'dataSantriTKB' => $santriPerKelas['TKB'],

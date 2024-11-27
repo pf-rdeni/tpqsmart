@@ -21,6 +21,9 @@
                 <div class="card-header p-0 pt-1">
                     <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="custom-tabs-one-tab" role="tablist">
                         <li class="nav-item flex-fill mx-1 my-md-0 my-1">
+                            <a class="nav-link border-white text-center active" id="custom-tabs-one-all-tab" data-toggle="pill" href="#custom-tabs-one-all" role="tab" aria-controls="custom-tabs-one-all" aria-selected="true">Semua</a>
+                        </li>
+                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tk-tab" data-toggle="pill" href="#custom-tabs-one-tk" role="tab" aria-controls="custom-tabs-one-tk" aria-selected="false">TK</a>
                         </li>
                         <li class="nav-item flex-fill mx-1 my-md-0 my-1">
@@ -30,7 +33,7 @@
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tkb-tab" data-toggle="pill" href="#custom-tabs-one-tkb" role="tab" aria-controls="custom-tabs-one-tkb" aria-selected="false">TKB</a>
                         </li>
                         <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center active" id="custom-tabs-one-tpq1-tab" data-toggle="pill" href="#custom-tabs-one-tpq1" role="tab" aria-controls="custom-tabs-one-tpq1" aria-selected="true">TPQ1</a>
+                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq1-tab" data-toggle="pill" href="#custom-tabs-one-tpq1" role="tab" aria-controls="custom-tabs-one-tpq1" aria-selected="false">TPQ1</a>
                         </li>
                         <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center" id="custom-tabs-one-tpq2-tab" data-toggle="pill" href="#custom-tabs-one-tpq2" role="tab" aria-controls="custom-tabs-one-tpq2" aria-selected="false">TPQ2</a>
@@ -51,6 +54,9 @@
                 </div>
                 <div class="card-body">
                     <div class="tab-content" id="custom-tabs-one-tabContent">
+                        <div class="tab-pane fade show active" id="custom-tabs-one-all" role="tabpanel" aria-labelledby="custom-tabs-one-all-tab">
+                            <?= renderTpqTable($dataSantriAll, 0) ?>
+                        </div>
                         <div class="tab-pane fade" id="custom-tabs-one-tk" role="tabpanel" aria-labelledby="custom-tabs-one-tk-tab">
                             <?= renderTpqTable($dataSantriTK, 1) ?>
                         </div>
@@ -60,7 +66,7 @@
                         <div class="tab-pane fade" id="custom-tabs-one-tkb" role="tabpanel" aria-labelledby="custom-tabs-one-tkb-tab">
                             <?= renderTpqTable($dataSantriTKB, 3) ?>
                         </div>
-                        <div class="tab-pane fade active show" id="custom-tabs-one-tpq1" role="tabpanel" aria-labelledby="custom-tabs-one-tpq1-tab">
+                        <div class="tab-pane fade" id="custom-tabs-one-tpq1" role="tabpanel" aria-labelledby="custom-tabs-one-tpq1-tab">
                             <?= renderTpqTable($dataSantriTPQ1, 4) ?>
                         </div>
                         <div class="tab-pane fade" id="custom-tabs-one-tpq2" role="tabpanel" aria-labelledby="custom-tabs-one-tpq2-tab">
@@ -108,7 +114,15 @@
                         <div class="section-title" style="background-color: #4CAF50; color: white; padding: 5px 10px; margin: 15px 0;">Data Pribadi Santri</div>
                         <table class="table table-bordered">
                             <tr>
-                                <td width="30%">Nama Santri</td>
+                                <td width="30%">Nama TPQ</td>
+                                <th id="namaTpq"></th>
+                            </tr>
+                            <tr>
+                                <td>Nama Kelas</td>
+                                <th id="namaKelas"></th>
+                            </tr>
+                            <tr>
+                                <td>Nama Santri</td>
                                 <th id="namaSantri"></th>
                             </tr>
                             <tr>
@@ -224,6 +238,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
         <thead>
             <tr>
                 <th>Profil</th>
+                <th>Kelas</th>
                 <th>Nama</th>
                 <th>Detail</th>
             </tr>
@@ -251,6 +266,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                                 height="250">
                         </div>
                     </td>
+                    <td><?= $santri['NamaKelas']; ?></td>
                     <td><?= $santri['NamaSantri']; ?></td>
                     <td>
                         <a href="javascript:void(0)" onclick="viewDetail(<?= $santri['IdSantri'] ?>)" class="btn btn-success btn-sm"><i class="fas fa-info-circle"></i></a>
@@ -262,6 +278,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
         <tfoot>
             <tr>
                 <th>Profil</th>
+                <th>Kelas</th>
                 <th>Nama</th>
                 <th>Detail</th>
             </tr>
@@ -298,8 +315,8 @@ function renderTpqTable($dataTpq, $tpqLevel)
         }).buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
     }
 
-    /*=== Inisialisasi untuk semua tabel TK, TKA, TKB, dan TPQ (1-6) ===*/
-    for (let i = 1; i <= 9; i++) {
+    /*=== Inisialisasi untuk semua tabel semua kelas TPQ (0-9) ===*/
+    for (let i = 0; i <= 9; i++) {
         initializeDataTable(`#tableSantriBaruPerKelasTpq${i}`, false, [], {
             "lengthChange": false,
             "searching": true,
@@ -348,6 +365,8 @@ function renderTpqTable($dataTpq, $tpqLevel)
 
                         // Update elemen modal dengan data santri
                         $('#santriPhoto').attr('src', data.PhotoProfil ? uploadPath + data.PhotoProfil : '<?= base_url('images/no-photo.jpg') ?>');
+                        $('#namaTpq').text(data.NamaTpq);
+                        $('#namaKelas').text(data.NamaKelas);
                         $('#namaSantri').text(data.NamaSantri);
                         $('#idSantri').text(data.IdSantri);
                         $('#ttlSantri').text(`${data.TempatLahirSantri}, ${data.TanggalLahirSantri}`);
