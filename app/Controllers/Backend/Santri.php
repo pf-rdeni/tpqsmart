@@ -312,7 +312,15 @@ class Santri extends BaseController
 
     public function showSantriBaru()
     {
-        $santri = $this->DataSantriBaru->GetData();
+        $santri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->orderBy('tbl_santri_baru.status', 'DESC')
+            ->orderBy('tbl_santri_baru.updated_at', 'DESC')
+            ->findAll();
+
+        
         $tpq = $this->helpFunction->getDataTpq();
         usort($tpq, function ($a, $b) {
             return strcmp($a['NamaTpq'], $b['NamaTpq']);

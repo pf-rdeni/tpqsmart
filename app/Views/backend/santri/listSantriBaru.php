@@ -62,22 +62,31 @@
                                 </script>
                             </td>
                             <td><?= $santri['IdSantri']; ?></td>
-                            <td><?= $santri['NamaSantri']; ?></td>
-                            <td><?= $santri['KelurahanDesaSantri']; ?></td>
-                            <td><?= $santri['NamaTpq']; ?></td>
+                            <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
+                            <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
+                            <!-- Mengubah format nama TPQ -->
+                            <!-- detail keterangan:
+                            \b(al|el)-(\w+) = kata yang diawali dengan al- atau el- dan diikuti dengan kata lain
+                            \b = kata awal
+                            (al|el|ad) = al atau el atau ad
+                            - = tanda hubung
+                            (\w+) = kata setelah tanda hubung -->
+                            <td><?= preg_replace_callback('/\b(al|el|ad)-(\w+)/i', function ($matches) {
+                                    return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
+                                }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
                             <td><?= $santri['NamaKelas']; ?></td>
                             <td>
-                                <?php if ($santri['Status'] == "Belum Diverifikasi"): ?>
-                                    <span class="badge bg-warning"><?= $santri['Status']; ?></span>
+                                <?php if ($santri['status'] == "Belum Diverifikasi"): ?>
+                                    <span class="badge bg-warning"><?= $santri['status']; ?></span>
                                 <?php else: ?>
-                                    <?php if ($santri['Status'] == "Perlu Perbaikan"): ?>
-                                        <span class="badge bg-danger"><?= $santri['Status']; ?></span>
+                                    <?php if ($santri['status'] == "Perlu Perbaikan"): ?>
+                                        <span class="badge bg-danger"><?= $santri['status']; ?></span>
                                     <?php else: ?>
-                                        <span class="badge bg-success"><?= $santri['Status']; ?></span>
+                                        <span class="badge bg-success"><?= $santri['status']; ?></span>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             </td>
-                            <td><?= $santri['updated_at']; ?></td>
+                            <td><?= date('d-m-Y H:i:s', strtotime($santri['updated_at'])); ?></td>
                         </tr>
                     <?php endforeach ?>
                 </tbody>
