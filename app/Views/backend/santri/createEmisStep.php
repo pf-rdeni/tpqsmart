@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-    $required = 'required';
+    //$required = 'required';
 }
 
 ?>
@@ -388,23 +388,58 @@ if (ENVIRONMENT === 'production') {
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <label for="NoKIP">No Kartu Indonesia Pintar (KIP)</label>
+                                                <div class="form-check mt-2">
+                                                    <input type="checkbox" class="form-check-input" id="MemilikiNoKIP" name="MemilikiNoKIP">
+                                                    <label class="form-check-label small text-primary" for="MemilikiNoKIP">
+                                                        Checlist Jika Memiliki No Kartu Indonesia Pintar?
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <script>
+                                            document.getElementById('MemilikiNoKIP').addEventListener('change', function() {
+                                                const kipDiv = document.getElementById('KIPDiv');
+                                                const noKIP = document.getElementById('NoKIP');
+                                                const fileKIP = document.getElementById('FileKIP');
+
+                                                kipDiv.style.display = this.checked ? 'block' : 'none';
+
+                                                // Tambahkan atau hapus atribut required berdasarkan status checkbox
+                                                if (this.checked) {
+                                                    noKIP.setAttribute('<?= $required ?>');
+                                                    fileKIP.setAttribute('<?= $required ?>');
+                                                } else {
+                                                    noKIP.removeAttribute('required');
+                                                    fileKIP.removeAttribute('required');
+                                                    // Reset nilai saat unchecked
+                                                    noKIP.value = '';
+                                                    fileKIP.value = '';
+                                                }
+                                            });
+                                        </script>
+                                    </div>
+                                    <div class="form-group" id="KIPDiv" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="NoKIP">No Kartu Indonesia Pintar (KIP)<span class="text-danger font-weight-bold">*</span></label>
                                                 <input type="text" class="form-control" id="NoKIP" name="NoKIP" placeholder="Masukkan Nomor KIP"
                                                     pattern="[0-9]{16}" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                 <small class="text-muted">Nomor KIP harus 16 digit angka</small>
+                                                <span id="NoKIPError" class="text-danger" style="display:none;">No Kartu Indonesia Pintar (KIP) diperlukan.</span>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="FileKIP">Upload KIP</label>
+                                                <label for="FileKIP">Upload KIP<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
                                                         <input type="file" class="form-control" id="FileKIP" name="FileKIP" accept=".pdf,.jpg,.jpeg,.png">
                                                         <label class="custom-file-label" for="FileKIP">Upload KIP</label>
                                                     </div>
                                                 </div>
-                                                <small id="FileKIPError" class="text-danger d-none"></small>
+                                                <span id="FileKIPError" class="text-danger d-none">Upload KIP diperlukan.</span>
                                             </div>
                                         </div>
                                     </div>
+
                                     <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('tpq-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('santri-part')">Selanjutnya</button>
                                 </div>
@@ -2402,11 +2437,10 @@ if (ENVIRONMENT === 'production') {
                             firstField = document.getElementById('NamaAyah');
                         }
                         break;
-                    case 'ortu-part':
-                        //jika status ayah masih hidup maka fokus ke tempat tinggal ayah
+                    case 'ortu-part': // First Field di Alamat Part
+                        //jika status ayah masih hidup maka fokus ke status kepemilikan rumah ayah
                         if (document.getElementById('StatusAyah').value === 'Masih Hidup') {
                             firstField = document.getElementById('StatusKepemilikanRumahAyah');
-                            break;
                         } else if (document.getElementById('StatusIbu').value === 'Masih Hidup') {
                             firstField = document.getElementById('StatusKepemilikanRumahIbu');
                         } else {
