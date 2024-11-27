@@ -2406,6 +2406,7 @@ if (ENVIRONMENT === 'production') {
                         //jika status ayah masih hidup maka fokus ke tempat tinggal ayah
                         if (document.getElementById('StatusAyahHidup').value === 'Masih Hidup') {
                             firstField = document.getElementById('StatusKepemilikanRumahAyah');
+                            break;
                         } else if (document.getElementById('StatusIbuHidup').value === 'Masih Hidup') {
                             firstField = document.getElementById('StatusKepemilikanRumahIbu');
                         } else {
