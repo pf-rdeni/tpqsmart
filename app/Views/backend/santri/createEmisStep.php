@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-    //$required = 'required';
+    $required = 'required';
 }
 
 ?>
@@ -351,7 +351,7 @@ if (ENVIRONMENT === 'production') {
                                                 </select>
                                                 <span id="YangBiayaSekolahError" class="text-danger" style="display:none;">Yang Membiayai Sekolah diperlukan.</span>
                                             </div>
-                                            <div class="col-md-12">
+                                            <div class="col-md-6">
                                                 <label for="NamaKepalaKeluarga">Nama Kepala Keluarga<span class="text-danger font-weight-bold">*</span></label>
                                                 <input type="text" class="form-control text-input" id="NamaKepalaKeluarga" name="NamaKepalaKeluarga" placeholder="Masukkan nama kepala keluarga" <?= $required ?>>
                                                 <span id="NamaKepalaKeluargaError" class="text-danger" style="display:none;">Nama Kepala Keluarga diperlukan.</span>
@@ -406,9 +406,11 @@ if (ENVIRONMENT === 'production') {
 
                                                 // Tambahkan atau hapus atribut required berdasarkan status checkbox
                                                 if (this.checked) {
-                                                    noKIP.setAttribute('<?= $required ?>');
-                                                    fileKIP.setAttribute('<?= $required ?>');
+                                                    // Set required
+                                                    noKIP.setAttribute('required', '<?= $required ?>');
+                                                    fileKIP.setAttribute('required', '<?= $required ?>');
                                                 } else {
+                                                    // Menghapus atribut required dari elemen input
                                                     noKIP.removeAttribute('required');
                                                     fileKIP.removeAttribute('required');
                                                     // Reset nilai saat unchecked
@@ -489,6 +491,7 @@ if (ENVIRONMENT === 'production') {
                                                         <option value="WNI" selected>Warga Negara Indonesia (WNI)</option>
                                                         <option value="WNA">Warga Negara Asing (WNA)</option>
                                                     </select>
+                                                    <span id="KewarganegaraanAyahError" class="text-danger" style="display:none;">Kewarganegaraan Ayah diperlukan.</span>
                                                 </div>
                                             </div>
                                             <div class="row">
@@ -496,12 +499,14 @@ if (ENVIRONMENT === 'production') {
                                                     <div class="form-group">
                                                         <label for="TempatLahirAyah">Tempat Lahir Ayah</label>
                                                         <input type="text" class="form-control" id="TempatLahirAyah" name="TempatLahirAyah" placeholder="Masukkan tempat lahir ayah">
+                                                        <span id="TempatLahirAyahError" class="text-danger" style="display:none;">Tempat Lahir Ayah diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
                                                         <label for="TanggalLahirAyah">Tanggal Lahir Ayah</label>
                                                         <input type="date" class="form-control" id="TanggalLahirAyah" name="TanggalLahirAyah">
+                                                        <span id="TanggalLahirAyahError" class="text-danger" style="display:none;">Tanggal Lahir Ayah diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
@@ -521,6 +526,7 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="S3">S3</option>
                                                             <option value="Lainnya">Lainnya</option>
                                                         </select>
+                                                        <span id="PendidikanAyahError" class="text-danger" style="display:none;">Pendidikan Terakhir Ayah diperlukan.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -549,6 +555,7 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="Politikus">Politikus</option>
                                                             <option value="Lainnya">Lainnya</option>
                                                         </select>
+                                                        <span id="PekerjaanUtamaAyahError" class="text-danger" style="display:none;">Pekerjaan Utama Ayah diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
@@ -565,12 +572,14 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="Rp. 4.000.000 - Rp. 5.000.000">Rp. 4.000.000 - Rp. 5.000.000</option>
                                                             <option value="Lebih dari Rp. 5.000.000">Lebih dari Rp. 5.000.000</option>
                                                         </select>
+                                                        <span id="PenghasilanUtamaAyahError" class="text-danger" style="display:none;">Penghasilan Utama Ayah diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
                                                         <label for="NoHpAyah">No Handphone Ayah</label>
                                                         <input type="text" class="form-control number-only" id="NoHpAyah" name="NoHpAyah" placeholder="Masukkan nomor handphone">
+                                                        <span id="NoHpAyahError" class="text-danger" style="display:none;">No Handphone Ayah diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
@@ -639,6 +648,7 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="WNI" selected>Warga Negara Indonesia (WNI)</option>
                                                             <option value="WNA">Warga Negara Asing (WNA)</option>
                                                         </select>
+                                                        <span id="KewarganegaraanIbuError" class="text-danger" style="display:none;">Kewarganegaraan Ibu diperlukan.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -647,12 +657,14 @@ if (ENVIRONMENT === 'production') {
                                                     <div class="form-group">
                                                         <label for="TempatLahirIbu">Tempat Lahir Ibu</label>
                                                         <input type="text" class="form-control" id="TempatLahirIbu" name="TempatLahirIbu" placeholder="Masukkan tempat lahir ibu">
+                                                        <span id="TempatLahirIbuError" class="text-danger" style="display:none;">Tempat Lahir Ibu diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
                                                         <label for="TanggalLahirIbu">Tanggal Lahir Ibu</label>
                                                         <input type="date" class="form-control" id="TanggalLahirIbu" name="TanggalLahirIbu">
+                                                        <span id="TanggalLahirIbuError" class="text-danger" style="display:none;">Tanggal Lahir Ibu diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
@@ -673,6 +685,7 @@ if (ENVIRONMENT === 'production') {
                                                                 <option value="S3">S3</option>
                                                                 <option value="Lainnya">Lainnya</option>
                                                             </select>
+                                                            <span id="PendidikanIbuError" class="text-danger" style="display:none;">Pendidikan Terakhir Ibu diperlukan.</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -697,6 +710,7 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="Pensiunan">Pensiunan</option>
                                                             <option value="Lainnya">Lainnya</option>
                                                         </select>
+                                                        <span id="PekerjaanUtamaIbuError" class="text-danger" style="display:none;">Pekerjaan Utama Ibu diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
@@ -713,12 +727,14 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="Rp. 4.000.000 - Rp. 5.000.000">Rp. 4.000.000 - Rp. 5.000.000</option>
                                                             <option value="Lebih dari Rp. 5.000.000">Lebih dari Rp. 5.000.000</option>
                                                         </select>
+                                                        <span id="PenghasilanUtamaIbuError" class="text-danger" style="display:none;">Penghasilan Utama Ibu diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
                                                         <label for="NoHpIbu">No Handphone Ibu</label>
                                                         <input type="text" class="form-control number-only" id="NoHpIbu" name="NoHpIbu" placeholder="Masukkan nomor handphone">
+                                                        <span id="NoHpIbuError" class="text-danger" style="display:none;">No Handphone Ibu diperlukan.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -828,6 +844,7 @@ if (ENVIRONMENT === 'production') {
                                                     <div class="form-group">
                                                         <label for="NikWali">NIK Wali<span class="text-danger font-weight-bold">*</span></label>
                                                         <input type="text" class="form-control" id="NikWali" name="NikWali" placeholder="Masukkan NIK wali">
+                                                        <span id="NikWaliError" class="text-danger" style="display:none;">NIK Wali diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
@@ -838,6 +855,7 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="WNI">Warga Negara Indonesia</option>
                                                             <option value="WNA">Warga Negara Asing</option>
                                                         </select>
+                                                        <span id="KewarganegaraanWaliError" class="text-danger" style="display:none;">Kewarganegaraan Wali diperlukan.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -846,17 +864,19 @@ if (ENVIRONMENT === 'production') {
                                                     <div class="form-group">
                                                         <label for="TempatLahirWali">Tempat Lahir Wali<span class="text-danger font-weight-bold">*</span></label>
                                                         <input type="text" class="form-control" id="TempatLahirWali" name="TempatLahirWali" placeholder="Masukkan tempat lahir wali">
+                                                        <span id="TempatLahirWaliError" class="text-danger" style="display:none;">Tempat Lahir Wali diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
                                                         <label for="TanggalLahirWali">Tanggal Lahir Wali<span class="text-danger font-weight-bold">*</span></label>
                                                         <input type="date" class="form-control" id="TanggalLahirWali" name="TanggalLahirWali">
+                                                        <span id="TanggalLahirWaliError" class="text-danger" style="display:none;">Tanggal Lahir Wali diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
-                                                        <label for="PendidikanWali">Pendidikan</label>
+                                                        <label for="PendidikanWali">Pendidikan Terakhir Wali<span class="text-danger font-weight-bold">*</span></label>
                                                         <select class="form-control" id="PendidikanWali" name="PendidikanWali">
                                                             <option value="">Pilih Pendidikan</option>
                                                             <option value="Tidak Sekolah">Tidak Sekolah</option>
@@ -871,6 +891,7 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="S2">S2</option>
                                                             <option value="S3">S3</option>
                                                         </select>
+                                                        <span id="PendidikanWaliError" class="text-danger" style="display:none;">Pendidikan Terakhir Wali diperlukan.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -894,6 +915,7 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="Pensiunan">Pensiunan</option>
                                                             <option value="Lainnya">Lainnya</option>
                                                         </select>
+                                                        <span id="PekerjaanUtamaWaliError" class="text-danger" style="display:none;">Pekerjaan Utama Wali diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
@@ -910,12 +932,14 @@ if (ENVIRONMENT === 'production') {
                                                             <option value="Rp. 4.000.000 - Rp. 5.000.000">Rp. 4.000.000 - Rp. 5.000.000</option>
                                                             <option value="Lebih dari Rp. 5.000.000">Lebih dari Rp. 5.000.000</option>
                                                         </select>
+                                                        <span id="PenghasilanUtamaWaliError" class="text-danger" style="display:none;">Penghasilan Utama Wali diperlukan.</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
                                                         <label for="NoHpWali">No Handphone Wali</label>
                                                         <input type="text" class="form-control number-only" id="NoHpWali" name="NoHpWali" placeholder="Masukkan nomor handphone">
+                                                        <span id="NoHpWaliError" class="text-danger" style="display:none;">No Handphone Wali diperlukan.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -926,11 +950,25 @@ if (ENVIRONMENT === 'production') {
                                          * Fungsi ini menampilkan data wali yang perlu di isi berdasarkan status wali yang dipilih.
                                          */
                                         document.getElementById('StatusWali').addEventListener('change', function() {
-                                            var dataWali = document.getElementById('dataWali');
+                                            const dataWali = document.getElementById('dataWali');
+                                            const fields = [
+                                                'NamaWali', 'NikWali', 'KewarganegaraanWali',
+                                                'TempatLahirWali', 'TanggalLahirWali', 'PendidikanWali',
+                                                'PekerjaanUtamaWali', 'PenghasilanUtamaWali', 'NoHpWali'
+                                            ];
+
                                             if (this.value === 'Saudara') {
                                                 dataWali.style.display = 'block';
+                                                fields.forEach(field => {
+                                                    document.getElementById(field).setAttribute('required', '<?= $required ?>');
+                                                });
                                             } else {
                                                 dataWali.style.display = 'none';
+                                                fields.forEach(field => {
+                                                    const element = document.getElementById(field);
+                                                    element.removeAttribute('required');
+                                                    element.value = '';
+                                                });
                                             }
                                         });
                                     </script>
@@ -956,8 +994,8 @@ if (ENVIRONMENT === 'production') {
 
                                                 // Tambahkan atau hapus atribut required berdasarkan status checkbox
                                                 if (this.checked) {
-                                                    nomorKKS.setAttribute('<?= $required ?>');
-                                                    fileKKS.setAttribute('<?= $required ?>');
+                                                    nomorKKS.setAttribute('required', '<?= $required ?>');
+                                                    fileKKS.setAttribute('required', '<?= $required ?>');
                                                 } else {
                                                     nomorKKS.removeAttribute('required');
                                                     fileKKS.removeAttribute('required');
@@ -985,7 +1023,7 @@ if (ENVIRONMENT === 'production') {
                                                         <label class="custom-file-label" for="FileKKS">Upload KKS</label>
                                                     </div>
                                                 </div>
-                                                <span id="FileKKSError" class="text-danger d-none"></span>
+                                                <span id="FileKKSError" class="text-danger d-none"> Upload KKS diperlukan</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1010,8 +1048,8 @@ if (ENVIRONMENT === 'production') {
 
                                                 // Tambahkan atau hapus atribut required berdasarkan status checkbox
                                                 if (this.checked) {
-                                                    nomorPKH.setAttribute('<?= $required ?>');
-                                                    filePKH.setAttribute('<?= $required ?>');
+                                                    nomorPKH.setAttribute('required', '<?= $required ?>');
+                                                    filePKH.setAttribute('required', '<?= $required ?>');
                                                 } else {
                                                     nomorPKH.removeAttribute('required');
                                                     filePKH.removeAttribute('required');
@@ -4014,7 +4052,7 @@ if (ENVIRONMENT === 'production') {
                 if (this.required) {
                     if (!this.value.trim()) {
                         errorSpan.style.display = "block";
-                        errorSpan.textContent = `${field.labelText} harus diisi`;
+                        errorSpan.textContent = `${field.labelText} diperlukan`;
                         this.classList.remove('is-valid');
                         this.classList.add('is-invalid');
                     } else {
@@ -4093,96 +4131,64 @@ if (ENVIRONMENT === 'production') {
         statusTempatTinggalSantri.addEventListener('change', toggleAlamatSantri);
         // fungsi untuk toggle alamat ayah  
         function toggleAlamatAyah() {
-            if (statusAyah.value !== 'Masih Hidup') {
-                dataAlamatAyahDiv.style.display = 'none';
-                // jika status ibu hidup, maka uncheck alamat ibu sama dengan ayah  
-                if (statusIbu.value === 'Masih Hidup') {
-                    document.getElementById('AlamatIbuSamaDenganAyah').checked = false;
-                    toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
-                    alamatIbuSamaDenganAyahDiv.style.display = 'none';
-                }
-                // sembunyikan data profil ayah
-                dataProfilAyahDiv.style.display = 'none';
-                // remove required attribute
-                document.getElementById('NoHpAyah').removeAttribute('required');
-                document.getElementById('NikAyah').removeAttribute('required');
-                document.getElementById('TempatLahirAyah').removeAttribute('required');
-                document.getElementById('TanggalLahirAyah').removeAttribute('required');
-                document.getElementById('PekerjaanUtamaAyah').removeAttribute('required');
-                document.getElementById('PenghasilanUtamaAyah').removeAttribute('required');
-                document.getElementById('PendidikanAyah').removeAttribute('required');
-                //reset value
-                document.getElementById('NoHpAyah').value = '';
-                document.getElementById('NikAyah').value = '';
-                document.getElementById('TempatLahirAyah').value = '';
-                document.getElementById('TanggalLahirAyah').value = '';
-                document.getElementById('PekerjaanUtamaAyah').value = '';
-                document.getElementById('PenghasilanUtamaAyah').value = '';
-                document.getElementById('PendidikanAyah').value = '';
-            } else {
-                dataAlamatAyahDiv.style.display = 'block';
-                // tampilkan data profil ayah
-                dataProfilAyahDiv.style.display = 'block';
-                // set required attribute
-                document.getElementById('NoHpAyah').setAttribute('<?= $required ?>');
-                document.getElementById('NikAyah').setAttribute('<?= $required ?>');
-                document.getElementById('TempatLahirAyah').setAttribute('<?= $required ?>');
-                document.getElementById('TanggalLahirAyah').setAttribute('<?= $required ?>');
-                document.getElementById('PekerjaanUtamaAyah').setAttribute('<?= $required ?>');
-                document.getElementById('PenghasilanUtamaAyah').setAttribute('<?= $required ?>');
-                document.getElementById('PendidikanAyah').setAttribute('<?= $required ?>');
+            const isAyahHidup = statusAyah.value === 'Masih Hidup';
+            const requiredFields = [
+                'NoHpAyah', 'NikAyah', 'TempatLahirAyah', 'TanggalLahirAyah',
+                'PekerjaanUtamaAyah', 'PenghasilanUtamaAyah', 'PendidikanAyah'
+            ];
 
+            // Toggle tampilan data ayah
+            dataAlamatAyahDiv.style.display = isAyahHidup ? 'block' : 'none';
+            dataProfilAyahDiv.style.display = isAyahHidup ? 'block' : 'none';
 
-                // jika status ibu bukan hidup, maka check alamat ibu sama dengan ayah  
-                if (statusIbu.value === 'Masih Hidup') {
-                    alamatIbuSamaDenganAyahDiv.style.display = 'block';
-                    document.getElementById('AlamatIbuSamaDenganAyah').checked = true;
-                    toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
+            // Set atau hapus required attribute dan reset nilai
+            requiredFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (isAyahHidup) {
+                    element.setAttribute('required', '<?= $required ?>');
+                } else {
+                    element.removeAttribute('required');
+                    element.value = '';
                 }
+            });
+
+            // Handle alamat ibu
+            if (statusIbu.value === 'Masih Hidup') {
+                alamatIbuSamaDenganAyahDiv.style.display = isAyahHidup ? 'block' : 'none';
+                document.getElementById('AlamatIbuSamaDenganAyah').checked = isAyahHidup;
+                toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
             }
         }
 
         // fungsi untuk toggle alamat ibu
         function toggleAlamatIbu() {
-            if (statusIbu.value !== 'Masih Hidup') {
-                dataAlamatIbuDiv.style.display = 'none';
-                // sembunyikan data profil ibu
-                dataProfilIbuDiv.style.display = 'none';
-                // remove required attribute
-                document.getElementById('NoHpIbu').removeAttribute('required');
-                document.getElementById('NikIbu').removeAttribute('required');
-                document.getElementById('TempatLahirIbu').removeAttribute('required');
-                document.getElementById('TanggalLahirIbu').removeAttribute('required');
-                document.getElementById('PekerjaanUtamaIbu').removeAttribute('required');
-                document.getElementById('PenghasilanUtamaIbu').removeAttribute('required');
-                document.getElementById('PendidikanIbu').removeAttribute('required');
-                //reset value
-                document.getElementById('NoHpIbu').value = '';
-                document.getElementById('NikIbu').value = '';
-                document.getElementById('TempatLahirIbu').value = '';
-                document.getElementById('TanggalLahirIbu').value = '';
-                document.getElementById('PekerjaanUtamaIbu').value = '';
-                document.getElementById('PenghasilanUtamaIbu').value = '';
-                document.getElementById('PendidikanIbu').value = '';
-            } else {
-                dataAlamatIbuDiv.style.display = 'block';
-                // jika status ayah bukan hidup, maka uncheck alamat ibu sama dengan ayah  
-                if (statusAyah.value !== 'Masih Hidup') {
-                    document.getElementById('AlamatIbuSamaDenganAyah').checked = false;
-                    toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
-                    // sembunyikan field alamat ibu
-                    alamatIbuSamaDenganAyahDiv.style.display = 'none';
+            const isIbuHidup = statusIbu.value === 'Masih Hidup';
+            const requiredFields = ['NoHpIbu', 'NikIbu', 'TempatLahirIbu', 'TanggalLahirIbu',
+                'PekerjaanUtamaIbu', 'PenghasilanUtamaIbu', 'PendidikanIbu'
+            ];
+
+            // Toggle tampilan div
+            dataAlamatIbuDiv.style.display = isIbuHidup ? 'block' : 'none';
+            dataProfilIbuDiv.style.display = isIbuHidup ? 'block' : 'none';
+
+            // Handle required fields dan reset nilai
+            requiredFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (isIbuHidup) {
+                    element.setAttribute('required', '<?= $required ?>');
+                } else {
+                    element.removeAttribute('required');
+                    element.value = '';
                 }
-                // tampilkan data profil ibu
-                dataProfilIbuDiv.style.display = 'block';
-                // set required attribute
-                document.getElementById('NoHpIbu').setAttribute('<?= $required ?>');
-                document.getElementById('NikIbu').setAttribute('<?= $required ?>');
-                document.getElementById('TempatLahirIbu').setAttribute('<?= $required ?>');
-                document.getElementById('TanggalLahirIbu').setAttribute('<?= $required ?>');
-                document.getElementById('PekerjaanUtamaIbu').setAttribute('<?= $required ?>');
-                document.getElementById('PenghasilanUtamaIbu').setAttribute('<?= $required ?>');
-                document.getElementById('PendidikanIbu').setAttribute('<?= $required ?>');
+            });
+
+            // Handle alamat ibu sama dengan ayah
+            if (isIbuHidup && statusAyah.value === 'Masih Hidup') {
+                alamatIbuSamaDenganAyahDiv.style.display = 'block';
+            } else {
+                alamatIbuSamaDenganAyahDiv.style.display = 'none';
+                document.getElementById('AlamatIbuSamaDenganAyah').checked = false;
+                toggleDataDanAlamat('AlamatIbuSamaDenganAyah', '#DataAlamatIbuDetailDiv');
             }
         }
 
