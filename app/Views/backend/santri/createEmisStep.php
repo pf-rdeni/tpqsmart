@@ -2404,10 +2404,10 @@ if (ENVIRONMENT === 'production') {
                         break;
                     case 'ortu-part':
                         //jika status ayah masih hidup maka fokus ke tempat tinggal ayah
-                        if (document.getElementById('StatusAyahHidup').value === 'Masih Hidup') {
+                        if (document.getElementById('StatusAyah').value === 'Masih Hidup') {
                             firstField = document.getElementById('StatusKepemilikanRumahAyah');
                             break;
-                        } else if (document.getElementById('StatusIbuHidup').value === 'Masih Hidup') {
+                        } else if (document.getElementById('StatusIbu').value === 'Masih Hidup') {
                             firstField = document.getElementById('StatusKepemilikanRumahIbu');
                         } else {
                             firstField = document.getElementById('StatusTempatTinggalSantri');
