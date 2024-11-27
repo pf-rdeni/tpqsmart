@@ -2391,23 +2391,23 @@ if (ENVIRONMENT === 'production') {
                 // Tentukan field pertama berdasarkan step berikutnya
                 let firstField;
                 switch (stepId) {
-                    case 'tpq-part':
+                    case 'tpq-part': // First Field di Santri-Part
                         firstField = document.getElementById('previewPhotoProfil');
                         break;
-                    case 'santri-part':
+                    case 'santri-part': // First Field di Ortu Part
                         //jika nama ayah sudah diisi maka fokus ke status ayah
                         if (document.getElementById('NamaAyah').value !== '') {
-                            firstField = document.getElementById('StatusAyahHidup');
+                            firstField = document.getElementById('StatusAyah');
                         } else {
                             firstField = document.getElementById('NamaAyah');
                         }
                         break;
                     case 'ortu-part':
                         //jika status ayah masih hidup maka fokus ke tempat tinggal ayah
-                        if (document.getElementById('StatusAyahHidup').value === 'Hidup') {
-                            firstField = document.getElementById('StatusTempatTinggalAyah');
-                        } else if (document.getElementById('StatusIbuHidup').value === 'Hidup') {
-                            firstField = document.getElementById('StatusTempatTinggalIbu');
+                        if (document.getElementById('StatusAyahHidup').value === 'Masih Hidup') {
+                            firstField = document.getElementById('StatusKepemilikanRumahAyah');
+                        } else if (document.getElementById('StatusIbuHidup').value === 'Masih Hidup') {
+                            firstField = document.getElementById('StatusKepemilikanRumahIbu');
                         } else {
                             firstField = document.getElementById('StatusTempatTinggalSantri');
                         }
