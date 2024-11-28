@@ -65,9 +65,11 @@ class SantriBaruModel extends Model
         'NomorPKH',
         'FileKKS',
         'FilePKH',
-        
+
         // Data Alamat Santri
-        'StatusMukim', 'StatusTempatTinggal', 'ProvinsiSantri',
+        'StatusMukim',
+        'StatusTempatTinggalSantri',
+        'ProvinsiSantri',
         'KabupatenKotaSantri', 'KecamatanSantri', 'KelurahanDesaSantri',
         'RwSantri', 'RtSantri', 'AlamatSantri', 'KodePosSantri',
         'JarakTempuhSantri', 'TransportasiSantri', 'WaktuTempuhSantri',

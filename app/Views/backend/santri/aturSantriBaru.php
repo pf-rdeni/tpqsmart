@@ -63,8 +63,8 @@
                                 </script>
                             </td>
                             <td>
-                                <a href="<?= base_url('backend/santri/viewDetailSantriBaru/' . $santri['IdSantri']); ?>" class="btn btn-info btn-sm"><i class="fas fa-eye"></i>&nbsp;Detail</a>
-                                <a href="<?= base_url('backend/santri/editSantriBaru/' . $santri['IdSantri']); ?>" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i>&nbsp;Edit</a>
+                                <a href="<?= base_url('backend/santri/viewDataSantri/' . $santri['IdSantri']); ?>" class="btn btn-info btn-sm"><i class="fas fa-eye"></i>&nbsp;Detail</a>
+                                <a href="<?= base_url('backend/santri/editSantri/' . $santri['IdSantri']); ?>" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i>&nbsp;Edit</a>
                                 <a href="javascript:void(0)" onclick="deleteSantri('<?= $santri['IdSantri']; ?>')" class="btn btn-danger btn-sm">
                                     <i class="fas fa-trash"></i>&nbsp;Hapus
                                 </a>

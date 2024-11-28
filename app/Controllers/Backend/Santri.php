@@ -198,7 +198,8 @@ class Santri extends BaseController
                 'KodePosIbu' => $this->request->getPost('KodePosIbu'),
 
                 // Data Alamat Santri
-                'WaliSantri' => $this->request->getPost('WaliSantri'),
+                'StatusMukim' => $this->request->getPost('StatusMukim'),
+                'StatusTempatTinggalSantri' => $this->request->getPost('StatusTempatTinggalSantri'),
                 'ProvinsiSantri' => $this->request->getPost('ProvinsiSantri'),
                 'KabupatenKotaSantri' => $this->request->getPost('KabupatenKotaSantri'),
                 'KecamatanSantri' => $this->request->getPost('KecamatanSantri'),
@@ -370,10 +371,23 @@ class Santri extends BaseController
         return view('backend/santri/detailSantriBaru', $santri);
     }
 
-    public function editSantriBaru($IdSantri = null)
+    public function editSantri($IdSantri = null)
     {
-        $santri = $this->DataSantriBaru->GetData($IdSantri);
-        return view('backend/santri/editSantriBaru', $santri);
+        $santri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa as KelurahanDesaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri)
+            ->first();
+
+        $data = [
+            'page_title' => 'Edit Data Santri',
+            'dataTpq' => $this->helpFunction->getDataTpq(),
+            'dataKelas' => $this->helpFunction->getDataKelas(),
+            'dataSantri' => $santri
+        ];
+
+        return view('backend/santri/editDataSantri', $data);
     }
 
     public function deleteSantriBaru($IdSantri = null)
