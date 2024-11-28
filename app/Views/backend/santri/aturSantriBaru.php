@@ -166,7 +166,8 @@
         Swal.fire({
             title: 'Apakah Anda yakin?',
             html: `Data santri ID: <strong>${IdSantri}</strong> Nama: <strong>${namaSantri}</strong> akan dihapus permanen!`,
-            icon: 'warning',
+            icon: 'question',
+            iconColor: '#d33',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
