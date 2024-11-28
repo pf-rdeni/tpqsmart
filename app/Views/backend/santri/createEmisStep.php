@@ -1376,7 +1376,7 @@ if (ENVIRONMENT === 'production') {
                                                                     StatusTempatTinggalSantri.innerHTML += '<option value="Tinggal dengan Ayah Kandung">Tinggal dengan Ayah Kandung</option>';
                                                                 }
                                                                 // Tambahkan opsi tinggal dengan ibu jika ibu masih hidup dan tidak tinggal di luar negeri
-                                                                if (statusIbu.value === 'Masih Hidup' && !document.getElementById('TinggalDiluarNegeriIbu').checked) {
+                                                                else if (statusIbu.value === 'Masih Hidup' && !document.getElementById('TinggalDiluarNegeriIbu').checked) {
                                                                     StatusTempatTinggalSantri.innerHTML += '<option value="Tinggal dengan Ibu Kandung">Tinggal dengan Ibu Kandung</option>';
                                                                 } // jika wali sudah diisi
                                                                 if (statusWali.value == 'Saudara') {
@@ -4101,6 +4101,13 @@ if (ENVIRONMENT === 'production') {
 
             fields.forEach(field => {
                 field.style.display = shouldHide ? 'none' : 'block';
+
+                if (shouldHide) {
+                    field.removeAttribute('required');
+                    field.value = '';
+                } else {
+                    field.setAttribute('required', '<?= $required ?>');
+                }
             });
         }
 
@@ -4192,31 +4199,58 @@ if (ENVIRONMENT === 'production') {
             }
         }
 
-        // fungsi untuk toggle alamat santri
+        // fungsi untuk menentukan required attribute alamat santri berdasarkan status tempat tinggal santri
         function toggleAlamatSantri() {
-            const requiredDataAlamatFields = ['AlamatSantri', 'RtSantri', 'RwSantri', 'KelurahanDesaSantri',
-                'KecamatanSantri', 'KabupatenKotaSantri', 'ProvinsiSantri', 'KodePosSantri'
-            ];
+            const statusTinggal = statusTempatTinggalSantri.value;
+            const alamatSantriFields = ['AlamatSantri', 'RtSantri', 'RwSantri', 'KelurahanDesaSantri'];
+            const alamatAyahFields = ['AlamatAyah', 'RtAyah', 'RwAyah', 'KelurahanDesaAyah', 'StatusKepemilikanRumahAyah'];
+            const alamatIbuFields = ['AlamatIbu', 'RtIbu', 'RwIbu', 'KelurahanDesaIbu', 'StatusKepemilikanRumahIbu'];
 
-            if (statusTempatTinggalSantri.value !== 'Lainnya' || statusTempatTinggalSantri.value !== '') {
-                // Untuk select dengan hideOn
-                toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv', {
-                    hideOn: ['Tinggal dengan Ayah Kandung', 'Tinggal dengan Ibu Kandung', '']
-                });
-
-                requiredDataAlamatFields.forEach(field => {
+            // Helper function untuk mengatur required fields dengan pengecualian untuk field alamat tertentu
+            const setRequiredFields = (fields, isRequired) => {
+                fields.forEach(field => {
                     const element = document.getElementById(field);
-                    element.removeAttribute('required');
+                    if (isRequired) {
+                        element.setAttribute('required', '<?= $required ?>');
+                    } else {
+                        element.removeAttribute('required');
+                        // Clear value hanya jika bukan field AlamatAyah atau AlamatIbu
+                        if (field !== 'AlamatAyah' && field !== 'AlamatIbu') {
+                            element.value = '';
+                        }
+                    }
                 });
-            } else {
-                // Untuk select dengan showOn
+            };
+
+            if (statusTinggal === 'Tinggal dengan Ayah Kandung' || statusTinggal === 'Tinggal dengan Ibu Kandung') {
+                // Sembunyikan alamat santri
+                toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv', {
+                    hideOn: ['Tinggal dengan Ayah Kandung', 'Tinggal dengan Ibu Kandung']
+                });
+
+                // Set required fields berdasarkan tempat tinggal
+                if (statusTinggal === 'Tinggal dengan Ayah Kandung') {
+                    setRequiredFields(alamatSantriFields, false);
+                    setRequiredFields(alamatAyahFields, true);
+                    setRequiredFields(alamatIbuFields, false);
+                } else {
+                    setRequiredFields(alamatSantriFields, false);
+                    setRequiredFields(alamatAyahFields, false);
+                    setRequiredFields(alamatIbuFields, true);
+                }
+            } else if (statusTinggal === 'Lainnya') {
+                // Tampilkan alamat santri
                 toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv', {
                     showOn: ['Lainnya']
                 });
 
-                requiredDataAlamatFields.forEach(field => {
-                    const element = document.getElementById(field);
-                    element.setAttribute('required', '<?= $required ?>');
+                setRequiredFields(alamatSantriFields, true);
+                setRequiredFields(alamatAyahFields, false);
+                setRequiredFields(alamatIbuFields, false);
+            } else {
+                // Default: sembunyikan alamat santri
+                toggleDataDanAlamat('StatusTempatTinggalSantri', '#DataAlamatSantriProvinsiDiv', {
+                    hideOn: ['']
                 });
             }
         }
