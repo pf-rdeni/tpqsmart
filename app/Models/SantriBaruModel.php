@@ -60,6 +60,11 @@ class SantriBaruModel extends Model
         'KewarganegaraanWali',
         'TempatLahirWali', 'TanggalLahirWali', 'PendidikanWali',
         'PekerjaanUtamaWali', 'PenghasilanUtamaWali', 'NoHpWali',
+        'FileKkWali',
+        'NomorKKS',
+        'NomorPKH',
+        'FileKKS',
+        'FilePKH',
         
         // Data Alamat Santri
         'StatusMukim', 'StatusTempatTinggal', 'ProvinsiSantri',

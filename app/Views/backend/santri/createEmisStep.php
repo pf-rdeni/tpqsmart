@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-    $required = 'required';
+   // $required = 'required';
 }
 
 ?>
