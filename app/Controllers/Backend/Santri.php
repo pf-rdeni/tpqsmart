@@ -340,6 +340,96 @@ class Santri extends BaseController
         return view('backend/santri/listSantriBaru', $data);
     }
 
+    public function showAturSantriBaru($IdTpq = null)
+    {
+        $santri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->orderBy('tbl_santri_baru.status', 'DESC')
+            ->orderBy('tbl_santri_baru.updated_at', 'DESC')
+            ->findAll();
+
+
+        $tpq = $this->helpFunction->getDataTpq();
+        usort($tpq, function ($a, $b) {
+            return strcmp($a['NamaTpq'], $b['NamaTpq']);
+        });
+
+        $data = [
+            'page_title' => 'Data Santri Baru',
+            'dataSantri' => $santri,
+            'dataTpq' => $tpq
+        ];
+        return view('backend/santri/aturSantriBaru', $data);
+    }
+
+    public function viewDetailSantriBaru($IdSantri = null)
+    {
+        $santri = $this->DataSantriBaru->GetData($IdSantri);
+        return view('backend/santri/detailSantriBaru', $santri);
+    }
+
+    public function editSantriBaru($IdSantri = null)
+    {
+        $santri = $this->DataSantriBaru->GetData($IdSantri);
+        return view('backend/santri/editSantriBaru', $santri);
+    }
+
+    public function deleteSantriBaru($IdSantri = null)
+    {
+        try {
+            // Validasi IdSantri
+            if ($IdSantri === null) {
+                throw new \Exception('ID Santri tidak boleh kosong');
+            }
+
+            // Ambil data attachment
+            $attachment = $this->DataSantriBaru->GetDataAttachment($IdSantri);
+
+            // Tentukan path berdasarkan environment
+            if (ENVIRONMENT === 'production') {
+                $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
+            } else {
+                $uploadPath = ROOTPATH . 'public/uploads/santri/';
+            }
+
+            // Hapus file-file terkait
+            $files = [
+                $attachment['FileKkSantri'],
+                $attachment['FileKkAyah'],
+                $attachment['FileKkIbu'],
+                $attachment['PhotoProfil'],
+                $attachment['FileKIP'],
+                $attachment['FilePKH'],
+                $attachment['FileKKS']
+            ];
+
+            foreach ($files as $file) {
+                if (!empty($file)) {
+                    $filePath = $uploadPath . $file;
+                    if (file_exists($filePath)) {
+                        unlink($filePath);
+                    }
+                }
+            }
+
+            // Hapus data dari database menggunakan where clause
+            $result = $this->DataSantriBaru->where('IdSantri', $IdSantri)->delete();
+
+            if (!$result) {
+                throw new \Exception('Gagal menghapus data santri');
+            }
+
+            return redirect()->to(base_url('backend/santri/showAturSantriBaru'))
+            ->with('success', 'Data santri berhasil dihapus');
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: deleteSantriBaru - Error: ' . $e->getMessage());
+            return redirect()->to(base_url('backend/santri/showAturSantriBaru'))
+            ->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
+
     public function showSantriBaruPerKelasTpq($IdTpq = null)
     {
         $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq);

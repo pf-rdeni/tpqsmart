@@ -219,4 +219,9 @@ class SantriBaruModel extends Model
             return [];
         }
     }
+
+    public function GetDataAttachment($IdSantri)
+    {
+        return $this->where('IdSantri', $IdSantri)->first();
+    }
 }

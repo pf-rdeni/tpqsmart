@@ -32,21 +32,32 @@
                     <li class="nav-item">
                         <a href=<?php echo base_url('backend/tpq/show') ?> class="nav-link">
                             <i class="nav-icon 	fas fa-mosque"></i>
-                            <p> Data TPQ</p>
+                            <p> TPQ</p>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href=<?php echo base_url('backend/guru/show') ?> class="nav-link">
                             <i class="nav-icon 	fas fa-user"></i>
-                            <p> Data Guru</p>
+                            <p> Guru</p>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="#" class="nav-link">
                             <i class="nav-icon 	fas fa-users"></i>
-                            <p> Data Santri</p>
+                            <p>
+                                Santri
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
-                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                        <ul class="nav nav-treeview" style="display: block;"> <!-- none; or block -->
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Daftar Santri Baru</p>
+                                </a>
+                            </li>
+                        </ul>
+                        <ul class="nav nav-treeview" style="display: block;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
@@ -54,11 +65,11 @@
                                 </a>
                             </li>
                         </ul>
-                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                        <ul class="nav nav-treeview" style="display: block;"> <!-- none; or block -->
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
+                                <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Daftar Santri Baru</p>
+                                    <p>Atur Santri Baru</p>
                                 </a>
                             </li>
                         </ul>
