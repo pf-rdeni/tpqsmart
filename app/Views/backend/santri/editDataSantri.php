@@ -411,9 +411,10 @@ if (ENVIRONMENT === 'production') {
                                                 <label for="FileKkSantri">Upload KK Santri<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
-                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>
-                                                            value="<?= isset($dataSantri['FileKkSantri']) ? $dataSantri['FileKkSantri'] : '' ?>">
-                                                        <label class="custom-file-label" for="FileKkSantri">Upload KK</label>
+                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
+                                                        <label class="custom-file-label" for="FileKkSantri">
+                                                            <?= isset($dataSantri['FileKkSantri']) ? $dataSantri['FileKkSantri'] : 'Upload KK' ?>
+                                                        </label>
                                                     </div>
                                                 </div>
                                                 <span id="FileKkSantriError" class="text-danger d-none">Upload KK Santri diperlukan.</span>
@@ -1834,7 +1835,7 @@ if (ENVIRONMENT === 'production') {
                                                         </tr>
                                                         <tr>
                                                             <th>Nomor KK / File KK</th>
-                                                            <td><span id="previewNoKkSantri"></span> / <span id="previewFileKkSantri"></span></td>
+                                                            <td><span id="previewNoKkSantri"></span> / <span id="previewFileKkSantri_"></span></td>
                                                         </tr>
                                                         <tr>
                                                             <th>Nomor KIP / File KIP</th>
@@ -2220,7 +2221,7 @@ if (ENVIRONMENT === 'production') {
         document.getElementById('previewFileKip').textContent = document.getElementById('FileKIP').files[0]?.name || '-';
         document.getElementById('previewNoHpSantri').textContent = document.getElementById('NoHpSantri').value || '-';
         document.getElementById('previewEmailSantri').textContent = document.getElementById('EmailSantri').value || '-';
-        document.getElementById('previewFileKkSantri').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
+        document.getElementById('previewFileKkSantri_').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
 
         // Preview foto santri
         const photoInput = document.getElementById('PhotoProfil');
@@ -2576,12 +2577,12 @@ if (ENVIRONMENT === 'production') {
         document.querySelectorAll(`#${stepId} .form-control[required]`).forEach(field => {
             const value = field.value.trim();
 
-            // Skip validasi jika field kosong
-            if (!value && field.id !== 'PhotoProfil') {
-                validateField(field);
-                setInvalid(field);
-                return;
-            }
+            // // Skip validasi jika field kosong dan bukan file
+            // if (!value && field.type !== 'file') {
+            //     validateField(field);
+            //     setInvalid(field);
+            //     return;
+            // }
 
             // Validasi khusus per tipe field
             switch (field.id) {
@@ -2780,6 +2781,8 @@ if (ENVIRONMENT === 'production') {
             return true;
         }
     }
+    /* ===== End Region: Validasi Input Form ===== */
+
     /* ===== Region: Filter TPQ berdasarkan kelurahan =====
      * Fungsi ini memfilter opsi TPQ berdasarkan kelurahan yang dipilih
      * Menggunakan event listener untuk perubahan pada select kelurahan
@@ -3464,13 +3467,25 @@ if (ENVIRONMENT === 'production') {
             const inputId = input.id;
             let errorElement = document.getElementById(inputId + 'Error');
 
-            // Tambahkan event listener
+            // Tambahkan event listener untuk perubahan file
             input.addEventListener('change', function() {
                 previewFile(this.id);
             });
 
-            // Buat elemen preview
+            // Tambahkan data existing jika ada
+            <?php if (isset($dataSantri)): ?>
+                // Gunakan inputId langsung sebagai key untuk mengakses dataSantri
+                if ('<?= isset($dataSantri) ?>' && '<?= !empty($dataSantri) ?>') {
+                    const existingValue = <?= json_encode($dataSantri) ?>[inputId] || '';
+                    if (existingValue) {
+                        input.setAttribute('data-existing', existingValue);
+                    }
+                }
+            <?php endif; ?>
+
+            // Buat dan tampilkan preview untuk file yang sudah ada
             createPreviewElements(input.id);
+            previewFile(input.id);
         });
     });
     /* ===== End Region: Validasi Input File ===== */
@@ -3495,7 +3510,7 @@ if (ENVIRONMENT === 'production') {
      * @returns {HTMLElement} Elemen div yang berisi semua elemen preview
      */
     function createPreviewElements(inputId) {
-        const baseId = inputId.replace('File', '');
+        const baseId = inputId;
         let previewDiv = document.getElementById('preview' + baseId);
 
         // Jika div preview belum ada, buat baru
@@ -3521,26 +3536,10 @@ if (ENVIRONMENT === 'production') {
             previewImage.className = 'img-thumbnail';
             previewImage.alt = 'Preview ' + baseId;
             previewImage.style.cssText = 'width:100%; max-height:200px; overflow-y:auto; object-fit:contain; display:none; cursor:zoom-in;';
+
+            // Tambahkan event click untuk zoom
             previewImage.onclick = function() {
-                // Buat elemen overlay untuk popup
-                const overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center;';
-
-                // Buat elemen gambar untuk popup
-                const popupImage = document.createElement('img');
-                popupImage.src = this.src;
-                popupImage.style.cssText = 'max-width:90%; max-height:90%; object-fit:contain;';
-
-                // Tambahkan gambar ke overlay
-                overlay.appendChild(popupImage);
-
-                // Tutup popup saat overlay diklik
-                overlay.onclick = function() {
-                    document.body.removeChild(overlay);
-                };
-
-                // Tambahkan overlay ke body
-                document.body.appendChild(overlay);
+                createZoomOverlay(this.src);
             };
 
             // Buat elemen preview untuk PDF
@@ -3552,26 +3551,7 @@ if (ENVIRONMENT === 'production') {
             previewPdf.style.display = 'none';
             previewPdf.style.cursor = 'zoom-in';
             previewPdf.onclick = function() {
-                // Buat elemen overlay untuk popup
-                const overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center;';
-
-                // Buat elemen PDF untuk popup
-                const popupPdf = document.createElement('embed');
-                popupPdf.src = this.src;
-                popupPdf.type = 'application/pdf';
-                popupPdf.style.cssText = 'width:90%; height:90%;';
-
-                // Tambahkan PDF ke overlay
-                overlay.appendChild(popupPdf);
-
-                // Tutup popup saat overlay diklik
-                overlay.onclick = function() {
-                    document.body.removeChild(overlay);
-                };
-
-                // Tambahkan overlay ke body
-                document.body.appendChild(overlay);
+                createZoomOverlay(this.src);
             };
 
             // Tambahkan elemen ke div preview
@@ -3593,7 +3573,7 @@ if (ENVIRONMENT === 'production') {
      */
     function cancelFileUpload(inputId) {
         const fileInput = document.getElementById(inputId);
-        const previewDiv = document.getElementById('preview' + inputId.replace('File', ''));
+        const previewDiv = document.getElementById('preview' + inputId);
         const fileLabel = fileInput.closest('.custom-file').querySelector('.custom-file-label');
 
         // Reset input file
@@ -3626,14 +3606,15 @@ if (ENVIRONMENT === 'production') {
 
         const fileInput = document.getElementById(inputId);
         const previewDiv = createPreviewElements(inputId);
-        const previewImage = document.getElementById('previewImage' + inputId.replace('File', ''));
-        const previewPdf = document.getElementById('previewPdf' + inputId.replace('File', ''));
+        const previewImage = document.getElementById('previewImage' + inputId);
+        const previewPdf = document.getElementById('previewPdf' + inputId);
 
         // Reset tampilan preview
         previewDiv.style.display = 'none';
         previewImage.style.display = 'none';
         previewPdf.style.display = 'none';
 
+        // Jika ada file yang dipilih
         if (fileInput.files && fileInput.files[0]) {
             const file = fileInput.files[0];
             const fileType = file.type;
@@ -3654,9 +3635,55 @@ if (ENVIRONMENT === 'production') {
                 previewDiv.style.display = 'block';
             }
         }
-    }
+        // Jika tidak ada file baru yang dipilih, cek data yang sudah ada
+        <?php if (isset($dataSantri)): ?>
+            else if (<?= isset($dataSantri) ? 'true' : 'false' ?> && fileInput.hasAttribute('data-existing')) {
+                const existingFile = fileInput.getAttribute('data-existing');
+                const fileExtension = existingFile.split('.').pop().toLowerCase();
 
-    // fungsi untuk validasi file
+                // Tentukan base URL berdasarkan environment
+                const baseUrl = '<?= (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com' : base_url() ?>';
+                const filePath = baseUrl + '/uploads/santri/' + existingFile;
+
+                if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
+                    previewImage.src = filePath;
+                    previewImage.style.display = 'block';
+                    previewDiv.style.display = 'block';
+                } else if (fileExtension === 'pdf') {
+                    previewPdf.src = filePath;
+                    previewPdf.style.display = 'block';
+                    previewDiv.style.display = 'block';
+                }
+            }
+        <?php endif; ?>
+    }
+    /* ===== End Region: Menampilkan Preview File Img atau Pdf ===== */
+
+    /* ===== Fungsi helper untuk membuat overlay zoom ===== */
+    function createZoomOverlay(src) {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center;';
+
+        const content = src.endsWith('.pdf') ?
+            document.createElement('embed') :
+            document.createElement('img');
+
+        content.src = src;
+        content.style.cssText = src.endsWith('.pdf') ?
+            'width:90%; height:90%;' :
+            'max-width:90%; max-height:90%; object-fit:contain;';
+
+        if (src.endsWith('.pdf')) {
+            content.type = 'application/pdf';
+        }
+
+        overlay.appendChild(content);
+        overlay.onclick = () => document.body.removeChild(overlay);
+        document.body.appendChild(overlay);
+    }
+    /* ===== End Fungsi helper untuk membuat overlay zoom ===== */
+
+    /* ===== Fungsi untuk validasi file ===== */
     /**
      * Memvalidasi file yang diupload
      * @param {string} inputId - ID dari elemen input file
@@ -3673,7 +3700,7 @@ if (ENVIRONMENT === 'production') {
         const file = fileInput.files[0];
         const errorElement = document.getElementById(inputId + 'Error');
         let fileLabel;
-        if (!inputId.includes('PhotoProfil')) {
+        if (!inputId.includes('PhotoProfil')) { // Jika input bukan PhotoProfil
             fileLabel = fileInput.closest('.custom-file').querySelector('.custom-file-label');
         }
 
