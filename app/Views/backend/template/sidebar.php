@@ -53,7 +53,7 @@
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Daftar Santri Baru</p>
+                                    <p>Daftar Santri</p>
                                 </a>
                             </li>
                         </ul>
@@ -61,7 +61,7 @@
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Data Santri Baru</p>
+                                    <p>Data Santri</p>
                                 </a>
                             </li>
                         </ul>
@@ -69,7 +69,7 @@
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Atur Santri Baru</p>
+                                    <p>Atur Santri</p>
                                 </a>
                             </li>
                         </ul>
