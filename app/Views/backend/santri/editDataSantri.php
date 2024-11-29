@@ -1835,7 +1835,7 @@ if (ENVIRONMENT === 'production') {
                                                         </tr>
                                                         <tr>
                                                             <th>Nomor KK / File KK</th>
-                                                            <td><span id="previewNoKkSantri"></span> / <span id="previewFileKkSantri_"></span></td>
+                                                            <td><span id="previewNoKkSantri"></span> / <span id="previewFileKkSantri"></span></td>
                                                         </tr>
                                                         <tr>
                                                             <th>Nomor KIP / File KIP</th>
@@ -2221,7 +2221,7 @@ if (ENVIRONMENT === 'production') {
         document.getElementById('previewFileKip').textContent = document.getElementById('FileKIP').files[0]?.name || '-';
         document.getElementById('previewNoHpSantri').textContent = document.getElementById('NoHpSantri').value || '-';
         document.getElementById('previewEmailSantri').textContent = document.getElementById('EmailSantri').value || '-';
-        document.getElementById('previewFileKkSantri_').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
+        document.getElementById('previewFileKkSantri').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
 
         // Preview foto santri
         const photoInput = document.getElementById('PhotoProfil');
@@ -3526,7 +3526,7 @@ if (ENVIRONMENT === 'production') {
      */
     function createPreviewElements(inputId) {
         const baseId = inputId;
-        let previewDiv = document.getElementById('preview' + baseId);
+        let previewDiv = document.getElementById('previewDoc' + baseId);
 
         // Jika div preview belum ada, buat baru
         if (!previewDiv) {
