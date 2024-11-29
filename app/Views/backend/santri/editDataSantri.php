@@ -2577,12 +2577,12 @@ if (ENVIRONMENT === 'production') {
         document.querySelectorAll(`#${stepId} .form-control[required]`).forEach(field => {
             const value = field.value.trim();
 
-            // // Skip validasi jika field kosong dan bukan file
-            // if (!value && field.type !== 'file') {
-            //     validateField(field);
-            //     setInvalid(field);
-            //     return;
-            // }
+            // Skip validasi jika field bukan kosong dan bukan typefile        
+            if (!value && field.type !== 'file') {
+                validateField(field);
+                setInvalid(field);
+                return;
+            }
 
             // Validasi khusus per tipe field
             switch (field.id) {
@@ -2730,29 +2730,44 @@ if (ENVIRONMENT === 'production') {
      */
     function validateField(field) {
         const errorElement = document.getElementById(field.id + 'Error');
+
         // Jika field adalah input file
         if (field.type === 'file' && field.id !== 'PhotoProfil') {
-            // Jika field required dan tidak ada file yang dipilih
-            if (field.hasAttribute('required') && (!field.files || !field.files[0])) {
+            // Cek apakah data santri sudah ada
+            const isDataSantriExist = <?= isset($dataSantri) ? 'true' : 'false' ?>;
+            const existingFile = isDataSantriExist ? <?= json_encode($dataSantri) ?>[field.id] : null;
+
+            // Jika field required dan tidak ada file yang dipilih dan tidak ada file existing
+            if (field.hasAttribute('required') && (!field.files || !field.files[0]) && !existingFile) {
                 field.classList.add('is-invalid');
                 field.classList.remove('is-valid');
-                field.style.border = '1px solid #dc3545'; //merah
+                field.style.border = '1px solid #dc3545';
                 if (errorElement) {
-                    //errorElement.textContent = 'File KK santri diperlukan';
                     errorElement.classList.remove('d-none');
                 }
                 return true;
             }
+
             // Jika ada file yang dipilih, validasi dengan validateFile()
-            if (!validateFile(field.id)) {
-                field.classList.add('is-invalid');
-                field.classList.remove('is-valid');
-                field.style.border = '1px solid #dc3545'; //merah
-                return true;
-            } else {
+            if (field.files && field.files[0]) {
+                if (!validateFile(field.id)) {
+                    field.classList.add('is-invalid');
+                    field.classList.remove('is-valid');
+                    field.style.border = '1px solid #dc3545';
+                    return true;
+                } else {
+                    field.classList.remove('is-invalid');
+                    field.classList.add('is-valid');
+                    field.style.border = '1px solid #28a745';
+                    return false;
+                }
+            }
+
+            // Jika ada file existing, anggap valid
+            if (existingFile) {
                 field.classList.remove('is-invalid');
                 field.classList.add('is-valid');
-                field.style.border = '1px solid #28a745'; //hijau
+                field.style.border = '1px solid #28a745';
                 return false;
             }
 
