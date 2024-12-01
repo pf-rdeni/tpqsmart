@@ -316,10 +316,36 @@
                                         <td>:</td>
                                         <td id="modalStatusAyah" style="font-weight: bold;"></td>
                                     </tr>
-                                    <tr>
+                                    <!-- Data tambahan yang hanya muncul jika status "Masih Hidup" -->
+                                    <tr class="data-ayah-hidup" style="display: none;">
+                                        <td>NIK</td>
+                                        <td>:</td>
+                                        <td id="modalNikAyah" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ayah-hidup" style="display: none;">
+                                        <td>Tempat, Tanggal Lahir</td>
+                                        <td>:</td>
+                                        <td id="modalTempatTanggalLahirAyah" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ayah-hidup" style="display: none;">
+                                        <td>Pendidikan Terakhir</td>
+                                        <td>:</td>
+                                        <td id="modalPendidikanTerakhirAyah" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ayah-hidup" style="display: none;">
                                         <td>Pekerjaan</td>
                                         <td>:</td>
                                         <td id="modalPekerjaanAyah" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ayah-hidup" style="display: none;">
+                                        <td>Penghasilan</td>
+                                        <td>:</td>
+                                        <td id="modalPenghasilanAyah" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ayah-hidup" style="display: none;">
+                                        <td>No. HP</td>
+                                        <td>:</td>
+                                        <td id="modalNoHpAyah" style="font-weight: bold;"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -336,10 +362,36 @@
                                         <td>:</td>
                                         <td id="modalStatusIbu" style="font-weight: bold;"></td>
                                     </tr>
-                                    <tr>
+                                    <!-- Data tambahan yang hanya muncul jika status "Masih Hidup" -->
+                                    <tr class="data-ibu-hidup" style="display: none;">
+                                        <td>NIK</td>
+                                        <td>:</td>
+                                        <td id="modalNikIbu" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ibu-hidup" style="display: none;">
+                                        <td>Tempat, Tanggal Lahir</td>
+                                        <td>:</td>
+                                        <td id="modalTempatTanggalLahirIbu" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ibu-hidup" style="display: none;">
+                                        <td>Pendidikan Terakhir</td>
+                                        <td>:</td>
+                                        <td id="modalPendidikanTerakhirIbu" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ibu-hidup" style="display: none;">
                                         <td>Pekerjaan</td>
                                         <td>:</td>
                                         <td id="modalPekerjaanIbu" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ibu-hidup" style="display: none;">
+                                        <td>Penghasilan</td>
+                                        <td>:</td>
+                                        <td id="modalPenghasilanIbu" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr class="data-ibu-hidup" style="display: none;">
+                                        <td>No. HP</td>
+                                        <td>:</td>
+                                        <td id="modalNoHpIbu" style="font-weight: bold;"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -368,6 +420,36 @@
                                 <td>Kecamatan</td>
                                 <td>:</td>
                                 <td id="modalKecamatan" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td>Kabupaten/Kota</td>
+                                <td>:</td>
+                                <td id="modalKabupatenKota" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td>Provinsi</td>
+                                <td>:</td>
+                                <td id="modalProvinsi" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td>Jarak Tempuh ke TPQ</td>
+                                <td>:</td>
+                                <td id="modalJarakTempuh" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td>Transportasi ke TPQ</td>
+                                <td>:</td>
+                                <td id="modalTransportasi" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td>Waktu Tempuh ke TPQ</td>
+                                <td>:</td>
+                                <td id="modalWaktuTempuh" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td>Titik Koordinat</td>
+                                <td>:</td>
+                                <td id="modalTitikKoordinat" style="font-weight: bold;"></td>
                             </tr>
                         </table>
                     </div>
@@ -512,19 +594,56 @@
             statusElement.innerHTML = `<span class="badge ${badgeClass}">${santri.status}</span>`;
 
             // Set nilai untuk tab Data Orang Tua
+            // Data Ayah
             document.getElementById('modalNamaAyah').textContent = santri.NamaAyah || '-';
             document.getElementById('modalStatusAyah').textContent = santri.StatusAyah || '-';
-            document.getElementById('modalPekerjaanAyah').textContent = santri.PekerjaanUtamaAyah || '-';
+            //jika statusAyah masih hidup ambil data lainya
+            if (santri.StatusAyah === 'Masih Hidup') {
+                document.getElementById('modalNikAyah').textContent = santri.NikAyah || '-';
+                document.getElementById('modalTempatTanggalLahirAyah').textContent = santri.TempatLahirAyah + ', ' + santri.TanggalLahirAyah || '-';
+                document.getElementById('modalPendidikanTerakhirAyah').textContent = santri.PendidikanAyah || '-';
+                document.getElementById('modalPekerjaanAyah').textContent = santri.PekerjaanUtamaAyah || '-';
+                document.getElementById('modalPenghasilanAyah').textContent = santri.PenghasilanUtamaAyah || '-';
+                document.getElementById('modalNoHpAyah').textContent = santri.NoHpAyah || '-';
+            }
+            // Data Ibu
             document.getElementById('modalNamaIbu').textContent = santri.NamaIbu || '-';
             document.getElementById('modalStatusIbu').textContent = santri.StatusIbu || '-';
-            document.getElementById('modalPekerjaanIbu').textContent = santri.PekerjaanUtamaIbu || '-';
+            //jika statusIbu masih hidup ambil data lainya
+            if (santri.StatusIbu === 'Masih Hidup') {
+                document.getElementById('modalNikIbu').textContent = santri.NikIbu || '-';
+                document.getElementById('modalTempatTanggalLahirIbu').textContent = santri.TempatLahirIbu + ', ' + santri.TanggalLahirIbu || '-';
+                document.getElementById('modalPendidikanTerakhirIbu').textContent = santri.PendidikanIbu || '-';
+                document.getElementById('modalPekerjaanIbu').textContent = santri.PekerjaanUtamaIbu || '-';
+                document.getElementById('modalPenghasilanIbu').textContent = santri.PenghasilanUtamaIbu || '-';
+                document.getElementById('modalNoHpIbu').textContent = santri.NoHpIbu || '-';
+            }
 
             // Set nilai untuk tab Data Alamat
-            document.getElementById('modalAlamat').textContent = santri.Alamat || '-';
-            document.getElementById('modalRT').textContent = santri.RT || '-';
-            document.getElementById('modalRW').textContent = santri.RW || '-';
-            document.getElementById('modalKelurahanDesa').textContent = santri.KelurahanDesa || '-';
-            document.getElementById('modalKecamatan').textContent = 'Seri Kuala Lobam';
+            document.getElementById('modalAlamat').textContent = santri.AlamatSantri || '-';
+            document.getElementById('modalRT').textContent = santri.RtSantri || '-';
+            document.getElementById('modalRW').textContent = santri.RwSantri || '-';
+            document.getElementById('modalKelurahanDesa').textContent = santri.KelurahanDesaSantri || '-';
+            document.getElementById('modalKecamatan').textContent = santri.KecamatanSantri || '-';
+            document.getElementById('modalKabupatenKota').textContent = santri.KabupatenKotaSantri || '-';
+            document.getElementById('modalProvinsi').textContent = santri.ProvinsiSantri || '-';
+
+            // JarakTempuhSantri
+            document.getElementById('modalJarakTempuh').textContent = santri.JarakTempuhSantri || '-';
+            document.getElementById('modalTransportasi').textContent = santri.TransportasiSantri || '-';
+            document.getElementById('modalWaktuTempuh').textContent = santri.WaktuTempuhSantri || '-';
+            if (santri.TitikKoordinatSantri) {
+                const coords = santri.TitikKoordinatSantri.split(',');
+                const mapsLink = `https://www.google.com/maps?q=${coords[0]},${coords[1]}`;
+                document.getElementById('modalTitikKoordinat').innerHTML = `
+                    <a href="${mapsLink}" target="_blank" class="btn btn-sm btn-info">
+                        <i class="fas fa-map-marker-alt"></i> Lihat di Google Maps
+                    </a>
+                    <span class="ml-2">${santri.TitikKoordinatSantri}</span>
+                `;
+            } else {
+                document.getElementById('modalTitikKoordinat').textContent = '-';
+            }
 
             // Fungsi helper untuk membuat link lampiran
             function createFileLink(fileName, path) {
@@ -551,6 +670,28 @@
             document.getElementById('modalLampiranKIP').innerHTML = createFileLink(santri?.FileKIP, uploadPath);
             document.getElementById('modalLampiranPKH').innerHTML = createFileLink(santri?.FilePKH, uploadPath);
             document.getElementById('modalLampiranKKS').innerHTML = createFileLink(santri?.FileKKS, uploadPath);
+
+            // Untuk Ayah
+            if (santri.StatusAyah === 'Masih Hidup') {
+                document.querySelectorAll('.data-ayah-hidup').forEach(el => {
+                    el.style.display = 'table-row';
+                });
+            } else {
+                document.querySelectorAll('.data-ayah-hidup').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+
+            // Untuk Ibu
+            if (santri.StatusIbu === 'Masih Hidup') {
+                document.querySelectorAll('.data-ibu-hidup').forEach(el => {
+                    el.style.display = 'table-row';
+                });
+            } else {
+                document.querySelectorAll('.data-ibu-hidup').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
 
             // Tampilkan modal
             $('#detailSantriModal').modal('show');
