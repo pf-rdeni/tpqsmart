@@ -781,20 +781,14 @@ class Santri extends BaseController
             }
 
             $randomNumber = uniqid();
-            $newName = $prefix . '_' . $IdSantri . '_' . $randomNumber . '.' . $file->getExtension();
+            $extension = $file->getExtension();
+            $newName = $prefix . '_' . $IdSantri . '_' . $randomNumber . '.' . $extension;
 
             // Tentukan path berdasarkan environment
             if (ENVIRONMENT === 'production') {
                 $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
-                $thumbnailPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/thumbnails/';
             } else {
                 $uploadPath = ROOTPATH . 'public/uploads/santri/';
-                $thumbnailPath = ROOTPATH . 'public/uploads/santri/thumbnails/';
-            }
-
-            // Buat direktori thumbnails jika belum ada
-            if (!is_dir($thumbnailPath)) {
-                mkdir($thumbnailPath, 0777, true);
             }
 
             // Validasi direktori
@@ -803,26 +797,34 @@ class Santri extends BaseController
             }
 
             $targetPath = $uploadPath . $newName;
-            $thumbnailTarget = $thumbnailPath . 'thumb_' . $newName;
 
             // Hapus file lama jika ada
             if (file_exists($targetPath)) {
                 unlink($targetPath);
             }
-            if (file_exists($thumbnailTarget)) {
-                unlink($thumbnailTarget);
-            }
 
-            // Upload file asli
+            // Upload file
             if (!$file->move($uploadPath, $newName, true)) {
                 throw new \Exception('Gagal memindahkan file');
             }
 
-            // Buat thumbnail
-            $image = \Config\Services::image();
-            $image->withFile($targetPath)
-                ->fit(30, 40, 'center')
-                ->save($thumbnailTarget);
+            // Jika file adalah gambar, buat thumbnail
+            $imageTypes = ['jpg', 'jpeg', 'png', 'gif'];
+            if (in_array(strtolower($extension), $imageTypes)) {
+                // Tentukan path thumbnail
+                $thumbnailPath = $uploadPath . 'thumbnails/';
+                if (!is_dir($thumbnailPath)) {
+                    mkdir($thumbnailPath, 0777, true);
+                }
+                
+                $thumbnailTarget = $thumbnailPath . 'thumb_' . $newName;
+                
+                // Buat thumbnail
+                $image = \Config\Services::image();
+                $image->withFile($targetPath)
+                    ->fit(30, 40, 'center')
+                    ->save($thumbnailTarget);
+            }
 
             return $newName;
         } catch (\Exception $e) {
