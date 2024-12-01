@@ -6,7 +6,7 @@ if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
     $required = '';
-   // $required = 'required';
+    //$required = 'required';
 }
 
 ?>
@@ -140,7 +140,7 @@ if (ENVIRONMENT === 'production') {
                                                     <i class="fas fa-exclamation-circle"></i>
                                                     Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 5MB
                                                 </small>
-                                                <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?> style="display: none;">
+                                                <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" style="display: none;">
                                                 <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                             </div>
                                             <div class="col-md-9">
@@ -377,7 +377,7 @@ if (ENVIRONMENT === 'production') {
                                                 <label for="FileKkSantri">Upload KK Santri<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
-                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
+                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png">
                                                         <label class="custom-file-label" for="FileKkSantri">Upload KK</label>
                                                     </div>
                                                 </div>
@@ -674,9 +674,9 @@ if (ENVIRONMENT === 'production') {
                                                             <select class="form-control" id="PendidikanIbu" name="PendidikanIbu">
                                                                 <option value="">Pilih Pendidikan</option>
                                                                 <option value="Tidak Sekolah">Tidak Sekolah</option>
-                                                                <option value="SD">SD</option>
-                                                                <option value="SMP">SMP</option>
-                                                                <option value="SMA">SMA</option>
+                                                                <option value="SD Sederajat">SD Sederajat</option>
+                                                                <option value="SMP Sederajat">SMP Sederajat</option>
+                                                                <option value="SMA Sederajat">SMA Sederajat</option>
                                                                 <option value="D1">D1</option>
                                                                 <option value="D2">D2</option>
                                                                 <option value="D3">D3</option>
@@ -697,17 +697,22 @@ if (ENVIRONMENT === 'production') {
                                                         <select class="form-control" id="PekerjaanUtamaIbu" name="PekerjaanUtamaIbu">
                                                             <option value="">Pilih Pekerjaan</option>
                                                             <option value="Tidak Bekerja">Tidak Bekerja</option>
-                                                            <option value="Nelayan">Nelayan</option>
-                                                            <option value="Petani">Petani</option>
-                                                            <option value="Peternak">Peternak</option>
-                                                            <option value="PNS/TNI/Polri">PNS/TNI/Polri</option>
-                                                            <option value="Karyawan Swasta">Karyawan Swasta</option>
-                                                            <option value="Pedagang Kecil">Pedagang Kecil</option>
-                                                            <option value="Pedagang Besar">Pedagang Besar</option>
-                                                            <option value="Wiraswasta">Wiraswasta</option>
-                                                            <option value="Wirausaha">Wirausaha</option>
-                                                            <option value="Buruh">Buruh</option>
                                                             <option value="Pensiunan">Pensiunan</option>
+                                                            <option value="PNS">PNS</option>
+                                                            <option value="TNI/Polisi">TNI/Polisi</option>
+                                                            <option value="Guru/Dosen">Guru/Dosen</option>
+                                                            <option value="Pegawai Swasta">Pegawai Swasta</option>
+                                                            <option value="Wiraswasta">Wiraswasta</option>
+                                                            <option value="Pengacara/Jaksa/Hakim/Notaris">Pengacara/Jaksa/Hakim/Notaris</option>
+                                                            <option value="Seniman/Pelukis/Artis/Sejenis">Seniman/Pelukis/Artis/Sejenis</option>
+                                                            <option value="Dokter/Bidan/Perawat">Dokter/Bidan/Perawat</option>
+                                                            <option value="Pilot/Pramugara">Pilot/Pramugara</option>
+                                                            <option value="Pedagang">Pedagang</option>
+                                                            <option value="Petani/Peternak">Petani/Peternak</option>
+                                                            <option value="Nelayan">Nelayan</option>
+                                                            <option value="Buruh (Tani/Pabrik/Bangunan)">Buruh (Tani/Pabrik/Bangunan)</option>
+                                                            <option value="Sopir/Masinis/Kondektur">Sopir/Masinis/Kondektur</option>
+                                                            <option value="Politikus">Politikus</option>
                                                             <option value="Lainnya">Lainnya</option>
                                                         </select>
                                                         <span id="PekerjaanUtamaIbuError" class="text-danger" style="display:none;">Pekerjaan Utama Ibu diperlukan.</span>
