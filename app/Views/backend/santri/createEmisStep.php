@@ -124,7 +124,7 @@ if (ENVIRONMENT === 'production') {
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-md-3">
-                                                <label class="text-center w-100">Photo Profil<span class="text-danger font-weight-bold">*</span></label>
+                                                <label class="text-center w-100">Photo Profil</label>
                                                 <div class="text-center">
                                                     <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
                                                         class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover; cursor: pointer;">
@@ -168,7 +168,9 @@ if (ENVIRONMENT === 'production') {
                                                             <label for="NISN">NISN</label>
                                                             <input type="text" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN 10 digit"
                                                                 pattern="[0-9]{10}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                                                            <small class="text-muted">Nomor Induk Siswa Nasional (NISN) dari sekolah dasar (SD) jika ada</small>
+                                                            <small class="text-primary">
+                                                                <i class="fas fa-info-circle"></i> Nomor Induk Siswa Nasional (NISN) dari sekolah dasar (SD) jika ada
+                                                            </small>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-3">
@@ -374,7 +376,7 @@ if (ENVIRONMENT === 'production') {
                                                 <span id="IdKartuKeluargaError" class="text-danger" style="display:none;">No Kartu Keluarga diperlukan.</span>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="FileKkSantri">Upload KK Santri<span class="text-danger font-weight-bold">*</span></label>
+                                                <label for="FileKkSantri">Upload KK Santri</label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
                                                         <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png">
