@@ -404,8 +404,10 @@ class Santri extends BaseController
             // Tentukan path berdasarkan environment
             if (ENVIRONMENT === 'production') {
                 $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
+                $thumbnailPath = $uploadPath . 'thumbnails/';
             } else {
                 $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                $thumbnailPath = $uploadPath . 'thumbnails/';
             }
 
             // Hapus file-file terkait
@@ -421,9 +423,16 @@ class Santri extends BaseController
 
             foreach ($files as $file) {
                 if (!empty($file)) {
+                    // Hapus file utama
                     $filePath = $uploadPath . $file;
                     if (file_exists($filePath)) {
                         unlink($filePath);
+                    }
+
+                    // Hapus thumbnail jika ada
+                    $thumbnailFile = $thumbnailPath . 'thumb_' . $file;
+                    if (file_exists($thumbnailFile)) {
+                        unlink($thumbnailFile);
                     }
                 }
             }
