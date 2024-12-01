@@ -166,9 +166,9 @@ if (ENVIRONMENT === 'production') {
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label for="NISN">NISN</label>
-                                                            <input type="text" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN"
+                                                            <input type="text" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN 10 digit"
                                                                 pattern="[0-9]{10}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                                                            <small class="text-muted">NISN harus 10 digit angka</small>
+                                                            <small class="text-muted">Nomor Induk Siswa Nasional (NISN) dari sekolah dasar (SD) jika ada</small>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-3">
