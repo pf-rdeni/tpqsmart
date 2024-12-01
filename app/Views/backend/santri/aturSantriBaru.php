@@ -189,6 +189,11 @@
                             <i class="fas fa-map-marker-alt"></i> Data Alamat
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="lampiran-tab" data-toggle="tab" href="#lampiran" role="tab">
+                            <i class="fas fa-file"></i> Lampiran
+                        </a>
+                    </li>
                 </ul>
 
                 <div class="tab-content mt-3" id="detailSantriTabContent">
@@ -203,27 +208,92 @@
                                     <tr>
                                         <td width="30%">ID Santri</td>
                                         <td width="5%">:</td>
-                                        <td id="modalIdSantri"></td>
+                                        <td id="modalIdSantri" style="font-weight: bold;"></td>
                                     </tr>
                                     <tr>
-                                        <td>Nama Santri</td>
+                                        <td>Nama TPQ</td>
                                         <td>:</td>
-                                        <td id="modalNamaSantri"></td>
-                                    </tr>
-                                    <tr>
-                                        <td>TPQ</td>
-                                        <td>:</td>
-                                        <td id="modalNamaTpq"></td>
+                                        <td id="modalNamaTpq" style="font-weight: bold;"></td>
                                     </tr>
                                     <tr>
                                         <td>Kelas</td>
                                         <td>:</td>
-                                        <td id="modalKelas"></td>
+                                        <td id="modalKelas" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>NIS</td>
+                                        <td>:</td>
+                                        <td id="modalNIS" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>NIK Santri</td>
+                                        <td>:</td>
+                                        <td id="modalNikSantri" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>ID Kartu Keluarga</td>
+                                        <td>:</td>
+                                        <td id="modalIdKartuKeluarga" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Nama Santri</td>
+                                        <td>:</td>
+                                        <td id="modalNamaSantri" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Jenis Kelamin</td>
+                                        <td>:</td>
+                                        <td id="modalJenisKelamin" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Tempat, Tanggal Lahir</td>
+                                        <td>:</td>
+                                        <td id="modalTempatTanggalLahir" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>No HP | Email</td>
+                                        <td>:</td>
+                                        <td id="modalNoHp" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Jumlah Saudara & Anak Ke</td>
+                                        <td>:</td>
+                                        <td id="modalJumlahSaudaraAnakKe" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Cita-cita</td>
+                                        <td>:</td>
+                                        <td id="modalCitaCita" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Hobi</td>
+                                        <td>:</td>
+                                        <td id="modalHobi" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Kebutuhan Khusus</td>
+                                        <td>:</td>
+                                        <td id="modalKebutuhanKhusus" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Kebutuhan Disabilitas</td>
+                                        <td>:</td>
+                                        <td id="modalKebutuhanDisabilitas" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Yang Biaya Sekolah</td>
+                                        <td>:</td>
+                                        <td id="modalYangBiayaSekolah" style="font-weight: bold;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Nama Kepala Keluarga</td>
+                                        <td>:</td>
+                                        <td id="modalNamaKepalaKeluarga" style="font-weight: bold;"></td>
                                     </tr>
                                     <tr>
                                         <td>Status</td>
                                         <td>:</td>
-                                        <td id="modalStatus"></td>
+                                        <td id="modalStatus" style="font-weight: bold;"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -239,17 +309,17 @@
                                     <tr>
                                         <td width="40%">Nama Ayah</td>
                                         <td width="5%">:</td>
-                                        <td id="modalNamaAyah"></td>
+                                        <td id="modalNamaAyah" style="font-weight: bold;"></td>
                                     </tr>
                                     <tr>
                                         <td>Status</td>
                                         <td>:</td>
-                                        <td id="modalStatusAyah"></td>
+                                        <td id="modalStatusAyah" style="font-weight: bold;"></td>
                                     </tr>
                                     <tr>
                                         <td>Pekerjaan</td>
                                         <td>:</td>
-                                        <td id="modalPekerjaanAyah"></td>
+                                        <td id="modalPekerjaanAyah" style="font-weight: bold;"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -259,17 +329,17 @@
                                     <tr>
                                         <td width="40%">Nama Ibu</td>
                                         <td width="5%">:</td>
-                                        <td id="modalNamaIbu"></td>
+                                        <td id="modalNamaIbu" style="font-weight: bold;"></td>
                                     </tr>
                                     <tr>
                                         <td>Status</td>
                                         <td>:</td>
-                                        <td id="modalStatusIbu"></td>
+                                        <td id="modalStatusIbu" style="font-weight: bold;"></td>
                                     </tr>
                                     <tr>
                                         <td>Pekerjaan</td>
                                         <td>:</td>
-                                        <td id="modalPekerjaanIbu"></td>
+                                        <td id="modalPekerjaanIbu" style="font-weight: bold;"></td>
                                     </tr>
                                 </table>
                             </div>
@@ -282,22 +352,58 @@
                             <tr>
                                 <td width="30%">Alamat</td>
                                 <td width="5%">:</td>
-                                <td id="modalAlamat"></td>
+                                <td id="modalAlamat" style="font-weight: bold;"></td>
                             </tr>
                             <tr>
                                 <td>RT/RW</td>
                                 <td>:</td>
-                                <td><span id="modalRT"></span>/<span id="modalRW"></span></td>
+                                <td><span id="modalRT" style="font-weight: bold;"></span>/<span id="modalRW" style="font-weight: bold;"></span></td>
                             </tr>
                             <tr>
                                 <td>Kelurahan/Desa</td>
                                 <td>:</td>
-                                <td id="modalKelurahanDesa"></td>
+                                <td id="modalKelurahanDesa" style="font-weight: bold;"></td>
                             </tr>
                             <tr>
                                 <td>Kecamatan</td>
                                 <td>:</td>
-                                <td id="modalKecamatan"></td>
+                                <td id="modalKecamatan" style="font-weight: bold;"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <!-- tab untuk lampiran -->
+                    <div class="tab-pane fade" id="lampiran" role="tabpanel">
+                        <h1>Lampiran</h1>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td width="30%">Kartu Keluarga Santri</td>
+                                <td width="5%">:</td>
+                                <td id="modalLampiranKkSantri" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td width="30%">Kartu Keluarga Ayah</td>
+                                <td width="5%">:</td>
+                                <td id="modalLampiranKkAyah" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td width="30%">Kartu Keluarga Ibu</td>
+                                <td width="5%">:</td>
+                                <td id="modalLampiranKkIbu" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td width="30%">Lampiran KIP</td>
+                                <td width="5%">:</td>
+                                <td id="modalLampiranKIP" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td width="30%">Lampiran PKH</td>
+                                <td width="5%">:</td>
+                                <td id="modalLampiranPKH" style="font-weight: bold;"></td>
+                            </tr>
+                            <tr>
+                                <td width="30%">Lampiran KKS</td>
+                                <td width="5%">:</td>
+                                <td id="modalLampiranKKS" style="font-weight: bold;"></td>
                             </tr>
                         </table>
                     </div>
@@ -378,9 +484,22 @@
             const uploadPath = '<?= (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/') ?>';
             document.getElementById('modalPhotoProfil').src = santri.PhotoProfil ? uploadPath + santri.PhotoProfil : '<?= base_url('images/no-photo.jpg') ?>';
             document.getElementById('modalIdSantri').textContent = santri.IdSantri;
-            document.getElementById('modalNamaSantri').textContent = santri.NamaSantri;
             document.getElementById('modalNamaTpq').textContent = santri.NamaTpq;
             document.getElementById('modalKelas').textContent = santri.NamaKelas;
+            document.getElementById('modalNIS').textContent = santri.NIS;
+            document.getElementById('modalNikSantri').textContent = santri.NikSantri;
+            document.getElementById('modalIdKartuKeluarga').textContent = santri.IdKartuKeluarga;
+            document.getElementById('modalNamaSantri').textContent = santri.NamaSantri;
+            document.getElementById('modalJenisKelamin').textContent = santri.JenisKelamin;
+            document.getElementById('modalTempatTanggalLahir').textContent = santri.TempatLahirSantri + ', ' + santri.TanggalLahirSantri;
+            document.getElementById('modalNoHp').textContent = santri.NoHpSantri || '-' + ' | ' + santri.EmailSantri || '-';
+            document.getElementById('modalJumlahSaudaraAnakKe').textContent = 'Jumlah Saudara: ' + santri.JumlahSaudara + ' Anak Ke-' + santri.AnakKe;
+            document.getElementById('modalCitaCita').textContent = santri.CitaCita || santri.CitaCitaLainya;
+            document.getElementById('modalHobi').textContent = santri.Hobi || santri.HobiLainya;
+            document.getElementById('modalKebutuhanKhusus').textContent = santri.KebutuhanKhusus || santri.KebutuhanKhususLainya;
+            document.getElementById('modalKebutuhanDisabilitas').textContent = santri.KebutuhanDisabilitas || santri.KebutuhanDisabilitasLainya;
+            document.getElementById('modalYangBiayaSekolah').textContent = santri.YangBiayaSekolah;
+            document.getElementById('modalNamaKepalaKeluarga').textContent = santri.NamaKepalaKeluarga;
 
             // Set status dengan badge
             const statusElement = document.getElementById('modalStatus');
@@ -406,6 +525,32 @@
             document.getElementById('modalRW').textContent = santri.RW || '-';
             document.getElementById('modalKelurahanDesa').textContent = santri.KelurahanDesa || '-';
             document.getElementById('modalKecamatan').textContent = 'Seri Kuala Lobam';
+
+            // Fungsi helper untuk membuat link lampiran
+            function createFileLink(fileName, path) {
+                // Periksa jika fileName null, undefined, atau string kosong
+                if (!fileName || fileName.trim() === '') {
+                    return '<span class="text-muted">Tidak ada file</span>';
+                }
+
+                try {
+                    const fullPath = path + fileName;
+                    return `<a href="${fullPath}" target="_blank" class="btn btn-sm btn-info">
+                                <i class="fas fa-file-download"></i> Lihat File
+                            </a>`;
+                } catch (error) {
+                    console.error('Error creating file link:', error);
+                    return '<span class="text-danger">Error: File tidak dapat diakses</span>';
+                }
+            }
+
+            // Gunakan operator optional chaining untuk menghindari error jika properti tidak ada
+            document.getElementById('modalLampiranKkSantri').innerHTML = createFileLink(santri?.FileKkSantri, uploadPath);
+            document.getElementById('modalLampiranKkAyah').innerHTML = createFileLink(santri?.FileKkAyah, uploadPath);
+            document.getElementById('modalLampiranKkIbu').innerHTML = createFileLink(santri?.FileKkIbu, uploadPath);
+            document.getElementById('modalLampiranKIP').innerHTML = createFileLink(santri?.FileKIP, uploadPath);
+            document.getElementById('modalLampiranPKH').innerHTML = createFileLink(santri?.FilePKH, uploadPath);
+            document.getElementById('modalLampiranKKS').innerHTML = createFileLink(santri?.FileKKS, uploadPath);
 
             // Tampilkan modal
             $('#detailSantriModal').modal('show');
