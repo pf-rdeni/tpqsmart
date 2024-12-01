@@ -249,12 +249,14 @@ function renderTpqTable($dataTpq, $tpqLevel)
                     <td>
                         <?php
                         $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                        $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
                         ?>
-                        <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
+                        <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : $thumbnailPath . 'thumb_no-photo.jpg'; ?>"
                             alt="PhotoProfil"
                             class="img-fluid popup-image"
                             width="30"
                             height="40"
+                            loading="lazy"
                             onmouseover="showPopup(this)"
                             onmouseout="hidePopup(this)"
                             onclick="showPopup(this)"
@@ -263,8 +265,20 @@ function renderTpqTable($dataTpq, $tpqLevel)
                             <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
                                 alt="PhotoProfil"
                                 width="200"
-                                height="250">
+                                height="250"
+                                loading="lazy">
                         </div>
+                        <script>
+                            function showPopup(img) {
+                                const popup = img.nextElementSibling;
+                                popup.style.display = 'block';
+                            }
+
+                            function hidePopup(img) {
+                                const popup = img.nextElementSibling;
+                                popup.style.display = 'none';
+                            }
+                        </script>
                     </td>
                     <td><?= $santri['NamaSantri']; ?></td>
                     <td><?= $santri['NamaKelas']; ?></td>
