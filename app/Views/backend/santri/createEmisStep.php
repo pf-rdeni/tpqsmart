@@ -136,10 +136,9 @@ if (ENVIRONMENT === 'production') {
                                                             <i class="fas fa-camera"></i> Ambil Foto
                                                         </button>
                                                     </div>
-                                                </div> <small class="text-center d-block mb-2 text-muted">
+                                                </div> <small class="text-center d-block mb-2 text-primary">
                                                     <i class="fas fa-exclamation-circle"></i>
-                                                    Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 5MB
-                                                </small>
+                                                    Direkomendasikan untuk mengunggah foto dengan latar belakang merah atau latar belakang lainnya, rasio 2:3 atau 3:4, dalam format JPG, JPEG, atau PNG dengan ukuran maksimal 5MB </small>
                                                 <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" style="display: none;">
                                                 <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                             </div>
