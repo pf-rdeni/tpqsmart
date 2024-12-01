@@ -16,6 +16,7 @@
             <table id="example1" class="table table-bordered table-striped">
                 <thead>
                     <tr>
+                        <th>Profil</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
                         <th>Kelurahan/Desa</th>
@@ -29,7 +30,40 @@
                     <?php
                     foreach ($dataSantri as $santri) : ?>
                         <tr>
+                            <td>
+                                <?php
+                                $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                                $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
+                                ?>
+                                <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : base_url('images/no-photo-thumb.jpg'); ?>"
+                                    alt="PhotoProfil"
+                                    class="img-fluid popup-image"
+                                    width="30"
+                                    height="40"
+                                    loading="lazy"
+                                    onmouseover="showPopup(this)"
+                                    onmouseout="hidePopup(this)"
+                                    onclick="showPopup(this)"
+                                    style="cursor: pointer;">
+                                <div class="image-popup" style="display: none; position: absolute; z-index: 1000;">
+                                    <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
+                                        alt="PhotoProfil"
+                                        width="200"
+                                        height="250"
+                                        loading="lazy">
+                                </div>
+                                <script>
+                                    function showPopup(img) {
+                                        const popup = img.nextElementSibling;
+                                        popup.style.display = 'block';
+                                    }
 
+                                    function hidePopup(img) {
+                                        const popup = img.nextElementSibling;
+                                        popup.style.display = 'none';
+                                    }
+                                </script>
+                            </td>
                             <td><?= $santri['IdSantri']; ?></td>
                             <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
@@ -61,6 +95,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
+                        <th>Profil</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
                         <th>Kelurahan/Desa</th>
