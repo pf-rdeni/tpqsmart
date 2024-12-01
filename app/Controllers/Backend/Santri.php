@@ -785,52 +785,49 @@ class Santri extends BaseController
 
             // Tentukan path berdasarkan environment
             if (ENVIRONMENT === 'production') {
-                log_message('info', 'Santri: uploadFile - Environment: production');
-                $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';  // https://tpqsmart.simpedis.com/uploads/santri/  
+                $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
+                $thumbnailPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/thumbnails/';
             } else {
-                log_message('info', 'Santri: uploadFile - Environment: development');
                 $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                $thumbnailPath = ROOTPATH . 'public/uploads/santri/thumbnails/';
             }
 
-            // Validasi direktori upload
-            if (!is_dir($uploadPath)) {
-                log_message('error', 'Santri: uploadFile - Direktori upload tidak ditemukan: ' . $uploadPath);
-                throw new \Exception('Direktori upload tidak ditemukan: ' . $uploadPath);
+            // Buat direktori thumbnails jika belum ada
+            if (!is_dir($thumbnailPath)) {
+                mkdir($thumbnailPath, 0777, true);
             }
 
-            if (!is_writable($uploadPath)) {
-                log_message('error', 'Santri: uploadFile - Direktori upload tidak dapat ditulis: ' . $uploadPath);
-                throw new \Exception('Direktori upload tidak dapat ditulis: ' . $uploadPath);
+            // Validasi direktori
+            if (!is_dir($uploadPath) || !is_writable($uploadPath)) {
+                throw new \Exception('Direktori upload tidak valid atau tidak dapat ditulis');
             }
 
             $targetPath = $uploadPath . $newName;
+            $thumbnailTarget = $thumbnailPath . 'thumb_' . $newName;
 
             // Hapus file lama jika ada
             if (file_exists($targetPath)) {
-                if (!unlink($targetPath)) {
-                    log_message('error', 'Santri: uploadFile - Gagal menghapus file lama: ' . $targetPath);
-                    throw new \Exception('Gagal menghapus file lama: ' . $targetPath);
-                }
+                unlink($targetPath);
+            }
+            if (file_exists($thumbnailTarget)) {
+                unlink($thumbnailTarget);
             }
 
-            // Pindahkan file
+            // Upload file asli
             if (!$file->move($uploadPath, $newName, true)) {
-                log_message('error', 'Santri: uploadFile - Gagal memindahkan file ke: ' . $targetPath);
-                throw new \Exception('Gagal memindahkan file ke: ' . $targetPath);
+                throw new \Exception('Gagal memindahkan file');
             }
+
+            // Buat thumbnail
+            $image = \Config\Services::image();
+            $image->withFile($targetPath)
+                ->fit(30, 40, 'center')
+                ->save($thumbnailTarget);
 
             return $newName;
         } catch (\Exception $e) {
-            log_message('error', 'Santri: uploadFile - File Upload Error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Gagal mengupload file: ' . $e->getMessage(),
-                'error_details' => [
-                    'file' => $prefix,
-                    'error' => $e->getMessage(),
-                    'trace' => ENVIRONMENT === 'development' ? $e->getTraceAsString() : null
-                ]
-            ]);
+            log_message('error', 'Santri: uploadFile - Error: ' . $e->getMessage());
+            throw $e;
         }
     }
 }

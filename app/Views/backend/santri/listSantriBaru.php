@@ -33,12 +33,14 @@
                             <td>
                                 <?php
                                 $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                                $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
                                 ?>
-                                <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
+                                <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : base_url('images/no-photo-thumb.jpg'); ?>"
                                     alt="PhotoProfil"
                                     class="img-fluid popup-image"
                                     width="30"
                                     height="40"
+                                    loading="lazy"
                                     onmouseover="showPopup(this)"
                                     onmouseout="hidePopup(this)"
                                     onclick="showPopup(this)"
@@ -47,7 +49,8 @@
                                     <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
                                         alt="PhotoProfil"
                                         width="200"
-                                        height="250">
+                                        height="250"
+                                        loading="lazy">
                                 </div>
                                 <script>
                                     function showPopup(img) {
