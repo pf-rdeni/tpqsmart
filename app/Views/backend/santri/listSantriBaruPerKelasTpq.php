@@ -341,6 +341,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
             "info": true,
             "autoWidth": false,
             "responsive": true,
+            "paging": true,
         });
     }
 
@@ -437,5 +438,11 @@ function renderTpqTable($dataTpq, $tpqLevel)
             }
         });
     }
+</script>
+<?= $this->endSection(); ?>
+<?= $this->section('scripts'); ?>
+<script>
+    // Initialize DataTable for #tblTpq
+    initializeDataTableUmum("#tblTpq", true, ["excel", "pdf", "print", "colvis"]);
 </script>
 <?= $this->endSection(); ?>

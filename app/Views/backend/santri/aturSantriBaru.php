@@ -127,7 +127,7 @@
             <h5>Data Santri Baru berdasarkan TPQ</h5>
         </div>
         <div class="card-body">
-            <table id="example3" class="table table-bordered table-striped">
+            <table id="tblTpq" class="table table-bordered table-striped">
                 <thead>
                     <tr>
                         <th>No</th>
@@ -703,5 +703,11 @@
             $('#detailSantriModal').modal('show');
         }
     }
+</script>
+<?= $this->endSection(); ?>
+<?= $this->section('scripts'); ?>
+<script>
+    // Initialize DataTable for #tblTpq
+    initializeDataTableUmum("#tblTpq", true, ["excel", "pdf", "print", "colvis"]);
 </script>
 <?= $this->endSection(); ?>
