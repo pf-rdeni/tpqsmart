@@ -213,6 +213,11 @@ if (ENVIRONMENT === 'production') {
                                                             <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan angka jumlah saudara"
                                                                 pattern="[0-9]+" title="Jumlah Saudara harus berupa angka" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
                                                             <span id="JumlahSaudaraError" class="text-danger" style="display:none;">Jumlah Saudara diperlukan.</span>
+                                                            <small class="text-primary">
+                                                                <i class="fas fa-info-circle"></i> Jumlah Saudara merupakan total dari saudara kandung dan/atau saudara angkat (kakak dan/atau adik)
+                                                                <br>
+                                                                <i class="fas fa-exclamation-circle"></i> Jika tidak memiliki saudara, isilah dengan angka 0
+                                                            </small>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
@@ -392,7 +397,7 @@ if (ENVIRONMENT === 'production') {
                                                 <div class="form-check pl-4">
                                                     <input type="checkbox" class="form-check-input" id="MemilikiNoKIP" name="MemilikiNoKIP" style="transform: scale(1.2);">
                                                     <label class="form-check-label text-primary" for="MemilikiNoKIP">
-                                                        &nbsp;<i class="fas fa-check"></i> Checklist Jika Memiliki Kartu Indonesia Pintar?
+                                                        Jika Memiliki Kartu Indonesia Pintar (KIP) cheklist <i class="fas fa-check"></i> bagian ini, abaikan jika tidak memiliki
                                                     </label>
                                                 </div>
                                             </div>
@@ -985,7 +990,7 @@ if (ENVIRONMENT === 'production') {
                                                 <div class="form-check pl-4">
                                                     <input type="checkbox" class="form-check-input" id="MemilikiNomorKKS" name="MemilikiNomorKKS" style="transform: scale(1.2);">
                                                     <label class="form-check-label text-primary" for="MemilikiNomorKKS">
-                                                        &nbsp;<i class="fas fa-check"></i> Checklist Jika Memiliki Nomor Kartu Keluarga Sejahtera (KKS)?
+                                                        Jika Memiliki Nomor Kartu Keluarga Sejahtera (KKS) cheklist <i class="fas fa-check"></i> bagian ini, abaikan jika tidak memiliki
                                                     </label>
                                                 </div>
                                             </div>
@@ -1039,7 +1044,7 @@ if (ENVIRONMENT === 'production') {
                                                 <div class="form-check pl-4">
                                                     <input type="checkbox" class="form-check-input" id="MemilikiNoPKH" name="MemilikiNoPKH" style="transform: scale(1.2);">
                                                     <label class="form-check-label text-primary" for="MemilikiNoPKH">
-                                                        &nbsp;<i class="fas fa-check"></i> Checklist Jika Memiliki No Program Keluarga Harapan (PKH)?
+                                                        Jika Memiliki Program Keluarga Harapan (PKH) cheklist <i class="fas fa-check"></i> bagian ini, abaikan jika tidak memiliki
                                                     </label>
                                                 </div>
                                             </div>
