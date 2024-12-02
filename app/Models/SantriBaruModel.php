@@ -217,6 +217,7 @@ class SantriBaruModel extends Model
         $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left');
         $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
         $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+        $builder->orderBy('tbl_santri_baru.updated_at', 'DESC'); 
 
         try {
             $query = $builder->get();

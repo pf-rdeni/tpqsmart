@@ -494,6 +494,7 @@ class Santri extends BaseController
     public function showSantriBaruPerKelasTpq($IdTpq = null)
     {
         $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq);
+        
         $namaTpq = $this->helpFunction->getNamaTpqById($IdTpq);
         // Mengelompokkan santri berdasarkan kelas
         $santriPerKelas = [
