@@ -138,7 +138,7 @@ if (ENVIRONMENT === 'production') {
                                                     </div>
                                                 </div> <small class="text-center d-block mb-2 text-primary">
                                                     <i class="fas fa-exclamation-circle"></i>
-                                                    Direkomendasikan untuk mengunggah foto dengan latar belakang merah atau latar belakang lainnya, rasio 2:3 atau 3:4, dalam format JPG, JPEG, atau PNG dengan ukuran maksimal 5MB </small>
+                                                    Direkomendasikan untuk upload foto dengan latar belakang merah jika tidak memiliki gunakan foto lainnya, rasio 2:3 atau 3:4</small>
                                                 <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" style="display: none;">
                                                 <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                             </div>
@@ -151,6 +151,9 @@ if (ENVIRONMENT === 'production') {
                                                                 placeholder="Masukkan NIK 16 digit" <?= $required ?> pattern="^[1-9]\d{15}$"
                                                                 title="NIK harus terdiri dari 16 digit angka dan tidak boleh diawali dengan angka 0">
                                                             <span id="NikSantriError" class="text-danger" style="display:none;">NIK diperlukan.</span>
+                                                            <small class="text-primary">
+                                                                <i class="fas fa-info-circle"></i> NIK merupakan nomor induk kependudukan dapat dilihat pada Kartu Keluarga (KK)
+                                                            </small>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
@@ -168,7 +171,7 @@ if (ENVIRONMENT === 'production') {
                                                             <input type="text" class="form-control" id="NISN" name="NISN" placeholder="Masukkan NISN 10 digit"
                                                                 pattern="[0-9]{10}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                             <small class="text-primary">
-                                                                <i class="fas fa-info-circle"></i> Nomor Induk Siswa Nasional (NISN) dari sekolah dasar (SD) jika ada
+                                                                <i class="fas fa-info-circle"></i> Nomor Induk Siswa Nasional (NISN) dari sekolah dasar (SD), kosongkan jika tidak ada
                                                             </small>
                                                         </div>
                                                     </div>
