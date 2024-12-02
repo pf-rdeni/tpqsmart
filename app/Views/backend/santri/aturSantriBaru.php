@@ -130,7 +130,6 @@
             <table id="tblTpq" class="table table-bordered table-striped">
                 <thead>
                     <tr>
-                        <th>No</th>
                         <th>Nama TPQ</th>
                         <th>Jumlah Santri</th>
                         <th>Alamat TPQ</th>
@@ -138,10 +137,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php $no = 1; ?>
                     <?php foreach ($dataTpq as $tpq): ?>
                         <tr>
-                            <td><?= $no++; ?></td>
                             <td><?= $tpq['NamaTpq']; ?></td>
                             <td><?= $tpq['JumlahSantri']; ?></td>
                             <td><?= $tpq['Alamat']; ?></td>
@@ -153,7 +150,6 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th>No</th>
                         <th>Nama TPQ</th>
                         <th>Jumlah Santri</th>
                         <th>Alamat TPQ</th>
