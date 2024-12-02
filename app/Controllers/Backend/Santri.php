@@ -333,6 +333,25 @@ class Santri extends BaseController
             return strcmp($a['NamaTpq'], $b['NamaTpq']);
         });
 
+        // Tambahkan query untuk menghitung jumlah santri per TPQ
+        $santriPerTpq = $this->DataSantriBaru
+            ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
+            ->groupBy('tbl_tpq.IdTpq')
+            ->findAll();
+
+        // Gabungkan data jumlah santri ke array TPQ
+        foreach ($tpq as &$t) {
+            $jumlahSantri = 0;
+            foreach ($santriPerTpq as $count) {
+                if ($count['IdTpq'] == $t['IdTpq']) {
+                    $jumlahSantri = $count['JumlahSantri'];
+                    break;
+                }
+            }
+            $t['JumlahSantri'] = $jumlahSantri;
+        }
+
         $data = [
             'page_title' => 'Data Santri Baru',
             'dataSantri' => $santri,
@@ -356,6 +375,25 @@ class Santri extends BaseController
         usort($tpq, function ($a, $b) {
             return strcmp($a['NamaTpq'], $b['NamaTpq']);
         });
+
+        // Tambahkan query untuk menghitung jumlah santri per TPQ
+        $santriPerTpq = $this->DataSantriBaru
+            ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
+            ->groupBy('tbl_tpq.IdTpq')
+            ->findAll();
+
+        // Gabungkan data jumlah santri ke array TPQ
+        foreach ($tpq as &$t) {
+            $jumlahSantri = 0;
+            foreach ($santriPerTpq as $count) {
+                if ($count['IdTpq'] == $t['IdTpq']) {
+                    $jumlahSantri = $count['JumlahSantri'];
+                    break;
+                }
+            }
+            $t['JumlahSantri'] = $jumlahSantri;
+        }
 
         $data = [
             'page_title' => 'Data Santri Baru',
