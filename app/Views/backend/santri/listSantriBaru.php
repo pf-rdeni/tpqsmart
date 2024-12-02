@@ -67,13 +67,6 @@
                             <td><?= $santri['IdSantri']; ?></td>
                             <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
-                            <!-- Mengubah format nama TPQ -->
-                            <!-- detail keterangan:
-                            \b(al|el)-(\w+) = kata yang diawali dengan al- atau el- dan diikuti dengan kata lain
-                            \b = kata awal
-                            (al|el|ad) = al atau el atau ad
-                            - = tanda hubung
-                            (\w+) = kata setelah tanda hubung -->
                             <td><?= preg_replace_callback('/\b(al|el|ad)-(\w+)/i', function ($matches) {
                                     return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
                                 }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
@@ -114,10 +107,9 @@
             <h5>Data Santri Baru berdasarkan TPQ</h5>
         </div>
         <div class="card-body">
-            <table id="example3" class="table table-bordered table-striped">
+            <table id="tblTpq" class="table table-bordered table-striped">
                 <thead>
                     <tr>
-                        <th>No</th>
                         <th>Nama TPQ</th>
                         <th>Jumlah Santri</th>
                         <th>Alamat TPQ</th>
@@ -125,10 +117,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php $no = 1; ?>
                     <?php foreach ($dataTpq as $tpq): ?>
                         <tr>
-                            <td><?= $no++; ?></td>
                             <td><?= $tpq['NamaTpq']; ?></td>
                             <td><?= $tpq['JumlahSantri']; ?></td>
                             <td><?= $tpq['Alamat']; ?></td>
@@ -140,7 +130,6 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th>No</th>
                         <th>Nama TPQ</th>
                         <th>Jumlah Santri</th>
                         <th>Alamat TPQ</th>
@@ -152,4 +141,10 @@
     </div>
     <!-- /.card -->
 </div>
+<?= $this->endSection(); ?>
+<?= $this->section('scripts'); ?>
+<script>
+    // Initialize DataTable for #tblTpq
+    initializeDataTableUmum("#tblTpq", true, ["excel", "pdf", "print", "colvis"]);
+</script>
 <?= $this->endSection(); ?>
