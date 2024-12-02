@@ -180,8 +180,8 @@ class Santri extends BaseController
                 'KabupatenKotaAyah' => $this->request->getPost('KabupatenKotaAyah'),
                 'KecamatanAyah' => $this->request->getPost('KecamatanAyah'),
                 'KelurahanDesaAyah' => $this->request->getPost('KelurahanDesaAyah'),
-                'RtAyah' => $this->request->getPost('RtAyah'),
-                'RwAyah' => $this->request->getPost('RwAyah'),
+                'RtAyah' => $this->convertRTRW($this->request->getPost('RtAyah')),
+                'RwAyah' => $this->convertRTRW($this->request->getPost('RwAyah')),
                 'AlamatAyah' => $this->request->getPost('AlamatAyah'),
                 'KodePosAyah' => $this->request->getPost('KodePosAyah'),
 
@@ -192,8 +192,8 @@ class Santri extends BaseController
                 'KabupatenKotaIbu' => $this->request->getPost('KabupatenKotaIbu'),
                 'KecamatanIbu' => $this->request->getPost('KecamatanIbu'),
                 'KelurahanDesaIbu' => $this->request->getPost('KelurahanDesaIbu'),
-                'RtIbu' => $this->request->getPost('RtIbu'),
-                'RwIbu' => $this->request->getPost('RwIbu'),
+                'RtIbu' => $this->convertRTRW($this->request->getPost('RtIbu')),
+                'RwIbu' => $this->convertRTRW($this->request->getPost('RwIbu')),
                 'AlamatIbu' => $this->request->getPost('AlamatIbu'),
                 'KodePosIbu' => $this->request->getPost('KodePosIbu'),
 
@@ -204,8 +204,8 @@ class Santri extends BaseController
                 'KabupatenKotaSantri' => $this->request->getPost('KabupatenKotaSantri'),
                 'KecamatanSantri' => $this->request->getPost('KecamatanSantri'),
                 'KelurahanDesaSantri' => $this->request->getPost('KelurahanDesaSantri'),
-                'RtSantri' => $this->request->getPost('RtSantri'),
-                'RwSantri' => $this->request->getPost('RwSantri'),
+                'RtSantri' => $this->convertRTRW($this->request->getPost('RtSantri')),
+                'RwSantri' => $this->convertRTRW($this->request->getPost('RwSantri')),
                 'AlamatSantri' => $this->request->getPost('AlamatSantri'),
                 'KodePosSantri' => $this->request->getPost('KodePosSantri'),
                 'JarakTempuhSantri' => $this->request->getPost('JarakTempuhSantri'),
@@ -878,5 +878,15 @@ class Santri extends BaseController
             log_message('error', 'Santri: uploadFile - Error: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    // Tambahkan fungsi helper untuk konversi RT/RW
+    private function convertRTRW($value)
+    {
+        // Hapus leading zeros dan non-numeric characters
+        $value = preg_replace('/^0+|[^0-9]/', '', $value);
+
+        // Convert ke integer kemudian format ke 3 digit
+        return str_pad((int)$value, 3, '0', STR_PAD_LEFT);
     }
 }
