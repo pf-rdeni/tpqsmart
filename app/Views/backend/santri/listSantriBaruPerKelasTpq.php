@@ -238,6 +238,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
         <thead>
             <tr>
                 <th>Profil</th>
+                <th>ID</th>
                 <th>Nama</th>
                 <th>Kelas</th>
                 <th>Detail</th>
@@ -280,6 +281,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                             }
                         </script>
                     </td>
+                    <td><?= $santri['IdSantri']; ?></td>
                     <td><?= $santri['NamaSantri']; ?></td>
                     <td><?= $santri['NamaKelas']; ?></td>
                     <td>
@@ -292,6 +294,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
         <tfoot>
             <tr>
                 <th>Profil</th>
+                <th>ID</th>
                 <th>Nama</th>
                 <th>Kelas</th>
                 <th>Detail</th>
