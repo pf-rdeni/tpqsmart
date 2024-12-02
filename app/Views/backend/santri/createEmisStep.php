@@ -211,7 +211,7 @@ if (ENVIRONMENT === 'production') {
                                                         <div class="form-group">
                                                             <label for="JumlahSaudara">Jumlah Saudara<span class="text-danger font-weight-bold">*</span></label>
                                                             <input type="text" class="form-control" id="JumlahSaudara" name="JumlahSaudara" placeholder="Masukkan angka jumlah saudara"
-                                                                pattern="[1-9]+" title="Jumlah Saudara harus berupa angka" oninput="this.value = this.value.replace(/[^1-9]/g, '')" <?= $required ?>>
+                                                                pattern="[0-9]+" title="Jumlah Saudara harus berupa angka" oninput="this.value = this.value.replace(/[^0-9]/g, '')" <?= $required ?>>
                                                             <span id="JumlahSaudaraError" class="text-danger" style="display:none;">Jumlah Saudara diperlukan.</span>
                                                         </div>
                                                     </div>
@@ -2860,15 +2860,15 @@ if (ENVIRONMENT === 'production') {
             }
 
             // Validasi maksimal input 10
-            if (jumlahSaudaraValue > 10) {
-                showError('Sistem saat ini membatasi maksimal 10 saudara. Jika jumlah saudara lebih dari 10, silakan hubungi admin untuk bantuan lebih lanjut.');
-                jumlahSaudara.value = '10';
+            if (jumlahSaudaraValue > 12) {
+                showError('Sistem saat ini membatasi maksimal 12 saudara. Jika jumlah saudara lebih dari 12, silakan hubungi admin untuk bantuan lebih lanjut.');
+                jumlahSaudara.value = '12';
                 return false;
             }
 
-            if (anakKeValue > 10) {
-                showError('Sistem saat ini membatasi maksimal anak ke-10. Jika nomor urut anak lebih dari 10, silakan hubungi admin untuk bantuan lebih lanjut.');
-                anakKe.value = '10';
+            if (anakKeValue > 12) {
+                showError('Sistem saat ini membatasi maksimal anak ke-12. Jika nomor urut anak lebih dari 12, silakan hubungi admin untuk bantuan lebih lanjut.');
+                anakKe.value = '12';
                 return false;
             }
 
@@ -3134,36 +3134,7 @@ if (ENVIRONMENT === 'production') {
      * @param {HTMLElement} input - Elemen input yang akan dicek validasinya
      */
     function validateNameInput(input) {
-        // Daftar titel/gelar yang diizinkan sesuai EYD
-        const titles = {
-            // Gelar akademik
-            'sarjana': {
-                'umum': ['S.H.', 'S.E.', 'S.Kom.', 'S.Pd.', 'S.Ag.', 'S.IP.', 'S.Sos.', 'S.Farm.', 'S.T.', 'S.Pt.', 'S.P.'],
-                'profesi': ['Apt.', 'Akt.'],
-                'spesialis': ['Sp.A.', 'Sp.B.', 'Sp.JP.', 'Sp.M.', 'Sp.OG.', 'Sp.P.', 'Sp.PD.', 'Sp.Rad.', 'Sp.S.', 'Sp.THT-KL.']
-            },
-            // Gelar magister
-            'magister': ['M.H.', 'M.M.', 'M.Kom.', 'M.Pd.', 'M.Ag.', 'M.Si.', 'M.Sc.', 'M.Sn.', 'M.T.', 'M.Kes.', 'M.Hum.'],
-            // Gelar doktor
-            'doktor': ['Dr.', 'DR.', 'Ph.D.'],
-            // Gelar profesor
-            'profesor': ['Prof.'],
-            // Gelar profesi
-            'profesi': ['dr.', 'drg.', 'Ir.'],
-            // Gelar keagamaan
-            'agama': ['H.', 'Hj.', 'K.H.', 'Ust.', 'Ustdz.', 'Lc.']
-        };
-
-        // Flatten array titel untuk pengecekan
-        const flatTitles = Object.values(titles).reduce((acc, curr) => {
-            if (Array.isArray(curr)) {
-                acc.push(...curr);
-            } else {
-                Object.values(curr).forEach(arr => acc.push(...arr));
-            }
-            return acc;
-        }, []);
-
+        // Hapus pengecekan tittle
         const regex = /^[A-Za-z\s'.,\-]+$/;
         const errorElement = document.getElementById(input.id + 'Error');
         let value = input.value;
@@ -3186,17 +3157,6 @@ if (ENVIRONMENT === 'production') {
         // Format nama sesuai EYD
         let words = value.split(' ');
         let formattedWords = words.map((word, index) => {
-            // Cek apakah kata adalah titel yang diizinkan
-            const isTitleMatch = flatTitles.find(title =>
-                title.toLowerCase() === word.toLowerCase() ||
-                title.toLowerCase() === word.toLowerCase() + '.'
-            );
-
-            if (isTitleMatch) {
-                // Kembalikan titel dengan format yang benar
-                return isTitleMatch;
-            }
-
             // Kata penghubung dalam nama
             const connectors = ['bin', 'binti', 'dari', 'van', 'der', 'di', 'al'];
             if (connectors.includes(word.toLowerCase()) && index !== 0) {
@@ -3204,11 +3164,24 @@ if (ENVIRONMENT === 'production') {
             }
 
             // Kapitalisasi kata normal
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            let formattedWord = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+            // Kapitalisasi huruf setelah tanda titik
+            formattedWord = formattedWord.replace(/\.\s*[a-z]/g, match =>
+                match.toUpperCase()
+            );
+
+            return formattedWord;
         });
 
-        // Gabungkan kembali dengan spasi
-        input.value = formattedWords.join(' ');
+        // Gabungkan kembali dengan spasi dan kapitalisasi setelah tanda titik
+        let finalValue = formattedWords.join(' ');
+        // Kapitalisasi huruf setelah tanda titik di seluruh string
+        finalValue = finalValue.replace(/\.\s*[a-z]/g, match =>
+            match.toUpperCase()
+        );
+
+        input.value = finalValue;
         errorElement.style.display = 'none';
         input.classList.remove('is-invalid');
         input.classList.add('is-valid');
