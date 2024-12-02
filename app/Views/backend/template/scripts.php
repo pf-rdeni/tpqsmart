@@ -6,6 +6,14 @@
             "responsive": true,
             "lengthChange": false,
             "autoWidth": false,
+            "pageLength": 20, // Jumlah baris per halaman
+            "language": { // Kustomisasi bahasa
+                "search": "Pencarian:",
+                "paginate": {
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                }
+            },
         });
     }
 </script>

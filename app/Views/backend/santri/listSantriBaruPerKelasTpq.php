@@ -323,19 +323,44 @@ function renderTpqTable($dataTpq, $tpqLevel)
     // fungsi untuk inisialisasi data table
     function initializeDataTable(selector, paging = true, buttons = [], options = {}) {
         $(selector).DataTable({
+            "lengthChange": true,
             "responsive": true,
-            "lengthChange": false,
             "autoWidth": false,
             "paging": paging,
             "buttons": buttons,
+            "pageLength": 25,
+            "lengthMenu": [ // Kustomisasi opsi jumlah entri yang tersedia
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "Semua"]
+            ],
+            "language": {
+                "lengthMenu": "Tampilkan _MENU_ entri per halaman",
+                "search": "Pencarian:",
+                "paginate": {
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                }
+            },
             ...options
         }).buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
     }
 
+    // Tambahkan event listener untuk tab changes
+    $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
+        // Dapatkan target tab yang aktif
+        let targetTab = $(e.target).attr("href");
+
+        // Cari table di dalam tab yang aktif
+        let table = $(targetTab).find('table').DataTable();
+
+        // Adjust columns untuk memastikan responsive bekerja
+        table.columns.adjust().responsive.recalc();
+    });
+
     /*=== Inisialisasi untuk semua tabel semua kelas TPQ (0-9) ===*/
     for (let i = 0; i <= 9; i++) {
         initializeDataTable(`#tableSantriBaruPerKelasTpq${i}`, false, [], {
-            "lengthChange": false,
+            "lengthChange": true,
             "searching": true,
             "ordering": true,
             "info": true,
@@ -438,11 +463,5 @@ function renderTpqTable($dataTpq, $tpqLevel)
             }
         });
     }
-</script>
-<?= $this->endSection(); ?>
-<?= $this->section('scripts'); ?>
-<script>
-    // Initialize DataTable for #tblTpq
-    initializeDataTableUmum("#tblTpq", true, ["excel", "pdf", "print", "colvis"]);
 </script>
 <?= $this->endSection(); ?>
