@@ -123,16 +123,16 @@ if (ENVIRONMENT === 'production') {
                                     </div>
                                     <div class="form-group">
                                         <div class="row">
-                                            <div class="col-md-3">
+                                            <div class="col-md-3" style="display: none;">
                                                 <label class="text-center w-100">Photo Profil</label>
                                                 <div class="text-center">
                                                     <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
                                                         class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover; cursor: pointer;">
                                                     <div class="mt-2 d-flex justify-content-between" style="width: 215px; margin: 0 auto;">
-                                                        <button type="button" class="btn btn-sm btn-primary flex-grow-1 mr-2" onclick="document.getElementById('PhotoProfil').click()" disabled>
+                                                        <button type="button" class="btn btn-sm btn-primary flex-grow-1 mr-2" onclick="document.getElementById('PhotoProfil').click()">
                                                             <i class="fas fa-upload"></i> Upload Foto
                                                         </button>
-                                                        <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()" disabled>
+                                                        <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()">
                                                             <i class="fas fa-camera"></i> Ambil Foto
                                                         </button>
                                                     </div>
@@ -142,7 +142,7 @@ if (ENVIRONMENT === 'production') {
                                                 <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" style="display: none;">
                                                 <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                             </div>
-                                            <div class="col-md-9">
+                                            <div class="col-md-12">
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
@@ -1649,7 +1649,7 @@ if (ENVIRONMENT === 'production') {
                                     <!-- Tab Data Santri -->
                                     <div class="tab-pane fade show active" id="dataSantri" role="tabpanel" aria-labelledby="custom-tabs-santri-tab">
                                         <div class="row">
-                                            <div class="col-md-12 mt-3 text-center">
+                                            <div class="col-md-12 mt-3 text-center" style="display: none;">
                                                 <img id="previewFotoSantri" src="" alt="Foto Santri" class="img-thumbnail mb-2" style="max-width: 200px">
                                                 <p class="font-weight-bold" id="previewNamaSantri"></p>
                                             </div>
@@ -1673,8 +1673,8 @@ if (ENVIRONMENT === 'production') {
                                                             <td id="previewNisn"></td>
                                                         </tr>
                                                         <tr>
-                                                            <th>Nama Kepala Keluarga</th>
-                                                            <td id="previewNamaKepalaKeluarga"></td>
+                                                            <th>Nama Santri</th>
+                                                            <td id="previewNamaSantri"></td>
                                                         </tr>
                                                         <tr>
                                                             <th>Tempat, Tanggal Lahir</th>
@@ -1687,6 +1687,10 @@ if (ENVIRONMENT === 'production') {
                                                         <tr>
                                                             <th>Anak Ke / Jumlah Saudara</th>
                                                             <td><span id="previewAnakKe"></span> / <span id="previewJumlahSaudara"></span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Nama Kepala Keluarga</th>
+                                                            <td id="previewNamaKepalaKeluarga"></td>
                                                         </tr>
                                                         <tr>
                                                             <th>Cita-cita</th>
