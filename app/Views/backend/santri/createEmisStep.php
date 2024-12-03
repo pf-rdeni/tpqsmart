@@ -129,10 +129,10 @@ if (ENVIRONMENT === 'production') {
                                                     <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
                                                         class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover; cursor: pointer;">
                                                     <div class="mt-2 d-flex justify-content-between" style="width: 215px; margin: 0 auto;">
-                                                        <button type="button" class="btn btn-sm btn-primary flex-grow-1 mr-2" onclick="document.getElementById('PhotoProfil').click()">
+                                                        <button type="button" class="btn btn-sm btn-primary flex-grow-1 mr-2" onclick="document.getElementById('PhotoProfil').click()" disabled>
                                                             <i class="fas fa-upload"></i> Upload Foto
                                                         </button>
-                                                        <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()">
+                                                        <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()" disabled>
                                                             <i class="fas fa-camera"></i> Ambil Foto
                                                         </button>
                                                     </div>
