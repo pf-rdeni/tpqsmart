@@ -32,7 +32,7 @@
                             <td><?= $santri['IdSantri']; ?></td>
                             <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
-                            <td><?= preg_replace_callback('/\b(al|el|ad)-(\w+)/i', function ($matches) {
+                            <td><?= preg_replace_callback('/\b(al|el|ad|ar|at)-(\w+)/i', function ($matches) {
                                     return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
                                 }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
                             <td><?= $santri['NamaKelas']; ?></td>
