@@ -1651,7 +1651,7 @@ if (ENVIRONMENT === 'production') {
                                         <div class="row">
                                             <div class="col-md-12 mt-3 text-center" style="display: none;">
                                                 <img id="previewFotoSantri" src="" alt="Foto Santri" class="img-thumbnail mb-2" style="max-width: 200px">
-                                                <p class="font-weight-bold" id="previewNamaSantri"></p>
+                                                <p class="font-weight-bold" id="previewNamaSantri_"></p>
                                             </div>
                                             <div class="col-md-12 mt-3">
                                                 <div class="table-responsive">
