@@ -3847,6 +3847,7 @@ if (ENVIRONMENT === 'production') {
             return `Untuk kelas ${kelasName} yang dipilih, usia kisaran antara ${minAge}-${maxAge} tahun (lahir tahun ${today.getFullYear()-maxAge} sampai ${today.getFullYear()-minAge})`;
         };
 
+        let kelasSd = "";
         // Validasi berdasarkan ID kelas
         switch (selectedKelasId) {
             case 1: // TK
@@ -3859,44 +3860,32 @@ if (ENVIRONMENT === 'production') {
                 break;
 
             case 4: // TPQ1/SD1
-                if (umur < 6 || umur > 7) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ1/SD1', 6, 7);
+                if (selectedKelasId == 4) {
+                    kelasSd = "TPQ1/SD1";
                 }
-                break;
-
             case 5: // TPQ2/SD2
-                if (umur < 7 || umur > 8) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ2/SD2', 7, 8);
+                if (selectedKelasId == 5) {
+                    kelasSd = "TPQ2/SD2";
                 }
-                break;
-
-            case 6: // TPQ3/SD3
-                if (umur < 8 || umur > 9) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ3/SD3', 8, 9);
+            case 6: // TPQ3/SD3   
+                if (selectedKelasId == 6) {
+                    kelasSd = "TPQ3/SD3";
                 }
-                break;
-
-            case 7: // TPQ4/SD4
-                if (umur < 9 || umur > 10) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ4/SD4', 9, 10);
+            case 7: // TPQ4/SD4   
+                if (selectedKelasId == 7) {
+                    kelasSd = "TPQ4/SD4";
                 }
-                break;
-
             case 8: // TPQ5/SD5
-                if (umur < 10 || umur > 11) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ5/SD5', 10, 11);
+                if (selectedKelasId == 8) {
+                    kelasSd = "TPQ5/SD5";
                 }
-                break;
-
             case 9: // TPQ6/SD6
-                if (umur < 11 || umur > 12) {
+                if (selectedKelasId == 9) {
+                    kelasSd = "TPQ6/SD6";
+                }
+                if (umur < 6 || umur > 12) {
                     isValid = false;
-                    errorMessage = formatErrorMessage('TPQ6/SD6', 11, 12);
+                    errorMessage = formatErrorMessage(kelasSd, 6, 12);
                 }
                 break;
 
