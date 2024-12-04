@@ -1712,7 +1712,7 @@ if (ENVIRONMENT === 'production') {
                                                             <th>Yang Membiayai Sekolah</th>
                                                             <td id="previewYangMembiayaiSekolah"></td>
                                                         </tr>
-                                                        <tr>
+                                                        <tr style="display: none;">
                                                             <th>Nomor HP / Email</th>
                                                             <td><span id="previewNoHpSantri"></span> / <span id="previewEmailSantri"></span></td>
                                                         </tr>
