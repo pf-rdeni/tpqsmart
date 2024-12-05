@@ -251,7 +251,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                         <?php
                         $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
                         $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
-                        $defaultPhoto = $santri['JenisKelamin'] === 'Laki-Laki' ? 'thumb_putra.png' : 'thumb_putri.png';
+                $defaultPhoto = $santri['JenisKelamin'] === 'Laki-laki' ? 'thumb_putra.png' : 'thumb_putri.png';
                         ?>
                         <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : $thumbnailPath . $defaultPhoto; ?>"
                             alt="PhotoProfil"
