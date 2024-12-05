@@ -3857,9 +3857,9 @@ if (ENVIRONMENT === 'production') {
             case 1: // TK
             case 2: // TKA
             case 3: // TKB
-                if (umur < 4 || umur > 7) {
+                if (umur < 3 || umur > 7) {
                     isValid = false;
-                    errorMessage = formatErrorMessage('TK/TKA/TKB', 4, 7);
+                    errorMessage = formatErrorMessage('TK/TKA/TKB', 3, 7);
                 }
                 break;
 
