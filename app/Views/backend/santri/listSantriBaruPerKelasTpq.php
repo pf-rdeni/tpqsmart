@@ -407,9 +407,11 @@ function renderTpqTable($dataTpq, $tpqLevel)
                     }).then(() => {
                         const data = response.data;
                         const uploadPath = '<?= (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/') ?>';
+                        const baseImageUrl = '<?= (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/images/' : base_url('images/') ?>';
 
                         // Update elemen modal dengan data santri
-                        $('#santriPhoto').attr('src', data.PhotoProfil ? uploadPath + data.PhotoProfil : '<?= base_url('images/no-photo.jpg') ?>');
+                        const defaultImage = data.JenisKelamin === 'Laki-laki' ? baseImageUrl + 'putra.png' : baseImageUrl + 'putri.png';
+                        $('#santriPhoto').attr('src', data.PhotoProfil ? uploadPath + data.PhotoProfil : defaultImage);
                         $('#namaTpq').text(data.NamaTpq);
                         $('#namaKelas').text(data.NamaKelas);
                         $('#namaSantri').text(data.NamaSantri);
