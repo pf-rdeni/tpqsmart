@@ -254,7 +254,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                         $baseImageUrl = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/images/' : base_url('images/');
                         $defaultImage = $baseImageUrl . ($santri['JenisKelamin'] === 'Laki-laki' ? 'putra.png' : 'putri.png');
                         ?>
-                        <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : $thumbnailPath . $defaultImage; ?>"
+                        <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : $defaultImage; ?>"
                             alt="PhotoProfil"
                             class="img-fluid popup-image"
                             width="30"
