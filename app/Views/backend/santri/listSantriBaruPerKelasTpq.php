@@ -251,8 +251,9 @@ function renderTpqTable($dataTpq, $tpqLevel)
                         <?php
                         $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
                         $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
+                        $defaultPhoto = $santri['JenisKelamin'] === 'Laki-Laki' ? 'thumb_putra.png' : 'thumb_putri.png';
                         ?>
-                        <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : $thumbnailPath . 'thumb_no-photo.jpg'; ?>"
+                        <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : $thumbnailPath . $defaultPhoto; ?>"
                             alt="PhotoProfil"
                             class="img-fluid popup-image"
                             width="30"
@@ -263,7 +264,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                             onclick="showPopup(this)"
                             style="cursor: pointer;">
                         <div class="image-popup" style="display: none; position: absolute; z-index: 1000;">
-                            <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
+                            <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/' . ($santri['JenisKelamin'] === 'Laki-Laki' ? 'putra.png' : 'putri.png')); ?>"
                                 alt="PhotoProfil"
                                 width="200"
                                 height="250"
