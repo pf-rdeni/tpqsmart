@@ -264,7 +264,7 @@ function renderTpqTable($dataTpq, $tpqLevel)
                             onclick="showPopup(this)"
                             style="cursor: pointer;">
                         <div class="image-popup" style="display: none; position: absolute; z-index: 1000;">
-                            <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/' . ($santri['JenisKelamin'] === 'Laki-Laki' ? 'putra.png' : 'putri.png')); ?>"
+                            <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/' . ($santri['JenisKelamin'] === 'Laki-laki' ? 'putra.png' : 'putri.png')); ?>"
                                 alt="PhotoProfil"
                                 width="200"
                                 height="250"
