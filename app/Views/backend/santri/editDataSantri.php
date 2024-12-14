@@ -19,7 +19,7 @@ if (ENVIRONMENT === 'production') {
                     <div class="d-flex justify-content-between align-items-center w-100">
                         <h3 class="card-title m-0">Formulir Data Santri</h3>
                         <div class="d-flex">
-                            <a href="<?= base_url('backend/santri/showSantriBaru') ?>" class="btn btn-info">
+                            <a href="<?= base_url('backend/santri/showAturSantriBaru') ?>" class="btn btn-info">
                                 <i class="fas fa-list"></i><span class="d-none d-md-inline">&nbsp;Data Santri Baru</span>
                             </a>
                         </div>
@@ -67,7 +67,9 @@ if (ENVIRONMENT === 'production') {
                         </div>
                         <div class="bs-stepper-content">
                             <!-- your steps content here -->
-                            <form action="<?= base_url('backend/santri/save') ?>" method="POST" id="santriForm" enctype="multipart/form-data">
+                            <form action="<?= base_url('backend/santri/update') ?>" method="POST" id="santriForm" enctype="multipart/form-data">
+                                <!-- Tambahkan input hidden untuk IdSantri -->
+                                <input type="hidden" name="IdSantri" value="<?= isset($dataSantri['IdSantri']) ? $dataSantri['IdSantri'] : '' ?>">
                                 <div id="tpq-part" class="content" role="tabpanel" aria-labelledby="tpq-part-trigger">
                                     <br>
                                     <div class="alert alert-info">
@@ -112,7 +114,9 @@ if (ENVIRONMENT === 'production') {
                                         </select>
                                         <span id="IdKelasError" class="text-danger" style="display:none;">Kelas diperlukan.</span>
                                     </div>
+                                    <button type="button" class="btn btn-success" onclick="submitForm()">Simpan</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('tpq-part')">Selanjutnya</button>
+
                                 </div>
                                 <!-- Bagian Profil Santri -->
                                 <div id="santri-part" class="content" role="tabpanel" aria-labelledby="santri-part-trigger">
@@ -479,7 +483,7 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                         </div>
                                     </div>
-
+                                    <button type="button" class="btn btn-success" onclick="submitForm()">Simpan</button>
                                     <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('tpq-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('santri-part')">Selanjutnya</button>
                                 </div>
@@ -1174,6 +1178,7 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                         </div>
                                     </div>
+                                    <button type="button" class="btn btn-success" onclick="submitForm()">Simpan</button>
                                     <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('santri-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('ortu-part')">Selanjutnya</button>
                                 </div>
@@ -1705,9 +1710,8 @@ if (ENVIRONMENT === 'production') {
                                         </div>
                                     </div>
                                     <!-- bagian tombol navigasi -->
-
                                     <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('ortu-part')">Sebelumnya</button>
-                                    <button type="button" class="btn btn-primary" onclick="showPreview()">Pratinjau</button>
+                                    <button type="button" class="btn btn-success" onclick="submitForm()">Simpan</button>
                                 </div>
                             </form>
                         </div>
@@ -1724,726 +1728,10 @@ if (ENVIRONMENT === 'production') {
     </div>
 </div>
 
-<!-- ============================================= Start Modal Preview ============================================= -->
-<!-- =============================================================================================================== -->
-<div class="modal fade" id="previewModal" tabindex="-1" role="dialog" aria-labelledby="previewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-primary">
-                <h5 class="modal-title text-white" id="previewModalLabel">Pratinjau Data Santri</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                    <h5><i class="icon fas fa-exclamation-triangle"></i> <strong>Perhatian!</strong></h5>
-                    <p>Mohon periksa kembali data sebelum mengirim:</p>
-                    <ul>
-                        <li>Pastikan semua data sudah benar</li>
-                        <li>Data yang terkirim tidak dapat diubah</li>
-                        <li><small>Tekan tombol <strong>[Kirim Data]</strong> jika sudah yakin</small></li>
-                        <li><small>Tekan tombol <strong>[Ubah Data]</strong> untuk memperbaiki</small></li>
-                    </ul>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card card-primary card-tabs">
-                            <div class="card-header p-0 pt-1">
-                                <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
-                                    <li class="nav-item">
-                                        <a class="nav-link active" id="custom-tabs-santri-tab" data-toggle="pill" href="#dataSantri" role="tab" aria-controls="dataSantri" aria-selected="true">Data Santri</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" id="custom-tabs-orangtua-tab" data-toggle="pill" href="#dataOrangTua" role="tab" aria-controls="dataOrangTua" aria-selected="false">Data Orang Tua</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" id="custom-tabs-alamat-tab" data-toggle="pill" href="#dataAlamat" role="tab" aria-controls="dataAlamat" aria-selected="false">Data Alamat</a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div class="card-body">
-                                <div class="tab-content" id="custom-tabs-one-tabContent">
-                                    <!-- Tab Data Santri -->
-                                    <div class="tab-pane fade show active" id="dataSantri" role="tabpanel" aria-labelledby="custom-tabs-santri-tab">
-                                        <div class="row">
-                                            <div class="col-md-12 mt-3 text-center">
-                                                <img id="previewFotoSantri" src="" alt="Foto Santri" class="img-thumbnail mb-2" style="max-width: 200px">
-                                                <p class="font-weight-bold" id="previewNamaSantri"></p>
-                                            </div>
-                                            <div class="col-md-12 mt-3">
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered">
-                                                        <tr>
-                                                            <th width="30%">Nama TPQ</th>
-                                                            <td id="previewIdTpq"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Nama Kelas</th>
-                                                            <td id="previewIdKelas"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>NIK</th>
-                                                            <td id="previewNikSantri"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>NISN</th>
-                                                            <td id="previewNisn"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Nama Kepala Keluarga</th>
-                                                            <td id="previewNamaKepalaKeluarga"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Tempat, Tanggal Lahir</th>
-                                                            <td id="previewTtl"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Jenis Kelamin</th>
-                                                            <td id="previewJenisKelamin"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Anak Ke / Jumlah Saudara</th>
-                                                            <td><span id="previewAnakKe"></span> / <span id="previewJumlahSaudara"></span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Cita-cita</th>
-                                                            <td id="previewCitaCita"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Hobi</th>
-                                                            <td id="previewHobi"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kebutuhan Khusus</th>
-                                                            <td id="previewKebutuhanKhusus"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Kebutuhan Disabilitas</th>
-                                                            <td id="previewKebutuhanDisabilitas"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Yang Membiayai Sekolah</th>
-                                                            <td id="previewYangMembiayaiSekolah"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Nomor HP / Email</th>
-                                                            <td><span id="previewNoHpSantri"></span> / <span id="previewEmailSantri"></span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Nomor KK / File KK</th>
-                                                            <td><span id="previewNoKkSantri"></span> / <span id="previewFileKkSantri"></span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Nomor KIP / File KIP</th>
-                                                            <td><span id="previewKip"></span> / <span id="previewFileKip"></span></td>
-                                                        </tr>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Tab Data Orang Tua -->
-                                    <div class="tab-pane fade" id="dataOrangTua" role="tabpanel" aria-labelledby="custom-tabs-orangtua-tab">
-                                        <div class="row">
-                                            <div class="col-md-12 mt-3" id="previewDataAyahAllDiv">
-                                                <h6 class="font-weight-bold">Data Ayah</h6>
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered">
-                                                        <tr>
-                                                            <th width="30%">Nama Ayah</th>
-                                                            <td id="previewNamaAyah"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Status</th>
-                                                            <td id="previewStatusAyah"></td>
-                                                        </tr>
-                                                        <tbody id="previewDataAyahLainnya">
-                                                            <tr>
-                                                                <th>Tempat, Tanggal Lahir</th>
-                                                                <td id="previewTtlAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>NIK Ayah</th>
-                                                                <td id="previewNikAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Pendidikan</th>
-                                                                <td id="previewPendidikanAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Pekerjaan</th>
-                                                                <td id="previewPekerjaanAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Penghasilan</th>
-                                                                <td id="previewPenghasilanAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>No. HP</th>
-                                                                <td id="previewNoHpAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kewarganegaraan</th>
-                                                                <td id="previewKewarganegaraanAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>File KK</th>
-                                                                <td id="previewFileKkAyah"></td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-12 mt-3" id="previewDataIbuDiv">
-                                                <h6 class="font-weight-bold">Data Ibu</h6>
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered">
-                                                        <tr>
-                                                            <th width="30%">Nama Ibu</th>
-                                                            <td id="previewNamaIbu"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Status</th>
-                                                            <td id="previewStatusIbu"></td>
-                                                        </tr>
-                                                        <tbody id="previewDataIbuLainya">
-                                                            <tr>
-                                                                <th>Tempat, Tanggal Lahir</th>
-                                                                <td id="previewTtlIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>NIK Ibu</th>
-                                                                <td id="previewNikIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Pendidikan</th>
-                                                                <td id="previewPendidikanIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Pekerjaan</th>
-                                                                <td id="previewPekerjaanIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Penghasilan</th>
-                                                                <td id="previewPenghasilanIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>No. HP</th>
-                                                                <td id="previewNoHpIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kewarganegaraan</th>
-                                                                <td id="previewKewarganegaraanIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>File KK</th>
-                                                                <td id="previewFileKkIbu"></td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-12 mt-3" id="previewDataWaliDiv">
-                                                <h6 class="font-weight-bold">Data Wali</h6>
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered">
-                                                        <tr>
-                                                            <th width="30%">Status Wali</th>
-                                                            <td id="previewStatusWali"></td>
-                                                        </tr>
-                                                        <tbody id="previewDataWaliLainya">
-                                                            <tr>
-                                                                <th>Nama Wali</th>
-                                                                <td id="previewNamaWali"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>NIK Wali</th>
-                                                                <td id="previewNikWali"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>No. HP Wali</th>
-                                                                <td id="previewNoHpWali"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Tempat, Tanggal Lahir</th>
-                                                                <td id="previewTtlWali"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Pendidikan</th>
-                                                                <td id="previewPendidikanWali"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Pekerjaan</th>
-                                                                <td id="previewPekerjaanWali"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Penghasilan</th>
-                                                                <td id="previewPenghasilanWali"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kewarganegaraan</th>
-                                                                <td id="previewKewarganegaraanWali"></td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            <!-- tabel untuk nomor KKS dan PKH -->
-                                            <div class="col-md-12 mt-3" id="previewDataNomorKksPkhDiv">
-                                                <!-- tabel unutk KKS nomor dan file -->
-                                                <h6 class="font-weight-bold">Lainnya</h6>
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered">
-                                                        <tr>
-                                                            <th width="30%">Nomor / File KKS</th>
-                                                            <td><span id="previewNomorKks"></span> / <span id="previewFileKks"></span></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Nomor / File PKH</th>
-                                                            <td><span id="previewNomorPkh"></span> / <span id="previewFilePkh"></span></td>
-                                                        </tr>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Tab Data Alamat -->
-                                    <div class="tab-pane fade" id="dataAlamat" role="tabpanel" aria-labelledby="custom-tabs-alamat-tab">
-                                        <div class="row">
-                                            <div class="col-md-12 mt-3" id="previewDataAlamatAyahDiv">
-                                                <h6 class="font-weight-bold" id="labelAlamatAyah">Alamat Ayah Kandung</h6>
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered">
-                                                        <tr>
-                                                            <th width="30%">Alamat</th>
-                                                            <td id="previewAlamatAyah"></td>
-                                                        </tr>
-                                                        <tbody id="previewDataAlamatDetailAyahLainya">
-                                                            <tr>
-                                                                <th>Status Kepemilikan</th>
-                                                                <td id="previewStatusKepemilikanRumahAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>RT/RW</th>
-                                                                <td><span id="previewRtAyah"></span>/<span id="previewRwAyah"></span></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kelurahan/Desa</th>
-                                                                <td id="previewKelurahanDesaAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kecamatan</th>
-                                                                <td id="previewKecamatanAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kabupaten/Kota</th>
-                                                                <td id="previewKabupatenKotaAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Provinsi</th>
-                                                                <td id="previewProvinsiAyah"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kode Pos</th>
-                                                                <td id="previewKodePosAyah"></td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-12 mt-3" id="previewDataAlamatIbuDiv">
-                                                <h6 class="font-weight-bold" id="labelAlamatIbu">Alamat Ibu Kandung</h6>
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered">
-                                                        <tr>
-                                                            <th width="30%">Alamat</th>
-                                                            <td id="previewAlamatIbu"></td>
-                                                        </tr>
-                                                        <tbody id="previewDataAlamatDetailIbuLainya">
-                                                            <tr>
-                                                                <th>Status Kepemilikan</th>
-                                                                <td id="previewStatusKepemilikanRumahIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>RT/RW</th>
-                                                                <td><span id="previewRtIbu"></span>/<span id="previewRwIbu"></span></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kelurahan/Desa</th>
-                                                                <td id="previewKelurahanDesaIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kecamatan</th>
-                                                                <td id="previewKecamatanIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kabupaten/Kota</th>
-                                                                <td id="previewKabupatenKotaIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Provinsi</th>
-                                                                <td id="previewProvinsiIbu"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kode Pos</th>
-                                                                <td id="previewKodePosIbu"></td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-12 mt-3" id="previewDataAlamatSantriDiv">
-                                                <h6 class="font-weight-bold">Alamat Santri</h6>
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered">
-                                                        <tr>
-                                                            <th width="30%">Status Tempat Tinggal</th>
-                                                            <td id="previewStatusTempatTinggalSantri"></td>
-                                                        </tr>
-                                                        <tbody id="previewAlamatSantriLainya">
-                                                            <tr>
-                                                                <th>Status Mukim</th>
-                                                                <td id="previewStatusMukim"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Alamat</th>
-                                                                <td id="previewAlamatSantri"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>RT/RW</th>
-                                                                <td><span id="previewRtSantri"></span>/<span id="previewRwSantri"></span></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kelurahan/Desa</th>
-                                                                <td id="previewKelurahanDesaSantri"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kecamatan</th>
-                                                                <td id="previewKecamatanSantri"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kabupaten/Kota</th>
-                                                                <td id="previewKabupatenKotaSantri"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Provinsi</th>
-                                                                <td id="previewProvinsiSantri"></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th>Kode Pos</th>
-                                                                <td id="previewKodePosSantri"></td>
-                                                            </tr>
-                                                        </tbody>
-                                                        <tr>
-                                                            <th>Jarak ke Lembaga</th>
-                                                            <td id="previewJarakTempuhSantri"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Transportasi</th>
-                                                            <td id="previewTransportasiSantri"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Waktu Tempuh</th>
-                                                            <td id="previewWaktuTempuhSantri"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Titik Koordinat</th>
-                                                            <td id="previewTitikKoordinatSantri"></td>
-                                                        </tr>
-
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer justify-content-between">
-                <div>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Ubah Data</button>
-                    <button type="submit" class="btn btn-primary" onclick="submitForm()">Kirim Data</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- ============================================= End Modal Preview ================================================ -->
-
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
 <script>
-    /* ===== Region: Menampilkan Preview Data Santri =====
-     * Fungsi ini dipanggil saat tombol "Pratinjau" diklik
-     * Menampilkan data santri yang telah diisi dalam modal preview
-     */
-    function showPreview() {
-        // Validasi form terlebih dahulu
-        if (!validateFormBeforePreview()) {
-            return;
-        }
-
-        // Bagian Data Santri
-        document.getElementById('previewIdTpq').textContent = (() => {
-            const tpqSelect = document.getElementById('IdTpq');
-            const selectedOption = tpqSelect.options[tpqSelect.selectedIndex];
-            return selectedOption ? selectedOption.text : '';
-        })();
-        document.getElementById('previewIdKelas').textContent = (() => {
-            const kelasSelect = document.getElementById('IdKelas');
-            const selectedOption = kelasSelect.options[kelasSelect.selectedIndex];
-            return selectedOption ? selectedOption.text : '';
-        })();
-        document.getElementById('previewNamaSantri').textContent = document.getElementById('NamaSantri').value || '-';
-        document.getElementById('previewNikSantri').textContent = document.getElementById('NikSantri').value || '-';
-        document.getElementById('previewNisn').textContent = document.getElementById('NISN').value || '-';
-        document.getElementById('previewNoKkSantri').textContent = document.getElementById('IdKartuKeluarga').value || '-';
-        document.getElementById('previewNamaKepalaKeluarga').textContent = document.getElementById('NamaKepalaKeluarga').value || '-';
-        document.getElementById('previewJenisKelamin').textContent = document.getElementById('JenisKelamin').value || '-';
-        document.getElementById('previewAnakKe').textContent = document.getElementById('AnakKe').value || '-';
-        document.getElementById('previewJumlahSaudara').textContent = document.getElementById('JumlahSaudara').value || '-';
-        document.getElementById('previewCitaCita').textContent = document.getElementById('CitaCita').value || '-';
-        document.getElementById('previewHobi').textContent = document.getElementById('Hobi').value || '-';
-        document.getElementById('previewKebutuhanKhusus').textContent = document.getElementById('KebutuhanKhusus').value || '-';
-        document.getElementById('previewKebutuhanDisabilitas').textContent = document.getElementById('KebutuhanDisabilitas').value || '-';
-        document.getElementById('previewYangMembiayaiSekolah').textContent = document.getElementById('YangBiayaSekolah').value || '-';
-        document.getElementById('previewKip').textContent = document.getElementById('NoKIP').value || '-';
-        document.getElementById('previewFileKip').textContent = document.getElementById('FileKIP').files[0]?.name || '-';
-        document.getElementById('previewNoHpSantri').textContent = document.getElementById('NoHpSantri').value || '-';
-        document.getElementById('previewEmailSantri').textContent = document.getElementById('EmailSantri').value || '-';
-        document.getElementById('previewFileKkSantri').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
-
-        // Preview foto santri
-        const photoInput = document.getElementById('PhotoProfil');
-        if (photoInput.files && photoInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('previewFotoSantri').src = e.target.result;
-            }
-            reader.readAsDataURL(photoInput.files[0]);
-        }
-
-        const tempat = document.getElementById('TempatLahirSantri').value;
-        const tanggal = new Date(document.getElementById('TanggalLahirSantri').value)
-            .toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
-        document.getElementById('previewTtl').textContent = `${tempat}, ${tanggal}`;
-
-        // Bagian Data Ayah
-        const statusAyah = document.getElementById('StatusAyah').value || '-';
-        document.getElementById('previewStatusAyah').textContent = statusAyah;
-        document.getElementById('previewNamaAyah').textContent = document.getElementById('NamaAyah').value || '-';
-        // Dapatkan tbody data ayah lainnya
-        const dataAyahLainnya = document.getElementById('previewDataAyahLainnya');
-
-        if (statusAyah === 'Masih Hidup') {
-            // Tampilkan tbody data ayah
-            dataAyahLainnya.style.display = 'table-row-group';
-
-            document.getElementById('previewNikAyah').textContent = document.getElementById('NikAyah').value || '-';
-            document.getElementById('previewPendidikanAyah').textContent = document.getElementById('PendidikanAyah').value || '-';
-            document.getElementById('previewPekerjaanAyah').textContent = document.getElementById('PekerjaanUtamaAyah').value || '-';
-            document.getElementById('previewPenghasilanAyah').textContent = document.getElementById('PenghasilanUtamaAyah').value || '-';
-            document.getElementById('previewNoHpAyah').textContent = document.getElementById('NoHpAyah').value || '-';
-            const tempatAyah = document.getElementById('TempatLahirAyah').value;
-            const tanggalAyah = new Date(document.getElementById('TanggalLahirAyah').value)
-                .toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
-            document.getElementById('previewTtlAyah').textContent = `${tempatAyah}, ${tanggalAyah}`;
-            document.getElementById('previewKewarganegaraanAyah').textContent = document.getElementById('KewarganegaraanAyah').value || '-';
-
-            //jika checkbok kk ayah sama dengan santri maka copy file kk santri ke file kk ayah
-            const kkAyahSamaDenganSantri = document.getElementById('KkAyahSamaDenganSantri').checked;
-            if (kkAyahSamaDenganSantri) {
-                document.getElementById('previewFileKkAyah').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
-            } else {
-                document.getElementById('previewFileKkAyah').textContent = document.getElementById('FileKkAyah').files[0]?.name || '-';
-            }
-        } else {
-            // Sembunyikan tbody data ayah
-            dataAyahLainnya.style.display = 'none';
-        }
-        // Bagian Data Ibu
-        const statusIbu = document.getElementById('StatusIbu').value || '-';
-        document.getElementById('previewStatusIbu').textContent = statusIbu;
-        document.getElementById('previewNamaIbu').textContent = document.getElementById('NamaIbu').value || '-';
-        const dataIbuLainnya = document.getElementById('previewDataIbuLainya');
-        if (statusIbu === 'Masih Hidup') {
-            dataIbuLainnya.style.display = 'table-row-group';
-            document.getElementById('previewNikIbu').textContent = document.getElementById('NikIbu').value || '-';
-            document.getElementById('previewPendidikanIbu').textContent = document.getElementById('PendidikanIbu').value || '-';
-            document.getElementById('previewPekerjaanIbu').textContent = document.getElementById('PekerjaanUtamaIbu').value || '-';
-            document.getElementById('previewPenghasilanIbu').textContent = document.getElementById('PenghasilanUtamaIbu').value || '-';
-            document.getElementById('previewNoHpIbu').textContent = document.getElementById('NoHpIbu').value || '-';
-            const tempatIbu = document.getElementById('TempatLahirIbu').value;
-            const tanggalIbu = new Date(document.getElementById('TanggalLahirIbu').value)
-                .toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
-            document.getElementById('previewTtlIbu').textContent = `${tempatIbu}, ${tanggalIbu}`;
-            document.getElementById('previewKewarganegaraanIbu').textContent = document.getElementById('KewarganegaraanIbu').value || '-';
-
-            //jika checkbok kk ibu sama dengan ayah atau santri maka copy file kk santri ke file kk ibu            
-            const kkIbuSamaDenganAyahAtauSantri = document.getElementById('KkIbuSamaDenganAyahAtauSantri').checked;
-            if (kkIbuSamaDenganAyahAtauSantri) {
-                document.getElementById('previewFileKkIbu').textContent = document.getElementById('FileKkSantri').files[0]?.name || '-';
-            } else {
-                document.getElementById('previewFileKkIbu').textContent = document.getElementById('FileKkIbu').files[0]?.name || '-';
-            }
-        } else {
-            dataIbuLainnya.style.display = 'none';
-        }
-
-        // Bagian Data Wali 
-        const statusWali = document.getElementById('StatusWali').value || '-';
-        document.getElementById('previewStatusWali').textContent = statusWali;
-        //jika status wali lainya atau saudara maka tampilkan data wali
-        const dataWaliLainnya = document.getElementById('previewDataWaliLainya');
-        if (statusWali === 'Saudara') {
-            dataWaliLainnya.style.display = 'table-row-group';
-            document.getElementById('previewNamaWali').textContent = document.getElementById('NamaWali').value || '-';
-            document.getElementById('previewNikWali').textContent = document.getElementById('NikWali').value || '-';
-            document.getElementById('previewNoHpWali').textContent = document.getElementById('NoHpWali').value || '-';
-            // Format TTL Wali
-            const tempatWali = document.getElementById('TempatLahirWali').value;
-            const tanggalWali = new Date(document.getElementById('TanggalLahirWali').value)
-                .toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
-            document.getElementById('previewTtlWali').textContent = `${tempatWali}, ${tanggalWali}`;
-            document.getElementById('previewKewarganegaraanWali').textContent = document.getElementById('KewarganegaraanWali').value || '-';
-            document.getElementById('previewPendidikanWali').textContent = document.getElementById('PendidikanWali').value || '-';
-            document.getElementById('previewPekerjaanWali').textContent = document.getElementById('PekerjaanUtamaWali').value || '-';
-            document.getElementById('previewPenghasilanWali').textContent = document.getElementById('PenghasilanUtamaWali').value || '-';
-            document.getElementById('previewNoHpWali').textContent = document.getElementById('NoHpWali').value || '-';
-        } else {
-            dataWaliLainnya.style.display = 'none';
-        }
-
-        // untuk KKS dan PKH
-        document.getElementById('previewNomorKks').textContent = document.getElementById('NomorKKS').value || '-';
-        document.getElementById('previewNomorPkh').textContent = document.getElementById('NomorPKH').value || '-';
-        // untuk File KKS dan PKH
-        document.getElementById('previewFileKks').textContent = document.getElementById('FileKKS').files[0]?.name || '-';
-        document.getElementById('previewFilePkh').textContent = document.getElementById('FilePKH').files[0]?.name || '-';
-
-        // Bagian  Alamat Ayah
-        const previewDataAlamatAyahDiv = document.getElementById('previewDataAlamatAyahDiv');
-        if (statusAyah === 'Masih Hidup') {
-            previewDataAlamatAyahDiv.style.display = 'block';
-            document.getElementById('labelAlamatAyah').textContent = "Alamat Ayah Kandung";
-
-            const previewDataAlamatDetailAyahLainya = document.getElementById('previewDataAlamatDetailAyahLainya');
-            const ayahTinggalDiLuarNegeri = document.getElementById('TinggalDiluarNegeriAyah').checked;
-            if (ayahTinggalDiLuarNegeri) {
-                previewDataAlamatDetailAyahLainya.style.display = 'none';
-                document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value || '-';
-            } else {
-                previewDataAlamatDetailAyahLainya.style.display = 'table-row-group';
-                document.getElementById('previewAlamatAyah').textContent = document.getElementById('AlamatAyah').value || '-';
-                document.getElementById('previewStatusKepemilikanRumahAyah').textContent = document.getElementById('StatusKepemilikanRumahAyah').value || '-';
-                document.getElementById('previewRtAyah').textContent = document.getElementById('RtAyah').value || '-';
-                document.getElementById('previewRwAyah').textContent = document.getElementById('RwAyah').value || '-';
-                document.getElementById('previewKelurahanDesaAyah').textContent = document.getElementById('KelurahanDesaAyah').value || '-';
-                document.getElementById('previewKecamatanAyah').textContent = document.getElementById('KecamatanAyah').value || '-';
-                document.getElementById('previewKabupatenKotaAyah').textContent = document.getElementById('KabupatenKotaAyah').value || '-';
-                document.getElementById('previewProvinsiAyah').textContent = document.getElementById('ProvinsiAyah').value || '-';
-                document.getElementById('previewKodePosAyah').textContent = document.getElementById('KodePosAyah').value || '-';
-            }
-        } else {
-            previewDataAlamatAyahDiv.style.display = 'none';
-        }
-
-        // Alamat Ibu
-        const previewDataAlamatIbuDiv = document.getElementById('previewDataAlamatIbuDiv');
-        if (statusIbu === 'Masih Hidup') {
-            previewDataAlamatIbuDiv.style.display = 'block';
-            document.getElementById('labelAlamatIbu').textContent = "Alamat Ibu Kandung";
-            const alamatIbuSamaDenganAyah = document.getElementById('AlamatIbuSamaDenganAyah').checked;
-            if (alamatIbuSamaDenganAyah) {
-                previewDataAlamatIbuDiv.style.display = 'none';
-                document.getElementById('labelAlamatAyah').textContent = "Alamat Orang Tua Kandung";
-            } else {
-                const previewDataAlamatDetailIbuLainya = document.getElementById('previewDataAlamatDetailIbuLainya');
-                const ibuTinggalDiLuarNegeri = document.getElementById('TinggalDiluarNegeriIbu').checked;
-                if (ibuTinggalDiLuarNegeri) {
-                    previewDataAlamatDetailIbuLainya.style.display = 'none';
-                    document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value || '-';
-                } else {
-                    previewDataAlamatDetailIbuLainya.style.display = 'table-row-group';
-                    document.getElementById('previewAlamatIbu').textContent = document.getElementById('AlamatIbu').value || '-';
-                    document.getElementById('previewStatusKepemilikanRumahIbu').textContent = document.getElementById('StatusKepemilikanRumahIbu').value || '-';
-                    document.getElementById('previewRtIbu').textContent = document.getElementById('RtIbu').value || '-';
-                    document.getElementById('previewRwIbu').textContent = document.getElementById('RwIbu').value || '-';
-                    document.getElementById('previewKelurahanDesaIbu').textContent = document.getElementById('KelurahanDesaIbu').value || '-';
-                    document.getElementById('previewKecamatanIbu').textContent = document.getElementById('KecamatanIbu').value || '-';
-                    document.getElementById('previewKabupatenKotaIbu').textContent = document.getElementById('KabupatenKotaIbu').value || '-';
-                    document.getElementById('previewProvinsiIbu').textContent = document.getElementById('ProvinsiIbu').value || '-';
-                    document.getElementById('previewKodePosIbu').textContent = document.getElementById('KodePosIbu').value || '-';
-                }
-            }
-        } else {
-            previewDataAlamatIbuDiv.style.display = 'none';
-        }
-
-        // Alamat Santri
-        // check status tempat tinggal  
-        const StatusTempatTinggalSantri = document.getElementById('StatusTempatTinggalSantri').value;
-        document.getElementById('previewStatusTempatTinggalSantri').textContent = StatusTempatTinggalSantri;
-        document.getElementById('previewStatusMukim').textContent = document.getElementById('StatusMukim').value;
-        //jika status tempat tinggal lainnya maka tampilkan alamat santri   
-        const dataAlamatSantri = document.getElementById('previewAlamatSantriLainya');
-        if (StatusTempatTinggalSantri === 'Lainnya' || StatusTempatTinggalSantri === 'Tinggal dengan Wali' || StatusTempatTinggalSantri === '') {
-            dataAlamatSantri.style.display = 'table-row-group';
-            document.getElementById('previewAlamatSantri').textContent = document.getElementById('AlamatSantri').value || '-';
-            document.getElementById('previewRtSantri').textContent = document.getElementById('RtSantri').value || '-';
-            document.getElementById('previewRwSantri').textContent = document.getElementById('RwSantri').value || '-';
-            document.getElementById('previewKelurahanDesaSantri').textContent = document.getElementById('KelurahanDesaSantri').value || '-';
-            document.getElementById('previewKecamatanSantri').textContent = document.getElementById('KecamatanSantri').value || '-';
-            document.getElementById('previewKabupatenKotaSantri').textContent = document.getElementById('KabupatenKotaSantri').value || '-';
-            document.getElementById('previewProvinsiSantri').textContent = document.getElementById('ProvinsiSantri').value || '-';
-            document.getElementById('previewKodePosSantri').textContent = document.getElementById('KodePosSantri').value || '-';
-        } else {
-            dataAlamatSantri.style.display = 'none';
-        }
-        document.getElementById('previewJarakTempuhSantri').textContent = document.getElementById('JarakTempuhSantri').value || '-';
-        document.getElementById('previewTransportasiSantri').textContent = document.getElementById('TransportasiSantri').value || '-';
-        document.getElementById('previewWaktuTempuhSantri').textContent = document.getElementById('WaktuTempuhSantri').value || '-';
-        document.getElementById('previewTitikKoordinatSantri').textContent = document.getElementById('TitikKoordinatSantri').value || '-';
-        // Tampilkan modal
-        $('#previewModal').modal('show');
-    }
-
-    function validateFormBeforePreview() {
-        // Implementasi validasi form
-        if (!validateAndNext('alamat-part')) {
-            return false;
-        }
-        copyAlamatAyahKeIbu();
-        copyAlamatSantri();
-        return true; // Ganti dengan logika validasi yang sesuai
-    }
-
     /* ===== Region: Submit Form dengan AJAX ===== */
     function submitForm() {
         // Tampilkan loading indicator
@@ -2462,6 +1750,14 @@ if (ENVIRONMENT === 'production') {
         const form = document.getElementById('santriForm');
         const formData = new FormData(form);
 
+        // Tambahkan flag untuk membedakan antara tambah dan edit
+        <?php if (isset($dataSantri) && !empty($dataSantri)): ?>
+            formData.append('is_editing', '1');
+            formData.append('santri_id', '<?= $dataSantri['IdSantri'] ?>');
+        <?php else: ?>
+            formData.append('is_editing', '0');
+        <?php endif; ?>
+
         // Kirim data dengan AJAX
         $.ajax({
             url: form.getAttribute('action'),
@@ -2474,11 +1770,13 @@ if (ENVIRONMENT === 'production') {
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil',
-                        text: 'Data santri berhasil disimpan',
-                        showConfirmButton: false,
-                        timer: 2000
-                    }).then(() => {
-                        window.location.href = response.redirect;
+                        text: <?php if (isset($dataSantri)):
+                                ?> 'Data santri berhasil diperbarui'
+                    <?php else:
+                    ?> 'Data santri berhasil disimpan'
+                    <?php endif; ?>,
+                    showConfirmButton: false,
+                    timer: 2000
                     });
                 } else {
                     Swal.fire({
@@ -2493,7 +1791,7 @@ if (ENVIRONMENT === 'production') {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: response.message || 'Terjadi kesalahan saat menghubungi server'
+                    text: 'Terjadi kesalahan saat menghubungi server'
                 });
             }
         });
@@ -4512,7 +3810,7 @@ if (ENVIRONMENT === 'production') {
 
                 // Set required fields berdasarkan tempat tinggal
                 if (statusTinggal === 'Tinggal dengan Ayah Kandung') {
-                    setRequiredFields(alamatSantriFields, false);
+                    setRequiredFields(alamatSantriFields, true);
                     setRequiredFields(alamatAyahFields, true);
                     setRequiredFields(alamatIbuFields, false);
                 } else {
