@@ -49,7 +49,7 @@
                                 <i class="right fas fa-angle-left"></i>
                             </p>
                         </a>
-                        <ul class="nav nav-treeview" style="display: block;"> <!-- none; or block -->
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
@@ -57,7 +57,7 @@
                                 </a>
                             </li>
                         </ul>
-                        <ul class="nav nav-treeview" style="display: block;"> <!-- none; or block -->
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
@@ -65,7 +65,7 @@
                                 </a>
                             </li>
                         </ul>
-                        <ul class="nav nav-treeview" style="display: block;"> <!-- none; or block -->
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
@@ -82,7 +82,7 @@
                                 <i class="right fas fa-angle-left"></i>
                             </p>
                         </a>
-                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                        <ul class="nav nav-treeview" style="display: block;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
@@ -99,6 +99,18 @@
                                 <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Guru Kelas</p>
+                                </a>
+                            </li>
+                            <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/materiPelajaran/showMateriPelajaran') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Daftar Materi</p>
+                                </a>
+                            </li>
+                            <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/materi/showMateriKelas') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Materi Kelas</p>
                                 </a>
                             </li>
                         </ul>

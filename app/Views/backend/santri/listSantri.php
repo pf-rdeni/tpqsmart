@@ -7,7 +7,7 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="tblSantri" class="table table-bordered table-striped">
                 <thead>
                     <tr>
                         <th>IdSantri</th>
@@ -35,10 +35,10 @@
                             <td><?= $santri['JenisKelamin']; ?></td>
                             <td><?= $santri['TempatLahir'] . ", " . $santri['TanggalLahir']; ?></td>
                             <?php foreach ($dataKelas as $kelas) : ?>
-                                <?php if($kelas['IdKelas'] == $santri['IdKelas']) : ?>
+                                <?php if ($kelas['IdKelas'] == $santri['IdKelas']) : ?>
                                     <td><?= $kelas['NamaKelas']; ?></td>
                                 <?php endif; ?>
-                            <?php endforeach; ?>                           
+                            <?php endforeach; ?>
                             <td><?= $santri['NamaAyah']; ?></td>
                             <td><?= $santri['NamaIbu']; ?></td>
                             <td><?= $santri['NoHpAyah'] . " / " . $santri['NoHpIbu']; ?></td>
@@ -78,4 +78,9 @@
     </div>
     <!-- /.card -->
 </div>
+<?= $this->endSection(); ?>
+<?= $this->Section("Sripts"); ?>
+<script>
+    initializeDataTableWithFilter("#tblSantri", true, ["excel", "pdf", "print", "colvis"]);
+</script>
 <?= $this->endSection(); ?>

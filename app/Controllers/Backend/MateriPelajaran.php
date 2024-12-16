@@ -59,4 +59,17 @@ class MateriPelajaran extends BaseController
         $this->materiModel->delete($id);
         return redirect()->to('/materipelajaran');
     }
+
+    public function showMateriPelajaran()
+    {
+
+        $dataMateriPelajaran = $this->materiModel->findAll();
+        $data = [
+            'page_title' => 'Data Materi Pelajaran',
+            'materiPelajaran' => $dataMateriPelajaran
+        ];
+        return view('backend/materi/daftarMeteriPelajaran', $data);
+    }
+
+    
 }

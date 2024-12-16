@@ -13,7 +13,7 @@
         <!-- /.card-header -->
         <div class="card-body">
             <h5>Data Pendaftaran Santri Terbaru</h5>
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="tblAturSantri" class="table table-bordered table-striped">
                 <thead>
                     <tr>
                         <th>Profil</th>
@@ -704,6 +704,7 @@
 <?= $this->section('scripts'); ?>
 <script>
     // Initialize DataTable for #tblTpq
-    initializeDataTableUmum("#tblTpq", true, ["excel", "pdf", "print", "colvis"]);
+    initializeDataTableUmum("#tblTpq");
+    initializeDataTableWithFilter("#tblAturSantri", true, ["excel", "pdf", "print", "colvis"]);
 </script>
 <?= $this->endSection(); ?>

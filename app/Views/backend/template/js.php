@@ -76,45 +76,12 @@
                 ...options
             }).buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
         }
-        // Function to initialize DataTable with filter header
-        function initializeDataTableWithFilter(selector, paging = true, buttons = [], options = {}) {
-            $(selector).DataTable({
-                "responsive": true,
-                "lengthChange": false,
-                "autoWidth": false,
-                "paging": paging,
-                "buttons": buttons,
-                // Menambahkan filter header
-                "initComplete": function() {
-                    this.api().columns().every(function() {
-                        var column = this;
-                        var select = $('<select class="form-control"><option value="">Pilih Filter</option></select>')
-                            .appendTo($(column.header()))
-                            .on('change', function() {
-                                var val = $.fn.dataTable.util.escapeRegex(
-                                    $(this).val()
-                                );
-                                column
-                                    .search(val ? '^' + val + '$' : '', true, false)
-                                    .draw();
-                            });
 
-                        column.data().unique().sort().each(function(d, j) {
-                            select.append('<option value="' + d + '">' + d + '</option>')
-                        });
-                    });
-                },
-                ...options
-            }).buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
-        }
         // Initialize DataTables
         initializeDataTable("#previousKelas", true, ["excel", "pdf", "print"]);
         initializeDataTable("#currentKelas", true, ["excel", "pdf", "print"]);
         initializeDataTable("#kenaikanKelas", false, ["excel", "pdf", "print"]); // Show all rows (paging disabled)
         initializeDataTable("#example1", true, ["excel", "pdf", "print", "colvis"]);
-
-
-
 
         // Initialize DataTable for #example2 with different settings
         $('#example2').DataTable({
