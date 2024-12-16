@@ -680,12 +680,16 @@ class Santri extends BaseController
                 throw new \Exception('Gagal menghapus data santri');
             }
 
-            return redirect()->to(base_url('backend/santri/showAturSantriBaru'))
-            ->with('success', 'Data santri berhasil dihapus');
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data santri berhasil dihapus'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Santri: deleteSantriBaru - Error: ' . $e->getMessage());
-            return redirect()->to(base_url('backend/santri/showAturSantriBaru'))
-            ->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Pesan: ' . $e->getMessage()
+            ])->setStatusCode(500);
         }
     }
 

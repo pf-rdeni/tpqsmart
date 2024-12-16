@@ -61,7 +61,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form action="<?= base_url('backend/materi/save') ?>" method="post">
+            <form action="<?= base_url('backend/materiPelajaran/save') ?>" method="post">
                 <div class="modal-body">
                     <div class="form-group">
                         <label>ID Materi</label>
@@ -102,7 +102,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form action="<?= base_url('backend/materi/update/' . $row['Id']) ?>" method="post">
+                <form action="<?= base_url('backend/materiPelajaran/update/' . $row['Id']) ?>" method="post">
                     <div class="modal-body">
                         <div class="form-group">
                             <label>ID Materi</label>
@@ -142,10 +142,16 @@
 
     // Create Delete fungsi
     function confirmDelete(id) {
+        // Dapatkan informasi materi dari baris tabel
+        const row = event.target.closest('tr');
+        const idMateri = row.querySelector('td:nth-child(2)').textContent;
+        const namaMateri = row.querySelector('td:nth-child(3)').textContent;
+
         Swal.fire({
-            title: 'Apakah anda yakin?',
-            text: "Data yang dihapus tidak dapat dikembalikan!",
-            icon: 'warning',
+            title: 'Apakah Anda yakin?',
+            html: `Data materi ID: <strong>${idMateri}</strong> Nama: <strong>${namaMateri}</strong> akan dihapus permanen!`,
+            icon: 'question',
+            iconColor: '#d33',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
@@ -153,39 +159,35 @@
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Gunakan fetch untuk melakukan request delete
-                fetch(`${BASE_URL}/backend/materi/delete/${id}`)
+                Swal.fire({
+                    title: 'Menghapus...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                fetch('<?= base_url('backend/materiPelajaran/delete/') ?>' + id)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Tampilkan pesan sukses
                             Swal.fire({
-                                title: 'Terhapus!',
-                                text: 'Data berhasil dihapus.',
+                                title: 'Berhasil!',
+                                text: data.message,
                                 icon: 'success',
-                                timer: 2000, // Tunggu 2 detik
-                                showConfirmButton: false
+                                confirmButtonText: 'OK'
                             }).then(() => {
-                                // Refresh halaman setelah timer selesai
                                 window.location.reload();
                             });
                         } else {
-                            Swal.fire({
-                                title: 'Gagal!',
-                                text: data.message || 'Terjadi kesalahan saat menghapus data.',
-                                icon: 'error',
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
+                            throw new Error(data.message);
                         }
                     })
                     .catch(error => {
                         Swal.fire({
-                            title: 'Error!',
-                            text: 'Terjadi kesalahan pada server.',
+                            title: 'Gagal!',
+                            text: error.message,
                             icon: 'error',
-                            timer: 2000,
-                            showConfirmButton: false
+                            confirmButtonText: 'OK'
                         });
                     });
             }

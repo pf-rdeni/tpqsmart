@@ -56,8 +56,22 @@ class MateriPelajaran extends BaseController
 
     public function delete($id)
     {
-        $this->materiModel->delete($id);
-        return redirect()->to('/materipelajaran');
+        try {
+            $result = $this->materiModel->delete($id);
+            if (!$result) {
+                throw new \Exception('Gagal menghapus data materi pelajaran');
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data materi pelajaran berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus data: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function showMateriPelajaran()

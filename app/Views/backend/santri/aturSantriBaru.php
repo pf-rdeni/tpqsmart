@@ -530,26 +530,30 @@
                 });
 
                 fetch('<?= base_url('backend/santri/deleteSantriBaru/') ?>' + IdSantri, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
                     })
-                    .then(response => {
-                        if (response.ok) {
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
                             Swal.fire({
                                 title: 'Berhasil!',
-                                text: 'Data santri berhasil dihapus.',
+                                text: data.message || 'Data santri berhasil dihapus.',
                                 icon: 'success',
                                 confirmButtonText: 'OK'
                             }).then(() => {
                                 location.reload();
                             });
                         } else {
-                            throw new Error('Gagal menghapus data santri.');
+                            throw new Error(data.message || 'Gagal menghapus data santri.');
                         }
                     })
                     .catch(error => {
                         Swal.fire({
                             title: 'Gagal!',
-                            text: error.message,
+                            text: error.message || 'Terjadi kesalahan saat menghapus data.',
                             icon: 'error',
                             confirmButtonText: 'OK'
                         });
