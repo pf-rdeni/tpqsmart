@@ -1,13 +1,18 @@
 <script>
     // ini untuk script umum yang sering dipakai di semua halaman
     // contoh: initializeDataTableUmum
-    function initializeDataTableUmum(selector, paging = true, buttons = [], options = {}) {
+    function initializeDataTableUmum(selector, paging = true, lengthChange = false, buttons = [], options = {}) {
         $(selector).DataTable({
+            "lengthChange": lengthChange,
             "responsive": true,
-            "lengthChange": false,
             "autoWidth": false,
             "paging": paging,
             "buttons": buttons,
+            "pageLength": 10,
+            "lengthMenu": [ // Kustomisasi opsi jumlah entri yang tersedia
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "Semua"]
+            ],
             "language": {
                 "search": "Pencarian:",
                 "paginate": {

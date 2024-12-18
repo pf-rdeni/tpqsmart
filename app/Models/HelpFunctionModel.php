@@ -106,6 +106,17 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultArray();
     }
 
+    public function getDataMateriPelajaran($IdMateri = null)
+    {
+        $builder = $this->db->table('tbl_materi_pelajaran');
+
+        if ($IdMateri !== null) {
+            $builder->where('IdMateri', $IdMateri);
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
     //===================================================================
 
     public function getNextKelas($idKelas)

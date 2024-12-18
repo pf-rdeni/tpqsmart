@@ -108,6 +108,12 @@
                                 </a>
                             </li>
                             <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/materiPelajaran/showMateriPelajaran') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Kurikulum</p>
+                                </a>
+                            </li>
+                            <li class="=nav-item">
                                 <a href=<?php echo base_url('backend/kelasMateriPelajaran/showMateriKelas') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Materi Kelas</p>

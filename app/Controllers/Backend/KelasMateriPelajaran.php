@@ -2,8 +2,9 @@
 
 namespace App\Controllers\Backend;
 
-use App\Models\KelasMateriPelajaranModel;
 use App\Controllers\BaseController;
+use App\Models\KelasMateriPelajaranModel;
+use App\Models\HelpFunctionModel;
 
 class KelasMateriPelajaran extends BaseController
 {
@@ -44,6 +45,39 @@ class KelasMateriPelajaran extends BaseController
         return view('kelas_materi_pelajaran/edit', $data);
     }
 
+    public function add()
+    {
+        $model = new KelasMateriPelajaranModel();
+        $data = [
+            'IdKelas'       => $this->request->getPost('IdKelas'),
+            'IdTpq'         => $this->request->getPost('IdTpq'),
+            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
+            'IdMateri'      => $this->request->getPost('IdMateri'),
+            'Semester'      => $this->request->getPost('Semester')
+        ];
+
+        try {
+            //$result = $model->save($data);
+            $result = false;
+            if ($result) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Data berhasil ditambahkan'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'status' => 'fail',
+                    'message' => 'Data gagal ditambahkan'
+                ])->setStatusCode(500);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'fail',
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
     public function update($id)
     {
         $model = new KelasMateriPelajaranModel();
@@ -70,17 +104,18 @@ class KelasMateriPelajaran extends BaseController
     public function showMateriKelas($IdTpq = 411221010225)
     {
         $model = new KelasMateriPelajaranModel();
+        $helpModel = new HelpFunctionModel();
+
 
         // Query builder tetap sama
         $builder = $model->select('tbl_kelas_materi_pelajaran.*, 
                                  tbl_kelas.NamaKelas,
                                  tbl_tpq.NamaTpq,
-                                 tbl_tahun_ajaran.NamaTahunAjaran,
                                  tbl_materi_pelajaran.*')
         ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_materi_pelajaran.IdKelas')
         ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_kelas_materi_pelajaran.IdTpq')
-        ->join('tbl_tahun_ajaran', 'tbl_tahun_ajaran.IdTahunAjaran = tbl_kelas_materi_pelajaran.IdTahunAjaran')
-        ->join('tbl_materi_pelajaran', 'tbl_materi_pelajaran.IdMateri = tbl_kelas_materi_pelajaran.IdMateri');
+        ->join('tbl_materi_pelajaran', 'tbl_materi_pelajaran.IdMateri = tbl_kelas_materi_pelajaran.IdMateri')
+        ->orderBy('tbl_kelas.NamaKelas', 'ASC');
 
         if ($IdTpq !== null) {
             $builder->where('tbl_kelas_materi_pelajaran.IdTpq', $IdTpq);
@@ -106,10 +141,16 @@ class KelasMateriPelajaran extends BaseController
             $materiPerKelas[$kelasId]['materi'][] = $materi;
         }
 
+
+        $dataKelas = $helpModel->getDataKelas();
+        $dataMateriPelajaran = $helpModel->getDataMateriPelajaran();
+
         $data = [
             'page_title' => 'Data Materi Pelajaran',
             'materi_per_kelas' => $materiPerKelas,
             'tpq' => $IdTpq,
+            'dataKelas' => $dataKelas,
+            'dataMateriPelajaran' => $dataMateriPelajaran,
         ];
 
         return view('backend/materi/daftarKelasMateriPelajaran', $data);
