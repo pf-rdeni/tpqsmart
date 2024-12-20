@@ -7,7 +7,7 @@
                 <h3 class="card-title">
                     Daftar Kelas Materi Pelajaran
                     <?php
-                    $kelas = $materi_per_kelas[3];
+                    $kelas = $dataMateriPerKelas[3];
                     if (!empty($kelas['nama_tpq']))
                         echo "TPQ " . $kelas['nama_tpq']
                     ?>
@@ -25,15 +25,15 @@
                 <!-- Tab Navigation -->
                 <div class="card-header p-0 pt-1">
                     <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="kelasTab" role="tablist">
-                        <?php foreach ($materi_per_kelas as $kelasId => $kelas): ?>
+                        <?php foreach ($dataMateriPerKelas as $kelasId => $kelas): ?>
                             <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                                <a class="nav-link border-white text-center <?= $kelasId === array_key_first($materi_per_kelas) ? 'active' : '' ?>"
+                                <a class="nav-link border-white text-center <?= $kelasId === array_key_first($dataMateriPerKelas) ? 'active' : '' ?>"
                                     id="tab-<?= $kelasId ?>"
                                     data-toggle="tab"
                                     href="#kelas-<?= $kelasId ?>"
                                     role="tab"
                                     aria-controls="kelas-<?= $kelasId ?>"
-                                    aria-selected="<?= $kelasId === array_key_first($materi_per_kelas) ? 'true' : 'false' ?>">
+                                    aria-selected="<?= $kelasId === array_key_first($dataMateriPerKelas) ? 'true' : 'false' ?>">
                                     <?= $kelas['nama_kelas'] ?>
                                 </a>
                             </li>
@@ -43,53 +43,55 @@
                 <br>
                 <div class="card-body">
                     <div class="tab-content" id="kelasTabContent">
-                        <?php foreach ($materi_per_kelas as $kelasId => $kelas): ?>
-                            <div class="tab-pane fade <?= $kelasId === array_key_first($materi_per_kelas) ? 'show active' : '' ?>"
+                        <?php foreach ($dataMateriPerKelas as $kelasId => $kelas): ?>
+                            <div class="tab-pane fade <?= $kelasId === array_key_first($dataMateriPerKelas) ? 'show active' : '' ?>"
                                 id="kelas-<?= $kelasId ?>"
                                 role="tabpanel"
                                 aria-labelledby="tab-<?= $kelasId ?>">
                                 <table class="table table-bordered table-striped" id="tblKelas-<?= $kelasId ?>">
                                     <thead>
                                         <tr>
-                                            <th>No</th>
-                                            <th>IdMateri</th>
+                                            <th>Id Materi</th>
                                             <th>Kategori</th>
                                             <th>Materi</th>
                                             <th>S.Ganjil</th>
                                             <th>S.Genap</th>
+                                            <th>Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php
-                                        $no = 1;
-                                        $grouped_materi = [];
                                         foreach ($kelas['materi']  as $materi): ?>
                                             <tr>
-                                                <td><?= $materi['Id'] ?></td>
                                                 <td><?= $materi['IdMateri'] ?></td>
                                                 <td><?= $materi['Kategori'] ?></td>
                                                 <td><?= $materi['NamaMateri'] ?></td>
                                                 <td>
                                                     <input type="checkbox"
                                                         <?= $materi['SemesterGanjil'] ? 'checked' : '' ?>
-                                                        onchange="confirmCheckboxChange(this, '<?= $materi['Id'] ?>', 'SemesterGanjil','<?= $materi['NamaMateri'] ?>')">
+                                                        onchange="confirmCheckboxChange(this, '<?= $materi['Id'] ?>', 'SemesterGanjil','<?= addslashes($materi['NamaMateri']) ?>')">
                                                 </td>
                                                 <td>
                                                     <input type="checkbox"
                                                         <?= $materi['SemesterGenap'] ? 'checked' : '' ?>
-                                                        onchange="confirmCheckboxChange(this, '<?= $materi['Id'] ?>', 'SemesterGenap', '<?= $materi['NamaMateri'] ?>')">
+                                                        onchange="confirmCheckboxChange(this, '<?= $materi['Id'] ?>', 'SemesterGenap', '<?= addslashes($materi['NamaMateri']) ?>')">
+                                                </td>
+                                                <td>
+                                                    <a class="btn btn-danger btn-sm" onclick="confirmDelete('<?= $materi['Id'] ?>', '<?= addslashes($materi['NamaMateri']) ?>')">
+                                                        <i class="fas fa-trash fa-sm"></i>
+                                                    </a>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                            <th>No</th>
-                                            <th>IdMateri</th>
+                                            <th>Id Materi</th>
                                             <th>Kategori</th>
                                             <th>Materi</th>
                                             <th>S.Ganjil</th>
                                             <th>S.Genap</th>
+                                            <th>Aksi</th>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -112,11 +114,20 @@
             <div class="card-body">
                 <form id="formTambahData">
                     <div class="form-group">
-                        <label for="tingkatKelas">Tingkat Kelas</label>
-                        <select class="form-control" id="tingkatKelas" name="tingkatKelas" required>
+                        <label for="IdKelas">Tingkat Kelas</label>
+                        <select class="form-control" id="IdKelas" name="IdKelas" required>
                             <option value="">Pilih Tingkat Kelas</option>
                             <?php foreach ($dataKelas as $tingkat): ?>
                                 <option value="<?= $tingkat['IdKelas'] ?>"><?= $tingkat['NamaKelas'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="IdTpq">Nama TPQ</label>
+                        <select class="form-control" id="IdTpq" name="IdTpq" required>
+                            <option value="">Pilih Nama TPQ</option>
+                            <?php foreach ($dataTpq as $tpq): ?>
+                                <option value="<?= $tpq['IdTpq'] ?>" <?= $tpq['IdTpq'] == $defaultTpq ? 'selected' : '' ?>><?= $tpq['NamaTpq'] ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -155,18 +166,24 @@
                                 <table class="table table-bordered table-striped">
                                     <thead>
                                         <tr>
+                                            <th>Id Materi</th>
                                             <th>Nama Materi</th>
-                                            <th>Pilih</th>
+                                            <th>Semester</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($dataMateriPelajaran as $item): ?>
                                             <?php if ($item['Kategori'] === $materi['Kategori']): ?>
                                                 <tr>
-                                                    <td><?= $item['NamaMateri'] ?></td>
                                                     <td>
-                                                        <input type="checkbox" id="Id<?= $item['Id'] ?>" name="IdMateri[<?= $item['IdMateri'] ?>]"
-                                                            value="1" onchange="this.value = this.checked ? true : false;">
+                                                        <input type="checkbox" name="Materi[<?= $item['Id'] ?>][IdMateri]" value="<?= $item['IdMateri'] ?>">
+                                                        <?= $item['IdMateri'] ?>
+                                                    </td>
+                                                    <td><?= $item['NamaMateri'] ?></td>
+
+                                                    <td>
+                                                        <input type="checkbox" id="SemesterGanjil<?= $item['Id'] ?>" name="Materi[<?= $item['Id'] ?>][SemesterGanjil]" value="1" onchange="this.value = this.checked ? 1 : 0;"> GANJIL
+                                                        <input type="checkbox" id="SemesterGenap<?= $item['Id'] ?>" name="Materi[<?= $item['Id'] ?>][SemesterGenap]" value="1" onchange="this.value = this.checked ? 1 : 0;"> GENAP
                                                     </td>
                                                 </tr>
                                             <?php endif; ?>
@@ -181,7 +198,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="tutupModal">Tutup</button>
                 <button type="button" class="btn btn-warning" id="clearAllCheckbox">Cancel Semua Ceklist</button>
-                <button type="button" class="btn btn-primary" id="simpanData">Simpan Data</button>
+                <button type="button" class="btn btn-primary" id="simpanData" onclick="simpanData()">Simpan Data</button>
             </div>
         </div>
     </div>
@@ -192,7 +209,7 @@
 <?= $this->section('scripts') ?>
 <script>
     // Initial datatabel untuk lihat list materi per kelas
-    <?php foreach ($materi_per_kelas as $kelasId => $kelas): ?>
+    <?php foreach ($dataMateriPerKelas as $kelasId => $kelas): ?>
         initializeDataTableUmum("#tblKelas-<?= $kelasId ?>", true, true);
     <?php endforeach; ?>
 
@@ -236,17 +253,24 @@
     });
 
     // Simpan modal tambah materi
-    $('#simpanData').on('click', function() {
+    function simpanData() {
         // Validasi input
-        var tingkatKelas = $('#tingkatKelas').val();
-        var isChecked = $('#formTambahData input[type="checkbox"]:checked').length > 0;
+        var tingkatKelas = $('#IdKelas').val();
+        var idTpq = $('#IdTpq').val();
+        var isChecked = $('#formTambahData input[type="checkbox"][name^="IdMateri"]:checked').length > 0;
+        isChecked = true;
 
         if (!tingkatKelas) {
             Swal.fire('Peringatan!', 'Tingkat Kelas harus dipilih.', 'warning');
             return; // Hentikan eksekusi jika select tidak dipilih
         }
 
-        if (isChecked) {
+        if (!idTpq) {
+            Swal.fire('Peringatan!', 'Nama TPQ harus dipilih.', 'warning');
+            return; // Hentikan eksekusi jika IdTpq tidak dipilih
+        }
+
+        if (!isChecked) {
             Swal.fire('Peringatan!', 'Anda harus memilih setidaknya satu materi.', 'warning');
             return; // Hentikan eksekusi jika tidak ada checkbox yang dicentang
         }
@@ -262,50 +286,50 @@
             confirmButtonText: 'Ya, simpan!'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Menampilkan loading spinner
-                Swal.fire({
-                    title: 'Menyimpan Data',
-                    text: 'Mohon tunggu...',
-                    allowOutsideClick: false,
-                    onBeforeOpen: () => {
-                        Swal.showLoading();
-                    },
-                    // Tambahkan ikon animasi loading
-                    icon: 'info', // Menambahkan ikon informasi
-                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>' // Menambahkan spinner
-                });
-
                 // Logika untuk menyimpan data
                 $.ajax({
-                    url: '<?= base_url('backend/KelasMateriPelajaran/add') ?>', // Ganti dengan URL yang sesuai
+                    url: '<?= base_url('backend/KelasMateriPelajaran/add') ?>',
                     type: 'POST',
                     data: $('#formTambahData').serialize(),
                     success: function(response) {
                         Swal.fire({
                             title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
-                            text: response.message, // Menggunakan pesan dari respon
+                            text: response.message,
                             icon: response.status === 'success' ? 'success' : 'error',
-                            timer: 2000, // Menambahkan timer selama 2 detik
-                            showConfirmButton: true // Menampilkan tombol konfirmasi
+                            timer: 2000,
+                            showConfirmButton: true
                         }).then(() => {
                             if (response.status === 'success') {
-                                $('#modalTambahData').modal('hide'); // Menutup modal
-                                location.reload(); // Refresh halaman setelah konfirmasi
+                                $('#modalTambahData').modal('hide');
+                                location.reload();
                             }
                         });
-                        // Tambahkan logika tambahan jika diperlukan
                     },
                     error: function(response) {
+                        console.error('Error response:', response); // Tambahkan log untuk melihat respon error
                         Swal.fire(
                             'Gagal!',
-                            response.responseJSON ? response.responseJSON.message : 'Terjadi kesalahan', // Menggunakan pesan dari respon
+                            response.responseJSON ? response.responseJSON.message : 'Terjadi kesalahan',
                             'error'
                         );
                     }
                 });
+                // Menampilkan loading spinner
+                Swal.fire({
+                    title: 'Menyimpan Data',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    icon: 'info',
+                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>', // Menambahkan spinner
+
+                    onBeforeOpen: () => {
+                        Swal.showLoading();
+                    }
+
+                });
             }
         });
-    });
+    }
 
     // Clear all modal cheklist tambah materi
     $('#clearAllCheckbox').on('click', function() {
@@ -393,6 +417,60 @@
             } else {
                 // Kembalikan checkbox ke status sebelumnya jika tidak dikonfirmasi
                 checkbox.checked = !isChecked;
+            }
+        });
+    }
+
+    // FUngsi Delet Materi kelas
+    function confirmDelete(id, namaMateri) {
+        Swal.fire({
+            title: 'Konfirmasi Hapus',
+            text: `Apakah Anda yakin ingin menghapus materi ${namaMateri}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Menampilkan loading spinner
+                Swal.fire({
+                    title: 'Menghapus Data',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    icon: 'info',
+                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>',
+                    onBeforeOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Jika dikonfirmasi, lakukan penghapusan
+                $.ajax({
+                    url: '<?= base_url('backend/KelasMateriPelajaran/delete/') ?>' + id,
+                    type: 'POST',
+                    success: function(response) {
+                        Swal.fire({
+                            title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
+                            text: response.message,
+                            icon: response.status === 'success' ? 'success' : 'error',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            if (response.status === 'success') {
+                                location.reload(); // Refresh halaman setelah konfirmasi
+                            }
+                        });
+                    },
+                    error: function() {
+                        Swal.fire(
+                            'Gagal!',
+                            response.responseJSON ? response.responseJSON.message : 'Terjadi kesalahan', // Menggunakan pesan dari respon
+                            'error'
+                        );
+                    }
+                });
             }
         });
     }

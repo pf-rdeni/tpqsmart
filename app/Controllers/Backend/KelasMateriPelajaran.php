@@ -48,28 +48,38 @@ class KelasMateriPelajaran extends BaseController
     public function add()
     {
         $model = new KelasMateriPelajaranModel();
+
         $data = [
             'IdKelas'       => $this->request->getPost('IdKelas'),
             'IdTpq'         => $this->request->getPost('IdTpq'),
-            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
-            'IdMateri'      => $this->request->getPost('IdMateri'),
-            'Semester'      => $this->request->getPost('Semester')
+            'Materi'      => $this->request->getPost('Materi'),
         ];
 
-        try {
-            //$result = $model->save($data);
-            $result = false;
-            if ($result) {
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => 'Data berhasil ditambahkan'
-                ]);
-            } else {
+        foreach ($data['Materi'] as $Materi) {
+            $existingData = $model->where(['IdKelas' => $data['IdKelas'], 'IdTpq' => $data['IdTpq'], 'IdMateri' => $Materi['IdMateri']])->first();
+            if ($existingData) {
                 return $this->response->setJSON([
                     'status' => 'fail',
-                    'message' => 'Data gagal ditambahkan'
-                ])->setStatusCode(500);
+                    'message' => 'Data sudah ada di tabel untuk IdMateri: ' . $Materi['IdMateri']
+                ])->setStatusCode(409);
             }
+        }
+
+        try {
+            foreach ($data['Materi'] as $Materi) {
+                $model->save([
+                    'IdKelas' => $data['IdKelas'],
+                    'IdTpq' => $data['IdTpq'],
+                    'IdMateri' => $Materi['IdMateri'],
+                    'SemesterGanjil' => $Materi['SemesterGanjil'] ?? 0,
+                    'SemesterGenap' => $Materi['SemesterGenap'] ?? 0,
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Data berhasil ditambahkan'
+            ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'status' => 'fail',
@@ -103,10 +113,19 @@ class KelasMateriPelajaran extends BaseController
 
     public function delete($id)
     {
-        $model = new KelasMateriPelajaranModel();
-        $model->delete($id);
-
-        return redirect()->to('/kelasMateriPelajaran');
+        try {
+            $model = new KelasMateriPelajaranModel();
+            $model->delete($id);
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Data berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'fail',
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
     }
 
     public function showMateriKelas($IdTpq = 411221010225)
@@ -152,11 +171,13 @@ class KelasMateriPelajaran extends BaseController
 
         $dataKelas = $helpModel->getDataKelas();
         $dataMateriPelajaran = $helpModel->getDataMateriPelajaran();
+        $dataTpq = $helpModel->getDataTpq();
 
         $data = [
             'page_title' => 'Data Materi Pelajaran',
-            'materi_per_kelas' => $materiPerKelas,
-            'tpq' => $IdTpq,
+            'dataMateriPerKelas' => $materiPerKelas,
+            'dataTpq' => $dataTpq,
+            'defaultTpq' => $IdTpq,
             'dataKelas' => $dataKelas,
             'dataMateriPelajaran' => $dataMateriPelajaran,
         ];
