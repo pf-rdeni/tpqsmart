@@ -78,19 +78,27 @@ class KelasMateriPelajaran extends BaseController
         }
     }
 
-    public function update($id)
+    public function update()
     {
         $model = new KelasMateriPelajaranModel();
+        $filedNamaSemester = $this->request->getPost('NamaSemester');
+        $id = $this->request->getPost('Id');
         $data = [
-            'IdKelas'       => $this->request->getPost('IdKelas'),
-            'IdTpq'         => $this->request->getPost('IdTpq'),
-            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
-            'IdMateri'      => $this->request->getPost('IdMateri'),
-            'Semester'      => $this->request->getPost('Semester')
+            $filedNamaSemester => $this->request->getPost('SemesterStatus')
         ];
-        $model->update($id, $data);
 
-        return redirect()->to('/kelasMateriPelajaran');
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Data berhasil diperbarui'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'fail',
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
     }
 
     public function delete($id)
@@ -106,16 +114,16 @@ class KelasMateriPelajaran extends BaseController
         $model = new KelasMateriPelajaranModel();
         $helpModel = new HelpFunctionModel();
 
-
-        // Query builder tetap sama
-        $builder = $model->select('tbl_kelas_materi_pelajaran.*, 
+        $builder = $model->select(
+            'tbl_kelas_materi_pelajaran.Id, tbl_kelas_materi_pelajaran.IdKelas, tbl_kelas_materi_pelajaran.IdMateri, tbl_kelas_materi_pelajaran.SemesterGanjil, tbl_kelas_materi_pelajaran.SemesterGenap, 
                                  tbl_kelas.NamaKelas,
                                  tbl_tpq.NamaTpq,
-                                 tbl_materi_pelajaran.*')
-        ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_materi_pelajaran.IdKelas')
-        ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_kelas_materi_pelajaran.IdTpq')
-        ->join('tbl_materi_pelajaran', 'tbl_materi_pelajaran.IdMateri = tbl_kelas_materi_pelajaran.IdMateri')
-        ->orderBy('tbl_kelas.NamaKelas', 'ASC');
+                                 tbl_materi_pelajaran.Kategori,tbl_materi_pelajaran.NamaMateri,'
+        )
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_materi_pelajaran.IdKelas', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_kelas_materi_pelajaran.IdTpq', 'left')
+            ->join('tbl_materi_pelajaran', 'tbl_materi_pelajaran.IdMateri = tbl_kelas_materi_pelajaran.IdMateri', 'left');
+
 
         if ($IdTpq !== null) {
             $builder->where('tbl_kelas_materi_pelajaran.IdTpq', $IdTpq);

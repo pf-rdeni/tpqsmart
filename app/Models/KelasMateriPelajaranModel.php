@@ -10,9 +10,9 @@ class KelasMateriPelajaranModel extends Model
     protected $allowedFields = [
         'IdKelas',
         'IdTpq',
-        'IdTahunAjaran',
         'IdMateri',
-        'Semester',
+        'SemesterGanjil',
+        'SemesterGenap',
         'created_at',
         'updated_at'
     ];

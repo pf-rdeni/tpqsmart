@@ -7,7 +7,7 @@
                 <h3 class="card-title">
                     Daftar Kelas Materi Pelajaran
                     <?php
-                    $kelas = $materi_per_kelas[1];
+                    $kelas = $materi_per_kelas[3];
                     if (!empty($kelas['nama_tpq']))
                         echo "TPQ " . $kelas['nama_tpq']
                     ?>
@@ -63,40 +63,21 @@
                                         <?php
                                         $no = 1;
                                         $grouped_materi = [];
-
-                                        // Mengelompokkan materi berdasarkan IdMateri
-                                        foreach ($kelas['materi'] as $item) {
-                                            $id = $item['IdMateri'];
-                                            if (!isset($grouped_materi[$id])) {
-                                                $grouped_materi[$id] = [
-                                                    'IdMateri' => $item['IdMateri'],
-                                                    'Kategori' => $item['Kategori'],
-                                                    'NamaMateri' => $item['NamaMateri'],
-                                                    'Semester1' => false,
-                                                    'Semester2' => false
-                                                ];
-                                            }
-                                            if ($item['Semester'] == 1) {
-                                                $grouped_materi[$id]['Semester1'] = true;
-                                            }
-                                            if ($item['Semester'] == 2) {
-                                                $grouped_materi[$id]['Semester2'] = true;
-                                            }
-                                        }
-
-                                        foreach ($grouped_materi as $materi): ?>
+                                        foreach ($kelas['materi']  as $materi): ?>
                                             <tr>
-                                                <td><?= $no++ ?></td>
+                                                <td><?= $materi['Id'] ?></td>
                                                 <td><?= $materi['IdMateri'] ?></td>
                                                 <td><?= $materi['Kategori'] ?></td>
                                                 <td><?= $materi['NamaMateri'] ?></td>
                                                 <td>
                                                     <input type="checkbox"
-                                                        <?= $materi['Semester1'] ? 'checked' : '' ?>>
+                                                        <?= $materi['SemesterGanjil'] ? 'checked' : '' ?>
+                                                        onchange="confirmCheckboxChange(this, '<?= $materi['Id'] ?>', 'SemesterGanjil','<?= $materi['NamaMateri'] ?>')">
                                                 </td>
                                                 <td>
                                                     <input type="checkbox"
-                                                        <?= $materi['Semester2'] ? 'checked' : '' ?>>
+                                                        <?= $materi['SemesterGenap'] ? 'checked' : '' ?>
+                                                        onchange="confirmCheckboxChange(this, '<?= $materi['Id'] ?>', 'SemesterGenap', '<?= $materi['NamaMateri'] ?>')">
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -184,7 +165,8 @@
                                                 <tr>
                                                     <td><?= $item['NamaMateri'] ?></td>
                                                     <td>
-                                                        <input type="checkbox" id="IdMateri<?= $item['IdMateri'] ?>" name="IdMateri[<?= $item['IdMateri'] ?>]" <?= $item['NamaMateri'] == 1 ? 'checked' : '' ?>>
+                                                        <input type="checkbox" id="Id<?= $item['Id'] ?>" name="IdMateri[<?= $item['IdMateri'] ?>]"
+                                                            value="1" onchange="this.value = this.checked ? true : false;">
                                                     </td>
                                                 </tr>
                                             <?php endif; ?>
@@ -209,6 +191,7 @@
 
 <?= $this->section('scripts') ?>
 <script>
+    // Initial datatabel untuk lihat list materi per kelas
     <?php foreach ($materi_per_kelas as $kelasId => $kelas): ?>
         initializeDataTableUmum("#tblKelas-<?= $kelasId ?>", true, true);
     <?php endforeach; ?>
@@ -225,6 +208,7 @@
         table.columns.adjust().responsive.recalc();
     });
 
+    // Menutup modal
     $('#tutupModal').on('click', function() {
         var isChecked = $('#formTambahData input[type="checkbox"]:checked').length > 0;
 
@@ -251,6 +235,7 @@
         }
     });
 
+    // Simpan modal tambah materi
     $('#simpanData').on('click', function() {
         // Validasi input
         var tingkatKelas = $('#tingkatKelas').val();
@@ -322,6 +307,7 @@
         });
     });
 
+    // Clear all modal cheklist tambah materi
     $('#clearAllCheckbox').on('click', function() {
         // Cek apakah ada checkbox yang dicentang
         var isChecked = $('#formTambahData input[type="checkbox"]:checked').length > 0;
@@ -345,5 +331,70 @@
             });
         }
     });
+
+    // Fungsi untuk konfirmasi perubahan checkbox
+    function confirmCheckboxChange(checkbox, id, semester, namaMateri) {
+        const isChecked = checkbox.checked ? 1 : 0;
+        const action = isChecked ? "Active" : "Tidak Active";
+        const namaSemester = semester === 'SemesterGanjil' ? 'Semester Ganjil' : "Semester Genap";
+
+        Swal.fire({
+            title: 'Konfirmasi Perubahan',
+            text: `Apakah Anda yakin materi ${namaMateri} ini ingin diset ${action} untuk ${namaSemester}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, simpan!',
+            cancelButtonText: 'Tidak'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Kirim data ke kontroler
+                $.ajax({
+                    url: '<?= base_url('backend/KelasMateriPelajaran/update') ?>', // Ganti dengan URL yang sesuai
+                    type: 'POST',
+                    data: {
+                        Id: id,
+                        SemesterStatus: isChecked,
+                        NamaSemester: semester,
+                    },
+                    success: function(response) {
+                        Swal.fire({
+                            title: 'Sukses!',
+                            text: response.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function(response) {
+                        Swal.fire(
+                            'Gagal!',
+                            response.responseJSON ? response.responseJSON.message : 'Terjadi kesalahan',
+                            'error'
+                        );
+                        // Kembalikan checkbox ke status sebelumnya jika gagal
+                        checkbox.checked = !isChecked;
+                    }
+                });
+                // Menampilkan loading spinner
+                Swal.fire({
+                    title: 'Menyimpan Data',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    icon: 'info',
+                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>', // Menambahkan spinner
+
+                    onBeforeOpen: () => {
+                        Swal.showLoading();
+                    }
+
+                });
+            } else {
+                // Kembalikan checkbox ke status sebelumnya jika tidak dikonfirmasi
+                checkbox.checked = !isChecked;
+            }
+        });
+    }
 </script>
 <?= $this->endSection() ?>
