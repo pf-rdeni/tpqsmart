@@ -7,7 +7,7 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
-        <table id="example1" class="table table-bordered table-striped">
+            <table id="TableNilaiSemester" class="table table-bordered table-striped">
                 <thead>
                     <tr>
                         <th>Wali Kelas</th>
@@ -26,22 +26,22 @@
                             <td><?php echo $santri->GuruNama; ?></td>
                             <td><?php echo $santri->IdTahunAjaran; ?></td>
                             <td><?php echo $santri->NamaKelas; ?></td>
-                            <td><?php echo $santri->SantriNama; ?></td>
+                            <td><?php echo $santri->NamaSantri; ?></td>
                             <td><?php echo $santri->JenisKelamin; ?></td>
                             <td>
-                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 1 .'/'.true .'/'. $santri->IdJabatan) ?>" class="btn btn-warning btn-sm">
+                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 'Ganjil' . '/' . true . '/' . $santri->IdJabatan) ?>" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 1) ?>" class="btn btn-success btn-sm">
+                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 'Ganjil') ?>" class="btn btn-success btn-sm">
                                     <i class="fas fa-eye"></i>
                                 </a>
 
                             </td>
                             <td>
-                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 2 .'/'.true .'/'. $santri->IdJabatan) ?>" class="btn btn-warning btn-sm">
+                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 'Genap' . '/' . true . '/' . $santri->IdJabatan) ?>" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 2) ?>" class="btn btn-success btn-sm">
+                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 'Genap') ?>" class="btn btn-success btn-sm">
                                     <i class="fas fa-eye"></i>
                                 </a>
 
@@ -66,4 +66,10 @@
     </div>
     <!-- /.card -->
 </div>
+<?= $this->endSection(); ?>
+//script section
+<?= $this->section('scripts'); ?>
+<script>
+    initializeDataTableUmum("#TableNilaiSemester");
+</script>
 <?= $this->endSection(); ?>

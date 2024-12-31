@@ -2,13 +2,13 @@
 <?= $this->section('content'); ?>
 
 <div class="col-12">
-    <div class="card">      
+    <div class="card">
         <div class="card-header">
             <div class="row mb-2">
-                
+
                 <div class="col-sm-12 float-sm-left">
-                    <button class="btn btn-primary" data-toggle="modal" 
-                    data-target="#GuruKelasNew"><i class="fas fa-edit"></i>Tambah Pengaturan Guru</button>
+                    <button class="btn btn-primary" data-toggle="modal"
+                        data-target="#GuruKelasNew"><i class="fas fa-edit"></i>Tambah Pengaturan Guru</button>
                 </div><!-- /.col -->
             </div><!-- /.row -->
         </div>
@@ -16,10 +16,10 @@
         <div class="card-body">
             <table id="example1" class="table table-bordered table-striped">
                 <thead>
-                    <?php 
-                        $helpModel = new \App\Models\HelpFunctionModel(); 
+                    <?php
+                    $helpModel = new \App\Models\HelpFunctionModel();
                     ?>
-                    <?= $headerfooter='
+                    <?= $headerfooter = '
                     <tr>
                         <th>No</th>
                         <th>Nama Kelas</th>
@@ -31,8 +31,8 @@
                     ?>
                 </thead>
                 <tbody>
-                    <?php $no = 1; 
-                        foreach ($guruKelas as $row) : ?>
+                    <?php $no = 1;
+                    foreach ($guruKelas as $row) : ?>
                         <tr>
                             <td><?= $no++; ?></td>
                             <td><?= $row['NamaKelas']; ?></td>
@@ -40,10 +40,10 @@
                             <td><?= $helpModel->convertTahunAjaran($row['IdTahunAjaran']); ?></td>
                             <td><?= $row['NamaJabatan']; ?></td>
                             <td>
-                                <button class="btn btn-warning btn-sm" data-toggle="modal" 
-                                data-target="#GuruKelasEdit<?= $row['Id']  ?>"><i class="fas fa-edit"></i></button>
-                                <a href="<?= base_url('guruKelas/delete/' .  $row['Id']) ?>" class="btn btn-danger btn-sm" 
-                                onclick="return confirm('Apakah Anda Yakin Akan Delet Data Ini')"><i class="fas fa-trash"></i>
+                                <button class="btn btn-warning btn-sm" data-toggle="modal"
+                                    data-target="#GuruKelasEdit<?= $row['Id']  ?>"><i class="fas fa-edit"></i></button>
+                                <a href="<?= base_url('guruKelas/delete/' .  $row['Id']) ?>" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Apakah Anda Yakin Akan Delet Data Ini')"><i class="fas fa-trash"></i>
                                 </a>
                             </td>
                         </tr>
@@ -71,7 +71,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form action="<?= base_url('guruKelas/store') ?>" method="POST">
+                    <form action="<?= base_url('backend/GuruKelas/store') ?>" method="POST">
                         <div class="form-group">
                             <input type="hidden" name="Id" id="FormGuruKelas" value="<?= $row['Id'] ?>">
                             <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $row['IdTpq'] ?>">
@@ -92,8 +92,8 @@
                             <label for="FormGuruKelas">Nama Guru</label>
                             <select name="IdGuru" class="form-control" id="FormGuruKelas">
                                 <option value="" disabled selected>Pilih Nama Guru</option>
-                                <?php 
-                                    foreach ($helpModel->getDataGuru($row['IdTpq']) as $guru): ?>
+                                <?php
+                                foreach ($helpModel->getDataGuru($row['IdTpq']) as $guru): ?>
                                     <option value="<?= $guru['IdGuru']; ?>" <?= $row['IdGuru'] == $guru['IdGuru'] ? 'selected' : ''; ?>>
                                         <?= $guru['Nama']; ?>
                                     </option>
@@ -104,15 +104,15 @@
                             <label for="FormGuruKelas">Posisi</label>
                             <select name="IdJabatan" class="form-control" id="FormGuruKelas">
                                 <option value="" disabled selected>Pilih Sebagai</option>
-                                <?php 
-                                    foreach ($helpModel->getDataJabatan() as $Jabatan): ?>
-                                    <option value="<?= $Jabatan['IdJabatan']?>" <?= $row['IdJabatan'] == $Jabatan['IdJabatan'] ? 'selected' : '' ?>>
-                                    <?= $Jabatan['NamaJabatan']?>
+                                <?php
+                                foreach ($helpModel->getDataJabatan() as $Jabatan): ?>
+                                    <option value="<?= $Jabatan['IdJabatan'] ?>" <?= $row['IdJabatan'] == $Jabatan['IdJabatan'] ? 'selected' : '' ?>>
+                                        <?= $Jabatan['NamaJabatan'] ?>
                                     </option>
                                 <?php endforeach; ?>
-                            </select>                       
+                            </select>
                         </div>
-                        
+
                         <div class="modal-footer">
                             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i>Simpan</button>
                         </div>
@@ -133,17 +133,17 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form action="<?= base_url('guruKelas/store')?>" method="POST">
+                <form action="<?= base_url('guruKelas/store') ?>" method="POST">
                     <div class="form-group">
-                        <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $dataTpq?>">
+                        <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $dataTpq ?>">
                     </div>
                     <div class="form-group">
                         <label for="FormGuruKelas">Tahun Ajaran</label>
                         <select name="IdTahunAjaran" class="form-control" id="FormGuruKelas">
                             <option value="" disabled selected>Pilih Tahun Ajaran</option>
-                            <option value="<?=  $helpModel->getTahunAjaranSaatIni() ?>">Saat ini <?= $helpModel->convertTahunAjaran($helpModel->getTahunAjaranSaatIni()) ?> </option>
-                            <option value="<?=  $helpModel->getTahunAjaranSebelumnya($helpModel->getTahunAjaranSaatIni()) ?>">Sebelumnya <?= $helpModel->convertTahunAjaran($helpModel->getTahunAjaranSebelumnya($helpModel->getTahunAjaranSaatIni())) ?> </option>
-                            <option value="<?=  $helpModel->getTahuanAjaranBerikutnya($helpModel->getTahunAjaranSaatIni()) ?>">Berikutnya <?= $helpModel->convertTahunAjaran($helpModel->getTahuanAjaranBerikutnya($helpModel->getTahunAjaranSaatIni())) ?> </option>
+                            <option value="<?= $helpModel->getTahunAjaranSaatIni() ?>">Saat ini <?= $helpModel->convertTahunAjaran($helpModel->getTahunAjaranSaatIni()) ?> </option>
+                            <option value="<?= $helpModel->getTahunAjaranSebelumnya($helpModel->getTahunAjaranSaatIni()) ?>">Sebelumnya <?= $helpModel->convertTahunAjaran($helpModel->getTahunAjaranSebelumnya($helpModel->getTahunAjaranSaatIni())) ?> </option>
+                            <option value="<?= $helpModel->getTahuanAjaranBerikutnya($helpModel->getTahunAjaranSaatIni()) ?>">Berikutnya <?= $helpModel->convertTahunAjaran($helpModel->getTahuanAjaranBerikutnya($helpModel->getTahunAjaranSaatIni())) ?> </option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -159,8 +159,8 @@
                         <label for="FormGuruKelas">Nama Guru</label>
                         <select name="IdGuru" class="form-control" id="FormGuruKelas">
                             <option value="" disabled selected>Pilih Nama Guru</option>
-                            <?php 
-                                foreach ($helpModel->getDataGuru($row['IdTpq']) as $guru): ?>
+                            <?php
+                            foreach ($helpModel->getDataGuru($row['IdTpq']) as $guru): ?>
                                 <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -169,13 +169,13 @@
                         <label for="FormGuruKelas">Posisi</label>
                         <select name="IdJabatan" class="form-control" id="FormGuruKelas">
                             <option value="" disabled selected>Pilih Sebagai</option>
-                            <?php 
-                                foreach ($helpModel->getDataJabatan() as $Jabatan): ?>
-                                <option value="<?= $Jabatan['IdJabatan']?>"><?= $Jabatan['NamaJabatan']?></option>
+                            <?php
+                            foreach ($helpModel->getDataJabatan() as $Jabatan): ?>
+                                <option value="<?= $Jabatan['IdJabatan'] ?>"><?= $Jabatan['NamaJabatan'] ?></option>
                             <?php endforeach; ?>
-                        </select>                       
+                        </select>
                     </div>
-                    
+
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i>Simpan</button>
                     </div>

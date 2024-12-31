@@ -18,7 +18,8 @@
                 "paginate": {
                     "next": "Selanjutnya",
                     "previous": "Sebelumnya"
-                }
+                },
+                "lengthMenu": "Tampilkan _MENU_ entri",
             },
             ...options
         }).buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);

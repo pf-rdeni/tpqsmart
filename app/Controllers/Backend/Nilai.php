@@ -53,11 +53,11 @@ class Nilai extends BaseController
     {
         $validationRules = [
             'Nilai' => [
-                'rules' => 'required|greater_than_equal_to[50]|less_than_equal_to[95]',
+                'rules' => 'required|greater_than_equal_to[50]|less_than_equal_to[100]',
                 'errors' => [
                     'required' => 'Materi ' . $this->request->getVar('NamaMateri') . ' Nilai harus diisi',
                     'greater_than_equal_to' => 'Materi ' . $this->request->getVar('NamaMateri') . ' Nilai harus lebih dari atau sama dengan 50',
-                    'less_than_equal_to' => 'Materi ' . $this->request->getVar('NamaMateri') . ' Nilai harus kurang dari atau sama dengan 95',
+                    'less_than_equal_to' => 'Materi ' . $this->request->getVar('NamaMateri') . ' Nilai harus kurang dari atau sama dengan 100',
                 ]
             ]
         ];

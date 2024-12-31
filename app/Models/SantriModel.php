@@ -11,10 +11,10 @@ class SantriModel extends Model
     {
         $db = db_connect();
     }
-    
-    protected $table      = 'tbl_santri';
+
+    protected $table      = 'tbl_santri_baru';
     protected $allowedFields = [
-        'Status'
+        'Active'
     ];
 
     public function GetData($id = false)
@@ -25,16 +25,7 @@ class SantriModel extends Model
             return $this->findAll();
         }
     }
-    
-    public function updateStatusSantri($idSantri)
-    {
-        if ($idSantri) {
-            $this->set('Status', 1)
-                ->where('Status', 0)
-                ->where('IdSantri', $idSantri) 
-                ->update();
-        }
-    }
+
 
     public function GetDataSantriPerKelas($IdTahunAjaran = 0, $IdKelas = 0, $IdGuru = null)
     {

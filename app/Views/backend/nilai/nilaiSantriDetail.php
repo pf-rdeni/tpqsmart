@@ -9,7 +9,7 @@
         if (!empty($dataNilai)) {
             $firstResult = $dataNilai[0];
             $IdSantri = htmlspecialchars($firstResult->IdSantri, ENT_QUOTES, 'UTF-8');
-            $NamaSantri = htmlspecialchars($firstResult->Nama, ENT_QUOTES, 'UTF-8');
+            $NamaSantri = htmlspecialchars($firstResult->NamaSantri, ENT_QUOTES, 'UTF-8');
             $Semester = htmlspecialchars($firstResult->Semester, ENT_QUOTES, 'UTF-8');
             $NamaKelas = htmlspecialchars($firstResult->IdKelas, ENT_QUOTES, 'UTF-8');
             // Format the Tahun with "/"
@@ -17,62 +17,63 @@
             if (strlen($Tahun) == 8) {
                 $Tahun = substr($Tahun, 0, 4) . '/' . substr($Tahun, 4, 4);
             } else {
-                $Tahun = 'Invalid Year Format'; 
+                $Tahun = 'Invalid Year Format';
             }
         } else {
             // Default values or handle the case when $dataNilai is empty
             $NamaSantri = "";
             $Tahun = "";
             $Semester = "";
-            $IdSantri ="";
-            $NamaKelas ="";
+            $IdSantri = "";
+            $NamaKelas = "";
         }
         ?>
 
         <div class="card-header">
             <h3 class="card-title">
-                Data Nilai Santri <strong><?= $IdSantri .' - ' .$NamaSantri?></strong> Kelas <?= $NamaKelas?> Tahun <?= $Tahun?> Semester <?= $Semester?>
+                Data Nilai Santri <strong><?= $IdSantri . ' - ' . $NamaSantri ?></strong> Kelas <?= $NamaKelas ?> Tahun <?= $Tahun ?> Semester <?= $Semester ?>
             </h3>
-        </div>       <!-- /.card-header -->
+        </div> <!-- /.card-header -->
         <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="TabelNilaiPerSemester" class="table table-bordered table-striped">
                 <thead>
-                   <?php
-                        $tableHeadersFooter = '
+                    <?php
+                    $tableHeadersFooter = '
                             <tr>
                                 <th>Kategori</th>
                                 <th>Nama Materi</th>
                                 <th>Nilai</th>
                                 <th>Catatan</th>';
-                        if ($pageEdit) {
-                            $tableHeadersFooter .= '<th>Aksi</th>';
-                        }
-                        $tableHeadersFooter .= '</tr>';
-                        echo $tableHeadersFooter
+                    if ($pageEdit) {
+                        $tableHeadersFooter .= '<th>Aksi</th>';
+                    }
+                    $tableHeadersFooter .= '</tr>';
+                    echo $tableHeadersFooter
                     ?>
 
                 </thead>
                 <tbody>
                     <?php
-                    $MainDataNilai=$nilai->getResult();
-                    foreach ($MainDataNilai as $DataNilai) : 
-                        if(
-                            $pageEdit && (double)$DataNilai->Nilai <= 0.0 &&  $guruPendamping == 4 ||
+                    $MainDataNilai = $nilai->getResult();
+                    foreach ($MainDataNilai as $DataNilai) :
+                        if (
+                            $pageEdit && (float)$DataNilai->Nilai <= 0.0 &&  $guruPendamping == 4 ||
                             !$pageEdit &&  $guruPendamping == 4 || $guruPendamping != 4
-                         )
-                        {?>
+                        ) { ?>
 
-                        <tr>
-                            <td><?php echo $DataNilai->Kategori; ?></td>
-                            <td><?php echo $DataNilai->NamaMateri; ?></td>
-                            <td><?php echo $DataNilai->Nilai; ?></td>
-                            <td><?php echo $DataNilai->Catatan; ?></td>
-                            <?php if($pageEdit) {?>
-                                <td>
-                                    <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#EditNilai<?= $DataNilai->Id  ?>"><i class="fas fa-edit"></i></button>
-                                </td>
-                            <?php }?>
-                        </tr>
+                            <tr>
+                                <td><?php echo $DataNilai->Kategori; ?></td>
+                                <td><?php echo $DataNilai->NamaMateri; ?></td>
+                                <td><?php echo $DataNilai->Nilai; ?></td>
+                                <td><?php echo $DataNilai->Catatan; ?></td>
+                                <?php if ($pageEdit) { ?>
+                                    <td>
+                                        <button class="btn btn-warning btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                <?php } ?>
+                            </tr>
                     <?php }
                     endforeach ?>
                 </tbody>
@@ -87,8 +88,8 @@
 </div>
 
 <!-- Modal Edit Data-->
-<?php 
-$MainDataNilai=$nilai->getResult();
+<?php
+$MainDataNilai = $nilai->getResult();
 foreach ($MainDataNilai as $DataNilai) : ?>
     <div class="modal fade" id="EditNilai<?= $DataNilai->Id ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
         <div class="modal-dialog " role="document">
@@ -100,28 +101,28 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form action="<?= base_url('backend/nilai/update/'.$pageEdit) ?>" method="POST">
-                        <input type="hidden" name="Id" value= <?= $DataNilai->Id ?>>
-                        <input type="hidden" name="IdSantri" value= <?= $DataNilai->IdSantri ?>>
-                        <input type="hidden" name="Semester" value= <?= $DataNilai->Semester ?>>
+                    <form action="<?= base_url('backend/nilai/update/' . $pageEdit) ?>" method="POST">
+                        <input type="hidden" name="Id" value=<?= $DataNilai->Id ?>>
+                        <input type="hidden" name="IdSantri" value=<?= $DataNilai->IdSantri ?>>
+                        <input type="hidden" name="Semester" value=<?= $DataNilai->Semester ?>>
                         <input type="hidden" name="NamaMateri" value="<?= htmlspecialchars($DataNilai->NamaMateri, ENT_QUOTES, 'UTF-8') ?>">
-                        
+
                         <div class="form-group">
                             <label for="FormProfilTpq">Kategori</label>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->Kategori ?></span>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="FormProfilTpq">Nama Materi</label>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->NamaMateri ?></span>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="FormProfilTpq">Nilai</label>
-                            <input type="number" name="Nilai" class="form-control" id="FormProfilTpq" required 
-                                placeholder="Ketik Nilai" value="<?= $DataNilai->Nilai ?>" 
-                                min="50" max="95" 
-                                oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 95')" 
+                            <input type="number" name="Nilai" class="form-control" id="FormProfilTpq" required
+                                placeholder="Ketik Nilai" value="<?= $DataNilai->Nilai ?>"
+                                min="50" max="95"
+                                oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 95')"
                                 oninput="this.setCustomValidity('')">
                         </div>
                         <div class="form-group">
@@ -138,4 +139,28 @@ foreach ($MainDataNilai as $DataNilai) : ?>
         </div>
     </div>
 <?php endforeach ?>
+<?= $this->endSection(); ?>
+<?= $this->section('scripts'); ?>
+<script>
+    initializeDataTableUmum("#TabelNilaiPerSemester", true, true);
+
+    // Funsi untuk menampilkan modal edit nilai
+    function showModalEditNilai(id) {
+        // Tampilkan konfirmasi sebelum membuka modal
+        Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Apakah Anda yakin ingin mengedit nilai ini?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Edit',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#EditNilai' + id).modal('show');
+            }
+        });
+    }
+</script>
 <?= $this->endSection(); ?>

@@ -37,13 +37,13 @@
                                 }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
                             <td><?= $santri['NamaKelas']; ?></td>
                             <td>
-                                <?php if ($santri['status'] == "Belum Diverifikasi"): ?>
-                                    <span class="badge bg-warning"><?= $santri['status']; ?></span>
+                                <?php if ($santri['Status'] == "Belum Diverifikasi"): ?>
+                                    <span class="badge bg-warning"><?= $santri['Status']; ?></span>
                                 <?php else: ?>
-                                    <?php if ($santri['status'] == "Perlu Perbaikan"): ?>
-                                        <span class="badge bg-danger"><?= $santri['status']; ?></span>
+                                    <?php if ($santri['Status'] == "Perlu Perbaikan"): ?>
+                                        <span class="badge bg-danger"><?= $santri['Status']; ?></span>
                                     <?php else: ?>
-                                        <span class="badge bg-success"><?= $santri['status']; ?></span>
+                                        <span class="badge bg-success"><?= $santri['Status']; ?></span>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             </td>

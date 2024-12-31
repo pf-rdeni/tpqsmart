@@ -13,17 +13,22 @@ class HelpFunctionModel extends Model
     }
     //=================================================================
     // Select Related to Read tabel
-    public function getDataSantriStatus($Status = 0)
+    public function getDataSantriStatus($Status = 0, $IdTpq = 0)
     {
-        $builder = $this->db->table('tbl_santri');
-        
-        // Join dengan tbl_kelas dan gunakan alias NamaKelas
-        $builder->select('tbl_santri.*, tbl_kelas.NamaKelas AS NamaKelas');
-        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri.IdKelas');
-        
-        $builder->where('tbl_santri.Status', $Status);
+        $builder = $this->db->table('tbl_santri_baru');
 
-        
+        // Join dengan tbl_kelas dan gunakan alias NamaKelas
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas AS NamaKelas, tbl_tpq.NamaTpq AS NamaTpq, tbl_tpq.KelurahanDesa AS NamaKelDesa');
+        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas');
+        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        //if status bukan Aktif=1 dan Nonaktif=2 maka status = 0 Baru
+        if ($Status != 1 && $Status != 2) {
+            $builder->where('tbl_santri_baru.Active', 0);
+        }
+        if ($IdTpq != 0) {
+            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+        }
         return $builder->get()->getResultArray();
     }
 
@@ -93,8 +98,8 @@ class HelpFunctionModel extends Model
     public function getKelasMateriPelajaran($kelas = null, $IdTpq = null)
     {
         $builder = $this->db->table('tbl_kelas_materi_pelajaran');
-        
-        $builder->select('IdKelas, IdMateri, Semester');
+
+        $builder->select('IdKelas, IdMateri, SemesterGanjil, SemesterGenap, IdTpq');
         
         if ($kelas !== null) {
             $builder->where('IdKelas', $kelas);
@@ -115,6 +120,15 @@ class HelpFunctionModel extends Model
         }
 
         return $builder->get()->getResultArray();
+    }
+
+    //get IdTpq dari IdGuru
+    public function getIdTpq($IdGuru)
+    {
+        $builder = $this->db->table('tbl_guru')
+        ->select('IdTpq')
+        ->where('IdGuru', $IdGuru);
+        return $builder->get()->getRowArray();
     }
 
     //===================================================================

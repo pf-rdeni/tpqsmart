@@ -11,14 +11,14 @@ class NilaiModel extends Model
     protected $useAutoIncrement = true;
     protected $useTimestamps = true;
     protected $allowedFields = [
-        'Id', 
-        'Nilai',
+        'Id',
+        'NilaiGanjil',
+        'NilaiGenap',
         'IdTpq',
         'IdSantri',
         'IdKelas',
         'IdTahunAjaran',
         'IdMateri',
-        'Semester',
         'Catatan',
         'created_at', 
         'updated_at'
@@ -29,16 +29,31 @@ class NilaiModel extends Model
 
     public function getDataNilaiDetail($IdSantri, $IdSemester)
     {
-        // Base SQL query
-        $sql = 'SELECT n.Id, n.IdTahunAjaran, n.Semester, n.IdTpq, n.IdKelas, 
-                    s.IdSantri, s.Nama, n.IdMateri, m.Kategori, m.NamaMateri, n.Nilai, n.Catatan
+        if ($IdSemester == "Ganjil") {
+            // Base SQL query
+            $sql =
+                'SELECT n.Id, n.IdTahunAjaran, n.IdTpq, n.IdKelas, 
+                    s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Catatan, "Ganjil" AS Semester, n.NilaiGanjil AS Nilai
                 FROM tbl_nilai n
-                JOIN tbl_santri s ON n.IdSantri = s.IdSantri
+                JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
                 JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
-                WHERE n.IdSantri = '.$IdSantri.'
-                AND n.Semester = '.$IdSemester;
+                WHERE n.IdSantri = ' . $IdSantri;
 
-        $sql .= ' ORDER BY n.IdMateri ASC, n.Semester ASC';
+            $sql .= ' ORDER BY n.IdMateri ASC';
+        } else if ($IdSemester == "Genap") {
+            // Base SQL query for Genap semester
+            $sql =
+                'SELECT n.Id, n.IdTahunAjaran, n.IdTpq, n.IdKelas, 
+                    s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Catatan, "Genap" AS Semester, n.NilaiGenap AS Nilai
+                FROM tbl_nilai n
+                JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
+                JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
+                WHERE n.IdSantri = ' . $IdSantri;
+
+            $sql .= ' ORDER BY n.IdMateri ASC';
+        }
+
+        
 
         return db_connect()->query($sql);
     }

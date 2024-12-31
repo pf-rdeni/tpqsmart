@@ -521,7 +521,7 @@ class Santri extends BaseController
             ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
             ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->orderBy('tbl_santri_baru.status', 'DESC')
+            ->orderBy('tbl_santri_baru.Status', 'DESC')
             ->orderBy('tbl_santri_baru.updated_at', 'DESC')
             ->findAll();
 
@@ -564,7 +564,7 @@ class Santri extends BaseController
             ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
             ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->orderBy('tbl_santri_baru.status', 'DESC')
+            ->orderBy('tbl_santri_baru.Status', 'DESC')
             ->orderBy('tbl_santri_baru.updated_at', 'DESC')
             ->findAll();
 
@@ -756,7 +756,7 @@ class Santri extends BaseController
         $IdGuru = session()->get('IdGuru');
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $dataSantri = $this->DataSantri->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
+        $dataSantri = $this->DataSantriBaru->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
         $data = [
             'page_title' => 'Data Santri Per Semester',
             'dataSantri' => $dataSantri

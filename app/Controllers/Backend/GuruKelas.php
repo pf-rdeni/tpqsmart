@@ -44,8 +44,8 @@ class GuruKelas extends BaseController
              $data['Id'] = $id;
         
         $this->guruKelasModel->save($data);
-        
-        return redirect()->to('guruKelas/show');
+
+        return redirect()->to('backend/guruKelas/show');
     }
 
     public function edit($id)

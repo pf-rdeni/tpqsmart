@@ -5,26 +5,29 @@ namespace App\Controllers\Backend;
 use App\Controllers\BaseController;
 use App\Models\HelpFunctionModel;
 use App\Models\KelasModel;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 use App\Models\KelasMateriPelajaranModel;
 use App\Models\NilaiModel;
 
 class Kelas extends BaseController
 {
-    protected $santriModel;
+    protected $santriBaruModel;
     protected $kelasModel;
     protected $kelasMateriPelajaranModel;
     protected $nilaiModel;
     protected $helpFunction;
+    protected $IdTpq;
 
     public function __construct()
     {
         // Initialize models
-        $this->santriModel = new SantriModel();
+        $this->santriBaruModel = new SantriBaruModel();
         $this->kelasModel = new KelasModel();
         $this->kelasMateriPelajaranModel = new KelasMateriPelajaranModel();
         $this->nilaiModel = new NilaiModel();
         $this->helpFunction = new HelpFunctionModel();
+
+        $this->IdTpq = session()->get('IdTpq');
     }
 
     // Function to display all records (Read)
@@ -99,7 +102,7 @@ class Kelas extends BaseController
     {
         // Step 1 Menampilkan data santri baru untuk di crosceck sebelum di masukan ke tabel tbl_kelas_santri
         $dataKelas = $this->helpFunction->getDataKelas();
-        $dataSantri = $this->helpFunction->getDataSantriStatus();
+        $dataSantri = $this->helpFunction->getDataSantriStatus(IdTpq: $this->IdTpq);
 
         $data = [
             'page_title' => 'Data Santri',
@@ -126,27 +129,25 @@ class Kelas extends BaseController
         $idKelasArray = $this->request->getVar('IdKelas');
         $idTpqArray = $this->request->getVar('IdTpq');
         $dataSantriBaru = [];
-
-        $dataSantriBaru = [];
-
         foreach ($idKelasArray as $idSantri => $idKelas) {
             // Memastikan bahwa IdTpq untuk IdSantri yang sama juga tersedia
             if (isset($idTpqArray[$idSantri])) {
                 $dataSantriBaru[] = [
                     'IdSantri' => $idSantri,
                     'IdKelas' => $idKelas,
-                    'IdTpq' => $idTpqArray[$idSantri]
+                    'IdTpq' => $idTpqArray[$idSantri],
+                    'IdTahunAjaran' => $idTahunAjaran
                 ];
             }
         }
 
         // Step 3 ambil individual santri dari POST IdKelas
-        $this->saveDataSantriDanMateriDiTabelNilai(0, $dataSantriBaru, $idTahunAjaran );
+        $this->saveDataSantriDanMateriDiTabelNilai(0, santriList: $dataSantriBaru);
         
         //Check kembali jika masih ada dan tampilkan
         $dataKelas = $this->helpFunction->getDataKelas();
-        
-        $dataStatusSantriBaru = $this->helpFunction->getDataSantriStatus();
+
+        $dataStatusSantriBaru = $this->helpFunction->getDataSantriStatus(IdTpq: $this->IdTpq);
         $data = [
             'page_title' => 'Data Santri',
             'dataSantri' => $dataStatusSantriBaru,
@@ -253,8 +254,8 @@ class Kelas extends BaseController
 
         return redirect()->to('/kelas/showListSantriPerKelas/' . $idTahunAjaran);
     }
-    
-    private function saveDataSantriDanMateriDiTabelNilai($StatusSantri, $santriList,  $idTahunAjaran)
+
+    private function saveDataSantriDanMateriDiTabelNilai($StatusSantri, $santriList)
     {
         if($StatusSantri == 0) // Santri Baru
         {
@@ -264,18 +265,16 @@ class Kelas extends BaseController
         else{ // Naik Kelas
             //Get tahun ajaran berikutnya
             //Step 1 get tahun berikunya dari idTahun Sebelumnya/saat ini
-            $idTahunAjaran = $this->helpFunction->getTahuanAjaranBerikutnya($idTahunAjaran);
+            $idTahunAjaran = $this->helpFunction->getTahuanAjaranBerikutnya($idTahunAjaran = 0); //perlu disesuaikan
             $SantriBaru = false;
         }
         //Step 1 Aambil santri dari list tersebut 
         //       Kelas Berikutnya set Status = Aktif = 1 
         foreach ($santriList as $santri) {
-            $idTpq = $santri['IdTpq'];
             $idSantri = $santri['IdSantri'];
-            
-            
-            // 1.1 Konversi kelas sebelumnya ke kelas berikutnya
+            $idTpq = $santri['IdTpq'];
             $idKelas = $santri['IdKelas'];
+            $idTahunAjaran = $santri['IdTahunAjaran'];
             
             if($SantriBaru)
             {   
@@ -287,8 +286,9 @@ class Kelas extends BaseController
                     'IdTahunAjaran' => $idTahunAjaran
                 ];
                 // 1.2.2 Insert Santri kelas
-                $this->store($dataSantriBaru);             
-                $this->santriModel->updateStatusSantri($idSantri);
+                $this->store($dataSantriBaru);
+                // 1.2.3 Update Active Santri         
+                $this->santriBaruModel->updateActiveSantri($idSantri);
             }
             else{
                 $idKelas = $this->helpFunction->getNextKelas($idKelas);
@@ -311,10 +311,9 @@ class Kelas extends BaseController
                 $data = [
                     'IdTpq' => $idTpq,
                     'IdSantri' => $idSantri,
-                    'IdTahunAjaran' => $idTahunAjaran,
                     'IdKelas' => $materiPelajaran['IdKelas'],
                     'IdMateri' => $materiPelajaran['IdMateri'],
-                    'Semester' => $materiPelajaran['Semester']
+                    'IdTahunAjaran' => $idTahunAjaran,
                 ];
                 $this->nilaiModel->insertNilai($data);
             }
