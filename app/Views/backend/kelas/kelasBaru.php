@@ -42,7 +42,8 @@
                                         <option value="" disabled selected>Pilih kelas</option>
                                         <?php
                                         foreach ($dataKelas as $kelas): ?>
-                                            <option value="<?= $kelas['IdKelas'] ?>">
+                                            <option value="<?= $kelas['IdKelas'] ?>"
+                                                <?= ($kelas['NamaKelas'] == $santri['NamaKelas']) ? 'selected' : '' ?>>
                                                 <?= $kelas['NamaKelas'] ?>
                                             </option>
                                         <?php endforeach ?>
