@@ -11,7 +11,7 @@
             $IdSantri = htmlspecialchars($firstResult->IdSantri, ENT_QUOTES, 'UTF-8');
             $NamaSantri = htmlspecialchars($firstResult->NamaSantri, ENT_QUOTES, 'UTF-8');
             $Semester = htmlspecialchars($firstResult->Semester, ENT_QUOTES, 'UTF-8');
-            $NamaKelas = htmlspecialchars($firstResult->IdKelas, ENT_QUOTES, 'UTF-8');
+            $NamaKelas = htmlspecialchars($firstResult->NamaKelas, ENT_QUOTES, 'UTF-8');
             // Format the Tahun with "/"
             $Tahun = $firstResult->IdTahunAjaran;
             if (strlen($Tahun) == 8) {
@@ -121,8 +121,8 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                             <label for="FormProfilTpq">Nilai</label>
                             <input type="number" name="Nilai" class="form-control" id="FormProfilTpq" required
                                 placeholder="Ketik Nilai" value="<?= $DataNilai->Nilai ?>"
-                                min="50" max="95"
-                                oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 95')"
+                                min="50" max="100"
+                                oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
                                 oninput="this.setCustomValidity('')">
                         </div>
                         <div class="form-group">
@@ -144,23 +144,41 @@ foreach ($MainDataNilai as $DataNilai) : ?>
 <script>
     initializeDataTableUmum("#TabelNilaiPerSemester", true, true);
 
-    // Funsi untuk menampilkan modal edit nilai
+    // Fungsi untuk menampilkan modal edit nilai
     function showModalEditNilai(id) {
-        // Tampilkan konfirmasi sebelum membuka modal
-        Swal.fire({
-            title: 'Konfirmasi',
-            text: 'Apakah Anda yakin ingin mengedit nilai ini?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Ya, Edit',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $('#EditNilai' + id).modal('show');
+        $('#EditNilai' + id).modal('show');
+    }
+
+    // Tambahkan handler untuk form submission
+    $('form').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                $('#EditNilai' + form.find('input[name="Id"]').val()).modal('hide');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: 'Data nilai berhasil diperbarui',
+                    showConfirmButton: false,
+                    timer: 2000
+                }).then(() => {
+                    location.reload();
+                });
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Terjadi kesalahan saat menyimpan data',
+                });
             }
         });
-    }
+    });
 </script>
 <?= $this->endSection(); ?>

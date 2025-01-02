@@ -32,35 +32,62 @@ class GuruKelas extends BaseController
     public function store()
     {
         $id = $this->request->getPost('Id');
+        $idKelas = $this->request->getPost('IdKelas');
+        $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
+        $idJabatan = $this->request->getPost('IdJabatan');
+
+        // Cek apakah kombinasi IdKelas, IdTahunAjaran dan IdJabatan=3 wali kelas sudah ada
+        if ($idJabatan == 3) {
+            $existing = $this->guruKelasModel
+                ->select('tbl_guru_kelas.*, tbl_guru.Nama as NamaGuru, tbl_kelas.NamaKelas')
+                ->join('tbl_guru', 'tbl_guru.IdGuru = tbl_guru_kelas.IdGuru')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_guru_kelas.IdKelas')
+                ->where([
+                    'tbl_guru_kelas.IdKelas' => $idKelas,
+                    'tbl_guru_kelas.IdTahunAjaran' => $idTahunAjaran,
+                    'tbl_guru_kelas.IdJabatan' => 3
+                ])->first();
+
+            // Jika data existing ditemukan dan ini adalah data baru (tidak ada $id)
+            // ATAU jika ini adalah update tapi untuk record yang berbeda
+            if ($existing && ($id === null || $id != $existing['Id'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => "Wali Kelas untuk kelas {$existing['NamaKelas']} sudah ditempati oleh {$existing['NamaGuru']}!"
+                ]);
+            }
+        }
         
         $data = [
             'IdTpq' => $this->request->getPost('IdTpq'),
-            'IdKelas' => $this->request->getPost('IdKelas'),
+            'IdKelas' => $idKelas,
             'IdGuru' => $this->request->getPost('IdGuru'),
-            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
-            'IdJabatan' => $this->request->getPost('IdJabatan'),
+            'IdTahunAjaran' => $idTahunAjaran,
+            'IdJabatan' => $idJabatan,
         ];
         if ($id) 
              $data['Id'] = $id;
         
         $this->guruKelasModel->save($data);
-
-        return redirect()->to('backend/guruKelas/show');
-    }
-
-    public function edit($id)
-    {
-        $data = [
-            'page_title' => 'Data Guru Kelas',
-            'guruKelas' => $this->guruKelasModel->find($id)
-        ];
-        
-        return view('backend/kelas/edit', $data);
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Data berhasil disimpan'
+        ]);
     }
 
     public function delete($id)
     {
-        $this->guruKelasModel->delete($id);
-        return redirect()->to('guruKelas/show');
+        try {
+            $this->guruKelasModel->delete($id);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data guru kelas berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus data guru kelas: ' . $e->getMessage()
+            ]);
+        }
     }
 }

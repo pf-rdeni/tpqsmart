@@ -308,14 +308,30 @@ class Kelas extends BaseController
             $listMateriPelajaran = $this->helpFunction->getKelasMateriPelajaran($idKelas, $idTpq);
             // 1.4 Insert Into Tabel tbl_nilai
             foreach ($listMateriPelajaran as $materiPelajaran) {
-                $data = [
-                    'IdTpq' => $idTpq,
-                    'IdSantri' => $idSantri,
-                    'IdKelas' => $materiPelajaran['IdKelas'],
-                    'IdMateri' => $materiPelajaran['IdMateri'],
-                    'IdTahunAjaran' => $idTahunAjaran,
-                ];
-                $this->nilaiModel->insertNilai($data);
+                // 1.4.1 Insert Nilai Santri Semeseter Ganjil
+                if ($materiPelajaran['SemesterGanjil'] == 1) {
+                    $data = [
+                        'IdTpq' => $idTpq,
+                        'IdSantri' => $idSantri,
+                        'IdKelas' => $materiPelajaran['IdKelas'],
+                        'IdMateri' => $materiPelajaran['IdMateri'],
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'Semester' => "Ganjil"
+                    ];
+                    $this->nilaiModel->insertNilai($data);
+                }
+                // 1.4.2 Insert Nilai Santri Semeseter Genap
+                if ($materiPelajaran['SemesterGenap'] == 1) {
+                    $data = [
+                        'IdTpq' => $idTpq,
+                        'IdSantri' => $idSantri,
+                        'IdKelas' => $materiPelajaran['IdKelas'],
+                        'IdMateri' => $materiPelajaran['IdMateri'],
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'Semester' => "Genap"
+                    ];
+                    $this->nilaiModel->insertNilai($data);
+                }
             }
         }
 

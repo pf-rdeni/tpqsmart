@@ -42,9 +42,10 @@
                             <td>
                                 <button class="btn btn-warning btn-sm" data-toggle="modal"
                                     data-target="#GuruKelasEdit<?= $row['Id']  ?>"><i class="fas fa-edit"></i></button>
-                                <a href="<?= base_url('guruKelas/delete/' .  $row['Id']) ?>" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Apakah Anda Yakin Akan Delet Data Ini')"><i class="fas fa-trash"></i>
-                                </a>
+                                <button class="btn btn-danger btn-sm"
+                                    onclick="deleteDataGuruKelas('<?= base_url('backend/GuruKelas/delete/' . $row['Id']) ?>')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -71,7 +72,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form action="<?= base_url('backend/GuruKelas/store') ?>" method="POST">
+                    <form id="formEdit<?= $row['Id'] ?>" action="<?= base_url('backend/GuruKelas/store') ?>" method="POST">
                         <div class="form-group">
                             <input type="hidden" name="Id" id="FormGuruKelas" value="<?= $row['Id'] ?>">
                             <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $row['IdTpq'] ?>">
@@ -114,7 +115,7 @@
                         </div>
 
                         <div class="modal-footer">
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i>Simpan</button>
+                            <button type="button" class="btn btn-primary" onclick="saveDataGuruKelas(this)"><i class="fas fa-save"></i>Simpan</button>
                         </div>
                     </form>
                 </div>
@@ -133,7 +134,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form action="<?= base_url('guruKelas/store') ?>" method="POST">
+                <form id="formNew" action="<?= base_url('backend/GuruKelas/store') ?>" method="POST">
                     <div class="form-group">
                         <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $dataTpq ?>">
                     </div>
@@ -177,11 +178,124 @@
                     </div>
 
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i>Simpan</button>
+                        <button type="button" class="btn btn-primary" onclick="saveDataGuruKelas(this)"><i class="fas fa-save"></i>Simpan</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+<?= $this->endSection(); ?>
+//section scripts
+<?= $this->section('scripts'); ?>
+<script>
+    function saveDataGuruKelas(button) {
+        // Dapatkan form terdekat dari tombol yang diklik
+        const form = button.closest('form');
+        // Dapatkan modal terdekat dari form
+        const modal = form.closest('.modal');
+
+        // Tampilkan loading
+        Swal.fire({
+            title: 'Mohon Tunggu',
+            html: 'Sedang memproses data...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: 'Data berhasil disimpan',
+                        showConfirmButton: true,
+                        timer: 2000
+                    }).then(() => {
+                        $(modal).modal('hide');
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.message || 'Terjadi kesalahan saat menyimpan data'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Terjadi kesalahan pada server'
+                });
+                console.error('Error:', error);
+            });
+    }
+
+    // Fungsi untuk hapus data
+    function deleteDataGuruKelas(url) {
+        Swal.fire({
+            title: 'Apakah Anda Yakin?',
+            text: "Data yang dihapus tidak dapat dikembalikan!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Tampilkan loading
+                Swal.fire({
+                    title: 'Mohon Tunggu',
+                    html: 'Sedang menghapus data...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch(url, {
+                        method: 'GET'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: data.message || 'Data berhasil dihapus',
+                                showConfirmButton: true,
+                                timer: 2000
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: data.message || 'Terjadi kesalahan saat menghapus data'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan pada server'
+                        });
+                        console.error('Error:', error);
+                    });
+            }
+        });
+    }
+</script>
 <?= $this->endSection(); ?>
