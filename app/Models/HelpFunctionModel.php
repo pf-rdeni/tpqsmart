@@ -45,7 +45,7 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultArray();
     }
 
-    public function getDataGuru($id = false, $status = true)
+    public function getDataGuru($id = false, $status = true, $IdTpq = null)
     {
         $namaTable = "tbl_guru";
         $builder = $this->db->table($namaTable)->where('Status', $status);
@@ -53,6 +53,11 @@ class HelpFunctionModel extends Model
         if ($id) {
             $builder->where('IdTpq', $id);
         }
+
+        if ($IdTpq !== null) {
+            $builder->where('IdTpq', $IdTpq);
+        }
+
         return $builder->get()->getResultArray();
     }
 
@@ -133,6 +138,50 @@ class HelpFunctionModel extends Model
         return $builder->get()->getRowArray();
     }
 
+    //get data auth_groups
+    public function getDataAuthGoups($id = false)
+    {
+        $namaTable = "auth_groups";
+        $builder = $this->db->table($namaTable);
+
+        if ($id) {
+            $builder->where('id', $id);
+        }
+        return $builder->get()->getResultArray();
+    }
+
+    //get user by username
+    public function getUserByUsername($username)
+    {
+        $builder = $this->db->table('users')
+        ->where('username', $username);
+        return $builder->get()->getRowArray();
+    }
+
+    //get user available by nik guru atau username 
+    public function getGuruByIdNik($idNik)
+    {
+        $builder = $this->db->table('users')
+        ->where('nik', $idNik);
+        return $builder->get()->getRowArray();
+    }
+
+    //===================================================================
+    // Set Related
+    // Set Related to Insert tabel auth_groups_users
+    public function insertAuthGroupsUsers($data)
+    {
+        $builder = $this->db->table('auth_groups_users');
+        return $builder->insert($data);
+    }
+    //===================================================================
+    // Delete Related
+    // Delete Related to Delete tabel auth_groups_users
+    public function deleteAuthGroupsUsers($id)
+    {
+        $builder = $this->db->table('auth_groups_users');
+        return $builder->delete(['user_id' => $id]);
+    }
     //===================================================================
 
     public function getNextKelas($idKelas)

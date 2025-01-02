@@ -4,39 +4,81 @@ namespace App\Controllers\Backend;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use App\Models\HelpFunctionModel;
+use Myth\Auth\Password;
 
 class User extends BaseController
 {
     protected $userModel;
+    protected $helpFunction;
     public function __construct()
     {
         $this->userModel = new UserModel();
+        $this->helpFunction = new HelpFunctionModel();
     }
-    public function index($filter = null)
+    public function index()
     {
-        $userDataSantri = $this->userModel
-            ->select('users.id, users.active, users.username, tbl_santri_baru.NamaSantri as Nama, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa, "Santri" as kategori')
-            ->join('tbl_santri_baru', 'users.nik = tbl_santri_baru.NikSantri', 'inner')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'inner')
-            ->findAll();
-        $userDataGuru = $this->userModel
-            ->select('users.id, users.active, users.username, tbl_guru.Nama as Nama, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa, "Guru" as kategori')
-            ->join('tbl_guru', 'users.nik = tbl_guru.IdGuru', 'inner')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'inner')
-            ->findAll();
+        $userData = $this->userModel->getAllUserData();
 
-        $userData = array_merge($userDataSantri, $userDataGuru);
+        $dataGuru = $this->helpFunction->getDataGuru(IdTpq: session()->get('IdTpq'));
+
+        $dataAutGroups = $this->helpFunction->getDataAuthGoups();
 
         $data = [
             'page_title' => 'Data User',
             'userData' => $userData,
+            'dataGuru' => $dataGuru,
+            'dataAuthGroups' => $dataAutGroups
         ];
         return view('backend/user/index', $data);
     }
 
+    public function checkUsername($username)
+    {
+        $exists = $this->helpFunction->getUserByUsername($username) > 0;
+        return $this->response->setJSON(['exists' => $exists]);
+    }
+
+    public function checkUserIdNikGuru($idNik)
+    {
+        $exists = $this->helpFunction->getGuruByIdNik($idNik) > 0;
+        return $this->response->setJSON(['exists' => $exists]);
+    }
+
     public function create()
     {
-        return view('backend/user/create');
+
+        $groupsId = $this->request->getPost('IdAuthGroup');
+        $data = [
+            'username' => $this->request->getPost('username'),
+            'fullname' => $this->request->getPost('nama'),
+            'email' => $this->request->getPost('username') . '@tpqsmart.simpedis.com',
+            'password_hash' => Password::hash($this->request->getPost('password')),
+            'nik' => $this->request->getPost('IdNikGuru'),
+            'active' => 1
+        ];
+
+        try {
+            $returnUserId = $this->userModel->store($data);
+
+            $groupData = [
+                'group_id' => $groupsId,
+                'user_id' => $returnUserId
+            ];
+
+            $this->helpFunction->insertAuthGroupsUsers($groupData);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data pengguna berhasil ditambahkan',
+                'user_id' => $returnUserId
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal menambahkan data pengguna: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function edit($id)
@@ -47,11 +89,12 @@ class User extends BaseController
     public function delete($id)
     {
         try {
-            // $result = $this->userModel->delete($id);
-            $result = true;
+            $result = $this->userModel->delete($id);
             if (!$result) {
                 throw new \Exception('Gagal menghapus data pengguna');
             }
+
+            $this->helpFunction->deleteAuthGroupsUsers($id);
 
             return $this->response->setJSON([
                 'success' => true,
