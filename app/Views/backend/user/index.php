@@ -17,6 +17,7 @@
                                 <th>Status</th>
                                 <th>Nama</th>
                                 <th>UserNama</th>
+                                <th>Password</th>
                                 <th>TPQ</th>
                                 <th>KelurahanDesa</th>
                                 <th>Kategori</th>
@@ -29,10 +30,20 @@
                                     <td>
                                         <input type="checkbox" <?= $user['active'] == 1 ? 'checked' : ''; ?>>
                                     </td>
-                                    <td><?= $user['Nama']; ?></td>
+                                    <td><?= $user['nama']; ?></td>
                                     <td><?= $user['username']; ?></td>
-                                    <td><?= $user['NamaTpq']; ?></td>
-                                    <td><?= $user['KelurahanDesa']; ?></td>
+                                    <td>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" value="<?= $user['password_hash']; ?>" readonly id="password-<?= $user['id']; ?>">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text" onclick="togglePasswordList(<?= $user['id']; ?>)">
+                                                    <i class="fas fa-eye" id="eye-password-<?= $user['id']; ?>"></i>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><?= $user['namaTpq']; ?></td>
+                                    <td><?= $user['kelurahanDesa']; ?></td>
                                     <td><?= $user['kategori']; ?></td>
                                     <td>
                                         <button class="btn btn-warning sm-small" onclick="window.location.href='<?= site_url('user/edit/' . $user['id']); ?>'"><i class="fas fa-edit"></i> Edit</button>
@@ -100,13 +111,17 @@
                     <div class="form-group row">
                         <label for="confirm-password" class="col-sm-3 col-form-label">Konfirmasi Password</label>
                         <div class="col-sm-9">
-                            <div class="input-group">
+                            <div class="input-group mb-2">
                                 <input type="password" class="form-control" id="confirm-password" name="confirm-password" required>
                                 <div class="input-group-append">
                                     <span class="input-group-text" onclick="togglePassword('confirm-password')">
                                         <i class="fas fa-eye" id="eye-confirm-password"></i>
                                     </span>
                                 </div>
+                            </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="use-default-password" name="use-default-password">
+                                <label class="custom-control-label text-primary" for="use-default-password"><small>Gunakan Default Password: TpqSmart123</small></label>
                             </div>
                             <span class="text-danger" id="error-confirm-password"></span>
                         </div>
@@ -363,6 +378,33 @@
                 $('#modal-tambah').modal('hide');
             }
         });
+    }
+
+    $('#use-default-password').change(function() {
+        if ($(this).is(':checked')) {
+            $('#password').val('TpqSmart123');
+            $('#confirm-password').val('TpqSmart123');
+            $('#password, #confirm-password').prop('readonly', true);
+            $('#confirm-password').removeClass('is-invalid');
+            $('#error-confirm-password').text('');
+        } else {
+            $('#password, #confirm-password').val('').prop('readonly', false);
+        }
+    });
+
+    function togglePasswordList(userId) {
+        const passwordInput = document.getElementById('password-' + userId);
+        const eyeIcon = document.getElementById('eye-password-' + userId);
+
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.classList.remove('fa-eye');
+            eyeIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.classList.remove('fa-eye-slash');
+            eyeIcon.classList.add('fa-eye');
+        }
     }
 </script>
 

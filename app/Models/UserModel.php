@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Myth\Auth\Password;
 
 class UserModel extends Model
 {
@@ -37,16 +38,38 @@ class UserModel extends Model
 
     public function getAllUserData()
     {
-        $userDataSantri = $this->select('users.id, users.active, users.username, tbl_santri_baru.NamaSantri as Nama, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa, "Santri" as kategori')
+        // Query untuk data santri
+        $userDataSantri = $this->select('
+            users.id,
+            users.active,
+            users.username,
+            users.password_hash,
+            tbl_santri_baru.NamaSantri as nama,
+            tbl_tpq.NamaTpq as namaTpq,
+            tbl_tpq.KelurahanDesa as kelurahanDesa,
+            "Santri" as kategori
+        ')
         ->join('tbl_santri_baru', 'users.nik = tbl_santri_baru.NikSantri', 'inner')
         ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'inner')
         ->findAll();
 
-        $userDataGuru = $this->select('users.id, users.active, users.username, tbl_guru.Nama as Nama, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa, "Guru" as kategori')
+        // Query untuk data guru
+        $userDataGuru = $this->select('
+            users.id,
+            users.active,
+            users.username,
+            users.password_hash,
+            tbl_guru.Nama as nama,
+            tbl_tpq.NamaTpq as namaTpq,
+            tbl_tpq.KelurahanDesa as kelurahanDesa,
+            "Guru" as kategori
+        ')
         ->join('tbl_guru', 'users.nik = tbl_guru.IdGuru', 'inner')
         ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'inner')
         ->findAll();
 
-        return array_merge($userDataSantri, $userDataGuru);
+        $dataMerge = array_merge($userDataSantri, $userDataGuru);
+
+        return $dataMerge;
     }
 }

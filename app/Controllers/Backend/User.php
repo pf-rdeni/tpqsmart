@@ -20,6 +20,18 @@ class User extends BaseController
     {
         $userData = $this->userModel->getAllUserData();
 
+        // Mengecek setiap user data untuk password default
+        foreach ($userData as &$user) {
+            // Verifikasi apakah password_hash cocok dengan 'TpqSmart123'
+            if (Password::verify('TpqSmart123', $user['password_hash'])) {
+                $user['password_hash'] = 'TpqSmart123';
+            }
+            // Jika tidak cocok, biarkan password_hash terenkripsi
+            else {
+                $user['password_hash'] = '********';
+            }
+        }
+
         $dataGuru = $this->helpFunction->getDataGuru(IdTpq: session()->get('IdTpq'));
 
         $dataAutGroups = $this->helpFunction->getDataAuthGoups();
@@ -49,12 +61,15 @@ class User extends BaseController
     {
 
         $groupsId = $this->request->getPost('IdAuthGroup');
+        $idNik = $this->request->getPost('IdNikGuru');
+        $fullName = $this->helpFunction->getNamaGuruByIdNik($idNik);
+
         $data = [
             'username' => $this->request->getPost('username'),
-            'fullname' => $this->request->getPost('nama'),
+            'fullname' => $fullName,
             'email' => $this->request->getPost('username') . '@tpqsmart.simpedis.com',
             'password_hash' => Password::hash($this->request->getPost('password')),
-            'nik' => $this->request->getPost('IdNikGuru'),
+            'nik' => $idNik,
             'active' => 1
         ];
 

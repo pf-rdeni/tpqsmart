@@ -166,6 +166,14 @@ class HelpFunctionModel extends Model
         return $builder->get()->getRowArray();
     }
 
+    //get nama guru by IdNik
+    public function getNamaGuruByIdNik($idNik)
+    {
+        $builder = $this->db->table('tbl_guru')
+        ->select('Nama')
+        ->where('IdGuru', $idNik);
+        return $builder->get()->getRowArray();
+    }
     //===================================================================
     // Set Related
     // Set Related to Insert tabel auth_groups_users
