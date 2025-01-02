@@ -168,7 +168,7 @@ class Kelas extends BaseController
 
         // Ambil data berdasarkan tahun ajaran sebelumnya dan data tahun ajaran saat ini
         $previousAcademicYear = ($currentMonth >= 7) ? ($currentYear - 1) . $currentYear : ($currentYear - 2) . ($currentYear - 1);
-        $currentAcademicYear = ($currentMonth >= 7) ? $currentYear . ($currentYear + 1) : ($currentYear - 1). ($currentYear + 1);
+        $currentAcademicYear = ($currentMonth >= 7) ? $currentYear . ($currentYear + 1) : ($currentYear - 1) . $currentYear;
 
         // mengambil data query berdasarkan filter tahun ajaran tabel tbl_kelas_santri
         $this->kelasModel->select('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas, tbl_kelas.NamaKelas, COUNT(tbl_kelas_santri.IdSantri) AS SumIdKelas')

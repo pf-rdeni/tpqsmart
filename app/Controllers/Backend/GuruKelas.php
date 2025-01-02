@@ -19,11 +19,12 @@ class GuruKelas extends BaseController
 
     public function show()
     {
+        $IdTpq = session()->get('IdTpq');
         $data = [
             'page_title' => 'Daftar Guru Kelas',
-            'guruKelas' => $this->helpFunction->getDataGuruKelas(),
+            'guruKelas' => $this->helpFunction->getDataGuruKelas(IdTpq: $IdTpq),
             'kelas' => $this->helpFunction->getDataKelas(),
-            'dataTpq' => '411221010225' // Baiturrahman for change in the future
+            'dataTpq' => $IdTpq
         ];
 
         return view('backend/kelas/guruKelas', $data);

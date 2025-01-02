@@ -91,13 +91,13 @@
                                 }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
                             <td><?= $santri['NamaKelas']; ?></td>
                             <td>
-                                <?php if ($santri['status'] == "Belum Diverifikasi"): ?>
-                                    <span class="badge bg-warning"><?= $santri['status']; ?></span>
+                                <?php if ($santri['Status'] == "Belum Diverifikasi"): ?>
+                                    <span class="badge bg-warning"><?= $santri['Status']; ?></span>
                                 <?php else: ?>
-                                    <?php if ($santri['status'] == "Perlu Perbaikan"): ?>
-                                        <span class="badge bg-danger"><?= $santri['status']; ?></span>
+                                    <?php if ($santri['Status'] == "Perlu Perbaikan"): ?>
+                                        <span class="badge bg-danger"><?= $santri['Status']; ?></span>
                                     <?php else: ?>
-                                        <span class="badge bg-success"><?= $santri['status']; ?></span>
+                                        <span class="badge bg-success"><?= $santri['Status']; ?></span>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             </td>
@@ -318,7 +318,7 @@
                                         <td>:</td>
                                         <td id="modalStatusAyah" style="font-weight: bold;"></td>
                                     </tr>
-                                    <!-- Data tambahan yang hanya muncul jika status "Masih Hidup" -->
+                                    <!-- Data tambahan yang hanya muncul jika Status "Masih Hidup" -->
                                     <tr class="data-ayah-hidup" style="display: none;">
                                         <td>NIK</td>
                                         <td>:</td>
@@ -364,7 +364,7 @@
                                         <td>:</td>
                                         <td id="modalStatusIbu" style="font-weight: bold;"></td>
                                     </tr>
-                                    <!-- Data tambahan yang hanya muncul jika status "Masih Hidup" -->
+                                    <!-- Data tambahan yang hanya muncul jika Status "Masih Hidup" -->
                                     <tr class="data-ibu-hidup" style="display: none;">
                                         <td>NIK</td>
                                         <td>:</td>
@@ -589,15 +589,15 @@
             document.getElementById('modalYangBiayaSekolah').textContent = santri.YangBiayaSekolah;
             document.getElementById('modalNamaKepalaKeluarga').textContent = santri.NamaKepalaKeluarga;
 
-            // Set status dengan badge
+            // Set Status dengan badge
             const statusElement = document.getElementById('modalStatus');
             let badgeClass = 'bg-success';
-            if (santri.status === 'Belum Diverifikasi') {
+            if (santri.Status === 'Belum Diverifikasi') {
                 badgeClass = 'bg-warning';
-            } else if (santri.status === 'Perlu Perbaikan') {
+            } else if (santri.Status === 'Perlu Perbaikan') {
                 badgeClass = 'bg-danger';
             }
-            statusElement.innerHTML = `<span class="badge ${badgeClass}">${santri.status}</span>`;
+            statusElement.innerHTML = `<span class="badge ${badgeClass}">${santri.Status}</span>`;
 
             // Set nilai untuk tab Data Orang Tua
             // Data Ayah

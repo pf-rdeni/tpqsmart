@@ -74,7 +74,7 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultArray();
     }
 
-    public function getDataGuruKelas($IdGuru = null)
+    public function getDataGuruKelas($IdGuru = null, $IdTpq = null)
     {
         $builder = $this->db->table('tbl_guru_kelas gk')
                             ->select('j.IdJabatan, j.NamaJabatan, gk.IdTahunAjaran, gk.Id, gk.IdGuru, gk.IdTpq, gk.IdKelas, g.Nama, t.NamaTpq, k.NamaKelas')
@@ -87,11 +87,13 @@ class HelpFunctionModel extends Model
         if ($IdGuru !== null) {
             $builder->where('gk.IdGuru', $IdGuru);
             return $builder->get()->getResultObject();
+        } else if ($IdTpq !== null) {
+            $builder->where('gk.IdTpq', $IdTpq);
+            return $builder->get()->getResultObject();
+        } else {
+            return $builder->get()->getResultObject();
         }
-        else{
 
-            return $builder->get()->getResultArray();
-        }
 
     }
 

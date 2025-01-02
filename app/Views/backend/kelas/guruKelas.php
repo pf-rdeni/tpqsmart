@@ -35,15 +35,15 @@
                     foreach ($guruKelas as $row) : ?>
                         <tr>
                             <td><?= $no++; ?></td>
-                            <td><?= $row['NamaKelas']; ?></td>
-                            <td><?= $row['Nama']; ?></td>
-                            <td><?= $helpModel->convertTahunAjaran($row['IdTahunAjaran']); ?></td>
-                            <td><?= $row['NamaJabatan']; ?></td>
+                            <td><?= $row->NamaKelas ?></td>
+                            <td><?= $row->Nama ?></td>
+                            <td><?= $helpModel->convertTahunAjaran($row->IdTahunAjaran) ?></td>
+                            <td><?= $row->NamaJabatan ?></td>
                             <td>
                                 <button class="btn btn-warning btn-sm" data-toggle="modal"
-                                    data-target="#GuruKelasEdit<?= $row['Id']  ?>"><i class="fas fa-edit"></i></button>
+                                    data-target="#GuruKelasEdit<?= $row->Id  ?>"><i class="fas fa-edit"></i></button>
                                 <button class="btn btn-danger btn-sm"
-                                    onclick="deleteDataGuruKelas('<?= base_url('backend/GuruKelas/delete/' . $row['Id']) ?>')">
+                                    onclick="deleteDataGuruKelas('<?= base_url('backend/GuruKelas/delete/' . $row->Id) ?>')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>
@@ -62,7 +62,7 @@
 
 <!-- Modal Edit Data-->
 <?php foreach ($guruKelas as $row) : ?>
-    <div class="modal fade" id="GuruKelasEdit<?= $row['Id'] ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
+    <div class="modal fade" id="GuruKelasEdit<?= $row->Id ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
         <div class="modal-dialog " role="document">
             <div class="modal-content ">
                 <div class="modal-header bg-warning text-white">
@@ -72,18 +72,18 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form id="formEdit<?= $row['Id'] ?>" action="<?= base_url('backend/GuruKelas/store') ?>" method="POST">
+                    <form id="formEdit<?= $row->Id ?>" action="<?= base_url('backend/GuruKelas/store') ?>" method="POST">
                         <div class="form-group">
-                            <input type="hidden" name="Id" id="FormGuruKelas" value="<?= $row['Id'] ?>">
-                            <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $row['IdTpq'] ?>">
-                            <input type="hidden" name="IdTahunAjaran" id="FormGuruKelas" value="<?= $row['IdTahunAjaran'] ?>">
+                            <input type="hidden" name="Id" id="FormGuruKelas" value="<?= $row->Id ?>">
+                            <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $row->IdTpq ?>">
+                            <input type="hidden" name="IdTahunAjaran" id="FormGuruKelas" value="<?= $row->IdTahunAjaran ?>">
                         </div>
                         <div class="form-group">
                             <label for="FormGuruKelas">Nama Kelas</label>
                             <select name="IdKelas" class="form-control" id="FormGuruKelas">
                                 <option value="" disabled selected>Pilih Nama Kelas</option>
                                 <?php foreach ($helpModel->getDataKelas() as $kelas): ?>
-                                    <option value="<?= $kelas['IdKelas']; ?>" <?= $row['IdKelas'] == $kelas['IdKelas'] ? 'selected' : ''; ?>>
+                                    <option value="<?= $kelas['IdKelas']; ?>" <?= $row->IdKelas == $kelas['IdKelas'] ? 'selected' : ''; ?>>
                                         <?= $kelas['NamaKelas']; ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -94,8 +94,8 @@
                             <select name="IdGuru" class="form-control" id="FormGuruKelas">
                                 <option value="" disabled selected>Pilih Nama Guru</option>
                                 <?php
-                                foreach ($helpModel->getDataGuru($row['IdTpq']) as $guru): ?>
-                                    <option value="<?= $guru['IdGuru']; ?>" <?= $row['IdGuru'] == $guru['IdGuru'] ? 'selected' : ''; ?>>
+                                foreach ($helpModel->getDataGuru($row->IdTpq) as $guru): ?>
+                                    <option value="<?= $guru['IdGuru']; ?>" <?= $row->IdGuru == $guru['IdGuru'] ? 'selected' : ''; ?>>
                                         <?= $guru['Nama']; ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -107,7 +107,7 @@
                                 <option value="" disabled selected>Pilih Sebagai</option>
                                 <?php
                                 foreach ($helpModel->getDataJabatan() as $Jabatan): ?>
-                                    <option value="<?= $Jabatan['IdJabatan'] ?>" <?= $row['IdJabatan'] == $Jabatan['IdJabatan'] ? 'selected' : '' ?>>
+                                    <option value="<?= $Jabatan['IdJabatan'] ?>" <?= $row->IdJabatan == $Jabatan['IdJabatan'] ? 'selected' : '' ?>>
                                         <?= $Jabatan['NamaJabatan'] ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -136,7 +136,7 @@
             <div class="modal-body">
                 <form id="formNew" action="<?= base_url('backend/GuruKelas/store') ?>" method="POST">
                     <div class="form-group">
-                        <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $dataTpq ?>">
+                        <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $dataTpq['IdTpq'] ?>">
                     </div>
                     <div class="form-group">
                         <label for="FormGuruKelas">Tahun Ajaran</label>
@@ -161,7 +161,7 @@
                         <select name="IdGuru" class="form-control" id="FormGuruKelas">
                             <option value="" disabled selected>Pilih Nama Guru</option>
                             <?php
-                            foreach ($helpModel->getDataGuru($row['IdTpq']) as $guru): ?>
+                            foreach ($helpModel->getDataGuru($row->IdTpq) as $guru): ?>
                                 <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
                             <?php endforeach; ?>
                         </select>
