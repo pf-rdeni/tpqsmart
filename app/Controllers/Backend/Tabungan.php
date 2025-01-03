@@ -33,7 +33,7 @@ class Tabungan extends BaseController
 
         // Get santri details
         $santri = $this->dataSantri->where('IdSantri', $data['IdSantri'])->first();
-        $namaSantri = $santri ? $santri['Nama'] : 'Santri Tidak Ditemukan';
+        $namaSantri = $santri ? $santri['NamaSantri'] : 'Santri Tidak Ditemukan';
 
         // Check if nominal is valid
         if ($data['Nominal'] <= 0) {
@@ -126,11 +126,11 @@ class Tabungan extends BaseController
         // Initialize variables
         $saldo = 0;
         $query = $this->tabunganModel->table('tbl_tabungan_santri')
-                          ->select('
+            ->select('
                           tbl_tabungan_santri.*,  
-                          tbl_santri.Nama, tbl_kelas.NamaKelas')
-                          ->join('tbl_santri', 'tbl_santri.IdSantri = tbl_tabungan_santri.IdSantri')
-                          ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri.IdKelas')
+                          tbl_santri_baru.NamaSantri, tbl_kelas.NamaKelas')
+            ->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_tabungan_santri.IdSantri')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
                           ->where('tbl_tabungan_santri.IdSantri', $IdSantri)
                           ->where('tbl_tabungan_santri.IdTahunAjaran', $IdTahunAjaran)
                           ->orderBy('tbl_tabungan_santri.UpdatedAt', 'ASC')

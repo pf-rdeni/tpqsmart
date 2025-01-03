@@ -8,7 +8,7 @@
             <h3 class="card-title">List Santri</h3>
             <h3 class="card-title float-right bg-success text-white p-2 rounded">
                 Total Saldo: Rp. <?= number_format(array_sum(array_column($dataSantri, 'Balance')), 0, ',', '.'); ?>
-            </h3>        
+            </h3>
         </div>
         <div class="card-body">
             <table id="example1" class="table table-bordered table-striped">
@@ -29,8 +29,9 @@
                         <tr>
                             <td>
                                 <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#TransaksiTabungan<?= $santri->IdSantri ?>">Transaksi <i class="fas fa-edit"></i></button>
-                                <a href="<?= base_url('backend/tabungan/showMutasi/' . $santri->IdSantri . '/' . $santri->IdTahunAjaran) ?>" class="btn btn-primary btn-sm"> Mutasi&nbsp;&nbsp;<i class="fas fa-eye"></i></a>                            </td>
-                            <td><?php echo $santri->SantriNama; ?></td>
+                                <a href="<?= base_url('backend/tabungan/showMutasi/' . $santri->IdSantri . '/' . $santri->IdTahunAjaran) ?>" class="btn btn-primary btn-sm"> Mutasi&nbsp;&nbsp;<i class="fas fa-eye"></i></a>
+                            </td>
+                            <td><?php echo $santri->NamaSantri; ?></td>
                             <td><?php echo $santri->NamaKelas; ?></td>
                             <td><?php echo 'Rp. ' . number_format($santri->Balance, 0, ',', '.'); ?></td>
                         </tr>
@@ -64,7 +65,7 @@
                         <input type="hidden" id="IdGuru" name="IdGuru" value="<?= $santri->IdGuru ?>">
                         <div class="form-group">
                             <label for="NamaSantri">Nama Santri</label>
-                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->SantriNama, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->NamaSantri, ENT_QUOTES, 'UTF-8'); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="JenisTransaksi">JenisTransaksi</label>
@@ -162,8 +163,8 @@
 
     function capitalizeEachWord(string) {
         return string.split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 </script>
 

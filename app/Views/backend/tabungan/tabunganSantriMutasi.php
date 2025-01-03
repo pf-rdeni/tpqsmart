@@ -9,42 +9,42 @@
         if (!empty($dataTabungan)) {
             $firstResult = $dataTabungan[0];
             $IdSantri = htmlspecialchars($firstResult->IdSantri, ENT_QUOTES, 'UTF-8');
-            $NamaSantri = htmlspecialchars($firstResult->Nama, ENT_QUOTES, 'UTF-8');
+            $NamaSantri = htmlspecialchars($firstResult->NamaSantri, ENT_QUOTES, 'UTF-8');
             $NamaKelas = htmlspecialchars($firstResult->NamaKelas, ENT_QUOTES, 'UTF-8');
             // Format the Tahun with "/"
             $Tahun = $firstResult->IdTahunAjaran;
             if (strlen($Tahun) == 8) {
                 $Tahun = substr($Tahun, 0, 4) . '/' . substr($Tahun, 4, 4);
             } else {
-                $Tahun = 'Invalid Year Format'; 
+                $Tahun = 'Invalid Year Format';
             }
         } else {
             // Default values or handle the case when $dataTabungan is empty
             $NamaSantri = "";
             $Tahun = "";
-            $IdSantri ="";
-            $NamaKelas ="";
+            $IdSantri = "";
+            $NamaKelas = "";
         }
         ?>
 
         <div class="card-header">
             <h3 class="card-title">
-                Nama Santri <strong><?= $IdSantri .' - ' .$NamaSantri?></strong> Kelas <?= $NamaKelas?> T.A <?= $Tahun?>
+                Nama Santri <strong><?= $IdSantri . ' - ' . $NamaSantri ?></strong> Kelas <?= $NamaKelas ?> T.A <?= $Tahun ?>
             </h3>
-            
+
             <?php if (!empty($dataTabungan)) : ?>
                 <h3 class="card-title float-right bg-warning text-white p-2 rounded">
                     Saldo: Rp. <?= number_format($dataTabungan[0]->Saldo, 0, ',', '.'); ?>
-                </h3> 
-            <?php endif; ?>     
-            
-            <button class="card-title float-right btn btn-success btn-sm" data-toggle="modal" data-target="#TransaksiTabungan<?=$IdSantri ?>">Transaksi <i class="fas fa-edit"></i></button>
-        </div>       <!-- /.card-header -->
+                </h3>
+            <?php endif; ?>
+
+            <button class="card-title float-right btn btn-success btn-sm" data-toggle="modal" data-target="#TransaksiTabungan<?= $IdSantri ?>">Transaksi <i class="fas fa-edit"></i></button>
+        </div> <!-- /.card-header -->
         <div class="card-body">
             <table id="example1" class="table table-bordered table-striped">
                 <thead>
-                   <?php
-                        $tableHeadersFooter = '
+                    <?php
+                    $tableHeadersFooter = '
                             <tr>
                                 <th>No</th>
                                 <th>Tanggal | Jam</th>
@@ -53,7 +53,7 @@
                                 <th>Saldo</th>
                                 <th>Keterangan</th>
                             </tr>';
-                        echo $tableHeadersFooter;
+                    echo $tableHeadersFooter;
                     ?>
 
                 </thead>
@@ -83,13 +83,13 @@
 </div>
 
 <!-- Modal Transaksi Tabungan-->
-<?php 
+<?php
 $santri = $dataTabungan[0];
 
 // Check if $dataSantri is not empty
 if (!empty($santri)) {
-    ?>
-    <div class="modal fade" id="TransaksiTabungan<?=$santri->IdSantri ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
+?>
+    <div class="modal fade" id="TransaksiTabungan<?= $santri->IdSantri ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header bg-warning text-white">
@@ -107,7 +107,7 @@ if (!empty($santri)) {
                         <input type="hidden" id="IdGuru" name="IdGuru" value="<?= $santri->IdGuru ?>">
                         <div class="form-group">
                             <label for="NamaSantri">Nama Santri</label>
-                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->Nama, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->NamaSantri, ENT_QUOTES, 'UTF-8'); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="JenisTransaksi">JenisTransaksi</label>
@@ -205,8 +205,8 @@ if (!empty($santri)) {
 
     function capitalizeEachWord(string) {
         return string.split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 </script>
 <?= $this->endSection(); ?>
