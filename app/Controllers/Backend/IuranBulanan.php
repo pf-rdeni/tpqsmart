@@ -35,7 +35,7 @@ class IuranBulanan extends BaseController
 
             // Get santri details
             $santri = $this->dataSantri->where('IdSantri', $data['IdSantri'])->first();
-            $namaSantri = $santri ? $santri['Nama'] : 'Santri Tidak Ditemukan';
+            $namaSantri = $santri ? $santri['NamaSantri'] : 'Santri Tidak Ditemukan';
 
             // Convert bulan number to bulan name
             $namaBulan = $this->getBulanName($data['Bulan']);

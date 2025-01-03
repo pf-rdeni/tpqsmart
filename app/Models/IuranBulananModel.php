@@ -27,8 +27,8 @@ class IuranBulananModel extends Model
 
     public function getIuranBulanan($IdSantri, $IdTahunAjaran, $Kategori = null) {
         $query = $this->db->table('tbl_iuran_bulanan')
-                            ->select('tbl_iuran_bulanan.Id, tbl_iuran_bulanan.Kategori, tbl_iuran_bulanan.Bulan, tbl_iuran_bulanan.IdKelas, tbl_iuran_bulanan.IdSantri, tbl_iuran_bulanan.IdTahunAjaran, tbl_iuran_bulanan.Nominal, tbl_iuran_bulanan.created_at AS TanggalSerahTerima, tbl_santri.Nama')
-                            ->join('tbl_santri', 'tbl_santri.IdSantri = tbl_iuran_bulanan.IdSantri')
+            ->select('tbl_iuran_bulanan.Id, tbl_iuran_bulanan.Kategori, tbl_iuran_bulanan.Bulan, tbl_iuran_bulanan.IdKelas, tbl_iuran_bulanan.IdSantri, tbl_iuran_bulanan.IdTahunAjaran, tbl_iuran_bulanan.Nominal, tbl_iuran_bulanan.created_at AS TanggalSerahTerima, tbl_santri_baru.NamaSantri')
+            ->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_iuran_bulanan.IdSantri')
                             ->where('tbl_iuran_bulanan.IdSantri', $IdSantri)
                             ->where('tbl_iuran_bulanan.IdTahunAjaran', $IdTahunAjaran)
                             ->orderBy('tbl_iuran_bulanan.Kategori', 'ASC')

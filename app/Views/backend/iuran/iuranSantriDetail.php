@@ -8,7 +8,7 @@
         if (!empty($dataIuran)) {
             $firstResult = $dataIuran[0];
             $IdSantri = htmlspecialchars($firstResult->IdSantri, ENT_QUOTES, 'UTF-8');
-            $NamaSantri = htmlspecialchars($firstResult->Nama, ENT_QUOTES, 'UTF-8');
+            $NamaSantri = htmlspecialchars($firstResult->NamaSantri, ENT_QUOTES, 'UTF-8');
             $NamaKelas = htmlspecialchars($firstResult->IdKelas, ENT_QUOTES, 'UTF-8');
             // Format the Tahun with "/"
             $Tahun = $firstResult->IdTahunAjaran;
