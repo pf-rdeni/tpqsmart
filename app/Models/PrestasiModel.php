@@ -41,8 +41,8 @@ class PrestasiModel extends Model
                 ->select('tbl_prestasi.*, tbl_materi_pelajaran.NamaMateri, tbl_materi_pelajaran.Kategori') // Select fields from both tables
                 ->join('tbl_materi_pelajaran', 'tbl_prestasi.IdMateriPelajaran = tbl_materi_pelajaran.IdMateri') // Join with MateriPelajaran table
                 ->where('tbl_prestasi.IdSantri', $santri->IdSantri)
-                ->where('tbl_prestasi.IdTahunAjaran', $IdTahunAjaran) // Ensure it matches the academic year
-                ->where('tbl_prestasi.Status !=', "'Selesai'") // Exclude records where status is 'Selesai'
+                //        ->where('tbl_prestasi.IdTahunAjaran', $IdTahunAjaran[0]) // Ensure it matches the academic year
+                ->where('tbl_prestasi.Status !=', 'Selesai') // Exclude records where status is 'Selesai'
                 ->groupBy('tbl_prestasi.IdMateriPelajaran')  // Group by IdMateriPelajaran to get different subjects
                 ->orderBy('tbl_prestasi.IdMateriPelajaran', 'ASC')  // Optional: to maintain order by subject
                 ->orderBy('tbl_prestasi.created_at', 'DESC')        // Ensure the latest record is selected
@@ -60,11 +60,6 @@ class PrestasiModel extends Model
             $santriList[$key]->lastPrestasiList = array_map(function($item) {
                 return (object)$item;
             }, $lastPrestasiList);
-
-
-            // Query 
-
-
 
         }
         

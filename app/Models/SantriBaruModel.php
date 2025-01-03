@@ -252,8 +252,9 @@ class SantriBaruModel extends Model
     {
         $db = db_connect();
 
-        // Base SQL query
-        $sql = 'SELECT 
+        // Base SQL query dengan DISTINCT untuk menghindari duplikasi
+        $sql =
+        'SELECT DISTINCT
                     ks.IdTahunAjaran,
                     k.IdKelas,
                     k.NamaKelas,
@@ -274,12 +275,12 @@ class SantriBaruModel extends Model
                     tbl_santri_baru s ON ks.IdSantri = s.IdSantri
                 JOIN 
                     tbl_tpq t ON ks.IdTpq = t.IdTpq
-                JOIN 
+                LEFT JOIN 
                     tbl_guru_kelas w ON w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq
-                JOIN 
+                LEFT JOIN 
                     tbl_guru g ON w.IdGuru = g.IdGuru
                 WHERE 
-                    1=1';  // Baseline query (always true)
+                    1=1';
 
         // Add filters to the SQL query
         $sql .= $this->addFilterById($db, 'ks.IdTahunAjaran', $IdTahunAjaran);
