@@ -42,7 +42,7 @@ class PrestasiModel extends Model
                 ->join('tbl_materi_pelajaran', 'tbl_prestasi.IdMateriPelajaran = tbl_materi_pelajaran.IdMateri') // Join with MateriPelajaran table
                 ->where('tbl_prestasi.IdSantri', $santri->IdSantri)
                 ->where('tbl_prestasi.IdTahunAjaran', $IdTahunAjaran) // Ensure it matches the academic year
-                ->where('tbl_prestasi.status !=', 'Selesai') // Exclude records where status is 'Selesai'
+                ->where("tbl_prestasi.Status !=", 'Selesai') // Exclude records where status is 'Selesai'
                 ->groupBy('tbl_prestasi.IdMateriPelajaran')  // Group by IdMateriPelajaran to get different subjects
                 ->orderBy('tbl_prestasi.IdMateriPelajaran', 'ASC')  // Optional: to maintain order by subject
                 ->orderBy('tbl_prestasi.created_at', 'DESC')        // Ensure the latest record is selected
