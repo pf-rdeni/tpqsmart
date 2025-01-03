@@ -49,12 +49,18 @@ class PrestasiModel extends Model
                 ->findAll();  // Get all the latest records
 
             // Check tbl_prestasi.JenisPrestasi = Iqra atau Al-Quran
-            
-            $JenisPrestasi = $lastPrestasiList[0]['JenisPrestasi'];
+
+            // jika lastPrestasiList ada, maka ambil JenisPrestasi dari record pertama
+            if (count($lastPrestasiList) > 0) {
+                $JenisPrestasi = $lastPrestasiList[0]['JenisPrestasi'];
+            } else {
+                $JenisPrestasi = '';
+            }
             // Append the list of last prestasi records (with MateriPelajaran data) to the current Santri record
             $santriList[$key]->lastPrestasiList = array_map(function($item) {
                 return (object)$item;
             }, $lastPrestasiList);
+
 
             // Query 
 

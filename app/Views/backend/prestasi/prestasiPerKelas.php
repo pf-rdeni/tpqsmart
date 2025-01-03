@@ -6,12 +6,9 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">List Santri Prestasi</h3>
-            <h3 class="card-title float-right bg-success text-white p-2 rounded">
-                Total Prestasi: <?= number_format(array_sum(array_column($dataSantri, 'Prestasi')), 0, ',', '.'); ?>
-            </h3>        
         </div>
         <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="tabelPrestasiPerKelas" class="table table-bordered table-striped">
                 <thead>
                     <?php
                     echo $tableHeaderFooter = '
@@ -30,9 +27,9 @@
                             <td>
                                 <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#PrestasiBaru<?= $santri->IdSantri ?>">Baru&nbsp; <i class="fas fa-plus"></i></button>
                                 <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#PrestasiEdit<?= $santri->IdSantri ?>">Edit&nbsp; <i class="fas fa-edit"></i></button>
-                                <a href="<?= base_url('backend/prestasi/showMutasi/' . $santri->IdSantri . '/' . $santri->IdTahunAjaran) ?>" class="btn btn-primary btn-sm"> Detail&nbsp;<i class="fas fa-eye"></i></a>                            
+                                <a href="<?= base_url('backend/prestasi/showMutasi/' . $santri->IdSantri . '/' . $santri->IdTahunAjaran) ?>" class="btn btn-primary btn-sm"> Detail&nbsp;<i class="fas fa-eye"></i></a>
                             </td>
-                            <td><?php echo $santri->SantriNama; ?></td>
+                            <td><?php echo $santri->NamaSantri; ?></td>
                             <td><?php echo $santri->NamaKelas; ?></td>
                             <td>
                                 <?php
@@ -46,8 +43,8 @@
                                         } elseif ($materi->Status == 'Selesai') {
                                             $color = 'green';
                                         }
-                                        echo '<button class="btn btn-warning btn-xs" data-toggle="modal" data-target="#PrestasiEditSingle'. $santri->IdSantri . $materi->IdMateriPelajaran . '"><i class="fas fa-edit"></i></button>';
-                                        echo '&nbsp;&nbsp;'. $materi->NamaMateri . ' - <span style="color:' . $color . '; font-weight:bold;">' . strtoupper($materi->Status) . '</span><br>';                                    
+                                        echo '<button class="btn btn-warning btn-xs" data-toggle="modal" data-target="#PrestasiEditSingle' . $santri->IdSantri . $materi->IdMateriPelajaran . '"><i class="fas fa-edit"></i></button>';
+                                        echo '&nbsp;&nbsp;' . $materi->NamaMateri . ' - <span style="color:' . $color . '; font-weight:bold;">' . strtoupper($materi->Status) . '</span><br>';
                                     }
                                 }
                                 ?>
@@ -63,8 +60,8 @@
 </div>
 
 <!-- Modal Edit Prestasi individua-->
-<?php 
-foreach ($dataSantri as $santri) : 
+<?php
+foreach ($dataSantri as $santri) :
     foreach ($santri->lastPrestasiList as $materi): ?>
         <div class="modal fade" id="PrestasiEditSingle<?= $santri->IdSantri . $materi->IdMateriPelajaran ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -85,11 +82,11 @@ foreach ($dataSantri as $santri) :
                             <input type="hidden" id="IdMateriPelajaran" name="IdMateriPelajaran" value="<?= $materi->IdMateriPelajaran ?>">
                             <div class="form-group">
                                 <label for="NamaSantri">Nama Santri</label>
-                                <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->SantriNama, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                                <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->NamaSantri, ENT_QUOTES, 'UTF-8'); ?>" readonly>
                             </div>
                             <div class="form-group">
                                 <label for="JenisPrestasi">Jenis Prestasi</label>
-                                <input type="text" readonly class="form-control" id="JenisPrestasi<?= $materi->IdMateriPelajaran ?>" value="<?= $materi->NamaMateri ?>"> 
+                                <input type="text" readonly class="form-control" id="JenisPrestasi<?= $materi->IdMateriPelajaran ?>" value="<?= $materi->NamaMateri ?>">
                             </div>
                             <div class="form-group">
                                 <div>
@@ -97,29 +94,29 @@ foreach ($dataSantri as $santri) :
                                 </div>
                                 <div class="btn-group btn-group-toggle" data-toggle="buttons">
                                     <label class="btn bg-olive <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Ulang' ? 'active' : '' ?>">
-                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Ulang<?=$materi->IdMateriPelajaran?>" value="Ulang" required autocomplete="off" <?= !isset($_POST['Status'][$materi->IdMateriPelajaran]) || $_POST['Status'][$materi->IdMateriPelajaran] == 'Ulang' ? 'checked' : '' ?>> Ulang                                
+                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Ulang<?= $materi->IdMateriPelajaran ?>" value="Ulang" required autocomplete="off" <?= !isset($_POST['Status'][$materi->IdMateriPelajaran]) || $_POST['Status'][$materi->IdMateriPelajaran] == 'Ulang' ? 'checked' : '' ?>> Ulang
                                     </label>
                                     <label class="btn bg-olive <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Lanjut' ? 'active' : '' ?>">
-                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Lanjut<?=$materi->IdMateriPelajaran?>" value="Lanjut" required autocomplete="off" <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Lanjut' ? 'checked' : '' ?>> Lanjut
+                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Lanjut<?= $materi->IdMateriPelajaran ?>" value="Lanjut" required autocomplete="off" <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Lanjut' ? 'checked' : '' ?>> Lanjut
                                     </label>
                                     <label class="btn bg-olive <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Selesai' ? 'active' : '' ?>">
-                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Selesai<?=$materi->IdMateriPelajaran?>" value="Selesai" required autocomplete="off" <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Selesai' ? 'checked' : '' ?>> Selesai
+                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Selesai<?= $materi->IdMateriPelajaran ?>" value="Selesai" required autocomplete="off" <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Selesai' ? 'checked' : '' ?>> Selesai
                                     </label>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label for="Keterangan">Keterangan</label>
-                                <textarea readonly class="form-control"> Sebelumnya: <?= $materi->Keterangan ?></textarea>                                
-                                <textarea class="form-control" id="Keterangan<?=$materi->IdMateriPelajaran?>" name="Keterangan[<?= $materi->IdMateriPelajaran ?>]" placeholder="Masukan keterangan baru"></textarea>                                
+                                <textarea readonly class="form-control"> Sebelumnya: <?= $materi->Keterangan ?></textarea>
+                                <textarea class="form-control" id="Keterangan<?= $materi->IdMateriPelajaran ?>" name="Keterangan[<?= $materi->IdMateriPelajaran ?>]" placeholder="Masukan keterangan baru"></textarea>
                             </div>
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    </form>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
-<?php 
-    endforeach; 
+<?php
+    endforeach;
 endforeach;
 ?>
 
@@ -143,7 +140,7 @@ endforeach;
                         <input type="hidden" id="IdGuru" name="IdGuru" value="<?= $santri->IdGuru ?>">
                         <div class="form-group">
                             <label for="NamaSantri">Nama Santri</label>
-                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->SantriNama, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->NamaSantri, ENT_QUOTES, 'UTF-8'); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="JenisPrestasi">Jenis Prestasi</label>
@@ -156,17 +153,17 @@ endforeach;
                                 </div>
                                 <div class="btn-group btn-group-toggle" data-toggle="buttons">
                                     <label class="btn bg-olive <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Ulang' ? 'active' : '' ?>">
-                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Ulang<?=$materi->IdMateriPelajaran?>" value="Ulang" required autocomplete="off" <?= !isset($_POST['Status'][$materi->IdMateriPelajaran]) || $_POST['Status'][$materi->IdMateriPelajaran] == 'Ulang' ? 'checked' : '' ?>> Ulang                                
+                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Ulang<?= $materi->IdMateriPelajaran ?>" value="Ulang" required autocomplete="off" <?= !isset($_POST['Status'][$materi->IdMateriPelajaran]) || $_POST['Status'][$materi->IdMateriPelajaran] == 'Ulang' ? 'checked' : '' ?>> Ulang
                                     </label>
                                     <label class="btn bg-olive <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Lanjut' ? 'active' : '' ?>">
-                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Lanjut<?=$materi->IdMateriPelajaran?>" value="Lanjut" required autocomplete="off" <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Lanjut' ? 'checked' : '' ?>> Lanjut
+                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Lanjut<?= $materi->IdMateriPelajaran ?>" value="Lanjut" required autocomplete="off" <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Lanjut' ? 'checked' : '' ?>> Lanjut
                                     </label>
                                     <label class="btn bg-olive <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Selesai' ? 'active' : '' ?>">
-                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Selesai<?=$materi->IdMateriPelajaran?>" value="Selesai" required autocomplete="off" <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Selesai' ? 'checked' : '' ?>> Selesai
+                                        <input type="radio" name="Status[<?= $materi->IdMateriPelajaran ?>]" id="Selesai<?= $materi->IdMateriPelajaran ?>" value="Selesai" required autocomplete="off" <?= isset($_POST['Status'][$materi->IdMateriPelajaran]) && $_POST['Status'][$materi->IdMateriPelajaran] == 'Selesai' ? 'checked' : '' ?>> Selesai
                                     </label>
                                 </div>
                                 <div>
-                                    <input type="text" class="form-control" id="Keterangan<?=$materi->IdMateriPelajaran?>" name="Keterangan[<?= $materi->IdMateriPelajaran ?>]" placeholder="Masukan keterangan">                                
+                                    <input type="text" class="form-control" id="Keterangan<?= $materi->IdMateriPelajaran ?>" name="Keterangan[<?= $materi->IdMateriPelajaran ?>]" placeholder="Masukan keterangan">
                                 </div>
                             <?php endforeach; ?>
 
@@ -199,7 +196,7 @@ endforeach;
                         <input type="hidden" id="IdGuru" name="IdGuru" value="<?= $santri->IdGuru ?>">
                         <div class="form-group">
                             <label for="NamaSantri">Nama Santri</label>
-                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->SantriNama, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->NamaSantri, ENT_QUOTES, 'UTF-8'); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="JenisPrestasi">Jenis Prestasi</label>
@@ -216,7 +213,7 @@ endforeach;
                             </div>
                             <div class="btn-group btn-group-toggle" data-toggle="buttons">
                                 <label class="btn bg-olive <?= isset($_POST['Status']) && $_POST['Status'] == 'Ulang' ? 'active' : '' ?>">
-                                    <input type="radio" name="Status" id="Ulang" value="Ulang" required autocomplete="off" <?= !isset($_POST['Status']) || $_POST['Status'] == 'Ulang' ? 'checked' : '' ?>> Ulang                                
+                                    <input type="radio" name="Status" id="Ulang" value="Ulang" required autocomplete="off" <?= !isset($_POST['Status']) || $_POST['Status'] == 'Ulang' ? 'checked' : '' ?>> Ulang
                                 </label>
                                 <label class="btn bg-olive <?= isset($_POST['Status']) && $_POST['Status'] == 'Lanjut' ? 'active' : '' ?>">
                                     <input type="radio" name="Status" id="Lanjut" value="Lanjut" required autocomplete="off" <?= isset($_POST['Status']) && $_POST['Status'] == 'Lanjut' ? 'checked' : '' ?>> Lanjut
@@ -238,8 +235,10 @@ endforeach;
     </div>
 <?php endforeach ?>
 
-<script>
-    // Add any JavaScript functionality if needed
-</script>
+<?= $this->endSection(); ?>
 
+<?= $this->section('scripts'); ?>
+<script>
+    initializeDataTableUmum('#tabelPrestasiPerKelas');
+</script>
 <?= $this->endSection(); ?>
