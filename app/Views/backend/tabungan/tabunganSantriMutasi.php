@@ -84,7 +84,13 @@
 
 <!-- Modal Transaksi Tabungan-->
 <?php
-$santri = $dataTabungan[0];
+// check if $dataTabungan is not empty
+if (!empty($dataTabungan)) {
+    $santri = $dataTabungan[0];
+    // Check if $dataSantri is not empty
+} else {
+    $santri = null;
+}
 
 // Check if $dataSantri is not empty
 if (!empty($santri)) {
