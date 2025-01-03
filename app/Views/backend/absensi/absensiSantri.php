@@ -8,46 +8,46 @@
         <!-- /.card-header -->
         <div class="card-body">
             <?php
-                // Kelompokkan santri berdasarkan kelas
-                $santriByKelas = [];
-                foreach ($santri as $row) {
-                    $santriByKelas[$row->NamaKelas][] = $row;
-                }
+            // Kelompokkan santri berdasarkan kelas
+            $santriByKelas = [];
+            foreach ($santri as $row) {
+                $santriByKelas[$row->NamaKelas][] = $row;
+            }
 
-                // Cek apakah ada data santri untuk hari ini
-                if (empty($santriByKelas)) {
-                    echo "<div class='alert alert-info'>Santri sudah diabsen pada hari ini.</div>";
-                } else {
-                    // Loop melalui setiap kelas dan buat form terpisah
-                    foreach ($santriByKelas as $kelas => $santriList): ?>
-                        <form action="<?= base_url('/backend/absensi/simpanAbsensi') ?>" method="post">
-                            <label for="tanggal">Tanggal:</label>
-                            <?php
-                            // Ambil tanggal hari ini dalam format yang sesuai untuk input type="date" (YYYY-MM-DD)
-                            $tanggalHariIni = date('Y-m-d');
-                            ?>
-                            <input type="date" name="tanggal" value="<?= $tanggalHariIni; ?>" required>
+            // Cek apakah ada data santri untuk hari ini
+            if (empty($santriByKelas)) {
+                echo "<div class='alert alert-info'>Santri sudah diabsen pada hari ini.</div>";
+            } else {
+                // Loop melalui setiap kelas dan buat form terpisah
+                foreach ($santriByKelas as $kelas => $santriList): ?>
+                    <form action="<?= base_url('/backend/absensi/simpanAbsensi') ?>" method="post">
+                        <label for="tanggal">Tanggal:</label>
+                        <?php
+                        // Ambil tanggal hari ini dalam format yang sesuai untuk input type="date" (YYYY-MM-DD)
+                        $tanggalHariIni = date('Y-m-d');
+                        ?>
+                        <input type="date" name="tanggal" value="<?= $tanggalHariIni; ?>" required>
 
-                            <h4>Kelas: <?= $kelas ?></h4> <!-- Nama Kelas -->
+                        <h4>Kelas: <?= $kelas ?></h4> <!-- Nama Kelas -->
 
-                            <!-- Tambahkan hidden input untuk menyimpan IdKelas, IdGuru, IdTahunAjaran -->
-                            <input type="hidden" name="IdKelas" value="<?= $santriList[0]->IdKelas ?>"> <!-- IdKelas diambil dari santri pertama di list -->
-                            <input type="hidden" name="IdGuru" value="<?= session()->get('IdGuru') ?>">
-                            <input type="hidden" name="IdTahunAjaran" value="<?= $santriList[0]->IdTahunAjaran ?>">
+                        <!-- Tambahkan hidden input untuk menyimpan IdKelas, IdGuru, IdTahunAjaran -->
+                        <input type="hidden" name="IdKelas" value="<?= $santriList[0]->IdKelas ?>"> <!-- IdKelas diambil dari santri pertama di list -->
+                        <input type="hidden" name="IdGuru" value="<?= session()->get('IdGuru') ?>">
+                        <input type="hidden" name="IdTahunAjaran" value="<?= $santriList[0]->IdTahunAjaran ?>">
 
-                            <div class="table-responsive">
-                                <table class="table table-hover text-nowrap">
-                                    <thead>
+                        <div class="table-responsive">
+                            <table class="table table-hover text-nowrap">
+                                <thead>
+                                    <tr>
+                                        <th>Nama Santri</th>
+                                        <th>Kehadiran</th>
+                                        <th>Keterangan (jika Izin atau Sakit)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($santriList as $row): ?>
                                         <tr>
-                                            <th>Nama Santri</th>
-                                            <th>Kehadiran</th>
-                                            <th>Keterangan (jika Izin atau Sakit)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($santriList as $row): ?>
-                                        <tr>
-                                            <td><?= $row->SantriNama ?></td> <!-- Menampilkan nama santri -->
+                                            <td><?= $row->NamaSantri ?></td> <!-- Menampilkan nama santri -->
                                             <td>
                                                 <div class="btn-group btn-group-toggle" data-toggle="buttons">
                                                     <label class="btn bg-olive <?= isset($_POST['kehadiran'][$row->IdSantri]) && $_POST['kehadiran'][$row->IdSantri] == 'Hadir' ? 'active' : '' ?>">
@@ -69,16 +69,16 @@
                                                 <input type="text" name="keterangan[<?= $row->IdSantri ?>]" id="keterangan-<?= $row->IdSantri ?>" disabled placeholder="Masukkan keterangan">
                                             </td>
                                         </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
 
-                            <button type="submit" class="btn btn-primary">Simpan Absensi Kelas <?= $kelas ?></button>
-                        </form>
-                        <hr>
-                    <?php endforeach;
-                }
+                        <button type="submit" class="btn btn-primary">Simpan Absensi Kelas <?= $kelas ?></button>
+                    </form>
+                    <hr>
+            <?php endforeach;
+            }
             ?>
         </div>
 
@@ -87,10 +87,10 @@
     <!-- /.card -->
 </div>
 <script>
-function toggleKeterangan(id) {
-    var keteranganField = document.getElementById('keterangan-' + id);
-    keteranganField.disabled = false;
-}
+    function toggleKeterangan(id) {
+        var keteranganField = document.getElementById('keterangan-' + id);
+        keteranganField.disabled = false;
+    }
 </script>
 
 <?= $this->endSection(); ?>

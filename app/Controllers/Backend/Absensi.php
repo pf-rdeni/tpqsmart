@@ -66,7 +66,7 @@ class Absensi extends BaseController
         $IdTahunAjaran = $this->request->getPost('IdTahunAjaran');
         $kehadiran = $this->request->getPost('kehadiran');
         $keterangan = $this->request->getPost('keterangan');
-
+        $IdTpq = session()->get('IdTpq');
         // Loop through the kehadiran to save attendance for each student
         foreach ($kehadiran as $IdSantri => $statusKehadiran) {
             $data = [
@@ -76,7 +76,8 @@ class Absensi extends BaseController
                 'Keterangan' => isset($keterangan[$IdSantri]) ? $keterangan[$IdSantri] : '', // Jika ada keterangan
                 'IdKelas' => $IdKelas,
                 'IdGuru' => $IdGuru,
-                'IdTahunAjaran' => $IdTahunAjaran
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'IdTpq' => $IdTpq,
             ];
 
             // Simpan data ke database

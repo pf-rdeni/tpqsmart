@@ -39,7 +39,7 @@ class SantriModel extends Model
                     g.IdGuru,
                     g.Nama AS GuruNama,
                     s.IdSantri,
-                    s.Nama AS SantriNama,
+                    s.NamaSantri,
                     s.JenisKelamin,
                     t.IdTpq,
                     t.NamaTpq,
@@ -50,7 +50,7 @@ class SantriModel extends Model
                 JOIN 
                     tbl_kelas k ON ks.IdKelas = k.IdKelas
                 JOIN 
-                    tbl_santri s ON ks.IdSantri = s.IdSantri
+                    tbl_santri_baru s ON ks.IdSantri = s.IdSantri
                 JOIN 
                     tbl_tpq t ON ks.IdTpq = t.IdTpq
                 JOIN 
@@ -66,7 +66,7 @@ class SantriModel extends Model
         $sql .= $this->addFilterById($db, 'k.IdKelas', $IdKelas);
 
         // Add ORDER BY clause
-        $sql .= ' ORDER BY k.NamaKelas ASC, s.Nama ASC';
+        $sql .= ' ORDER BY k.NamaKelas ASC, s.NamaSantri ASC';
 
         // Execute the query
         $query = $db->query($sql)->getResultObject();
