@@ -89,6 +89,18 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                            <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/materiPelajaran/showMateriPelajaran') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Daftar Materi</p>
+                                </a>
+                            </li>
+                            <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/kelasMateriPelajaran/showMateriKelas') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Materi Kelas</p>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
@@ -105,18 +117,6 @@
                                 <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Guru Kelas</p>
-                                </a>
-                            </li>
-                            <li class="=nav-item">
-                                <a href=<?php echo base_url('backend/materiPelajaran/showMateriPelajaran') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Daftar Materi</p>
-                                </a>
-                            </li>
-                            <li class="=nav-item">
-                                <a href=<?php echo base_url('backend/kelasMateriPelajaran/showMateriKelas') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Materi Kelas</p>
                                 </a>
                             </li>
                             <li class="nav-item">
