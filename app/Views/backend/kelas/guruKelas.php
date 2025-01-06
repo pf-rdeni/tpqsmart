@@ -161,7 +161,7 @@
                         <select name="IdGuru" class="form-control" id="FormGuruKelas">
                             <option value="" disabled selected>Pilih Nama Guru</option>
                             <?php
-                            foreach ($helpModel->getDataGuru($row->IdTpq) as $guru): ?>
+                            foreach ($helpModel->getDataGuru($dataTpq) as $guru): ?>
                                 <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
                             <?php endforeach; ?>
                         </select>

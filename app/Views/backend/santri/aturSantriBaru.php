@@ -122,42 +122,6 @@
         </div>
         <div class="card-footer">
         </div>
-        <!-- /.card-body -->
-        <div class="card-header">
-            <h5>Data Santri Baru berdasarkan TPQ</h5>
-        </div>
-        <div class="card-body">
-            <table id="tblTpq" class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Nama TPQ</th>
-                        <th>Jumlah Santri</th>
-                        <th>Alamat TPQ</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($dataTpq as $tpq): ?>
-                        <tr>
-                            <td><?= $tpq['NamaTpq']; ?></td>
-                            <td><?= $tpq['JumlahSantri']; ?></td>
-                            <td><?= $tpq['Alamat']; ?></td>
-                            <td>
-                                <a href="<?= base_url('backend/santri/showSantriBaruPerKelasTpq/' . $tpq['IdTpq']); ?>" class="btn btn-info btn-sm"><i class="fas fa-eye"></i><span class="d-none d-md-inline">&nbsp;Detail</span></a>
-                            </td>
-                        </tr>
-                    <?php endforeach ?>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th>Nama TPQ</th>
-                        <th>Jumlah Santri</th>
-                        <th>Alamat TPQ</th>
-                        <th>Aksi</th>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
     </div>
     <!-- /.card -->
 </div>

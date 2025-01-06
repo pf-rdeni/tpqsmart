@@ -16,11 +16,20 @@ class Guru extends BaseController
 
     public function show()
     {
-
-        $data = [
-            'page_title' => 'Data Guru',
-            'guru' => $this->DataModels->GetData()
-        ];
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+        // query data guru berdasarkan IdTpq jika idtpq tidak ada maka akan menampilkan semua data guru
+        if ($IdTpq == null) {
+            $data = [
+                'page_title' => 'Data Guru',
+                'guru' => $this->DataModels->findAll()
+            ];
+        } else {
+            $data = [
+                'page_title' => 'Data Guru',
+                'guru' => $this->DataModels->where('IdTpq', $IdTpq)->findAll()
+            ];
+        }
         return view('backend/guru/guru', $data);
     }
 }

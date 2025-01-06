@@ -16,7 +16,7 @@ class UserModel extends Model
         if ($id === false) {
             return $this->findAll();
         } else {
-            return $this->getWhere(['id' => $id]);
+            return $this->find($id);
         }
     }
 
@@ -38,35 +38,80 @@ class UserModel extends Model
 
     public function getAllUserData()
     {
-        // Query untuk data santri
-        $userDataSantri = $this->select('
-            users.id,
-            users.active,
-            users.username,
-            users.password_hash,
-            tbl_santri_baru.NamaSantri as nama,
-            tbl_tpq.NamaTpq as namaTpq,
-            tbl_tpq.KelurahanDesa as kelurahanDesa,
-            "Santri" as kategori
-        ')
-        ->join('tbl_santri_baru', 'users.nik = tbl_santri_baru.NikSantri', 'inner')
-        ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'inner')
-        ->findAll();
+        // Ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
 
-        // Query untuk data guru
-        $userDataGuru = $this->select('
-            users.id,
-            users.active,
-            users.username,
-            users.password_hash,
-            tbl_guru.Nama as nama,
-            tbl_tpq.NamaTpq as namaTpq,
-            tbl_tpq.KelurahanDesa as kelurahanDesa,
-            "Guru" as kategori
-        ')
-        ->join('tbl_guru', 'users.nik = tbl_guru.IdGuru', 'inner')
-        ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'inner')
-        ->findAll();
+        // Query untuk data santri jika IdTpq ada
+        if ($IdTpq) {
+            $userDataSantri = $this->select('
+                users.id,
+                users.active,
+                users.username,
+                users.password_hash,
+                tbl_santri_baru.NamaSantri as nama,
+                tbl_tpq.NamaTpq as namaTpq,
+                tbl_tpq.KelurahanDesa as kelurahanDesa,
+                "Santri" as kategori
+            ')
+            ->join('tbl_santri_baru', 'users.nik = tbl_santri_baru.NikSantri', 'inner')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'inner')
+                ->where('tbl_tpq.IdTpq', $IdTpq)
+            ->findAll();
+        } else {
+            $userDataSantri = $this->select('
+                users.id,
+                users.active,
+                users.username,
+                users.password_hash,
+                tbl_santri_baru.NamaSantri as nama,
+                tbl_tpq.NamaTpq as namaTpq,
+                tbl_tpq.KelurahanDesa as kelurahanDesa,
+                "Santri" as kategori
+            ')
+                ->join('tbl_santri_baru', 'users.nik = tbl_santri_baru.NikSantri', 'inner')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'inner')
+                ->findAll();
+        }
+
+        // Query untuk data guru jika IdTpq ada
+        if ($IdTpq) {
+            $userDataGuru = $this->select('
+                users.id,
+                users.active,
+                users.username,
+                users.password_hash,
+                tbl_guru.Nama as nama,
+                tbl_tpq.NamaTpq as namaTpq,
+                tbl_tpq.KelurahanDesa as kelurahanDesa,
+                "Guru" as kategori
+            ')
+            ->join(
+                'tbl_guru',
+                'users.nik = tbl_guru.IdGuru',
+                'inner'
+            )
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'inner')
+            ->where('tbl_tpq.IdTpq', $IdTpq)
+                ->findAll();
+        } else {
+            $userDataGuru = $this->select('
+                users.id,
+                users.active,
+                users.username,
+                users.password_hash,
+                tbl_guru.Nama as nama,
+                tbl_tpq.NamaTpq as namaTpq,
+                tbl_tpq.KelurahanDesa as kelurahanDesa,
+                "Guru" as kategori
+            ')
+            ->join(
+                'tbl_guru',
+                'users.nik = tbl_guru.IdGuru',
+                'inner'
+            )
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'inner')
+                ->findAll();
+        }
 
         $dataMerge = array_merge($userDataSantri, $userDataGuru);
 

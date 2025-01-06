@@ -28,7 +28,8 @@
                             <?php foreach ($userData as $user): ?>
                                 <tr>
                                     <td>
-                                        <input type="checkbox" <?= $user['active'] == 1 ? 'checked' : ''; ?>>
+                                        <input type="checkbox" id="status<?= $user['id']; ?>" <?= $user['active'] == 1 ? 'checked' : ''; ?>
+                                            onchange="updateStatus(<?= $user['id']; ?>, this.checked)">
                                     </td>
                                     <td><?= $user['nama']; ?></td>
                                     <td><?= $user['username']; ?></td>
@@ -46,7 +47,9 @@
                                     <td><?= $user['kelurahanDesa']; ?></td>
                                     <td><?= $user['kategori']; ?></td>
                                     <td>
-                                        <button class="btn btn-warning sm-small" onclick="window.location.href='<?= site_url('user/edit/' . $user['id']); ?>'"><i class="fas fa-edit"></i> Edit</button>
+                                        <button class="btn btn-warning sm-small" onclick="editUser(<?= $user['id']; ?>)">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
                                         <button class="btn btn-danger sm-small" onclick="confirmDelete(<?= $user['id']; ?>)"><i class="fas fa-trash"></i> Hapus</button>
                                     </td>
                                 </tr>
@@ -70,10 +73,15 @@
                     <div class="form-group row">
                         <label for="IdAuthGroup" class="col-sm-3 col-form-label">Group</label>
                         <div class="col-sm-9">
-                            <select class="form-control" id="IdAuthGroup" name="IdAuthGroup" required>
-                                <option value="">Pilih Group</option>
+                            <select class="form-control" id="IdAuthGroup" name="IdAuthGroup" required <?= count($dataAuthGroups) === 1 ? 'readonly' : '' ?>>
+                                <?php if (count($dataAuthGroups) > 1): ?>
+                                    <option value="">Pilih Group</option>
+                                <?php endif; ?>
                                 <?php foreach ($dataAuthGroups as $group): ?>
-                                    <option value="<?= $group['id']; ?>"><?= $group['name']; ?></option>
+                                    <option value="<?= $group['id']; ?>"
+                                        <?= (count($dataAuthGroups) === 1) ? 'selected' : '' ?>>
+                                        <?= $group['name']; ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -136,6 +144,69 @@
         <!-- /.modal-content -->
     </div>
     <!-- /.modal-dialog -->
+</div>
+
+<!-- Modal Edit -->
+<div class="modal fade" id="modal-edit" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h4 class="modal-title">Edit User</h4>
+            </div>
+            <form id="formEditUser" onsubmit="event.preventDefault(); updateUser();">
+                <input type="hidden" id="edit_id" name="id">
+                <div class="modal-body">
+                    <div class="form-group row">
+                        <label for="edit_IdAuthGroup" class="col-sm-3 col-form-label">Nama</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="edit_fullname" name="fullname" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="edit_username" class="col-sm-3 col-form-label">Username</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="edit_username" name="username" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="edit_password" class="col-sm-3 col-form-label">Password Baru</label>
+                        <div class="col-sm-9">
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="edit_password" name="password">
+                                <div class="input-group-append">
+                                    <span class="input-group-text" onclick="togglePassword('edit_password')">
+                                        <i class="fas fa-eye" id="eye-edit_password"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group  row">
+                        <label for="confirm-password" class="col-sm-3 col-form-label">Konfirmasi Password Baru</label>
+                        <div class="col-sm-9">
+                            <div class="input-group mb-2">
+                                <input type="password" class="form-control" id="edit_confirm-password" name="confirm-password">
+                                <div class="input-group-append">
+                                    <span class="input-group-text" onclick="togglePassword('edit_confirm-password')">
+                                        <i class="fas fa-eye" id="eye-edit_confirm-password"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="edit_use-default-password" name="edit_use-default-password">
+                                <label class="custom-control-label text-primary" for="edit_use-default-password"><small>Gunakan Default Password: TpqSmart123</small></label>
+                            </div>
+                            <span class="text-danger" id="edit-error-confirm-password"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" onclick="closeModalEditUser()">Close</button>
+                    <button type="submit" class="btn btn-warning">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <?= $this->endSection(); ?>
@@ -405,6 +476,201 @@
             eyeIcon.classList.remove('fa-eye-slash');
             eyeIcon.classList.add('fa-eye');
         }
+    }
+
+    function editUser(id) {
+        // Reset form
+        $('#formEditUser')[0].reset();
+
+        // Tampilkan loading
+        Swal.fire({
+            title: 'Memuat Data...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Ambil data user
+        fetch(`<?= site_url('backend/user/get/'); ?>${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    $('#edit_id').val(data.user.id);
+                    $('#edit_fullname').val(data.user.fullname);
+                    $('#edit_IdNikGuru').val(data.user.id_nik_guru);
+                    $('#edit_username').val(data.user.username);
+                    $('#edit_active').prop('checked', data.user.active == 1);
+
+                    $('#modal-edit').modal('show');
+                    Swal.close();
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Gagal!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            });
+    }
+
+    function updateUser() {
+        const form = document.getElementById('formEditUser');
+        const formData = new FormData(form);
+
+        Swal.fire({
+            title: 'Menyimpan...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch('<?= site_url('backend/user/update'); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        text: data.message,
+                        icon: 'success',
+                        showConfirmButton: false,
+                        timer: 2000
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Gagal!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            });
+    }
+
+    function closeModalEditUser() {
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: "Perubahan yang belum disimpan akan hilang!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, tutup!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#formEditUser').trigger('reset');
+                $('#modal-edit').modal('hide');
+            }
+        });
+    }
+
+    // Fungsi check confirm password untuk form edit
+    $('#edit_confirm-password').on('input', function() {
+        const password = $('#edit_password').val();
+        const confirmPassword = $(this).val();
+        const errorSpan = $('#edit-error-confirm-password');
+
+        if (password !== confirmPassword) {
+            $(this).addClass('is-invalid');
+            errorSpan.text('Password tidak cocok!');
+        } else {
+            $(this).removeClass('is-invalid');
+            errorSpan.text('');
+        }
+    });
+
+    $('#edit_use-default-password').change(function() {
+        if ($(this).is(':checked')) {
+            $('#edit_password').val('TpqSmart123');
+            $('#edit_confirm-password').val('TpqSmart123');
+            $('#edit_password, #edit_confirm-password').prop('readonly', true);
+            $('#edit_confirm-password').removeClass('is-invalid');
+            $('#edit-error-confirm-password').text('');
+        } else {
+            $('#edit_password, #edit_confirm-password').val('').prop('readonly', false);
+        }
+    });
+
+    function updateStatus(id, status) {
+        const checkbox = document.getElementById('status' + id);
+        const originalStatus = !status;
+
+        // Ambil data dari row yang dipilih
+        const row = checkbox.closest('tr');
+        const nama = row.querySelector('td:nth-child(2)').innerText;
+        const username = row.querySelector('td:nth-child(3)').innerText;
+
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            html: `Anda akan ${status ? 'mengaktifkan' : 'menonaktifkan'} user:<br>
+                  <strong>${nama}</strong> (${username})`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, update!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memperbarui Status...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('<?= site_url('backend/user/updateStatus'); ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            id: id,
+                            active: status ? 1 : 0
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Gagal!',
+                            text: error.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        checkbox.checked = originalStatus;
+                    });
+            } else {
+                checkbox.checked = originalStatus;
+            }
+        });
     }
 </script>
 

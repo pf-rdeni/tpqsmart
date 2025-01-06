@@ -517,13 +517,28 @@ class Santri extends BaseController
 
     public function showSantriBaru()
     {
-        $santri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->orderBy('tbl_santri_baru.Status', 'DESC')
-            ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-            ->findAll();
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+
+        // jika IdTpq tidak ada, maka tampilkan semua data santri
+        if ($IdTpq == null) {
+            $santri = $this->DataSantriBaru
+                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+                ->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
+                ->findAll();
+        } else {
+            $santri = $this->DataSantriBaru
+                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+                ->where('tbl_santri_baru.IdTpq', $IdTpq)
+                ->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
+                ->findAll();
+        }
 
         
         $tpq = $this->helpFunction->getDataTpq();
@@ -560,14 +575,28 @@ class Santri extends BaseController
 
     public function showAturSantriBaru($IdTpq = null)
     {
-        $santri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+
+        // jika IdTpq tidak ada, maka tampilkan semua data santri
+        if ($IdTpq == null) {
+            $santri = $this->DataSantriBaru
+                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
             ->orderBy('tbl_santri_baru.Status', 'DESC')
             ->orderBy('tbl_santri_baru.updated_at', 'DESC')
             ->findAll();
-
+        } else {
+            $santri = $this->DataSantriBaru
+                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+                ->where('tbl_santri_baru.IdTpq', $IdTpq)
+                ->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
+                ->findAll();
+        }
 
         $tpq = $this->helpFunction->getDataTpq();
         usort($tpq, function ($a, $b) {
@@ -695,6 +724,10 @@ class Santri extends BaseController
 
     public function showSantriBaruPerKelasTpq($IdTpq = null)
     {
+        // ambil id tpq dari session
+        if ($IdTpq == null)
+            $IdTpq = session()->get('IdTpq');
+        
         $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq);
         $namaTpq = $this->helpFunction->getNamaTpqById($IdTpq);
         // Mengelompokkan santri berdasarkan kelas

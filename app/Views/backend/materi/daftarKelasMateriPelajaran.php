@@ -6,11 +6,6 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h3 class="card-title">
                     Daftar Kelas Materi Pelajaran
-                    <?php
-                    $kelas = $dataMateriPerKelas[3];
-                    if (!empty($kelas['nama_tpq']))
-                        echo "TPQ " . $kelas['nama_tpq']
-                    ?>
                 </h3>
 
                 <div class="card-tools">
@@ -124,10 +119,15 @@
                     </div>
                     <div class="form-group">
                         <label for="IdTpq">Nama TPQ</label>
-                        <select class="form-control" id="IdTpq" name="IdTpq" required>
-                            <option value="">Pilih Nama TPQ</option>
+                        <select class="form-control" id="IdTpq" name="IdTpq" required <?= count($dataTpq) === 1 ? 'readonly' : '' ?>>
+                            <?php if (count($dataTpq) > 1): ?>
+                                <option value="">Pilih Nama TPQ</option>
+                            <?php endif; ?>
                             <?php foreach ($dataTpq as $tpq): ?>
-                                <option value="<?= $tpq['IdTpq'] ?>" <?= $tpq['IdTpq'] == $defaultTpq ? 'selected' : '' ?>><?= $tpq['NamaTpq'] ?></option>
+                                <option value="<?= $tpq['IdTpq'] ?>"
+                                    <?= (count($dataTpq) === 1 || $tpq['IdTpq'] == $defaultTpq) ? 'selected' : '' ?>>
+                                    <?= $tpq['NamaTpq'] ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>

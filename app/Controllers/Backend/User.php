@@ -18,6 +18,8 @@ class User extends BaseController
     }
     public function index()
     {
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
         $userData = $this->userModel->getAllUserData();
 
         // Mengecek setiap user data untuk password default
@@ -32,9 +34,16 @@ class User extends BaseController
             }
         }
 
-        $dataGuru = $this->helpFunction->getDataGuru(IdTpq: session()->get('IdTpq'));
+        $dataGuru = $this->helpFunction->getDataGuru(IdTpq: $IdTpq);
 
         $dataAutGroups = $this->helpFunction->getDataAuthGoups();
+
+        // jika IdTpq ada $dataAutGroup filter hanya diambil 'name' => 'Guru'
+        if ($IdTpq) {
+            $dataAutGroups = array_filter($dataAutGroups, function ($group) {
+                return $group['name'] == 'Guru';
+            });
+        }
 
         $data = [
             'page_title' => 'Data User',
@@ -119,6 +128,86 @@ class User extends BaseController
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Gagal menghapus data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function get($id)
+    {
+        $user = $this->userModel->getUser($id);
+        return $this->response->setJSON([
+            'success' => true,
+            'user' => $user
+        ]);
+    }
+
+    // buat fungsi update user
+    public function update()
+    {
+        // Mengambil data dari POST
+        $id = $this->request->getPost('id');
+        $username = $this->request->getPost('username');
+        $password = $this->request->getPost('password');
+
+
+        // Validasi data
+        if (!$id || !$username || !$password) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        $data = [
+            'username' => $username,
+            'password_hash' => Password::hash($password),
+        ];
+
+        try {
+            $this->userModel->updateUser($data, $id);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data pengguna berhasil diubah'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengubah data pengguna: ' . $e->getMessage()
+            ]);
+        }
+    }
+    // buat fungsi update status user
+    public function updateStatus()
+    {
+        // Mengambil raw input JSON
+        $jsonData = $this->request->getJSON(true);
+
+        // Mengambil nilai dari JSON
+        $id = $jsonData['id'] ?? null;
+        $status = $jsonData['active'] ?? null;
+
+        // Validasi data
+        if ($id === null || $status === null) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        $data = [
+            'active' => $status
+        ];
+
+        try {
+            $this->userModel->updateUser($data, $id);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Status user berhasil diubah'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengubah status user: ' . $e->getMessage()
             ]);
         }
     }

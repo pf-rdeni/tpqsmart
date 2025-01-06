@@ -28,13 +28,15 @@
                         <p> Dashboard</p>
                     </a>
                 </li>
-                <?php if (in_groups('Admin')): ?>
-                    <li class="nav-item">
-                        <a href=<?php echo base_url('backend/tpq/show') ?> class="nav-link">
-                            <i class="nav-icon 	fas fa-mosque"></i>
-                            <p> TPQ</p>
-                        </a>
-                    </li>
+                <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                    <?php if (in_groups('Admin')): ?>
+                        <li class="nav-item">
+                            <a href=<?php echo base_url('backend/tpq/show') ?> class="nav-link">
+                                <i class="nav-icon 	fas fa-mosque"></i>
+                                <p> TPQ</p>
+                            </a>
+                        </li>
+                    <?php endif; ?>
                     <li class="nav-item">
                         <a href=<?php echo base_url('backend/guru/show') ?> class="nav-link">
                             <i class="nav-icon 	fas fa-user"></i>
@@ -54,18 +56,20 @@
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Daftar Santri</p>
+                                    <p>Daftar Santri Baru</p>
                                 </a>
                             </li>
                         </ul>
-                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/showSantriBaru') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Data Santri</p>
-                                </a>
-                            </li>
-                        </ul>
+                        <?php if (in_groups('Operator')): ?>
+                            <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Santri Per Kelas</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        <?php endif; ?>
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
@@ -84,7 +88,7 @@
                                 <i class="right fas fa-angle-left"></i>
                             </p>
                         </a>
-                        <ul class="nav nav-treeview" style="display: block;"> <!-- none; or block -->
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>

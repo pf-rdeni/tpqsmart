@@ -163,6 +163,9 @@ class Kelas extends BaseController
     // page : view/backend/kelas/naikKelas
     public function showListSantriPerKelas($idTahunAjaran = null)
     {
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+
         $currentYear = date('Y');
         $currentMonth = date('n');
 
@@ -170,14 +173,26 @@ class Kelas extends BaseController
         $previousAcademicYear = ($currentMonth >= 7) ? ($currentYear - 1) . $currentYear : ($currentYear - 2) . ($currentYear - 1);
         $currentAcademicYear = ($currentMonth >= 7) ? $currentYear . ($currentYear + 1) : ($currentYear - 1) . $currentYear;
 
-        // mengambil data query berdasarkan filter tahun ajaran tabel tbl_kelas_santri
-        $this->kelasModel->select('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas, tbl_kelas.NamaKelas, COUNT(tbl_kelas_santri.IdSantri) AS SumIdKelas')
-                        ->join('tbl_kelas', 'tbl_kelas_santri.IdKelas = tbl_kelas.IdKelas')
-                        ->groupBy('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas')
-                        ->orderBy('tbl_kelas_santri.IdTahunAjaran', 'ASC')
-                        ->orderBy('tbl_kelas_santri.IdKelas', 'ASC')
-                        ->where('tbl_kelas_santri.status', true)
-                        ->whereIn('tbl_kelas_santri.IdTahunAjaran', [$previousAcademicYear, $currentAcademicYear]);
+        // mengambil data query berdasarkan filter tahun ajaran tabel tbl_kelas_santri dan filter IdTpq
+        // jika IdTpq ada maka ambil data berdasarkan IdTpq
+        if ($IdTpq != 0) {
+            $this->kelasModel->select('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas, tbl_kelas.NamaKelas, COUNT(tbl_kelas_santri.IdSantri) AS SumIdKelas')
+            ->join('tbl_kelas', 'tbl_kelas_santri.IdKelas = tbl_kelas.IdKelas')
+            ->groupBy('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas')
+            ->orderBy('tbl_kelas_santri.IdTahunAjaran', 'ASC')
+            ->orderBy('tbl_kelas_santri.IdKelas', 'ASC')
+            ->where('tbl_kelas_santri.IdTpq', $IdTpq)
+            ->where('tbl_kelas_santri.status', true)
+            ->whereIn('tbl_kelas_santri.IdTahunAjaran', [$previousAcademicYear, $currentAcademicYear]);
+        } else {
+            $this->kelasModel->select('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas, tbl_kelas.NamaKelas, COUNT(tbl_kelas_santri.IdSantri) AS SumIdKelas')
+            ->join('tbl_kelas', 'tbl_kelas_santri.IdKelas = tbl_kelas.IdKelas')
+            ->groupBy('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas')
+            ->orderBy('tbl_kelas_santri.IdTahunAjaran', 'ASC')
+            ->orderBy('tbl_kelas_santri.IdKelas', 'ASC')
+            ->where('tbl_kelas_santri.status', true)
+            ->whereIn('tbl_kelas_santri.IdTahunAjaran', [$previousAcademicYear, $currentAcademicYear]);
+        }
 
         $dataKelas = $this->kelasModel->get()->getResultArray();
 

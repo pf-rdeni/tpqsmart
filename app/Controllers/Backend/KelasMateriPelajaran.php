@@ -128,8 +128,11 @@ class KelasMateriPelajaran extends BaseController
         }
     }
 
-    public function showMateriKelas($IdTpq = 411221010225)
+    public function showMateriKelas()
     {
+        // ambil data IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+        
         $model = new KelasMateriPelajaranModel();
         $helpModel = new HelpFunctionModel();
 
@@ -171,7 +174,7 @@ class KelasMateriPelajaran extends BaseController
 
         $dataKelas = $helpModel->getDataKelas();
         $dataMateriPelajaran = $helpModel->getDataMateriPelajaran();
-        $dataTpq = $helpModel->getDataTpq();
+        $dataTpq = $helpModel->getDataTpq($IdTpq);
 
         $data = [
             'page_title' => 'Data Materi Pelajaran',
