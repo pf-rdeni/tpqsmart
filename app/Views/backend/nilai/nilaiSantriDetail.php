@@ -38,16 +38,18 @@
             <table id="TabelNilaiPerSemester" class="table table-bordered table-striped">
                 <thead>
                     <?php
-                    $tableHeadersFooter = '
-                            <tr>
-                                <th>Kategori</th>
-                                <th>Nama Materi</th>
-                                <th>Nilai</th>
-                                <th>Catatan</th>';
+                    $tableHeadersFooter =
+                        '<tr>';
                     if ($pageEdit) {
                         $tableHeadersFooter .= '<th>Aksi</th>';
                     }
-                    $tableHeadersFooter .= '</tr>';
+                    $tableHeadersFooter .=
+                        '<th>Kategori</th>
+                                <th>Nama Materi</th>
+                                <th>Nilai</th>
+                                <th>Catatan</th>
+                                </tr>';
+
                     echo $tableHeadersFooter
                     ?>
 
@@ -62,17 +64,17 @@
                         ) { ?>
 
                             <tr>
+                                <?php if ($pageEdit) { ?>
+                                    <td>
+                                        <button class="btn btn-warning btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')">
+                                            <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit Nilai
+                                        </button>
+                                    </td>
+                                <?php } ?>
                                 <td><?php echo $DataNilai->Kategori; ?></td>
                                 <td><?php echo $DataNilai->NamaMateri; ?></td>
                                 <td><?php echo $DataNilai->Nilai; ?></td>
                                 <td><?php echo $DataNilai->Catatan; ?></td>
-                                <?php if ($pageEdit) { ?>
-                                    <td>
-                                        <button class="btn btn-warning btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </td>
-                                <?php } ?>
                             </tr>
                     <?php }
                     endforeach ?>
