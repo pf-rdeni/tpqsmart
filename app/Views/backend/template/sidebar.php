@@ -29,19 +29,74 @@
                     </a>
                 </li>
                 <?php if (in_groups('Admin') || in_groups('Operator')): ?>
-                    <?php if (in_groups('Admin')): ?>
-                        <li class="nav-item">
-                            <a href=<?php echo base_url('backend/tpq/show') ?> class="nav-link">
-                                <i class="nav-icon 	fas fa-mosque"></i>
-                                <p> TPQ</p>
-                            </a>
-                        </li>
-                    <?php endif; ?>
+                    <!--  Kelembagaan -->
                     <li class="nav-item">
-                        <a href=<?php echo base_url('backend/guru/show') ?> class="nav-link">
-                            <i class="nav-icon 	fas fa-user"></i>
-                            <p> Guru</p>
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon 	fas fa-mosque"></i>
+                            <p>
+                                Kelembagaan
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/tpq/show') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p> List TPQ</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Operator')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/tpq/showProfilTpq') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Profil TPQ</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/tpq/showStrukturTpq') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Struktur TPQ</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/tpq/showSaranaPrasarana') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Sarana Prasarana</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </li>
+                    <!--  Data Guru -->
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon 	fas fa-user"></i>
+                            <p> Guru
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/guru/show') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Daftar Guru</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/guru/showSertifikasi') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Sertifikasi</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/guru/showAkunBank') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Rekening Bank</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <!--  Data Santri -->
                     <li class="nav-item">
@@ -59,22 +114,50 @@
                                     <p>Daftar Santri Baru</p>
                                 </a>
                             </li>
-                        </ul>
-                        <?php if (in_groups('Operator')): ?>
-                            <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
-                                <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Santri Per Kelas</p>
-                                    </a>
-                                </li>
-                            </ul>
-                        <?php endif; ?>
-                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                            <?php if (in_groups('Operator')): ?>
+                                <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                                    <li class="nav-item">
+                                        <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
+                                            <i class="far fa-circle nav-icon"></i>
+                                            <p>Santri Per Kelas</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            <?php endif; ?>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Atur Santri</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <!--  Raport-->
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-book"></i>
+                            <p>
+                                Raport
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                            <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/raport/showPreviewNilai') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Preview Nilai</p>
+                                </a>
+                            </li>
+                            <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/raport/showPrestasiSantri') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Prestasi Santri</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/raport/showCetakRaport') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Cetak Raport</p>
                                 </a>
                             </li>
                         </ul>
@@ -253,6 +336,13 @@
                         </ul>
                     </li>
                 <?php endif; ?>
+                <!-- Logout -->
+                <li class="nav-item">
+                    <a href=<?php echo base_url('logout') ?> class="nav-link">
+                        <i class="nav-icon fas fa-sign-out-alt"></i>
+                        <p> Logout</p>
+                    </a>
+                </li>
             </ul>
         </nav>
         <!-- /.sidebar-menu -->
