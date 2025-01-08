@@ -32,8 +32,8 @@ class NilaiModel extends Model
     {
 
         $sql =
-            'SELECT n.Id, n.IdTahunAjaran, n.IdTpq, n.IdKelas, k.NamaKelas,
-                    s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Catatan, n.Semester, n.Nilai
+        'SELECT n.Id, n.IdTahunAjaran, n.IdTpq, n.IdKelas, k.NamaKelas,
+                    s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Semester, n.Nilai
                 FROM tbl_nilai n
                 JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
                 JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri

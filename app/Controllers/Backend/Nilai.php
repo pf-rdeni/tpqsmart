@@ -55,16 +55,14 @@ class Nilai extends BaseController
             //Get IdGuru dari session login
             $IdGuru = session()->get('IdGuru');
             $Id = $this->request->getVar('Id');
-            $IdSantri = $this->request->getVar('IdSantri');
-            $Semester = $this->request->getVar('Semester');
+            $Nilai = $this->request->getVar('Nilai');
             $this->DataNilai->save([
                 'Id' => $Id,
                 'IdGuru' => $IdGuru,
-                'Nilai' => $this->request->getVar('Nilai'),
-                'Catatan' => $this->request->getVar('Catatan')
+                'Nilai' => $Nilai,
             ]);
             // Mengembalikan respons JSON
-            return $this->response->setJSON(['status' => 'success', 'message' => 'Data berhasil diperbarui']);
+            return $this->response->setJSON(['status' => 'success', 'newValue' => $Nilai, 'message' => 'Data berhasil diperbarui']);
         } catch (\Exception $e) {
             // Mengembalikan respons JSON dengan kesalahan
             return $this->response->setJSON(['status' => 'error', 'message' => $e->getMessage()]);

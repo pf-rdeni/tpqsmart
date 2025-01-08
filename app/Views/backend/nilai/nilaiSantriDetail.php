@@ -45,9 +45,8 @@
                     }
                     $tableHeadersFooter .=
                         '<th>Kategori</th>
-                                <th>Nama Materi</th>
+                                <th>Id - Nama Materi</th>
                                 <th>Nilai</th>
-                                <th>Catatan</th>
                                 </tr>';
 
                     echo $tableHeadersFooter
@@ -72,9 +71,10 @@
                                     </td>
                                 <?php } ?>
                                 <td><?php echo $DataNilai->Kategori; ?></td>
-                                <td><?php echo $DataNilai->NamaMateri; ?></td>
-                                <td><?php echo $DataNilai->Nilai; ?></td>
-                                <td><?php echo $DataNilai->Catatan; ?></td>
+                                <td><?php echo $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri; ?></td>
+                                <td>
+                                    <input type="text" name="Nilai-<?= $DataNilai->Id ?>" id="Nilai-<?= $DataNilai->Id ?>" class="form-control" value="<?php echo $DataNilai->Nilai; ?>" readonly />
+                                </td>
                             </tr>
                     <?php }
                     endforeach ?>
@@ -105,18 +105,14 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                 <div class="modal-body">
                     <form action="<?= base_url('backend/nilai/update/' . $pageEdit) ?>" method="POST">
                         <input type="hidden" name="Id" value=<?= $DataNilai->Id ?>>
-                        <input type="hidden" name="IdSantri" value=<?= $DataNilai->IdSantri ?>>
-                        <input type="hidden" name="Semester" value=<?= $DataNilai->Semester ?>>
-                        <input type="hidden" name="NamaMateri" value="<?= htmlspecialchars($DataNilai->NamaMateri, ENT_QUOTES, 'UTF-8') ?>">
-
                         <div class="form-group">
                             <label for="FormProfilTpq">Kategori</label>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->Kategori ?></span>
                         </div>
 
                         <div class="form-group">
-                            <label for="FormProfilTpq">Nama Materi</label>
-                            <span class="form-control" id="FormProfilTpq"><?= $DataNilai->NamaMateri ?></span>
+                            <label for="FormProfilTpq">Id-Nama Materi</label>
+                            <span class="form-control" id="FormProfilTpq"><?= $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri ?></span>
                         </div>
 
                         <div class="form-group">
@@ -126,10 +122,6 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                                 min="50" max="100"
                                 oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
                                 oninput="this.setCustomValidity('')">
-                        </div>
-                        <div class="form-group">
-                            <label for="Catatan">Catatan</label>
-                            <textarea name="Catatan" class="form-control" id="Catatan" placeholder="Tambahkan catatan jika diperlukan"><?= isset($DataNilai->Catatan) ? htmlspecialchars($DataNilai->Catatan, ENT_QUOTES, 'UTF-8') : '' ?></textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i>Simpan</button>
@@ -167,9 +159,11 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                         title: 'Berhasil',
                         text: 'Data nilai berhasil diperbarui',
                         showConfirmButton: false,
-                        timer: 2000
+                        timer: 1500
                     }).then(() => {
-                        location.reload();
+                        const newValue = response.newValue; // Misalkan response.newValue adalah nilai baru yang ingin diset
+                        const idNilai = form.find('input[name="Id"]').val();
+                        $('#Nilai-' + idNilai).val(newValue);
                     });
                 },
                 error: function(xhr) {
