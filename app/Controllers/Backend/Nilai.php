@@ -68,7 +68,7 @@ class Nilai extends BaseController
     {
         $datanilai = $this->DataNilai->getDataNilaiPerSemester($semester);
         return view('backend/nilai/nilaiSantriPerSemester', [
-            'page_title' => 'Rank Data Nilai ' . $semester,
+            'page_title' => 'Rank Data Nilai Semester ' . $semester,
             'nilai' => $datanilai,
             'semester' => $semester
         ]);
