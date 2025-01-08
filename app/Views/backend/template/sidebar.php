@@ -32,7 +32,7 @@
                     <!--  Kelembagaan -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
-                            <i class="nav-icon 	fas fa-mosque"></i>
+                            <i class="nav-icon fas fa-building"></i>
                             <p>
                                 Kelembagaan
                                 <i class="right fas fa-angle-left"></i>
@@ -162,10 +162,40 @@
                             </li>
                         </ul>
                     </li>
+                    <!-- Extra -->
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-cogs"></i>
+                            <p>
+                                Extra
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
+                            <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/extra/showDownload') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Download</p>
+                                </a>
+                            </li>
+                            <li class="=nav-item">
+                                <a href=<?php echo base_url('backend/extra/showArtikel') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Artikel</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/extra/showTutorial') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Tutorial</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                     <!--  General Setting -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-sliders"></i>
+                            <i class="nav-icon fas fa-tools"></i>
                             <p>
                                 Setting
                                 <i class="right fas fa-angle-left"></i>
