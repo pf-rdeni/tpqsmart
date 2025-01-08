@@ -146,41 +146,41 @@ foreach ($MainDataNilai as $DataNilai) : ?>
 <script>
     initializeDataTableUmum("#TabelNilaiPerSemester", true, true);
 
-    // Fungsi untuk menampilkan modal edit nilai
+    // Fungsi untuk menampilkan modal edit nilai dan menangani pengiriman form
     function showModalEditNilai(id) {
         $('#EditNilai' + id).modal('show');
-    }
 
-    // Tambahkan handler untuk form submission
-    $('form').on('submit', function(e) {
-        e.preventDefault();
-        const form = $(this);
+        // Tambahkan handler untuk form submission
+        $('#EditNilai' + id + ' form').on('submit', function(e) {
+            e.preventDefault();
+            const form = $(this);
 
-        $.ajax({
-            url: form.attr('action'),
-            method: 'POST',
-            data: form.serialize(),
-            success: function(response) {
-                $('#EditNilai' + form.find('input[name="Id"]').val()).modal('hide');
+            $.ajax({
+                url: form.attr('action'),
+                method: 'POST',
+                data: form.serialize(),
+                success: function(response) {
+                    $('#EditNilai' + form.find('input[name="Id"]').val()).modal('hide');
 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: 'Data nilai berhasil diperbarui',
-                    showConfirmButton: false,
-                    timer: 2000
-                }).then(() => {
-                    location.reload();
-                });
-            },
-            error: function(xhr) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal',
-                    text: 'Terjadi kesalahan saat menyimpan data',
-                });
-            }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: 'Data nilai berhasil diperbarui',
+                        showConfirmButton: false,
+                        timer: 2000
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: 'Terjadi kesalahan saat menyimpan data',
+                    });
+                }
+            });
         });
-    });
+    }
 </script>
 <?= $this->endSection(); ?>

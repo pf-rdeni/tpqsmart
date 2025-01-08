@@ -51,50 +51,24 @@ class Nilai extends BaseController
 
     public function update($Edit = false)
     {
-        $validationRules = [
-            'Nilai' => [
-                'rules' => 'required|greater_than_equal_to[50]|less_than_equal_to[100]',
-                'errors' => [
-                    'required' => 'Materi ' . $this->request->getVar('NamaMateri') . ' Nilai harus diisi',
-                    'greater_than_equal_to' => 'Materi ' . $this->request->getVar('NamaMateri') . ' Nilai harus lebih dari atau sama dengan 50',
-                    'less_than_equal_to' => 'Materi ' . $this->request->getVar('NamaMateri') . ' Nilai harus kurang dari atau sama dengan 100',
-                ]
-            ]
-        ];
-
-        if (!$this->validate($validationRules)) {
-            $validation = \Config\Services::validation();
-            $errorMessage = $validation->getError('Nilai');
-
-            session()->setFlashdata('pesan', '
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    Data Gagal Disimpan: ' . $errorMessage . '
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"> 
-                        <span aria-hidden="true">&times;</span> 
-                    </button>
-                </div>');
-            
-            return redirect()->to('/backend/nilai/showDetail/')->withInput()->with('validation', $validation);
-        } 
-        $Id=$this->request->getVar('Id');
-        $IdSantri= $this->request->getVar('IdSantri');
-        $Semester =$this->request->getVar('Semester');
-        $this->DataNilai->save([
-            'Id' => $Id,
-            'Nilai' => $this->request->getVar('Nilai'),
-            'Catatan' => $this->request->getVar('Catatan')
-        ]);
-
-        session()->setFlashdata('pesan', '
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                Data Berhasil Disimpan 
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-            </div>');
-        
-            //Need to adapted
-        return redirect()->to('/backend/nilai/showDetail/'.$IdSantri.'/'.$Semester.'/'.$Edit);
-        
+        try {
+            //Get IdGuru dari session login
+            $IdGuru = session()->get('IdGuru');
+            $Id = $this->request->getVar('Id');
+            $IdSantri = $this->request->getVar('IdSantri');
+            $Semester = $this->request->getVar('Semester');
+            $this->DataNilai->save([
+                'Id' => $Id,
+                'IdGuru' => $IdGuru,
+                'Nilai' => $this->request->getVar('Nilai'),
+                'Catatan' => $this->request->getVar('Catatan')
+            ]);
+            // Mengembalikan respons JSON
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Data berhasil diperbarui']);
+        } catch (\Exception $e) {
+            // Mengembalikan respons JSON dengan kesalahan
+            return $this->response->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+        }
     }
+        
 }
