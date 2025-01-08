@@ -326,16 +326,60 @@
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Prestasi Santri</p>
+                                    <p>Prestasi</p>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href=<?php
-
-                                        echo base_url('backend/santri/showSantriPerKelas/' . $encryptedIdGuru) ?> class="nav-link no-hover">
+                                <a href="#" class="nav-link no-hover">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Nilai Per Semester</p>
+                                    <p>Nilai
+                                        <i class="right fas fa-angle-left"></i>
+                                    </p>
                                 </a>
+                                <ul class="nav nav-treeview" style="display: none;">
+                                    <li class="nav-item">
+                                        <a href=<?php
+
+                                                echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon"></i>
+                                            <p>Semester Ganjil</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href=<?php
+
+                                                echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon"></i>
+                                            <p>Semester Genap</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link no-hover">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Rangking</p>
+                                    <i class="right fas fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview" style="display: none;">
+                                    <li class="nav-item">
+                                        <a href=<?php
+
+                                                echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Ganjil') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon"></i>
+                                            <p>Semester Ganjil</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href=<?php
+
+                                                echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Genap') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon"></i>
+                                            <p>Semester Genap</p>
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                         </ul>
                     </li>

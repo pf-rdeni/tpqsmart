@@ -779,25 +779,6 @@ class Santri extends BaseController
         return view('backend/santri/listSantriBaruPerKelasTpq', $data);
     }
 
-    public function showSantriPerKelas($encryptedIdGuru = null)
-    {
-        if ($encryptedIdGuru !== null)
-            $IdGuru = $this->encryptModel->decryptData($encryptedIdGuru);
-        else
-            $IdGuru = $encryptedIdGuru;
-
-        $IdGuru = session()->get('IdGuru');
-        $IdKelas = session()->get('IdKelas');
-        $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $dataSantri = $this->DataSantriBaru->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
-        $data = [
-            'page_title' => 'Data Santri Per Semester',
-            'dataSantri' => $dataSantri
-        ];
-
-        return view('backend/santri/santriPerKelas', $data);
-    }
-
     public function showKontakSantri($IdSantri = null)
     {
 

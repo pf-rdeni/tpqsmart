@@ -11,12 +11,10 @@
                 <thead>
                     <?php $headerFooter = '
                     <tr>
-                        <th>Nilai S.Ganjil</th>
-                        <th>Nilai S.Genap</th>
+                        <th>Aksi</th>
                         <th>Nama Santri</th>
-                        <th>Jenis Kelamin</th>
-                        <th>Tahun Ajaran</th>
                         <th>Tingkat Kelas</th>
+                        <th>Tahun Ajaran</th>
                     </tr>';
                     echo $headerFooter;
                     ?>
@@ -27,28 +25,22 @@
                         <tr>
                             <td>
                                 <div class="d-flex justify-content-start">
-                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 'Ganjil' . '/' . true . '/' . $santri->IdJabatan) ?>" class="btn btn-warning btn-sm w-80 me-2">
+                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . true . '/' . $santri->IdJabatan) ?>" class="btn btn-warning btn-lg me-2">
                                         <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit
                                     </a>
-                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 'Ganjil') ?>" class="btn btn-success btn-sm w-80">
+                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester) ?>" class="btn btn-primary btn-lg me-2">
                                         <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
                                     </a>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex justify-content-start">
-                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 'Genap' . '/' . true . '/' . $santri->IdJabatan) ?>" class="btn btn-warning btn-sm w-80 me-2">
-                                        <i class="fas fa-edit"></i><span style="margin-left: 5px;">Edit
-                                    </a>
-                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . 'Genap') ?>" class="btn btn-success btn-sm w-80">
-                                        <i class="fas fa-eye"></i><span style="margin-left: 5px;">View
-                                    </a>
+                                    <?php if ($santri->StatusPenilaian == 0) : ?>
+                                        <i class="fas fa-exclamation-triangle" style="color:red"></i>
+                                    <?php else : ?>
+                                        <i class="fas fa-check-circle" style="color:green"></i>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                             <td><?php echo $santri->NamaSantri; ?></td>
-                            <td><?php echo $santri->JenisKelamin; ?></td>
-                            <td><?php echo $santri->IdTahunAjaran; ?></td>
                             <td><?php echo $santri->NamaKelas; ?></td>
+                            <td><?php echo $santri->IdTahunAjaran; ?></td>
                         </tr>
                     <?php endforeach ?>
                 </tbody>

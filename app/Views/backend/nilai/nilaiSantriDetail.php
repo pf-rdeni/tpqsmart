@@ -65,9 +65,15 @@
                             <tr>
                                 <?php if ($pageEdit) { ?>
                                     <td>
-                                        <button class="btn btn-warning btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')">
-                                            <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit Nilai
-                                        </button>
+                                        <?php if ($DataNilai->Nilai == 0): ?>
+                                            <button class="btn btn-success btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')">
+                                                <i class="fas fa-plus"></i><span style="margin-left: 5px;"></span>Add
+                                            </button>
+                                        <?php else: ?>
+                                            <button class="btn btn-warning btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')">
+                                                <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit
+                                            </button>
+                                        <?php endif; ?>
                                     </td>
                                 <?php } ?>
                                 <td><?php echo $DataNilai->Kategori; ?></td>
@@ -96,8 +102,8 @@ foreach ($MainDataNilai as $DataNilai) : ?>
     <div class="modal fade" id="EditNilai<?= $DataNilai->Id ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
         <div class="modal-dialog " role="document">
             <div class="modal-content ">
-                <div class="modal-header bg-warning text-white">
-                    <h5 class="modal-title" id="exampleModalLabel">Edit Nilai </h5>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="exampleModalLabel">Update Nilai </h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>

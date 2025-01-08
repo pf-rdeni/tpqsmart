@@ -5,16 +5,19 @@ namespace App\Controllers\Backend;
 use App\Controllers\BaseController;
 use App\Models\NilaiModel;
 use App\Models\HelpFunctionModel;
+use App\Models\SantriBaruModel;
 
 class Nilai extends BaseController
 {
     protected $DataNilai;
     protected $helpFunction;
+    protected $DataSantriBaru;
 
     public function __construct()
     {
         $this->DataNilai = new NilaiModel();
         $this->helpFunction = new HelpFunctionModel();
+        $this->DataSantriBaru = new SantriBaruModel();
     }
 
     public function showDetail($IdSantri, $IdSemseter, $Edit = null, $IdJabatan = null)
@@ -31,12 +34,43 @@ class Nilai extends BaseController
         return view('/backend/nilai/nilaiSantriDetail', $data);
     }
 
-    public function showSumaryPersemester()
+    public function showSantriPerKelas($semester = null)
     {
-        $datanilai = $this->DataNilai->getDataNilaiPerSemester();
+
+        $IdGuru = session()->get('IdGuru');
+        $IdGuru = session()->get('IdGuru');
+        $IdKelas = session()->get('IdKelas');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $dataSantri = $this->DataSantriBaru->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
+
+        // Check IdSantri yang ada di data $dataSantri ke tbl_nilai filter by IdTahunAjaran dan Semester apakah nilai untuk semua IdMateri sudah semua atau belum jika belum maka buat status StatusPenilian = 0 
+        foreach ($dataSantri as $key => $value) {
+            $dataNilai = $this->DataNilai->getDataNilaiPerSantri($value->IdSantri, $semester);
+            $dataSantri[$key]->StatusPenilaian = 1;
+            foreach ($dataNilai as $nilai) {
+                if ($nilai->Nilai == 0) {
+                    $dataSantri[$key]->StatusPenilaian = 0;
+                    break;
+                }
+            }
+        }
+
+        $data = [
+            'page_title' => 'Data Santri Per Semester ' . $semester,
+            'dataSantri' => $dataSantri,
+            'semester' => $semester
+        ];
+
+        return view('backend/santri/santriPerKelas', $data);
+    }
+
+    public function showSumaryPersemester($semester = null)
+    {
+        $datanilai = $this->DataNilai->getDataNilaiPerSemester($semester);
         return view('backend/nilai/nilaiSantriPerSemester', [
-            'page_title' => 'Rank Data Nilai',
-            'nilai' => $datanilai
+            'page_title' => 'Rank Data Nilai ' . $semester,
+            'nilai' => $datanilai,
+            'semester' => $semester
         ]);
     }
 
