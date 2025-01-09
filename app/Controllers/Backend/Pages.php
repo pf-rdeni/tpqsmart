@@ -22,16 +22,16 @@ class Pages extends BaseController
     {
 
         $data = [
-            'page_title' => 'About Me | MyPrograming',
+            'page_title' => 'About Me | My Programing',
             'alamat' => [
                 [
-                    'tipe' => 'Rumah',
-                    'alamat' => 'Perumahan Lobam Mas Asri Blok T13',
-                    'kota' => 'Kabupaten Bintan'
+                    'tipe' => 'Admin Website',
+                    'alamat' => 'Deni Rusandi',
+                    'kota' => 'Phone: 081364290165 | Email: admin.app@simpedis.com'
                 ],
                 [
-                    'tipe' => 'Kantor',
-                    'alamat' => 'Kawasan Industri Lobam',
+                    'tipe' => 'Sekretariat',
+                    'alamat' => 'Masjid Al-Hikmah Kec. Seri Kuala Lobam',
                     'kota' => 'Kabupaten Bintan'
                 ]
             ],

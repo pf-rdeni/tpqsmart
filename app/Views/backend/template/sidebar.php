@@ -15,7 +15,7 @@
                     class="img-circle elevation-2" alt="User Image">
             </div>
             <div class="info">
-                <a href="#" class="d-block"><?= user()->fullname; ?></a>
+                <a href=<?php echo base_url('backend/pages/profil') ?> class="d-block"><?= user()->fullname; ?></a>
             </div>
         </div>
 
@@ -111,25 +111,23 @@
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Daftar Santri Baru</p>
+                                    <p>Santri Baru</p>
                                 </a>
                             </li>
-                            <?php if (in_groups('Operator')): ?>
-                                <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
-                                    <li class="nav-item">
-                                        <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
-                                            <i class="far fa-circle nav-icon"></i>
-                                            <p>Santri Per Kelas</p>
-                                        </a>
-                                    </li>
-                                </ul>
-                            <?php endif; ?>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Atur Santri</p>
+                                    <p>Ubah Santri</p>
                                 </a>
                             </li>
+                            <?php if (in_groups('Operator')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Santri Per Kelas</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
                     </li>
                     <!--  Raport-->

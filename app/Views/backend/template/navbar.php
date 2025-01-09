@@ -8,6 +8,12 @@
             <a href=<?php echo base_url('backend/pages/index') ?> class="nav-link">Home</a>
         </li>
         <li class="nav-item d-none d-sm-inline-block">
+            <a href=<?php echo base_url('backend/pages/profil') ?> class="nav-link">Profil</a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
+            <a href=<?php echo base_url('backend/pages/help') ?> class="nav-link">Help</a>
+        </li>
+        <li class="nav-item d-none d-sm-inline-block">
             <a href=<?php echo base_url('backend/pages/contact') ?> class="nav-link">Contact</a>
         </li>
     </ul>
