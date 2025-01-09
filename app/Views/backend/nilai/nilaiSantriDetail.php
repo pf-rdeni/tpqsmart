@@ -127,14 +127,14 @@ foreach ($MainDataNilai as $DataNilai) : ?>
 
                         <div class="form-group">
                             <label for="FormProfilTpq">Nilai</label>
-                            <input type="number" name="Nilai" class="form-control" id="FormProfilTpq" required
-                                placeholder="<?= $DataNilai->Nilai > 0 ? '' : 'Ketik Nilai' ?>" value="<?= $DataNilai->Nilai > 0 ? $DataNilai->Nilai : '' ?>"
+                            <input type="number" name="Nilai" class="form-control" id="NilaiEditModal-<?= $DataNilai->Id ?>" required
+                                placeholder="Ketik Nilai" value="<?= $DataNilai->Nilai ?>"
                                 min="50" max="100"
                                 oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
                                 oninput="this.setCustomValidity('')">
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <button type="button" class="btn btn-secondary" id="tutupModal">
                                 <i class="fas fa-times"></i> Keluar
                             </button>
                             <button type="submit" class="btn btn-primary">
@@ -153,9 +153,15 @@ foreach ($MainDataNilai as $DataNilai) : ?>
 <script>
     initializeDataTableUmum("#TabelNilaiPerSemester", true, true);
 
+    // Tambahkan variabel untuk menyimpan status perubahan
+    let isChanged = false;
+    let nilaiLama = 0;
+
     // Fungsi untuk menampilkan modal edit nilai dan menangani pengiriman form
     function showModalEditNilai(id) {
         $('#EditNilai' + id).modal('show');
+        // Ambil nilai lama
+        nilaiLama = $('#NilaiEditModal-' + id).val();
 
         // Tambahkan handler untuk form submission
         $('#EditNilai' + id + ' form').on('submit', function(e) {
@@ -188,6 +194,9 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                             $('#EditNilai-' + id).html('<i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit');
                             $('#EditNilai-' + id).removeClass('btn-primary').addClass('btn-warning'); // Ubah kelas tombol
                         }
+
+                        isChanged = false; // Set status perubahan menjadi false
+
                     });
                 },
                 error: function(xhr) {
@@ -198,6 +207,34 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                     });
                 }
             });
+        });
+
+        // Ubah handler untuk tombol Keluar
+        $('#tutupModal').on('click', function() {
+
+            nilaiBaru = $('#NilaiEditModal-' + id).val();
+            if (isChanged) {
+                Swal.fire({
+                    title: 'Perhatian',
+                    html: 'Nilai yang sudah berubah dari <span style="color: red; font-weight: bold;">' + nilaiLama + '</span> menjadi <span style="color: green; font-weight: bold;">' + nilaiBaru + '</span> tidak akan disimpan. Apakah Anda yakin ingin keluar?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya,Keluar',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        isChanged = false; // Set status perubahan menjadi false
+                        $('#NilaiEditModal-' + id).val(nilaiLama); // Kembalikan nilai ke nilai lama
+                        $('#EditNilai' + id).modal('hide'); // Tutup modal jika OK dipilih
+                    }
+                });
+            } else {
+                $('#EditNilai' + id).modal('hide'); // Tutup modal jika tidak ada perubahan
+            }
+        });
+
+        $('#EditNilai' + id + ' form').on('change', 'input[name="Nilai"]', function() {
+            isChanged = true; // Set status perubahan menjadi true jika ada perubahan nilai
         });
     }
 </script>
