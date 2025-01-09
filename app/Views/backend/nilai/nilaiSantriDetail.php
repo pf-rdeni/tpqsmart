@@ -128,7 +128,7 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                         <div class="form-group">
                             <label for="FormProfilTpq">Nilai</label>
                             <input type="number" name="Nilai" class="form-control" id="FormProfilTpq" required
-                                placeholder="Ketik Nilai" value="<?= $DataNilai->Nilai ?>"
+                                placeholder="<?= $DataNilai->Nilai > 0 ? '' : 'Ketik Nilai' ?>" value="<?= $DataNilai->Nilai > 0 ? $DataNilai->Nilai : '' ?>"
                                 min="50" max="100"
                                 oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
                                 oninput="this.setCustomValidity('')">
