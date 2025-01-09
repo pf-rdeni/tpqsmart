@@ -128,13 +128,11 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                         <div class="form-group">
                             <label for="FormProfilTpq">Nilai</label>
                             <input type="number" name="Nilai" class="form-control" id="NilaiEditModal-<?= $DataNilai->Id ?>" required
-                                placeholder="<?= $DataNilai->Nilai <= 0 ? 'Ketik Nilai' : '' ?>" value="<?= $DataNilai->Nilai > 0 ? $DataNilai->Nilai : '' ?>"
-                                min="50" max="100"
-                                oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
+                                placeholder="<?= $DataNilai->Nilai > 0 ? '' : 'Ketik Nilai' ?>" value="<?= $DataNilai->Nilai > 0 ? $DataNilai->Nilai : '' ?>" oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
                                 oninput="this.setCustomValidity('')">
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" id="tutupModal">
+                            <button type="button" class="btn btn-secondary" id="tutupModal-<?= $DataNilai->Id ?>">
                                 <i class="fas fa-times"></i> Keluar
                             </button>
                             <button type="submit" class="btn btn-primary">
@@ -210,7 +208,7 @@ foreach ($MainDataNilai as $DataNilai) : ?>
         });
 
         // Ubah handler untuk tombol Keluar
-        $('#tutupModal').on('click', function() {
+        $('#tutupModal-' + id).on('click', function() {
 
             nilaiBaru = $('#NilaiEditModal-' + id).val();
             if (isChanged) {
