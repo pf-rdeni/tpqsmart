@@ -122,7 +122,8 @@ class AuthController extends Controller
                 $session->set('IdTpq', $IdTpq);
             } else {
                 $session->set('IdGuru', $idGuru);
-                $session->set('IdTpq', $this->helpFunction->getIdTpq($idGuru));
+                $IdTpq = $this->helpFunction->getIdTpq($idGuru);
+                $session->set('IdTpq', $IdTpq['IdTpq']);
             }
         }
         $redirectURL = session('redirect_url') ?? site_url('/');

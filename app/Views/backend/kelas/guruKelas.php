@@ -136,7 +136,7 @@
             <div class="modal-body">
                 <form id="formNew" action="<?= base_url('backend/GuruKelas/store') ?>" method="POST">
                     <div class="form-group">
-                        <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $dataTpq['IdTpq'] ?>">
+                        <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $dataTpq ?>">
                     </div>
                     <div class="form-group">
                         <label for="FormGuruKelas">Tahun Ajaran</label>

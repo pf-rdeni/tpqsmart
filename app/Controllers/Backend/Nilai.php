@@ -36,7 +36,6 @@ class Nilai extends BaseController
 
     public function showSantriPerKelas($semester = null)
     {
-
         $IdGuru = session()->get('IdGuru');
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
@@ -54,9 +53,16 @@ class Nilai extends BaseController
             }
         }
 
+        // Mengelompokan IdKelas berdasarkan dari data $dataSantri
+        $dataKelas = [];
+        foreach ($dataSantri as $santri) {
+            $dataKelas[$santri->IdKelas] = $santri->NamaKelas;
+        }
+
         $data = [
             'page_title' => 'Data Santri Per Semester ' . $semester,
             'dataSantri' => $dataSantri,
+            'dataKelas' => $dataKelas,
             'semester' => $semester
         ];
 
