@@ -341,7 +341,7 @@
                                         <a href=<?php
 
                                                 echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon"></i>
+                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
                                             <p>Semester Ganjil</p>
                                         </a>
                                     </li>
@@ -349,7 +349,7 @@
                                         <a href=<?php
 
                                                 echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon"></i>
+                                            <i class="far fa-dot-circle nav-icon text-info"></i>
                                             <p>Semester Genap</p>
                                         </a>
                                     </li>
@@ -367,7 +367,7 @@
                                         <a href=<?php
 
                                                 echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Ganjil') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon"></i>
+                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
                                             <p>Semester Ganjil</p>
                                         </a>
                                     </li>
@@ -375,7 +375,7 @@
                                         <a href=<?php
 
                                                 echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Genap') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon"></i>
+                                            <i class="far fa-dot-circle nav-icon text-info"></i>
                                             <p>Semester Genap</p>
                                         </a>
                                     </li>
