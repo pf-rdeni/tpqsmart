@@ -266,7 +266,8 @@ class SantriBaruModel extends Model
                     t.IdTpq,
                     t.NamaTpq,
                     t.Alamat,
-                    w.IdJabatan
+                    w.IdJabatan,
+                    j.NamaJabatan
                 FROM 
                     tbl_kelas_santri ks
                 JOIN 
@@ -279,6 +280,8 @@ class SantriBaruModel extends Model
                     tbl_guru_kelas w ON w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq
                 LEFT JOIN 
                     tbl_guru g ON w.IdGuru = g.IdGuru
+                    LEFT JOIN
+                    tbl_jabatan j ON w.IdJabatan = j.IdJabatan 
                 WHERE 
                     1=1';
 

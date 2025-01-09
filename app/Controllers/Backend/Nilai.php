@@ -38,7 +38,6 @@ class Nilai extends BaseController
     {
 
         $IdGuru = session()->get('IdGuru');
-        $IdGuru = session()->get('IdGuru');
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $dataSantri = $this->DataSantriBaru->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);

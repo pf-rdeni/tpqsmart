@@ -56,34 +56,38 @@
                 <tbody>
                     <?php
                     $MainDataNilai = $nilai->getResult();
-                    foreach ($MainDataNilai as $DataNilai) :
-                        if (
-                            $pageEdit && (float)$DataNilai->Nilai <= 0.0 &&  $guruPendamping == 4 ||
-                            !$pageEdit &&  $guruPendamping == 4 || $guruPendamping != 4
-                        ) { ?>
+                    foreach ($MainDataNilai as $DataNilai) : ?>
 
-                            <tr>
-                                <?php if ($pageEdit) { ?>
-                                    <td>
-                                        <?php if ($DataNilai->Nilai == 0): ?>
-                                            <button class="btn btn-success btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')">
-                                                <i class="fas fa-plus"></i><span style="margin-left: 5px;"></span>Add
-                                            </button>
-                                        <?php else: ?>
-                                            <button class="btn btn-warning btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')">
-                                                <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit
-                                            </button>
-                                        <?php endif; ?>
-                                    </td>
-                                <?php } ?>
-                                <td><?php echo $DataNilai->Kategori; ?></td>
-                                <td><?php echo $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri; ?></td>
+                        <tr>
+                            <?php if ($pageEdit) {
+                                $isNilaiPositive = $DataNilai->Nilai > 0;
+                                $isGuruPendamping4 = $guruPendamping == 4; // Assuming $guruPendamping is the value of $IdJabatan Guru Kelas bukan Wali Kelas
+
+                                $btnClass = $isNilaiPositive ? ($isGuruPendamping4 ? 'btn-success' : 'btn-warning') : 'btn-primary';
+                                $faClass = $isNilaiPositive ? ($isGuruPendamping4 ? 'fa-eye' : 'fa-edit') : 'fa-plus';
+                                $name = $isNilaiPositive ? ($isGuruPendamping4 ? 'View' : 'Edit') : 'Add';
+                                if ($name == 'View') {
+                                    // button disabled
+                                    $disabled = 'disabled';
+                                } else {
+                                    $disabled = '';
+                                }
+                            ?>
                                 <td>
-                                    <input type="text" name="Nilai-<?= $DataNilai->Id ?>" id="Nilai-<?= $DataNilai->Id ?>" class="form-control" value="<?php echo $DataNilai->Nilai; ?>" readonly />
+                                    <button id="EditNilai-<?= $DataNilai->Id ?>" class="btn <?= $btnClass ?> btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')" <?= $disabled ?>>
+                                        <i class="fas <?= $faClass ?>"></i><span style=" margin-left: 5px;"></span><?= $name ?>
+                                    </button>
                                 </td>
-                            </tr>
-                    <?php }
-                    endforeach ?>
+                            <?php } ?>
+                            <td><?php echo $DataNilai->Kategori; ?></td>
+                            <td><?php echo $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri; ?></td>
+                            <td>
+                                <input type="text" name="Nilai-<?= $DataNilai->Id ?>" id="Nilai-<?= $DataNilai->Id ?>" class="form-control" value="<?php echo $DataNilai->Nilai; ?>" readonly
+                                    style="border: <?= $DataNilai->Nilai == 0 ? '2px solid red' : '2px solid green' ?>;" />
+                            </td>
+                        </tr>
+
+                    <?php endforeach ?>
                 </tbody>
                 <tfoot>
                     <?= $tableHeadersFooter ?>
@@ -170,6 +174,15 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                         const newValue = response.newValue; // Misalkan response.newValue adalah nilai baru yang ingin diset
                         const idNilai = form.find('input[name="Id"]').val();
                         $('#Nilai-' + idNilai).val(newValue);
+                        // Ubah border warna menjadi hijau
+                        $('#Nilai-' + idNilai).css({
+                            'border': '2px solid green'
+                        });
+                        // Ubah warna button dan icon dan teks tombol berdasarkan nilai baru
+                        if (newValue > 0) {
+                            $('#EditNilai-' + id).html('<i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit');
+                            $('#EditNilai-' + id).removeClass('btn-primary').addClass('btn-warning'); // Ubah kelas tombol
+                        }
                     });
                 },
                 error: function(xhr) {

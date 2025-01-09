@@ -25,16 +25,20 @@
                         <tr>
                             <td>
                                 <div class="d-flex justify-content-start">
-                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . true . '/' . $santri->IdJabatan) ?>" class="btn btn-warning btn-lg me-2">
-                                        <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit
-                                    </a>
-                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester) ?>" class="btn btn-primary btn-lg me-2">
-                                        <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
-                                    </a>
+                                    <?php if ($santri->StatusPenilaian == 0 && $santri->NamaJabatan == "GURU KELAS" || $santri->NamaJabatan == "WALI KELAS") : ?>
+                                        <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn w-80 btn-warning me-2">
+                                            <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Edit&nbsp;
+                                        </a>
+                                    <?php elseif ($santri->StatusPenilaian == 1 && $santri->NamaJabatan == "GURU KELAS"): ?>
+                                        <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 0 . '/' . $santri->IdJabatan) ?>" class="btn w-70 btn-primary me-2">
+                                            <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
+                                        </a>
+                                    <?php endif; ?>
+
                                     <?php if ($santri->StatusPenilaian == 0) : ?>
-                                        <i class="fas fa-exclamation-triangle" style="color:red"></i>
+                                        <i class="fas fa-exclamation-circle fa-lg" style="color:red" data-toggle="tooltip" data-placement="top" title="! Info materi belum selesai dinilai"></i>
                                     <?php else : ?>
-                                        <i class="fas fa-check-circle" style="color:green"></i>
+                                        <i class="fas fa-check-circle fa-lg" style="color:green" data-toggle="tooltip" data-placement="top" title=" ! Info Semua materi sudah dinilai"></i>
                                     <?php endif; ?>
                                 </div>
                             </td>
