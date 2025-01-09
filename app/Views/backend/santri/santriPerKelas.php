@@ -36,9 +36,9 @@
                                     <?php endif; ?>
 
                                     <?php if ($santri->StatusPenilaian == 0) : ?>
-                                        <i class="fas fa-exclamation-circle fa-lg" style="color:red" data-toggle="tooltip" data-placement="top" title="! Info materi belum selesai dinilai"></i>
+                                        <i class="fas fa-exclamation-circle fa-lg" style="color:red" data-toggle="tooltip" data-placement="top" title="! Materi belum selesai dinilai"></i>
                                     <?php else : ?>
-                                        <i class="fas fa-check-circle fa-lg" style="color:green" data-toggle="tooltip" data-placement="top" title=" ! Info Semua materi sudah dinilai"></i>
+                                        <i class="fas fa-check-circle fa-lg" style="color:green" data-toggle="tooltip" data-placement="top" title=" ! Semua materi selesai dinilai"></i>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -61,6 +61,10 @@
 //script section
 <?= $this->section('scripts'); ?>
 <script>
-    initializeDataTableUmum("#TableNilaiSemester", true, true);
+    $(document).ready(function() {
+        // Inisialisasi tooltip
+        $('[data-toggle="tooltip"]').tooltip();
+        initializeDataTableUmum("#TableNilaiSemester", true, true);
+    });
 </script>
 <?= $this->endSection(); ?>
