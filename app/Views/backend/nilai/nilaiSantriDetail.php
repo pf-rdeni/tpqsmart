@@ -134,7 +134,12 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                                 oninput="this.setCustomValidity('')">
                         </div>
                         <div class="modal-footer">
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i>Simpan</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                <i class="fas fa-times"></i> Keluar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>Simpan
+                            </button>
                         </div>
                     </form>
                 </div>
