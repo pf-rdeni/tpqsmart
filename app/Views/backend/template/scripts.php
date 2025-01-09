@@ -1,4 +1,11 @@
 <script>
+    $(function() {
+        // Date picker initialization
+        $('#DateForEdit, #DateForInput').datetimepicker({
+            format: 'L'
+        });
+
+    });
     // ini untuk script umum yang sering dipakai di semua halaman
     // contoh: initializeDataTableUmum
     function initializeDataTableUmum(selector, paging = true, lengthChange = false, buttons = [], options = {}) {
