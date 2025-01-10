@@ -52,15 +52,16 @@ class NilaiModel extends Model
         // get IdKelas dari session
         $IdKelas = session()->get('IdKelas');
 
-        $sql = 'SELECT n.IdSantri, s.NamaSantri, s.JenisKelamin, IdTahunAjaran, n.Semester, k.NamaKelas,
+        $sql = 'SELECT n.IdSantri, s.NamaSantri, s.JenisKelamin, IdTahunAjaran, n.Semester, k.NamaKelas, k.IdKelas,
                        SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata
                 FROM tbl_nilai n
                 JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
                 JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
                 WHERE n.IdKelas IN (' . implode(',', $IdKelas) . ')
-                AND n.Semester = "' . $semester . '"
+                AND n.Semester = "' . $semester .
+        '"
                 GROUP BY n.IdSantri, n.Semester
-                ORDER BY n.Semester ASC, TotalNilai DESC';
+                ORDER BY k.IdKelas ASC, n.Semester ASC, TotalNilai DESC';
 
         return db_connect()->query($sql);
     }

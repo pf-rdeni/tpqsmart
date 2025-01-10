@@ -54,7 +54,7 @@ class Nilai extends BaseController
         }
 
         // Tambahkan data kelas tetap "SEMUA KELAS" di awal
-        $dataKelas = [0 => 'SEMUA KELAS'];
+        $dataKelas = [0 => 'SEMUA'];
         foreach ($dataSantri as $santri) {
             $dataKelas[$santri->IdKelas] = $santri->NamaKelas;
         }
@@ -72,9 +72,14 @@ class Nilai extends BaseController
     public function showSumaryPersemester($semester = null)
     {
         $datanilai = $this->DataNilai->getDataNilaiPerSemester($semester);
+        $dataKelas = [0 => 'SEMUA'];
+        foreach ($datanilai->getResult() as $nilai) {
+            $dataKelas[$nilai->IdKelas] = $nilai->NamaKelas;
+        }
         return view('backend/nilai/nilaiSantriPerSemester', [
             'page_title' => 'Rank Data Nilai Semester ' . $semester,
             'nilai' => $datanilai,
+            'dataKelas' => $dataKelas,
             'semester' => $semester
         ]);
     }

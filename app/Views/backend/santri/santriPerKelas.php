@@ -45,7 +45,7 @@
                                     </thead>
                                     <tbody>
                                         <?php foreach ($dataSantri as $santri) : ?>
-                                            <?php if ($santri->NamaKelas == $kelas || $kelas == "SEMUA KELAS"): ?>
+                                            <?php if ($santri->NamaKelas == $kelas || $kelas == "SEMUA"): ?>
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex justify-content-start">
