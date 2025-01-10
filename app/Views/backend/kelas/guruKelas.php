@@ -14,7 +14,7 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="tabelGuruKelas" class="table table-bordered table-striped">
                 <thead>
                     <?php
                     $helpModel = new \App\Models\HelpFunctionModel();
@@ -189,6 +189,8 @@
 //section scripts
 <?= $this->section('scripts'); ?>
 <script>
+    initializeDataTableUmum("#tabelGuruKelas", true, true);
+
     function saveDataGuruKelas(button) {
         // Dapatkan form terdekat dari tombol yang diklik
         const form = button.closest('form');

@@ -7,7 +7,7 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="tabelGuru" class="table table-bordered table-striped">
                 <thead>
                     <tr>
                         <th>No</th>
@@ -31,26 +31,26 @@
                     <?php
                     $no = 1;
                     foreach ($guru as $dataGuru) : ?>
-                    <tr>
-                        <td><?= $no++ ?></td>
-                        <td><?= $dataGuru['Nama'] ?></td>
-                        <td><?= $dataGuru['JenisKelamin'] ?></td>
-                        <td><?= $dataGuru['TempatLahir'] . ", " . $dataGuru['TanggalLahir'] ?></td>
-                        <td><?= $dataGuru['PendidikanTerakhir'] ?></td>
-                        <td><?= $dataGuru['TempatTugas'] ?></td>
-                        <td><?= $dataGuru['TanggalMulaiTugas'] ?></td>
-                        <td><?= $dataGuru['Alamat'] ?></td>
-                        <td><?= $dataGuru['Rt'] . " / " . $dataGuru['Rw'] ?></td>
-                        <td><?= $dataGuru['KelurahanDesa'] ?></td>
-                        <td><?= $dataGuru['IdGuru'] ?></td>
-                        <td><?= $dataGuru['NoRekBpr'] ?></td>
-                        <td><?= $dataGuru['NoRekRiauKepri'] ?></td>
-                        <td><?= $dataGuru['Status'] ?></td>
-                        <td>
-                            <a href="" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
-                            <a href="" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></a>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td><?= $no++ ?></td>
+                            <td><?= $dataGuru['Nama'] ?></td>
+                            <td><?= $dataGuru['JenisKelamin'] ?></td>
+                            <td><?= $dataGuru['TempatLahir'] . ", " . $dataGuru['TanggalLahir'] ?></td>
+                            <td><?= $dataGuru['PendidikanTerakhir'] ?></td>
+                            <td><?= $dataGuru['TempatTugas'] ?></td>
+                            <td><?= $dataGuru['TanggalMulaiTugas'] ?></td>
+                            <td><?= $dataGuru['Alamat'] ?></td>
+                            <td><?= $dataGuru['Rt'] . " / " . $dataGuru['Rw'] ?></td>
+                            <td><?= $dataGuru['KelurahanDesa'] ?></td>
+                            <td><?= $dataGuru['IdGuru'] ?></td>
+                            <td><?= $dataGuru['NoRekBpr'] ?></td>
+                            <td><?= $dataGuru['NoRekRiauKepri'] ?></td>
+                            <td><?= $dataGuru['Status'] ?></td>
+                            <td>
+                                <a href="" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
+                                <a href="" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
                     <?php endforeach ?>
                 </tbody>
                 <tfoot>
@@ -78,4 +78,9 @@
     </div>
     <!-- /.card -->
 </div>
+<?= $this->endSection(); ?>
+<?= $this->section('scripts'); ?>
+<script>
+    initializeDataTableUmum("#tabelGuru", true, true);
+</script>
 <?= $this->endSection(); ?>
