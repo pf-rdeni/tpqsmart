@@ -93,6 +93,27 @@ class Nilai extends BaseController
         ]);
     }
 
+    public function showDetailNilaiSantriPerKelas()
+    {
+        $IdKelas = session()->get('IdKelas');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+        
+        // Buat querry dari tbl_nilai dengan menggabungkan tbl_santri_baru dan tbl_kelas
+        $datanilai = $this->DataNilai->getDataNilaiPerKelas($IdKelas, $IdTahunAjaran, "Ganjil");
+        
+        $dataKelas = [0 => 'SEMUA'];
+        foreach ($datanilai as $nilai) {
+            $dataKelas[$nilai['IdKelas']] = $nilai['NamaKelas'];
+        }
+
+        return view('backend/nilai/nilaiSantriDetailPerKelas', [
+            'page_title' => 'Detail Nilai',
+            'dataSantri' => $datanilai,
+            'dataKelas' => $dataKelas
+        ]);
+    }
+
     public function update($Edit = false)
     {
         try {

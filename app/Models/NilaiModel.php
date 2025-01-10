@@ -19,7 +19,7 @@ class NilaiModel extends Model
         'IdGuru',
         'IdTahunAjaran',
         'Semester',
-        'Nilai',
+        'Nilai', 
         'created_at', 
         'updated_at'
     ];
@@ -27,7 +27,7 @@ class NilaiModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    public function getDataNilaiDetail($IdSantri, $IdSemester)
+    public function getDataNilaiDetail($IdSantri = null, $IdSemester = null)
     {
 
         $sql =
@@ -37,8 +37,14 @@ class NilaiModel extends Model
                 JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
                 JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
                 JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
-                WHERE n.IdSantri = ' . $IdSantri
-            . ' AND n.Semester ="' . $IdSemester . '"';
+                WHERE 1=1';
+
+        if ($IdSantri !== null) {
+            $sql .= ' AND n.IdSantri = ' . $IdSantri;
+        }
+        if ($IdSemester !== null) {
+            $sql .= ' AND n.Semester = "' . $IdSemester . '"';
+        }
 
         $sql .= ' ORDER BY n.IdMateri ASC';
 
@@ -83,5 +89,53 @@ class NilaiModel extends Model
                 ORDER BY n.IdMateri ASC';
 
         return db_connect()->query($sql)->getResult();
+    }
+
+    // getDataNilaiPerKelas IdKelas dan IdTahunAjaran in array
+    public function getDataNilaiPerKelas($IdKelas, $IdTahunAjaran, $Semester)
+    {
+        // Connect to the database
+        $db = db_connect();
+
+        // Query untuk mendapatkan kolom dinamis berdasarkan IdMateri
+        $materiQuery = $db->query("
+            SELECT GROUP_CONCAT(
+                DISTINCT CONCAT('MAX(CASE WHEN IdMateri = \"', IdMateri, '\" THEN Nilai END) AS ', IdMateri)
+            ) AS dynamic_columns
+            FROM tbl_nilai
+            WHERE Semester = ?
+            AND IdKelas IN ?
+            AND IdTahunAjaran IN ?
+        ", [$Semester, $IdKelas, $IdTahunAjaran]);
+
+        // Ambil hasil kolom dinamis
+        $materiResult = $materiQuery->getRow();
+        $dynamicColumns = $materiResult->dynamic_columns;
+
+        if ($dynamicColumns) {
+            // Bangun query utama
+            $finalQuery = "
+                SELECT n.IdSantri, s.NamaSantri, n.IdKelas, k.NamaKelas,  IdTahunAjaran, Semester, $dynamicColumns
+                FROM tbl_nilai n
+                JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
+                JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
+                WHERE Semester = ?
+                AND n.IdKelas IN ?
+                AND IdTahunAjaran IN ?
+                GROUP BY IdSantri, IdTahunAjaran, Semester
+                ORDER BY IdSantri
+            ";
+
+            // Eksekusi query akhir
+            $finalResult = $db->query($finalQuery, [$Semester, $IdKelas, $IdTahunAjaran]);
+
+            // Ambil data sebagai array
+            $data = $finalResult->getResultArray();
+        } else {
+            $data = []; // Jika tidak ada data
+        }
+
+        // Kembalikan atau tampilkan hasil
+        return $data;
     }
 }

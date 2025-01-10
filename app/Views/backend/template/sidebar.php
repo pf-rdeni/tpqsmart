@@ -351,6 +351,13 @@
                                             <p>Semester Genap</p>
                                         </a>
                                     </li>
+                                    <li class="nav-item">
+                                        <a href=<?php
+                                                echo base_url('backend/nilai/showDetailNilaiSantriPerKelas') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon text-danger"></i>
+                                            <p>Detail Nilai</p>
+                                        </a>
+                                    </li>
                                 </ul>
                             </li>
                             <li class="nav-item">
