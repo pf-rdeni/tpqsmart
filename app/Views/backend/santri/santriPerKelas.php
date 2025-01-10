@@ -45,7 +45,7 @@
                                     </thead>
                                     <tbody>
                                         <?php foreach ($dataSantri as $santri) : ?>
-                                            <?php if ($santri->NamaKelas == $kelas): ?>
+                                            <?php if ($santri->NamaKelas == $kelas || $kelas == "SEMUA KELAS"): ?>
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex justify-content-start">
@@ -60,9 +60,9 @@
                                                             <?php endif; ?>
 
                                                             <?php if ($santri->StatusPenilaian == 0) : ?>
-                                                                <i class="fas fa-exclamation-circle fa-lg" style="color:red" data-toggle="tooltip" data-placement="top" title="! Materi belum selesai dinilai"></i>
+                                                                <i class="fas fa-exclamation-circle fa-lg" style="color:red" data-toggle="tooltip" data-placement="top" title="! Belum selesai dinilai"></i>
                                                             <?php else : ?>
-                                                                <i class="fas fa-check-circle fa-lg" style="color:green" data-toggle="tooltip" data-placement="top" title=" ! Semua materi selesai dinilai"></i>
+                                                                <i class="fas fa-check-circle fa-lg" style="color:green" data-toggle="tooltip" data-placement="top" title=" ! Sudah Selesai dinilai"></i>
                                                             <?php endif; ?>
                                                         </div>
                                                     </td>

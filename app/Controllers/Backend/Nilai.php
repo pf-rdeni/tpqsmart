@@ -53,8 +53,8 @@ class Nilai extends BaseController
             }
         }
 
-        // Mengelompokan IdKelas berdasarkan dari data $dataSantri
-        $dataKelas = [];
+        // Tambahkan data kelas tetap "SEMUA KELAS" di awal
+        $dataKelas = [0 => 'SEMUA KELAS'];
         foreach ($dataSantri as $santri) {
             $dataKelas[$santri->IdKelas] = $santri->NamaKelas;
         }

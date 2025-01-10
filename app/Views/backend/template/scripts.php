@@ -15,10 +15,10 @@
             "autoWidth": false,
             "paging": paging,
             "buttons": buttons,
-            "pageLength": 10,
+            "pageLength": 20,
             "lengthMenu": [ // Kustomisasi opsi jumlah entri yang tersedia
-                [10, 25, 50, 100, -1],
-                [10, 25, 50, 100, "Semua"]
+                [10, 20, 30, 50, 100, -1],
+                [10, 20, 30, 50, 100, "Semua"]
             ],
             "language": {
                 "search": "Pencarian:",
