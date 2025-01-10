@@ -123,7 +123,7 @@ class NilaiModel extends Model
                 AND n.IdKelas IN ?
                 AND IdTahunAjaran IN ?
                 GROUP BY IdSantri, IdTahunAjaran, Semester
-                ORDER BY IdSantri
+                ORDER BY n.IdKelas ASC
             ";
 
             // Eksekusi query akhir

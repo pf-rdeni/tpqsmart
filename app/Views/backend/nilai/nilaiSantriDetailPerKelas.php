@@ -3,7 +3,7 @@
 <div class="col-12">
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">List Santri TPQ Per Kelas</h3>
+            <h3 class="card-title">List nilai santri persemester</h3>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -37,8 +37,8 @@
                                 <table id="TableNilaiSemester-<?= $kelasId ?>" class="table table-bordered table-striped">
                                     <thead>
                                         <tr>
-                                            <?php if (!empty($dataSantri)): ?>
-                                                <?php foreach (array_keys($dataSantri[0]) as $field): ?>
+                                            <?php if (!empty($dataNilai)): ?>
+                                                <?php foreach (array_keys($dataNilai[0]) as $field): ?>
                                                     <?php if ($field !== 'IdKelas'): ?>
                                                         <th><?= htmlspecialchars($field) ?></th>
                                                     <?php endif; ?>
@@ -47,7 +47,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($dataSantri as $santri) : ?>
+                                        <?php foreach ($dataNilai as $santri) : ?>
                                             <?php if ($santri['NamaKelas'] == $kelas || $kelas == "SEMUA"): ?>
                                                 <tr>
                                                     <?php foreach ($santri as $field => $value): ?>
