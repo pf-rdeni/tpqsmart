@@ -213,18 +213,6 @@
         initializeDataTableUmum("#tblKelas-<?= $kelasId ?>", true, true);
     <?php endforeach; ?>
 
-    // Tambahkan event listener untuk tab changes
-    $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
-        // Dapatkan target tab yang aktif
-        let targetTab = $(e.target).attr("href");
-
-        // Cari table di dalam tab yang aktif
-        let table = $(targetTab).find('table').DataTable();
-
-        // Adjust columns untuk memastikan responsive bekerja
-        table.columns.adjust().responsive.recalc();
-    });
-
     // Menutup modal
     $('#tutupModal').on('click', function() {
         var isChecked = $('#formTambahData input[type="checkbox"]:checked').length > 0;

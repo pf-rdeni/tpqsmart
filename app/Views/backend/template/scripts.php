@@ -62,4 +62,16 @@
             ...options
         }).buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
     }
+
+    // Tambahkan event listener untuk tab changes
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+        // Dapatkan target tab yang aktif
+        let targetTab = $(e.target).attr("href");
+
+        // Cari table di dalam tab yang aktif
+        let table = $(targetTab).find('table').DataTable();
+
+        // Adjust columns untuk memastikan responsive bekerja
+        table.columns.adjust().responsive.recalc();
+    });
 </script>
