@@ -3,7 +3,11 @@
 <div class="col-12">
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">List nilai santri persemester</h3>
+            <h3 class="card-title">List nilai santri</h3>
+            <div class="card-tools">
+                <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-warning btn-sm">Semester Ganjil</a>
+                <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-info btn-sm">Semester Genap</a>
+            </div>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -128,8 +132,9 @@
         // Initial DataTabel per kelas
         // Tambahkan Button Export ke dalam DataTable
         let buttons = [
-            'copy', 'excel',
+            'copy', 'excel', 'colvis'
         ];
+
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
             initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true, buttons);
         <?php endforeach; ?>
