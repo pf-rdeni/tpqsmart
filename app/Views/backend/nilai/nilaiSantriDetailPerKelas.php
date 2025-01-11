@@ -49,19 +49,25 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        <?php
+                                        $columnTotals = []; // Array untuk menyimpan total setiap kolom
+                                        $rowCount = 0; // Counter jumlah baris (untuk rata-rata)
+                                        ?>
                                         <?php foreach ($dataNilai as $santri) : ?>
                                             <?php if ($santri['NamaKelas'] == $kelas || $kelas == "SEMUA"): ?>
                                                 <tr>
                                                     <?php
-                                                    $totalNilai = 0; // Variabel untuk menghitung total nilai
+                                                    $totalNilai = 0; // Variabel untuk menghitung total nilai per baris
                                                     $jumlahKolomNilai = 0; // Variabel untuk menghitung jumlah kolom nilai
+                                                    $rowCount++; // Tambahkan counter jumlah baris
                                                     ?>
                                                     <?php foreach ($santri as $field => $value): ?>
                                                         <?php if ($field !== 'IdKelas'): ?>
                                                             <td><?= htmlspecialchars($value) ?></td>
                                                             <?php
-                                                            // Jumlahkan nilai jika field adalah kolom nilai (bukan kolom Semester atau lainnya)
+                                                            // Hitung total nilai setiap kolom
                                                             if (!in_array($field, ['IdSantri', 'NamaSantri', 'NamaKelas', 'IdTahunAjaran', 'Semester'])) {
+                                                                $columnTotals[$field] = ($columnTotals[$field] ?? 0) + (int)$value;
                                                                 $totalNilai += (int)$value;
                                                                 $jumlahKolomNilai++;
                                                             }
@@ -76,6 +82,30 @@
                                             <?php endif; ?>
                                         <?php endforeach; ?>
                                     </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="5">Rata-rata Nilai Materi Pelajaran</th> <!-- Kolom sebelum nilai -->
+                                            <?php
+                                            $grandTotal = 0;
+                                            $nilaiKolomCount = 0;
+                                            ?>
+                                            <?php foreach (array_keys($dataNilai[0]) as $field): ?>
+                                                <?php if (!in_array($field, ['IdKelas', 'IdSantri', 'NamaSantri', 'NamaKelas', 'IdTahunAjaran', 'Semester'])): ?>
+                                                    <th>
+                                                        <?= $rowCount > 0 ? round($columnTotals[$field] / $rowCount, 2) : 0 ?>
+                                                    </th>
+                                                    <?php
+                                                    $grandTotal += $columnTotals[$field] ?? 0;
+                                                    $nilaiKolomCount++;
+                                                    ?>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                            <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 2) : 0 ?></th> <!-- Total rata-rata -->
+                                            <th>
+                                                <?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 2) : 0 ?>
+                                            </th> <!-- Nilai rata-rata rata-rata -->
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         <?php endforeach; ?>
@@ -96,8 +126,12 @@
         $('[data-toggle="tooltip"]').tooltip();
 
         // Initial DataTabel per kelas
+        // Tambahkan Button Export ke dalam DataTable
+        let buttons = [
+            'copy', 'excel',
+        ];
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
-            initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true);
+            initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true, buttons);
         <?php endforeach; ?>
     });
 </script>
