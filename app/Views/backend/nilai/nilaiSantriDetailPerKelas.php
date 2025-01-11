@@ -43,6 +43,8 @@
                                                         <th><?= htmlspecialchars($field) ?></th>
                                                     <?php endif; ?>
                                                 <?php endforeach; ?>
+                                                <th>TotalNilai</th> <!-- Tambahkan header untuk kolom TotalNilai -->
+                                                <th>NilaiRataRata</th> <!-- Tambahkan header untuk kolom NilaiRataRata -->
                                             <?php endif; ?>
                                         </tr>
                                     </thead>
@@ -50,11 +52,26 @@
                                         <?php foreach ($dataNilai as $santri) : ?>
                                             <?php if ($santri['NamaKelas'] == $kelas || $kelas == "SEMUA"): ?>
                                                 <tr>
+                                                    <?php
+                                                    $totalNilai = 0; // Variabel untuk menghitung total nilai
+                                                    $jumlahKolomNilai = 0; // Variabel untuk menghitung jumlah kolom nilai
+                                                    ?>
                                                     <?php foreach ($santri as $field => $value): ?>
                                                         <?php if ($field !== 'IdKelas'): ?>
                                                             <td><?= htmlspecialchars($value) ?></td>
+                                                            <?php
+                                                            // Jumlahkan nilai jika field adalah kolom nilai (bukan kolom Semester atau lainnya)
+                                                            if (!in_array($field, ['IdSantri', 'NamaSantri', 'NamaKelas', 'IdTahunAjaran', 'Semester'])) {
+                                                                $totalNilai += (int)$value;
+                                                                $jumlahKolomNilai++;
+                                                            }
+                                                            ?>
                                                         <?php endif; ?>
                                                     <?php endforeach; ?>
+                                                    <td><?= $totalNilai ?></td> <!-- Tampilkan total nilai -->
+                                                    <td>
+                                                        <?= $jumlahKolomNilai > 0 ? round($totalNilai / $jumlahKolomNilai, 2) : 0 ?>
+                                                    </td> <!-- Tampilkan rata-rata nilai -->
                                                 </tr>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
