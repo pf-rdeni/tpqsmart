@@ -108,10 +108,6 @@ class MateriPelajaran extends BaseController
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
 
-        if ($IdTpq) {
-            $IdTpq = $IdTpq['IdTpq'];
-        }
-
         $dataMateriPelajaran = $this->materiModel
         ->select('tbl_materi_pelajaran.*, tpq.NamaTpq')
         ->join('tbl_tpq tpq', 'tpq.IdTpq = tbl_materi_pelajaran.IdTpq', 'left')
