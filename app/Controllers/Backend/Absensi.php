@@ -14,15 +14,16 @@ class Absensi extends BaseController
         $absensiModel = new AbsensiModel();
 
         // Ambil data session
+        $IdTpq = session()->get('IdTpq');
         $IdGuru = session()->get('IdGuru');
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         
         // Ambil tanggal hari ini
         $tanggalHariIni = date('Y-m-d');
-        
+
         // Ambil data santri berdasarkan kelas
-        $santriList = $santriModel->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
+        $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
         
         // Filter santri yang belum ada absensinya pada tanggal hari ini
         $santri = [];

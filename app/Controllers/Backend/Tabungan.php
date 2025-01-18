@@ -80,6 +80,7 @@ class Tabungan extends BaseController
 
     public function showPerKelas($encryptedIdGuru = null)
     {
+        $IdTpq = session()->get('IdTpq');
         
         if($encryptedIdGuru !== null)
             $IdGuru = $this->encryptModel->decryptData($encryptedIdGuru);
@@ -90,7 +91,7 @@ class Tabungan extends BaseController
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
 
-        $dataSantri = $this->tabunganModel->getSantriWithBalance( $IdTahunAjaran, $IdGuru,$IdKelas);
+        $dataSantri = $this->tabunganModel->getSantriWithBalance($IdTpq, $IdTahunAjaran, $IdGuru, $IdKelas);
         $data = [
             'page_title' => 'Tabungan Santri',
             'dataSantri' => $dataSantri

@@ -27,7 +27,7 @@ class SantriModel extends Model
     }
 
 
-    public function GetDataSantriPerKelas($IdTahunAjaran = 0, $IdKelas = 0, $IdGuru = null)
+    public function GetDataSantriPerKelas($IdTpq, $IdTahunAjaran = 0, $IdKelas = 0, $IdGuru = null)
     {
         $db = db_connect();
 
@@ -47,15 +47,15 @@ class SantriModel extends Model
                     w.IdJabatan
                 FROM 
                     tbl_kelas_santri ks
-                JOIN 
+                LEFT JOIN 
                     tbl_kelas k ON ks.IdKelas = k.IdKelas
-                JOIN 
+                LEFT JOIN 
                     tbl_santri_baru s ON ks.IdSantri = s.IdSantri
-                JOIN 
+                LEFT JOIN 
                     tbl_tpq t ON ks.IdTpq = t.IdTpq
-                JOIN 
+                LEFT JOIN 
                     tbl_guru_kelas w ON w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq
-                JOIN 
+                LEFT JOIN 
                     tbl_guru g ON w.IdGuru = g.IdGuru
                 WHERE 
                     1=1';  // Baseline query (always true)
@@ -64,6 +64,20 @@ class SantriModel extends Model
         $sql .= $this->addFilterById($db, 'ks.IdTahunAjaran', $IdTahunAjaran);
         $sql .= $this->addFilterById($db, 'w.IdGuru', $IdGuru);
         $sql .= $this->addFilterById($db, 'k.IdKelas', $IdKelas);
+        $sql .= $this->addFilterById($db, 'ks.IdTpq', $IdTpq);
+        $sql .= 'GROUP BY 
+                ks.IdTahunAjaran,
+                k.IdKelas,
+                k.NamaKelas,
+                g.IdGuru,
+                g.Nama,
+                s.IdSantri,
+                s.NamaSantri,
+                s.JenisKelamin,
+                t.IdTpq,
+                t.NamaTpq,
+                t.Alamat';
+        
 
         // Add ORDER BY clause
         $sql .= ' ORDER BY k.NamaKelas ASC, s.NamaSantri ASC';

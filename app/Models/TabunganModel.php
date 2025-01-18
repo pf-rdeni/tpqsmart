@@ -53,10 +53,11 @@ class TabunganModel extends Model
     }
 
     // Method to retrive list all dataSantri with their balance in tabungan table join with tbl_kelas_santri and tbl_kelas and tbl_guru_kelas filter by IdTahunAjaran and IdGuru IdKelas and IdTpq and IdSantri = null
-    public function getSantriWithBalance($IdTahunAjaran, $IdGuru, $IdKelas)
+    public function getSantriWithBalance($IdTpq, $IdTahunAjaran, $IdGuru, $IdKelas)
     {
+
         $santriModel = new SantriModel();
-        $santriList = $santriModel->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
+        $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
         $santriWithBalance = [];
         foreach ($santriList as $santri) {
