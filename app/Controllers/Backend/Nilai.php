@@ -95,12 +95,14 @@ class Nilai extends BaseController
 
     public function showDetailNilaiSantriPerKelas($semester = null)
     {
+        // ambil IdTpq dari session
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdTpq = session()->get('IdTpq');
 
 
         // Buat querry dari tbl_nilai dengan menggabungkan tbl_santri_baru dan tbl_kelas
-        $datanilai = $this->DataNilai->getDataNilaiPerKelas($IdKelas, $IdTahunAjaran, $semester);
+        $datanilai = $this->DataNilai->getDataNilaiPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
         
         $dataKelas = [0 => 'SEMUA'];
         foreach ($datanilai as $nilai) {
