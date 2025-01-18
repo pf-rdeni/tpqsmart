@@ -39,6 +39,9 @@ class GuruKelas extends BaseController
         $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
         $idJabatan = $this->request->getPost('IdJabatan');
 
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+
         // Cek apakah kombinasi IdKelas, IdTahunAjaran dan IdJabatan=3 wali kelas sudah ada
         if ($idJabatan == 3) {
             $existing = $this->guruKelasModel
@@ -48,7 +51,8 @@ class GuruKelas extends BaseController
                 ->where([
                     'tbl_guru_kelas.IdKelas' => $idKelas,
                     'tbl_guru_kelas.IdTahunAjaran' => $idTahunAjaran,
-                    'tbl_guru_kelas.IdJabatan' => 3
+                'tbl_guru_kelas.IdJabatan' => 3,
+                'tbl_guru_kelas.IdTpq' => $IdTpq
                 ])->first();
 
             // Jika data existing ditemukan dan ini adalah data baru (tidak ada $id)
