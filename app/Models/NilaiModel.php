@@ -53,10 +53,8 @@ class NilaiModel extends Model
 
 
     // Retrieve nilai data per semester
-    public function getDataNilaiPerSemester($semester)
+    public function getDataNilaiPerSemester($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
     {
-        // get IdKelas dari session
-        $IdKelas = session()->get('IdKelas');
 
         $sql = 'SELECT n.IdSantri, s.NamaSantri, s.JenisKelamin, IdTahunAjaran, n.Semester, k.NamaKelas, k.IdKelas,
                        SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata
@@ -64,8 +62,10 @@ class NilaiModel extends Model
                 JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
                 JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
                 WHERE n.IdKelas IN (' . implode(',', $IdKelas) . ')
-                AND n.Semester = "' . $semester .
-        '"
+                AND n.Semester = "' . $semester . '"
+                AND n.IdTpq = "' . $IdTpq . '"
+                AND n.IdTahunAjaran  IN (' . implode(',', $IdTahunAjaran) . ')
+
                 GROUP BY n.IdSantri, n.Semester
                 ORDER BY k.IdKelas ASC, n.Semester ASC, TotalNilai DESC';
 

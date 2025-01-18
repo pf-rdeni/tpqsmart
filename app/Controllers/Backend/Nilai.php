@@ -12,9 +12,15 @@ class Nilai extends BaseController
     protected $DataNilai;
     protected $helpFunction;
     protected $DataSantriBaru;
+    protected $IdTpq;
+    protected $IdKelas;
+    protected $IdTahunAjaran;
 
     public function __construct()
     {
+        $this->IdTpq = session()->get('IdTpq');
+        $this->IdKelas = session()->get('IdKelas');
+        $this->IdTahunAjaran = session()->get('IdTahunAjaran');
         $this->DataNilai = new NilaiModel();
         $this->helpFunction = new HelpFunctionModel();
         $this->DataSantriBaru = new SantriBaruModel();
@@ -71,7 +77,7 @@ class Nilai extends BaseController
 
     public function showSumaryPersemester($semester = null)
     {
-        $datanilai = $this->DataNilai->getDataNilaiPerSemester($semester);
+        $datanilai = $this->DataNilai->getDataNilaiPerSemester($this->IdTpq, $this->IdKelas, $this->IdTahunAjaran, $semester);
         $dataKelas = [0 => 'SEMUA'];
         foreach ($datanilai->getResult() as $nilai) {
             $dataKelas[$nilai->IdKelas] = $nilai->NamaKelas;
@@ -98,7 +104,8 @@ class Nilai extends BaseController
         // ambil IdTpq dari session
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $IdTpq = session()->get('IdTpq');
+
+        $IdTpq = $this->IdTpq;
 
 
         // Buat querry dari tbl_nilai dengan menggabungkan tbl_santri_baru dan tbl_kelas
