@@ -120,6 +120,12 @@
                                     <p>Ubah Santri</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showSantriEmis') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Data Emis</p>
+                                </a>
+                            </li>
                             <?php if (in_groups('Operator')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">

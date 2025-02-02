@@ -630,6 +630,63 @@ class Santri extends BaseController
         return view('backend/santri/aturSantriBaru', $data);
     }
 
+    public function showSantriEmis()
+    {
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+
+        // jika IdTpq tidak ada, maka tampilkan semua data santri
+        if ($IdTpq == null) {
+            $santri = $this->DataSantriBaru
+                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+                ->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
+                ->findAll();
+        } else {
+            $santri = $this->DataSantriBaru
+                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+                ->where('tbl_santri_baru.IdTpq', $IdTpq)
+                ->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
+                ->findAll();
+        }
+
+        $tpq = $this->helpFunction->getDataTpq();
+        usort($tpq, function ($a, $b) {
+            return strcmp($a['NamaTpq'], $b['NamaTpq']);
+        });
+
+        // Tambahkan query untuk menghitung jumlah santri per TPQ
+        $santriPerTpq = $this->DataSantriBaru
+            ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
+            ->groupBy('tbl_tpq.IdTpq')
+            ->findAll();
+
+        // Gabungkan data jumlah santri ke array TPQ
+        foreach ($tpq as &$t) {
+            $jumlahSantri = 0;
+            foreach ($santriPerTpq as $count) {
+                if ($count['IdTpq'] == $t['IdTpq']) {
+                    $jumlahSantri = $count['JumlahSantri'];
+                    break;
+                }
+            }
+            $t['JumlahSantri'] = $jumlahSantri;
+        }
+
+        $data = [
+            'page_title' => 'Data Santri Update Emis',
+            'dataSantri' => $santri,
+            'dataTpq' => $tpq
+        ];
+        return view('backend/santri/dataSantriEmis', $data);
+    }
+
     public function viewDetailSantriBaru($IdSantri = null)
     {
         $santri = $this->DataSantriBaru->GetData($IdSantri);
