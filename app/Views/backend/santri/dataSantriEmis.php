@@ -54,7 +54,6 @@
                                     <i class="fas fa-eye"></i><span class="d-none d-md-inline">&nbsp;Detail</span>
                                 </a>
                             </td>
-                            <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
                             <td><?= $santri['NamaKelas']; ?></td>
                             <td><?= $santri['IdSantri']; ?></td>
                             <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
