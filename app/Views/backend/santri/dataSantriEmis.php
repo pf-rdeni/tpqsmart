@@ -71,11 +71,11 @@
                             <td><?= ucwords(strtolower($santri['StatusWali'])); ?></td>
                             <td><?= ucwords(strtolower($santri['StatusKepemilikanRumahAyah'])); ?></td>
                             <td><?= ucwords(strtolower($santri['ProvinsiAyah'])); ?></td>
-                            <td><?= ucwords(strtolower($santri['KabupatenKotaAyah'])); ?></td>
+                            <td><?= ucwords(strtolower($santri['KabupatenKotaSantri'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KecamatanAyah'])); ?></td>
-                            <td><?= ucwords(strtolower($santri['KelurahanDesaAyah'])); ?></td>
-                            <td><?= ucwords(strtolower($santri['RtAyah'])); ?></td>
-                            <td><?= ucwords(strtolower($santri['RwAyah'])); ?></td>
+                            <td><?= ucwords(strtolower($santri['KelurahanDesaSantri'])); ?></td>
+                            <td><?= ucwords(strtolower($santri['RtSantri'])); ?></td>
+                            <td><?= ucwords(strtolower($santri['RwSantri'])); ?></td>
                             <td><?= ucwords(strtolower($santri['AlamatAyah'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KodePosAyah'])); ?></td>
                         </tr>
