@@ -134,7 +134,7 @@ if (ENVIRONMENT === 'production') {
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-md-3">
-                                                <label class="text-center w-100">Photo Profil<span class="text-danger font-weight-bold">*</span></label>
+                                                <label class="text-center w-100">Photo Profil</label>
                                                 <div class="text-center">
                                                     <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
                                                         class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover; cursor: pointer;">
@@ -150,7 +150,7 @@ if (ENVIRONMENT === 'production') {
                                                     <i class="fas fa-exclamation-circle"></i>
                                                     Format photo background merah dengan rasio 2:3, file format JPG, JPEG, PNG. and max file size 5MB
                                                 </small>
-                                                <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" <?= $required ?> style="display: none;"
+                                                <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" style="display: none;"
                                                     <?= isset($dataSantri['PhotoProfil']) ? 'value="' . $dataSantri['PhotoProfil'] . '"' : '' ?>>
                                                 <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                             </div>
@@ -3440,56 +3440,45 @@ if (ENVIRONMENT === 'production') {
             return `Untuk kelas ${kelasName} yang dipilih, usia kisaran antara ${minAge}-${maxAge} tahun (lahir tahun ${today.getFullYear()-maxAge} sampai ${today.getFullYear()-minAge})`;
         };
 
+        let kelasSd = "";
         // Validasi berdasarkan ID kelas
         switch (selectedKelasId) {
             case 1: // TK
             case 2: // TKA
             case 3: // TKB
-                if (umur < 4 || umur > 7) {
+                if (umur < 3 || umur > 7) {
                     isValid = false;
-                    errorMessage = formatErrorMessage('TK/TKA/TKB', 4, 7);
+                    errorMessage = formatErrorMessage('TK/TKA/TKB', 3, 7);
                 }
                 break;
 
             case 4: // TPQ1/SD1
-                if (umur < 6 || umur > 7) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ1/SD1', 6, 7);
+                if (selectedKelasId == 4) {
+                    kelasSd = "TPQ1/SD1";
                 }
-                break;
-
             case 5: // TPQ2/SD2
-                if (umur < 7 || umur > 8) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ2/SD2', 7, 8);
+                if (selectedKelasId == 5) {
+                    kelasSd = "TPQ2/SD2";
                 }
-                break;
-
-            case 6: // TPQ3/SD3
-                if (umur < 8 || umur > 9) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ3/SD3', 8, 9);
+            case 6: // TPQ3/SD3   
+                if (selectedKelasId == 6) {
+                    kelasSd = "TPQ3/SD3";
                 }
-                break;
-
-            case 7: // TPQ4/SD4
-                if (umur < 9 || umur > 10) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ4/SD4', 9, 10);
+            case 7: // TPQ4/SD4   
+                if (selectedKelasId == 7) {
+                    kelasSd = "TPQ4/SD4";
                 }
-                break;
-
             case 8: // TPQ5/SD5
-                if (umur < 10 || umur > 11) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TPQ5/SD5', 10, 11);
+                if (selectedKelasId == 8) {
+                    kelasSd = "TPQ5/SD5";
                 }
-                break;
-
             case 9: // TPQ6/SD6
-                if (umur < 11 || umur > 12) {
+                if (selectedKelasId == 9) {
+                    kelasSd = "TPQ6/SD6";
+                }
+                if (umur < 6 || umur > 12) {
                     isValid = false;
-                    errorMessage = formatErrorMessage('TPQ6/SD6', 11, 12);
+                    errorMessage = formatErrorMessage(kelasSd, 6, 12);
                 }
                 break;
 
