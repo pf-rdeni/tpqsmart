@@ -5,9 +5,6 @@
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
                 <h3 class="card-title">Daftar Santri</h3>
-                <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="btn btn-primary">
-                    <i class="fas fa-plus"></i><span class="d-none d-md-inline">&nbsp;Daftar Santri</span>
-                </a>
             </div>
         </div>
         <!-- /.card-header -->
@@ -71,9 +68,11 @@
                             <td><?= ucwords(strtolower($santri['StatusAyah'])); ?></td>
                             <td><?= ucwords(strtolower($santri['NamaIbu'])); ?></td>
                             <td><?= ucwords(strtolower($santri['StatusIbu'])); ?></td>
+                            <td><?= ucwords(strtolower($santri['StatusWali'])); ?></td>
                             <td><?= ucwords(strtolower($santri['StatusKepemilikanRumahAyah'])); ?></td>
                             <td><?= ucwords(strtolower($santri['ProvinsiAyah'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KabupatenKotaAyah'])); ?></td>
+                            <td><?= ucwords(strtolower($santri['KecamatanAyah'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KelurahanDesaAyah'])); ?></td>
                             <td><?= ucwords(strtolower($santri['RtAyah'])); ?></td>
                             <td><?= ucwords(strtolower($santri['RwAyah'])); ?></td>
@@ -82,38 +81,6 @@
                         </tr>
                     <?php endforeach ?>
                 </tbody>
-                <tfoot>
-                    <tr>
-                        <th>Aksi</th>
-                        <th>Kelas</th>
-                        <th>IdSantri</th>
-                        <th>Nama</th>
-                        <th>WNI</th>
-                        <th>NIK</th>
-                        <th>Tempat Lahir</th>
-                        <th>Tanggal Lahir</th>
-                        <th>Jenis Kelamin</th>
-                        <th>Jumlah Saudara</th>
-                        <th>Anak Ke</th>
-                        <th>Yang Membiayai</th>
-                        <th>Kebtuhan Khusus</th>
-                        <th>Kebutuhan Disabilitas</th>
-                        <th>Nama Ayah</th>
-                        <th>Status Ayah</th>
-                        <th>Nama Ibu</th>
-                        <th>Status Ibu</th>
-                        <th>Status Wali</th>
-                        <th>Status Rumah</th>
-                        <th>Provinsi</th>
-                        <th>Kabupaten</th>
-                        <th>Kecamatan</th>
-                        <th>Kel/Desa</th>
-                        <th>RT</th>
-                        <th>RW</th>
-                        <th>Alamat</th>
-                        <th>Kode Pos</th>
-                    </tr>
-                </tfoot>
             </table>
         </div>
         <div class="card-footer">
@@ -606,7 +573,7 @@
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
 <script>
-    //initializeDataTableUmum("#tblSantriEmis");
-    initializeDataTableWithFilter("#tblSantriEmis", true, ["excel", "pdf", "print", "colvis"]);
+    initializeDataTableUmum("#tblSantriEmis", true, true, ["excel", "pdf", "colvis"]);
+    //initializeDataTableWithFilter("#tblSantriEmis", true, ["excel", "pdf", "print", "colvis"]);
 </script>
 <?= $this->endSection(); ?>
