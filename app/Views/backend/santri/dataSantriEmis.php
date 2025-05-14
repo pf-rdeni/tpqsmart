@@ -489,11 +489,13 @@
 <script>
     /*=== Modal View detail santri===*/
     function showInputEmisSantri(IdSantri) {
+        // Mendapatkan data santri berdasarkan IdSantri yang diberikan
         const dataSantri = <?= json_encode($dataSantri) ?>;
         const santri = dataSantri.find(s => s.IdSantri === IdSantri);
 
+        // Jika data santri ditemukan, maka tampilkan detailnya
         if (santri) {
-            // Set nilai untuk tab Data Santri
+            // Mengisi detail santri pada modal
             document.getElementById('modalKelas').textContent = santri.NamaKelas;
             document.getElementById('modalNIS').textContent = santri.NIS ? santri.NIS : "Belum Punya NISN";
             document.getElementById('modalNikSantri').textContent = santri.NikSantri;
@@ -502,7 +504,7 @@
             document.getElementById('modalTempatLahir').textContent = santri.TempatLahirSantri;
             document.getElementById('modalTanggalLahir').textContent = santri.TanggalLahirSantri;
 
-            // Set nilai untuk tab Data Orang Tua
+            // Mengisi detail orang tua santri pada modal
             // Data Ayah
             document.getElementById('modalNamaAyah').textContent = santri.NamaAyah || '-';
             document.getElementById('modalStatusAyah').textContent = santri.StatusAyah || '-';
@@ -510,12 +512,13 @@
             document.getElementById('modalNamaIbu').textContent = santri.NamaIbu || '-';
             document.getElementById('modalStatusIbu').textContent = santri.StatusIbu || '-';
 
-            // Data Status Wali
+            // Mengisi status wali santri pada modal
             document.getElementById('modalStatusWali').textContent = santri.StatusWali || '-';
 
-            // Data Tanggal Daftar
+            // Mengisi tanggal daftar santri pada modal
             document.getElementById('modalTanggalDaftar').textContent = santri.created_at ? formatDate(santri.created_at) : '-';
 
+            // Fungsi untuk mengformat tanggal
             function formatDate(dateString) {
                 const date = new Date(dateString);
                 const year = date.getFullYear();
@@ -524,7 +527,7 @@
                 return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
             }
 
-            // Tampilkan modal
+            // Menampilkan modal setelah semua detail diisi
             $('#inputDataEmisModal').modal('show');
         }
     }
