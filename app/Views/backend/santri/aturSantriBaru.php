@@ -667,10 +667,6 @@
             $('#detailSantriModal').modal('show');
         }
     }
-</script>
-<?= $this->endSection(); ?>
-<?= $this->section('scripts'); ?>
-<script>
     // Initialize DataTable for #tblTpq
     initializeDataTableUmum("#tblTpq");
     initializeDataTableWithFilter("#tblAturSantri", true, ["excel", "pdf", "print", "colvis"]);
