@@ -82,6 +82,16 @@
                     <input type="hidden" id="edit_TempatTugas" name="TempatTugas" required>
 
                     <div class="form-group">
+                        <label for="edit_Status">Status</label>
+                        <select class="form-control" id="edit_Status" name="Status" required>
+                            <option value="">Pilih Status</option>
+                            <option value="1">Aktif</option>
+                            <option value="0">Tidak Aktif</option>
+                        </select>
+                        <div id="edit_StatusError" class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="form-group">
                         <label for="edit_IdTpq">TPQ</label>
                         <select class="form-control" id="edit_IdTpq" name="IdTpq" required <?= session()->get('IdTpq') ? 'disabled' : '' ?>>
                             <option value="">Pilih TPQ</option>
@@ -95,6 +105,13 @@
                     </div>
 
                     <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_NIK">NIK</label>
+                                <input type="text" class="form-control" id="edit_NIK" name="NIK" required pattern="[0-9]{16}" placeholder="Contoh: 1234567890123456" disabled>
+                                <div id="edit_NIKError" class="invalid-feedback"></div>
+                            </div>
+                        </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_NoHp">No Handphone</label>
@@ -299,7 +316,15 @@
                             break;
                         }
                     }
-
+                    // untuk status
+                    const statusSelect = document.getElementById('edit_Status');
+                    for (let i = 0; i < statusSelect.options.length; i++) {
+                        if (statusSelect.options[i].value === guru.Status) {
+                            statusSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                    document.getElementById('edit_NIK').value = guru.IdGuru;
                     document.getElementById('edit_NoHp').value = guru.NoHp;
                     document.getElementById('edit_TanggalMulaiTugas').value = guru.TanggalMulaiTugas;
                     document.getElementById('edit_GelarDepan').value = guru.GelarDepan || '';

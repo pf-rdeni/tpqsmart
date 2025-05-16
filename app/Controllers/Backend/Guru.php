@@ -252,6 +252,7 @@ class Guru extends BaseController
                 'Rt' => $this->request->getPost('Rt'),
                 'Rw' => $this->request->getPost('Rw'),
                 'KelurahanDesa' => $this->request->getPost('KelurahanDesa'),
+                'Status' => $this->request->getPost('Status'),
             ];
 
             $this->DataModels->update($this->request->getPost('IdGuru'), $data);
