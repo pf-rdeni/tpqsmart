@@ -176,7 +176,7 @@
                             <!-- /.card-header -->
                             <div class="card-body pt-0">
                                 <!--The calendar -->
-                                <div id="calendar"></div>
+                                <div id="calendarnew"></div>
                             </div>
                         </div>
                     </div>
@@ -204,7 +204,7 @@
 <!-- Page specific script -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
+        var calendarEl = document.getElementById('calendarnew');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             headerToolbar: {
@@ -220,7 +220,111 @@
                 day: 'Hari'
             },
             themeSystem: 'bootstrap',
-            height: 'auto'
+            height: 'auto',
+            events: function(info, successCallback, failureCallback) {
+                // Mendapatkan tahun saat ini
+                var year = new Date().getFullYear();
+
+                // Array hari libur nasional Indonesia
+                var holidays = [{
+                        date: year + '-01-01',
+                        title: 'Tahun Baru Masehi',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-01-22',
+                        title: 'Tahun Baru Imlek',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-02-08',
+                        title: 'Isra Mikraj Nabi Muhammad SAW',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-03-11',
+                        title: 'Hari Suci Nyepi',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-03-31',
+                        title: 'Wafat Isa Al Masih',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-04-10',
+                        title: 'Hari Raya Idul Fitri',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-04-11',
+                        title: 'Hari Raya Idul Fitri',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-05-01',
+                        title: 'Hari Buruh Internasional',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-05-09',
+                        title: 'Hari Raya Waisak',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-05-23',
+                        title: 'Kenaikan Isa Al Masih',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-06-01',
+                        title: 'Hari Lahir Pancasila',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-06-17',
+                        title: 'Hari Raya Idul Adha',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-07-07',
+                        title: 'Tahun Baru Islam',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-08-17',
+                        title: 'Hari Kemerdekaan RI',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-09-28',
+                        title: 'Maulid Nabi Muhammad SAW',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-12-25',
+                        title: 'Hari Raya Natal',
+                        color: '#dc3545'
+                    }
+                ];
+
+                // Filter hari libur berdasarkan rentang tanggal yang ditampilkan
+                var filteredHolidays = holidays.filter(function(holiday) {
+                    var holidayDate = new Date(holiday.date);
+                    return holidayDate >= info.start && holidayDate <= info.end;
+                });
+
+                successCallback(filteredHolidays);
+            },
+            eventDidMount: function(info) {
+                // Menambahkan tooltip untuk setiap event
+                $(info.el).tooltip({
+                    title: info.event.title,
+                    placement: 'top',
+                    trigger: 'hover',
+                    container: 'body'
+                });
+            }
         });
         calendar.render();
     });
