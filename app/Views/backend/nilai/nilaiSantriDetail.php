@@ -30,9 +30,14 @@
         ?>
 
         <div class="card-header">
-            <h3 class="card-title">
-                Data Nilai Santri <strong><?= $IdSantri . ' - ' . $NamaSantri ?></strong> Kelas <?= $NamaKelas ?> Tahun <?= $Tahun ?> Semester <?= $Semester ?>
-            </h3>
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title">
+                    Data Nilai Santri <strong><?= $IdSantri . ' - ' . $NamaSantri ?></strong> Kelas <?= $NamaKelas ?> Tahun <?= $Tahun ?> Semester <?= $Semester ?>
+                </h3>
+                <a href="javascript:history.back()" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </a>
+            </div>
         </div> <!-- /.card-header -->
         <div class="card-body">
             <table id="TabelNilaiPerSemester" class="table table-bordered table-striped">
@@ -44,10 +49,11 @@
                         $tableHeadersFooter .= '<th>Aksi</th>';
                     }
                     $tableHeadersFooter .=
-                        '<th>Kategori</th>
-                                <th>Id - Nama Materi</th>
-                                <th>Nilai</th>
-                                </tr>';
+                        '
+                        <th>Nilai</th>
+                        <th>Id - Nama Materi</th>
+                        <th>Kategori</th>
+                         </tr>';
 
                     echo $tableHeadersFooter
                     ?>
@@ -79,12 +85,12 @@
                                     </button>
                                 </td>
                             <?php } ?>
-                            <td><?php echo $DataNilai->Kategori; ?></td>
-                            <td><?php echo $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri; ?></td>
                             <td>
                                 <input type="text" name="Nilai-<?= $DataNilai->Id ?>" id="Nilai-<?= $DataNilai->Id ?>" class="form-control" value="<?php echo $DataNilai->Nilai; ?>" readonly
                                     style="border: <?= $DataNilai->Nilai == 0 ? '2px solid red' : '2px solid green' ?>;" />
                             </td>
+                            <td><?php echo $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri; ?></td>
+                            <td><?php echo $DataNilai->Kategori; ?></td>
                         </tr>
 
                     <?php endforeach ?>
@@ -131,7 +137,8 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                                 placeholder="<?= $DataNilai->Nilai > 0 ? '' : 'Ketik Nilai' ?>" value="<?= $DataNilai->Nilai > 0 ? $DataNilai->Nilai : '' ?>"
                                 min="50" max="100"
                                 oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
-                                oninput="this.setCustomValidity('')">
+                                oninput="this.setCustomValidity('')"
+                                autofocus>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" id="tutupModal-<?= $DataNilai->Id ?>">
@@ -153,20 +160,46 @@ foreach ($MainDataNilai as $DataNilai) : ?>
 <script>
     initializeDataTableUmum("#TabelNilaiPerSemester", true, true);
 
-    // Tambahkan variabel untuk menyimpan status perubahan
-    let isChanged = false;
-    let nilaiLama = 0;
-
     // Fungsi untuk menampilkan modal edit nilai dan menangani pengiriman form
     function showModalEditNilai(id) {
-        $('#EditNilai' + id).modal('show');
         // Ambil nilai lama
         nilaiLama = $('#NilaiEditModal-' + id).val();
 
-        // Tambahkan handler untuk form submission
-        $('#EditNilai' + id + ' form').on('submit', function(e) {
+        // Tampilkan modal
+        $('#EditNilai' + id).modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+
+        // Set fokus ke input nilai setelah modal dibuka
+        $('#EditNilai' + id).on('shown.bs.modal', function() {
+            // Tunggu sebentar untuk memastikan modal benar-benar terbuka
+            setTimeout(function() {
+                const input = $('#NilaiEditModal-' + id);
+                if (input.length) {
+                    // Fokus ke input
+                    input.focus();
+
+                    // Jika ada nilai, pindahkan kursor ke akhir
+                    const value = input.val();
+                    if (value) {
+                        // Gunakan cara alternatif untuk memindahkan kursor
+                        input.val(''); // Kosongkan dulu
+                        input.val(value); // Isi kembali
+                        input.focus(); // Fokus lagi
+                    }
+                }
+            }, 200);
+        });
+
+        // Hapus event handler submit yang lama dan tambahkan yang baru
+        $('#EditNilai' + id + ' form').off('submit').on('submit', function(e) {
             e.preventDefault();
             const form = $(this);
+
+            // Disable tombol submit untuk mencegah multiple submission
+            const submitButton = form.find('button[type="submit"]');
+            submitButton.prop('disabled', true);
 
             $.ajax({
                 url: form.attr('action'),
@@ -182,7 +215,7 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                         showConfirmButton: false,
                         timer: 1500
                     }).then(() => {
-                        const newValue = response.newValue; // Misalkan response.newValue adalah nilai baru yang ingin diset
+                        const newValue = response.newValue;
                         const idNilai = form.find('input[name="Id"]').val();
                         $('#Nilai-' + idNilai).val(newValue);
                         // Ubah border warna menjadi hijau
@@ -192,11 +225,10 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                         // Ubah warna button dan icon dan teks tombol berdasarkan nilai baru
                         if (newValue > 0) {
                             $('#EditNilai-' + id).html('<i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit');
-                            $('#EditNilai-' + id).removeClass('btn-primary').addClass('btn-warning'); // Ubah kelas tombol
+                            $('#EditNilai-' + id).removeClass('btn-primary').addClass('btn-warning');
                         }
 
-                        isChanged = false; // Set status perubahan menjadi false
-
+                        isChanged = false;
                     });
                 },
                 error: function(xhr) {
@@ -205,13 +237,16 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                         title: 'Gagal',
                         text: 'Terjadi kesalahan saat menyimpan data',
                     });
+                },
+                complete: function() {
+                    // Enable kembali tombol submit
+                    submitButton.prop('disabled', false);
                 }
             });
         });
 
         // Ubah handler untuk tombol Keluar
-        $('#tutupModal-' + id).on('click', function() {
-
+        $('#tutupModal-' + id).off('click').on('click', function() {
             nilaiBaru = $('#NilaiEditModal-' + id).val();
             if (isChanged) {
                 Swal.fire({
@@ -223,18 +258,22 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                     cancelButtonText: 'Batal'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        isChanged = false; // Set status perubahan menjadi false
-                        $('#NilaiEditModal-' + id).val(nilaiLama); // Kembalikan nilai ke nilai lama
-                        $('#EditNilai' + id).modal('hide'); // Tutup modal jika OK dipilih
+                        isChanged = false;
+                        $('#NilaiEditModal-' + id).val(nilaiLama);
+                        $('#EditNilai' + id).modal('hide');
                     }
                 });
             } else {
-                $('#EditNilai' + id).modal('hide'); // Tutup modal jika tidak ada perubahan
+                $('#EditNilai' + id).modal('hide');
             }
         });
 
-        $('#EditNilai' + id + ' form').on('change', 'input[name="Nilai"]', function() {
-            isChanged = true; // Set status perubahan menjadi true jika ada perubahan nilai
+        // Reset status perubahan saat modal dibuka
+        isChanged = false;
+
+        // Tambahkan event listener untuk perubahan nilai
+        $('#NilaiEditModal-' + id).off('change').on('change', function() {
+            isChanged = true;
         });
     }
 </script>
