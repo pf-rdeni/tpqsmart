@@ -4,14 +4,14 @@
     .vertical-header {
         writing-mode: vertical-lr;
         transform: rotate(180deg);
-        text-align: center;
+        text-align: left;
         white-space: nowrap;
-        padding: 10px 5px !important;
+        padding: 5px !important;
         height: 150px;
     }
 
     .table thead th {
-        vertical-align: bottom;
+        vertical-align: top;
     }
 </style>
 <?php
@@ -72,8 +72,8 @@ function capitalizeWords($str)
                                                         <?php endif; ?>
                                                     <?php endif; ?>
                                                 <?php endforeach; ?>
-                                                <th class="vertical-header">TotalNilai</th>
-                                                <th class="vertical-header">NilaiRataRata</th>
+                                                <th class="vertical-header">Total Nilai</th>
+                                                <th class="vertical-header">Nilai Rata-Rata</th>
                                             <?php endif; ?>
                                         </tr>
                                     </thead>
@@ -115,11 +115,14 @@ function capitalizeWords($str)
                                                 </tr>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
-                                    </tbody>
-                                    <tfoot>
                                         <tr>
                                             <th></th>
-                                            <th colspan="4">Rata-rata Nilai Materi Pelajaran</th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th>Rata-Rata</th>
+                                            <!--th colspan="6">Rata-rata Nilai Materi Pelajaran</th-->
                                             <?php
                                             $grandTotal = 0;
                                             $nilaiKolomCount = 0;
@@ -140,6 +143,9 @@ function capitalizeWords($str)
                                                 <?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 2) : 0 ?>
                                             </th>
                                         </tr>
+                                    </tbody>
+                                    <tfoot>
+
                                     </tfoot>
                                 </table>
                             </div>
