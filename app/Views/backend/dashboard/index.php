@@ -176,7 +176,7 @@
                             <!-- /.card-header -->
                             <div class="card-body pt-0">
                                 <!--The calendar -->
-                                <div id="calendar" style="width: 100%"></div>
+                                <div id="calendar"></div>
                             </div>
                         </div>
                     </div>
@@ -200,4 +200,29 @@
     </div>
 </section>
 <!-- /.content -->
+
+<!-- Page specific script -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            locale: 'id',
+            buttonText: {
+                today: 'Hari Ini',
+                month: 'Bulan',
+                week: 'Minggu',
+                day: 'Hari'
+            },
+            themeSystem: 'bootstrap',
+            height: 'auto'
+        });
+        calendar.render();
+    });
+</script>
 <?= $this->endSection(); ?>
