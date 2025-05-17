@@ -61,3 +61,6 @@
 
 <!-- sweetalert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- calendar -->
+<script src="<?php echo base_url('/plugins') ?>/fullcalendar/main.js"></script>

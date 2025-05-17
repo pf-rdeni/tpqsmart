@@ -49,4 +49,7 @@
     <!-- dropzonejs -->
     <link rel="stylesheet" href="<?php echo base_url('/plugins') ?>/dropzone/min/dropzone.min.css">
 
+    <!-- fullCalendar -->
+    <link rel="stylesheet" href="<?php echo base_url('/plugins') ?>/fullcalendar/main.css">
+
 </head>
