@@ -101,14 +101,15 @@ class NilaiModel extends Model
         $materiQuery = $db->query(
             "
             SELECT GROUP_CONCAT(
-                DISTINCT CONCAT('MAX(CASE WHEN IdMateri = \"', IdMateri, '\" THEN Nilai END) AS ', IdMateri)
+                DISTINCT CONCAT('MAX(CASE WHEN n.IdMateri = \"', n.IdMateri, '\" THEN n.Nilai END) AS \"', m.NamaMateri, '\"')
             ) AS dynamic_columns
-            FROM tbl_nilai
+            FROM tbl_nilai n
+            JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
             WHERE 
-            IdTpq = ?
-            AND IdKelas IN ?
-            AND IdTahunAjaran IN ?
-            AND Semester = ?
+            n.IdTpq = ?
+            AND n.IdKelas IN ?
+            AND n.IdTahunAjaran IN ?
+            AND n.Semester = ?
         ",
             [$IdTpq, $IdKelas,  $IdTahunAjaran, $Semester]
         );
@@ -120,7 +121,7 @@ class NilaiModel extends Model
         if ($dynamicColumns) {
             // Bangun query utama
             $finalQuery = "
-                SELECT n.IdSantri, s.NamaSantri, n.IdKelas, k.NamaKelas,  IdTahunAjaran, Semester, $dynamicColumns
+                SELECT n.IdSantri AS 'IdSantri', s.NamaSantri AS 'Nama Santri', n.IdKelas, k.NamaKelas AS 'Nama Kelas',  IdTahunAjaran AS 'Tahun Ajaran', Semester, $dynamicColumns
                 FROM tbl_nilai n
                 JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
                 JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri

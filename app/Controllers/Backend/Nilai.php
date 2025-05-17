@@ -113,7 +113,7 @@ class Nilai extends BaseController
         
         $dataKelas = [0 => 'SEMUA'];
         foreach ($datanilai as $nilai) {
-            $dataKelas[$nilai['IdKelas']] = $nilai['NamaKelas'];
+            $dataKelas[$nilai['IdKelas']] = $nilai['Nama Kelas'];
         }
 
         return view('backend/nilai/nilaiSantriDetailPerKelas', [

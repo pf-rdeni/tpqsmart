@@ -1,5 +1,25 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
+<style>
+    .vertical-header {
+        writing-mode: vertical-lr;
+        transform: rotate(180deg);
+        text-align: center;
+        white-space: nowrap;
+        padding: 10px 5px !important;
+        height: 150px;
+    }
+
+    .table thead th {
+        vertical-align: bottom;
+    }
+</style>
+<?php
+function capitalizeWords($str)
+{
+    return ucwords(strtolower($str));
+}
+?>
 <div class="col-12">
     <div class="card">
         <div class="card-header">
@@ -42,13 +62,18 @@
                                     <thead>
                                         <tr>
                                             <?php if (!empty($dataNilai)): ?>
+                                                <th>Aksi</th>
                                                 <?php foreach (array_keys($dataNilai[0]) as $field): ?>
                                                     <?php if ($field !== 'IdKelas'): ?>
-                                                        <th><?= htmlspecialchars($field) ?></th>
+                                                        <?php if (in_array($field, ['IdSantri', 'Nama Santri', 'Nama Kelas', 'Tahun Ajaran', 'Semester'])): ?>
+                                                            <th><?= htmlspecialchars(capitalizeWords($field)) ?></th>
+                                                        <?php else: ?>
+                                                            <th class="vertical-header"><?= htmlspecialchars(capitalizeWords($field)) ?></th>
+                                                        <?php endif; ?>
                                                     <?php endif; ?>
                                                 <?php endforeach; ?>
-                                                <th>TotalNilai</th> <!-- Tambahkan header untuk kolom TotalNilai -->
-                                                <th>NilaiRataRata</th> <!-- Tambahkan header untuk kolom NilaiRataRata -->
+                                                <th class="vertical-header">TotalNilai</th>
+                                                <th class="vertical-header">NilaiRataRata</th>
                                             <?php endif; ?>
                                         </tr>
                                     </thead>
@@ -58,8 +83,13 @@
                                         $rowCount = 0; // Counter jumlah baris (untuk rata-rata)
                                         ?>
                                         <?php foreach ($dataNilai as $santri) : ?>
-                                            <?php if ($santri['NamaKelas'] == $kelas || $kelas == "SEMUA"): ?>
+                                            <?php if ($santri['Nama Kelas'] == $kelas || $kelas == "SEMUA"): ?>
                                                 <tr>
+                                                    <td>
+                                                        <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/' . $santri['Semester']) ?>" class="btn btn-info btn-sm">
+                                                            <i class="fas fa-eye"></i> Detail
+                                                        </a>
+                                                    </td>
                                                     <?php
                                                     $totalNilai = 0; // Variabel untuk menghitung total nilai per baris
                                                     $jumlahKolomNilai = 0; // Variabel untuk menghitung jumlah kolom nilai
@@ -70,7 +100,7 @@
                                                             <td><?= htmlspecialchars($value) ?></td>
                                                             <?php
                                                             // Hitung total nilai setiap kolom
-                                                            if (!in_array($field, ['IdSantri', 'NamaSantri', 'NamaKelas', 'IdTahunAjaran', 'Semester'])) {
+                                                            if (!in_array($field, ['IdSantri', 'Nama Santri', 'Nama Kelas', 'Tahun Ajaran', 'Semester'])) {
                                                                 $columnTotals[$field] = ($columnTotals[$field] ?? 0) + (int)$value;
                                                                 $totalNilai += (int)$value;
                                                                 $jumlahKolomNilai++;
@@ -78,23 +108,24 @@
                                                             ?>
                                                         <?php endif; ?>
                                                     <?php endforeach; ?>
-                                                    <td><?= $totalNilai ?></td> <!-- Tampilkan total nilai -->
+                                                    <td><?= $totalNilai ?></td>
                                                     <td>
                                                         <?= $jumlahKolomNilai > 0 ? round($totalNilai / $jumlahKolomNilai, 2) : 0 ?>
-                                                    </td> <!-- Tampilkan rata-rata nilai -->
+                                                    </td>
                                                 </tr>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                            <th colspan="5">Rata-rata Nilai Materi Pelajaran</th> <!-- Kolom sebelum nilai -->
+                                            <th></th>
+                                            <th colspan="4">Rata-rata Nilai Materi Pelajaran</th>
                                             <?php
                                             $grandTotal = 0;
                                             $nilaiKolomCount = 0;
                                             ?>
                                             <?php foreach (array_keys($dataNilai[0]) as $field): ?>
-                                                <?php if (!in_array($field, ['IdKelas', 'IdSantri', 'NamaSantri', 'NamaKelas', 'IdTahunAjaran', 'Semester'])): ?>
+                                                <?php if (!in_array($field, ['IdKelas', 'IdSantri', 'Nama Santri', 'Nama Kelas', 'Tahun Ajaran', 'Semester'])): ?>
                                                     <th>
                                                         <?= $rowCount > 0 ? round($columnTotals[$field] / $rowCount, 2) : 0 ?>
                                                     </th>
@@ -104,10 +135,10 @@
                                                     ?>
                                                 <?php endif; ?>
                                             <?php endforeach; ?>
-                                            <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 2) : 0 ?></th> <!-- Total rata-rata -->
+                                            <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 2) : 0 ?></th>
                                             <th>
                                                 <?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 2) : 0 ?>
-                                            </th> <!-- Nilai rata-rata rata-rata -->
+                                            </th>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -121,6 +152,10 @@
     </div>
     <!-- /.card -->
 </div>
+
+<!-- buat modal untuk mengambil detail per satu row yang bisa di klik -->
+
+
 <?= $this->endSection(); ?>
 //script section
 <?= $this->section('scripts'); ?>
