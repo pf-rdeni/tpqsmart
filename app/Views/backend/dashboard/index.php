@@ -31,8 +31,7 @@
                     <!-- /.col -->
                     <div class="col-md-3 col-sm-6 col-12">
                         <div class="info-box">
-                            <span class="info-box-icon bg-danger"><i class="fa-solid fa-chart-simple"></i></span>
-                            <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="info-box-icon bg-success"><i class="fa-solid fa-sack-dollar"></i></a>
+                            <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="info-box-icon bg-primary"><i class="fa-solid fa-chart-simple"></i></a>
 
                             <div class="info-box-content">
                                 <span class="info-box-text">Catatan Prestasi</span>
