@@ -54,7 +54,7 @@ class Santri extends BaseController
 
         try {
             $IdSantri = "";
-            // Ambil tahun saat ini
+            // 1. Ambil tahun saat ini
             $tahunSekarang = date('Y');
             log_message('info', 'Santri: save - Tahun sekarang: ' . $tahunSekarang);
 
@@ -63,6 +63,7 @@ class Santri extends BaseController
                 ->orderBy('IdSantri', 'DESC')
                 ->first();
 
+            // 2. Cek apakah ada data santri yang sudah ada dan ambil ID terakhir kemudian buat ID baru
             if ($lastSantri) {
                 // Ambil 4 digit terakhir dari ID Santri
                 $lastNumber = intval(substr($lastSantri['IdSantri'], -4));
@@ -75,30 +76,6 @@ class Santri extends BaseController
                 log_message('info', 'Santri: save - ID Santri pertama dibuat: ' . $IdSantri);
             }
 
-            // Handle upload untuk setiap file dan simpan nama file ke variabel
-            $photoProfilName = $this->uploadFile($this->request->getFile('PhotoProfil'), 'Profile', $IdSantri);
-            $namaFileKIP = $this->uploadFile($this->request->getFile('FileKIP'), 'Kip', $IdSantri);
-            $namaFileKkSantri = $this->uploadFile($this->request->getFile('FileKkSantri'), 'KkSantri', $IdSantri);
-            $namaFileKkAyah = $this->uploadFile($this->request->getFile('FileKKAyah'), 'KkAyah', $IdSantri);
-            $namaFileKkIbu = $this->uploadFile($this->request->getFile('FileKKIbu'), 'KkIbu', $IdSantri);
-            $namaFileKKS = $this->uploadFile($this->request->getFile('FileKKS'), 'Kks', $IdSantri);
-            $namaFilePKH = $this->uploadFile($this->request->getFile('FilePKH'), 'Pkh', $IdSantri);
-
-            // Update data yang akan disimpan dengan nama file yang baru
-            $data['PhotoProfil'] = $photoProfilName;
-            $data['FileKIP'] = $namaFileKIP;
-            $data['FileKkSantri'] = $namaFileKkSantri;
-            $data['FileKkAyah'] = $namaFileKkAyah;
-            $data['FileKkIbu'] = $namaFileKkIbu;
-            $data['FileKKS'] = $namaFileKKS;
-            $data['FilePKH'] = $namaFilePKH;
-
-            // Handling checkbok kksamaayah sama dengan santri maka file kk ayah sama dengan file kk santri
-            if ($this->request->getPost('KkAyahSamaDenganSantri') == 'on')
-            $namaFileKkAyah = $namaFileKkSantri;
-            if ($this->request->getPost('KkIbuSamaDenganAyahAtauSantri') == 'on')
-            $namaFileKkIbu = $namaFileKkSantri;
-
             // Siapkan data untuk disimpan
             $data = [
                 // Data TPQ
@@ -107,7 +84,7 @@ class Santri extends BaseController
                 'Agama' => 'Islam',
                 // Data Santri
                 'IdSantri' => $IdSantri,
-                'PhotoProfil' => $photoProfilName,
+                //'PhotoProfil' => $photoProfilName,
                 'NikSantri' => $this->request->getPost('NikSantri'),
                 'NamaSantri' => $this->request->getPost('NamaSantri'),
                 'JenisKelamin' => $this->request->getPost('JenisKelamin'),
@@ -130,8 +107,8 @@ class Santri extends BaseController
                 'NamaKepalaKeluarga' => $this->request->getPost('NamaKepalaKeluarga'),
                 'NoKIP' => $this->request->getPost('NoKIP'),
                 'IdKartuKeluarga' => $this->request->getPost('IdKartuKeluarga'),
-                'FileKIP' => $namaFileKIP,
-                'FileKkSantri' => $namaFileKkSantri,
+                //'FileKIP' => $namaFileKIP,
+                //'FileKkSantri' => $namaFileKkSantri,
 
                 // Data Ayah
                 'NamaAyah' => $this->request->getPost('NamaAyah'),
@@ -144,7 +121,7 @@ class Santri extends BaseController
                 'PekerjaanUtamaAyah' => $this->request->getPost('PekerjaanUtamaAyah'),
                 'PenghasilanUtamaAyah' => $this->request->getPost('PenghasilanUtamaAyah'),
                 'NoHpAyah' => $this->request->getPost('NoHpAyah'),
-                'FileKkAyah' => $namaFileKkAyah,
+                //'FileKkAyah' => $namaFileKkAyah,
 
                 // Data Ibu
                 'NamaIbu' => $this->request->getPost('NamaIbu'),
@@ -157,7 +134,7 @@ class Santri extends BaseController
                 'PekerjaanUtamaIbu' => $this->request->getPost('PekerjaanUtamaIbu'),
                 'PenghasilanUtamaIbu' => $this->request->getPost('PenghasilanUtamaIbu'),
                 'NoHpIbu' => $this->request->getPost('NoHpIbu'),
-                'FileKkIbu' => $namaFileKkIbu,
+                //'FileKkIbu' => $namaFileKkIbu,
 
                 // Data Wali
                 'StatusWali' => $this->request->getPost('StatusWali'),
@@ -172,8 +149,8 @@ class Santri extends BaseController
                 'NoHpWali' => $this->request->getPost('NoHpWali'),
                 'NomorPKH' => $this->request->getPost('NomorPKH'),
                 'NomorKKS' => $this->request->getPost('NomorKKS'),
-                'FilePKH' => $namaFilePKH,
-                'FileKKS' => $namaFileKKS,
+                //'FilePKH' => $namaFilePKH,
+                //'FileKKS' => $namaFileKKS,
 
                 // Data Alamat Ayah
                 'TinggalDiluarNegeriAyah' => $this->request->getPost('TinggalDiluarNegeriAyah'),
@@ -216,8 +193,6 @@ class Santri extends BaseController
                 'TitikKoordinatSantri' => $this->request->getPost('TitikKoordinatSantri'),
             ];
 
-
-
             // Simpan data ke database
             // Ubah nilai array menjadi lowercase kemudian ucwords sebelum insert
             log_message('info', 'Santri: save - Memproses data merubah nilai array menjadi lowercase kemudian ucwords');
@@ -244,6 +219,7 @@ class Santri extends BaseController
                 throw new \Exception('Gagal memproses data: ' . $e->getMessage());
             }
 
+            // 3. Simpan data ke database
             $result = $this->DataSantriBaru->insert($processedData);
 
             if ($result === false) {
@@ -251,6 +227,46 @@ class Santri extends BaseController
                 $errors = $this->DataSantriBaru->errors();
                 log_message('error', 'Santri: save - Gagal menyimpan data: ' . json_encode($errors));
                 throw new \Exception('Gagal menyimpan data: ' . json_encode($errors));
+            }
+
+            // 4. Proses upload file setelah data tersimpan
+            $updateData = [];
+            try {
+                $photoProfilName = $this->uploadFile($this->request->getFile('PhotoProfil'), 'Profile', $IdSantri);
+                if ($photoProfilName) $updateData['PhotoProfil'] = $photoProfilName;
+
+                $namaFileKIP = $this->uploadFile($this->request->getFile('FileKIP'), 'Kip', $IdSantri);
+                if ($namaFileKIP) $updateData['FileKIP'] = $namaFileKIP;
+
+                $namaFileKkSantri = $this->uploadFile($this->request->getFile('FileKkSantri'), 'KkSantri', $IdSantri);
+                if ($namaFileKkSantri) $updateData['FileKkSantri'] = $namaFileKkSantri;
+
+                $namaFileKkAyah = $this->uploadFile($this->request->getFile('FileKKAyah'), 'KkAyah', $IdSantri);
+                if ($namaFileKkAyah) $updateData['FileKkAyah'] = $namaFileKkAyah;
+
+                $namaFileKkIbu = $this->uploadFile($this->request->getFile('FileKKIbu'), 'KkIbu', $IdSantri);
+                if ($namaFileKkIbu) $updateData['FileKkIbu'] = $namaFileKkIbu;
+
+                $namaFileKKS = $this->uploadFile($this->request->getFile('FileKKS'), 'Kks', $IdSantri);
+                if ($namaFileKKS) $updateData['FileKKS'] = $namaFileKKS;
+
+                $namaFilePKH = $this->uploadFile($this->request->getFile('FilePKH'), 'Pkh', $IdSantri);
+                if ($namaFilePKH) $updateData['FilePKH'] = $namaFilePKH;
+
+                // Handling checkbox
+                if ($this->request->getPost('KkAyahSamaDenganSantri') == 'on' && $namaFileKkSantri) {
+                    $updateData['FileKkAyah'] = $namaFileKkSantri;
+                }
+                if ($this->request->getPost('KkIbuSamaDenganAyahAtauSantri') == 'on' && $namaFileKkSantri) {
+                    $updateData['FileKkIbu'] = $namaFileKkSantri;
+                }
+
+                // Update data dengan nama file yang berhasil diupload
+                if (!empty($updateData)) {
+                    $this->DataSantriBaru->update($result, $updateData);
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Santri: save - Error saat mengupload file: ' . $e->getMessage());
             }
 
             log_message('info', 'Santri: save - Data berhasil disimpan');
