@@ -102,20 +102,27 @@ class HelpFunctionModel extends Model
 
     }
 
-    public function getKelasMateriPelajaran($kelas = null, $IdTpq = null)
+    public function getKelasMateriPelajaran($kelas = null, $IdTpq = null, $Semester = null)
     {
-        $builder = $this->db->table('tbl_kelas_materi_pelajaran');
-
-        $builder->select('IdKelas, IdMateri, SemesterGanjil, SemesterGenap, IdTpq');
+        $builder = $this->db->table('tbl_kelas_materi_pelajaran kmp');
+        $builder->select('kmp.IdKelas, kmp.IdMateri, kmp.SemesterGanjil, kmp.SemesterGenap, kmp.IdTpq, mp.NamaMateri, mp.Kategori');
+        $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = kmp.IdMateri');
         
         if ($kelas !== null) {
-            $builder->where('IdKelas', $kelas);
+            if (is_array($kelas)) {
+                $builder->whereIn('kmp.IdKelas', $kelas);
+            } else {
+                $builder->where('kmp.IdKelas', $kelas);
+            }
         }
         if ($IdTpq !== null) {
-            $builder->where('IdTpq', $IdTpq);
+            $builder->where('kmp.IdTpq', $IdTpq);
+        }
+        if ($Semester !== null) {
+            $builder->where('kmp.SemesterGanjil', $Semester);
         }
 
-        return $builder->get()->getResultArray();
+        return $builder->get()->getResultObject();
     }
 
     public function getDataMateriPelajaran($IdMateri = null)

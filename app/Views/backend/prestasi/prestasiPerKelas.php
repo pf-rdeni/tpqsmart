@@ -34,20 +34,45 @@
                             <td>
                                 <?php
                                 if (isset($santri->lastPrestasiList)) {
+                                    $displayedMateri = [];
+                                    $kategoriStatus = [];
+
+                                    // Pertama, periksa apakah ada status Ulang untuk setiap kategori
                                     foreach ($santri->lastPrestasiList as $materi) {
+                                        if (!isset($kategoriStatus[$materi->Kategori])) {
+                                            $kategoriStatus[$materi->Kategori] = [];
+                                        }
+                                        $kategoriStatus[$materi->Kategori][] = $materi->Status;
+                                    }
+
+                                    foreach ($santri->lastPrestasiList as $materi) {
+                                        // Skip jika materi dengan kategori yang sama sudah ditampilkan dan statusnya Selesai
+                                        if (isset($displayedMateri[$materi->Kategori]) && $materi->Status == 'Selesai') {
+                                            continue;
+                                        }
+
+                                        // Jika ada status Ulang dalam kategori yang sama, skip yang Selesai
+                                        if (in_array('Ulang', $kategoriStatus[$materi->Kategori]) && $materi->Status == 'Selesai') {
+                                            continue;
+                                        }
+
                                         $color = '';
                                         if ($materi->Status == 'Ulang') {
                                             $color = 'orange';
                                         } elseif ($materi->Status == 'Lanjut') {
                                             $color = 'green';
                                         } elseif ($materi->Status == 'Selesai') {
-                                            $color = 'green';
+                                            $color = 'red';
+                                            // Tandai kategori ini sudah ditampilkan
+                                            $displayedMateri[$materi->Kategori] = true;
                                         }
+
                                         echo '<button class="btn btn-warning btn-xs" data-toggle="modal" data-target="#PrestasiEditSingle' . $santri->IdSantri . $materi->IdMateriPelajaran . '"><i class="fas fa-edit"></i></button>';
-                                        echo '&nbsp;&nbsp;' . $materi->NamaMateri . ' - <span style="color:' . $color . '; font-weight:bold;">' . strtoupper($materi->Status) . '</span><br>';
+                                        echo '&nbsp;&nbsp;' . ucfirst($materi->Kategori) . " | " . ucfirst($materi->NamaMateri) . ' - <span style="color:' . $color . '; font-weight:bold;">' . ucfirst($materi->Status) . '</span><br>';
                                     }
                                 }
                                 ?>
+                            </td>
                         </tr>
                     <?php endforeach ?>
                 </tbody>
@@ -59,7 +84,7 @@
     </div>
 </div>
 
-<!-- Modal Edit Prestasi individua-->
+<!-- Modal Edit Prestasi individual-->
 <?php
 foreach ($dataSantri as $santri) :
     foreach ($santri->lastPrestasiList as $materi): ?>
@@ -86,7 +111,7 @@ foreach ($dataSantri as $santri) :
                             </div>
                             <div class="form-group">
                                 <label for="JenisPrestasi">Jenis Prestasi</label>
-                                <input type="text" readonly class="form-control" id="JenisPrestasi<?= $materi->IdMateriPelajaran ?>" value="<?= $materi->NamaMateri ?>">
+                                <input type="text" readonly class="form-control" id="JenisPrestasi" name="JenisPrestasi" value="<?= $materi->JenisPrestasi ?>">
                             </div>
                             <div class="form-group">
                                 <div>
@@ -188,7 +213,7 @@ endforeach;
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form action="/backend/prestasi/create" method="post">
+                    <form action="/backend/prestasi/store" method="post">
                         <input type="hidden" id="IdTahunAjaran" name="IdTahunAjaran" value="<?= $santri->IdTahunAjaran ?>">
                         <input type="hidden" id="IdSantri" name="IdSantri" value="<?= $santri->IdSantri ?>">
                         <input type="hidden" id="IdKelas" name="IdKelas" value="<?= $santri->IdKelas ?>">
@@ -205,6 +230,18 @@ endforeach;
                                 <option value="Hafalan">Hafalan</option>
                                 <option value="Iqra">Iqra</option>
                                 <option value="Al-Quran">Al-Quran</option>
+                            </select>
+                        </div>
+                        <!-- add form grup untuk materi pelajaran -->
+                        <div class="form-group">
+                            <label for="IdMateriPelajaran">Materi Pelajaran</label>
+                            <select class="form-control" id="IdMateriPelajaran" name="IdMateriPelajaran" required>
+                                <option value="">-- Pilih Materi Pelajaran --</option>
+                                <?php foreach ($dataMateriPelajaran as $materi): ?>
+                                    <?php if ($materi->IdKelas == $santri->IdKelas): ?>
+                                        <option value="<?= $materi->IdMateri ?>"><?= $materi->Kategori . " | " . $materi->NamaMateri ?></option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="form-group">

@@ -55,12 +55,12 @@ class Prestasi extends BaseController
             'JenisPrestasi' => $this->request->getPost('JenisPrestasi'),
             'Tingkatan' => $this->request->getPost('Tingkatan'),
             'Status' => $this->request->getPost('Status'),
-            'Tanggal' => $this->request->getPost('Tanggal'),
+            'Tanggal' => date('Y-m-d'),
             'Keterangan' => $this->request->getPost('Keterangan')
         ]);
 
         $this->setFlashData('success', 'Prestasi santri berhasil ditambahkan.');
-        return redirect()->to('/prestasi/index');
+        return redirect()->back();
     }
 
     public function showPerKelas($encryptedIdGuru = null)
@@ -76,10 +76,13 @@ class Prestasi extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $IdTpq = session()->get('IdTpq');
 
-        $dataSantri = $this->prestasiModel->getSantriWithPrestasi($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru); // Assuming this method exists in your model
+        $dataSantri = $this->prestasiModel->getSantriWithPrestasi($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+        //ambil data materi pelajaran
+        $dataMateriPelajaran = $this->prestasiModel->getMateriPelajaran($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
         $data = [
             'page_title' => 'Prestasi Santri',
-            'dataSantri' => $dataSantri
+            'dataSantri' => $dataSantri,
+            'dataMateriPelajaran' => $dataMateriPelajaran,
         ];
 
         return view('backend/prestasi/prestasiPerKelas', $data); // Update the view path as necessary
