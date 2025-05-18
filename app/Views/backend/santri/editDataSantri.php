@@ -114,6 +114,8 @@ if (ENVIRONMENT === 'production') {
                                         </select>
                                         <span id="IdKelasError" class="text-danger" style="display:none;">Kelas diperlukan.</span>
                                     </div>
+                                    <!-- button cancel kembali ke page sebelumnya -->
+                                    <a href="javascript:history.back()" class="btn btn-warning">Batal</a>
                                     <button type="button" class="btn btn-success" onclick="submitForm()">Simpan</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('tpq-part')">Selanjutnya</button>
 
@@ -483,6 +485,7 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                         </div>
                                     </div>
+                                    <a href="javascript:history.back()" class="btn btn-warning">Batal</a>
                                     <button type="button" class="btn btn-success" onclick="submitForm()">Simpan</button>
                                     <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('tpq-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('santri-part')">Selanjutnya</button>
@@ -1178,6 +1181,7 @@ if (ENVIRONMENT === 'production') {
                                             </div>
                                         </div>
                                     </div>
+                                    <a href="javascript:history.back()" class="btn btn-warning">Batal</a>
                                     <button type="button" class="btn btn-success" onclick="submitForm()">Simpan</button>
                                     <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('santri-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-primary" onclick="validateAndNext('ortu-part')">Selanjutnya</button>
@@ -1710,6 +1714,7 @@ if (ENVIRONMENT === 'production') {
                                         </div>
                                     </div>
                                     <!-- bagian tombol navigasi -->
+                                    <a href="javascript:history.back()" class="btn btn-warning">Batal</a>
                                     <button type="button" class="btn btn-secondary" onclick="validateAndPrevious('ortu-part')">Sebelumnya</button>
                                     <button type="button" class="btn btn-success" onclick="submitForm()">Simpan</button>
                                 </div>
