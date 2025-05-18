@@ -74,8 +74,9 @@ class Prestasi extends BaseController
         $IdGuru = session()->get('IdGuru');  
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdTpq = session()->get('IdTpq');
 
-        $dataSantri = $this->prestasiModel->getSantriWithPrestasi($IdTahunAjaran, $IdGuru, $IdKelas); // Assuming this method exists in your model
+        $dataSantri = $this->prestasiModel->getSantriWithPrestasi($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru); // Assuming this method exists in your model
         $data = [
             'page_title' => 'Prestasi Santri',
             'dataSantri' => $dataSantri

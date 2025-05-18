@@ -31,6 +31,19 @@
                     <!-- /.col -->
                     <div class="col-md-3 col-sm-6 col-12">
                         <div class="info-box">
+                            <span class="info-box-icon bg-danger"><i class="fa-solid fa-chart-simple"></i></span>
+
+                            <div class="info-box-content">
+                                <span class="info-box-text">Catatan Prestasi</span>
+                                <span class="info-box-number">Hafalan Harian</span>
+                            </div>
+                            <!-- /.info-box-content -->
+                        </div>
+                        <!-- /.info-box -->
+                    </div>
+                    <!-- /.col -->
+                    <div class="col-md-3 col-sm-6 col-12">
+                        <div class="info-box">
                             <a href=<?php echo base_url('backend/tabungan/showPerkelas') ?> class="info-box-icon bg-success"><i class="fa-solid fa-sack-dollar"></i></a>
 
                             <div class="info-box-content">
@@ -44,24 +57,11 @@
                     <!-- /.col -->
                     <div class="col-md-3 col-sm-6 col-12">
                         <div class="info-box">
-                            <a href=<?php echo base_url('backend/iuranBulanan/showPerKelas') ?> class="info-box-icon bg-warning"><i class="far fa-copy"></i></a>
+                            <a href=<?php echo base_url('backend/iuranBulanan/showPerKelas') ?> class="info-box-icon bg-warning"><i class="fa-solid fa-calendar-days"></i></a>
 
                             <div class="info-box-content">
                                 <span class="info-box-text">Iuran Bulanan</span>
                                 <span class="info-box-number">Juni 2025</span>
-                            </div>
-                            <!-- /.info-box-content -->
-                        </div>
-                        <!-- /.info-box -->
-                    </div>
-                    <!-- /.col -->
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box">
-                            <span class="info-box-icon bg-danger"><i class="fa-solid fa-users"></i></span>
-
-                            <div class="info-box-content">
-                                <span class="info-box-text">Santri</span>
-                                <span class="info-box-number">1 Kelas</span>
                             </div>
                             <!-- /.info-box-content -->
                         </div>
@@ -267,13 +267,23 @@
                         color: '#dc3545'
                     },
                     {
-                        date: year + '-05-09',
+                        date: year + '-05-12',
                         title: 'Hari Raya Waisak',
                         color: '#dc3545'
                     },
                     {
-                        date: year + '-05-23',
+                        date: year + '-05-29',
                         title: 'Kenaikan Isa Al Masih',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-05-26',
+                        title: 'Ujian Akhir Semester kelas 5',
+                        color: '#dc3545'
+                    },
+                    {
+                        date: year + '-05-26',
+                        title: 'Ujian Akhir Semester kelas 6',
                         color: '#dc3545'
                     },
                     {
@@ -282,7 +292,7 @@
                         color: '#dc3545'
                     },
                     {
-                        date: year + '-06-17',
+                        date: year + '-06-7',
                         title: 'Hari Raya Idul Adha',
                         color: '#dc3545'
                     },

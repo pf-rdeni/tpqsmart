@@ -22,11 +22,11 @@ class PrestasiModel extends Model
         'Keterangan'
     ];
 
-    public function getSantriWithPrestasi($IdTahunAjaran, $IdGuru, $IdKelas)  
+    public function getSantriWithPrestasi($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru)
     {
         // Get the list of Santri
-        $santriModel = new SantriModel(); 
-        $santriList = $santriModel->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
+        $santriModel = new SantriModel();
+        $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
         // Load the PrestasiModel
         $prestasiModel = new PrestasiModel(); 
