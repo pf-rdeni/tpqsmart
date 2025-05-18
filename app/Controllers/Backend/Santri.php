@@ -84,7 +84,6 @@ class Santri extends BaseController
                 'Agama' => 'Islam',
                 // Data Santri
                 'IdSantri' => $IdSantri,
-                //'PhotoProfil' => $photoProfilName,
                 'NikSantri' => $this->request->getPost('NikSantri'),
                 'NamaSantri' => $this->request->getPost('NamaSantri'),
                 'JenisKelamin' => $this->request->getPost('JenisKelamin'),
@@ -107,8 +106,6 @@ class Santri extends BaseController
                 'NamaKepalaKeluarga' => $this->request->getPost('NamaKepalaKeluarga'),
                 'NoKIP' => $this->request->getPost('NoKIP'),
                 'IdKartuKeluarga' => $this->request->getPost('IdKartuKeluarga'),
-                //'FileKIP' => $namaFileKIP,
-                //'FileKkSantri' => $namaFileKkSantri,
 
                 // Data Ayah
                 'NamaAyah' => $this->request->getPost('NamaAyah'),
@@ -121,7 +118,6 @@ class Santri extends BaseController
                 'PekerjaanUtamaAyah' => $this->request->getPost('PekerjaanUtamaAyah'),
                 'PenghasilanUtamaAyah' => $this->request->getPost('PenghasilanUtamaAyah'),
                 'NoHpAyah' => $this->request->getPost('NoHpAyah'),
-                //'FileKkAyah' => $namaFileKkAyah,
 
                 // Data Ibu
                 'NamaIbu' => $this->request->getPost('NamaIbu'),
@@ -134,7 +130,6 @@ class Santri extends BaseController
                 'PekerjaanUtamaIbu' => $this->request->getPost('PekerjaanUtamaIbu'),
                 'PenghasilanUtamaIbu' => $this->request->getPost('PenghasilanUtamaIbu'),
                 'NoHpIbu' => $this->request->getPost('NoHpIbu'),
-                //'FileKkIbu' => $namaFileKkIbu,
 
                 // Data Wali
                 'StatusWali' => $this->request->getPost('StatusWali'),
@@ -149,8 +144,6 @@ class Santri extends BaseController
                 'NoHpWali' => $this->request->getPost('NoHpWali'),
                 'NomorPKH' => $this->request->getPost('NomorPKH'),
                 'NomorKKS' => $this->request->getPost('NomorKKS'),
-                //'FilePKH' => $namaFilePKH,
-                //'FileKKS' => $namaFileKKS,
 
                 // Data Alamat Ayah
                 'TinggalDiluarNegeriAyah' => $this->request->getPost('TinggalDiluarNegeriAyah'),
