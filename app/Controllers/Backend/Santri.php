@@ -64,9 +64,11 @@ class Santri extends BaseController
                 ->first();
 
             if ($lastSantri) {
-                $lastNumber = intval(substr($lastSantri['IdSantri'], 4));
+                // Ambil 4 digit terakhir dari ID Santri
+                $lastNumber = intval(substr($lastSantri['IdSantri'], -4));
                 $newNumber = $lastNumber + 1;
-                $IdSantri = $tahunSekarang . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+                // Pastikan selalu 4 digit dengan str_pad
+                $IdSantri = $tahunSekarang . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
                 log_message('info', 'Santri: save - ID Santri baru dibuat: ' . $IdSantri);
             } else {
                 $IdSantri = $tahunSekarang . '0001';
