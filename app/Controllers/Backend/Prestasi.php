@@ -45,19 +45,49 @@ class Prestasi extends BaseController
 
     public function store()
     {
-        $this->prestasiModel->save([
-            'IdSantri' => $this->request->getPost('IdSantri'),
-            'IdTpq' => $this->request->getPost('IdTpq'),
-            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
-            'IdKelas' => $this->request->getPost('IdKelas'),
-            'IdGuru' => $this->request->getPost('IdGuru'),
-            'IdMateriPelajaran' => $this->request->getPost('IdMateriPelajaran'),
-            'JenisPrestasi' => $this->request->getPost('JenisPrestasi'),
-            'Tingkatan' => $this->request->getPost('Tingkatan'),
-            'Status' => $this->request->getPost('Status'),
-            'Tanggal' => date('Y-m-d'),
-            'Keterangan' => $this->request->getPost('Keterangan')
-        ]);
+        $jenisPrestasi = $this->request->getPost('JenisPrestasi');
+        $idMateriPelajaran = $this->request->getPost('IdMateriPelajaran');
+        $status = $this->request->getPost('Status');
+        $keterangan = $this->request->getPost('Keterangan');
+
+        // Jika JenisPrestasi adalah array (multiple)
+        if (is_array($jenisPrestasi)) {
+            foreach ($jenisPrestasi as $key => $jenis) {
+                $this->prestasiModel->save([
+                    'IdSantri' => $this->request->getPost('IdSantri'),
+                    'IdTpq' => $this->request->getPost('IdTpq'),
+                    'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
+                    'IdKelas' => $this->request->getPost('IdKelas'),
+                    'IdGuru' => $this->request->getPost('IdGuru'),
+                    'IdMateriPelajaran' => $idMateriPelajaran[$key],
+                    'JenisPrestasi' => $jenis,
+                    'Tingkatan' => $this->request->getPost('Tingkatan'),
+                    'Status' => $status[$idMateriPelajaran[$key]],
+                    'Tanggal' => date('Y-m-d'),
+                    'Keterangan' => $keterangan[$idMateriPelajaran[$key]]
+                ]);
+            }
+        } else {
+            // Jika JenisPrestasi single dan ada nilainya maka disimpan jika
+            // tidak ada nilainya maka tidak disimpan
+            if ($jenisPrestasi == '') {
+                $this->setFlashData('info', 'Prestasi santri tidak ditambahkan. Silahkan pilih jenis prestasi minimal satu.');
+                return redirect()->back();
+            }
+            $this->prestasiModel->save([
+                'IdSantri' => $this->request->getPost('IdSantri'),
+                'IdTpq' => $this->request->getPost('IdTpq'),
+                'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
+                'IdKelas' => $this->request->getPost('IdKelas'),
+                'IdGuru' => $this->request->getPost('IdGuru'),
+                'IdMateriPelajaran' => $this->request->getPost('IdMateriPelajaran'),
+                'JenisPrestasi' => $jenisPrestasi,
+                'Tingkatan' => $this->request->getPost('Tingkatan'),
+                'Status' => $status,
+                'Tanggal' => date('Y-m-d'),
+                'Keterangan' => $keterangan
+            ]);
+        }
 
         $this->setFlashData('success', 'Prestasi santri berhasil ditambahkan.');
         return redirect()->back();
