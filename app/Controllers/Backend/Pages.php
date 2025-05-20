@@ -19,31 +19,48 @@ class Pages extends BaseController
 
     public function index()
     {
-        // Mendapatkan saldo tabungan santri
-        $saldoTabungan = $this->tabunganModel->getSaldoTabunganSantri(
-            session()->get('IdTpq'),
-            session()->get('IdTahunAjaran'),
-            session()->get('IdKelas'),
-            session()->get('IdGuru')
-        );
+        $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran');
+        $idKelas = session()->get('IdKelas');
+        $idGuru = session()->get('IdGuru');
+        if (in_groups('Guru')) {
 
-        // Mengambil total santri dari model santri GetTotalSantri
-        $totalSantri = $this->santriModel->getTotalSantri(
-            session()->get('IdTpq'),
-            session()->get('IdTahunAjaran'),
-            session()->get('IdKelas'),
-            session()->get('IdGuru')
-        );
+            // Mendapatkan saldo tabungan santri
+            $saldoTabungan = $this->tabunganModel->getSaldoTabunganSantri(
+                $idTpq,
+                $idTahunAjaran,
+                $idKelas,
+                $idGuru
+            );
 
-        //Jumloh kelas yang diajar count dari session IdKelas
-        $JumlahKelasDiajar = count(session()->get('IdKelas'));
+            // Mengambil total santri dari model santri GetTotalSantri
+            $totalSantri = $this->santriModel->getTotalSantri(
+                $idTpq,
+                $idTahunAjaran,
+                $idKelas,
+                $idGuru
+            );
 
-        $data = [
-            'page_title' => 'Dashboard',
-            'JumlahKelasDiajar' => $JumlahKelasDiajar,
-            'TotalSantri' => $totalSantri, // Akan diisi dengan data dari model
-            'TotalTabungan' => $saldoTabungan ?? 0 // Akan diisi dengan data dari model
-        ];
+            //Jumloh kelas yang diajar count dari session IdKelas
+            // Jika IdKelas tidak ada di session, set ke 0
+            $idKelas = session()->get('IdKelas') ?? 0;
+            if ($idKelas == 0) {
+                $JumlahKelasDiajar = 0;
+            } else {
+                $JumlahKelasDiajar = count($idKelas);
+            }
+
+            $data = [
+                'page_title' => 'Dashboard',
+                'JumlahKelasDiajar' => $JumlahKelasDiajar,
+                'TotalSantri' => $totalSantri, // Akan diisi dengan data dari model
+                'TotalTabungan' => $saldoTabungan ?? 0 // Akan diisi dengan data dari model
+            ];
+        } else {
+            $data = [
+                'page_title' => 'Dashboard',
+            ];
+        }
         return view('backend/dashboard/index', $data);
     }
 
