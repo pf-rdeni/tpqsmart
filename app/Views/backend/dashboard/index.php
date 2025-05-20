@@ -40,7 +40,7 @@
                                             <a href=<?php echo base_url('backend/absensi/index') ?> class="info-box-icon bg-info"><i class="fa-solid fa-clipboard-user"></i></a>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Absensi</span>
-                                                <span class="info-box-number"><?= $TotalSantri ?> Santri</span>
+                                                <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                             </div>
                                         </div>
                                     </div>
@@ -98,7 +98,7 @@
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Ganjil</span>
-                                        <span class="info-box-number"><?= $TotalSantri ?> Santri</span>
+                                        <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width: 100%"></div>
                                         </div>
@@ -139,7 +139,7 @@
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Genap</span>
-                                        <span class="info-box-number"><?= $TotalSantri ?> Santri</span>
+                                        <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width: 30%"></div>
                                         </div>

@@ -35,10 +35,12 @@ class Pages extends BaseController
             session()->get('IdGuru')
         );
 
-
+        //Jumloh kelas yang diajar count dari session IdKelas
+        $JumlahKelasDiajar = count(session()->get('IdKelas'));
 
         $data = [
             'page_title' => 'Dashboard',
+            'JumlahKelasDiajar' => $JumlahKelasDiajar,
             'TotalSantri' => $totalSantri, // Akan diisi dengan data dari model
             'TotalTabungan' => $saldoTabungan ?? 0 // Akan diisi dengan data dari model
         ];
