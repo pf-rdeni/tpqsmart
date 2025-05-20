@@ -12,14 +12,13 @@
                     <?php
                     $tableHeaders = '
                     <tr>
-                        <th>IdSantri</th>
                         <th>Nama Santri</th>
                         <th>Jenis Kelamin</th>
                         <th>Nama Ayah</th>
                         <th>Kelas Diajukan</th>
+                        <th>Kelas Koreksi</th>
                         <th>Nama TPQ</th>
                         <th>Nama Kel/Desa</th>
-                        <th>kelas Baru Rekomendasi</th>
                     </tr>
                 ';
                     ?>
@@ -29,13 +28,10 @@
                     <tbody>
                         <?php foreach ($dataSantri as $santri) : ?>
                             <tr>
-                                <td><?= $santri['IdSantri']; ?></td>
                                 <td><?= $santri['NamaSantri']; ?></td>
                                 <td><?= $santri['JenisKelamin']; ?></td>
                                 <td><?= $santri['NamaAyah']; ?></td>
                                 <td><?= $santri['NamaKelas']; ?></td>
-                                <td><?= $santri['NamaTpq']; ?></td>
-                                <td><?= $santri['NamaKelDesa']; ?></td>
                                 <td>
                                     <input type="hidden" name="IdTpq[<?= $santri['IdSantri']; ?>]" value="<?= $santri['IdTpq']; ?>">
                                     <select name="IdKelas[<?= $santri['IdSantri']; ?>]" class="form-control select2" id="FormProfilTpq" required>
@@ -49,6 +45,8 @@
                                         <?php endforeach ?>
                                     </select>
                                 </td>
+                                <td><?= $santri['NamaTpq']; ?></td>
+                                <td><?= $santri['NamaKelDesa']; ?></td>
                             </tr>
                         <?php endforeach ?>
                     </tbody>
@@ -65,4 +63,9 @@
     </div>
     <!-- /.card -->
 </div>
+<?= $this->endSection(); ?>
+<?= $this->section('scripts'); ?>
+<script>
+    initializeDataTableUmum("#kenaikanKelas");
+</script>
 <?= $this->endSection(); ?>

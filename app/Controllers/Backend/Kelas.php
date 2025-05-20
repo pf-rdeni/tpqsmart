@@ -254,16 +254,31 @@ class Kelas extends BaseController
             $listMateriPelajaran = $this->helpFunction->getKelasMateriPelajaran($idKelasBaru, $idTpq);
 
             // 3.5 Insert Into Tabel tbl_nilai
-            foreach ($listMateriPelajaran['materi'] as $materiPelajaran) {
-                $data = [
-                    'IdTpq' => $idTpq,
-                    'IdSantri' => $idSantri,
-                    'IdTahunAjaran' => $newTahunAjaran,
-                    'IdKelas' => $materiPelajaran['IdKelas'],
-                    'IdMateri' => $materiPelajaran['IdMateri'],
-                    'Semester' => $materiPelajaran['Semester']
-                ];
-                $this->nilaiModel->insertNilai($data);
+            foreach ($listMateriPelajaran as $materiPelajaran) {
+                // 1.4.1 Insert Nilai Santri Semeseter Ganjil
+                if ($materiPelajaran->SemesterGanjil == 1) {
+                    $data = [
+                        'IdTpq' => $idTpq,
+                        'IdSantri' => $idSantri,
+                        'IdKelas' => $materiPelajaran->IdKelas,
+                        'IdMateri' => $materiPelajaran->IdMateri,
+                        'IdTahunAjaran' => $newTahunAjaran,
+                        'Semester' => "Ganjil"
+                    ];
+                    $this->nilaiModel->insertNilai($data);
+                }
+                // 1.4.2 Insert Nilai Santri Semeseter Genap
+                if ($materiPelajaran->SemesterGenap == 1) {
+                    $data = [
+                        'IdTpq' => $idTpq,
+                        'IdSantri' => $idSantri,
+                        'IdKelas' => $materiPelajaran->IdKelas,
+                        'IdMateri' => $materiPelajaran->IdMateri,
+                        'IdTahunAjaran' => $newTahunAjaran,
+                        'Semester' => "Genap"
+                    ];
+                    $this->nilaiModel->insertNilai($data);
+                }
             }
         }
 
@@ -300,48 +315,48 @@ class Kelas extends BaseController
                     'IdTpq' => $idTpq,
                     'IdTahunAjaran' => $idTahunAjaran
                 ];
-                // 1.2.2 Insert Santri kelas
+                // 1.2.2 Insert Santri kelas di tabel tbl_kelas_santri
                 $this->store($dataSantriBaru);
-                // 1.2.3 Update Active Santri         
+                // 1.2.3 Update Active Santri di tabel tbl_santri_baru       
                 $this->santriBaruModel->updateActiveSantri($idSantri);
             }
             else{
                 $idKelas = $this->helpFunction->getNextKelas($idKelas);
-                // 1.2.1 Insert Ulang Santri kelas sebelumnya untuk di naikan kelas Satatus default aktif = 1
+                // 1.2.1 Insert Ulang Santri kelas sebelumnya untuk di naikan kelas dan set Satatus default aktif = 1 pada tabel tbl_kelas_santri
                 $this->kelasModel->insert([
                     'IdKelas' => $idKelas,
                     'IdTpq' => $idTpq,
                     'IdSantri' => $idSantri,
                     'IdTahunAjaran' => $idTahunAjaran
                 ]);
-                // 1.2.2 Update Santri kelas sebelumnya sudah dinak status tidak aktif = 0
+                // 1.2.2 Update Santri kelas sebelumnya yang sudah dinaikan dan set status tidak aktif = 0 pada tabel tbl_kelas_santri
                 $this->kelasModel->update($santri['Id'], ['Status' => 0]);
 
             }
 
-            // 1.3 Ambil Materi Pelajaran berdasarkan Kelas dan TPQ
+            // 1.3 Ambil Materi Pelajaran berdasarkan Kelas dan TPQ dari tabel tbl_kelas_materi_pelajaran
             $listMateriPelajaran = $this->helpFunction->getKelasMateriPelajaran($idKelas, $idTpq);
-            // 1.4 Insert Into Tabel tbl_nilai
+            // 1.4 Insert pada Tabel tbl_nilai 
             foreach ($listMateriPelajaran as $materiPelajaran) {
                 // 1.4.1 Insert Nilai Santri Semeseter Ganjil
-                if ($materiPelajaran['SemesterGanjil'] == 1) {
+                if ($materiPelajaran->SemesterGanjil == 1) {
                     $data = [
                         'IdTpq' => $idTpq,
                         'IdSantri' => $idSantri,
-                        'IdKelas' => $materiPelajaran['IdKelas'],
-                        'IdMateri' => $materiPelajaran['IdMateri'],
+                        'IdKelas' => $materiPelajaran->IdKelas,
+                        'IdMateri' => $materiPelajaran->IdMateri,
                         'IdTahunAjaran' => $idTahunAjaran,
                         'Semester' => "Ganjil"
                     ];
                     $this->nilaiModel->insertNilai($data);
                 }
                 // 1.4.2 Insert Nilai Santri Semeseter Genap
-                if ($materiPelajaran['SemesterGenap'] == 1) {
+                if ($materiPelajaran->SemesterGenap == 1) {
                     $data = [
                         'IdTpq' => $idTpq,
                         'IdSantri' => $idSantri,
-                        'IdKelas' => $materiPelajaran['IdKelas'],
-                        'IdMateri' => $materiPelajaran['IdMateri'],
+                        'IdKelas' => $materiPelajaran->IdKelas,
+                        'IdMateri' => $materiPelajaran->IdMateri,
                         'IdTahunAjaran' => $idTahunAjaran,
                         'Semester' => "Genap"
                     ];

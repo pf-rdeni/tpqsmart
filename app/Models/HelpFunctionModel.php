@@ -13,7 +13,7 @@ class HelpFunctionModel extends Model
     }
     //=================================================================
     // Select Related to Read tabel
-    public function getDataSantriStatus($Status = 0, $IdTpq = 0)
+    public function getDataSantriStatus($Active = 0, $IdTpq = 0)
     {
         $builder = $this->db->table('tbl_santri_baru');
 
@@ -22,8 +22,8 @@ class HelpFunctionModel extends Model
         $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas');
         $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
 
-        //if status bukan Aktif=1 dan Nonaktif=2 maka status = 0 Baru
-        if ($Status != 1 && $Status != 2) {
+        //Active Active=1, NonActive=2, Active = 0 Baru
+        if ($Active != 1 && $Active != 2) {
             $builder->where('tbl_santri_baru.Active', 0);
         }
         if ($IdTpq != 0) {
