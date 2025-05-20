@@ -3,14 +3,46 @@
 namespace App\Controllers\Backend;
 
 use App\Controllers\BaseController;
+use App\Models\TabunganModel;
+use App\Models\SantriModel;
 
 class Pages extends BaseController
 {
+    protected $tabunganModel;
+    protected $santriModel;
+
+    public function __construct()
+    {
+        $this->tabunganModel = new TabunganModel();
+        $this->santriModel = new SantriModel();
+    }
+
     public function index()
     {
-        $data = ['page_title' => 'Dashboard'];
-        return view('backend/dashboard/index', $data);
+        // Mendapatkan saldo tabungan santri
+        $saldoTabungan = $this->tabunganModel->getSaldoTabunganSantri(
+            session()->get('IdTpq'),
+            session()->get('IdTahunAjaran'),
+            session()->get('IdKelas'),
+            session()->get('IdGuru')
+        );
 
+        // Mengambil total santri dari model santri GetTotalSantri
+        $totalSantri = $this->santriModel->getTotalSantri(
+            session()->get('IdTpq'),
+            session()->get('IdTahunAjaran'),
+            session()->get('IdKelas'),
+            session()->get('IdGuru')
+        );
+
+
+
+        $data = [
+            'page_title' => 'Dashboard',
+            'TotalSantri' => $totalSantri, // Akan diisi dengan data dari model
+            'TotalTabungan' => $saldoTabungan ?? 0 // Akan diisi dengan data dari model
+        ];
+        return view('backend/dashboard/index', $data);
     }
 
     public function about()

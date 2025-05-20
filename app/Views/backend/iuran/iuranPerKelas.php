@@ -8,7 +8,7 @@
             <h3 class="card-title">List Santri</h3>
         </div>
         <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="ListIuaranSantri" class="table table-bordered table-striped">
                 <thead>
                     <?php
                     echo $tableHeaderFooter = '
@@ -117,7 +117,11 @@
     </div>
 <?php endforeach ?>
 
+<?= $this->endSection(); ?>
+<?= $this->section('scripts'); ?>
 <script>
+    initializeDataTableUmum('#ListIuaranSantri');
+
     function updateNominal(selectElement) {
         var kategori = selectElement.value;
         var modal = $(selectElement).closest('.modal');
@@ -158,42 +162,5 @@
 
         terbilangInput.val(terbilang(nominal) + ' Rupiah');
     }
-
-    function terbilang(angka) {
-        const bilangan = [
-            '', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan',
-            'sepuluh', 'sebelas'
-        ];
-        let temp;
-        let hasil = '';
-
-        if (angka < 12) {
-            hasil = ' ' + bilangan[angka];
-        } else if (angka < 20) {
-            hasil = terbilang(angka - 10) + ' belas ';
-        } else if (angka < 100) {
-            temp = Math.floor(angka / 10);
-            hasil = terbilang(temp) + ' puluh ' + terbilang(angka % 10);
-        } else if (angka < 200) {
-            hasil = ' seratus ' + terbilang(angka - 100);
-        } else if (angka < 1000) {
-            temp = Math.floor(angka / 100);
-            hasil = terbilang(temp) + ' ratus ' + terbilang(angka % 100);
-        } else if (angka < 1000000) {
-            temp = Math.floor(angka / 1000);
-            hasil = terbilang(temp) + ' ribu ' + terbilang(angka % 1000);
-        } else if (angka < 1000000000) {
-            temp = Math.floor(angka / 1000000);
-            hasil = terbilang(temp) + ' juta ' + terbilang(angka % 1000000);
-        }
-        return capitalizeEachWord(hasil.trim());
-    }
-
-    function capitalizeEachWord(string) {
-        return string.split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    }
 </script>
-
 <?= $this->endSection(); ?>

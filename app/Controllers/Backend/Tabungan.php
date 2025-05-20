@@ -91,7 +91,7 @@ class Tabungan extends BaseController
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
 
-        $dataSantri = $this->tabunganModel->getSantriWithBalance($IdTpq, $IdTahunAjaran, $IdGuru, $IdKelas);
+        $dataSantri = $this->tabunganModel->getSantriWithBalance($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
         $data = [
             'page_title' => 'Tabungan Santri',
             'dataSantri' => $dataSantri

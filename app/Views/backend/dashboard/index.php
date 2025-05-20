@@ -22,7 +22,7 @@
                             <a href=<?php echo base_url('backend/absensi/index') ?> class="info-box-icon bg-info"><i class="fa-solid fa-clipboard-user"></i></a>
                             <div class="info-box-content">
                                 <span class="info-box-text">Absensi</span>
-                                <span class="info-box-number">35 Santri</span>
+                                <span class="info-box-number"><?= $TotalSantri ?> Santri</span>
                             </div>
                             <!-- /.info-box-content -->
                         </div>
@@ -47,8 +47,8 @@
                             <a href=<?php echo base_url('backend/tabungan/showPerkelas') ?> class="info-box-icon bg-success"><i class="fa-solid fa-sack-dollar"></i></a>
 
                             <div class="info-box-content">
-                                <span class="info-box-text">Tabungan Santri</span>
-                                <span class="info-box-number">Rp. 1.165.000</span>
+                                <span class="info-box-text">Saldo Tabungan</span>
+                                <span class="info-box-number">Rp. <?= number_format($TotalTabungan, 0, ',', '.'); ?></span>
                             </div>
                             <!-- /.info-box-content -->
                         </div>
@@ -58,10 +58,9 @@
                     <div class="col-md-3 col-sm-6 col-12">
                         <div class="info-box">
                             <a href=<?php echo base_url('backend/iuranBulanan/showPerKelas') ?> class="info-box-icon bg-warning"><i class="fa-solid fa-calendar-days"></i></a>
-
                             <div class="info-box-content">
                                 <span class="info-box-text">Iuran Bulanan</span>
-                                <span class="info-box-number">Juni 2025</span>
+                                <span class="info-box-number"><?= date('F Y'); ?></span>
                             </div>
                             <!-- /.info-box-content -->
                         </div>

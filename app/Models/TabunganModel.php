@@ -36,24 +36,24 @@ class TabunganModel extends Model
     // Method to calculate the balance of a specific Santri
     public function calculateBalance($idSantri)
     {
-        $deposits = $this->where('IdSantri', $idSantri)
+        $setoran = $this->where('IdSantri', $idSantri)
                          ->where('JenisTransaksi', 'Setoran')
                          ->selectSum('Nominal')
                          ->first();
 
-        $withdrawals = $this->where('IdSantri', $idSantri)
+        $penarikan = $this->where('IdSantri', $idSantri)
                             ->where('JenisTransaksi', 'Penarikan')
                             ->selectSum('Nominal')
                             ->first();
 
-        $totalDeposit = $deposits['Nominal'] ?? 0;
-        $totalWithdrawal = $withdrawals['Nominal'] ?? 0;
+        $totalDeposit = $setoran['Nominal'] ?? 0;
+        $totalWithdrawal = $penarikan['Nominal'] ?? 0;
 
         return $totalDeposit - $totalWithdrawal;
     }
 
     // Method to retrive list all dataSantri with their balance in tabungan table join with tbl_kelas_santri and tbl_kelas and tbl_guru_kelas filter by IdTahunAjaran and IdGuru IdKelas and IdTpq and IdSantri = null
-    public function getSantriWithBalance($IdTpq, $IdTahunAjaran, $IdGuru, $IdKelas)
+    public function getSantriWithBalance($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru)
     {
 
         $santriModel = new SantriModel();
@@ -69,4 +69,16 @@ class TabunganModel extends Model
         return $santriWithBalance;
     }
 
+    // fungsi untuk mengambil saldo individual santri atau semua santri ketika sntri != null Total saldo adalah total kategori setoran - total kategori penarikan
+    public function getSaldoTabunganSantri($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru)
+    {
+        $santriModel = new SantriModel();
+        $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+
+        $SaldoTabunagan = 0;
+        foreach ($santriList as $santri) {
+            $SaldoTabunagan += $this->calculateBalance($santri->IdSantri);
+        }
+        return $SaldoTabunagan;
+    }
 }

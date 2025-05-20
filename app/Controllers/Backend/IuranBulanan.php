@@ -151,7 +151,8 @@ class IuranBulanan extends BaseController
         $IdGuru = session()->get('IdGuru');  
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $dataSantri = $this->dataSantri->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
+        $IdTPq = session()->get('IdTpq');
+        $dataSantri = $this->dataSantri->GetDataSantriPerKelas($IdTPq, $IdTahunAjaran, $IdKelas, $IdGuru);
         $data = [
             'page_title' => 'Data Iuran Santri',
             'dataSantri' => $dataSantri
@@ -172,10 +173,10 @@ class IuranBulanan extends BaseController
     {
         $dataIuran = $this->iuranBulananModel->getIuranBulanan($IdSantri, $IdTahunAjaran);
 
-        foreach ($dataIuran as $Iuran) {
-            $Iuran->Nominal = 'Rp. ' . number_format($Iuran->Nominal, 0, ',', '.');
-        }
-        
+        // foreach ($dataIuran as $Iuran) {
+        //     $Iuran->Nominal = 'Rp. ' . number_format($Iuran->Nominal, 0, ',', '.');
+        // }
+
         foreach ($dataIuran as $Iuran) {
             $Iuran->Bulan = $this->helpFunction->numberToMonth($Iuran->Bulan);
         }
@@ -189,4 +190,22 @@ class IuranBulanan extends BaseController
         return view('backend/iuran/iuranSantriDetail', $data);
     }
 
+    //function update
+    public function update($Id)
+    {
+        if ($this->request->getMethod() == 'POST') {
+            $data = [
+                'Nominal' => str_replace(['Rp', '.'], ['', ''], $this->request->getPost('Nominal')),
+                'Kategori' => $this->request->getPost('Kategori'),
+            ];
+            $data['Id'] = $Id;
+
+            // Update the record in the database
+            $this->iuranBulananModel->update($Id, $data);
+
+            // Set a success message and redirect
+            $this->setFlashMessage('success', 'Data Iuran Bulanan berhasil diperbarui!');
+            return redirect()->to('/backend/iuranBulanan/showDetail/' . $this->request->getPost('IdSantri') . '/' .  $this->request->getPost('IdTahunAjaran'));
+        }
+    }
 }

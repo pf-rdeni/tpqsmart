@@ -74,4 +74,43 @@
         // Adjust columns untuk memastikan responsive bekerja
         table.columns.adjust().responsive.recalc();
     });
+
+    //-=============================================================================================
+    // Fungsi untuk mengupdate terbilang
+    function capitalizeEachWord(string) {
+        return string.split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    function terbilang(angka) {
+        const bilangan = [
+            '', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan',
+            'sepuluh', 'sebelas'
+        ];
+        let temp;
+        let hasil = '';
+
+        if (angka < 12) {
+            hasil = ' ' + bilangan[angka];
+        } else if (angka < 20) {
+            hasil = terbilang(angka - 10) + ' belas ';
+        } else if (angka < 100) {
+            temp = Math.floor(angka / 10);
+            hasil = terbilang(temp) + ' puluh ' + terbilang(angka % 10);
+        } else if (angka < 200) {
+            hasil = ' seratus ' + terbilang(angka - 100);
+        } else if (angka < 1000) {
+            temp = Math.floor(angka / 100);
+            hasil = terbilang(temp) + ' ratus ' + terbilang(angka % 100);
+        } else if (angka < 1000000) {
+            temp = Math.floor(angka / 1000);
+            hasil = terbilang(temp) + ' ribu ' + terbilang(angka % 1000);
+        } else if (angka < 1000000000) {
+            temp = Math.floor(angka / 1000000);
+            hasil = terbilang(temp) + ' juta ' + terbilang(angka % 1000000);
+        }
+        return capitalizeEachWord(hasil.trim());
+    }
+    //=============================================================================================
 </script>
