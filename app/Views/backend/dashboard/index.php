@@ -17,58 +17,65 @@
             <div class="card-body">
                 <!-- =========================================================== -->
                 <div class="row">
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box">
-                            <a href=<?php echo base_url('backend/absensi/index') ?> class="info-box-icon bg-info"><i class="fa-solid fa-clipboard-user"></i></a>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Absensi</span>
-                                <span class="info-box-number"><?= $TotalSantri ?> Santri</span>
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header border-0 bg-gradient-primary">
+                                <h3 class="card-title">
+                                    <i class="fas fa-info-circle"></i>
+                                    Informasi Dashboard
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-primary btn-sm" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm" data-card-widget="remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <!-- /.info-box-content -->
-                        </div>
-                        <!-- /.info-box -->
-                    </div>
-                    <!-- /.col -->
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box">
-                            <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="info-box-icon bg-primary"><i class="fa-solid fa-chart-simple"></i></a>
-
-                            <div class="info-box-content">
-                                <span class="info-box-text">Catatan Prestasi</span>
-                                <span class="info-box-number">Hafalan Harian</span>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/absensi/index') ?> class="info-box-icon bg-info"><i class="fa-solid fa-clipboard-user"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Absensi</span>
+                                                <span class="info-box-number"><?= $TotalSantri ?> Santri</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="info-box-icon bg-primary"><i class="fa-solid fa-chart-simple"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Catatan Prestasi</span>
+                                                <span class="info-box-number">Hafalan Harian</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/tabungan/showPerkelas') ?> class="info-box-icon bg-success"><i class="fa-solid fa-sack-dollar"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Saldo Tabungan</span>
+                                                <span class="info-box-number">Rp. <?= number_format($TotalTabungan, 0, ',', '.'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/iuranBulanan/showPerKelas') ?> class="info-box-icon bg-warning"><i class="fa-solid fa-calendar-days"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Iuran Bulanan</span>
+                                                <span class="info-box-number"><?= date('F Y'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <!-- /.info-box-content -->
                         </div>
-                        <!-- /.info-box -->
                     </div>
-                    <!-- /.col -->
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box">
-                            <a href=<?php echo base_url('backend/tabungan/showPerkelas') ?> class="info-box-icon bg-success"><i class="fa-solid fa-sack-dollar"></i></a>
-
-                            <div class="info-box-content">
-                                <span class="info-box-text">Saldo Tabungan</span>
-                                <span class="info-box-number">Rp. <?= number_format($TotalTabungan, 0, ',', '.'); ?></span>
-                            </div>
-                            <!-- /.info-box-content -->
-                        </div>
-                        <!-- /.info-box -->
-                    </div>
-                    <!-- /.col -->
-                    <div class="col-md-3 col-sm-6 col-12">
-                        <div class="info-box">
-                            <a href=<?php echo base_url('backend/iuranBulanan/showPerKelas') ?> class="info-box-icon bg-warning"><i class="fa-solid fa-calendar-days"></i></a>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Iuran Bulanan</span>
-                                <span class="info-box-number"><?= date('F Y'); ?></span>
-                            </div>
-                            <!-- /.info-box-content -->
-                        </div>
-                        <!-- /.info-box -->
-                    </div>
-                    <!-- /.col -->
                 </div>
-                <!-- /.row -->
                 <div class="row">
                     <div class="col-md-6 col-sm-6 col-12">
                         <div class="card">
