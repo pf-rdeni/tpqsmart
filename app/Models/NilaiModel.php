@@ -92,10 +92,29 @@ class NilaiModel extends Model
     }
 
     // getDataNilaiPerKelas IdKelas dan IdTahunAjaran in array
-    public function getDataNilaiPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $Semester)
+    public function getDataNilaiPerKelas($IdTpq, $IdKelas = null, $IdTahunAjaran = null, $Semester)
     {
         // Connect to the database
         $db = db_connect();
+
+        // Siapkan kondisi WHERE
+        $whereConditions = ['n.IdTpq = ?'];
+        $params = [$IdTpq];
+
+        if ($IdKelas !== null) {
+            $whereConditions[] = 'n.IdKelas IN ?';
+            $params[] = $IdKelas;
+        }
+
+        if ($IdTahunAjaran !== null) {
+            $whereConditions[] = 'n.IdTahunAjaran IN ?';
+            $params[] = $IdTahunAjaran;
+        }
+
+        $whereConditions[] = 'n.Semester = ?';
+        $params[] = $Semester;
+
+        $whereClause = implode(' AND ', $whereConditions);
 
         // Query untuk mendapatkan kolom dinamis berdasarkan IdMateri
         $materiQuery = $db->query(
@@ -105,13 +124,9 @@ class NilaiModel extends Model
             ) AS dynamic_columns
             FROM tbl_nilai n
             JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
-            WHERE 
-            n.IdTpq = ?
-            AND n.IdKelas IN ?
-            AND n.IdTahunAjaran IN ?
-            AND n.Semester = ?
+            WHERE $whereClause
         ",
-            [$IdTpq, $IdKelas,  $IdTahunAjaran, $Semester]
+            $params
         );
 
         // Ambil hasil kolom dinamis
@@ -121,21 +136,18 @@ class NilaiModel extends Model
         if ($dynamicColumns) {
             // Bangun query utama
             $finalQuery = "
-                SELECT n.IdSantri AS 'IdSantri', s.NamaSantri AS 'Nama Santri', n.IdKelas, k.NamaKelas AS 'Nama Kelas',  IdTahunAjaran AS 'Tahun Ajaran', Semester, $dynamicColumns
+                SELECT n.IdSantri AS 'IdSantri', s.NamaSantri AS 'Nama Santri', n.IdKelas, k.NamaKelas AS 'Nama Kelas',  
+                       IdTahunAjaran AS 'Tahun Ajaran', Semester, $dynamicColumns
                 FROM tbl_nilai n
                 JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
                 JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
-                WHERE 
-                n.IdTpq = ?
-                AND n.IdKelas IN ?
-                AND IdTahunAjaran IN ?
-                AND Semester = ?
+                WHERE $whereClause
                 GROUP BY IdSantri, IdTahunAjaran, Semester
                 ORDER BY n.IdKelas ASC
             ";
 
             // Eksekusi query akhir
-            $finalResult = $db->query($finalQuery, [$IdTpq, $IdKelas, $IdTahunAjaran, $Semester]);
+            $finalResult = $db->query($finalQuery, $params);
 
             // Ambil data sebagai array
             $data = $finalResult->getResultArray();

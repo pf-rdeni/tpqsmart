@@ -190,6 +190,246 @@
                 <!-- =========================================================== -->
             </div>
         <?php endif; ?>
+        <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+            <div class="card-body">
+                <!-- =========================================================== -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header border-0 bg-gradient-primary">
+                                <h3 class="card-title">
+                                    <i class="fas fa-info-circle"></i>
+                                    Informasi
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-primary btn-sm" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm" data-card-widget="remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/guru/show') ?> class="info-box-icon bg-primary"><i class="fa-solid fa-user-tie"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Data Guru</span>
+                                                <span class="info-box-number">16 Guru</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="info-box-icon bg-info"><i class="fa-solid fa-user-graduate"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Data Santri</span>
+                                                <span class="info-box-number">350 Santri</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="info-box-icon bg-success"><i class="fa-solid fa-user-plus"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Santri Baru</span>
+                                                <span class="info-box-number">Tambah</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/santri/showSantriEmis') ?> class="info-box-icon bg-warning"><i class="fa-solid fa-file"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Data Untuk Emis</span>
+                                                <span class="info-box-number"><?= date('F Y'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header border-0 bg-gradient-warning">
+                                <h3 class="card-title">
+                                    <i class="fas fa-wrench"></i>
+                                    Setting
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-warning btn-sm" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-sm" data-card-widget="remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/guruKelas/show') ?> class="info-box-icon bg-primary"><i class="fa-solid fa-user-tie"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Guru Kelas</span>
+                                                <span class="info-box-number">6 Walas 6 Pendamping</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="info-box-icon bg-info"><i class="fa-solid fa-user-graduate"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Santri Baru</span>
+                                                <span class="info-box-number">15 Santri</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/kelas/showListSantriPerKelas') ?> class="info-box-icon bg-warning"><i class="fas fa-building"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Kenaikan Kelas</span>
+                                                <span class="info-box-number">T.A Baru <?= date('Y'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 col-12">
+                                        <div class="info-box">
+                                            <a href=<?php echo base_url('backend/user/index') ?> class="info-box-icon bg-danger"><i class="fa-solid fa-solid fa-gear"></i></a>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Akun</span>
+                                                <span class="info-box-number">Guru dan Santri</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 col-sm-6 col-12">
+                        <div class="card">
+                            <div class="card-header border-0 bg-gradient-warning">
+                                <h3 class="card-title">
+                                    <i class="fas fa-award"></i>
+                                    Semester Ganjil
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-warning btn-sm" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-sm" data-card-widget="remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-box bg-gradient-warning">
+                                    <span class="info-box-icon"><i class="fas fa-award"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Info Semester Ganjil</span>
+                                        <span class="info-box-number"> Kelas </span>
+                                        <div class="progress">
+                                            <div class="progress-bar" style="width: 100%"></div>
+                                        </div>
+                                        <span class="progress-description">
+                                            100% nilai sudah diinput
+                                        </span>
+                                        <div class="card-body" style="padding-left: 0; padding-right: 0;">
+                                            <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-success">
+                                                <i class="fas fa-eye"></i> Detail Nilai
+                                            </a>
+                                            <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-primary">
+                                                <i class="fas fa-file-alt"></i> Raport Nilai
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-6 col-12">
+                        <div class="card">
+                            <div class="card-header border-0 bg-gradient-info">
+                                <h3 class="card-title">
+                                    <i class="fas fa-award"></i>
+                                    Semester Genap
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-info btn-sm" data-card-widget="remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-box bg-gradient-info">
+                                    <span class="info-box-icon"><i class="fas fa-award"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Info Semester Genap</span>
+                                        <span class="info-box-number">Kelas </span>
+                                        <div class="progress">
+                                            <div class="progress-bar" style="width: 30%"></div>
+                                        </div>
+                                        <span class="progress-description">
+                                            30% nilai sudah diinput
+                                        </span>
+                                        <div class="card-body" style="padding-left: 0; padding-right: 0;">
+                                            <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">
+                                                <i class="fas fa-eye"></i> Detail Nilai
+                                            </a>
+                                            <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-primary">
+                                                <i class="fas fa-file-alt"></i> Raport Nilai
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /.row -->
+                <div class="row">
+                    <div class="col-sm-12">
+                        <!-- Calendar -->
+                        <div class="card bg-gradient-scundery">
+                            <div class="card-header border-0">
+
+                                <h3 class="card-title">
+                                    <i class="far fa-calendar-alt"></i>
+                                    Calendar
+                                </h3>
+                                <!-- tools card -->
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-scundery btn-sm" data-card-widget="remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <!-- /. tools -->
+                            </div>
+                            <!-- /.card-header -->
+                            <div class="card-body pt-0">
+                                <!--The calendar -->
+                                <div id="calendarnew"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- =========================================================== -->
+            </div>
+        <?php endif; ?>
+        <!-- /.card-header -->
         <!-- /.card-body -->
         <div class="card-footer">
             <div class="row">
