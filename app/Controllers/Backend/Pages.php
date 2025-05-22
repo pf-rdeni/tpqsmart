@@ -77,11 +77,18 @@ class Pages extends BaseController
                 IdTpq: $idTpq,
                 IdTahunAjaran: $idTahunAjaran,
             );
+            // Mendapatkan total santri baru active =0
+            $totalSantriBaru = $this->helpFunctionModel->getTotalSantriBaru(
+                IdTpq: $idTpq,
+                IdKelas: $idKelas,
+            );
+
             $data = [
                 'page_title' => 'Dashboard',
                 'TotalSantri' => $totalSantri,
                 'TotalGuru' => $totalGuru,
                 'TotalKelas' => $totalKelas,
+                'TotalSantriBaru' => $totalSantriBaru,
             ];
         } else {
             $data = [

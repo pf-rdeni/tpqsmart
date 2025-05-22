@@ -286,8 +286,8 @@
                                         <div class="info-box">
                                             <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="info-box-icon bg-info"><i class="fa-solid fa-user-graduate"></i></a>
                                             <div class="info-box-content">
-                                                <span class="info-box-text">Santri Baru</span>
-                                                <span class="info-box-number">15 Santri</span>
+                                                <span class="info-box-text">Santri Baru Registrasi</span>
+                                                <span class="info-box-number"><?= $TotalSantriBaru ?> Santri</span>
                                             </div>
                                         </div>
                                     </div>

@@ -337,5 +337,20 @@ class HelpFunctionModel extends Model
 
         return $builder->countAllResults();
     }
+
+    // get data santri baru active = 0
+    public function getTotalSantriBaru($IdTpq, $IdKelas = null, $Active = 0)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('Active', $Active);
+        
+
+        if ($IdKelas) {
+            $builder->where('IdKelas', $IdKelas);
+        }
+
+        return $builder->countAllResults();
+    }
 }
 
