@@ -100,10 +100,10 @@
                                         <span class="info-box-text">Info Semester Ganjil</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
-                                            <div class="progress-bar" style="width: 100%"></div>
+                                            <div class="progress-bar" style="width: <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
                                         </div>
                                         <span class="progress-description">
-                                            100% nilai sudah diinput
+                                            <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?> nilai)
                                         </span>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
                                             <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-primary">
@@ -141,10 +141,10 @@
                                         <span class="info-box-text">Info Semester Genap</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
-                                            <div class="progress-bar" style="width: 30%"></div>
+                                            <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
                                         </div>
                                         <span class="progress-description">
-                                            30% nilai sudah diinput
+                                            <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?> nilai)
                                         </span>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
                                             <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-primary">
@@ -337,12 +337,12 @@
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Ganjil</span>
-                                        <span class="info-box-number"> Kelas </span>
+                                        <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
                                         <div class="progress">
-                                            <div class="progress-bar" style="width: 100%"></div>
+                                            <div class="progress-bar" style="width:<?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
                                         </div>
                                         <span class="progress-description">
-                                            100% nilai sudah diinput
+                                            <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?> nilai)
                                         </span>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-success">
@@ -378,12 +378,12 @@
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Genap</span>
-                                        <span class="info-box-number">Kelas </span>
+                                        <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
                                         <div class="progress">
-                                            <div class="progress-bar" style="width: 30%"></div>
+                                            <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
                                         </div>
                                         <span class="progress-description">
-                                            30% nilai sudah diinput
+                                            <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?> nilai)
                                         </span>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">

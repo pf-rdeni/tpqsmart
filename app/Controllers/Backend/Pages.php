@@ -53,11 +53,28 @@ class Pages extends BaseController
                 $JumlahKelasDiajar = count($idKelas);
             }
 
+            // mendapakan status input nilai semester ganjil untuk kelas
+            $statusInputNilaiSemesterGanjil = $this->helpFunctionModel->getStatusInputNilai(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+                IdKelas: $idKelas,
+                Semester: 'Ganjil'
+            );
+            // mendapakan status input nilai semester genap untuk kelas
+            $statusInputNilaiSemesterGenap = $this->helpFunctionModel->getStatusInputNilai(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+                IdKelas: $idKelas,
+                Semester: 'Genap'
+            );
+
             $data = [
                 'page_title' => 'Dashboard',
                 'JumlahKelasDiajar' => $JumlahKelasDiajar,
                 'TotalSantri' => $totalSantri, // Akan diisi dengan data dari model
-                'TotalTabungan' => $saldoTabungan ?? 0 // Akan diisi dengan data dari model
+                'TotalTabungan' => $saldoTabungan ?? 0, // Akan diisi dengan data dari model
+                'StatusInputNilaiSemesterGanjil' => $statusInputNilaiSemesterGanjil,
+                'StatusInputNilaiSemesterGenap' => $statusInputNilaiSemesterGenap,
             ];
         } else if (in_groups('Admin')) {
             // ambil tahun ajaran saat ini dari fungsi help function
@@ -83,12 +100,28 @@ class Pages extends BaseController
                 IdKelas: $idKelas,
             );
 
+            // Mendapatkan jumlah nilai yang sudah diinput dan belum diinput
+            $statusInputNilaiSemesterGanjil = $this->helpFunctionModel->getStatusInputNilai(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+                Semester: 'Ganjil'
+            );
+
+            //untuk status input nilai semester genap
+            $statusInputNilaiSemesterGenap = $this->helpFunctionModel->getStatusInputNilai(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+                Semester: 'Genap'
+            );
+
             $data = [
                 'page_title' => 'Dashboard',
                 'TotalSantri' => $totalSantri,
                 'TotalGuru' => $totalGuru,
                 'TotalKelas' => $totalKelas,
                 'TotalSantriBaru' => $totalSantriBaru,
+                'StatusInputNilaiSemesterGanjil' => $statusInputNilaiSemesterGanjil,
+                'StatusInputNilaiSemesterGenap' => $statusInputNilaiSemesterGenap,
             ];
         } else {
             $data = [

@@ -352,5 +352,56 @@ class HelpFunctionModel extends Model
 
         return $builder->countAllResults();
     }
+
+    private function buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
+    {
+        $builder = $this->db->table('tbl_nilai');
+        $builder->where('IdTpq', $IdTpq);
+
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('IdTahunAjaran', $IdTahunAjaran);
+        }
+
+        if ($IdKelas != 0) {
+            if (is_array($IdKelas)) {
+                $builder->whereIn('IdKelas', $IdKelas);
+            } else {
+                $builder->where('IdKelas', $IdKelas);
+            }
+        }
+
+        $builder->where('Semester', $Semester);
+        return $builder;
+    }
+
+    public function getStatusInputNilai($IdTpq, $IdTahunAjaran, $IdKelas = null, $Semester = null)
+    {
+        // Query untuk total
+        $countTotal = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)->countAllResults();
+
+        // Query untuk nilai sudah diinput
+        $countSudah = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
+            ->where('Nilai !=', 0)
+            ->countAllResults();
+
+        // Query untuk nilai belum diinput
+        $countBelum = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
+            ->where('Nilai', 0)
+            ->countAllResults();
+
+        // buat persentasi yang sudah dan belum
+        $persentasiSudah = round(($countSudah / $countTotal) * 100, 2);
+        $persentasiBelum = round(($countBelum / $countTotal) * 100, 2);
+
+        return (object)[
+            'countTotal' => $countTotal,
+            'countSudah' => $countSudah,
+            'countBelum' => $countBelum,
+            'persentasiSudah' => $persentasiSudah,
+            'persentasiBelum' => $persentasiBelum,
+        ];
+    }
 }
 
