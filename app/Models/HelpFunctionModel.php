@@ -297,11 +297,14 @@ class HelpFunctionModel extends Model
     }
 
     //get data total santri
-    public function getTotalSantri($IdTpq, $IdTahunAjaran, $IdKelas = null, $IdGuru = null)
+    public function getTotalSantri($IdTpq, $IdTahunAjaran = null, $IdKelas = null, $IdGuru = null)
     {
         $builder = $this->db->table('tbl_santri_baru');
         $builder->where('IdTpq', $IdTpq);
-        $builder->where('IdTahunAjaran', $IdTahunAjaran);
+
+        if ($IdTahunAjaran) {
+            $builder->where('IdTahunAjaran', $IdTahunAjaran);
+        }
 
         if ($IdKelas) {
             $builder->where('IdKelas', $IdKelas);

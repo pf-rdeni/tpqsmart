@@ -63,9 +63,8 @@ class Pages extends BaseController
             // ambil tahun ajaran saat ini dari fungsi help function
             $idTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
             // Mendapatkan total santri
-            $totalSantri = $this->santriModel->getTotalSantri(
+            $totalSantri = $this->helpFunctionModel->getTotalSantri(
                 IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
             );
 
             // Mendapatkan total guru
