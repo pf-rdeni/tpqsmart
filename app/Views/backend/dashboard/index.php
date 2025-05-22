@@ -278,7 +278,7 @@
                                             <a href=<?php echo base_url('backend/guruKelas/show') ?> class="info-box-icon bg-primary"><i class="fa-solid fa-user-tie"></i></a>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Guru Kelas</span>
-                                                <span class="info-box-number">6 Walas 6 Pendamping</span>
+                                                <span class="info-box-number"><?= $TotalWaliKelas ?> Wali Kelas</span>
                                             </div>
                                         </div>
                                     </div>

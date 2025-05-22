@@ -76,7 +76,7 @@ class Pages extends BaseController
                 'StatusInputNilaiSemesterGanjil' => $statusInputNilaiSemesterGanjil,
                 'StatusInputNilaiSemesterGenap' => $statusInputNilaiSemesterGenap,
             ];
-        } else if (in_groups('Admin')) {
+        } else if (in_groups('Admin') || in_groups('Operator')) {
             // ambil tahun ajaran saat ini dari fungsi help function
             $idTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
             // Mendapatkan total santri
@@ -114,8 +114,15 @@ class Pages extends BaseController
                 Semester: 'Genap'
             );
 
+            // Mengambil data wali kelas
+            $totalWaliKelas = $this->helpFunctionModel->getTotalWaliKelas(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+            );
+
             $data = [
                 'page_title' => 'Dashboard',
+                'TotalWaliKelas' => $totalWaliKelas,
                 'TotalSantri' => $totalSantri,
                 'TotalGuru' => $totalGuru,
                 'TotalKelas' => $totalKelas,

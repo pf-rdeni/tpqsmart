@@ -391,9 +391,14 @@ class HelpFunctionModel extends Model
             ->where('Nilai', 0)
             ->countAllResults();
 
-        // buat persentasi yang sudah dan belum
-        $persentasiSudah = round(($countSudah / $countTotal) * 100, 2);
-        $persentasiBelum = round(($countBelum / $countTotal) * 100, 2);
+        // buat persentasi yang sudah dan belum jika total > 0
+        if ($countTotal == 0) {
+            $persentasiSudah = 0;
+            $persentasiBelum = 0;
+        } else {
+            $persentasiSudah = round(($countSudah / $countTotal) * 100, 2);
+            $persentasiBelum = round(($countBelum / $countTotal) * 100, 2);
+        }
 
         return (object)[
             'countTotal' => $countTotal,
@@ -402,6 +407,17 @@ class HelpFunctionModel extends Model
             'persentasiSudah' => $persentasiSudah,
             'persentasiBelum' => $persentasiBelum,
         ];
+    }
+
+    // get total wali kelas dari tbl_guru_kelas
+    public function getTotalWaliKelas($IdTpq, $IdTahunAjaran)
+    {
+        $builder = $this->db->table('tbl_guru_kelas');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('IdTahunAjaran', $IdTahunAjaran);
+        $builder->where('IdJabatan', 3); // Wali Kelas
+
+        return $builder->countAllResults();
     }
 }
 
