@@ -217,7 +217,7 @@
                                             <a href=<?php echo base_url('backend/guru/show') ?> class="info-box-icon bg-primary"><i class="fa-solid fa-user-tie"></i></a>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Data Guru</span>
-                                                <span class="info-box-number">16 Guru</span>
+                                                <span class="info-box-number"><?= $TotalGuru ?> Guru Active</span>
                                             </div>
                                         </div>
                                     </div>
@@ -226,7 +226,7 @@
                                             <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="info-box-icon bg-info"><i class="fa-solid fa-user-graduate"></i></a>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Data Santri</span>
-                                                <span class="info-box-number">350 Santri</span>
+                                                <span class="info-box-number"><?= $TotalSantri ?> Santri <?= $TotalKelas ?> Kelas</span>
                                             </div>
                                         </div>
                                     </div>
