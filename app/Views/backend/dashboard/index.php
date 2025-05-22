@@ -106,9 +106,18 @@
                                             <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?> nilai)
                                         </span>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
-                                            <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-primary">
-                                                <i class="fas fa-edit"></i> Input Nilai
-                                            </a>
+                                            <?php
+                                            $currentMonth = date('n'); // Mendapatkan bulan saat ini (1-12)
+                                            if ($currentMonth >= 7 && $currentMonth <= 12):
+                                            ?>
+                                                <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-primary">
+                                                    <i class="fas fa-edit"></i> Input Nilai
+                                                </a>
+                                            <?php else: ?>
+                                                <button class="btn btn-app bg-secondary" disabled>
+                                                    <i class="fas fa-edit"></i> Input Nilai
+                                                </button>
+                                            <?php endif; ?>
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-success">
                                                 <i class="fas fa-eye"></i> Detail Nilai
                                             </a>
@@ -147,9 +156,18 @@
                                             <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?> nilai)
                                         </span>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
-                                            <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-primary">
-                                                <i class="fas fa-edit"></i> Input Nilai
-                                            </a>
+                                            <?php
+                                            $currentMonth = date('n'); // Mendapatkan bulan saat ini (1-12)
+                                            if ($currentMonth >= 1 && $currentMonth <= 6):
+                                            ?>
+                                                <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-primary">
+                                                    <i class="fas fa-edit"></i> Input Nilai
+                                                </a>
+                                            <?php else: ?>
+                                                <button class="btn btn-app bg-secondary" disabled>
+                                                    <i class="fas fa-edit"></i> Input Nilai
+                                                </button>
+                                            <?php endif; ?>
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">
                                                 <i class="fas fa-eye"></i> Detail Nilai
                                             </a>
