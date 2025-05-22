@@ -5,16 +5,19 @@ namespace App\Controllers\Backend;
 use App\Controllers\BaseController;
 use App\Models\TabunganModel;
 use App\Models\SantriModel;
+use App\Models\HelpFunctionModel;
 
 class Pages extends BaseController
 {
     protected $tabunganModel;
     protected $santriModel;
+    protected $helpFunctionModel;
 
     public function __construct()
     {
         $this->tabunganModel = new TabunganModel();
         $this->santriModel = new SantriModel();
+        $this->helpFunctionModel = new HelpFunctionModel();
     }
 
     public function index()
@@ -55,6 +58,31 @@ class Pages extends BaseController
                 'JumlahKelasDiajar' => $JumlahKelasDiajar,
                 'TotalSantri' => $totalSantri, // Akan diisi dengan data dari model
                 'TotalTabungan' => $saldoTabungan ?? 0 // Akan diisi dengan data dari model
+            ];
+        } else if (in_groups('Admin')) {
+            // ambil tahun ajaran saat ini dari fungsi help function
+            $idTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+            // Mendapatkan total santri
+            $totalSantri = $this->santriModel->getTotalSantri(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+            );
+
+            // Mendapatkan total guru
+            $totalGuru = $this->helpFunctionModel->getTotalGuru(
+                IdTpq: $idTpq
+            );
+
+            // Mendapatkan total kelas
+            $totalKelas = $this->helpFunctionModel->getTotalKelas(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+            );
+            $data = [
+                'page_title' => 'Dashboard',
+                'TotalSantri' => $totalSantri,
+                'TotalGuru' => $totalGuru,
+                'TotalKelas' => $totalKelas,
             ];
         } else {
             $data = [

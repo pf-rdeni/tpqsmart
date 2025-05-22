@@ -130,10 +130,18 @@ class SantriModel extends Model
                     1=1';  // Baseline query (always true)
 
         // Add filters to the SQL query
-        $sql .= $this->addFilterById($db, 'ks.IdTahunAjaran', $IdTahunAjaran);
-        $sql .= $this->addFilterById($db, 'w.IdGuru', $IdGuru);
-        $sql .= $this->addFilterById($db, 'k.IdKelas', $IdKelas);
         $sql .= $this->addFilterById($db, 'ks.IdTpq', $IdTpq);
+        $sql .= $this->addFilterById($db, 'ks.IdTahunAjaran', $IdTahunAjaran);
+
+        // Khusus untuk IdGuru dan IdKelas
+        if ($IdGuru !== null && $IdGuru != 0) {
+            $sql .= $this->addFilterById($db, 'w.IdGuru', $IdGuru);
+        }
+
+        if ($IdKelas != 0) {
+            $sql .= $this->addFilterById($db, 'k.IdKelas', $IdKelas);
+        }
+
 
         // Execute the query
         return $db->query($sql)->getRow()->TotalSantri;

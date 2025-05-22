@@ -295,5 +295,44 @@ class HelpFunctionModel extends Model
     {
         return $this->db->table('tbl_tpq')->where('IdTpq', $IdTpq)->get()->getRowArray();
     }
+
+    //get data total santri
+    public function getTotalSantri($IdTpq, $IdTahunAjaran, $IdKelas = null, $IdGuru = null)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('IdTahunAjaran', $IdTahunAjaran);
+
+        if ($IdKelas) {
+            $builder->where('IdKelas', $IdKelas);
+        }
+
+        if ($IdGuru) {
+            $builder->where('IdGuru', $IdGuru);
+        }
+
+        return $builder->countAllResults();
+    }
+    // get data total guru
+    public function getTotalGuru($IdTpq)
+    {
+        $builder = $this->db->table('tbl_guru');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('Status', 1);
+
+        return $builder->countAllResults();
+    }
+
+    // get data total kelas
+    public function getTotalKelas($IdTpq, $IdTahunAjaran)
+    {
+        $builder = $this->db->table('tbl_kelas_santri');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('IdTahunAjaran', $IdTahunAjaran);
+        //group by IdKelas
+        $builder->groupBy('IdKelas');
+
+        return $builder->countAllResults();
+    }
 }
 
