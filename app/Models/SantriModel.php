@@ -33,6 +33,7 @@ class SantriModel extends Model
 
         // Base SQL query
         $sql = 'SELECT 
+                    ks.Id,
                     ks.IdTahunAjaran,
                     k.IdKelas,
                     k.NamaKelas,
@@ -66,6 +67,7 @@ class SantriModel extends Model
         $sql .= $this->addFilterById($db, 'k.IdKelas', $IdKelas);
         $sql .= $this->addFilterById($db, 'ks.IdTpq', $IdTpq);
         $sql .= 'GROUP BY 
+                ks.Id,
                 ks.IdTahunAjaran,
                 k.IdKelas,
                 k.NamaKelas,
@@ -76,7 +78,8 @@ class SantriModel extends Model
                 s.JenisKelamin,
                 t.IdTpq,
                 t.NamaTpq,
-                t.Alamat';
+                t.Alamat,
+                w.IdJabatan';
         
 
         // Add ORDER BY clause

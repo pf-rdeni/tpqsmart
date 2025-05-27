@@ -330,12 +330,11 @@ class HelpFunctionModel extends Model
     public function getTotalKelas($IdTpq, $IdTahunAjaran)
     {
         $builder = $this->db->table('tbl_kelas_santri');
+        $builder->select('COUNT(DISTINCT IdKelas) as total');
         $builder->where('IdTpq', $IdTpq);
         $builder->where('IdTahunAjaran', $IdTahunAjaran);
-        //group by IdKelas
-        $builder->groupBy('IdKelas');
 
-        return $builder->countAllResults();
+        return $builder->get()->getRow()->total;
     }
 
     // get data santri baru active = 0
