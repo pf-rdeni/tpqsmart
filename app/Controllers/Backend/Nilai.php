@@ -129,7 +129,14 @@ class Nilai extends BaseController
             //Get IdGuru dari session login
             $IdGuru = session()->get('IdGuru');
             $Id = $this->request->getVar('Id');
-            $Nilai = $this->request->getVar('Nilai');
+
+            // check jika radio button ada nilai maka nilai di ambil dari radio button
+            if ($this->request->getVar('NilaiRadio') !== null) {
+                $Nilai = $this->request->getVar('NilaiRadio');
+            } else {
+                // Jika tidak ada nilai dari radio button, ambil dari inputan teks
+                $Nilai = $this->request->getVar('Nilai');
+            }
             $this->DataNilai->save([
                 'Id' => $Id,
                 'IdGuru' => $IdGuru,

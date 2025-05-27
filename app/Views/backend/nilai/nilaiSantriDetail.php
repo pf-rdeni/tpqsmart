@@ -130,16 +130,59 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                             <label for="FormProfilTpq">Id-Nama Materi</label>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri ?></span>
                         </div>
+                        <!-- Jika Kelas TKQ/TKA/TKB buat radio A B dan C nilai A=90 B=80 C=70 -->
+                        <?php if ($DataNilai->NamaKelas == "TKA" || $DataNilai->NamaKelas == "TKB" || $DataNilai->NamaKelas == "TKQ") {
+                        ?>
+                            <div class="form-group">
+                                <label for="FormProfilTpq">Nilai</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilaiA-<?= $DataNilai->Id ?>" value="90" <?= $DataNilai->Nilai == 90 ? 'checked' : '' ?> required>
+                                        <label class="form-check-label" for="nilaiA-<?= $DataNilai->Id ?>">A (90)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilaiB-<?= $DataNilai->Id ?>" value="80" <?= $DataNilai->Nilai == 80 ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="nilaiB-<?= $DataNilai->Id ?>">B (80)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilaiC-<?= $DataNilai->Id ?>" value="70" <?= $DataNilai->Nilai == 70 ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="nilaiC-<?= $DataNilai->Id ?>">C (70)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilaiD-<?= $DataNilai->Id ?>" value="60" <?= $DataNilai->Nilai == 60 ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="nilaiD-<?= $DataNilai->Id ?>">D (60)</label>
+                                    </div>
+                                </div>
+                            </div>
 
-                        <div class="form-group">
-                            <label for="FormProfilTpq">Nilai</label>
-                            <input type="number" name="Nilai" class="form-control" id="NilaiEditModal-<?= $DataNilai->Id ?>" required
-                                placeholder="<?= $DataNilai->Nilai > 0 ? '' : 'Ketik Nilai' ?>" value="<?= $DataNilai->Nilai > 0 ? $DataNilai->Nilai : '' ?>"
-                                min="50" max="100"
-                                oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
-                                oninput="this.setCustomValidity('')"
-                                autofocus>
-                        </div>
+                            <style>
+                                .custom-radio {
+                                    width: 24px;
+                                    height: 24px;
+                                    margin-top: 0.3rem;
+                                }
+
+                                .form-check {
+                                    margin-bottom: 1rem;
+                                }
+
+                                .form-check-label {
+                                    font-size: 1.1rem;
+                                    margin-left: 0.5rem;
+                                    padding-top: 0.2rem;
+                                }
+                            </style>
+                        <?php } else { ?>
+                            <div class="form-group">
+                                <label for="FormProfilTpq">Nilai</label>
+                                <input type="number" name="Nilai" class="form-control" id="NilaiEditModal-<?= $DataNilai->Id ?>" required
+                                    placeholder="<?= $DataNilai->Nilai > 0 ? '' : 'Ketik Nilai' ?>" value="<?= $DataNilai->Nilai > 0 ? $DataNilai->Nilai : '' ?>"
+                                    min="50" max="100"
+                                    oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
+                                    oninput="this.setCustomValidity('')"
+                                    autofocus>
+                            </div>
+                        <?php } ?>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" id="tutupModal-<?= $DataNilai->Id ?>">
                                 <i class="fas fa-times"></i> Keluar
