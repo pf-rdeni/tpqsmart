@@ -78,11 +78,11 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 col-sm-6 col-12">
-                        <div class="card">
+                        <div class="card" id="card-semester-ganjil-guru">
                             <div class="card-header border-0 bg-gradient-warning">
                                 <h3 class="card-title">
                                     <i class="fas fa-award"></i>
-                                    Semester Ganjil
+                                    Semester Ganjil TA <?= $TahunAjaran ?>
                                 </h3>
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-warning btn-sm" data-card-widget="collapse">
@@ -97,7 +97,7 @@
                                 <div class="info-box bg-gradient-warning">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Ganjil TA <?= $TahunAjaran ?></span>
+                                        <span class="info-box-text">Info Semester Ganjil</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width: <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
@@ -107,7 +107,7 @@
                                         </span>
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGanjil as $item) : ?>
-                                                <div class="col-md-4 col-sm-6 col-12">
+                                                <div class="col-md-6 col-sm-6 col-12">
                                                     <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
                                                     <div class="progress">
                                                         <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
@@ -141,11 +141,11 @@
                         </div>
                     </div>
                     <div class="col-md-6 col-sm-6 col-12">
-                        <div class="card">
+                        <div class="card" id="card-semester-genap-guru">
                             <div class="card-header border-0 bg-gradient-info">
                                 <h3 class="card-title">
                                     <i class="fas fa-award"></i>
-                                    Semester Genap
+                                    Semester Genap TA <?= $TahunAjaran ?>
                                 </h3>
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse">
@@ -160,7 +160,7 @@
                                 <div class="info-box bg-gradient-info">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Genap TA <?= $TahunAjaran ?></span>
+                                        <span class="info-box-text">Info Semester Genap</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
@@ -170,7 +170,7 @@
                                         </span>
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGenap as $item) : ?>
-                                                <div class="col-md-4 col-sm-6 col-12">
+                                                <div class="col-md-6 col-sm-6 col-12">
                                                     <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
                                                     <div class="progress">
                                                         <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
@@ -361,11 +361,11 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 col-sm-6 col-12">
-                        <div class="card">
+                        <div class="card" id="card-semester-ganjil-admin">
                             <div class="card-header border-0 bg-gradient-warning">
                                 <h3 class="card-title">
                                     <i class="fas fa-award"></i>
-                                    Semester Ganjil
+                                    Semester Ganjil TA <?= $TahunAjaran ?>
                                 </h3>
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-warning btn-sm" data-card-widget="collapse">
@@ -380,7 +380,7 @@
                                 <div class="info-box bg-gradient-warning">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Ganjil TA <?= $TahunAjaran ?></span>
+                                        <span class="info-box-text">Info Semester Ganjil</span>
                                         <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:<?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
@@ -390,7 +390,7 @@
                                         </span>
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGanjil as $item) : ?>
-                                                <div class="col-md-4 col-sm-6 col-12">
+                                                <div class="col-md-6 col-sm-6 col-12">
                                                     <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
                                                     <div class="progress">
                                                         <div class="progress-bar" style="width:<?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
@@ -415,11 +415,11 @@
                         </div>
                     </div>
                     <div class="col-md-6 col-sm-6 col-12">
-                        <div class="card">
+                        <div class="card" id="card-semester-genap-admin">
                             <div class="card-header border-0 bg-gradient-info">
                                 <h3 class="card-title">
                                     <i class="fas fa-award"></i>
-                                    Semester Genap
+                                    Semester Genap TA <?= $TahunAjaran ?>
                                 </h3>
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse">
@@ -434,7 +434,7 @@
                                 <div class="info-box bg-gradient-info">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Genap TA <?= $TahunAjaran ?></span>
+                                        <span class="info-box-text">Info Semester Genap</span>
                                         <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
@@ -444,7 +444,7 @@
                                         </span>
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGenap as $item) : ?>
-                                                <div class="col-md-4 col-sm-6 col-12">
+                                                <div class="col-md-6 col-sm-6 col-12">
                                                     <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
                                                     <div class="progress">
                                                         <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
@@ -517,6 +517,8 @@
 </section>
 <!-- /.content -->
 
+<?= $this->section('scripts'); ?>
+<!-- Include FullCalendar CSS and JS -->
 <!-- Page specific script -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -653,9 +655,30 @@
             }
         });
         calendar.render();
+
+        // AUTO COLLAPSE SEMESTER GANJIL JIKA BUKAN BULAN 7-12
+        var currentMonth = new Date().getMonth() + 1; // getMonth() 0-11
+        if (currentMonth < 7 || currentMonth > 12) {
+            var cardGanjil = document.getElementById('card-semester-ganjil-guru')
+            // Jika cardGanjil ditemukan, trigger collapse
+            if (cardGanjil) {
+                // Jika pakai AdminLTE, trigger collapse
+                $(cardGanjil).find('[data-card-widget="collapse"]').trigger('click');
+            }
+
+        }
+
+        if (currentMonth < 1 && currentMonth > 6) {
+            var cardGenap = document.getElementById('card-semester-genap-guru')
+            // Jika cardGenap ditemukan, trigger collapse
+            if (cardGenap) {
+                // Jika pakai AdminLTE, trigger collapse
+                $(cardGenap).find('[data-card-widget="collapse"]').trigger('click');
+            }
+        }
     });
 </script>
-
+<?= $this->endSection(); ?>
 <style>
     @media (max-width: 576px) {
 
