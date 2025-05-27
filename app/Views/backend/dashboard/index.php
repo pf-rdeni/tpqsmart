@@ -97,14 +97,27 @@
                                 <div class="info-box bg-gradient-warning">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Ganjil</span>
+                                        <span class="info-box-text">Info Semester Ganjil TA <?= $TahunAjaran ?></span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width: <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
                                         </div>
                                         <span class="progress-description">
-                                            <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?> nilai)
+                                            <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?> nilai)
                                         </span>
+                                        <div class="row">
+                                            <?php foreach ($StatusInputNilaiPerKelasGanjil as $item) : ?>
+                                                <div class="col-md-4 col-sm-6 col-12">
+                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
+                                                    </div>
+                                                    <span class="progress-description" style="font-size: smaller;">
+                                                        <?= $item['StatusInputNilai']->persentasiSudah ?>% (<?= $item['StatusInputNilai']->countSudah ?> dari <?= $item['StatusInputNilai']->countTotal ?> nilai)
+                                                    </span>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
                                             <?php
                                             $currentMonth = date('n'); // Mendapatkan bulan saat ini (1-12)
@@ -147,14 +160,27 @@
                                 <div class="info-box bg-gradient-info">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Genap</span>
+                                        <span class="info-box-text">Info Semester Genap TA <?= $TahunAjaran ?></span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
                                         </div>
                                         <span class="progress-description">
-                                            <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?> nilai)
+                                            <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?> nilai)
                                         </span>
+                                        <div class="row">
+                                            <?php foreach ($StatusInputNilaiPerKelasGenap as $item) : ?>
+                                                <div class="col-md-4 col-sm-6 col-12">
+                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
+                                                    </div>
+                                                    <span class="progress-description" style="font-size: smaller;">
+                                                        <?= $item['StatusInputNilai']->persentasiSudah ?>% (<?= $item['StatusInputNilai']->countSudah ?> dari <?= $item['StatusInputNilai']->countTotal ?> nilai)
+                                                    </span>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
                                             <?php
                                             $currentMonth = date('n'); // Mendapatkan bulan saat ini (1-12)
@@ -354,14 +380,27 @@
                                 <div class="info-box bg-gradient-warning">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Ganjil</span>
+                                        <span class="info-box-text">Info Semester Ganjil TA <?= $TahunAjaran ?></span>
                                         <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:<?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
                                         </div>
                                         <span class="progress-description">
-                                            <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?> nilai)
+                                            <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% nilai diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?>)
                                         </span>
+                                        <div class="row">
+                                            <?php foreach ($StatusInputNilaiPerKelasGanjil as $item) : ?>
+                                                <div class="col-md-4 col-sm-6 col-12">
+                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width:<?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
+                                                    </div>
+                                                    <span class="progress-description" style="font-size: smaller;">
+                                                        <?= $item['StatusInputNilai']->persentasiSudah ?>% (<?= $item['StatusInputNilai']->countSudah ?> dari <?= $item['StatusInputNilai']->countTotal ?>)
+                                                    </span>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-success">
                                                 <i class="fas fa-eye"></i> Detail Nilai
@@ -395,14 +434,27 @@
                                 <div class="info-box bg-gradient-info">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Genap</span>
+                                        <span class="info-box-text">Info Semester Genap TA <?= $TahunAjaran ?></span>
                                         <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
                                         </div>
                                         <span class="progress-description">
-                                            <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% nilai sudah diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?> nilai)
+                                            <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% nilai diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?>)
                                         </span>
+                                        <div class="row">
+                                            <?php foreach ($StatusInputNilaiPerKelasGenap as $item) : ?>
+                                                <div class="col-md-4 col-sm-6 col-12">
+                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
+                                                    </div>
+                                                    <span class="progress-description" style="font-size: smaller;">
+                                                        <?= $item['StatusInputNilai']->persentasiSudah ?>% (<?= $item['StatusInputNilai']->countSudah ?> dari <?= $item['StatusInputNilai']->countTotal ?>)
+                                                    </span>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">
                                                 <i class="fas fa-eye"></i> Detail Nilai
@@ -603,4 +655,20 @@
         calendar.render();
     });
 </script>
+
+<style>
+    @media (max-width: 576px) {
+
+        .progress,
+        .progress-bar {
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .info-box-content {
+            overflow-x: hidden;
+        }
+    }
+</style>
 <?= $this->endSection(); ?>

@@ -233,6 +233,10 @@ class HelpFunctionModel extends Model
 
     public function convertTahunAjaran($TahunAjaran)
     {
+        // jika array ambil index 0
+        if (is_array($TahunAjaran)) {
+            $TahunAjaran = $TahunAjaran[0];
+        }
         $startYear = (int) substr($TahunAjaran, 0, 4);
         $endYear = (int) substr($TahunAjaran, 4);
 
@@ -297,33 +301,34 @@ class HelpFunctionModel extends Model
     }
 
     //get data total santri
-    public function getTotalSantri($IdTpq, $IdTahunAjaran = null, $IdKelas = null, $IdGuru = null)
+    public function getTotalSantri($IdTpq, $IdKelas = null, $IdGuru = null)
     {
         $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('COUNT(DISTINCT IdSantri) as total');
         $builder->where('IdTpq', $IdTpq);
 
-        if ($IdTahunAjaran) {
-            $builder->where('IdTahunAjaran', $IdTahunAjaran);
-        }
-
         if ($IdKelas) {
-            $builder->where('IdKelas', $IdKelas);
+            if (is_array($IdKelas)) {
+                $builder->whereIn('IdKelas', $IdKelas);
+            } else {
+                $builder->where('IdKelas', $IdKelas);
+            }
         }
-
         if ($IdGuru) {
             $builder->where('IdGuru', $IdGuru);
         }
 
-        return $builder->countAllResults();
+        return $builder->get()->getRow()->total;
     }
     // get data total guru
     public function getTotalGuru($IdTpq)
     {
         $builder = $this->db->table('tbl_guru');
+        $builder->select('COUNT(DISTINCT IdGuru) as total');
         $builder->where('IdTpq', $IdTpq);
         $builder->where('Status', 1);
 
-        return $builder->countAllResults();
+        return $builder->get()->getRow()->total;
     }
 
     // get data total kelas
@@ -341,6 +346,7 @@ class HelpFunctionModel extends Model
     public function getTotalSantriBaru($IdTpq, $IdKelas = null, $Active = 0)
     {
         $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('COUNT(DISTINCT IdSantri) as total');
         $builder->where('IdTpq', $IdTpq);
         $builder->where('Active', $Active);
         
@@ -349,7 +355,7 @@ class HelpFunctionModel extends Model
             $builder->where('IdKelas', $IdKelas);
         }
 
-        return $builder->countAllResults();
+        return $builder->get()->getRow()->total;
     }
 
     private function buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
@@ -412,11 +418,18 @@ class HelpFunctionModel extends Model
     public function getTotalWaliKelas($IdTpq, $IdTahunAjaran)
     {
         $builder = $this->db->table('tbl_guru_kelas');
+        $builder->select('COUNT(DISTINCT IdGuru) as total');
         $builder->where('IdTpq', $IdTpq);
         $builder->where('IdTahunAjaran', $IdTahunAjaran);
         $builder->where('IdJabatan', 3); // Wali Kelas
 
-        return $builder->countAllResults();
+        return $builder->get()->getRow()->total;
+    }
+
+    // get nama kelas dari IdKelas return hanya nama kelas
+    public function getNamaKelas($IdKelas)
+    {
+        return $this->db->table('tbl_kelas')->where('IdKelas', $IdKelas)->get()->getRowArray()['NamaKelas'];
     }
 }
 
