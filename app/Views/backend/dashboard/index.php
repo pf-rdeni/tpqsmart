@@ -95,14 +95,13 @@
                             </div>
                             <div class="card-body">
                                 <div class="info-box bg-gradient-warning">
-                                    <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Ganjil</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width: <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
                                         </div>
-                                        <span class="progress-description">
+                                        <span class="progress-description" style="font-size: smaller;">
                                             <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?> nilai)
                                         </span>
                                         <div class="row">
@@ -160,12 +159,11 @@
                                 <div class="info-box bg-gradient-info">
                                     <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
-                                        <span class="info-box-text">Info Semester Genap</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
                                         </div>
-                                        <span class="progress-description">
+                                        <span class="progress-description" style="font-size: smaller;">
                                             <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?> nilai)
                                         </span>
                                         <div class="row">
@@ -378,14 +376,13 @@
                             </div>
                             <div class="card-body">
                                 <div class="info-box bg-gradient-warning">
-                                    <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Ganjil</span>
                                         <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:<?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
                                         </div>
-                                        <span class="progress-description">
+                                        <span class="progress-description" style="font-size: smaller;">
                                             <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% nilai diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?>)
                                         </span>
                                         <div class="row">
@@ -432,14 +429,13 @@
                             </div>
                             <div class="card-body">
                                 <div class="info-box bg-gradient-info">
-                                    <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Genap</span>
                                         <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
                                         </div>
-                                        <span class="progress-description">
+                                        <span class="progress-description" style="font-size: smaller;">
                                             <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% nilai diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?>)
                                         </span>
                                         <div class="row">
