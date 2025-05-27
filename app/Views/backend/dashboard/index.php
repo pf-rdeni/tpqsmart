@@ -157,7 +157,6 @@
                             </div>
                             <div class="card-body">
                                 <div class="info-box bg-gradient-info">
-                                    <span class="info-box-icon"><i class="fas fa-award"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
