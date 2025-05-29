@@ -11,7 +11,7 @@
             </h3>
         </div>
         <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="tabelListTabunganSantri" class="table table-bordered table-striped">
                 <thead>
                     <?php
                     echo $tableHeaderFooter = '
@@ -92,8 +92,13 @@
         </div>
     </div>
 <?php endforeach ?>
+<?= $this->endSection(); ?>
 
+<?= $this->section('scripts'); ?>
 <script>
+    //datatable umum
+    initializeDataTableUmum("#tabelListTabunganSantri", true, true);
+
     function updateNominal(selectElement) {
         var kategori = selectElement.value;
         var modal = $(selectElement).closest('.modal');
@@ -167,6 +172,4 @@
             .join(' ');
     }
 </script>
-
-
 <?= $this->endSection(); ?>

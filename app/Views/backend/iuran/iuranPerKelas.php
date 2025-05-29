@@ -120,7 +120,7 @@
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
 <script>
-    initializeDataTableUmum('#ListIuaranSantri');
+    initializeDataTableUmum('#ListIuaranSantri', true, true);
 
     function updateNominal(selectElement) {
         var kategori = selectElement.value;

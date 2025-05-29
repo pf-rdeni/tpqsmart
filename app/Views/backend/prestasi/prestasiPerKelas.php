@@ -372,7 +372,7 @@ endforeach;
 
 <?= $this->section('scripts'); ?>
 <script>
-    initializeDataTableUmum('#tabelPrestasiPerKelas');
+    initializeDataTableUmum('#tabelPrestasiPerKelas', true, true);
 
     //looping untuk inisialisasi data table detail
     <?php foreach ($dataSantri as $santri) : ?>
