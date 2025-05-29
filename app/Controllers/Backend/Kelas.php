@@ -311,7 +311,7 @@ class Kelas extends BaseController
     private function getTahunAjaran($StatusSantri)
     {
         if ($StatusSantri == 0) {
-            return date('Y'); // Tahun ajaran saat ini untuk santri baru
+            return $this->helpFunction->getTahunAjaranSaatIni(); // Tahun ajaran saat ini untuk santri baru
         }
         return $this->helpFunction->getTahuanAjaranBerikutnya(0); // Tahun ajaran berikutnya untuk naik kelas
     }
