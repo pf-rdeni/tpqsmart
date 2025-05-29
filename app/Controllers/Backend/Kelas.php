@@ -151,10 +151,12 @@ class Kelas extends BaseController
         $dataKelas = $this->helpFunction->getDataKelas();
 
         $dataStatusSantriBaru = $this->helpFunction->getDataSantriStatus(IdTpq: $this->IdTpq);
+        $dataTpq = $this->helpFunction->getDataTpq($this->IdTpq);
         $data = [
             'page_title' => 'Data Santri',
             'dataSantri' => $dataStatusSantriBaru,
-            'dataKelas' => $dataKelas
+            'dataKelas' => $dataKelas,
+            'dataTpq' => $dataTpq
         ];
 
         return view('backend/kelas/kelasBaru', $data);
