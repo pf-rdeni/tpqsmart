@@ -3,7 +3,7 @@
 <div class="col-12">
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Set Santri Baru</h3>
+            <h3 class="card-title">Set Santri Baru TPQ <?= $dataTpq[0]['NamaTpq'] ?></h3>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -66,6 +66,6 @@
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
 <script>
-    initializeDataTableUmum("#kenaikanKelas");
+    initializeDataTableUmum("#kenaikanKelas", true, true);
 </script>
 <?= $this->endSection(); ?>
