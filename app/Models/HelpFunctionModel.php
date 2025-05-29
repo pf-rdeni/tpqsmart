@@ -431,5 +431,19 @@ class HelpFunctionModel extends Model
     {
         return $this->db->table('tbl_kelas')->where('IdKelas', $IdKelas)->get()->getRowArray()['NamaKelas'];
     }
+
+    // get list kelas grouped kelas filter IdTpq, IdTahunAjaran dari tbl_kelas_santri
+    public function getListKelas($IdTpq, $IdTahunAjaran)
+    {
+        $builder = $this->db->table('tbl_kelas_santri');
+        $builder->select('tbl_kelas_santri.IdKelas, NamaKelas');
+        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_santri.IdKelas');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('IdTahunAjaran', $IdTahunAjaran);
+        $builder->groupBy('tbl_kelas_santri.IdKelas, NamaKelas');
+        $builder->orderBy('NamaKelas', 'ASC');
+
+        return $builder->get()->getResultObject();
+    }
 }
 

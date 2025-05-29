@@ -146,24 +146,31 @@ class Pages extends BaseController
             // Loop untuk mendapatkan status input nilai per kelas Genap dan Ganjil filter tahun ajaran saat ini
             $statusInputNilaiPerKelasGanjil = [];
             $statusInputNilaiPerKelasGenap = [];
-            for ($i = 1; $i <= 9; $i++) {
+
+            //Ambil list kelas 
+            $listKelas = $this->helpFunctionModel->getListKelas(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+            );
+            // loop dari getListKelas
+            foreach ($listKelas as $kelas) {
                 $statusInputNilaiPerKelasGanjil[] = [
-                    'IdKelas' => $i, // GetNamaKelas dari $i ke tbl_kelas
-                    'NamaKelas' => $this->helpFunctionModel->getNamaKelas($i),
+                    'IdKelas' => $kelas->IdKelas,
+                    'NamaKelas' => $this->helpFunctionModel->getNamaKelas($kelas->IdKelas),
                     'StatusInputNilai' => $this->helpFunctionModel->getStatusInputNilai(
                         IdTpq: $idTpq,
                         IdTahunAjaran: $idTahunAjaran,
-                        IdKelas: $i,
+                        IdKelas: $kelas->IdKelas,
                         Semester: 'Ganjil'
                     )
                 ];
                 $statusInputNilaiPerKelasGenap[] = [
-                    'IdKelas' => $i,
-                    'NamaKelas' => $this->helpFunctionModel->getNamaKelas($i),
+                    'IdKelas' => $kelas->IdKelas,
+                    'NamaKelas' => $this->helpFunctionModel->getNamaKelas($kelas->IdKelas),
                     'StatusInputNilai' => $this->helpFunctionModel->getStatusInputNilai(
                         IdTpq: $idTpq,
                         IdTahunAjaran: $idTahunAjaran,
-                        IdKelas: $i,
+                        IdKelas: $kelas->IdKelas,
                         Semester: 'Genap'
                     )
                 ];
