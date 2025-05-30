@@ -67,7 +67,7 @@
         <div class="card-footer">
         </div>
         <!-- /.card-body -->
-        <?php if (in_groups('Admin')): ?>
+        <?php if (!in_groups('Guru')): ?>
             <div class="card-header">
                 <h5>Data Santri Baru berdasarkan TPQ</h5>
             </div>
