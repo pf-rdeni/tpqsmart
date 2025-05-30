@@ -445,5 +445,54 @@ class HelpFunctionModel extends Model
 
         return $builder->get()->getResultObject();
     }
+
+    // Get value setting input nilai min dan max dari tbl_tools
+    public function getSettingLimitInputNilai($IdTpq, $SettingKey)
+    {
+        $builder = $this->db->table('tbl_tools');
+        $builder->select('SettingValue');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('SettingKey', $SettingKey);
+
+        $result = $builder->get()->getRowArray();
+
+        return $result ? (int)$result['SettingValue'] : null;
+    }
+
+    // Get nilai alfabetic settings based on keys
+    public function getNilaiAlphabetSettings($IdTpq)
+    {
+        // jika IdTpq tidak ada, kembalikan null
+        if (empty($IdTpq)) {
+            return null;
+        }
+        // Check the value of Nilai_Alphabet setting
+        $nilaiAlfabeticSetting = $this->db->table('tbl_tools')
+            ->select('SettingValue')
+            ->where('IdTpq', $IdTpq)
+            ->where('SettingKey', 'Nilai_Alphabet')
+            ->get()
+            ->getRowArray();
+
+        // If Nilai_Alfabetic setting is 1, retrieve other settings
+        if ($nilaiAlfabeticSetting && $nilaiAlfabeticSetting['SettingValue'] == '1') {
+            $settings = $this->db->table('tbl_tools')
+                ->select('SettingKey, SettingValue')
+                ->where('IdTpq', $IdTpq)
+                ->whereIn('SettingKey', ['Nilai_Alphabet', 'Nilai_Alphabet_Persamaan', 'Nilai_Alphabet_Kelas'])
+                ->get()
+                ->getResultArray();
+
+            $result = [];
+            foreach ($settings as $setting) {
+                $result[$setting['SettingKey']] = $setting['SettingValue'];
+            }
+
+            return (object)$result;
+        } else {
+            // Return empty array or null if condition not met
+            return null;
+        }
+    }
 }
 

@@ -28,13 +28,23 @@ class Nilai extends BaseController
 
     public function showDetail($IdSantri, $IdSemseter, $Edit = null, $IdJabatan = null)
     {
+        // ambil settingan nilai minimun dan maksimal dari session
+        $SettingNilai = (object)[
+            'NilaiMin' => session()->get('SettingNilaiMin'),
+            'NilaiMax' => session()->get('SettingNilaiMax')
+        ];
+
+        // ambil jika settingan nilai alfabetic dari session
+        $SettingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
+
         $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter);
 
         $data = [
             'page_title' => 'Data Nilai',
             'nilai' => $datanilai,
             'guruPendamping' => $IdJabatan,
-            'pageEdit' => $Edit
+            'pageEdit' => $Edit,
+            'settingNilai' => $SettingNilai,
         ];
 
         return view('/backend/nilai/nilaiSantriDetail', $data);

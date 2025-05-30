@@ -242,6 +242,12 @@
                                     <p>Daftar Akun</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/tools/index') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Tools</p>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 <?php endif; ?>

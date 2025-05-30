@@ -131,27 +131,61 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri ?></span>
                         </div>
                         <!-- Jika Kelas TKQ/TKA/TKB buat radio A B dan C nilai A=90 B=80 C=70 -->
-                        <?php if ($DataNilai->NamaKelas == "TKA" || $DataNilai->NamaKelas == "TKB" || $DataNilai->NamaKelas == "TKQ") {
+                        <?php
+                        // Check if lphabet
+                        $SettingNilaiAlphabet = $settingNilai->NilaiAlphabet->Nilai_Alphabet;
+                        if ($SettingNilaiAlphabet) {
+                            $SettingAlphabetKelasString = $settingNilai->NilaiAlphabet->Nilai_Alphabet_Kelas;
+
+                            //check SettingAlphabetKelas terdapat value IdKelas yang sama dari $DataNilai->IdKelas
+                            $isAlphabetKelas = false;
+
+                            // Pecah string SettingAlphabetKelas menjadi array menggunakan koma sebagai delimiter
+                            $SettingAlphabetKelasArray = explode(',', $SettingAlphabetKelasString);
+
+                            // Periksa apakah IdKelas saat ini ada di dalam array SettingAlphabetKelasArray
+                            if (in_array($DataNilai->IdKelas, $SettingAlphabetKelasArray)) {
+                                $isAlphabetKelas = true;
+                            }
+
+                            if ($isAlphabetKelas) {
+                                // Ambil nilai alphabet dari setting
+                                $SettingAlphabeticNilai = $settingNilai->NilaiAlphabet->Nilai_Alphabet_Persamaan;
+                                // Pisahkan nilai alphabet menjadi array of strings "A=90", "B=80", ...
+                                $SettingAlphabeticNilaiArrayRaw = explode(',', $SettingAlphabeticNilai);
+
+                                // Buat array baru untuk menyimpan hasil transformasi
+                                $SettingAlphabeticNilaiTransformed = [];
+
+                                // Iterasi array mentah dan ubah formatnya
+                                foreach ($SettingAlphabeticNilaiArrayRaw as $item) {
+                                    // Pisahkan setiap item menjadi label dan value berdasarkan '='
+                                    $parts = explode('=', $item);
+                                    // Pastikan ada dua bagian (label dan value)
+                                    if (count($parts) == 2) {
+                                        $label = trim($parts[0]); // Ambil label (A, B, C, D) dan hapus spasi
+                                        $value = (int)trim($parts[1]); // Ambil value (90, 80, 70, 60), hapus spasi, dan konversi ke integer
+                                        // Tambahkan ke array hasil transformasi dalam format yang diinginkan
+                                        $SettingAlphabeticNilaiTransformed[] = [
+                                            'Label' => $label,
+                                            'Value' => $value
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+
+                        if ($isAlphabetKelas) {
                         ?>
                             <div class="form-group">
                                 <label for="FormProfilTpq">Nilai</label>
                                 <div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilaiA-<?= $DataNilai->Id ?>" value="90" <?= $DataNilai->Nilai == 90 ? 'checked' : '' ?> required>
-                                        <label class="form-check-label" for="nilaiA-<?= $DataNilai->Id ?>">A (90)</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilaiB-<?= $DataNilai->Id ?>" value="80" <?= $DataNilai->Nilai == 80 ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="nilaiB-<?= $DataNilai->Id ?>">B (80)</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilaiC-<?= $DataNilai->Id ?>" value="70" <?= $DataNilai->Nilai == 70 ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="nilaiC-<?= $DataNilai->Id ?>">C (70)</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilaiD-<?= $DataNilai->Id ?>" value="60" <?= $DataNilai->Nilai == 60 ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="nilaiD-<?= $DataNilai->Id ?>">D (60)</label>
-                                    </div>
+                                    <?php foreach ($SettingAlphabeticNilaiTransformed as $nilaiItem) : ?>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input custom-radio" type="radio" name="NilaiRadio" id="nilai<?= $nilaiItem['Label'] ?>-<?= $DataNilai->Id ?>" value="<?= $nilaiItem['Value'] ?>" <?= $DataNilai->Nilai == $nilaiItem['Value'] ? 'checked' : '' ?> required>
+                                            <label class="form-check-label" for="nilai<?= $nilaiItem['Label'] ?>-<?= $DataNilai->Id ?>"><?= $nilaiItem['Label'] ?> (<?= $nilaiItem['Value'] ?>)</label>
+                                        </div>
+                                    <?php endforeach ?>
                                 </div>
                             </div>
 

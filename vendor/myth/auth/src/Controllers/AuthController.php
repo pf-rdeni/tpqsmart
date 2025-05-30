@@ -113,6 +113,48 @@ class AuthController extends Controller
                 $IdTpq = $dataGuru->IdTpq;
             }
 
+            // Ambil Seeting Nilai Minimum dan Maksimum dari helpFunctionModel
+            $settingNilai = $this->helpFunction->getSettingLimitInputNilai(IdTpq: $IdTpq, SettingKey: 'Min');
+            if ($settingNilai) {
+                $this->session->set('SettingNilaiMin', $settingNilai);
+            } else {
+                // ambil dari idtpq = default
+                $defaultSettingNilai = $this->helpFunction->getSettingLimitInputNilai(IdTpq: 'default', SettingKey: 'Min');
+                if ($defaultSettingNilai) {
+                    $this->session->set('SettingNilaiMin', $defaultSettingNilai);
+                } else {
+                    // jika tidak ada setting nilai min, set ke 0
+                    $this->session->set('SettingNilaiMin', 0);
+                }
+            }
+            $settingNilai = $this->helpFunction->getSettingLimitInputNilai(IdTpq: $IdTpq, SettingKey: 'Max');
+            if ($settingNilai) {
+                $this->session->set('SettingNilaiMax', $settingNilai);
+            } else {
+                // ambil dari idtpq = default
+                $defaultSettingNilai = $this->helpFunction->getSettingLimitInputNilai(IdTpq: 'default', SettingKey: 'Max');
+                if ($defaultSettingNilai) {
+                    $this->session->set('SettingNilaiMax', $defaultSettingNilai);
+                } else {
+                    // jika tidak ada setting nilai max, set ke 100
+                    $this->session->set('SettingNilaiMax', 100);
+                }
+            }
+
+            // ambil data setting nilai alfabet
+            $settingNilaiAlfabet = $this->helpFunction->getNilaiAlphabetSettings(IdTpq: $IdTpq);
+            if ($settingNilaiAlfabet) {
+                $this->session->set('SettingNilaiAlphabet', $settingNilaiAlfabet);
+            } else {
+                // ambil dari idtpq = default
+                $defaultSettingNilaiAlfabet = $this->helpFunction->getNilaiAlphabetSettings(IdTpq: 'default');
+                if ($defaultSettingNilaiAlfabet) {
+                    $this->session->set('SettingNilaiAlphabet', $defaultSettingNilaiAlfabet);
+                }
+            }
+
+
+            // Set session variables for IdGuru, IdKelas, IdJabatan, IdTahunAjaran, and IdTpq
             $session = session();
             if ($dataGuruKelas) {
                 $session->set('IdGuru', $idGuru);
