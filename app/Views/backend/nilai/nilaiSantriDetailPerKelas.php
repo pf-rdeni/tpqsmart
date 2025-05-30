@@ -32,7 +32,7 @@ function capitalizeWords($str)
         <!-- /.card-header -->
         <div class="card-body">
             <div class="card card-primary card-tabs">
-                <!-- Tab Navigation -->
+                <!-- Tab Navigation Membuat Header Tab selection dari Nama Kelas-->
                 <div class="card-header p-0 pt-1">
                     <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="kelasTab" role="tablist">
                         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
@@ -51,6 +51,7 @@ function capitalizeWords($str)
                     </ul>
                 </div>
                 <br>
+                <!-- Tab Content Megenerate Tabel-->
                 <div class="card-body">
                     <div class="tab-content" id="kelasTabContent">
                         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
@@ -59,19 +60,24 @@ function capitalizeWords($str)
                                 role="tabpanel"
                                 aria-labelledby="tab-<?= $kelasId ?>">
                                 <table id="TableNilaiSemester-<?= $kelasId ?>" class="table table-bordered table-striped">
+                                    <!-- Table Header Menampilkan Nama Kelas  TA Semester dan Nama Materi-->
                                     <thead>
                                         <tr>
                                             <?php if (!empty($dataNilai)): ?>
                                                 <th>Aksi</th>
-                                                <?php foreach (array_keys($dataNilai[0]) as $field): ?>
-                                                    <?php if ($field !== 'IdKelas'): ?>
-                                                        <?php if (in_array($field, ['IdSantri', 'Nama Santri', 'Nama Kelas', 'Tahun Ajaran', 'Semester'])): ?>
-                                                            <th><?= htmlspecialchars(capitalizeWords($field)) ?></th>
-                                                        <?php else: ?>
-                                                            <th class="vertical-header"><?= htmlspecialchars(capitalizeWords($field)) ?></th>
-                                                        <?php endif; ?>
-                                                    <?php endif; ?>
-                                                <?php endforeach; ?>
+                                                <th>Id Santri</th>
+                                                <th>Nama Santri</th>
+                                                <th>Nama Kelas</th>
+                                                <th>Tahun Ajaran</th>
+                                                <th>Semester</th>
+                                                <?php
+                                                // Tampilkan header materi berdasarkan kelas yang dipilih
+                                                if (isset($dataMateri[$kelasId])) {
+                                                    foreach ($dataMateri[$kelasId] as $materi) {
+                                                        echo '<th class="vertical-header">' . htmlspecialchars(capitalizeWords($materi->NamaMateri)) . '</th>';
+                                                    }
+                                                }
+                                                ?>
                                                 <th class="vertical-header">Total Nilai</th>
                                                 <th class="vertical-header">Nilai Rata-Rata</th>
                                             <?php endif; ?>
@@ -90,28 +96,33 @@ function capitalizeWords($str)
                                                             <i class="fas fa-eye"></i> Detail
                                                         </a>
                                                     </td>
+                                                    <td><?= htmlspecialchars($santri['IdSantri']) ?></td>
+                                                    <td><?= htmlspecialchars($santri['Nama Santri']) ?></td>
+                                                    <td><?= htmlspecialchars($santri['Nama Kelas']) ?></td>
+                                                    <td><?= htmlspecialchars($santri['Tahun Ajaran']) ?></td>
+                                                    <td><?= htmlspecialchars($santri['Semester']) ?></td>
                                                     <?php
-                                                    $totalNilai = 0; // Variabel untuk menghitung total nilai per baris
-                                                    $jumlahKolomNilai = 0; // Variabel untuk menghitung jumlah kolom nilai
-                                                    $rowCount++; // Tambahkan counter jumlah baris
-                                                    ?>
-                                                    <?php foreach ($santri as $field => $value): ?>
-                                                        <?php if ($field !== 'IdKelas'): ?>
-                                                            <td><?= htmlspecialchars($value) ?></td>
-                                                            <?php
-                                                            // Hitung total nilai setiap kolom
-                                                            if (!in_array($field, ['IdSantri', 'Nama Santri', 'Nama Kelas', 'Tahun Ajaran', 'Semester'])) {
-                                                                $columnTotals[$field] = ($columnTotals[$field] ?? 0) + (int)$value;
-                                                                $totalNilai += (int)$value;
+                                                    $totalNilai = 0;
+                                                    $jumlahKolomNilai = 0;
+                                                    $rowCount++;
+
+                                                    // Tampilkan nilai materi berdasarkan kelas yang dipilih
+                                                    if (isset($dataMateri[$kelasId])) {
+                                                        foreach ($dataMateri[$kelasId] as $materi) {
+                                                            $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
+                                                            echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars($nilai) . '</td>';
+
+                                                            // Hitung total nilai
+                                                            if ($nilai >= 0) {
+                                                                $columnTotals[$materi->NamaMateri] = ($columnTotals[$materi->NamaMateri] ?? 0) + $nilai;
+                                                                $totalNilai += $nilai;
                                                                 $jumlahKolomNilai++;
                                                             }
-                                                            ?>
-                                                        <?php endif; ?>
-                                                    <?php endforeach; ?>
-                                                    <td><?= $totalNilai ?></td>
-                                                    <td>
-                                                        <?= $jumlahKolomNilai > 0 ? round($totalNilai / $jumlahKolomNilai, 2) : 0 ?>
-                                                    </td>
+                                                        }
+                                                    }
+                                                    ?>
+                                                    <td><?= $totalNilai >= 0 ? $totalNilai : ' ' ?></td>
+                                                    <td><?= $jumlahKolomNilai > 0 ? round($totalNilai / $jumlahKolomNilai, 1) : ' ' ?></td>
                                                 </tr>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
@@ -122,26 +133,25 @@ function capitalizeWords($str)
                                             <th></th>
                                             <th></th>
                                             <th>Rata-Rata</th>
-                                            <!--th colspan="6">Rata-rata Nilai Materi Pelajaran</th-->
                                             <?php
                                             $grandTotal = 0;
                                             $nilaiKolomCount = 0;
+
+                                            // Tampilkan rata-rata nilai materi
+                                            if (isset($dataMateri[$kelasId])) {
+                                                foreach ($dataMateri[$kelasId] as $materi) {
+                                                    $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : -1;
+                                                    echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
+
+                                                    if ($rataRata >= 0) {
+                                                        $grandTotal += $columnTotals[$materi->NamaMateri] ?? 0;
+                                                        $nilaiKolomCount++;
+                                                    }
+                                                }
+                                            }
                                             ?>
-                                            <?php foreach (array_keys($dataNilai[0]) as $field): ?>
-                                                <?php if (!in_array($field, ['IdKelas', 'IdSantri', 'Nama Santri', 'Nama Kelas', 'Tahun Ajaran', 'Semester'])): ?>
-                                                    <th>
-                                                        <?= $rowCount > 0 ? round($columnTotals[$field] / $rowCount, 2) : 0 ?>
-                                                    </th>
-                                                    <?php
-                                                    $grandTotal += $columnTotals[$field] ?? 0;
-                                                    $nilaiKolomCount++;
-                                                    ?>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
-                                            <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 2) : 0 ?></th>
-                                            <th>
-                                                <?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 2) : 0 ?>
-                                            </th>
+                                            <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 1) : ' ' ?></th>
+                                            <th><?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 1) : ' ' ?></th>
                                         </tr>
                                     </tbody>
                                     <tfoot>

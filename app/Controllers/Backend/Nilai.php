@@ -126,10 +126,23 @@ class Nilai extends BaseController
             $dataKelas[$nilai['IdKelas']] = $nilai['Nama Kelas'];
         }
 
+        $dataMateri = [];
+        // ambill materi pelajaran untuk semua kelas jika kelas 'SEMUA'
+        if (isset($dataKelas[0]) && $dataKelas[0] === 'SEMUA') {
+            $dataMateri[0] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $IdKelas, $semester);
+        }
+
+        foreach ($dataKelas as $idKelas => $namaKelas) {
+            if ($idKelas !== 0) { // Skip jika bukan 'SEMUA'
+                $dataMateri[$idKelas] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $idKelas, $semester);
+            }
+        }
+
         return view('backend/nilai/nilaiSantriDetailPerKelas', [
             'page_title' => 'Detail Nilai Santri Semester ' . $semester,
             'dataNilai' => $datanilai,
-            'dataKelas' => $dataKelas
+            'dataKelas' => $dataKelas,
+            'dataMateri' => $dataMateri,
         ]);
     }
 

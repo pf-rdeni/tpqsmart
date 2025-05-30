@@ -143,7 +143,7 @@ class NilaiModel extends Model
                 JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
                 WHERE $whereClause
                 GROUP BY IdSantri, IdTahunAjaran, Semester
-                ORDER BY n.IdKelas ASC
+                ORDER BY n.IdKelas ASC, s.NamaSantri ASC
             ";
 
             // Eksekusi query akhir
