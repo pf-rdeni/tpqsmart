@@ -531,27 +531,41 @@ class Santri extends BaseController
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
 
-        // jika IdTpq tidak ada, maka tampilkan semua data santri
+        // Mulai membangun query dasar
+        $query = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        // Jika IdTpq tidak ada, ambil semua data santri dengan pengurutan khusus
         if ($IdTpq == null) {
-            $santri = $this->DataSantriBaru
-                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            $santri = $query
                 ->orderBy('tbl_santri_baru.Status', 'DESC')
                 ->orderBy('tbl_santri_baru.updated_at', 'DESC')
                 ->findAll();
         } else {
-            $santri = $this->DataSantriBaru
-                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            // Jika IdTpq ada, terapkan filter IdTpq dan cek filter IdKelas
+            $IdKelas = session()->get('IdKelas');
+
+            // Terapkan filter IdKelas jika ada
+            if ($IdKelas !== null) {
+                // check jika IdKelas adalah array, maka filter where in
+                if (is_array($IdKelas)) {
+                    $query->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                } else {
+                    $query->where('tbl_santri_baru.IdKelas', $IdKelas);
+                }
+            }
+
+            // Tambahkan filter IdTpq dan pengurutan untuk kasus IdTpq tidak null
+            $santri = $query
                 ->where('tbl_santri_baru.IdTpq', $IdTpq)
+                ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
+                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
                 ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
                 ->findAll();
         }
 
-        
         $tpq = $this->helpFunction->getDataTpq();
         usort($tpq, function ($a, $b) {
             return strcmp($a['NamaTpq'], $b['NamaTpq']);
@@ -589,25 +603,32 @@ class Santri extends BaseController
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
 
-        // jika IdTpq tidak ada, maka tampilkan semua data santri
-        if ($IdTpq == null) {
-            $santri = $this->DataSantriBaru
-                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->orderBy('tbl_santri_baru.Status', 'DESC')
-            ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-            ->findAll();
-        } else {
-            $santri = $this->DataSantriBaru
-                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-                ->where('tbl_santri_baru.IdTpq', $IdTpq)
-                ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->findAll();
+        // ambil IdKelas dari session
+        $IdKelas = session()->get('IdKelas');
+
+        // Mulai membangun query
+        $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        // Terapkan filter IdKelas jika ada
+        if ($IdKelas !== null) {
+            // check jika IdKelas adalah array, maka filter where in
+            if (is_array($IdKelas)) {
+                $this->DataSantriBaru->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+            } else {
+                $this->DataSantriBaru->where('tbl_santri_baru.IdKelas', $IdKelas);
+            }
         }
+
+        // Tambahkan filter IdTpq dan pengurutan yang umum
+        $santri = $this->DataSantriBaru
+            ->where('tbl_santri_baru.IdTpq', $IdTpq)
+            ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
+            ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+            ->orderBy('tbl_santri_baru.Status', 'DESC')
+            ->findAll();
 
         $tpq = $this->helpFunction->getDataTpq();
         usort($tpq, function ($a, $b) {
@@ -634,7 +655,7 @@ class Santri extends BaseController
         }
 
         $data = [
-            'page_title' => 'Data Santri Baru',
+            'page_title' => 'Data Santri',
             'dataSantri' => $santri,
             'dataTpq' => $tpq
         ];

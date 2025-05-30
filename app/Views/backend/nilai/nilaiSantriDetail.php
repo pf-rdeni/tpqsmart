@@ -130,7 +130,6 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                             <label for="FormProfilTpq">Id-Nama Materi</label>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri ?></span>
                         </div>
-                        <?= $isAlphabetKelas = false; ?>
                         <?php if (isset($settingNilai->NilaiAlphabet) && $settingNilai->NilaiAlphabet) {
                             $SettingNilaiAlphabet = $settingNilai->NilaiAlphabet->Nilai_Alphabet;
                             if ($SettingNilaiAlphabet) {

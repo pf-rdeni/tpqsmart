@@ -4,7 +4,7 @@
     <div class="card">
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
-                <h3 class="card-title">Daftar Santri TPQ Di Kecamatan Seri Kuala Lobam</h3>
+                <h3 class="card-title">Daftar Santri</h3>
                 <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="btn btn-primary">
                     <i class="fas fa-plus"></i><span class="d-none d-md-inline">&nbsp;Daftar Santri Baru</span>
                 </a>
@@ -12,7 +12,6 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
-            <h5>Data Pendaftaran Santri Terbaru</h5>
             <table id="tblAturSantri" class="table table-bordered table-striped">
                 <thead>
                     <tr>
@@ -72,9 +71,12 @@
                                 <a href="<?= base_url('backend/santri/editSantri/' . $santri['IdSantri']); ?>" class="btn btn-warning btn-sm flex-fill">
                                     <i class="fas fa-edit"></i><span class="d-none d-md-inline">&nbsp;Edit</span>
                                 </a>
-                                <a href="javascript:void(0)" onclick="deleteSantri('<?= $santri['IdSantri']; ?>')" class="btn btn-danger btn-sm flex-fill">
-                                    <i class="fas fa-trash"></i><span class="d-none d-md-inline">&nbsp;Hapus</span>
-                                </a>
+                                <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+
+                                    <a href="javascript:void(0)" onclick="deleteSantri('<?= $santri['IdSantri']; ?>')" class="btn btn-danger btn-sm flex-fill">
+                                        <i class="fas fa-trash"></i><span class="d-none d-md-inline">&nbsp;Hapus</span>
+                                    </a>
+                                <?php endif; ?>
                             </td>
                             <td><?= $santri['IdSantri']; ?></td>
                             <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
@@ -668,7 +670,7 @@
         }
     }
     // Initialize DataTable for #tblTpq
-    initializeDataTableUmum("#tblTpq");
-    initializeDataTableWithFilter("#tblAturSantri", true, ["excel", "pdf", "print", "colvis"]);
+    initializeDataTableUmum("#tblAturSantri", true, true);
+    //initializeDataTableWithFilter("#tblAturSantri", true, true, ["excel", "pdf", "print", "colvis"]);
 </script>
 <?= $this->endSection(); ?>

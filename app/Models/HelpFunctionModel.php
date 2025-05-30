@@ -447,11 +447,13 @@ class HelpFunctionModel extends Model
     }
 
     // Get value setting input nilai min dan max dari tbl_tools
-    public function getSettingLimitInputNilai($IdTpq, $SettingKey)
+    public function getSettingLimitInputNilai($IdTpq = null, $SettingKey)
     {
         $builder = $this->db->table('tbl_tools');
         $builder->select('SettingValue');
-        $builder->where('IdTpq', $IdTpq);
+        if (!empty($IdTpq)) {
+            $builder->where('IdTpq', $IdTpq);
+        }
         $builder->where('SettingKey', $SettingKey);
 
         $result = $builder->get()->getRowArray();

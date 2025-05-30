@@ -105,7 +105,7 @@ class AuthController extends Controller
 
         if ($idGuru != null) {
             $dataGuruKelas = $this->helpFunction->getDataGuruKelas(IdGuru: $idGuru);
-
+            $IdTpq = '';
             foreach ($dataGuruKelas as $dataGuru) {
                 $IdKelasList[] = $dataGuru->IdKelas;
                 $IdJabatanList[] = $dataGuru->IdJabatan;

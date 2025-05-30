@@ -264,9 +264,14 @@
                         </a>
                         <ul class="nav nav-treeview" style="display: none;">
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/showSantriPerKelas') ?> class="nav-link">
+                                <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Santri Per Kelas</p>
+                                    <p>Input Data Santri</p>
+                                </a>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Ubah Data Santri</p>
                                 </a>
                             </li>
                         </ul>
