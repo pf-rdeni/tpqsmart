@@ -591,7 +591,7 @@ class Santri extends BaseController
         }
 
         $data = [
-            'page_title' => 'Data Santri Baru',
+            'page_title' => 'Data Santri',
             'dataSantri' => $santri,
             'dataTpq' => $tpq
         ];

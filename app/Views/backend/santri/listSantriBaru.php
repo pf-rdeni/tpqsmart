@@ -4,7 +4,7 @@
     <div class="card">
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
-                <h3 class="card-title">Daftar Santri TPQ Di Kecamatan Seri Kuala Lobam</h3>
+                <h3 class="card-title">Daftar Santri</h3>
                 <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="btn btn-primary">
                     <i class="fas fa-plus"></i><span class="d-none d-md-inline">&nbsp;Daftar Santri Baru</span>
                 </a>
@@ -12,7 +12,6 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
-            <h5>Data Pendaftaran Santri Terbaru</h5>
             <table id="tblSantriBaru" class="table table-bordered table-striped">
                 <thead>
                     <tr>

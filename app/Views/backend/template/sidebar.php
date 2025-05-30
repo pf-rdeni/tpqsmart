@@ -264,6 +264,11 @@
                         </a>
                         <ul class="nav nav-treeview" style="display: none;">
                             <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showSantriBaru') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Data Santri</p>
+                                </a>
+                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Input Data Santri</p>
