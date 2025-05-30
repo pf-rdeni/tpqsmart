@@ -83,7 +83,7 @@ class AuthController extends Controller
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $login    = $this->request->getPost('login');
+        $login    = strtolower($this->request->getPost('login'));
         $password = $this->request->getPost('password');
         $remember = (bool) $this->request->getPost('remember');
 
@@ -249,7 +249,14 @@ class AuthController extends Controller
 
         // Save the user
         $allowedPostFields = array_merge(['password'], $this->config->validFields, $this->config->personalFields);
-        $user              = new User($this->request->getPost($allowedPostFields));
+        $userData = $this->request->getPost($allowedPostFields);
+
+        // Convert username to lowercase if it exists
+        if (isset($userData['username'])) {
+            $userData['username'] = strtolower($userData['username']);
+        }
+
+        $user = new User($userData);
 
         $this->config->requireActivation === null ? $user->activate() : $user->generateActivateHash();
 
