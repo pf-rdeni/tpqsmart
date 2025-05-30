@@ -211,8 +211,8 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                                 <label for="FormProfilTpq">Nilai</label>
                                 <input type="number" name="Nilai" class="form-control" id="NilaiEditModal-<?= $DataNilai->Id ?>" required
                                     placeholder="<?= $DataNilai->Nilai > 0 ? '' : 'Ketik Nilai' ?>" value="<?= $DataNilai->Nilai > 0 ? $DataNilai->Nilai : '' ?>"
-                                    min="50" max="100"
-                                    oninvalid="this.setCustomValidity('Nilai harus antara 50 dan 100')"
+                                    min="<?= $settingNilai->NilaiMin ?? 0 ?>" max="<?= $settingNilai->NilaiMax ?? 100 ?>"
+                                    oninvalid="this.setCustomValidity('Nilai harus antara <?= $settingNilai->NilaiMin ?? 0 ?> dan <?= $settingNilai->NilaiMax ?? 100 ?>')"
                                     oninput="this.setCustomValidity('')"
                                     autofocus>
                             </div>

@@ -242,12 +242,14 @@
                                     <p>Daftar Akun</p>
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/tools/index') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Tools</p>
-                                </a>
-                            </li>
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/tools/index') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Pengaturan Umum</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
                     </li>
                 <?php endif; ?>
