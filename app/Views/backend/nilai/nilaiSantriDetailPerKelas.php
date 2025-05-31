@@ -184,7 +184,7 @@ function capitalizeWords($str)
                         </div>
                         <div class="modal-body">
                             <div class="table-responsive">
-                                <table class="table table-bordered" id="modalTabelDetailNilai-<?= $santri['IdSantri'] ?>">
+                                <table class="table table-bordered table-striped" id="modalTabelDetailNilai-<?= $santri['IdSantri'] ?>">
                                     <thead>
                                         <tr>
                                             <th>Nama Materi</th>
@@ -216,11 +216,13 @@ function capitalizeWords($str)
                                         ?>
                                         <tr class="table-info">
                                             <td><strong>Total Nilai</strong></td>
-                                            <td colspan="2"><strong><?= $totalNilaiSantri >= 0 ? $totalNilaiSantri : ' ' ?></strong></td>
+                                            <td><strong><?= $totalNilaiSantri >= 0 ? $totalNilaiSantri : ' ' ?></strong></td>
+                                            <td></td>
                                         </tr>
                                         <tr class="table-info">
                                             <td><strong>Rata-Rata</strong></td>
-                                            <td colspan="2"><strong><?= $jumlahMateri > 0 ? round($totalNilaiSantri / $jumlahMateri, 1) : ' ' ?></strong></td>
+                                            <td><strong><?= $jumlahMateri > 0 ? round($totalNilaiSantri / $jumlahMateri, 1) : ' ' ?></strong></td>
+                                            <td></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -253,9 +255,51 @@ function capitalizeWords($str)
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
             initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true, buttons);
         <?php endforeach; ?>
+
+        // Inisialisasi DataTable untuk modal
+        function initModalDataTable(santriId) {
+            let tableId = '#modalTabelDetailNilai-' + santriId;
+            let table = $(tableId);
+
+            // Destroy existing DataTable if it exists
+            if ($.fn.DataTable.isDataTable(tableId)) {
+                $(tableId).DataTable().destroy();
+            }
+
+            // Reinitialize DataTable
+            table.DataTable({
+                "responsive": true,
+                "autoWidth": false,
+                "paging": true,
+                "pageLength": 6,
+                "searching": true,
+                "ordering": false,
+                "info": true,
+                "scrollY": "400px",
+                "scrollCollapse": true,
+                "lengthMenu": [
+                    [10, 25, 50, -1],
+                    [10, 25, 50, "Semua"]
+                ],
+
+            });
+        }
+
+        // Event handler untuk modal
+        <?php foreach ($dataNilai as $santri) : ?>
+            let modal<?= $santri['IdSantri'] ?> = $('#modalDetailNilai<?= $santri['IdSantri'] ?>');
+
+            modal<?= $santri['IdSantri'] ?>.on('shown.bs.modal', function() {
+                initModalDataTable('<?= $santri['IdSantri'] ?>');
+            });
+
+            modal<?= $santri['IdSantri'] ?>.on('hidden.bs.modal', function() {
+                let tableId = '#modalTabelDetailNilai-<?= $santri['IdSantri'] ?>';
+                if ($.fn.DataTable.isDataTable(tableId)) {
+                    $(tableId).DataTable().destroy();
+                }
+            });
+        <?php endforeach; ?>
     });
-    <?php foreach ($dataNilai as $santri) : ?>
-        initializeDataTableUmum("#modalTabelDetailNilai-<?= $santri['IdSantri']  ?>", true, true);
-    <?php endforeach; ?>
 </script>
 <?= $this->endSection(); ?>
