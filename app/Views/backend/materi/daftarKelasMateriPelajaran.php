@@ -12,6 +12,9 @@
                     <a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalTambahData">
                         <i class="fas fa-plus"></i> Tambah Data
                     </a>
+                    <a href="#" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#modalUpdateData">
+                        <i class="fas fa-edit"></i> Terapkan Perubahan
+                    </a>
                 </div>
             </div>
         </div>
@@ -199,6 +202,24 @@
                 <button type="button" class="btn btn-secondary" id="tutupModal">Tutup</button>
                 <button type="button" class="btn btn-warning" id="clearAllCheckbox">Cancel Semua Ceklist</button>
                 <button type="button" class="btn btn-primary" id="simpanData" onclick="simpanData()">Simpan Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Update Data -->
+<div class="modal fade" id="modalUpdateData" tabindex="-1" role="dialog" aria-labelledby="modalUpdateDataLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="modalUpdateDataLabel">Terapkan Perubahan</h5>
+            </div>
+            <div class="card-body">
+                <p>Perubahan akan diterapkan ke semua kelas yang memiliki materi ini.</p>
+                <button type="button" class="btn btn-primary" onclick="updateDataMateriPenilaian()">Terapkan Perubahan</button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -452,6 +473,61 @@
                         });
                     },
                     error: function() {
+                        Swal.fire(
+                            'Gagal!',
+                            response.responseJSON ? response.responseJSON.message : 'Terjadi kesalahan', // Menggunakan pesan dari respon
+                            'error'
+                        );
+                    }
+                });
+            }
+        });
+    }
+
+    // fungsi untuk perbarui data materi kelas pada tabel nilai semua kelas dan semua santri untuk tahun ajaran dan semester saat ini
+    function updateDataMateriPenilaian() {
+        // Menampilkan SweetAlert konfirmasi dengan mengirimkan data ke kontroler updateMateriPelajaranPadaTabelNilai
+        Swal.fire({
+            title: 'Konfirmasi',
+            text: "Apakah Anda yakin ingin memperbarui data materi pelajaran pada tabel nilai?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, perbarui!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Menampilkan loading spinner
+                Swal.fire({
+                    title: 'Memperbarui Data',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    icon: 'info',
+                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>',
+                    onBeforeOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Mengirim permintaan AJAX untuk memperbarui data
+                $.ajax({
+                    url: '<?= base_url('backend/KelasMateriPelajaran/updateMateriPelajaranPadaTabelNilai') ?>',
+                    type: 'POST',
+                    success: function(response) {
+                        Swal.fire({
+                            title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
+                            text: response.message,
+                            icon: response.status === 'success' ? 'success' : 'error',
+                            timer: 2000,
+                            showConfirmButton: true
+                        }).then(() => {
+                            if (response.status === 'success') {
+                                location.reload(); // Refresh halaman setelah konfirmasi
+                            }
+                        });
+                    },
+                    error: function(response) {
                         Swal.fire(
                             'Gagal!',
                             response.responseJSON ? response.responseJSON.message : 'Terjadi kesalahan', // Menggunakan pesan dari respon

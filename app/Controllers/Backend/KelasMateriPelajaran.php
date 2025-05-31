@@ -188,4 +188,26 @@ class KelasMateriPelajaran extends BaseController
         return view('backend/materi/daftarKelasMateriPelajaran', $data);
     }
 
+    // Update Materi pada table nilai dengan fungsi dari helpfunctionModel updateMateriPelajaranPadaTabelNilai
+    public function updateMateriPelajaranPadaTabelNilai()
+    {
+        $helpModel = new HelpFunctionModel();
+        // ambil data IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+        // ambil tahun ajaran saat ini dari helpModel
+        $tahunAjaran = $helpModel->getTahunAjaranSaatIni();
+        $result = $helpModel->updateMateriPelajaranPadaTabelNilai($IdTpq, $tahunAjaran);
+
+        if ($result) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Data materi pelajaran pada tabel nilai berhasil diperbarui.'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'fail',
+                'message' => 'Gagal memperbarui data materi pelajaran pada tabel nilai.'
+            ])->setStatusCode(500);
+        }
+    }
 }

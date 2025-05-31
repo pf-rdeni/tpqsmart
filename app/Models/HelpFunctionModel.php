@@ -6,10 +6,17 @@ use CodeIgniter\Model;
 class HelpFunctionModel extends Model
 {
     protected $santriModel;
+    protected $kelasModel;
+    protected $nilaiModel;
+    protected $santriBaruModel;
 
     public function __construct()
     {
         parent::__construct();
+        $this->santriModel = new \App\Models\SantriModel();
+        $this->kelasModel = new \App\Models\KelasModel();
+        $this->nilaiModel = new \App\Models\NilaiModel();
+        $this->santriBaruModel = new \App\Models\SantriBaruModel();
     }
     //=================================================================
     // Select Related to Read tabel
@@ -528,6 +535,225 @@ class HelpFunctionModel extends Model
         $builder->orderBy('IdKelas, IdMateri, Kategori');
         // Mengembalikan hasil sebagai objek
         return $builder->get()->getResultObject();
+    }
+
+    /**
+     * ====================================================================================
+     * Start Fungsi untuk menyimpan data santri dan materi pelajaran ke dalam tabel nilai
+     * ====================================================================================
+     */
+    public function saveDataSantriDanMateriDiTabelNilai($StatusSantri, $santriList)
+    {
+        // 1. Tentukan status dan tahun ajaran
+        $tahunAjaran = $this->getTahunAjaran($StatusSantri);
+        $isSantriBaru = ($StatusSantri == 0);
+
+        // 2. Proses setiap santri
+        foreach ($santriList as $santri) {
+            $this->prosesSantri($santri, $isSantriBaru, $tahunAjaran);
+        }
+    }
+
+    /**
+     * Mendapatkan tahun ajaran berdasarkan status santri
+     */
+    private function getTahunAjaran($StatusSantri)
+    {
+        if ($StatusSantri == 0) {
+            return $this->getTahunAjaranSaatIni(); // Tahun ajaran saat ini untuk santri baru
+        }
+        return $this->getTahuanAjaranBerikutnya(0); // Tahun ajaran berikutnya untuk naik kelas
+    }
+
+    /**
+     * Memproses data satu santri
+     */
+    private function prosesSantri($santri, $isSantriBaru, $tahunAjaran)
+    {
+        // 1. Ambil data dasar santri
+        $dataSantri = $this->getDataSantri($santri);
+
+        // 2. Proses berdasarkan status
+        if ($isSantriBaru) {
+            $this->prosesSantriBaru($dataSantri);
+        } else {
+            $this->prosesNaikKelas($dataSantri, $tahunAjaran);
+        }
+
+        // 3. Proses materi dan nilai
+        $this->prosesMateriDanNilai($dataSantri, $tahunAjaran);
+    }
+
+    /**
+     * Mengambil data dasar santri
+     */
+    private function getDataSantri($santri)
+    {
+        return [
+            'IdSantri' => $santri['IdSantri'],
+            'IdTpq' => $santri['IdTpq'],
+            'IdKelas' => $santri['IdKelas'],
+            'IdTahunAjaran' => $santri['IdTahunAjaran']
+        ];
+    }
+
+    /**
+     * Memproses data santri baru
+     */
+    private function prosesSantriBaru($dataSantri)
+    {
+        // 1. Simpan di tabel kelas_santri
+        $this->kelasModel->insert($dataSantri);
+
+        // 2. Update status aktif santri
+        $this->santriBaruModel->updateActiveSantri($dataSantri['IdSantri']);
+    }
+
+    /**
+     * Memproses kenaikan kelas
+     */
+    private function prosesNaikKelas($dataSantri, $tahunAjaran)
+    {
+        // 1. Dapatkan kelas baru
+        $kelasBaru = $this->getNextKelas($dataSantri['IdKelas']);
+
+        // 2. Insert data kelas baru
+        $this->kelasModel->insert([
+            'IdKelas' => $kelasBaru,
+            'IdTpq' => $dataSantri['IdTpq'],
+            'IdSantri' => $dataSantri['IdSantri'],
+            'IdTahunAjaran' => $tahunAjaran
+        ]);
+
+        // 3. Update status kelas lama
+        $this->kelasModel->update($dataSantri['Id'], ['Status' => 0]);
+    }
+
+    /**
+     * Memproses materi dan nilai
+     */
+    private function prosesMateriDanNilai($dataSantri, $tahunAjaran)
+    {
+        // 1. Ambil materi pelajaran
+        $listMateri = $this->getKelasMateriPelajaran(
+            $dataSantri['IdKelas'],
+            $dataSantri['IdTpq']
+        );
+
+        // 2. Proses setiap materi
+        foreach ($listMateri as $materi) {
+            $this->simpanNilaiMateri($materi, $dataSantri, $tahunAjaran);
+        }
+    }
+
+    /**
+     * Menyimpan nilai untuk satu materi
+     */
+    private function simpanNilaiMateri($materi, $dataSantri, $tahunAjaran)
+    {
+        // Proses semester ganjil
+        if ($materi->SemesterGanjil == 1) {
+            $this->insertNilai($materi, $dataSantri, $tahunAjaran, "Ganjil");
+        }
+
+        // Proses semester genap
+        if ($materi->SemesterGenap == 1) {
+            $this->insertNilai($materi, $dataSantri, $tahunAjaran, "Genap");
+        }
+    }
+
+    /**
+     * Insert nilai ke database
+     */
+    private function insertNilai($materi, $dataSantri, $tahunAjaran, $semester)
+    {
+        $data = [
+            'IdTpq' => $dataSantri['IdTpq'],
+            'IdSantri' => $dataSantri['IdSantri'],
+            'IdKelas' => $materi->IdKelas,
+            'IdMateri' => $materi->IdMateri,
+            'IdTahunAjaran' => $tahunAjaran,
+            'Semester' => $semester
+        ];
+
+        $this->nilaiModel->insertNilai($data);
+    }
+    //================================================================================
+    // End funsi untuk menyimpan data santri dan materi pelajaran ke dalam tabel nilai
+    //================================================================================
+
+    // Membuat fungsi untuk mengupdate jika ada perubahan pada materi pelajaran untuk di update di tabel nilai
+    public function updateMateriPelajaranPadaTabelNilai($IdTpq, $IdTahunAjaran)
+    {
+        // Step1: Ambil Data Santri Actif di tbl_santri_baru filter by IdTpq
+        $santriList = $this->santriBaruModel->where(['IdTpq' => $IdTpq, 'Active' => 1])->findAll();
+
+        // Siapkan array untuk batch insert
+        $batchData = [];
+
+        foreach ($santriList as $santri) {
+            // Step2: Ambil Data Kelas Materi Pelajaran
+            $kelasMateriList = $this->getKelasMateriPelajaran(IdTpq: $IdTpq, kelas: $santri['IdKelas'], Semester: null);
+
+            // Kumpulkan semua IdMateri untuk query
+            $materiIds = array_column($kelasMateriList, 'IdMateri');
+
+            // Step3: Ambil semua nilai yang sudah ada dalam satu query
+            $existingNilai = $this->nilaiModel->where([
+                'IdTpq' => $IdTpq,
+                'IdSantri' => $santri['IdSantri'],
+                'IdTahunAjaran' => $IdTahunAjaran
+            ])
+                ->whereIn('IdMateri', $materiIds)
+                ->findAll();
+
+            // Buat array untuk pengecekan cepat
+            $existingNilaiMap = [];
+            foreach ($existingNilai as $nilai) {
+                $key = $nilai['IdMateri'] . '_' . $nilai['Semester'];
+                $existingNilaiMap[$key] = true;
+            }
+
+            // Step4: Proses setiap materi
+            foreach ($kelasMateriList as $materi) {
+                // Cek semester ganjil
+                if ($materi->SemesterGanjil == 1) {
+                    $key = $materi->IdMateri . '_Ganjil';
+                    if (!isset($existingNilaiMap[$key])) {
+                        $batchData[] = [
+                            'IdTpq' => $IdTpq,
+                            'IdSantri' => $santri['IdSantri'],
+                            'IdKelas' => $materi->IdKelas,
+                            'IdMateri' => $materi->IdMateri,
+                            'IdTahunAjaran' => $IdTahunAjaran,
+                            'Semester' => 'Ganjil'
+                        ];
+                    }
+                }
+
+                // Cek semester genap
+                if ($materi->SemesterGenap == 1) {
+                    $key = $materi->IdMateri . '_Genap';
+                    if (!isset($existingNilaiMap[$key])) {
+                        $batchData[] = [
+                            'IdTpq' => $IdTpq,
+                            'IdSantri' => $santri['IdSantri'],
+                            'IdKelas' => $materi->IdKelas,
+                            'IdMateri' => $materi->IdMateri,
+                            'IdTahunAjaran' => $IdTahunAjaran,
+                            'Semester' => 'Genap'
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Step5: Lakukan batch insert jika ada data
+        if (!empty($batchData)) {
+            return $this->nilaiModel->insertBatch($batchData);
+        } else {
+            return true; // Tidak ada data yang perlu diupdate
+        }
     }
 }
 
