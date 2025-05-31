@@ -132,7 +132,7 @@ function capitalizeWords($str)
                                             <th></th>
                                             <th></th>
                                             <th></th>
-                                            <th>Rata-Rata</th>
+                                            <th>Rata-Rata Kelas</th>
                                             <?php
                                             $grandTotal = 0;
                                             $nilaiKolomCount = 0;
@@ -189,7 +189,7 @@ function capitalizeWords($str)
                                         <tr>
                                             <th>Nama Materi</th>
                                             <th>Nilai</th>
-                                            <th>Rata-Rata</th>
+                                            <th>Rata-Rata Kelas</th>
                                         </tr>
                                     </thead>
                                     <tbody>
