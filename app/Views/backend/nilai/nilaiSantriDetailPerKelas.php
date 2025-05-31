@@ -126,33 +126,35 @@ function capitalizeWords($str)
                                                 </tr>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
-                                        <tr>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                            <th>Rata-Rata Kelas</th>
-                                            <?php
-                                            $grandTotal = 0;
-                                            $nilaiKolomCount = 0;
+                                        <?php if (count($dataMateri) <= 2 || (count($dataMateri) > 1 && array_search($kelasId, array_keys($dataMateri)) > 0)): ?>
+                                            <tr>
+                                                <th></th>
+                                                <th></th>
+                                                <th></th>
+                                                <th></th>
+                                                <th></th>
+                                                <th>Rata-Rata Kelas</th>
+                                                <?php
+                                                $grandTotal = 0;
+                                                $nilaiKolomCount = 0;
 
-                                            // Tampilkan rata-rata nilai materi
-                                            if (isset($dataMateri[$kelasId])) {
-                                                foreach ($dataMateri[$kelasId] as $materi) {
-                                                    $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : -1;
-                                                    echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
+                                                // Tampilkan rata-rata nilai materi
+                                                if (isset($dataMateri[$kelasId])) {
+                                                    foreach ($dataMateri[$kelasId] as $materi) {
+                                                        $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : -1;
+                                                        echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
 
-                                                    if ($rataRata >= 0) {
-                                                        $grandTotal += $columnTotals[$materi->NamaMateri] ?? 0;
-                                                        $nilaiKolomCount++;
+                                                        if ($rataRata >= 0) {
+                                                            $grandTotal += $columnTotals[$materi->NamaMateri] ?? 0;
+                                                            $nilaiKolomCount++;
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            ?>
-                                            <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 1) : ' ' ?></th>
-                                            <th><?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 1) : ' ' ?></th>
-                                        </tr>
+                                                ?>
+                                                <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 1) : ' ' ?></th>
+                                                <th><?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 1) : ' ' ?></th>
+                                            </tr>
+                                        <?php endif; ?>
                                     </tbody>
                                     <tfoot>
 
@@ -200,21 +202,21 @@ function capitalizeWords($str)
                                             foreach ($dataMateri[$kelasId] as $materi) {
                                                 $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
 
-                                            // Hitung rata-rata hanya untuk kelas yang sama
-                                            $totalNilaiKelas = 0;
-                                            $jumlahSantriKelas = 0;
-                                            foreach ($dataNilai as $santriKelas) {
-                                                if ($santriKelas['Nama Kelas'] == $kelas) {
-                                                    $nilaiSantriKelas = isset($santriKelas[$materi->NamaMateri]) ? (int)$santriKelas[$materi->NamaMateri] : 0;
-                                                    if ($nilaiSantriKelas > 0) {
-                                                        $totalNilaiKelas += $nilaiSantriKelas;
-                                                        $jumlahSantriKelas++;
+                                                // Hitung rata-rata hanya untuk kelas yang sama
+                                                $totalNilaiKelas = 0;
+                                                $jumlahSantriKelas = 0;
+                                                foreach ($dataNilai as $santriKelas) {
+                                                    if ($santriKelas['Nama Kelas'] == $kelas) {
+                                                        $nilaiSantriKelas = isset($santriKelas[$materi->NamaMateri]) ? (int)$santriKelas[$materi->NamaMateri] : 0;
+                                                        if ($nilaiSantriKelas >= 0) {
+                                                            $totalNilaiKelas += $nilaiSantriKelas;
+                                                            $jumlahSantriKelas++;
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            $rataRata = $jumlahSantriKelas > 0 ? round($totalNilaiKelas / $jumlahSantriKelas, 1) : ' ';
+                                                $rataRata = $jumlahSantriKelas > 0 ? round($totalNilaiKelas / $jumlahSantriKelas, 1) : ' ';
 
-                                            if ($nilai !== ' ') {
+                                                if ($nilai !== ' ') {
                                                     $totalNilaiSantri += $nilai;
                                                     $jumlahMateri++;
                                                 }
