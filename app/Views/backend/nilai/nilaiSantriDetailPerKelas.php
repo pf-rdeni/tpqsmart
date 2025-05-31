@@ -199,8 +199,22 @@ function capitalizeWords($str)
                                         if (isset($dataMateri[$kelasId])) {
                                             foreach ($dataMateri[$kelasId] as $materi) {
                                                 $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
-                                                $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : ' ';
-                                                if ($nilai !== ' ') {
+
+                                            // Hitung rata-rata hanya untuk kelas yang sama
+                                            $totalNilaiKelas = 0;
+                                            $jumlahSantriKelas = 0;
+                                            foreach ($dataNilai as $santriKelas) {
+                                                if ($santriKelas['Nama Kelas'] == $kelas) {
+                                                    $nilaiSantriKelas = isset($santriKelas[$materi->NamaMateri]) ? (int)$santriKelas[$materi->NamaMateri] : 0;
+                                                    if ($nilaiSantriKelas > 0) {
+                                                        $totalNilaiKelas += $nilaiSantriKelas;
+                                                        $jumlahSantriKelas++;
+                                                    }
+                                                }
+                                            }
+                                            $rataRata = $jumlahSantriKelas > 0 ? round($totalNilaiKelas / $jumlahSantriKelas, 1) : ' ';
+
+                                            if ($nilai !== ' ') {
                                                     $totalNilaiSantri += $nilai;
                                                     $jumlahMateri++;
                                                 }
