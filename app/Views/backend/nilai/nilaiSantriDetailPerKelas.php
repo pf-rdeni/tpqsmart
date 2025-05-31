@@ -92,9 +92,9 @@ function capitalizeWords($str)
                                             <?php if ($santri['Nama Kelas'] == $kelas || $kelas == "SEMUA"): ?>
                                                 <tr>
                                                     <td>
-                                                        <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/' . $santri['Semester']) ?>" class="btn btn-info btn-sm">
+                                                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalDetailNilai<?= $santri['IdSantri'] ?>">
                                                             <i class="fas fa-eye"></i> Detail
-                                                        </a>
+                                                        </button>
                                                     </td>
                                                     <td><?= htmlspecialchars($santri['IdSantri']) ?></td>
                                                     <td><?= htmlspecialchars($santri['Nama Santri']) ?></td>
@@ -169,8 +169,72 @@ function capitalizeWords($str)
     <!-- /.card -->
 </div>
 
-<!-- buat modal untuk mengambil detail per satu row yang bisa di klik -->
-
+<!-- Modal Detail Individual Nilai Santri dan Rata-Rata -->
+<?php foreach ($dataNilai as $santri) : ?>
+    <?php foreach ($dataKelas as $kelasId => $kelas): ?>
+        <?php if ($santri['Nama Kelas'] == $kelas && $kelas != "SEMUA"): ?>
+            <div class="modal fade" id="modalDetailNilai<?= $santri['IdSantri'] ?>" tabindex="-1" role="dialog" aria-labelledby="modalDetailNilaiLabel<?= $santri['IdSantri'] ?>" aria-hidden="true">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary">
+                            <h5 class="modal-title" id="modalDetailNilaiLabel<?= $santri['IdSantri'] ?>">Detail Nilai : <strong><?= htmlspecialchars($santri['Nama Santri']) ?></strong> Kelas <?= htmlspecialchars($santri['Nama Kelas']) ?> </h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="modalTabelDetailNilai-<?= $santri['IdSantri'] ?>">
+                                    <thead>
+                                        <tr>
+                                            <th>Nama Materi</th>
+                                            <th>Nilai</th>
+                                            <th>Rata-Rata</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $totalNilaiSantri = 0;
+                                        $jumlahMateri = 0;
+                                        if (isset($dataMateri[$kelasId])) {
+                                            foreach ($dataMateri[$kelasId] as $materi) {
+                                                $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
+                                                $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : ' ';
+                                                if ($nilai !== ' ') {
+                                                    $totalNilaiSantri += $nilai;
+                                                    $jumlahMateri++;
+                                                }
+                                        ?>
+                                                <tr>
+                                                    <td><?= htmlspecialchars(capitalizeWords($materi->NamaMateri)) ?></td>
+                                                    <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= htmlspecialchars($nilai) ?></td>
+                                                    <td><?= $rataRata >= 0 ? $rataRata : ' ' ?></td>
+                                                </tr>
+                                        <?php
+                                            }
+                                        }
+                                        ?>
+                                        <tr class="table-info">
+                                            <td><strong>Total Nilai</strong></td>
+                                            <td colspan="2"><strong><?= $totalNilaiSantri >= 0 ? $totalNilaiSantri : ' ' ?></strong></td>
+                                        </tr>
+                                        <tr class="table-info">
+                                            <td><strong>Rata-Rata</strong></td>
+                                            <td colspan="2"><strong><?= $jumlahMateri > 0 ? round($totalNilaiSantri / $jumlahMateri, 1) : ' ' ?></strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+    <?php endforeach; ?>
+<?php endforeach; ?>
 
 <?= $this->endSection(); ?>
 //script section
@@ -190,5 +254,8 @@ function capitalizeWords($str)
             initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true, buttons);
         <?php endforeach; ?>
     });
+    <?php foreach ($dataNilai as $santri) : ?>
+        initializeDataTableUmum("#modalTabelDetailNilai-<?= $santri['IdSantri']  ?>", true, true);
+    <?php endforeach; ?>
 </script>
 <?= $this->endSection(); ?>
