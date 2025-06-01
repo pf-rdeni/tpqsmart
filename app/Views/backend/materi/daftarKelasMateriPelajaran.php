@@ -751,7 +751,9 @@
                             showConfirmButton: false
                         }).then(() => {
                             if (response.status === 'success') {
-                                location.reload();
+                                // Panggil updateDataMateriPenilaian untuk refresh tampilan modal
+                                updateDataMateriPenilaian();
+                                //location.reload(); // Refresh halaman setelah konfirmasi
                             }
                         });
                     },
@@ -800,7 +802,9 @@
                             showConfirmButton: false
                         }).then(() => {
                             if (response.status === 'success') {
-                                location.reload();
+                                // Panggil updateDataMateriPenilaian untuk refresh tampilan modal
+                                updateDataMateriPenilaian();
+                                //location.reload();
                             }
                         });
                     },
