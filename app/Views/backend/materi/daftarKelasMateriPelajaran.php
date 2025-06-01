@@ -8,11 +8,15 @@
                     Daftar Kelas Materi Pelajaran
                 </h3>
 
-                <div class="card-tools">
-                    <a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalTambahData">
-                        <i class="fas fa-plus"></i> Tambah Data
+                <div class="card-tools d-flex flex-column flex-md-row gap-3">
+                    <a href="<?php echo base_url('backend/materiPelajaran/showMateriPelajaran') ?>" class="btn btn-info btn-sm w-100 flex-fill">
+                        <i class="fas fa-list"></i> Daftar Materi
                     </a>
-                    <a href="#" class="btn btn-warning btn-sm" onclick="updateDataMateriPenilaian()">
+
+                    <a href="#" class="btn btn-primary btn-sm w-100 flex-fill" data-toggle="modal" data-target="#modalTambahData">
+                        <i class="fas fa-gear"></i> Atur Materi
+                    </a>
+                    <a href="#" class="btn btn-warning btn-sm w-100 flex-fill" onclick="updateDataMateriPenilaian()">
                         <i class="fas fa-sync"></i> Perbarui Materi
                     </a>
                 </div>
@@ -215,6 +219,9 @@
                 <h5 class="modal-title" id="modalUpdateDataLabel">Rangkuman Perubahan Materi</h5>
             </div>
             <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle"></i> Fungsi ini akan memeriksa perubahan materi yang telah dilakukan pada tabel nilai semua kelas dan semua santri untuk tahun ajaran dan semester saat ini. Jika ada perubahan, materi yang tidak valid akan ditampilkan di bawah.
+                </div>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card">

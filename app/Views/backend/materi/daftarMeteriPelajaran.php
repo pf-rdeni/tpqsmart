@@ -10,6 +10,9 @@
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-tambah">
                         <i class="fas fa-plus"></i> Tambah Materi
                     </button>
+                    <button type="button" class="btn btn-info" onclick="window.location.href='<?php echo base_url('backend/kelasMateriPelajaran/showMateriKelas') ?>';">
+                        <i class="fas fa-list"></i> Daftar Materi Kelas
+                    </button>
                 </div>
                 <!-- /.card-header -->
                 <div class="card-body">
