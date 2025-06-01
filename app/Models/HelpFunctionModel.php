@@ -755,5 +755,163 @@ class HelpFunctionModel extends Model
             return true; // Tidak ada data yang perlu diupdate
         }
     }
+
+    // Fungsi untuk check apakah ada materi pelajaran yang sudah tidak ada di daftar materi pelajaran tetapi ada di tabel nilai
+    public function getMateriPelajaranYangSudahTidakAda($IdTpq, $IdTahunAjaran)
+    {
+        // Step1: Ambil Data Santri Actif di tbl_santri_baru filter by IdTpq
+        $santriList = $this->santriBaruModel->where(['IdTpq' => $IdTpq, 'Active' => 1])->findAll();
+
+        // Step2: Ambil semua nilai yang ada di tabel nilai untuk TPQ dan tahun ajaran tertentu
+        $existingNilai = $this->nilaiModel->where([
+            'IdTpq' => $IdTpq,
+            'IdTahunAjaran' => $IdTahunAjaran
+        ])->findAll();
+
+        // Step3: Buat array untuk menyimpan kombinasi IdMateri, IdKelas, dan Semester yang valid
+        $validMateriKelasSemester = [];
+
+        // Step4: Proses setiap santri untuk mendapatkan materi yang valid
+        foreach ($santriList as $santri) {
+            // Ambil Data Kelas Materi Pelajaran untuk santri ini
+            $kelasMateriList = $this->getKelasMateriPelajaran(
+                IdTpq: $IdTpq,
+                kelas: $santri['IdKelas'],
+                Semester: null
+            );
+
+            // Tambahkan kombinasi IdMateri, IdKelas, dan Semester ke array valid
+            foreach ($kelasMateriList as $materi) {
+                // Untuk semester ganjil
+                if ($materi->SemesterGanjil == 1) {
+                    $key = $materi->IdMateri . '_' . $materi->IdKelas . '_Ganjil';
+                    $validMateriKelasSemester[$key] = [
+                        'IdMateri' => $materi->IdMateri,
+                        'IdKelas' => $materi->IdKelas,
+                        'NamaMateri' => $materi->NamaMateri,
+                        'Kategori' => $materi->Kategori,
+                        'Semester' => 'Ganjil'
+                    ];
+                }
+                // Untuk semester genap
+                if ($materi->SemesterGenap == 1) {
+                    $key = $materi->IdMateri . '_' . $materi->IdKelas . '_Genap';
+                    $validMateriKelasSemester[$key] = [
+                        'IdMateri' => $materi->IdMateri,
+                        'IdKelas' => $materi->IdKelas,
+                        'NamaMateri' => $materi->NamaMateri,
+                        'Kategori' => $materi->Kategori,
+                        'Semester' => 'Genap'
+                    ];
+                }
+            }
+        }
+
+        // Step5: Buat array untuk menyimpan data yang perlu dihapus
+        $materiToDelete = [];
+
+        // Step6: Cek setiap nilai yang ada
+        foreach ($existingNilai as $nilai) {
+            // Buat key untuk pengecekan
+            $key = $nilai['IdMateri'] . '_' . $nilai['IdKelas'] . '_' . $nilai['Semester'];
+
+            // Jika kombinasi IdMateri, IdKelas, dan Semester tidak ada di daftar valid
+            if (!isset($validMateriKelasSemester[$key])) {
+                // Ambil informasi materi untuk ditampilkan
+                $materiInfo = $this->db->table('tbl_materi_pelajaran')
+                    ->where('IdMateri', $nilai['IdMateri'])
+                    ->get()
+                    ->getRowArray();
+
+                // Ambil informasi kelas
+                $kelasInfo = $this->db->table('tbl_kelas')
+                    ->where('IdKelas', $nilai['IdKelas'])
+                    ->get()
+                    ->getRowArray();
+
+                $materiToDelete[] = [
+                    'Id' => $nilai['Id'],
+                    'IdMateri' => $nilai['IdMateri'],
+                    'IdKelas' => $nilai['IdKelas'],
+                    'NamaMateri' => $materiInfo ? $materiInfo['NamaMateri'] : 'Materi tidak ditemukan',
+                    'NamaKelas' => $kelasInfo ? $kelasInfo['NamaKelas'] : 'Kelas tidak ditemukan',
+                    'Kategori' => $materiInfo ? $materiInfo['Kategori'] : 'Kategori tidak ditemukan',
+                    'Semester' => $nilai['Semester'],
+                    'IdSantri' => $nilai['IdSantri']
+                ];
+            }
+        }
+
+        return $materiToDelete;
+    }
+
+    public function getMateriBaruUntukDitambahkan($IdTpq, $IdTahunAjaran)
+    {
+        // Step1: Ambil Data Santri Actif di tbl_santri_baru filter by IdTpq
+        $santriList = $this->santriBaruModel->where(['IdTpq' => $IdTpq, 'Active' => 1])->findAll();
+
+        // Step2: Ambil semua nilai yang sudah ada dalam satu query
+        $existingNilai = $this->nilaiModel->where([
+            'IdTpq' => $IdTpq,
+            'IdTahunAjaran' => $IdTahunAjaran
+        ])->findAll();
+
+        // Step3: Buat array untuk pengecekan cepat
+        $existingNilaiMap = [];
+        foreach ($existingNilai as $nilai) {
+            $key = $nilai['IdMateri'] . '_' . $nilai['IdKelas'] . '_' . $nilai['Semester'];
+            $existingNilaiMap[$key] = true;
+        }
+
+        // Step4: Siapkan array untuk materi baru
+        $materiBaru = [];
+
+        // Step5: Proses setiap santri
+        foreach ($santriList as $santri) {
+            // Ambil Data Kelas Materi Pelajaran
+            $kelasMateriList = $this->getKelasMateriPelajaran(
+                IdTpq: $IdTpq,
+                kelas: $santri['IdKelas'],
+                Semester: null
+            );
+
+            // Proses setiap materi
+            foreach ($kelasMateriList as $materi) {
+                // Cek semester ganjil
+                if ($materi->SemesterGanjil == 1) {
+                    $key = $materi->IdMateri . '_' . $materi->IdKelas . '_Ganjil';
+                    if (!isset($existingNilaiMap[$key])) {
+                        $materiBaru[] = [
+                            'IdKelas' => $materi->IdKelas,
+                            'NamaKelas' => $this->getNamaKelas($materi->IdKelas),
+                            'IdMateri' => $materi->IdMateri,
+                            'NamaMateri' => $materi->NamaMateri,
+                            'Kategori' => $materi->Kategori,
+                            'Semester' => 'Ganjil',
+                            'IdSantri' => $santri['IdSantri']
+                        ];
+                    }
+                }
+
+                // Cek semester genap
+                if ($materi->SemesterGenap == 1) {
+                    $key = $materi->IdMateri . '_' . $materi->IdKelas . '_Genap';
+                    if (!isset($existingNilaiMap[$key])) {
+                        $materiBaru[] = [
+                            'IdKelas' => $materi->IdKelas,
+                            'NamaKelas' => $this->getNamaKelas($materi->IdKelas),
+                            'IdMateri' => $materi->IdMateri,
+                            'NamaMateri' => $materi->NamaMateri,
+                            'Kategori' => $materi->Kategori,
+                            'Semester' => 'Genap',
+                            'IdSantri' => $santri['IdSantri']
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $materiBaru;
+    }
 }
 

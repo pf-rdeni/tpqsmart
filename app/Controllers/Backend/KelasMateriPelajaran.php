@@ -196,18 +196,82 @@ class KelasMateriPelajaran extends BaseController
         $IdTpq = session()->get('IdTpq');
         // ambil tahun ajaran saat ini dari helpModel
         $tahunAjaran = $helpModel->getTahunAjaranSaatIni();
-        $result = $helpModel->updateMateriPelajaranPadaTabelNilai($IdTpq, $tahunAjaran);
 
-        if ($result) {
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Data materi pelajaran pada tabel nilai berhasil diperbarui.'
-            ]);
-        } else {
-            return $this->response->setJSON([
-                'status' => 'fail',
-                'message' => 'Gagal memperbarui data materi pelajaran pada tabel nilai.'
-            ])->setStatusCode(500);
+        // Step 1: Cek materi yang perlu dihapus
+        $materiToDelete = $helpModel->getMateriPelajaranYangSudahTidakAda($IdTpq, $tahunAjaran);
+
+        // Step 2: Cek materi baru yang perlu ditambahkan
+        $materiToAdd = $helpModel->getMateriBaruUntukDitambahkan($IdTpq, $tahunAjaran);
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => [
+                'materiToDelete' => $materiToDelete,
+                'materiToAdd' => $materiToAdd
+            ]
+        ]);
+    }
+
+    public function prosesHapusMateri()
+    {
+        $helpModel = new HelpFunctionModel();
+        $IdTpq = session()->get('IdTpq');
+        $tahunAjaran = $helpModel->getTahunAjaranSaatIni();
+
+        $materiToDelete = $helpModel->getMateriPelajaranYangSudahTidakAda($IdTpq, $tahunAjaran);
+
+        if (!empty($materiToDelete)) {
+            $idsToDelete = array_column($materiToDelete, 'Id');
+            $result = $helpModel->nilaiModel->whereIn('Id', $idsToDelete)->delete();
+
+            if ($result) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Data materi yang tidak valid berhasil dihapus.'
+                ]);
+            }
         }
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Tidak ada data yang perlu dihapus.'
+        ]);
+    }
+
+    public function prosesTambahMateri()
+    {
+        $helpModel = new HelpFunctionModel();
+        $IdTpq = session()->get('IdTpq');
+        $tahunAjaran = $helpModel->getTahunAjaranSaatIni();
+
+        $materiToAdd = $helpModel->getMateriBaruUntukDitambahkan($IdTpq, $tahunAjaran);
+
+        if (!empty($materiToAdd)) {
+            $batchData = [];
+            foreach ($materiToAdd as $materi) {
+                $batchData[] = [
+                    'IdTpq' => $IdTpq,
+                    'IdSantri' => $materi['IdSantri'],
+                    'IdKelas' => $materi['IdKelas'],
+                    'IdMateri' => $materi['IdMateri'],
+                    'IdTahunAjaran' => $tahunAjaran,
+                    'Semester' => $materi['Semester']
+                ];
+            }
+
+            $result = $helpModel->nilaiModel->insertBatch($batchData);
+
+            if ($result) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Data materi baru berhasil ditambahkan.'
+                ]);
+            }
+        }
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Tidak ada data baru yang perlu ditambahkan.'
+        ]);
     }
 }

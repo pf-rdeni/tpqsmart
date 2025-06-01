@@ -12,8 +12,8 @@
                     <a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalTambahData">
                         <i class="fas fa-plus"></i> Tambah Data
                     </a>
-                    <a href="#" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#modalUpdateData">
-                        <i class="fas fa-edit"></i> Terapkan Perubahan
+                    <a href="#" class="btn btn-warning btn-sm" onclick="updateDataMateriPenilaian()">
+                        <i class="fas fa-sync"></i> Perbarui Materi
                     </a>
                 </div>
             </div>
@@ -209,17 +209,75 @@
 
 <!-- Modal Update Data -->
 <div class="modal fade" id="modalUpdateData" tabindex="-1" role="dialog" aria-labelledby="modalUpdateDataLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-warning">
-                <h5 class="modal-title" id="modalUpdateDataLabel">Terapkan Perubahan</h5>
+                <h5 class="modal-title" id="modalUpdateDataLabel">Rangkuman Perubahan Materi</h5>
             </div>
             <div class="card-body">
-                <p>Perubahan akan diterapkan ke semua kelas yang memiliki materi ini.</p>
-                <button type="button" class="btn btn-primary" onclick="updateDataMateriPenilaian()">Terapkan Perubahan</button>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-danger text-white">
+                                <h6 class="mb-0">Materi yang Akan Dihapus</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="materiToDeleteList" class="table-responsive">
+                                    <table class="table table-sm" id="tblMateriToDelete">
+                                        <thead>
+                                            <tr>
+                                                <th>Kelas</th>
+                                                <th>Nama Materi</th>
+                                                <th>Semester</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data akan diisi melalui JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="noMateriToDelete" class="alert alert-info" style="display: none;">
+                                    Tidak ada materi yang perlu dihapus
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">Materi yang Akan Ditambahkan</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="materiToAddList" class="table-responsive">
+                                    <table class="table table-sm" id="tblMateriToAdd">
+                                        <thead>
+                                            <tr>
+                                                <th>Kelas</th>
+                                                <th>Nama Materi</th>
+                                                <th>Semester</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data akan diisi melalui JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="noMateriToAdd" class="alert alert-info" style="display: none;">
+                                    Tidak ada materi baru yang perlu ditambahkan
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-danger" id="btnHapusMateri" onclick="prosesHapusMateri()">
+                    <i class="fas fa-trash"></i> Hapus Materi
+                </button>
+                <button type="button" class="btn btn-success" id="btnTambahMateri" onclick="prosesTambahMateri()">
+                    <i class="fas fa-plus"></i> Tambah Materi
+                </button>
             </div>
         </div>
     </div>
@@ -233,6 +291,12 @@
     <?php foreach ($dataMateriPerKelas as $kelasId => $kelas): ?>
         initializeDataTableUmum("#tblKelas-<?= $kelasId ?>", true, true);
     <?php endforeach; ?>
+
+    // Initial datatabel untuk lihat list materi yang akan dihapus
+    initializeDataTableUmum("#tblMateriToDelete", true, true);
+
+    // Initial datatabel untuk lihat list materi yang akan ditambahkan
+    initializeDataTableUmum("#tblMateriToAdd", true, true);
 
     // Menutup modal
     $('#tutupModal').on('click', function() {
@@ -486,21 +550,178 @@
 
     // fungsi untuk perbarui data materi kelas pada tabel nilai semua kelas dan semua santri untuk tahun ajaran dan semester saat ini
     function updateDataMateriPenilaian() {
-        // Menampilkan SweetAlert konfirmasi dengan mengirimkan data ke kontroler updateMateriPelajaranPadaTabelNilai
+        // Menampilkan loading spinner
         Swal.fire({
-            title: 'Konfirmasi',
-            text: "Apakah Anda yakin ingin memperbarui data materi pelajaran pada tabel nilai?",
+            title: 'Memeriksa Perubahan',
+            text: 'Mohon tunggu...',
+            allowOutsideClick: false,
+            icon: 'info',
+            html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>',
+            onBeforeOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Mengirim permintaan AJAX untuk memeriksa perubahan
+        $.ajax({
+            url: '<?= base_url('backend/KelasMateriPelajaran/updateMateriPelajaranPadaTabelNilai') ?>',
+            type: 'POST',
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Tampilkan modal dengan data perubahan
+                    displayChanges(response.data);
+                    $('#modalUpdateData').modal('show');
+                    // jika sudah berhasil di load, hapus loading
+                    Swal.close();
+                } else {
+                    Swal.fire('Error!', 'Gagal memeriksa perubahan', 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Error!', 'Terjadi kesalahan saat memeriksa perubahan', 'error');
+            }
+        });
+    }
+
+    function displayChanges(data) {
+        // Tampilkan materi yang akan dihapus
+        const materiToDelete = data.materiToDelete;
+        const materiToDeleteList = $('#materiToDeleteList tbody');
+
+        // Destroy DataTable jika sudah diinisialisasi
+        if ($.fn.DataTable.isDataTable('#tblMateriToDelete')) {
+            $('#tblMateriToDelete').DataTable().destroy();
+        }
+
+        // Bersihkan tabel
+        materiToDeleteList.empty();
+
+        if (materiToDelete.length > 0) {
+            $('#noMateriToDelete').hide();
+            materiToDeleteList.show();
+
+            // Kelompokkan data berdasarkan kelas dan materi
+            const groupedByKelasMateri = {};
+            materiToDelete.forEach(materi => {
+                const key = `${materi.NamaKelas}_${materi.NamaMateri}`;
+                if (!groupedByKelasMateri[key]) {
+                    groupedByKelasMateri[key] = {
+                        kelas: materi.NamaKelas,
+                        materi: materi.NamaMateri,
+                        semester: []
+                    };
+                }
+                if (!groupedByKelasMateri[key].semester.includes(materi.Semester)) {
+                    groupedByKelasMateri[key].semester.push(materi.Semester);
+                }
+            });
+
+            // Tampilkan data yang sudah dikelompokkan
+            Object.values(groupedByKelasMateri).forEach(item => {
+                materiToDeleteList.append(`
+                    <tr>
+                        <td>${item.kelas}</td>
+                        <td>${item.materi}</td>
+                        <td>${item.semester.join(', ')}</td>
+                    </tr>
+                `);
+            });
+
+            // Reinitialize DataTable
+            $('#tblMateriToDelete').DataTable({
+                "paging": false,
+                "lengthChange": false,
+                "searching": false,
+                "ordering": true,
+                "info": false,
+                "autoWidth": false,
+                "responsive": true
+            });
+
+            $('#btnHapusMateri').show();
+        } else {
+            $('#noMateriToDelete').show();
+            materiToDeleteList.hide();
+            $('#btnHapusMateri').hide();
+        }
+
+        // Tampilkan materi yang akan ditambahkan
+        const materiToAdd = data.materiToAdd;
+        const materiToAddList = $('#materiToAddList tbody');
+
+        // Destroy DataTable jika sudah diinisialisasi
+        if ($.fn.DataTable.isDataTable('#tblMateriToAdd')) {
+            $('#tblMateriToAdd').DataTable().destroy();
+        }
+
+        // Bersihkan tabel
+        materiToAddList.empty();
+
+        if (materiToAdd.length > 0) {
+            $('#noMateriToAdd').hide();
+            materiToAddList.show();
+
+            // Kelompokkan data berdasarkan kelas dan materi
+            const groupedByKelasMateri = {};
+            materiToAdd.forEach(materi => {
+                const key = `${materi.NamaKelas}_${materi.NamaMateri}`;
+                if (!groupedByKelasMateri[key]) {
+                    groupedByKelasMateri[key] = {
+                        kelas: materi.NamaKelas,
+                        materi: materi.NamaMateri,
+                        semester: []
+                    };
+                }
+                if (!groupedByKelasMateri[key].semester.includes(materi.Semester)) {
+                    groupedByKelasMateri[key].semester.push(materi.Semester);
+                }
+            });
+
+            // Tampilkan data yang sudah dikelompokkan
+            Object.values(groupedByKelasMateri).forEach(item => {
+                materiToAddList.append(`
+                    <tr>
+                        <td>${item.kelas}</td>
+                        <td>${item.materi}</td>
+                        <td>${item.semester.join(', ')}</td>
+                    </tr>
+                `);
+            });
+
+            // Reinitialize DataTable
+            $('#tblMateriToAdd').DataTable({
+                "paging": false,
+                "lengthChange": false,
+                "searching": false,
+                "ordering": true,
+                "info": false,
+                "autoWidth": false,
+                "responsive": true
+            });
+
+            $('#btnTambahMateri').show();
+        } else {
+            $('#noMateriToAdd').show();
+            materiToAddList.hide();
+            $('#btnTambahMateri').hide();
+        }
+    }
+
+    function prosesHapusMateri() {
+        Swal.fire({
+            title: 'Konfirmasi Hapus',
+            text: 'Apakah Anda yakin ingin menghapus materi yang tidak valid?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Ya, perbarui!',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus!',
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Menampilkan loading spinner
+                // Tampilkan loading
                 Swal.fire({
-                    title: 'Memperbarui Data',
+                    title: 'Menghapus Materi',
                     text: 'Mohon tunggu...',
                     allowOutsideClick: false,
                     icon: 'info',
@@ -510,9 +731,9 @@
                     }
                 });
 
-                // Mengirim permintaan AJAX untuk memperbarui data
+                // Proses penghapusan
                 $.ajax({
-                    url: '<?= base_url('backend/KelasMateriPelajaran/updateMateriPelajaranPadaTabelNilai') ?>',
+                    url: '<?= base_url('backend/KelasMateriPelajaran/prosesHapusMateri') ?>',
                     type: 'POST',
                     success: function(response) {
                         Swal.fire({
@@ -520,19 +741,64 @@
                             text: response.message,
                             icon: response.status === 'success' ? 'success' : 'error',
                             timer: 2000,
-                            showConfirmButton: true
+                            showConfirmButton: false
                         }).then(() => {
                             if (response.status === 'success') {
-                                location.reload(); // Refresh halaman setelah konfirmasi
+                                location.reload();
                             }
                         });
                     },
-                    error: function(response) {
-                        Swal.fire(
-                            'Gagal!',
-                            response.responseJSON ? response.responseJSON.message : 'Terjadi kesalahan', // Menggunakan pesan dari respon
-                            'error'
-                        );
+                    error: function() {
+                        Swal.fire('Error!', 'Terjadi kesalahan saat menghapus materi', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function prosesTambahMateri() {
+        Swal.fire({
+            title: 'Konfirmasi Tambah',
+            text: 'Apakah Anda yakin ingin menambahkan materi baru?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, tambahkan!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Tampilkan loading
+                Swal.fire({
+                    title: 'Menambahkan Materi',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    icon: 'info',
+                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>',
+                    onBeforeOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Proses penambahan
+                $.ajax({
+                    url: '<?= base_url('backend/KelasMateriPelajaran/prosesTambahMateri') ?>',
+                    type: 'POST',
+                    success: function(response) {
+                        Swal.fire({
+                            title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
+                            text: response.message,
+                            icon: response.status === 'success' ? 'success' : 'error',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            if (response.status === 'success') {
+                                location.reload();
+                            }
+                        });
+                    },
+                    error: function() {
+                        Swal.fire('Error!', 'Terjadi kesalahan saat menambahkan materi', 'error');
                     }
                 });
             }
