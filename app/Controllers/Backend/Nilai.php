@@ -88,7 +88,7 @@ class Nilai extends BaseController
     public function showSumaryPersemester($semester = null)
     {
         $datanilai = $this->DataNilai->getDataNilaiPerSemester($this->IdTpq, $this->IdKelas, $this->IdTahunAjaran, $semester);
-        $dataKelas = [0 => 'SEMUA'];
+        // $dataKelas = [0 => 'SEMUA'];
         foreach ($datanilai->getResult() as $nilai) {
             $dataKelas[$nilai->IdKelas] = $nilai->NamaKelas;
         }
@@ -121,21 +121,14 @@ class Nilai extends BaseController
         // Buat querry dari tbl_nilai dengan menggabungkan tbl_santri_baru dan tbl_kelas
         $datanilai = $this->DataNilai->getDataNilaiPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
 
-        //$dataKelas = [0 => 'SEMUA'];
         foreach ($datanilai as $nilai) {
             $dataKelas[$nilai['IdKelas']] = $nilai['Nama Kelas'];
         }
 
         $dataMateri = [];
-        // ambill materi pelajaran untuk semua kelas jika kelas 'SEMUA'
-        if (isset($dataKelas[0]) && $dataKelas[0] === 'SEMUA') {
-            $dataMateri[0] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $IdKelas, $semester);
-        }
-
+        // Ambil data materi pelajaran berdasarkan kelas
         foreach ($dataKelas as $idKelas => $namaKelas) {
-            // if ($idKelas !== 0) { // Skip jika bukan 'SEMUA'
             $dataMateri[$idKelas] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $idKelas, $semester);
-            //}
         }
 
         return view('backend/nilai/nilaiSantriDetailPerKelas', [
