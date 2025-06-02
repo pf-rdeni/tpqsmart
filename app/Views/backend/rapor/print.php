@@ -2,11 +2,12 @@
 <html>
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <title>Rapor Santri</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            line-height: 1.6;
             margin: 20px;
         }
 
@@ -36,6 +37,7 @@
 
         .data-santri table {
             width: 100%;
+            border-collapse: collapse;
         }
 
         .data-santri td {
@@ -56,13 +58,16 @@
         }
 
         .nilai-table th {
-            background-color: #f0f0f0;
+            background-color: #f2f2f2;
         }
 
         .semester-title {
             font-size: 14px;
             font-weight: bold;
             margin: 10px 0;
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px;
         }
     </style>
 </head>
