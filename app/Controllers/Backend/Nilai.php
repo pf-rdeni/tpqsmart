@@ -120,8 +120,8 @@ class Nilai extends BaseController
 
         // Buat querry dari tbl_nilai dengan menggabungkan tbl_santri_baru dan tbl_kelas
         $datanilai = $this->DataNilai->getDataNilaiPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
-        
-        $dataKelas = [0 => 'SEMUA'];
+
+        //$dataKelas = [0 => 'SEMUA'];
         foreach ($datanilai as $nilai) {
             $dataKelas[$nilai['IdKelas']] = $nilai['Nama Kelas'];
         }
@@ -133,9 +133,9 @@ class Nilai extends BaseController
         }
 
         foreach ($dataKelas as $idKelas => $namaKelas) {
-            if ($idKelas !== 0) { // Skip jika bukan 'SEMUA'
-                $dataMateri[$idKelas] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $idKelas, $semester);
-            }
+            // if ($idKelas !== 0) { // Skip jika bukan 'SEMUA'
+            $dataMateri[$idKelas] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $idKelas, $semester);
+            //}
         }
 
         return view('backend/nilai/nilaiSantriDetailPerKelas', [

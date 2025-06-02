@@ -94,7 +94,7 @@ function capitalizeWords($str)
                                         $rowCount = 0; // Counter jumlah baris (untuk rata-rata)
                                         ?>
                                         <?php foreach ($dataNilai as $santri) : ?>
-                                            <?php if ($santri['Nama Kelas'] == $kelas || $kelas == "SEMUA"): ?>
+                                            <?php if ($santri['Nama Kelas'] == $kelas): ?>
                                                 <tr>
                                                     <td>
                                                         <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalDetailNilai<?= $santri['IdSantri'] ?>">
@@ -136,40 +136,38 @@ function capitalizeWords($str)
                                                 </tr>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
-                                        <?php if (count($dataMateri) <= 2 || (count($dataMateri) > 1 && array_search($kelasId, array_keys($dataMateri)) > 0)): ?>
-                                            <tr>
-                                                <th></th>
-                                                <th></th>
-                                                <th></th>
-                                                <th></th>
-                                                <th></th>
-                                                <th>Rata-Rata Kelas</th>
-                                                <?php
-                                                $grandTotal = 0;
-                                                $nilaiKolomCount = 0;
+                                        <tr>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th>Rata-Rata Kelas</th>
+                                            <?php
+                                            $grandTotal = 0;
+                                            $nilaiKolomCount = 0;
 
-                                                // Tampilkan rata-rata nilai materi
-                                                if (isset($dataMateri[$kelasId])) {
-                                                    // Urutkan materi berdasarkan UrutanMateri
-                                                    usort($dataMateri[$kelasId], function ($a, $b) {
-                                                        return $a->UrutanMateri - $b->UrutanMateri;
-                                                    });
+                                            // Tampilkan rata-rata nilai materi
+                                            if (isset($dataMateri[$kelasId])) {
+                                                // Urutkan materi berdasarkan UrutanMateri
+                                                usort($dataMateri[$kelasId], function ($a, $b) {
+                                                    return $a->UrutanMateri - $b->UrutanMateri;
+                                                });
 
-                                                    foreach ($dataMateri[$kelasId] as $materi) {
-                                                        $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : -1;
-                                                        echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
+                                                foreach ($dataMateri[$kelasId] as $materi) {
+                                                    $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : -1;
+                                                    echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
 
-                                                        if ($rataRata >= 0) {
-                                                            $grandTotal += $columnTotals[$materi->NamaMateri] ?? 0;
-                                                            $nilaiKolomCount++;
-                                                        }
+                                                    if ($rataRata >= 0) {
+                                                        $grandTotal += $columnTotals[$materi->NamaMateri] ?? 0;
+                                                        $nilaiKolomCount++;
                                                     }
                                                 }
-                                                ?>
-                                                <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 1) : ' ' ?></th>
-                                                <th><?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 1) : ' ' ?></th>
-                                            </tr>
-                                        <?php endif; ?>
+                                            }
+                                            ?>
+                                            <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 1) : ' ' ?></th>
+                                            <th><?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 1) : ' ' ?></th>
+                                        </tr>
                                     </tbody>
                                     <tfoot>
 
@@ -189,7 +187,7 @@ function capitalizeWords($str)
 <!-- Modal Detail Individual Nilai Santri dan Rata-Rata -->
 <?php foreach ($dataNilai as $santri) : ?>
     <?php foreach ($dataKelas as $kelasId => $kelas): ?>
-        <?php if ($santri['Nama Kelas'] == $kelas && $kelas != "SEMUA"): ?>
+        <?php if ($santri['Nama Kelas'] == $kelas): ?>
             <div class="modal fade" id="modalDetailNilai<?= $santri['IdSantri'] ?>" tabindex="-1" role="dialog" aria-labelledby="modalDetailNilaiLabel<?= $santri['IdSantri'] ?>" aria-hidden="true">
                 <div class="modal-dialog modal-lg" role="document">
                     <div class="modal-content">
