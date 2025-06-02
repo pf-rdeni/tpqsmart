@@ -95,49 +95,72 @@ class Rapor extends BaseController
 
     public function printPdf($IdSantri, $semester)
     {
-        $IdTpq = session()->get('IdTpq');
-        $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+        try {
+            // Set memory limit dan timeout
+            ini_set('memory_limit', '256M');
+            set_time_limit(300);
+            mb_internal_encoding('UTF-8');
 
-        // Ambil data santri
-        $santri = $this->santriBaruModel->getDetailSantri($IdSantri);
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
 
-        // Ambil data nilai berdasarkan semester
-        $nilai = $this->nilaiModel->getDataNilaiPerSantri(
-            IdTpq: $IdTpq,
-            IdTahunAjaran: $IdTahunAjaran,
-            IdKelas: $santri['IdKelas'],
-            IdSantri: $IdSantri,
-            semester: $semester
-        );
+            // Ambil data santri
+            $santri = $this->santriBaruModel->getDetailSantri($IdSantri);
 
-        // Ambil data TPQ
-        $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
+            // Ambil data nilai berdasarkan semester
+            $nilai = $this->nilaiModel->getDataNilaiPerSantri(
+                IdTpq: $IdTpq,
+                IdTahunAjaran: $IdTahunAjaran,
+                IdKelas: $santri['IdKelas'],
+                IdSantri: $IdSantri,
+                semester: $semester
+            );
 
-        $data = [
-            'santri' => $santri,
-            'nilai' => $nilai,
-            'tpq' => $tpq,
-            'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
-            'semester' => $semester
-        ];
+            // Ambil data TPQ
+            $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
 
-        // Load view untuk PDF
-        $html = view('backend/rapor/print', $data);
+            $data = [
+                'santri' => $santri,
+                'nilai' => $nilai,
+                'tpq' => $tpq,
+                'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
+                'semester' => $semester
+            ];
 
-        // Inisialisasi Dompdf
-        $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isPhpEnabled', true);
-        $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'Arial');
+            // Load view untuk PDF
+            $html = view('backend/rapor/print', $data);
 
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
+            // Inisialisasi Dompdf dengan konfigurasi lengkap
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+            $options->set('defaultMediaType', 'screen');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('debugKeepTemp', true);
+            $options->set('debugCss', true);
+            $options->set('debugLayout', true);
+            $options->set('debugLayoutLines', true);
+            $options->set('debugLayoutBlocks', true);
+            $options->set('debugLayoutInline', true);
+            $options->set('debugLayoutPaddingBox', true);
 
-        // Output PDF
-        header('Content-Type: application/pdf; charset=UTF-8');
-        $dompdf->stream('rapor_' . $santri['NamaSantri'] . '_' . $semester . '.pdf', ['Attachment' => false]);
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Output PDF dengan header yang benar
+            $filename = 'rapor_' . str_replace(' ', '_', $santri['NamaSantri']) . '_' . $semester . '.pdf';
+
+            return $this->response
+                ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+                ->setBody($dompdf->output());
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: printPdf - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
     }
 }
