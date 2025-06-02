@@ -55,9 +55,10 @@ class NilaiModel extends Model
     // Retrieve nilai data per semester
     public function getDataNilaiPerSemester($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
     {
-
         $sql = 'SELECT n.IdSantri, s.NamaSantri, s.JenisKelamin, IdTahunAjaran, n.Semester, k.NamaKelas, k.IdKelas,
-                       SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata
+                       SUM(n.Nilai) AS TotalNilai, 
+                       ROUND(AVG(n.Nilai), 2) AS NilaiRataRata,
+                       RANK() OVER (PARTITION BY n.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking
                 FROM tbl_nilai n
                 JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
                 JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
@@ -65,7 +66,6 @@ class NilaiModel extends Model
                 AND n.Semester = "' . $semester . '"
                 AND n.IdTpq = "' . $IdTpq . '"
                 AND n.IdTahunAjaran  IN (' . implode(',', $IdTahunAjaran) . ')
-
                 GROUP BY n.IdSantri, n.Semester
                 ORDER BY k.IdKelas ASC, n.Semester ASC, TotalNilai DESC';
 

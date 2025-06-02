@@ -38,6 +38,7 @@
                                     <thead>
                                         <tr>
                                             <th>Aksi</th>
+                                            <th>Rangking</th>
                                             <th>Nama Santri</th>
                                             <th>Kelas</th>
                                             <th>Total Nilai</th>
@@ -54,6 +55,7 @@
                                                     <td>
                                                         <a href="<?php echo base_url('/backend/nilai/showDetail/' . $DataNilai->IdSantri . '/' . $DataNilai->Semester) ?>" class="btn btn-warning btn-sm"><i class="fas fa-list"></i></a>
                                                     </td>
+                                                    <td><?php echo $DataNilai->Rangking; ?></td>
                                                     <td><?php echo $DataNilai->NamaSantri; ?></td>
                                                     <td><?php echo $DataNilai->NamaKelas; ?></td>
                                                     <td><?php echo $DataNilai->TotalNilai; ?></td>
@@ -66,6 +68,7 @@
                                     <tfoot>
                                         <tr>
                                             <th>Aksi</th>
+                                            <th>Rangking</th>
                                             <th>Nama Santri</th>
                                             <th>Semester</th>
                                             <th>Total Nilai</th>
