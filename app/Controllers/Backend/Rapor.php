@@ -20,6 +20,9 @@ class Rapor extends BaseController
         $this->helpFunctionModel = new HelpFunctionModel();
         $this->nilaiModel = new NilaiModel();
         $this->santriBaruModel = new SantriBaruModel();
+        ini_set('memory_limit', '256M');
+        set_time_limit(300);
+        mb_internal_encoding('UTF-8');
     }
 
     public function index($semester = 'Ganjil')
@@ -134,6 +137,7 @@ class Rapor extends BaseController
         $dompdf->render();
 
         // Output PDF
+        header('Content-Type: application/pdf; charset=UTF-8');
         $dompdf->stream('rapor_' . $santri['NamaSantri'] . '_' . $semester . '.pdf', ['Attachment' => false]);
     }
 }
