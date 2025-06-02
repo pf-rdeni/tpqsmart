@@ -159,7 +159,7 @@ helper('nilai');
     </table>
 
     <!-- Tanda Tangan Layout Gambar Tabel -->
-    <table style="width: 100%; border-collapse: collapse; margin-top: 50px; font-size: 12px;">
+    <table style="width: 100%; border-collapse: collapse; margin-top: 50px; font-size: 12px; page-break-inside: avoid;">
         <tr>
             <td colspan="5" style="width: 50%; padding: 5px; text-align: right;"> Diberikan di Seri Kuala Lobam Tanggal: <?= date('d F Y') ?></td>
         </tr>
