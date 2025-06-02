@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 
 <head>
-    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Rapor Santri</title>
     <style>
+        @page {
+            margin: 2cm;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: DejaVu Sans, sans-serif;
             line-height: 1.6;
-            margin: 20px;
+            margin: 0;
+            padding: 20px;
         }
 
         .header {
@@ -19,6 +24,7 @@
         .header h2 {
             margin: 0;
             font-size: 18px;
+            font-weight: bold;
         }
 
         .header h3 {
@@ -76,8 +82,8 @@
     <!-- Header Rapor -->
     <div class="header">
         <h2>RAPOR SANTRI</h2>
-        <h3><?= $tpq['NamaTpq'] ?></h3>
-        <p>Tahun Ajaran <?= $tahunAjaran ?></p>
+        <h3><?= htmlspecialchars($tpq['NamaTpq']) ?></h3>
+        <p>Tahun Ajaran <?= htmlspecialchars($tahunAjaran) ?></p>
     </div>
 
     <!-- Data Santri -->
@@ -85,21 +91,21 @@
         <table>
             <tr>
                 <td width="150">Nama Santri</td>
-                <td>: <?= $santri['NamaSantri'] ?></td>
+                <td>: <?= htmlspecialchars($santri['NamaSantri']) ?></td>
             </tr>
             <tr>
                 <td>NIS</td>
-                <td>: <?= $santri['IdSantri'] ?></td>
+                <td>: <?= htmlspecialchars($santri['IdSantri']) ?></td>
             </tr>
             <tr>
                 <td>Kelas</td>
-                <td>: <?= $santri['IdKelas'] ?></td>
+                <td>: <?= htmlspecialchars($santri['IdKelas']) ?></td>
             </tr>
         </table>
     </div>
 
     <!-- Nilai Semester -->
-    <div class="semester-title">Nilai Semester <?= $semester ?></div>
+    <div class="semester-title">Nilai Semester <?= htmlspecialchars($semester) ?></div>
     <table class="nilai-table">
         <thead>
             <tr>
@@ -116,9 +122,9 @@
             ?>
                 <tr>
                     <td><?= $no++ ?></td>
-                    <td><?= $n->NamaMateri ?></td>
-                    <td><?= $n->Kategori ?></td>
-                    <td><?= $n->Nilai ?></td>
+                    <td><?= htmlspecialchars($n->NamaMateri) ?></td>
+                    <td><?= htmlspecialchars($n->Kategori) ?></td>
+                    <td><?= htmlspecialchars($n->Nilai) ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
