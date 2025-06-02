@@ -133,6 +133,9 @@
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-success">
                                                 <i class="fas fa-eye"></i> Detail Nilai
                                             </a>
+                                            <a href=<?php echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Ganjil') ?> class="btn btn-app bg-secondary">
+                                                <i class="fas fa-chart-bar"></i> Ranking
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -193,6 +196,9 @@
                                             <?php endif; ?>
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">
                                                 <i class="fas fa-eye"></i> Detail Nilai
+                                            </a>
+                                            <a href=<?php echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Genap') ?> class="btn btn-app bg-secondary">
+                                                <i class="fas fa-chart-bar"></i> Ranking
                                             </a>
                                         </div>
                                     </div>
