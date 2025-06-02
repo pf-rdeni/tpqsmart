@@ -105,17 +105,7 @@
             </tr>
         </thead>
         <tbody>
-            <?php
-            $no = 1;
-            foreach ($nilai as $n) :
-            ?>
-                <tr>
-                    <td><?= $no++ ?></td>
-                    <td><?= htmlspecialchars($n->NamaMateri) ?></td>
-                    <td><?= htmlspecialchars($n->Kategori) ?></td>
-                    <td><?= $n->Nilai ?></td>
-                </tr>
-            <?php endforeach; ?>
+
         </tbody>
     </table>
 </body>
