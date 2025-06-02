@@ -20,6 +20,11 @@ function capitalizeWords($str)
     return ucwords(strtolower($str));
 }
 
+// Ambil setting alphabet untuk setiap kelas
+$settingAlphabetActive = [];
+foreach ($dataNilai as $santri) {
+    $settingAlphabetActive[$santri['IdKelas']] = getAlphabetKelasSettings($settingNilai, $santri['IdKelas'])['isAlphabetKelas'];
+}
 ?>
 <div class="col-12">
     <div class="card">
@@ -84,8 +89,12 @@ function capitalizeWords($str)
                                                     }
                                                 }
                                                 ?>
-                                                <th class="vertical-header">Total Nilai</th>
-                                                <th class="vertical-header">Nilai Rata-Rata</th>
+                                                <?php if ($settingAlphabetActive[$kelasId] ?? false): ?>
+                                                    <th class="vertical-header">Rata-Rata Huruf</th>
+                                                <?php else: ?>
+                                                    <th class="vertical-header">Total Nilai</th>
+                                                    <th class="vertical-header">Nilai Rata-Rata</th>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </tr>
                                     </thead>
@@ -121,7 +130,11 @@ function capitalizeWords($str)
 
                                                         foreach ($dataMateri[$kelasId] as $materi) {
                                                             $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
-                                                            echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars($nilai) . '</td>';
+                                                            if ($settingAlphabetActive[$kelasId] ?? false) {
+                                                                echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars(konversiNilaiHuruf($nilai, $settingNilai)) . '</td>';
+                                                            } else {
+                                                                echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars($nilai) . '</td>';
+                                                            }
 
                                                             // Hitung total nilai
                                                             if ($nilai >= 0) {
@@ -132,8 +145,12 @@ function capitalizeWords($str)
                                                         }
                                                     }
                                                     ?>
-                                                    <td><?= $totalNilai >= 0 ? $totalNilai : ' ' ?></td>
-                                                    <td><?= $jumlahKolomNilai > 0 ? round($totalNilai / $jumlahKolomNilai, 1) : ' ' ?></td>
+                                                    <?php if ($settingAlphabetActive[$kelasId] ?? false): ?>
+                                                        <td><?= $jumlahKolomNilai > 0 ? konversiNilaiHuruf(round($totalNilai / $jumlahKolomNilai, 1), $settingNilai) : ' ' ?></td>
+                                                    <?php else: ?>
+                                                        <td><?= $totalNilai >= 0 ? $totalNilai : ' ' ?></td>
+                                                        <td><?= $jumlahKolomNilai > 0 ? round($totalNilai / $jumlahKolomNilai, 1) : ' ' ?></td>
+                                                    <?php endif; ?>
                                                 </tr>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
@@ -157,7 +174,11 @@ function capitalizeWords($str)
 
                                                 foreach ($dataMateri[$kelasId] as $materi) {
                                                     $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : -1;
-                                                    echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
+                                                    if ($settingAlphabetActive[$kelasId] ?? false) {
+                                                        echo '<th>' . ($rataRata >= 0 ? konversiNilaiHuruf($rataRata, $settingNilai) : ' ') . '</th>';
+                                                    } else {
+                                                        echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
+                                                    }
 
                                                     if ($rataRata >= 0) {
                                                         $grandTotal += $columnTotals[$materi->NamaMateri] ?? 0;
@@ -166,8 +187,12 @@ function capitalizeWords($str)
                                                 }
                                             }
                                             ?>
-                                            <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 1) : ' ' ?></th>
-                                            <th><?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 1) : ' ' ?></th>
+                                            <?php if ($settingAlphabetActive[$kelasId] ?? false): ?>
+                                                <th><?= $nilaiKolomCount > 0 ? konversiNilaiHuruf(round(($grandTotal / $nilaiKolomCount) / $rowCount, 1), $settingNilai) : ' ' ?></th>
+                                            <?php else: ?>
+                                                <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 1) : ' ' ?></th>
+                                                <th><?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 1) : ' ' ?></th>
+                                            <?php endif; ?>
                                         </tr>
                                     </tbody>
                                     <tfoot>
@@ -187,10 +212,6 @@ function capitalizeWords($str)
 
 <!-- Modal Detail Individual Nilai Santri dan Rata-Rata -->
 <?php foreach ($dataNilai as $santri) : ?>
-    <?php
-    $apakahSettingAlphabetActive = getAlphabetKelasSettings($settingNilai, $santri['IdKelas'])['isAlphabetKelas'];
-
-    ?>
     <?php foreach ($dataKelas as $kelasId => $kelas): ?>
         <?php if ($santri['Nama Kelas'] == $kelas): ?>
             <div class="modal fade" id="modalDetailNilai<?= $santri['IdSantri'] ?>" tabindex="-1" role="dialog" aria-labelledby="modalDetailNilaiLabel<?= $santri['IdSantri'] ?>" aria-hidden="true">
@@ -208,11 +229,13 @@ function capitalizeWords($str)
                                     <thead>
                                         <tr>
                                             <th>Nama Materi</th>
-                                            <th>Nilai</th>
-                                            <?php if ($apakahSettingAlphabetActive === true): ?>
+                                            <?php if ($settingAlphabetActive[$kelasId] ?? false): ?>
                                                 <th>Huruf</th>
+                                                <th>Rata-Rata Kelas</th>
+                                            <?php else: ?>
+                                                <th>Nilai</th>
+                                                <th>Rata-Rata Kelas</th>
                                             <?php endif; ?>
-                                            <th>Rata-Rata Kelas</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -249,31 +272,35 @@ function capitalizeWords($str)
                                         ?>
                                                 <tr>
                                                     <td><?= htmlspecialchars(capitalizeWords($materi->NamaMateri)) ?></td>
-                                                    <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= htmlspecialchars($nilai) ?></td>
-                                                    <?php if ($apakahSettingAlphabetActive === true): ?>
+                                                    <?php if ($settingAlphabetActive[$kelasId] ?? false): ?>
                                                         <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= konversiNilaiHuruf($nilai, $settingNilai) ?></td>
+                                                        <td><?= $rataRata >= 0 ? konversiNilaiHuruf($rataRata, $settingNilai) : ' ' ?></td>
+                                                    <?php else: ?>
+                                                        <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= htmlspecialchars($nilai) ?></td>
+                                                        <td><?= $rataRata >= 0 ? $rataRata : ' ' ?></td>
                                                     <?php endif; ?>
-                                                    <td><?= $rataRata >= 0 ? $rataRata : ' ' ?></td>
                                                 </tr>
                                         <?php
                                             }
                                         }
                                         ?>
+                                        <?php if (!$settingAlphabetActive[$kelasId]): ?>
+                                            <tr class="table-info">
+                                                <td><strong>Total Nilai</strong></td>
+                                                <td><strong><?= $totalNilaiSantri >= 0 ? $totalNilaiSantri : ' ' ?></strong></td>
+                                                <td></td>
+                                            </tr>
+                                        <?php endif; ?>
                                         <tr class="table-info">
-                                            <td><strong>Total Nilai</strong></td>
-                                            <td><strong><?= $totalNilaiSantri >= 0 ? $totalNilaiSantri : ' ' ?></strong></td>
-                                            <?php if ($apakahSettingAlphabetActive === true): ?>
+                                            <?php if ($settingAlphabetActive[$kelasId]): ?>
+                                                <td><strong>Rata-Rata</strong></td>
+                                                <td><strong><?= $jumlahMateri > 0 ? konversiNilaiHuruf(round($totalNilaiSantri / $jumlahMateri, 1), $settingNilai) : ' ' ?></strong></td>
+                                                <td></td>
+                                            <?php else: ?>
+                                                <td><strong>Rata-Rata</strong></td>
+                                                <td><strong><?= $jumlahMateri > 0 ? round($totalNilaiSantri / $jumlahMateri, 1) : ' ' ?></strong></td>
                                                 <td></td>
                                             <?php endif; ?>
-                                            <td></td>
-                                        </tr>
-                                        <tr class="table-info">
-                                            <td><strong>Rata-Rata</strong></td>
-                                            <td><strong><?= $jumlahMateri > 0 ? round($totalNilaiSantri / $jumlahMateri, 1) : ' ' ?></strong></td>
-                                            <?php if ($apakahSettingAlphabetActive === true): ?>
-                                                <td><strong><?= $jumlahMateri > 0 ? konversiNilaiHuruf(round($totalNilaiSantri / $jumlahMateri, 1), $settingNilai) : ' ' ?></strong></td>
-                                            <?php endif; ?>
-                                            <td></td>
                                         </tr>
                                     </tbody>
                                 </table>
