@@ -82,8 +82,8 @@
     <!-- Header Rapor -->
     <div class="header">
         <h2>RAPOR SANTRI</h2>
-        <h3><?= htmlspecialchars($tpq['NamaTpq']) ?></h3>
-        <p>Tahun Ajaran <?= htmlspecialchars($tahunAjaran) ?></p>
+        <h3><?= htmlspecialchars($tpq['NamaTpq'], ENT_QUOTES, 'UTF-8') ?></h3>
+        <p>Tahun Ajaran <?= htmlspecialchars($tahunAjaran, ENT_QUOTES, 'UTF-8') ?></p>
     </div>
 
     <!-- Data Santri -->
@@ -91,21 +91,21 @@
         <table>
             <tr>
                 <td width="150">Nama Santri</td>
-                <td>: <?= htmlspecialchars($santri['NamaSantri']) ?></td>
+                <td>: <?= htmlspecialchars($santri['NamaSantri'], ENT_QUOTES, 'UTF-8') ?></td>
             </tr>
             <tr>
                 <td>NIS</td>
-                <td>: <?= htmlspecialchars($santri['IdSantri']) ?></td>
+                <td>: <?= htmlspecialchars($santri['IdSantri'], ENT_QUOTES, 'UTF-8') ?></td>
             </tr>
             <tr>
                 <td>Kelas</td>
-                <td>: <?= htmlspecialchars($santri['IdKelas']) ?></td>
+                <td>: <?= htmlspecialchars($santri['IdKelas'], ENT_QUOTES, 'UTF-8') ?></td>
             </tr>
         </table>
     </div>
 
     <!-- Nilai Semester -->
-    <div class="semester-title">Nilai Semester <?= htmlspecialchars($semester) ?></div>
+    <div class="semester-title">Nilai Semester <?= htmlspecialchars($semester, ENT_QUOTES, 'UTF-8') ?></div>
     <table class="nilai-table">
         <thead>
             <tr>
@@ -122,9 +122,9 @@
             ?>
                 <tr>
                     <td><?= $no++ ?></td>
-                    <td><?= htmlspecialchars($n->NamaMateri) ?></td>
-                    <td><?= htmlspecialchars($n->Kategori) ?></td>
-                    <td><?= htmlspecialchars($n->Nilai) ?></td>
+                    <td><?= htmlspecialchars($n->NamaMateri, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($n->Kategori, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($n->Nilai, ENT_QUOTES, 'UTF-8') ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
