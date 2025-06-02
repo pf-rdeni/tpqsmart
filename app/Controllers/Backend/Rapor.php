@@ -130,34 +130,35 @@ class Rapor extends BaseController
             // Load view untuk PDF
             $html = view('backend/rapor/print', $data);
 
-            // Inisialisasi Dompdf dengan konfigurasi lengkap
+            // Inisialisasi Dompdf dengan konfigurasi minimal
             $options = new Options();
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isPhpEnabled', true);
             $options->set('isRemoteEnabled', true);
             $options->set('defaultFont', 'Arial');
-            $options->set('defaultMediaType', 'screen');
-            $options->set('isFontSubsettingEnabled', true);
-            $options->set('debugKeepTemp', true);
-            $options->set('debugCss', true);
-            $options->set('debugLayout', true);
-            $options->set('debugLayoutLines', true);
-            $options->set('debugLayoutBlocks', true);
-            $options->set('debugLayoutInline', true);
-            $options->set('debugLayoutPaddingBox', true);
 
             $dompdf = new Dompdf($options);
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
 
-            // Output PDF dengan header yang benar
+            // Output PDF dengan cara yang lebih sederhana
             $filename = 'rapor_' . str_replace(' ', '_', $santri['NamaSantri']) . '_' . $semester . '.pdf';
 
-            return $this->response
-                ->setHeader('Content-Type', 'application/pdf')
-                ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
-                ->setBody($dompdf->output());
+            // Hapus semua output sebelumnya
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set header yang diperlukan
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdf - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
