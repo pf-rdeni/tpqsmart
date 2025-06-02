@@ -76,3 +76,90 @@ if (!function_exists('getAlphabetKelasSettings')) {
         return $result;
     }
 }
+
+if (!function_exists('angkaKeKata')) {
+    function angkaKeKata($angka)
+    {
+        $angka = floatval($angka);
+        $bilangan = array(
+            '',
+            'satu',
+            'dua',
+            'tiga',
+            'empat',
+            'lima',
+            'enam',
+            'tujuh',
+            'delapan',
+            'sembilan',
+            'sepuluh',
+            'sebelas',
+            'dua belas',
+            'tiga belas',
+            'empat belas',
+            'lima belas',
+            'enam belas',
+            'tujuh belas',
+            'delapan belas',
+            'sembilan belas'
+        );
+
+        if ($angka < 20) {
+            return $bilangan[$angka];
+        } elseif ($angka < 100) {
+            $puluhan = floor($angka / 10);
+            $satuan = $angka % 10;
+            return $bilangan[$puluhan] . ' puluh' . ($satuan > 0 ? ' ' . $bilangan[$satuan] : '');
+        } elseif ($angka < 1000) {
+            $ratusan = floor($angka / 100);
+            $sisa = $angka % 100;
+            return ($ratusan > 1 ? $bilangan[$ratusan] . ' ' : 'se') . 'ratus' . ($sisa > 0 ? ' ' . angkaKeKata($sisa) : '');
+        } elseif ($angka < 1000000) {
+            $ribuan = floor($angka / 1000);
+            $sisa = $angka % 1000;
+            return ($ribuan > 1 ? angkaKeKata($ribuan) . ' ' : 'se') . 'ribu' . ($sisa > 0 ? ' ' . angkaKeKata($sisa) : '');
+        } elseif ($angka < 1000000000) {
+            $jutaan = floor($angka / 1000000);
+            $sisa = $angka % 1000000;
+            return ($jutaan > 1 ? angkaKeKata($jutaan) . ' ' : 'se') . 'juta' . ($sisa > 0 ? ' ' . angkaKeKata($sisa) : '');
+        } elseif ($angka < 1000000000000) {
+            $milyar = floor($angka / 1000000000);
+            $sisa = $angka % 1000000000;
+            return ($milyar > 1 ? angkaKeKata($milyar) . ' ' : 'se') . 'milyar' . ($sisa > 0 ? ' ' . angkaKeKata($sisa) : '');
+        }
+    }
+}
+
+if (!function_exists('formatTerbilang')) {
+    function formatTerbilang($angka)
+    {
+        $angka = floatval($angka);
+        $bagian_bulat = floor($angka);
+        $bagian_desimal = $angka - $bagian_bulat;
+
+        $hasil = angkaKeKata($bagian_bulat);
+
+        if ($bagian_desimal > 0) {
+            $desimal_str = number_format($bagian_desimal, 2, '.', '');
+            $desimal_str = rtrim($desimal_str, '0');
+            $desimal_str = rtrim($desimal_str, '.');
+
+            $hasil .= ' Koma ';
+            for ($i = 0; $i < strlen($desimal_str); $i++) {
+                if ($desimal_str[$i] != '.') {
+                    $hasil .= angkaKeKata($desimal_str[$i]) . ' ';
+                }
+            }
+        }
+
+        // Mengubah setiap kata menjadi Title Case
+        $hasil = trim($hasil);
+        $kata = explode(' ', $hasil);
+        $hasil = '';
+        foreach ($kata as $k) {
+            $hasil .= mb_convert_case($k, MB_CASE_TITLE, 'UTF-8') . ' ';
+        }
+
+        return trim($hasil);
+    }
+}

@@ -1,3 +1,6 @@
+<?php
+helper('nilai');
+?>
 <!DOCTYPE html>
 <html>
 
@@ -53,6 +56,7 @@
             border: 1px solid #000;
             padding: 5px;
             text-align: left;
+            font-size: 10px;
         }
 
         .nilai-table th {
@@ -88,7 +92,7 @@
             </tr>
             <tr>
                 <td>Kelas</td>
-                <td>: <?= $santri['IdKelas'] ?></td>
+                <td>: <?= $nilai[0]->NamaKelas ?? $santri['IdKelas'] ?></td>
             </tr>
         </table>
     </div>
@@ -99,9 +103,11 @@
         <thead>
             <tr>
                 <th width="5%">No</th>
-                <th width="45%">Materi</th>
-                <th width="25%">Kategori</th>
-                <th width="25%">Nilai</th>
+                <th width="35%">Materi</th>
+                <th width="20%">Kategori</th>
+                <th width="10%">Nilai</th>
+                <th width="10%">Huruf</th>
+                <th width="20%">Terbilang</th>
             </tr>
         </thead>
         <tbody>
@@ -114,8 +120,31 @@
                     <td><?= htmlspecialchars($n->NamaMateri) ?></td>
                     <td><?= htmlspecialchars($n->Kategori) ?></td>
                     <td><?= $n->Nilai ?></td>
+                    <td><?= konversiNilaiHuruf($n->Nilai) ?></td>
+                    <td><?= formatTerbilang($n->Nilai) ?></td>
                 </tr>
             <?php endforeach; ?>
+            <?php
+            // Hitung total dan rata-rata
+            $total = 0;
+            $count = count($nilai);
+            foreach ($nilai as $n) {
+                $total += floatval($n->Nilai);
+            }
+            $rata_rata = $count > 0 ? $total / $count : 0;
+            ?>
+            <tr style="font-weight: bold;">
+                <td colspan="3" style="text-align: right;">Total Nilai:</td>
+                <td><?= number_format($total, 2) ?></td>
+                <td></td>
+                <td><?= formatTerbilang($total) ?></td>
+            </tr>
+            <tr style="font-weight: bold;">
+                <td colspan="3" style="text-align: right;">Rata-Rata:</td>
+                <td><?= number_format($rata_rata, 2) ?></td>
+                <td><?= konversiNilaiHuruf($rata_rata) ?></td>
+                <td><?= formatTerbilang($rata_rata) ?></td>
+            </tr>
         </tbody>
     </table>
 </body>

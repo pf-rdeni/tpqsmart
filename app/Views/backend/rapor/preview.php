@@ -24,7 +24,7 @@
                                 </tr>
                                 <tr>
                                     <td>Kelas</td>
-                                    <td>: <?= $santri['IdKelas'] ?></td>
+                                    <td>: <?= $nilai[0]->NamaKelas ?? $santri['IdKelas'] ?></td>
                                 </tr>
                             </table>
                         </div>

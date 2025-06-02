@@ -76,43 +76,39 @@ class NilaiModel extends Model
     }
 
     // getDataNilaiPerSantri
-    public function getDataNilaiPerSantri($IdSantri, $semester, $IdTpq = null, $IdTahunAjaran = null, $IdKelas = null)
+    public function getDataNilaiPerSantri($IdTpq, $IdTahunAjaran, $IdKelas, $IdSantri, $semester)
     {
-        // If IdTpq is not provided, use the session value
-        if ($IdTpq === null) {
-            $IdTpq = session()->get('IdTpq');
-        }
-        // If IdTahunAjaran is not provided, use the current year
-        if ($IdTahunAjaran === null) {
-            $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
-        }
-        // If IdKelas is not provided, use the class of the student
-        if ($IdKelas === null) {
-            $IdKelas = $this->santriBaruModel->getKelasSantri($IdSantri);
-        }
-
         $builder = $this->db->table('tbl_nilai n');
-        $builder->select('n.Id, n.IdTpq, n.IdSantri, n.IdKelas, n.IdMateri, n.IdGuru, n.IdTahunAjaran, n.Semester, n.Nilai, m.Kategori, m.NamaMateri');
-        $builder->join('tbl_materi_pelajaran m', 'n.IdMateri = m.IdMateri');
+        $builder->select('n.*, m.NamaMateri, m.Kategori, k.NamaKelas, kmp.UrutanMateri');
+        $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
+        $builder->join('tbl_kelas k', 'k.IdKelas = n.IdKelas');
+        $builder->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas');
 
-        $builder->where('n.IdSantri', $IdSantri);
-        $builder->where('n.Semester', $semester);
-        $builder->where('n.IdTpq', $IdTpq);
-        // If IdTahunAjaran is an array, use whereIn, otherwise use where
+        // Handle IdTpq jika array
+        if (is_array($IdTpq)) {
+            $builder->whereIn('n.IdTpq', $IdTpq);
+        } else {
+            $builder->where('n.IdTpq', $IdTpq);
+        }
+
+        // Handle IdTahunAjaran jika array
         if (is_array($IdTahunAjaran)) {
             $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
         } else {
             $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
         }
 
-        //if IdKelas ada dan array
+        // Handle IdKelas jika array
         if (is_array($IdKelas)) {
             $builder->whereIn('n.IdKelas', $IdKelas);
         } else {
             $builder->where('n.IdKelas', $IdKelas);
         }
 
-        $builder->orderBy('n.IdMateri', 'ASC');
+        $builder->where('n.IdSantri', $IdSantri);
+        $builder->where('n.Semester', $semester);
+        $builder->groupBy('n.IdMateri');
+        $builder->orderBy('kmp.UrutanMateri', 'ASC');
 
         return $builder->get()->getResult();
     }
