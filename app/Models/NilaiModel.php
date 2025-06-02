@@ -78,6 +78,7 @@ class NilaiModel extends Model
     // getDataNilaiPerSantri
     public function getDataNilaiPerSantri($IdTpq, $IdTahunAjaran, $IdKelas, $IdSantri, $semester)
     {
+        // Query untuk mendapatkan nilai santri
         $builder = $this->db->table('tbl_nilai n');
         $builder->select('n.*, m.NamaMateri, m.Kategori, k.NamaKelas, kmp.UrutanMateri');
         $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
@@ -110,7 +111,53 @@ class NilaiModel extends Model
         $builder->groupBy('n.IdMateri');
         $builder->orderBy('kmp.UrutanMateri', 'ASC');
 
-        return $builder->get()->getResult();
+        $nilaiSantri = $builder->get()->getResult();
+
+        // Query untuk mendapatkan rata-rata kelas per materi
+        $builderRataKelas = $this->db->table('tbl_nilai n');
+        $builderRataKelas->select('n.IdMateri, m.NamaMateri, m.Kategori, ROUND(AVG(n.Nilai), 2) as RataKelas');
+        $builderRataKelas->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
+        $builderRataKelas->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas');
+
+        // Handle IdTpq jika array
+        if (is_array($IdTpq)) {
+            $builderRataKelas->whereIn('n.IdTpq', $IdTpq);
+        } else {
+            $builderRataKelas->where('n.IdTpq', $IdTpq);
+        }
+
+        // Handle IdTahunAjaran jika array
+        if (is_array($IdTahunAjaran)) {
+            $builderRataKelas->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builderRataKelas->where('n.IdTahunAjaran', $IdTahunAjaran);
+        }
+
+        // Handle IdKelas jika array
+        if (is_array($IdKelas)) {
+            $builderRataKelas->whereIn('n.IdKelas', $IdKelas);
+        } else {
+            $builderRataKelas->where('n.IdKelas', $IdKelas);
+        }
+
+        $builderRataKelas->where('n.Semester', $semester);
+        $builderRataKelas->groupBy('n.IdMateri');
+        $builderRataKelas->orderBy('kmp.UrutanMateri', 'ASC');
+
+        $rataKelas = $builderRataKelas->get()->getResult();
+
+        // Gabungkan data nilai santri dengan rata-rata kelas
+        $result = [];
+        foreach ($nilaiSantri as $nilai) {
+            $rataKelasMateri = array_filter($rataKelas, function ($rk) use ($nilai) {
+                return $rk->IdMateri == $nilai->IdMateri;
+            });
+
+            $nilai->RataKelas = !empty($rataKelasMateri) ? reset($rataKelasMateri)->RataKelas : 0;
+            $result[] = $nilai;
+        }
+
+        return $result;
     }
 
     // getDataNilaiPerKelas IdKelas dan IdTahunAjaran in array

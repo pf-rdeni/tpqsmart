@@ -84,7 +84,7 @@ helper('nilai');
 
     <!-- Data Santri -->
     <div class="data-santri">
-        <table>
+        <table style="font-size: 12px;">
             <tr>
                 <td width="150">Nama Santri</td>
                 <td>: <?= $santri['NamaSantri'] ?></td>
@@ -106,10 +106,11 @@ helper('nilai');
         <thead>
             <tr>
                 <th width="5%">No</th>
-                <th width="35%">Materi</th>
-                <th width="20%">Kategori</th>
+                <th width="30%">Materi</th>
+                <th width="15%">Kategori</th>
                 <th width="10%">Nilai</th>
                 <th width="10%">Huruf</th>
+                <th width="10%">Rata Kelas</th>
                 <th width="20%">Terbilang</th>
             </tr>
         </thead>
@@ -124,31 +125,66 @@ helper('nilai');
                     <td><?= htmlspecialchars($n->Kategori) ?></td>
                     <td><?= $n->Nilai ?></td>
                     <td><?= konversiNilaiHuruf($n->Nilai) ?></td>
+                    <td><?= number_format($n->RataKelas, 2) ?></td>
                     <td><?= formatTerbilang($n->Nilai) ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php
             // Hitung total dan rata-rata
             $total = 0;
+            $totalRataKelas = 0;
             $count = count($nilai);
             foreach ($nilai as $n) {
                 $total += floatval($n->Nilai);
+                $totalRataKelas += floatval($n->RataKelas);
             }
             $rata_rata = $count > 0 ? $total / $count : 0;
+            $rata_rata_kelas = $count > 0 ? $totalRataKelas / $count : 0;
             ?>
             <tr style="font-weight: bold;">
                 <td colspan="3" style="text-align: right;">Total Nilai:</td>
-                <td><?= number_format($total, 2) ?></td>
+                <td><?= number_format($total, 1) ?></td>
+                <td></td>
                 <td></td>
                 <td><?= formatTerbilang($total) ?></td>
             </tr>
             <tr style="font-weight: bold;">
                 <td colspan="3" style="text-align: right;">Rata-Rata:</td>
-                <td><?= number_format($rata_rata, 2) ?></td>
+                <td><?= number_format($rata_rata, 1) ?></td>
                 <td><?= konversiNilaiHuruf($rata_rata) ?></td>
+                <td><?= number_format($rata_rata_kelas, 1) ?></td>
                 <td><?= formatTerbilang($rata_rata) ?></td>
             </tr>
         </tbody>
+    </table>
+
+    <!-- Tanda Tangan Layout Gambar Tabel -->
+    <table style="width: 100%; border-collapse: collapse; margin-top: 50px; font-size: 12px;">
+        <tr>
+            <td colspan="5" style="width: 50%; padding: 5px; text-align: right;"> Diberikan di Seri Kuala Lobam Tanggal: <?= date('d F Y') ?></td>
+        </tr>
+        <tr>
+            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">Kepala TPQ</td>
+            <td style="width: 50%; padding: 5px;"></td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">Wali Kelas</td>
+        </tr>
+        <tr>
+            <td colspan="5" style="height: 50px;"></td>
+        </tr>
+        <tr>
+            <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">(.........................)</td>
+            <td></td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">(.........................)</td>
+        </tr>
+        <tr>
+            <td colspan="5" style="padding: 15px 5px; text-align: center;">Mengetahui Orang Tua/Wali Santri</td>
+        </tr>
+        <tr>
+            <td colspan="5" style="height: 50px;"></td>
+        </tr>
+        <tr>
+            <td colspan="5" style="padding: 15px 5px; text-align: center;">(.........................)</td>
+        </tr>
     </table>
 </body>
 

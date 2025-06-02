@@ -116,6 +116,10 @@ class Rapor extends BaseController
                 semester: $semester
             );
 
+            //Mengambil seluruh santri berdasarkan IdTpq dan IdTahunAjaran dan idKelas untuk endapatkan nilai rata-rata mata pelajaran perkelas
+
+
+
             // Ambil data TPQ
             $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
 
