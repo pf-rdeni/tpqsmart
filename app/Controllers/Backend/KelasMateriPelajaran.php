@@ -8,20 +8,6 @@ use App\Models\HelpFunctionModel;
 
 class KelasMateriPelajaran extends BaseController
 {
-    public function index()
-    {
-        $model = new KelasMateriPelajaranModel();
-        $data['materi'] = $model->findAll();
-
-        return view('kelas_materi_pelajaran/index', $data);
-    }
-
-    public function create()
-    {
-        return view('kelas_materi_pelajaran/create');
-    }
-
-    
     public function store()
     {
         $model = new KelasMateriPelajaranModel();
@@ -37,13 +23,6 @@ class KelasMateriPelajaran extends BaseController
         return redirect()->to('/kelasMateriPelajaran');
     }
 
-    public function edit($id)
-    {
-        $model = new KelasMateriPelajaranModel();
-        $data['materi'] = $model->find($id);
-
-        return view('kelas_materi_pelajaran/edit', $data);
-    }
 
     public function add()
     {
@@ -137,7 +116,7 @@ class KelasMateriPelajaran extends BaseController
         $helpModel = new HelpFunctionModel();
 
         $builder = $model->select(
-            'tbl_kelas_materi_pelajaran.Id, tbl_kelas_materi_pelajaran.IdKelas, tbl_kelas_materi_pelajaran.IdMateri, tbl_kelas_materi_pelajaran.SemesterGanjil, tbl_kelas_materi_pelajaran.SemesterGenap, 
+            'tbl_kelas_materi_pelajaran.Id, tbl_kelas_materi_pelajaran.IdKelas, tbl_kelas_materi_pelajaran.IdMateri, tbl_kelas_materi_pelajaran.UrutanMateri, tbl_kelas_materi_pelajaran.SemesterGanjil, tbl_kelas_materi_pelajaran.SemesterGenap, 
                                  tbl_kelas.NamaKelas,
                                  tbl_tpq.NamaTpq,
                                  tbl_materi_pelajaran.Kategori,tbl_materi_pelajaran.NamaMateri,'
@@ -146,11 +125,13 @@ class KelasMateriPelajaran extends BaseController
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_kelas_materi_pelajaran.IdTpq', 'left')
             ->join('tbl_materi_pelajaran', 'tbl_materi_pelajaran.IdMateri = tbl_kelas_materi_pelajaran.IdMateri', 'left');
 
-
         if ($IdTpq !== null) {
             $builder->where('tbl_kelas_materi_pelajaran.IdTpq', $IdTpq);
         }
-
+        // urutkan berdasarkan kelas, tpq, urutan materi
+        $builder->orderBy('tbl_kelas.NamaKelas', 'ASC');
+        $builder->orderBy('tbl_tpq.NamaTpq', 'ASC');
+        $builder->orderBy('tbl_kelas_materi_pelajaran.UrutanMateri', 'ASC');
         $dataMateri = $builder->findAll();
 
         // Mengelompokkan data berdasarkan kelas
@@ -273,5 +254,37 @@ class KelasMateriPelajaran extends BaseController
             'status' => 'success',
             'message' => 'Tidak ada data baru yang perlu ditambahkan.'
         ]);
+    }
+
+    public function updateUrutan()
+    {
+        try {
+            $model = new KelasMateriPelajaranModel();
+            $id = $this->request->getPost('Id');
+            $urutanMateri = $this->request->getPost('UrutanMateri');
+
+            // Validasi input
+            if (!$id || !$urutanMateri) {
+                return $this->response->setJSON([
+                    'status' => 'fail',
+                    'message' => 'Data tidak lengkap'
+                ])->setStatusCode(400);
+            }
+
+            // Update urutan materi
+            $model->update($id, [
+                'UrutanMateri' => $urutanMateri
+            ]);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Urutan materi berhasil diperbarui'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'fail',
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
     }
 }

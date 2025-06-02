@@ -13,6 +13,7 @@ class KelasMateriPelajaranModel extends Model
         'IdMateri',
         'SemesterGanjil',
         'SemesterGenap',
+        'UrutanMateri',
         'created_at',
         'updated_at'
     ];

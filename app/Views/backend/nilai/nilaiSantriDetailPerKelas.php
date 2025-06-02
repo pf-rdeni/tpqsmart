@@ -73,6 +73,11 @@ function capitalizeWords($str)
                                                 <?php
                                                 // Tampilkan header materi berdasarkan kelas yang dipilih
                                                 if (isset($dataMateri[$kelasId])) {
+                                                    // Urutkan materi berdasarkan UrutanMateri
+                                                    usort($dataMateri[$kelasId], function ($a, $b) {
+                                                        return $a->UrutanMateri - $b->UrutanMateri;
+                                                    });
+
                                                     foreach ($dataMateri[$kelasId] as $materi) {
                                                         echo '<th class="vertical-header">' . htmlspecialchars(capitalizeWords($materi->NamaMateri)) . '</th>';
                                                     }
@@ -108,6 +113,11 @@ function capitalizeWords($str)
 
                                                     // Tampilkan nilai materi berdasarkan kelas yang dipilih
                                                     if (isset($dataMateri[$kelasId])) {
+                                                        // Urutkan materi berdasarkan UrutanMateri
+                                                        usort($dataMateri[$kelasId], function ($a, $b) {
+                                                            return $a->UrutanMateri - $b->UrutanMateri;
+                                                        });
+
                                                         foreach ($dataMateri[$kelasId] as $materi) {
                                                             $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
                                                             echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars($nilai) . '</td>';
@@ -140,6 +150,11 @@ function capitalizeWords($str)
 
                                                 // Tampilkan rata-rata nilai materi
                                                 if (isset($dataMateri[$kelasId])) {
+                                                    // Urutkan materi berdasarkan UrutanMateri
+                                                    usort($dataMateri[$kelasId], function ($a, $b) {
+                                                        return $a->UrutanMateri - $b->UrutanMateri;
+                                                    });
+
                                                     foreach ($dataMateri[$kelasId] as $materi) {
                                                         $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : -1;
                                                         echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
@@ -199,6 +214,11 @@ function capitalizeWords($str)
                                         $totalNilaiSantri = 0;
                                         $jumlahMateri = 0;
                                         if (isset($dataMateri[$kelasId])) {
+                                            // Urutkan materi berdasarkan UrutanMateri
+                                            usort($dataMateri[$kelasId], function ($a, $b) {
+                                                return $a->UrutanMateri - $b->UrutanMateri;
+                                            });
+
                                             foreach ($dataMateri[$kelasId] as $materi) {
                                                 $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
 

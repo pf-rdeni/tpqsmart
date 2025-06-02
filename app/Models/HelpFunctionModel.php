@@ -508,7 +508,7 @@ class HelpFunctionModel extends Model
     public function getMateriPelajaranByKelas($IdTpq, $IdKelas = null, $Semester)
     {
         $builder = $this->db->table('tbl_kelas_materi_pelajaran');
-        $builder->select('IdKelas, tbl_kelas_materi_pelajaran.IdMateri, NamaMateri, Kategori');
+        $builder->select('IdKelas, tbl_kelas_materi_pelajaran.IdMateri, NamaMateri, Kategori, UrutanMateri');
         $builder->join('tbl_materi_pelajaran', 'tbl_materi_pelajaran.IdMateri = tbl_kelas_materi_pelajaran.IdMateri');
         // Mengahandle jika IdKelas adalah null
         if ($IdKelas) {
@@ -532,7 +532,7 @@ class HelpFunctionModel extends Model
                 ->orWhere('SemesterGenap', 1);
         }
         // order by IdKelas, Ketegori, NamaMateri
-        $builder->orderBy('IdKelas, IdMateri, Kategori');
+        $builder->orderBy('IdKelas, UrutanMateri, Kategori');
         // Mengembalikan hasil sebagai objek
         return $builder->get()->getResultObject();
     }

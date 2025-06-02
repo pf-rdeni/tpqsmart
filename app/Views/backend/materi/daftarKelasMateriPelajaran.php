@@ -56,6 +56,7 @@
                                             <th>Id Materi</th>
                                             <th>Kategori</th>
                                             <th>Materi</th>
+                                            <th>Urutan Materi di Raport</th>
                                             <th>S.Ganjil</th>
                                             <th>S.Genap</th>
                                             <th>Aksi</th>
@@ -68,12 +69,19 @@
                                                 <td><?= $materi['IdMateri'] ?></td>
                                                 <td><?= $materi['Kategori'] ?></td>
                                                 <td><?= $materi['NamaMateri'] ?></td>
-                                                <td>
+                                                <td data-order="<?= $materi['UrutanMateri'] ?>">
+                                                    <input type="number"
+                                                        class="form-control form-control-sm"
+                                                        value="<?= $materi['UrutanMateri'] ?>"
+                                                        onchange="updateUrutanMateri(this, '<?= $materi['Id'] ?>', '<?= addslashes($materi['NamaMateri']) ?>')"
+                                                        min="1">
+                                                </td>
+                                                <td data-order="<?= $materi['SemesterGanjil'] ? '1' : '0' ?>">
                                                     <input type="checkbox"
                                                         <?= $materi['SemesterGanjil'] ? 'checked' : '' ?>
                                                         onchange="confirmCheckboxChange(this, '<?= $materi['Id'] ?>', 'SemesterGanjil','<?= addslashes($materi['NamaMateri']) ?>')">
                                                 </td>
-                                                <td>
+                                                <td data-order="<?= $materi['SemesterGenap'] ? '1' : '0' ?>">
                                                     <input type="checkbox"
                                                         <?= $materi['SemesterGenap'] ? 'checked' : '' ?>
                                                         onchange="confirmCheckboxChange(this, '<?= $materi['Id'] ?>', 'SemesterGenap', '<?= addslashes($materi['NamaMateri']) ?>')">
@@ -91,6 +99,7 @@
                                             <th>Id Materi</th>
                                             <th>Kategori</th>
                                             <th>Materi</th>
+                                            <th>Urutan Materi di Raport</th>
                                             <th>S.Ganjil</th>
                                             <th>S.Genap</th>
                                             <th>Aksi</th>
@@ -296,7 +305,24 @@
 <script>
     // Initial datatabel untuk lihat list materi per kelas
     <?php foreach ($dataMateriPerKelas as $kelasId => $kelas): ?>
-        initializeDataTableUmum("#tblKelas-<?= $kelasId ?>", true, true);
+        initializeDataTableUmum("#tblKelas-<?= $kelasId ?>", true, true, {
+            order: [
+                [3, 'asc']
+            ], // Mengurutkan berdasarkan kolom UrutanMateri (index 3) secara ascending
+            columnDefs: [{
+                targets: 3, // Kolom UrutanMateri
+                type: 'num'
+            }, {
+                targets: [4, 5], // Kolom Semester Ganjil dan Genap
+                type: 'num',
+                render: function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return $(data).find('input[type="checkbox"]').prop('checked') ? '1' : '0';
+                }
+            }]
+        });
     <?php endforeach; ?>
 
     // Initial datatabel untuk lihat list materi yang akan dihapus
@@ -812,6 +838,67 @@
                         Swal.fire('Error!', 'Terjadi kesalahan saat menambahkan materi', 'error');
                     }
                 });
+            }
+        });
+    }
+
+    // Fungsi untuk update urutan materi
+    function updateUrutanMateri(input, id, namaMateri) {
+        const newUrutan = input.value;
+
+        Swal.fire({
+            title: 'Konfirmasi Perubahan',
+            text: `Apakah Anda yakin ingin mengubah urutan materi ${namaMateri} menjadi ${newUrutan}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, simpan!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Menampilkan loading spinner
+                Swal.fire({
+                    title: 'Menyimpan Data',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    icon: 'info',
+                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>',
+                    onBeforeOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Kirim data ke controller
+                $.ajax({
+                    url: '<?= base_url('backend/KelasMateriPelajaran/updateUrutan') ?>',
+                    type: 'POST',
+                    data: {
+                        Id: id,
+                        UrutanMateri: newUrutan
+                    },
+                    success: function(response) {
+                        Swal.fire({
+                            title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
+                            text: response.message,
+                            icon: response.status === 'success' ? 'success' : 'error',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            if (response.status === 'success') {
+                                location.reload();
+                            }
+                        });
+                    },
+                    error: function() {
+                        Swal.fire('Error!', 'Terjadi kesalahan saat mengubah urutan materi', 'error');
+                        // Kembalikan nilai input ke nilai sebelumnya
+                        input.value = input.defaultValue;
+                    }
+                });
+            } else {
+                // Kembalikan nilai input ke nilai sebelumnya jika dibatalkan
+                input.value = input.defaultValue;
             }
         });
     }
