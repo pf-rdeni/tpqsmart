@@ -30,13 +30,13 @@ class Nilai extends BaseController
     public function showDetail($IdSantri, $IdSemseter, $Edit = null, $IdJabatan = null)
     {
         // ambil settingan nilai minimun dan maksimal dari session
-        $SettingNilai = (object)[
+        $settingNilai = (object)[
             'NilaiMin' => session()->get('SettingNilaiMin'),
             'NilaiMax' => session()->get('SettingNilaiMax')
         ];
 
         // ambil jika settingan nilai alfabetic dari session
-        $SettingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
+        $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
 
         $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter);
 
@@ -45,7 +45,7 @@ class Nilai extends BaseController
             'nilai' => $datanilai,
             'guruPendamping' => $IdJabatan,
             'pageEdit' => $Edit,
-            'settingNilai' => $SettingNilai,
+            'settingNilai' => $settingNilai,
         ];
 
         return view('/backend/nilai/nilaiSantriDetail', $data);
@@ -58,8 +58,14 @@ class Nilai extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $dataSantri = $this->DataSantriBaru->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
 
-        // ambil settingan nilai alphabet dari session
-        $SettingNilai = session()->get('SettingNilaiAlphabet') ?? false;
+        // ambil settingan nilai minimun dan maksimal dari session
+        $settingNilai = (object)[
+            'NilaiMin' => session()->get('SettingNilaiMin'),
+            'NilaiMax' => session()->get('SettingNilaiMax')
+        ];
+
+        // ambil jika settingan nilai alfabetic dari session
+        $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
 
         // Check IdSantri yang ada di data $dataSantri ke tbl_nilai filter by IdTahunAjaran dan Semester apakah nilai untuk semua IdMateri sudah semua atau belum jika belum maka buat status StatusPenilian = 0 
         foreach ($dataSantri as $key => $value) {
@@ -84,7 +90,7 @@ class Nilai extends BaseController
             'dataSantri' => $dataSantri,
             'dataKelas' => $dataKelas,
             'semester' => $semester,
-            'settingNilai' => $SettingNilai,
+            'settingNilai' => $settingNilai,
         ];
 
         return view('backend/santri/santriPerKelas', $data);
@@ -135,8 +141,14 @@ class Nilai extends BaseController
             $dataMateri[$idKelas] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $idKelas, $semester);
         }
 
-        // ambil settingan nilai alphabet dari session
-        $settingNilai = session()->get('SettingNilaiAlphabet') ?? false;
+        // ambil settingan nilai minimun dan maksimal dari session
+        $settingNilai = (object)[
+            'NilaiMin' => session()->get('SettingNilaiMin'),
+            'NilaiMax' => session()->get('SettingNilaiMax')
+        ];
+
+        // ambil jika settingan nilai alfabetic dari session
+        $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
 
         $data = [
             'page_title' => 'Data Nilai Santri Per Kelas',

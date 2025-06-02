@@ -187,6 +187,10 @@ function capitalizeWords($str)
 
 <!-- Modal Detail Individual Nilai Santri dan Rata-Rata -->
 <?php foreach ($dataNilai as $santri) : ?>
+    <?php
+    $apakahSettingAlphabetActive = getAlphabetKelasSettings($settingNilai, $santri['IdKelas'])['isAlphabetKelas'];
+
+    ?>
     <?php foreach ($dataKelas as $kelasId => $kelas): ?>
         <?php if ($santri['Nama Kelas'] == $kelas): ?>
             <div class="modal fade" id="modalDetailNilai<?= $santri['IdSantri'] ?>" tabindex="-1" role="dialog" aria-labelledby="modalDetailNilaiLabel<?= $santri['IdSantri'] ?>" aria-hidden="true">
@@ -205,7 +209,9 @@ function capitalizeWords($str)
                                         <tr>
                                             <th>Nama Materi</th>
                                             <th>Nilai</th>
-                                            <th>Huruf</th>
+                                            <?php if ($apakahSettingAlphabetActive === true): ?>
+                                                <th>Huruf</th>
+                                            <?php endif; ?>
                                             <th>Rata-Rata Kelas</th>
                                         </tr>
                                     </thead>
@@ -244,7 +250,9 @@ function capitalizeWords($str)
                                                 <tr>
                                                     <td><?= htmlspecialchars(capitalizeWords($materi->NamaMateri)) ?></td>
                                                     <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= htmlspecialchars($nilai) ?></td>
-                                                    <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= konversiNilaiHuruf($nilai, $settingNilai) ?></td>
+                                                    <?php if ($apakahSettingAlphabetActive === true): ?>
+                                                        <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= konversiNilaiHuruf($nilai, $settingNilai) ?></td>
+                                                    <?php endif; ?>
                                                     <td><?= $rataRata >= 0 ? $rataRata : ' ' ?></td>
                                                 </tr>
                                         <?php
@@ -254,13 +262,17 @@ function capitalizeWords($str)
                                         <tr class="table-info">
                                             <td><strong>Total Nilai</strong></td>
                                             <td><strong><?= $totalNilaiSantri >= 0 ? $totalNilaiSantri : ' ' ?></strong></td>
-                                            <td></td>
+                                            <?php if ($apakahSettingAlphabetActive === true): ?>
+                                                <td></td>
+                                            <?php endif; ?>
                                             <td></td>
                                         </tr>
                                         <tr class="table-info">
                                             <td><strong>Rata-Rata</strong></td>
                                             <td><strong><?= $jumlahMateri > 0 ? round($totalNilaiSantri / $jumlahMateri, 1) : ' ' ?></strong></td>
-                                            <td><strong><?= $jumlahMateri > 0 ? konversiNilaiHuruf(round($totalNilaiSantri / $jumlahMateri, 1), $settingNilai) : ' ' ?></strong></td>
+                                            <?php if ($apakahSettingAlphabetActive === true): ?>
+                                                <td><strong><?= $jumlahMateri > 0 ? konversiNilaiHuruf(round($totalNilaiSantri / $jumlahMateri, 1), $settingNilai) : ' ' ?></strong></td>
+                                            <?php endif; ?>
                                             <td></td>
                                         </tr>
                                     </tbody>
