@@ -124,30 +124,20 @@ class Rapor extends BaseController
         // Load view untuk PDF
         $html = view('backend/rapor/print', $data);
 
-        // Inisialisasi Dompdf dengan konfigurasi yang lebih lengkap
+        // Inisialisasi Dompdf
         $options = new Options();
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isPhpEnabled', true);
         $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'DejaVu Sans');
-        $options->set('defaultMediaType', 'screen');
-        $options->set('defaultPaperSize', 'A4');
-        $options->set('dpi', 150);
-        $options->set('isFontSubsettingEnabled', true);
-        $options->set('debugKeepTemp', true);
-        $options->set('debugCss', true);
-        $options->set('debugLayout', true);
-        $options->set('chroot', FCPATH);
+        $options->set('defaultFont', 'Arial');
 
         $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        // Output PDF dengan header yang tepat
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: inline; filename="rapor_' . $santri['NamaSantri'] . '_' . $semester . '.pdf"');
-        echo $dompdf->output();
-        exit;
+        // Output PDF
+        header('Content-Type: application/pdf; charset=UTF-8');
+        $dompdf->stream('rapor_' . $santri['NamaSantri'] . '_' . $semester . '.pdf', ['Attachment' => false]);
     }
 }

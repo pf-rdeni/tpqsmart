@@ -1,19 +1,13 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
     <title>Rapor Santri</title>
     <style>
-        @page {
-            margin: 2cm;
-        }
-
         body {
-            font-family: DejaVu Sans, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
+            font-family: Arial, sans-serif;
+            margin: 20px;
         }
 
         .header {
@@ -24,7 +18,6 @@
         .header h2 {
             margin: 0;
             font-size: 18px;
-            font-weight: bold;
         }
 
         .header h3 {
@@ -43,7 +36,6 @@
 
         .data-santri table {
             width: 100%;
-            border-collapse: collapse;
         }
 
         .data-santri td {
@@ -64,16 +56,13 @@
         }
 
         .nilai-table th {
-            background-color: #f2f2f2;
+            background-color: #f0f0f0;
         }
 
         .semester-title {
             font-size: 14px;
             font-weight: bold;
             margin: 10px 0;
-            background-color: #4CAF50;
-            color: white;
-            padding: 5px 10px;
         }
     </style>
 </head>
@@ -82,8 +71,8 @@
     <!-- Header Rapor -->
     <div class="header">
         <h2>RAPOR SANTRI</h2>
-        <h3><?= htmlspecialchars($tpq['NamaTpq'], ENT_QUOTES, 'UTF-8') ?></h3>
-        <p>Tahun Ajaran <?= htmlspecialchars($tahunAjaran, ENT_QUOTES, 'UTF-8') ?></p>
+        <h3><?= $tpq['NamaTpq'] ?></h3>
+        <p>Tahun Ajaran <?= $tahunAjaran ?></p>
     </div>
 
     <!-- Data Santri -->
@@ -91,21 +80,21 @@
         <table>
             <tr>
                 <td width="150">Nama Santri</td>
-                <td>: <?= htmlspecialchars($santri['NamaSantri'], ENT_QUOTES, 'UTF-8') ?></td>
+                <td>: <?= $santri['NamaSantri'] ?></td>
             </tr>
             <tr>
                 <td>NIS</td>
-                <td>: <?= htmlspecialchars($santri['IdSantri'], ENT_QUOTES, 'UTF-8') ?></td>
+                <td>: <?= $santri['IdSantri'] ?></td>
             </tr>
             <tr>
                 <td>Kelas</td>
-                <td>: <?= htmlspecialchars($santri['IdKelas'], ENT_QUOTES, 'UTF-8') ?></td>
+                <td>: <?= $santri['IdKelas'] ?></td>
             </tr>
         </table>
     </div>
 
     <!-- Nilai Semester -->
-    <div class="semester-title">Nilai Semester <?= htmlspecialchars($semester, ENT_QUOTES, 'UTF-8') ?></div>
+    <div class="semester-title">Nilai Semester <?= $semester ?></div>
     <table class="nilai-table">
         <thead>
             <tr>
@@ -122,9 +111,9 @@
             ?>
                 <tr>
                     <td><?= $no++ ?></td>
-                    <td><?= htmlspecialchars($n->NamaMateri, ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($n->Kategori, ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= htmlspecialchars($n->Nilai, ENT_QUOTES, 'UTF-8') ?></td>
+                    <td><?= htmlspecialchars($n->NamaMateri) ?></td>
+                    <td><?= htmlspecialchars($n->Kategori) ?></td>
+                    <td><?= $n->Nilai ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
