@@ -507,19 +507,6 @@
                         checkbox.checked = !isChecked;
                     }
                 });
-                // Menampilkan loading spinner
-                Swal.fire({
-                    title: 'Menyimpan Data',
-                    text: 'Mohon tunggu...',
-                    allowOutsideClick: false,
-                    icon: 'info',
-                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>', // Menambahkan spinner
-
-                    onBeforeOpen: () => {
-                        Swal.showLoading();
-                    }
-
-                });
             } else {
                 // Kembalikan checkbox ke status sebelumnya jika tidak dikonfirmasi
                 checkbox.checked = !isChecked;
@@ -857,18 +844,6 @@
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Menampilkan loading spinner
-                Swal.fire({
-                    title: 'Menyimpan Data',
-                    text: 'Mohon tunggu...',
-                    allowOutsideClick: false,
-                    icon: 'info',
-                    html: '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>',
-                    onBeforeOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
                 // Kirim data ke controller
                 $.ajax({
                     url: '<?= base_url('backend/KelasMateriPelajaran/updateUrutan') ?>',
@@ -882,12 +857,10 @@
                             title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
                             text: response.message,
                             icon: response.status === 'success' ? 'success' : 'error',
-                            timer: 100,
+                            timer: 500,
                             showConfirmButton: false
                         }).then(() => {
-                            if (response.status === 'success') {
-                                //location.reload();
-                            }
+                            if (response.status === 'success') {}
                         });
                     },
                     error: function() {
