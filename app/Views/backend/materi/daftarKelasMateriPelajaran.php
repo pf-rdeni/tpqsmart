@@ -493,7 +493,7 @@
                             title: 'Sukses!',
                             text: response.message,
                             icon: 'success',
-                            timer: 2000,
+                            timer: 500,
                             showConfirmButton: false
                         });
                     },
@@ -561,7 +561,7 @@
                             title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
                             text: response.message,
                             icon: response.status === 'success' ? 'success' : 'error',
-                            timer: 2000,
+                            timer: 500,
                             showConfirmButton: false
                         }).then(() => {
                             if (response.status === 'success') {
@@ -773,7 +773,7 @@
                             title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
                             text: response.message,
                             icon: response.status === 'success' ? 'success' : 'error',
-                            timer: 2000,
+                            timer: 500,
                             showConfirmButton: false
                         }).then(() => {
                             if (response.status === 'success') {
@@ -824,7 +824,7 @@
                             title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
                             text: response.message,
                             icon: response.status === 'success' ? 'success' : 'error',
-                            timer: 2000,
+                            timer: 500,
                             showConfirmButton: false
                         }).then(() => {
                             if (response.status === 'success') {
@@ -882,11 +882,11 @@
                             title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
                             text: response.message,
                             icon: response.status === 'success' ? 'success' : 'error',
-                            timer: 2000,
+                            timer: 100,
                             showConfirmButton: false
                         }).then(() => {
                             if (response.status === 'success') {
-                                location.reload();
+                                //location.reload();
                             }
                         });
                     },
