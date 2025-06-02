@@ -131,46 +131,11 @@ foreach ($MainDataNilai as $DataNilai) : ?>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri ?></span>
                         </div>
                         <?= $isAlphabetKelas = false; ?>
-                        <?php if (isset($settingNilai->NilaiAlphabet) && $settingNilai->NilaiAlphabet) {
-                            $SettingNilaiAlphabet = $settingNilai->NilaiAlphabet->Nilai_Alphabet;
-                            if ($SettingNilaiAlphabet) {
-                                $SettingAlphabetKelasString = $settingNilai->NilaiAlphabet->Nilai_Alphabet_Kelas;
+                        <?php
+                        $alphabetSettings = getAlphabetKelasSettings($settingNilai, $DataNilai->IdKelas);
+                        $isAlphabetKelas = $alphabetSettings['isAlphabetKelas'];
+                        $SettingAlphabeticNilaiTransformed = $alphabetSettings['transformedNilai'];
 
-                                // Pecah string SettingAlphabetKelas menjadi array menggunakan koma sebagai delimiter
-                                $SettingAlphabetKelasArray = explode(',', $SettingAlphabetKelasString);
-
-                                // Periksa apakah IdKelas saat ini ada di dalam array SettingAlphabetKelasArray
-                                if (in_array($DataNilai->IdKelas, $SettingAlphabetKelasArray)) {
-                                    $isAlphabetKelas = true;
-                                }
-
-                                if ($isAlphabetKelas) {
-                                    // Ambil nilai alphabet dari setting
-                                    $SettingAlphabeticNilai = $settingNilai->NilaiAlphabet->Nilai_Alphabet_Persamaan;
-                                    // Pisahkan nilai alphabet menjadi array of strings "A=90", "B=80", ...
-                                    $SettingAlphabeticNilaiArrayRaw = explode(',', $SettingAlphabeticNilai);
-
-                                    // Buat array baru untuk menyimpan hasil transformasi
-                                    $SettingAlphabeticNilaiTransformed = [];
-
-                                    // Iterasi array mentah dan ubah formatnya
-                                    foreach ($SettingAlphabeticNilaiArrayRaw as $item) {
-                                        // Pisahkan setiap item menjadi label dan value berdasarkan '='
-                                        $parts = explode('=', $item);
-                                        // Pastikan ada dua bagian (label dan value)
-                                        if (count($parts) == 2) {
-                                            $label = trim($parts[0]); // Ambil label (A, B, C, D) dan hapus spasi
-                                            $value = (int)trim($parts[1]); // Ambil value (90, 80, 70, 60), hapus spasi, dan konversi ke integer
-                                            // Tambahkan ke array hasil transformasi dalam format yang diinginkan
-                                            $SettingAlphabeticNilaiTransformed[] = [
-                                                'Label' => $label,
-                                                'Value' => $value
-                                            ];
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         if ($isAlphabetKelas) {
                         ?>
                             <div class="form-group">

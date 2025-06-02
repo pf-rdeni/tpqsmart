@@ -19,6 +19,7 @@ function capitalizeWords($str)
 {
     return ucwords(strtolower($str));
 }
+
 ?>
 <div class="col-12">
     <div class="card">
@@ -204,6 +205,7 @@ function capitalizeWords($str)
                                         <tr>
                                             <th>Nama Materi</th>
                                             <th>Nilai</th>
+                                            <th>Huruf</th>
                                             <th>Rata-Rata Kelas</th>
                                         </tr>
                                     </thead>
@@ -242,6 +244,7 @@ function capitalizeWords($str)
                                                 <tr>
                                                     <td><?= htmlspecialchars(capitalizeWords($materi->NamaMateri)) ?></td>
                                                     <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= htmlspecialchars($nilai) ?></td>
+                                                    <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= konversiNilaiHuruf($nilai, $settingNilai) ?></td>
                                                     <td><?= $rataRata >= 0 ? $rataRata : ' ' ?></td>
                                                 </tr>
                                         <?php
@@ -252,10 +255,12 @@ function capitalizeWords($str)
                                             <td><strong>Total Nilai</strong></td>
                                             <td><strong><?= $totalNilaiSantri >= 0 ? $totalNilaiSantri : ' ' ?></strong></td>
                                             <td></td>
+                                            <td></td>
                                         </tr>
                                         <tr class="table-info">
                                             <td><strong>Rata-Rata</strong></td>
                                             <td><strong><?= $jumlahMateri > 0 ? round($totalNilaiSantri / $jumlahMateri, 1) : ' ' ?></strong></td>
+                                            <td><strong><?= $jumlahMateri > 0 ? konversiNilaiHuruf(round($totalNilaiSantri / $jumlahMateri, 1), $settingNilai) : ' ' ?></strong></td>
                                             <td></td>
                                         </tr>
                                     </tbody>

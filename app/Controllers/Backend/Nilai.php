@@ -15,6 +15,7 @@ class Nilai extends BaseController
     protected $IdTpq;
     protected $IdKelas;
     protected $IdTahunAjaran;
+    protected $settingNilaiModel;
 
     public function __construct()
     {
@@ -57,6 +58,9 @@ class Nilai extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $dataSantri = $this->DataSantriBaru->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
 
+        // ambil settingan nilai alphabet dari session
+        $SettingNilai = session()->get('SettingNilaiAlphabet') ?? false;
+
         // Check IdSantri yang ada di data $dataSantri ke tbl_nilai filter by IdTahunAjaran dan Semester apakah nilai untuk semua IdMateri sudah semua atau belum jika belum maka buat status StatusPenilian = 0 
         foreach ($dataSantri as $key => $value) {
             $dataNilai = $this->DataNilai->getDataNilaiPerSantri($value->IdSantri, $semester, IdTpq: $this->IdTpq, IdTahunAjaran: $IdTahunAjaran, IdKelas: $IdKelas);
@@ -79,7 +83,8 @@ class Nilai extends BaseController
             'page_title' => 'Data Santri Per Semester ' . $semester,
             'dataSantri' => $dataSantri,
             'dataKelas' => $dataKelas,
-            'semester' => $semester
+            'semester' => $semester,
+            'settingNilai' => $SettingNilai,
         ];
 
         return view('backend/santri/santriPerKelas', $data);
@@ -130,12 +135,18 @@ class Nilai extends BaseController
             $dataMateri[$idKelas] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $idKelas, $semester);
         }
 
-        return view('backend/nilai/nilaiSantriDetailPerKelas', [
-            'page_title' => 'Detail Nilai Santri Semester ' . $semester,
-            'dataNilai' => $datanilai,
+        // ambil settingan nilai alphabet dari session
+        $settingNilai = session()->get('SettingNilaiAlphabet') ?? false;
+
+        $data = [
+            'page_title' => 'Data Nilai Santri Per Kelas',
             'dataKelas' => $dataKelas,
+            'dataNilai' => $datanilai,
             'dataMateri' => $dataMateri,
-        ]);
+            'settingNilai' => $settingNilai
+        ];
+
+        return view('backend/nilai/nilaiSantriDetailPerKelas', $data);
     }
 
     public function update($Edit = false)
