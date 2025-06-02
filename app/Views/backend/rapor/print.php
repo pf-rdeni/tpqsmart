@@ -74,6 +74,9 @@ helper('nilai');
 <body>
     <!-- Header Rapor -->
     <div class="header">
+        <div style="background-color: red; color: white; padding: 10px; text-align: center;">
+            Dokumen ini masih dalam pengembangan.
+        </div>
         <h2>RAPOR SANTRI</h2>
         <h3><?= $tpq['NamaTpq'] ?></h3>
         <p>Tahun Ajaran <?= $tahunAjaran ?></p>
