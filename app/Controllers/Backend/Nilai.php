@@ -88,7 +88,6 @@ class Nilai extends BaseController
     public function showSumaryPersemester($semester = null)
     {
         $datanilai = $this->DataNilai->getDataNilaiPerSemester($this->IdTpq, $this->IdKelas, $this->IdTahunAjaran, $semester);
-        // $dataKelas = [0 => 'SEMUA'];
         foreach ($datanilai->getResult() as $nilai) {
             $dataKelas[$nilai->IdKelas] = $nilai->NamaKelas;
         }
