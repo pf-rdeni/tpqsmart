@@ -62,37 +62,6 @@ class Rapor extends BaseController
         return $this->response->setJSON($santriList);
     }
 
-    public function previewRapor($IdSantri, $semester)
-    {
-        $IdTpq = session()->get('IdTpq');
-        $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
-
-        // Ambil data santri
-        $santri = $this->santriBaruModel->getDetailSantri($IdSantri);
-
-        // Ambil data nilai berdasarkan semester
-        $nilai = $this->nilaiModel->getDataNilaiPerSantri(
-            IdTpq: $IdTpq,
-            IdTahunAjaran: $IdTahunAjaran,
-            IdKelas: $santri['IdKelas'],
-            IdSantri: $IdSantri,
-            semester: $semester
-        );
-
-        // Ambil data TPQ
-        $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
-
-        $data = [
-            'santri' => $santri,
-            'nilai' => $nilai,
-            'tpq' => $tpq,
-            'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
-            'semester' => $semester
-        ];
-
-        return view('backend/rapor/preview', $data);
-    }
-
     public function printPdf($IdSantri, $semester)
     {
         try {

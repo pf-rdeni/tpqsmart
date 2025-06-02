@@ -56,7 +56,7 @@
                                                             <tr>
                                                                 <td><?= $no++ ?></td>
                                                                 <td>
-                                                                    <button class="btn btn-warning btn-sm btn-preview" data-id="<?= $santri['IdSantri'] ?>" data-semester="<?= $semester ?>">
+                                                                    <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $santri['IdSantri'] ?>" data-semester="<?= $semester ?>">
                                                                         <i class="fas fa-file-alt"></i> Rapor
                                                                     </button>
                                                                 </td>
@@ -82,56 +82,23 @@
     </div>
 </div>
 
-<!-- Modal Preview Rapor -->
-<div class="modal fade" id="modalPreview" tabindex="-1" role="dialog" aria-labelledby="modalPreviewLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalPreviewLabel">Preview Rapor</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body" id="previewContent">
-                <!-- Content will be loaded here -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                <button type="button" class="btn btn-primary" id="btnPrint">Cetak PDF</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <?= $this->section('scripts') ?>
 <script>
     $(document).ready(function() {
-        let selectedIdSantri = null;
-        let selectedSemester = null;
-        let tables = {};
-
         // Inisialisasi DataTable untuk setiap kelas
         <?php foreach ($listKelas as $kelasId => $IdKelas): ?>
             initializeDataTableUmum("#tableSantri-<?= $kelasId ?>", true, true);
         <?php endforeach; ?>
 
-        // Handle preview button click
-        $(document).on('click', '.btn-preview', function() {
+        // Handle print PDF button click
+        $(document).on('click', '.btn-print-pdf', function() {
             const IdSantri = $(this).data('id');
             const semester = $(this).data('semester');
-            selectedIdSantri = IdSantri;
-            selectedSemester = semester;
-
-            // Load preview content
-            $('#previewContent').load(`<?= base_url('backend/rapor/previewRapor') ?>/${IdSantri}/${semester}`, function() {
-                $('#modalPreview').modal('show');
-            });
-        });
-
-        // Handle print button click
-        $('#btnPrint').click(function() {
-            if (selectedIdSantri && selectedSemester) {
-                window.open(`<?= base_url('backend/rapor/printPdf') ?>/${selectedIdSantri}/${selectedSemester}`, '_blank');
+            const printWindow = window.open(`<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}`, '_blank');
+            if (printWindow) {
+                printWindow.onload = function() {
+                    printWindow.print();
+                };
             }
         });
     });
