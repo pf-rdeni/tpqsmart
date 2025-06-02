@@ -118,24 +118,39 @@
                                             <?php endforeach; ?>
                                         </div>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
-                                            <?php
-                                            $currentMonth = date('n'); // Mendapatkan bulan saat ini (1-12)
-                                            if ($currentMonth >= 7 && $currentMonth <= 12):
-                                            ?>
-                                                <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-primary">
-                                                    <i class="fas fa-edit"></i> Input Nilai
-                                                </a>
-                                            <?php else: ?>
-                                                <button class="btn btn-app bg-secondary" disabled>
-                                                    <i class="fas fa-edit"></i> Input Nilai
-                                                </button>
-                                            <?php endif; ?>
-                                            <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-success">
-                                                <i class="fas fa-eye"></i> Detail Nilai
-                                            </a>
-                                            <a href=<?php echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Ganjil') ?> class="btn btn-app bg-secondary">
-                                                <i class="fas fa-chart-bar"></i> Ranking
-                                            </a>
+                                            <div class="row">
+                                                <?php
+                                                $currentMonth = date('n'); // Mendapatkan bulan saat ini (1-12)
+                                                if ($currentMonth >= 7 && $currentMonth <= 12):
+                                                ?>
+                                                    <div class="col-md-3 col-6">
+                                                        <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-primary">
+                                                            <i class="fas fa-edit"></i> Input Nilai
+                                                        </a>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="col-md-3 col-6">
+                                                        <button class="btn btn-app bg-secondary" disabled>
+                                                            <i class="fas fa-edit"></i> Input Nilai
+                                                        </button>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div class="col-md-3 col-6">
+                                                    <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-success">
+                                                        <i class="fas fa-eye"></i> Detail Nilai
+                                                    </a>
+                                                </div>
+                                                <div class="col-md-3 col-6">
+                                                    <a href=<?php echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Ganjil') ?> class="btn btn-app bg-secondary">
+                                                        <i class="fas fa-chart-bar"></i> Ranking
+                                                    </a>
+                                                </div>
+                                                <div class="col-md-3 col-6">
+                                                    <a href=<?php echo base_url('backend/rapor/index' . '/' . 'Ganjil') ?> class="btn btn-app bg-warning">
+                                                        <i class="fas fa-file-alt"></i> Raport Nilai
+                                                    </a>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -161,6 +176,7 @@
                             <div class="card-body">
                                 <div class="info-box bg-gradient-info">
                                     <div class="info-box-content">
+                                        <span class="info-box-text">Info Semester Genap</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
                                         <div class="progress">
                                             <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
@@ -182,24 +198,39 @@
                                             <?php endforeach; ?>
                                         </div>
                                         <div class="card-body" style="padding-left: 0; padding-right: 0;">
-                                            <?php
-                                            $currentMonth = date('n'); // Mendapatkan bulan saat ini (1-12)
-                                            if ($currentMonth >= 1 && $currentMonth <= 6):
-                                            ?>
-                                                <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-primary">
-                                                    <i class="fas fa-edit"></i> Input Nilai
-                                                </a>
-                                            <?php else: ?>
-                                                <button class="btn btn-app bg-secondary" disabled>
-                                                    <i class="fas fa-edit"></i> Input Nilai
-                                                </button>
-                                            <?php endif; ?>
-                                            <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">
-                                                <i class="fas fa-eye"></i> Detail Nilai
-                                            </a>
-                                            <a href=<?php echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Genap') ?> class="btn btn-app bg-secondary">
-                                                <i class="fas fa-chart-bar"></i> Ranking
-                                            </a>
+                                            <div class="row">
+                                                <?php
+                                                $currentMonth = date('n'); // Mendapatkan bulan saat ini (1-12)
+                                                if ($currentMonth >= 1 && $currentMonth <= 6):
+                                                ?>
+                                                    <div class="col-md-3 col-6">
+                                                        <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-primary">
+                                                            <i class="fas fa-edit"></i> Input Nilai
+                                                        </a>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="col-md-3 col-6">
+                                                        <button class="btn btn-app bg-secondary" disabled>
+                                                            <i class="fas fa-edit"></i> Input Nilai
+                                                        </button>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div class="col-md-3 col-6">
+                                                    <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">
+                                                        <i class="fas fa-eye"></i> Detail Nilai
+                                                    </a>
+                                                </div>
+                                                <div class="col-md-3 col-6">
+                                                    <a href=<?php echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Genap') ?> class="btn btn-app bg-secondary">
+                                                        <i class="fas fa-chart-bar"></i> Ranking
+                                                    </a>
+                                                </div>
+                                                <div class="col-md-3 col-6">
+                                                    <a href=<?php echo base_url('backend/rapor/index' . '/' . 'Genap') ?> class="btn btn-app bg-warning">
+                                                        <i class="fas fa-file-alt"></i> Raport Nilai
+                                                    </a>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -407,7 +438,7 @@
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-success">
                                                 <i class="fas fa-eye"></i> Detail Nilai
                                             </a>
-                                            <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-app bg-primary">
+                                            <a href=<?php echo base_url('backend/rapor/index' . '/' . 'Ganjil') ?> class="btn btn-app bg-primary">
                                                 <i class="fas fa-file-alt"></i> Raport Nilai
                                             </a>
                                         </div>
@@ -460,7 +491,7 @@
                                             <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">
                                                 <i class="fas fa-eye"></i> Detail Nilai
                                             </a>
-                                            <a href=<?php echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-primary">
+                                            <a href=<?php echo base_url('backend/rapor/index' . '/' . 'Genap') ?> class="btn btn-app bg-primary">
                                                 <i class="fas fa-file-alt"></i> Raport Nilai
                                             </a>
                                         </div>

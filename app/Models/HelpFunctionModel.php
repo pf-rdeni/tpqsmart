@@ -440,13 +440,21 @@ class HelpFunctionModel extends Model
     }
 
     // get list kelas grouped kelas filter IdTpq, IdTahunAjaran dari tbl_kelas_santri
-    public function getListKelas($IdTpq, $IdTahunAjaran)
+    public function getListKelas($IdTpq, $IdTahunAjaran, $IdKelas = null)
     {
         $builder = $this->db->table('tbl_kelas_santri');
         $builder->select('tbl_kelas_santri.IdKelas, NamaKelas');
         $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_santri.IdKelas');
         $builder->where('IdTpq', $IdTpq);
         $builder->where('IdTahunAjaran', $IdTahunAjaran);
+        // Jika IdKelas tidak null, filter berdasarkan IdKelas
+        if ($IdKelas !== null) {
+            if (is_array($IdKelas)) {
+                $builder->whereIn('tbl_kelas_santri.IdKelas', $IdKelas);
+            } else {
+                $builder->where('tbl_kelas_santri.IdKelas', $IdKelas);
+            }
+        }
         $builder->groupBy('tbl_kelas_santri.IdKelas, NamaKelas');
         $builder->orderBy('NamaKelas', 'ASC');
 

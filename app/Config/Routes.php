@@ -78,6 +78,13 @@ $routes->get('edit/(:num)', 'GuruKelas::edit/$1');
 $routes->post('update/(:num)', 'GuruKelasr::update/$1');
 $routes->post('delete/(:num)', 'GuruKelas::delete/$1');
 
+$routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
+    $routes->get('rapor/(:segment)', 'Rapor::index/$1');
+    $routes->get('rapor/getSantriByKelas/(:num)', 'Rapor::getSantriByKelas/$1');
+    $routes->get('rapor/previewRapor/(:num)', 'Rapor::previewRapor/$1');
+    $routes->get('rapor/printPdf/(:num)', 'Rapor::printPdf/$1');
+});
+
 /*
  * --------------------------------------------------------------------
  * Additional Routing

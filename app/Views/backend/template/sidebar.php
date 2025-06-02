@@ -159,12 +159,31 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/raport/showCetakRaport') ?> class="nav-link">
+                                <a href="#" class="nav-link no-hover">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Cetak Raport</p>
+                                    <p>Rapor Nilai</p>
+                                    <i class="right fas fa-angle-left"></i>
+                                    </p>
                                 </a>
+                                <ul class="nav nav-treeview" style="display: none;">
+                                    <li class="nav-item">
+                                        <a href=<?php
+                                                echo base_url('backend/rapor/index' . '/' . 'Ganjil') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
+                                            <p>Semester Ganjil</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href=<?php
+                                                echo base_url('backend/rapor/index' . '/' . 'Genap') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon text-info"></i>
+                                            <p>Semester Genap</p>
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                         </ul>
+
                     </li>
                     <!-- Extra -->
                     <li class="nav-item">
@@ -423,6 +442,30 @@
                                         <a href=<?php
 
                                                 echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Genap') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon text-info"></i>
+                                            <p>Semester Genap</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link no-hover">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Rapor Nilai</p>
+                                    <i class="right fas fa-angle-left"></i>
+                                    </p>
+                                </a>
+                                <ul class="nav nav-treeview" style="display: none;">
+                                    <li class="nav-item">
+                                        <a href=<?php
+                                                echo base_url('backend/rapor/index' . '/' . 'Ganjil') ?> class="nav-link">
+                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
+                                            <p>Semester Ganjil</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a href=<?php
+                                                echo base_url('backend/rapor/index' . '/' . 'Genap') ?> class="nav-link">
                                             <i class="far fa-dot-circle nav-icon text-info"></i>
                                             <p>Semester Genap</p>
                                         </a>

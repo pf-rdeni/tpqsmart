@@ -59,7 +59,7 @@ class Nilai extends BaseController
 
         // Check IdSantri yang ada di data $dataSantri ke tbl_nilai filter by IdTahunAjaran dan Semester apakah nilai untuk semua IdMateri sudah semua atau belum jika belum maka buat status StatusPenilian = 0 
         foreach ($dataSantri as $key => $value) {
-            $dataNilai = $this->DataNilai->getDataNilaiPerSantri($value->IdSantri, $semester);
+            $dataNilai = $this->DataNilai->getDataNilaiPerSantri($value->IdSantri, $semester, IdTpq: $this->IdTpq, IdTahunAjaran: $IdTahunAjaran, IdKelas: $IdKelas);
             $dataSantri[$key]->StatusPenilaian = 1;
             foreach ($dataNilai as $nilai) {
                 if ($nilai->Nilai == 0) {

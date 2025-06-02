@@ -29,47 +29,44 @@ class NilaiModel extends Model
 
     public function getDataNilaiDetail($IdSantri = null, $IdSemester = null)
     {
-
-        $sql =
-        'SELECT n.Id, n.IdTahunAjaran, n.IdTpq, n.IdKelas, k.NamaKelas,
-                    s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Semester, n.Nilai
-                FROM tbl_nilai n
-                JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
-                JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
-                JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
-                WHERE 1=1';
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.Id, n.IdTahunAjaran, n.IdTpq, n.IdKelas, k.NamaKelas, s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Semester, n.Nilai');
+        $builder->join('tbl_kelas k', 'n.IdKelas = k.IdKelas');
+        $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
+        $builder->join('tbl_materi_pelajaran m', 'n.IdMateri = m.IdMateri');
 
         if ($IdSantri !== null) {
-            $sql .= ' AND n.IdSantri = ' . $IdSantri;
+            $builder->where('n.IdSantri', $IdSantri);
         }
         if ($IdSemester !== null) {
-            $sql .= ' AND n.Semester = "' . $IdSemester . '"';
+            $builder->where('n.Semester', $IdSemester);
         }
 
-        $sql .= ' ORDER BY n.IdMateri ASC';
+        $builder->orderBy('n.IdMateri', 'ASC');
 
-        return db_connect()->query($sql);
+        return $builder->get();
     }
 
 
     // Retrieve nilai data per semester
     public function getDataNilaiPerSemester($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
     {
-        $sql = 'SELECT n.IdSantri, s.NamaSantri, s.JenisKelamin, IdTahunAjaran, n.Semester, k.NamaKelas, k.IdKelas,
-                       SUM(n.Nilai) AS TotalNilai, 
-                       ROUND(AVG(n.Nilai), 2) AS NilaiRataRata,
-                       RANK() OVER (PARTITION BY n.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking
-                FROM tbl_nilai n
-                JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
-                JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
-                WHERE n.IdKelas IN (' . implode(',', $IdKelas) . ')
-                AND n.Semester = "' . $semester . '"
-                AND n.IdTpq = "' . $IdTpq . '"
-                AND n.IdTahunAjaran  IN (' . implode(',', $IdTahunAjaran) . ')
-                GROUP BY n.IdSantri, n.Semester
-                ORDER BY k.IdKelas ASC, n.Semester ASC, TotalNilai DESC';
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.IdSantri, s.NamaSantri, s.JenisKelamin, IdTahunAjaran, n.Semester, k.NamaKelas, k.IdKelas, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata, RANK() OVER (PARTITION BY n.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking');
+        $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
+        $builder->join('tbl_kelas k', 'n.IdKelas = k.IdKelas');
 
-        return db_connect()->query($sql);
+        $builder->whereIn('n.IdKelas', $IdKelas);
+        $builder->where('n.Semester', $semester);
+        $builder->where('n.IdTpq', $IdTpq);
+        $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+
+        $builder->groupBy(['n.IdSantri', 'n.Semester']);
+        $builder->orderBy('k.IdKelas', 'ASC');
+        $builder->orderBy('n.Semester', 'ASC');
+        $builder->orderBy('TotalNilai', 'DESC');
+
+        return $builder->get();
     }
 
     // Insert nilai data
@@ -79,83 +76,91 @@ class NilaiModel extends Model
     }
 
     // getDataNilaiPerSantri
-    public function getDataNilaiPerSantri($IdSantri, $semester)
+    public function getDataNilaiPerSantri($IdSantri, $semester, $IdTpq = null, $IdTahunAjaran = null, $IdKelas = null)
     {
-        $sql = 'SELECT n.Id, n.IdTpq, n.IdSantri, n.IdKelas, n.IdMateri, n.IdGuru, n.IdTahunAjaran, n.Semester, n.Nilai,
-                       m.Kategori, m.NamaMateri
-                FROM tbl_nilai n
-                JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
-                WHERE n.IdSantri = ' . $IdSantri . ' AND n.Semester = "' . $semester . '"
-                ORDER BY n.IdMateri ASC';
+        // If IdTpq is not provided, use the session value
+        if ($IdTpq === null) {
+            $IdTpq = session()->get('IdTpq');
+        }
+        // If IdTahunAjaran is not provided, use the current year
+        if ($IdTahunAjaran === null) {
+            $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+        }
+        // If IdKelas is not provided, use the class of the student
+        if ($IdKelas === null) {
+            $IdKelas = $this->santriBaruModel->getKelasSantri($IdSantri);
+        }
 
-        return db_connect()->query($sql)->getResult();
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.Id, n.IdTpq, n.IdSantri, n.IdKelas, n.IdMateri, n.IdGuru, n.IdTahunAjaran, n.Semester, n.Nilai, m.Kategori, m.NamaMateri');
+        $builder->join('tbl_materi_pelajaran m', 'n.IdMateri = m.IdMateri');
+
+        $builder->where('n.IdSantri', $IdSantri);
+        $builder->where('n.Semester', $semester);
+        $builder->where('n.IdTpq', $IdTpq);
+        // If IdTahunAjaran is an array, use whereIn, otherwise use where
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+        }
+
+        //if IdKelas ada dan array
+        if (is_array($IdKelas)) {
+            $builder->whereIn('n.IdKelas', $IdKelas);
+        } else {
+            $builder->where('n.IdKelas', $IdKelas);
+        }
+
+        $builder->orderBy('n.IdMateri', 'ASC');
+
+        return $builder->get()->getResult();
     }
 
     // getDataNilaiPerKelas IdKelas dan IdTahunAjaran in array
     public function getDataNilaiPerKelas($IdTpq, $IdKelas = null, $IdTahunAjaran = null, $Semester)
     {
-        // Connect to the database
-        $db = db_connect();
+        $db = \Config\Database::connect();
 
-        // Siapkan kondisi WHERE
-        $whereConditions = ['n.IdTpq = ?'];
-        $params = [$IdTpq];
+        // Query untuk mendapatkan kolom dinamis
+        $materiBuilder = $db->table('tbl_nilai n');
+        $materiBuilder->select("GROUP_CONCAT(DISTINCT CONCAT('MAX(CASE WHEN n.IdMateri = \"', n.IdMateri, '\" THEN n.Nilai END) AS \"', m.NamaMateri, '\"')) AS dynamic_columns");
+        $materiBuilder->join('tbl_materi_pelajaran m', 'n.IdMateri = m.IdMateri');
+        $materiBuilder->where('n.IdTpq', $IdTpq);
 
         if ($IdKelas !== null) {
-            $whereConditions[] = 'n.IdKelas IN ?';
-            $params[] = $IdKelas;
+            $materiBuilder->whereIn('n.IdKelas', $IdKelas);
         }
-
         if ($IdTahunAjaran !== null) {
-            $whereConditions[] = 'n.IdTahunAjaran IN ?';
-            $params[] = $IdTahunAjaran;
+            $materiBuilder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
         }
+        $materiBuilder->where('n.Semester', $Semester);
 
-        $whereConditions[] = 'n.Semester = ?';
-        $params[] = $Semester;
-
-        $whereClause = implode(' AND ', $whereConditions);
-
-        // Query untuk mendapatkan kolom dinamis berdasarkan IdMateri
-        $materiQuery = $db->query(
-            "
-            SELECT GROUP_CONCAT(
-                DISTINCT CONCAT('MAX(CASE WHEN n.IdMateri = \"', n.IdMateri, '\" THEN n.Nilai END) AS \"', m.NamaMateri, '\"')
-            ) AS dynamic_columns
-            FROM tbl_nilai n
-            JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
-            WHERE $whereClause
-        ",
-            $params
-        );
-
-        // Ambil hasil kolom dinamis
-        $materiResult = $materiQuery->getRow();
+        $materiResult = $materiBuilder->get()->getRow();
         $dynamicColumns = $materiResult->dynamic_columns;
 
         if ($dynamicColumns) {
-            // Bangun query utama
-            $finalQuery = "
-                SELECT n.IdSantri AS 'IdSantri', s.NamaSantri AS 'Nama Santri', n.IdKelas, k.NamaKelas AS 'Nama Kelas',  
-                       IdTahunAjaran AS 'Tahun Ajaran', Semester, $dynamicColumns
-                FROM tbl_nilai n
-                JOIN tbl_kelas k ON n.IdKelas = k.IdKelas
-                JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
-                WHERE $whereClause
-                GROUP BY IdSantri, IdTahunAjaran, Semester
-                ORDER BY n.IdKelas ASC, s.NamaSantri ASC
-            ";
+            $builder = $db->table('tbl_nilai n');
+            $builder->select("n.IdSantri AS 'IdSantri', s.NamaSantri AS 'Nama Santri', n.IdKelas, k.NamaKelas AS 'Nama Kelas', IdTahunAjaran AS 'Tahun Ajaran', Semester, $dynamicColumns");
+            $builder->join('tbl_kelas k', 'n.IdKelas = k.IdKelas');
+            $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
 
-            // Eksekusi query akhir
-            $finalResult = $db->query($finalQuery, $params);
+            $builder->where('n.IdTpq', $IdTpq);
+            if ($IdKelas !== null) {
+                $builder->whereIn('n.IdKelas', $IdKelas);
+            }
+            if ($IdTahunAjaran !== null) {
+                $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+            }
+            $builder->where('n.Semester', $Semester);
 
-            // Ambil data sebagai array
-            $data = $finalResult->getResultArray();
-        } else {
-            $data = []; // Jika tidak ada data
+            $builder->groupBy(['IdSantri', 'IdTahunAjaran', 'Semester']);
+            $builder->orderBy('n.IdKelas', 'ASC');
+            $builder->orderBy('s.NamaSantri', 'ASC');
+
+            return $builder->get()->getResultArray();
         }
 
-        // Kembalikan atau tampilkan hasil
-        return $data;
+        return [];
     }
 }
