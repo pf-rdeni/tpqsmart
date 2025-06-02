@@ -150,7 +150,7 @@ class Rapor extends BaseController
                 ob_end_clean();
             }
 
-            // Set header yang diperlukan
+            // Set header
             header('Content-Type: application/pdf');
             header('Content-Disposition: inline; filename="' . $filename . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
