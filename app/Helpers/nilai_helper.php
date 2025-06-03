@@ -153,13 +153,79 @@ if (!function_exists('formatTerbilang')) {
         }
 
         // Mengubah setiap kata menjadi Title Case
-        $hasil = trim($hasil);
-        $kata = explode(' ', $hasil);
-        $hasil = '';
-        foreach ($kata as $k) {
-            $hasil .= mb_convert_case($k, MB_CASE_TITLE, 'UTF-8') . ' ';
-        }
+        $hasil = toTitleCase($hasil);
 
         return trim($hasil);
+    }
+}
+
+if (!function_exists('formatTanggalIndonesia')) {
+    function formatTanggalIndonesia($date, $format = 'd F Y')
+    {
+        $bulan = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember'
+        ];
+
+        $hari = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
+        ];
+
+        $timestamp = strtotime($date);
+        $dayName = date('l', $timestamp);
+        $day = date('d', $timestamp);
+        $month = (int)date('m', $timestamp);
+        $year = date('Y', $timestamp);
+
+        $result = '';
+        switch ($format) {
+            case 'l, d F Y': // Format: Senin, 15 Maret 2024
+                $result = $hari[$dayName] . ', ' . $day . ' ' . $bulan[$month] . ' ' . $year;
+                break;
+            case 'd F Y': // Format: 15 Maret 2024
+                $result = $day . ' ' . $bulan[$month] . ' ' . $year;
+                break;
+            case 'l': // Format: Senin
+                $result = $hari[$dayName];
+                break;
+            case 'F Y': // Format: Maret 2024
+                $result = $bulan[$month] . ' ' . $year;
+                break;
+            default:
+                $result = $day . ' ' . $bulan[$month] . ' ' . $year;
+        }
+
+        return $result;
+    }
+}
+
+if (!function_exists('toTitleCase')) {
+    function toTitleCase($text)
+    {
+        $text = trim($text);
+        $words = explode(' ', $text);
+        $result = '';
+
+        foreach ($words as $word) {
+            $result .= mb_convert_case($word, MB_CASE_TITLE, 'UTF-8') . ' ';
+        }
+
+        return trim($result);
     }
 }

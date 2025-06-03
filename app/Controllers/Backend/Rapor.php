@@ -85,9 +85,14 @@ class Rapor extends BaseController
                 semester: $semester
             );
 
-            //Mengambil seluruh santri berdasarkan IdTpq dan IdTahunAjaran dan idKelas untuk endapatkan nilai rata-rata mata pelajaran perkelas
-
-
+            // Ambil Nama Wali Kelas dari IdKelas data nilai ke tbl_guru_kelas
+            if (!empty($santri)) {
+                $IdKelas = $santri['IdKelas'];
+                $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(IdKelas: $IdKelas, IdTpq: $IdTpq, IdTahunAjaran: $IdTahunAjaran);
+                $santri['WaliKelas'] = $waliKelas->Nama;
+            } else {
+                $santri['WaliKelas'] = 'Tidak ada data nilai';
+            }
 
             // Ambil data TPQ
             $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
@@ -97,7 +102,8 @@ class Rapor extends BaseController
                 'nilai' => $nilai,
                 'tpq' => $tpq,
                 'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
-                'semester' => $semester
+                'semester' => $semester,
+                'tanggal' => formatTanggalIndonesia(date('Y-m-d'), 'd F Y')
             ];
 
             // Load view untuk PDF
@@ -134,6 +140,104 @@ class Rapor extends BaseController
             exit();
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdf - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function printPdfBulk($IdKelas, $semester)
+    {
+        try {
+            // Set memory limit dan timeout
+            ini_set('memory_limit', '512M');
+            set_time_limit(600);
+            mb_internal_encoding('UTF-8');
+
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+
+            // Ambil semua santri dalam kelas tersebut
+            $listSantri = $this->santriBaruModel->where([
+                'IdTpq' => $IdTpq,
+                'IdKelas' => $IdKelas,
+                'Active' => 1
+            ])->findAll();
+
+            // Ambil data TPQ
+            $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
+
+            // Inisialisasi Dompdf dengan konfigurasi
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+
+            $dompdf = new Dompdf($options);
+
+            // Gabungkan semua HTML
+            $combinedHtml = '';
+            foreach ($listSantri as $index => $santri) {
+                // Ambil data nilai
+                $nilai = $this->nilaiModel->getDataNilaiPerSantri(
+                    IdTpq: $IdTpq,
+                    IdTahunAjaran: $IdTahunAjaran,
+                    IdKelas: $santri['IdKelas'],
+                    IdSantri: $santri['IdSantri'],
+                    semester: $semester
+                );
+
+                // Ambil Wali Kelas
+                $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(
+                    IdKelas: $santri['IdKelas'],
+                    IdTpq: $IdTpq,
+                    IdTahunAjaran: $IdTahunAjaran
+                );
+                $santri['WaliKelas'] = $waliKelas->Nama;
+
+                $data = [
+                    'santri' => $santri,
+                    'nilai' => $nilai,
+                    'tpq' => $tpq,
+                    'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
+                    'semester' => $semester,
+                    'tanggal' => formatTanggalIndonesia(date('Y-m-d'), 'd F Y')
+                ];
+
+                // Load view untuk setiap santri
+                $html = view('backend/rapor/print', $data);
+
+                // Tambahkan margin bottom jika bukan santri terakhir
+                if ($index < count($listSantri) - 1) {
+                    $html = '<div style="margin-bottom: 30px;">' . $html . '</div>';
+                }
+
+                $combinedHtml .= $html;
+            }
+
+            // Load HTML gabungan ke Dompdf
+            $dompdf->loadHtml($combinedHtml);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Output PDF
+            $filename = 'rapor_kelas_' . $IdKelas . '_' . $semester . '.pdf';
+
+            // Hapus semua output sebelumnya
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set header
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: printPdfBulk - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }

@@ -139,18 +139,19 @@ helper('nilai');
                 $totalRataKelas += floatval($n->RataKelas);
             }
             $rata_rata = $count > 0 ? $total / $count : 0;
+            $rata_rata = number_format($rata_rata, 1);
             $rata_rata_kelas = $count > 0 ? $totalRataKelas / $count : 0;
             ?>
             <tr style="font-weight: bold;">
                 <td colspan="3" style="text-align: right;">Total Nilai:</td>
-                <td><?= number_format($total, 1) ?></td>
+                <td><?= number_format($total, 0) ?></td>
                 <td></td>
                 <td></td>
                 <td><?= formatTerbilang($total) ?></td>
             </tr>
             <tr style="font-weight: bold;">
                 <td colspan="3" style="text-align: right;">Rata-Rata:</td>
-                <td><?= number_format($rata_rata, 1) ?></td>
+                <td><?= $rata_rata ?></td>
                 <td><?= konversiNilaiHuruf($rata_rata) ?></td>
                 <td><?= number_format($rata_rata_kelas, 1) ?></td>
                 <td><?= formatTerbilang($rata_rata) ?></td>
@@ -161,7 +162,7 @@ helper('nilai');
     <!-- Tanda Tangan Layout Gambar Tabel -->
     <table style="width: 100%; border-collapse: collapse; margin-top: 50px; font-size: 12px; page-break-inside: avoid;">
         <tr>
-            <td colspan="5" style="width: 50%; padding: 5px; text-align: right;"> Diberikan di Seri Kuala Lobam Tanggal: <?= date('d F Y') ?></td>
+            <td colspan="5" style="width: 50%; padding: 5px; text-align: right;"> Diberikan di Seri Kuala Lobam Tanggal: <?= $tanggal ?></td>
         </tr>
         <tr>
             <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">Kepala TPQ</td>
@@ -172,9 +173,9 @@ helper('nilai');
             <td colspan="5" style="height: 50px;"></td>
         </tr>
         <tr>
-            <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">(.........................)</td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">( <?= toTitleCase($tpq['KepalaSekolah']) ?> )</td>
             <td></td>
-            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">(.........................)</td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">( <?= toTitleCase($santri['WaliKelas']) ?> )</td>
         </tr>
         <tr>
             <td colspan="5" style="padding: 15px 5px; text-align: center;">Mengetahui Orang Tua/Wali Santri</td>
@@ -183,7 +184,7 @@ helper('nilai');
             <td colspan="5" style="height: 50px;"></td>
         </tr>
         <tr>
-            <td colspan="5" style="padding: 15px 5px; text-align: center;">(.........................)</td>
+            <td colspan="5" style="padding: 15px 5px; text-align: center;">( <?= $santri['StatusAyah'] == 'Masih Hidup' ? toTitleCase($santri['NamaAyah']) : ($santri['NamaWali'] ? toTitleCase($santri['NamaWali']) : '...........................') ?> )</td>
         </tr>
     </table>
 </body>

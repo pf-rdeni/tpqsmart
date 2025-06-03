@@ -37,6 +37,11 @@
                                         role="tabpanel"
                                         aria-labelledby="tab-<?= $kelas->IdKelas ?>">
                                         <div class="table-responsive">
+                                            <div class="mb-3">
+                                                <button type="button" class="btn btn-primary btn-sm btn-print-all" data-kelas="<?= $kelas->IdKelas ?>" data-semester="<?= $semester ?>">
+                                                    <i class="fas fa-print"></i> Cetak Semua Rapor Kelas <?= $kelas->NamaKelas ?>
+                                                </button>
+                                            </div>
                                             <table class="table table-bordered table-striped" id="tableSantri-<?= $kelas->IdKelas ?>">
                                                 <thead>
                                                     <tr>
@@ -57,7 +62,7 @@
                                                                 <td><?= $no++ ?></td>
                                                                 <td>
                                                                     <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $santri['IdSantri'] ?>" data-semester="<?= $semester ?>">
-                                                                        <i class="fas fa-file-alt"></i> Rapor
+                                                                        <i class="fas fa-print"></i> Cetak Rapor
                                                                     </button>
                                                                 </td>
                                                                 <td><?= $santri['NamaSantri'] ?></td>
@@ -100,6 +105,33 @@
                     printWindow.print();
                 };
             }
+        });
+
+        // Handle print all button click
+        $(document).on('click', '.btn-print-all', function() {
+            const kelasId = $(this).data('kelas');
+            const semester = $(this).data('semester');
+
+            // Tampilkan loading
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Sedang menggabungkan rapor, mohon tunggu',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Panggil endpoint untuk menggabungkan PDF
+            const printWindow = window.open(`<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}`, '_blank');
+
+            // Tutup loading setelah 2 detik (memberikan waktu untuk membuka PDF)
+            setTimeout(() => {
+                Swal.close();
+                if (printWindow) {
+                    printWindow.focus();
+                }
+            }, 2000);
         });
     });
 </script>

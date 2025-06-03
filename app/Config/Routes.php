@@ -82,7 +82,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('rapor/(:segment)', 'Rapor::index/$1');
     $routes->get('rapor/getSantriByKelas/(:num)', 'Rapor::getSantriByKelas/$1');
     $routes->get('rapor/previewRapor/(:num)', 'Rapor::previewRapor/$1');
-    $routes->get('rapor/printPdf/(:num)', 'Rapor::printPdf/$1');
+    $routes->get('rapor/printPdf/(:num)/(:segment)', 'Rapor::printPdf/$1/$2');
+    $routes->get('rapor/printPdfBulk/(:num)/(:segment)', 'Rapor::printPdfBulk/$1/$2');
 });
 
 /*

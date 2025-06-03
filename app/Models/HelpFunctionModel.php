@@ -188,6 +188,24 @@ class HelpFunctionModel extends Model
         ->where('IdGuru', $idNik);
         return $builder->get()->getRowArray();
     }
+
+    // get nama wali kelas dari inputan IdKelas check di tbl_guru_kelas fiter IdTpq IdTahunAjaran
+    public function getWaliKelasByIdKelas($IdKelas, $IdTpq, $IdTahunAjaran)
+    {
+        $builder = $this->db->table('tbl_guru_kelas');
+        $builder->select('g.Nama');
+        $builder->join('tbl_guru g', 'g.IdGuru = tbl_guru_kelas.IdGuru');
+        $builder->where('tbl_guru_kelas.IdKelas', $IdKelas);
+        $builder->where('tbl_guru_kelas.IdTpq', $IdTpq);
+        $builder->where('tbl_guru_kelas.IdTahunAjaran', $IdTahunAjaran);
+
+        // where IdJabatan Wali Kelas
+        $builder->where('tbl_guru_kelas.IdJabatan', 3); // Wali Kelas
+        // Ambil hanya satu baris
+        $builder->limit(1);
+        // Mengembalikan hasil sebagai object
+        return $builder->get()->getRowObject();
+    }
     //===================================================================
     // Set Related
     // Set Related to Insert tabel auth_groups_users
