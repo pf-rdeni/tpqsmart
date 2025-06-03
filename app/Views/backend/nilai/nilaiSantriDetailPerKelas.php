@@ -317,7 +317,7 @@ foreach ($dataNilai as $santri) {
 <?php endforeach; ?>
 
 <?= $this->endSection(); ?>
-//script section
+
 <?= $this->section('scripts'); ?>
 <script>
     $(document).ready(function() {
