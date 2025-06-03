@@ -218,12 +218,57 @@ if (!function_exists('formatTanggalIndonesia')) {
 if (!function_exists('toTitleCase')) {
     function toTitleCase($text)
     {
+        // Decode HTML entities terlebih dahulu
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = trim($text);
         $words = explode(' ', $text);
         $result = '';
 
         foreach ($words as $word) {
-            $result .= mb_convert_case($word, MB_CASE_TITLE, 'UTF-8') . ' ';
+            // Konversi seluruh kata ke lowercase terlebih dahulu
+            $word = mb_strtolower($word, 'UTF-8');
+
+            // Cek apakah kata mengandung tanda petik
+            if (strpos($word, "'") !== false) {
+                // Pisahkan kata berdasarkan tanda petik
+                $parts = explode("'", $word);
+
+                // Proses setiap bagian
+                foreach ($parts as $key => $part) {
+                    if (!empty($part)) {
+                        if ($key === 0) {
+                            // Untuk bagian pertama, ubah huruf pertama menjadi uppercase
+                            $parts[$key] = mb_strtoupper(mb_substr($part, 0, 1, 'UTF-8'), 'UTF-8') .
+                                mb_substr($part, 1, null, 'UTF-8');
+                        } else {
+                            // Untuk bagian setelah tanda petik, biarkan lowercase
+                            $parts[$key] = $part;
+                        }
+                    }
+                }
+
+                // Gabungkan kembali dengan tanda petik
+                $word = implode("'", $parts);
+            }
+
+            // Proses tanda hubung (-)
+            if (strpos($word, '-') !== false) {
+                $parts = explode('-', $word);
+                foreach ($parts as $key => $part) {
+                    if (!empty($part)) {
+                        // Ubah huruf pertama setiap bagian menjadi uppercase
+                        $parts[$key] = mb_strtoupper(mb_substr($part, 0, 1, 'UTF-8'), 'UTF-8') .
+                            mb_substr($part, 1, null, 'UTF-8');
+                    }
+                }
+                $word = implode('-', $parts);
+            } else {
+                // Jika tidak ada tanda hubung, gunakan title case biasa
+                $word = mb_strtoupper(mb_substr($word, 0, 1, 'UTF-8'), 'UTF-8') .
+                    mb_substr($word, 1, null, 'UTF-8');
+            }
+
+            $result .= $word . ' ';
         }
 
         return trim($result);

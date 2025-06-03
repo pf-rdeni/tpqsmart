@@ -87,7 +87,7 @@ helper('nilai');
         <table style="font-size: 12px;">
             <tr>
                 <td width="150">Nama Santri</td>
-                <td>: <?= $santri['NamaSantri'] ?></td>
+                <td>: <?= htmlspecialchars(toTitleCase($santri['NamaSantri'])) ?></td>
             </tr>
             <tr>
                 <td>NIS</td>
@@ -121,8 +121,8 @@ helper('nilai');
             ?>
                 <tr>
                     <td><?= $no++ ?></td>
-                    <td><?= htmlspecialchars($n->NamaMateri) ?></td>
-                    <td><?= htmlspecialchars($n->Kategori) ?></td>
+                    <td><?= htmlspecialchars(toTitleCase($n->NamaMateri)) ?></td>
+                    <td><?= htmlspecialchars(toTitleCase($n->Kategori)) ?></td>
                     <td><?= $n->Nilai ?></td>
                     <td><?= konversiNilaiHuruf($n->Nilai) ?></td>
                     <td><?= number_format($n->RataKelas, 2) ?></td>
@@ -173,9 +173,9 @@ helper('nilai');
             <td colspan="5" style="height: 50px;"></td>
         </tr>
         <tr>
-            <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">( <?= toTitleCase($tpq['KepalaSekolah']) ?> )</td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">( <?= htmlspecialchars(toTitleCase($tpq['KepalaSekolah'])) ?> )</td>
             <td></td>
-            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">( <?= toTitleCase($santri['WaliKelas']) ?> )</td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">( <?= htmlspecialchars(toTitleCase($santri['WaliKelas'])) ?> )</td>
         </tr>
         <tr>
             <td colspan="5" style="padding: 15px 5px; text-align: center;">Mengetahui Orang Tua/Wali Santri</td>
@@ -184,7 +184,7 @@ helper('nilai');
             <td colspan="5" style="height: 50px;"></td>
         </tr>
         <tr>
-            <td colspan="5" style="padding: 15px 5px; text-align: center;">( <?= $santri['StatusAyah'] == 'Masih Hidup' ? toTitleCase($santri['NamaAyah']) : ($santri['NamaWali'] ? toTitleCase($santri['NamaWali']) : '...........................') ?> )</td>
+            <td colspan="5" style="padding: 15px 5px; text-align: center;">( <?= $santri['StatusAyah'] == 'Masih Hidup' ? htmlspecialchars(toTitleCase($santri['NamaAyah'])) : ($santri['NamaWali'] ? htmlspecialchars(toTitleCase($santri['NamaWali'])) : '...........................') ?> )</td>
         </tr>
     </table>
 </body>
