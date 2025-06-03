@@ -206,4 +206,24 @@ class NilaiModel extends Model
 
         return [];
     }
+
+    public function getAllNilaiPerKelas($IdTahunAjaran, $semester, $IdTpq, $IdKelas)
+    {
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.IdSantri, n.Nilai');
+        $builder->where('n.IdTpq', $IdTpq);
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+        }
+        if (is_array($IdKelas)) {
+            $builder->whereIn('n.IdKelas', $IdKelas);
+        } else {
+            $builder->where('n.IdKelas', $IdKelas);
+        }
+        $builder->where('n.Semester', $semester);
+
+        return $builder->get()->getResult();
+    }
 }

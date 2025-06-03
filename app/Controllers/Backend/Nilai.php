@@ -67,16 +67,22 @@ class Nilai extends BaseController
         // ambil jika settingan nilai alfabetic dari session
         $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
 
-        // Check IdSantri yang ada di data $dataSantri ke tbl_nilai filter by IdTahunAjaran dan Semester apakah nilai untuk semua IdMateri sudah semua atau belum jika belum maka buat status StatusPenilian = 0 
-        foreach ($dataSantri as $key => $value) {
-            $dataNilai = $this->DataNilai->getDataNilaiPerSantri(IdSantri: $value->IdSantri, semester: $semester, IdTpq: $this->IdTpq, IdTahunAjaran: $IdTahunAjaran, IdKelas: $IdKelas);
-            $dataSantri[$key]->StatusPenilaian = 1;
-            foreach ($dataNilai as $nilai) {
-                if ($nilai->Nilai == 0) {
-                    $dataSantri[$key]->StatusPenilaian = 0;
-                    break;
-                }
+        // Optimasi pengecekan nilai dengan single query
+        $allNilai = $this->DataNilai->getAllNilaiPerKelas($IdTahunAjaran, $semester, $this->IdTpq, $IdKelas);
+
+        // Buat array untuk tracking nilai per santri
+        $nilaiStatus = [];
+        foreach ($allNilai as $nilai) {
+            if ($nilai->Nilai == 0) {
+                $nilaiStatus[$nilai->IdSantri] = 0;
+            } else if (!isset($nilaiStatus[$nilai->IdSantri])) {
+                $nilaiStatus[$nilai->IdSantri] = 1;
             }
+        }
+
+        // Set status penilaian untuk setiap santri
+        foreach ($dataSantri as $key => $value) {
+            $dataSantri[$key]->StatusPenilaian = $nilaiStatus[$value->IdSantri] ?? 0;
         }
 
         // Tambahkan data kelas tetap "SEMUA KELAS" di awal
