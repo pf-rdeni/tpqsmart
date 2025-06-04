@@ -170,7 +170,25 @@ helper('nilai');
             <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">Wali Kelas</td>
         </tr>
         <tr>
-            <td colspan="5" style="height: 50px;"></td>
+            <td colspan="2" style="height: 50px; text-align: center;">
+                <?php
+                $qrPath = FCPATH . 'uploads/qr/68406ef85f725.svg';
+                if (file_exists($qrPath)) {
+                    $qrContent = file_get_contents($qrPath);
+                    echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code" style="width: 80px; height: 80px;">';
+                }
+                ?>
+            </td>
+            <td></td>
+            <td colspan="2" style="height: 50px; text-align: center;">
+                <?php
+                $qrPath = FCPATH . 'uploads/qr/683f13e3909ae.svg';
+                if (file_exists($qrPath)) {
+                    $qrContent = file_get_contents($qrPath);
+                    echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code" style="width: 80px; height: 80px;">';
+                }
+                ?>
+            </td>
         </tr>
         <tr>
             <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">( <?= htmlspecialchars(toTitleCase($tpq['KepalaSekolah'])) ?> )</td>
