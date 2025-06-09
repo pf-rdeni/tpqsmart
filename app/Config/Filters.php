@@ -79,8 +79,8 @@ class Filters extends BaseFilters
                 'except' => [
                     'signature/validateSignature',
                     'signature/validateSignature/*',
-                    '/', // untuk root
-                    'frontend/home', // untuk akses langsung ke controller
+                    'frontend/home',
+                    'auth/logout', // untuk logout
                 ]
             ],
         ],

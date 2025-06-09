@@ -26,8 +26,8 @@ $routes->setAutoRoute(true);
  * Route Definitions
  * --------------------------------------------------------------------
  */
-//$routes->get('/', 'Auth::index');
-$routes->get('/', 'Backend\Pages::index');
+$routes->get('/', 'Auth::index');
+//$routes->get('/', 'Backend\Pages::index');
 //$routes->get('/', 'Frontend\Home::index');
 $routes->get('program', 'Frontend\Program::index');
 $routes->get('kontak', 'Frontend\Kontak::index');
@@ -96,6 +96,8 @@ $routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::val
 $routes->get('signature/santri/(:num)', 'Frontend\\Signature::getSignaturesBySantri/$1');
 $routes->get('signature/guru/(:num)', 'Frontend\\Signature::getSignaturesByGuru/$1');
 $routes->get('signature/tpq/(:num)', 'Frontend\\Signature::getSignaturesByTpq/$1');
+
+$routes->get('logout', 'Auth::logout');
 
 /*
  * --------------------------------------------------------------------

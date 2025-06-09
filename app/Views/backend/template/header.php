@@ -7,7 +7,7 @@
             </div><!-- /.col -->
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href=<?php echo base_url('backend/pages/index') ?>>Home</a></li>
+                    <li class="breadcrumb-item"><a href=<?php echo base_url('auth/index') ?>>Home</a></li>
                     <li class="breadcrumb-item active"><?php echo $page_title ?></li>
                 </ol>
             </div><!-- /.col -->
