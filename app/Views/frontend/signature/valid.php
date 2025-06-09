@@ -101,6 +101,10 @@
                                     <div class="info-value"><strong><?= esc($santri['IdSantri']) ?></strong></div>
                                 </div>
                                 <div class="info-row">
+                                    <div class="info-label">Status Saat ini :</div>
+                                    <div class="info-value"><strong><span class="badge <?= esc($santri['Active']) ? 'bg-success' : 'bg-danger' ?>"><?= esc($santri['Active']) ? 'Aktif' : 'Tidak Aktif' ?></span></strong></div>
+                                </div>
+                                <div class="info-row">
                                     <div class="info-label">Nama TPQ :</div>
                                     <div class="info-value"><strong><?= toTitleCase(esc($tpq['NamaTpq'])) ?></strong></div>
                                 </div>
