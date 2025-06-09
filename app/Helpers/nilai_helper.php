@@ -274,3 +274,20 @@ if (!function_exists('toTitleCase')) {
         return trim($result);
     }
 }
+
+if (!function_exists('convertTahunAjaran')) {
+    function convertTahunAjaran($TahunAjaran)
+    {
+        // jika array ambil index 0
+        if (is_array($TahunAjaran)) {
+            $TahunAjaran = $TahunAjaran[0];
+        }
+        $startYear = (int) substr($TahunAjaran, 0, 4);
+        $endYear = (int) substr($TahunAjaran, 4);
+
+        $StartYear = $startYear;
+        $EndYear = $endYear;
+
+        return $StartYear . '/' . $EndYear;
+    }
+}

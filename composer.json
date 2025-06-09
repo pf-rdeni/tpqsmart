@@ -11,8 +11,11 @@
     },
     "require": {
         "php": "^8.1",
+        "chillerlan/php-qrcode": "^5.0",
         "codeigniter4/framework": "^4.0",
         "dompdf/dompdf": "^3.0",
+        "endroid/qr-code": "^6.0",
+        "kint-php/kint": "5.0",
         "myth/auth": "^1.2"
     },
     "require-dev": {

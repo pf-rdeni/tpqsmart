@@ -84,7 +84,18 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('rapor/previewRapor/(:num)', 'Rapor::previewRapor/$1');
     $routes->get('rapor/printPdf/(:num)/(:segment)', 'Rapor::printPdf/$1/$2');
     $routes->get('rapor/printPdfBulk/(:num)/(:segment)', 'Rapor::printPdfBulk/$1/$2');
+
+    // QR Routes
+    $routes->get('qr', 'Qr::index');
+    $routes->get('qr/generate', 'Qr::generate');
+    $routes->post('qr/generate', 'Qr::generate');
+    $routes->get('qr/print', 'Qr::print');
 });
+
+$routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::validateSignature/$1');
+$routes->get('signature/santri/(:num)', 'Frontend\\Signature::getSignaturesBySantri/$1');
+$routes->get('signature/guru/(:num)', 'Frontend\\Signature::getSignaturesByGuru/$1');
+$routes->get('signature/tpq/(:num)', 'Frontend\\Signature::getSignaturesByTpq/$1');
 
 /*
  * --------------------------------------------------------------------

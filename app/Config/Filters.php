@@ -75,7 +75,14 @@ class Filters extends BaseFilters
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
-            'login',
+            'login' => [
+                'except' => [
+                    'signature/validateSignature',
+                    'signature/validateSignature/*',
+                    '/', // untuk root
+                    'frontend/home', // untuk akses langsung ke controller
+                ]
+            ],
         ],
         'after' => [
             // 'honeypot',

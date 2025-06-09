@@ -86,27 +86,47 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultArray();
     }
 
-    public function getDataGuruKelas($IdGuru = null, $IdTpq = null)
+    public function getDataGuruKelas($IdGuru = null, $IdTpq = null, $IdKelas = null, $IdTahunAjaran = null, $IdJabatan = null)
     {
         $builder = $this->db->table('tbl_guru_kelas gk')
-                            ->select('j.IdJabatan, j.NamaJabatan, gk.IdTahunAjaran, gk.Id, gk.IdGuru, gk.IdTpq, gk.IdKelas, g.Nama, t.NamaTpq, k.NamaKelas')
+            ->select('j.IdJabatan, j.NamaJabatan, gk.IdTahunAjaran, gk.Id, gk.IdGuru, gk.IdTpq, gk.IdKelas, g.Nama, t.NamaTpq, k.NamaKelas,g.Status')
                             ->join('tbl_guru g', 'g.IdGuru = gk.IdGuru')
                             ->join('tbl_tpq t', 't.IdTpq = gk.IdTpq')
                             ->join('tbl_kelas k', 'k.IdKelas = gk.IdKelas')
                             ->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
 
-        // Tambahkan kondisi jika IdGuru diberikan
+        // Filter berdasarkan parameter yang diberikan
         if ($IdGuru !== null) {
             $builder->where('gk.IdGuru', $IdGuru);
-            return $builder->get()->getResultObject();
-        } else if ($IdTpq !== null) {
+        }
+        if ($IdTpq !== null) {
             $builder->where('gk.IdTpq', $IdTpq);
-            return $builder->get()->getResultObject();
-        } else {
+        }
+        if ($IdKelas !== null) {
+            if (is_array($IdKelas)) {
+                $builder->whereIn('gk.IdKelas', $IdKelas);
+            } else {
+                $builder->where('gk.IdKelas', $IdKelas);
+            }
+        }
+        if ($IdTahunAjaran !== null) {
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('gk.IdTahunAjaran', $IdTahunAjaran);
+            } else {
+                $builder->where('gk.IdTahunAjaran', $IdTahunAjaran);
+            }
+        }
+        if ($IdJabatan !== null) {
+            $builder->where('gk.IdJabatan', $IdJabatan);
+        }
+
+        // Jika hanya mencari satu data spesifik (IdGuru dan IdTpq), kembalikan satu baris
+        if ($IdGuru !== null && $IdTpq !== null && $IdKelas === null && $IdTahunAjaran === null && $IdJabatan === null) {
             return $builder->get()->getResultObject();
         }
 
-
+        // Jika tidak, kembalikan semua hasil
+        return $builder->get()->getResultObject();
     }
 
     public function getKelasMateriPelajaran($kelas = null, $IdTpq = null, $Semester = null)
