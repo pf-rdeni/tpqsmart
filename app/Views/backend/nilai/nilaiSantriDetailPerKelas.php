@@ -71,7 +71,6 @@ foreach ($dataNilai as $santri) {
                                         <tr>
                                             <?php if (!empty($dataNilai)): ?>
                                                 <th>Aksi</th>
-                                                <th>Id Santri</th>
                                                 <th>Nama Santri</th>
                                                 <th>Nama Kelas</th>
                                                 <th>Tahun Ajaran</th>
@@ -111,7 +110,6 @@ foreach ($dataNilai as $santri) {
                                                             <i class="fas fa-eye"></i> Detail
                                                         </button>
                                                     </td>
-                                                    <td><?= htmlspecialchars($santri['IdSantri']) ?></td>
                                                     <td><?= htmlspecialchars($santri['Nama Santri']) ?></td>
                                                     <td><?= htmlspecialchars($santri['Nama Kelas']) ?></td>
                                                     <td><?= htmlspecialchars($santri['Tahun Ajaran']) ?></td>
@@ -155,7 +153,6 @@ foreach ($dataNilai as $santri) {
                                             <?php endif; ?>
                                         <?php endforeach; ?>
                                         <tr>
-                                            <th></th>
                                             <th></th>
                                             <th></th>
                                             <th></th>
