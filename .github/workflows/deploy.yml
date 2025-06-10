@@ -11,18 +11,40 @@ jobs:
       - uses: actions/checkout@v2
 
       # Debug: Print local directory structure
-      - name: Print local directory
+      - name: Print local directory tree
         run: ls -R ./app/
 
       # Debug: Print environment variables
       - name: Print environment variables
         run: env
 
-      # Debug: Print full path of local and server directories
-      - name: Print full path
+      # Debug: Print full path info
+      - name: Print local and server directory path
         run: |
           echo "Local directory full path: $GITHUB_WORKSPACE/app/"
           echo "Server directory: /home/u1525344/daftarsantribaru/app/"
+
+      # Debug: Print file existence and details
+      - name: Check included files existence
+        run: |
+          for file in \
+            Models/SantriBaruModel.php \
+            Controllers/Backend/Santri.php \
+            Views/backend/santri/createEmisStep.php
+          do
+            if [ -f "./app/$file" ]; then
+              echo "✅ File exists: ./app/$file"
+              sha1sum "./app/$file"
+            else
+              echo "❌ File missing: ./app/$file"
+              exit 1
+            fi
+          done
+
+      # Debug: Print head of the file to be uploaded
+      - name: Print first 10 lines of createEmisStep.php
+        run: |
+          head -n 10 ./app/Views/backend/santri/createEmisStep.php || echo "File not found!"
 
       # Deploy ke cPanel menggunakan FTP
       - name: 📂 Deploy ke cPanel
