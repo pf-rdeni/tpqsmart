@@ -45,6 +45,16 @@ jobs:
       - name: Print first 10 lines of createEmisStep.php
         run: |
           head -n 10 ./app/Views/backend/santri/createEmisStep.php || echo "File not found!"
+      # Cek file di server via SSH
+      - name: Cek file di server tujuan via SSH
+        env:
+          SERVER: ${{ secrets.SERVER_HOST }}
+          SSH_USER: ${{ secrets.SERVER_USER }}
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          echo "$SSH_KEY" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem $SSH_USER@$SERVER 'if [ -f /home/u1525344/daftarsantribaru/app/Views/backend/santri/createEmisStep.php ]; then echo "File ada di server"; else echo "File TIDAK ADA di server"; fi'
 
       # Deploy ke cPanel menggunakan FTP
       - name: 📂 Deploy ke cPanel
