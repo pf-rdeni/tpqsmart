@@ -32,7 +32,7 @@ jobs:
             Controllers/Backend/Santri.php \
             Views/backend/santri/createEmisStep.php
           do
-            if [ -f "./app/$file" ]; then
+            if [ -f "./$file" ]; then
               echo "✅ File exists: ./app/$file"
               sha1sum "./app/$file"
             else
