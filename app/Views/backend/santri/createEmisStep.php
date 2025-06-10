@@ -17,7 +17,7 @@ if (ENVIRONMENT === 'production') {
             <div class="card card-default">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center w-100">
-                        <h3 class="card-title m-0">Formulir Data Santri</h3>
+                        <h3 class="card-title m-0">Formulir Data Santri Baru</h3>
                         <div class="d-flex">
                             <a href="<?= base_url('backend/santri/showSantriBaru') ?>" class="btn btn-info">
                                 <i class="fas fa-list"></i><span class="d-none d-md-inline">&nbsp;Data Santri Baru</span>
