@@ -36,6 +36,6 @@ jobs:
           server-dir: /home/u1525344/daftarsantribaru/app/
           local-dir: ./app/
           include: |
-            app/Models/SantriBaruModel.php
-            app/Controllers/Backend/Santri.php
-            app/Views/backend/santri/createEmisStep.php
+            Models/SantriBaruModel.php
+            Controllers/Backend/Santri.php
+            Views/backend/santri/createEmisStep.php
