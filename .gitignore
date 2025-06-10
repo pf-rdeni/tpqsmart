@@ -125,4 +125,4 @@ nb-configuration.xml
 /results/
 /phpunit*.xml
 
-/uploads/qr/
+/public/uploads/qr/
