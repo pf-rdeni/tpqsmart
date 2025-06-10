@@ -11,8 +11,8 @@ deployment:
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Config/Autoload.php $DEPLOYPATH/Config/
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Config/Filters.php $DEPLOYPATH/Config/
     # include vendor folder
-    - export DEPLOYPATH=/home/u1525344/tpqsmart/
-    - /bin/cp -r /home/u1525344/repositories/tpqsmart/vendor $DEPLOYPATH
+    #- export DEPLOYPATH=/home/u1525344/tpqsmart/
+    #- /bin/cp -r /home/u1525344/repositories/tpqsmart/vendor $DEPLOYPATH
 
     # Daftar Santri Baru deployment
     - export DEPLOYPATH=/home/u1525344/daftarsantribaru/app
