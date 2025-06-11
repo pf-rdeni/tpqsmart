@@ -431,32 +431,28 @@ class HelpFunctionModel extends Model
 
     public function getStatusInputNilai($IdTpq, $IdTahunAjaran, $IdKelas = null, $Semester = null)
     {
-        // Query untuk total
-        $countTotal = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)->countAllResults();
+        $builder = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester);
 
-        // Query untuk nilai sudah diinput
-        $countSudah = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
-            ->where('Nilai !=', 0)
-            ->countAllResults();
-
-        // Query untuk nilai belum diinput
-        $countBelum = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
-            ->where('Nilai', 0)
-            ->countAllResults();
+        // Menggunakan satu query dengan CASE WHEN untuk menghitung total, sudah, dan belum
+        $result = $builder->select('
+            COUNT(*) as countTotal,
+            SUM(CASE WHEN Nilai != 0 THEN 1 ELSE 0 END) as countSudah,
+            SUM(CASE WHEN Nilai = 0 THEN 1 ELSE 0 END) as countBelum
+        ')->get()->getRow();
 
         // buat persentasi yang sudah dan belum jika total > 0
-        if ($countTotal == 0) {
+        if ($result->countTotal == 0) {
             $persentasiSudah = 0;
             $persentasiBelum = 0;
         } else {
-            $persentasiSudah = round(($countSudah / $countTotal) * 100, 2);
-            $persentasiBelum = round(($countBelum / $countTotal) * 100, 2);
+            $persentasiSudah = round(($result->countSudah / $result->countTotal) * 100, 2);
+            $persentasiBelum = round(($result->countBelum / $result->countTotal) * 100, 2);
         }
 
         return (object)[
-            'countTotal' => $countTotal,
-            'countSudah' => $countSudah,
-            'countBelum' => $countBelum,
+            'countTotal' => $result->countTotal,
+            'countSudah' => $result->countSudah,
+            'countBelum' => $result->countBelum,
             'persentasiSudah' => $persentasiSudah,
             'persentasiBelum' => $persentasiBelum,
         ];
