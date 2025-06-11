@@ -1209,4 +1209,90 @@ class Santri extends BaseController
         // Convert ke integer kemudian format ke 3 digit
         return str_pad((int)$value, 3, '0', STR_PAD_LEFT);
     }
+
+    public function updateStatusActive()
+    {
+        log_message('info', 'Santri: updateStatusActive - Header');
+        try {
+            $json = $this->request->getJSON();
+            $id = $json->id;
+            // Info : 0 = baru daftar, 1 = aktif, 2 = no active
+            $active = $json->active == 0 ? 2 : $json->active;
+
+            log_message('info', 'Santri: updateStatusActive - ID: ' . $id . ', Active: ' . $active);
+
+            // Cek apakah data santri ada
+            $santri = $this->DataSantriBaru->find($id);
+            if (!$santri) {
+                log_message('error', 'Santri: updateStatusActive - Data santri tidak ditemukan dengan ID: ' . $id);
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data santri tidak ditemukan'
+                ]);
+            }
+
+            // Update status
+            $result = $this->DataSantriBaru
+                ->where('id', $id)
+                ->set(['Active' => $active])
+                ->update();
+
+            if ($result === false) {
+                log_message('error', 'Santri: updateStatusActive - Gagal mengupdate status');
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui status'
+                ]);
+            }
+
+            log_message('info', 'Santri: updateStatusActive - Status berhasil diperbarui');
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Status berhasil diperbarui'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: updateStatusActive - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui status: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function updateVerifikasi()
+    {
+        $json = $this->request->getJSON();
+        $id = $json->id;
+        $status = $json->status;
+
+        // Validasi status yang diperbolehkan
+        $allowedStatus = ['Belum Diverifikasi', 'Sudah Diverifikasi', 'Perlu Perbaikan'];
+        if (!in_array($status, $allowedStatus)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Status tidak valid']);
+        }
+
+        try {
+            // Cek apakah data santri ada
+            $santri = $this->DataSantriBaru->find($id);
+            if (!$santri) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Data santri tidak ditemukan']);
+            }
+
+            // Update status
+            $this->DataSantriBaru->set('Status', $status)
+                ->where('id', $id)
+                ->update();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Status verifikasi berhasil diperbarui'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', '[updateVerifikasi] Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui status verifikasi: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

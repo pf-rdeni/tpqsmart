@@ -15,6 +15,8 @@
             <table id="tblAturSantri" class="table table-bordered table-striped">
                 <thead>
                     <tr>
+                        <th>Active</th>
+                        <th>Verifikasi</th>
                         <th>Profil</th>
                         <th>Aksi</th>
                         <th>IdSantri</th>
@@ -22,7 +24,6 @@
                         <th>Kelurahan/Desa</th>
                         <th>TPQ</th>
                         <th>Kelas</th>
-                        <th>Status</th>
                         <th>Tanggal Reg</th>
                     </tr>
                 </thead>
@@ -30,6 +31,19 @@
                     <?php
                     foreach ($dataSantri as $santri) : ?>
                         <tr>
+                            <td>
+                                <input type="checkbox" id="status<?= $santri['id']; ?>" <?= $santri['Active'] == 1 ? 'checked' : ''; ?>
+                                    onchange="updateStatus(<?= $santri['id']; ?>, this.checked)">
+                            </td>
+                            <td>
+                                <select class="form-control form-control-sm status-select"
+                                    onchange="updateVerifikasi(<?= $santri['id']; ?>, this.value)"
+                                    data-original-status="<?= $santri['Status']; ?>">
+                                    <option value="Belum Diverifikasi" class="bg-warning text-dark" <?= $santri['Status'] == "Belum Diverifikasi" ? 'selected' : ''; ?>>Belum Diverifikasi</option>
+                                    <option value="Sudah Diverifikasi" class="bg-success text-white" <?= $santri['Status'] == "Sudah Diverifikasi" ? 'selected' : ''; ?>>Sudah Diverifikasi</option>
+                                    <option value="Perlu Perbaikan" class="bg-danger text-white" <?= $santri['Status'] == "Perlu Perbaikan" ? 'selected' : ''; ?>>Perlu Perbaikan</option>
+                                </select>
+                            </td>
                             <td>
                                 <?php
                                 $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
@@ -72,7 +86,6 @@
                                     <i class="fas fa-edit"></i><span class="d-none d-md-inline">&nbsp;Edit</span>
                                 </a>
                                 <?php if (in_groups('Admin') || in_groups('Operator')): ?>
-
                                     <a href="javascript:void(0)" onclick="deleteSantri('<?= $santri['IdSantri']; ?>')" class="btn btn-danger btn-sm flex-fill">
                                         <i class="fas fa-trash"></i><span class="d-none d-md-inline">&nbsp;Hapus</span>
                                     </a>
@@ -92,23 +105,14 @@
                                     return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
                                 }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
                             <td><?= $santri['NamaKelas']; ?></td>
-                            <td>
-                                <?php if ($santri['Status'] == "Belum Diverifikasi"): ?>
-                                    <span class="badge bg-warning"><?= $santri['Status']; ?></span>
-                                <?php else: ?>
-                                    <?php if ($santri['Status'] == "Perlu Perbaikan"): ?>
-                                        <span class="badge bg-danger"><?= $santri['Status']; ?></span>
-                                    <?php else: ?>
-                                        <span class="badge bg-success"><?= $santri['Status']; ?></span>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                            </td>
                             <td><?= date('d-m-Y H:i:s', strtotime($santri['updated_at'])); ?></td>
                         </tr>
                     <?php endforeach ?>
                 </tbody>
                 <tfoot>
                     <tr>
+                        <th>Active</th>
+                        <th>Verifikasi</th>
                         <th>Profil</th>
                         <th>Aksi</th>
                         <th>IdSantri</th>
@@ -116,7 +120,6 @@
                         <th>Kelurahan/Desa</th>
                         <th>TPQ</th>
                         <th>Kelas</th>
-                        <th>Status</th>
                         <th>Tanggal Reg</th>
                     </tr>
                 </tfoot>
@@ -525,6 +528,184 @@
                         });
                     });
             }
+        });
+    }
+
+    function updateStatus(id, status) {
+        const checkbox = document.getElementById('status' + id);
+        const originalStatus = !status;
+
+        // Ambil data dari row yang dipilih
+        const row = checkbox.closest('tr');
+        const namaSantri = row.querySelector('td:nth-child(5)').innerText;
+
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            html: `Anda akan ${status ? 'mengaktifkan' : 'menonaktifkan'} santri:<br>
+                  <strong>${namaSantri}</strong>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, update!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memperbarui Status...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('<?= site_url('backend/santri/updateStatusActive'); ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            id: id,
+                            active: status ? 1 : 0
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Gagal!',
+                            text: error.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        checkbox.checked = originalStatus;
+                    });
+            } else {
+                checkbox.checked = originalStatus;
+            }
+        });
+    }
+
+    // Tambahkan style untuk status select
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusSelects = document.querySelectorAll('.status-select');
+        statusSelects.forEach(select => {
+            // Set warna awal berdasarkan nilai yang dipilih
+            updateSelectColor(select);
+
+            // Tambahkan event listener untuk perubahan
+            select.addEventListener('change', function() {
+                updateSelectColor(this);
+            });
+        });
+    });
+
+    function updateSelectColor(select) {
+        const selectedOption = select.options[select.selectedIndex];
+        const selectedClasses = selectedOption.className.split(' ');
+
+        // Hapus semua kelas warna
+        select.classList.remove('bg-warning', 'bg-success', 'bg-danger', 'text-dark', 'text-white');
+
+        // Tambahkan kelas warna yang sesuai
+        selectedClasses.forEach(className => {
+            if (className.startsWith('bg-') || className.startsWith('text-')) {
+                select.classList.add(className);
+            }
+        });
+    }
+
+    function updateVerifikasi(id, status) {
+        const select = document.querySelector(`select[onchange="updateVerifikasi(${id}, this.value)"]`);
+        const originalStatus = select.getAttribute('data-original-status');
+        const originalOption = Array.from(select.options).find(opt => opt.value === originalStatus);
+
+        // Ambil data dari row yang dipilih
+        const row = select.closest('tr');
+        const namaSantri = row.querySelector('td:nth-child(5)').innerText;
+
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            html: `Anda akan mengubah status verifikasi santri:<br>
+                  <strong>${namaSantri}</strong><br>
+                  Menjadi: <strong>${status}</strong>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, update!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memperbarui Status...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('<?= site_url('backend/santri/updateVerifikasi'); ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            id: id,
+                            status: status
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                            // Update nilai asli setelah berhasil
+                            select.setAttribute('data-original-status', status);
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Gagal!',
+                            text: error.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        // Kembalikan ke nilai asli jika gagal
+                        select.value = originalStatus;
+                        updateSelectColor(select);
+                    });
+            } else {
+                // Kembalikan ke nilai asli jika dibatalkan
+                select.value = originalStatus;
+                updateSelectColor(select);
+                // Reset event untuk mencegah loop
+                select.blur();
+            }
+        }).catch(() => {
+            // Kembalikan ke nilai asli jika terjadi error pada SweetAlert
+            select.value = originalStatus;
+            updateSelectColor(select);
+            select.blur();
         });
     }
 
