@@ -45,7 +45,7 @@ jobs:
       - name: Print first 10 lines of createEmisStep.php
         run: |
           head -n 10 ./app/Views/backend/santri/createEmisStep.php || echo "File not found!"
-
+      # Cek file di server via SSH
       # Deploy ke cPanel menggunakan FTP
       - name: 📂 Deploy ke cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
