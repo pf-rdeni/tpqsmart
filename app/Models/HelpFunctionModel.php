@@ -406,23 +406,26 @@ class HelpFunctionModel extends Model
     private function buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
     {
         $builder = $this->db->table('tbl_nilai');
-        $builder->where('IdTpq', $IdTpq);
+        $builder->select('tbl_nilai.*');
+        $builder->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_nilai.IdSantri');
+        $builder->where('tbl_nilai.IdTpq', $IdTpq);
+        $builder->where('tbl_santri_baru.Active', 1);
 
         if (is_array($IdTahunAjaran)) {
-            $builder->whereIn('IdTahunAjaran', $IdTahunAjaran);
+            $builder->whereIn('tbl_nilai.IdTahunAjaran', $IdTahunAjaran);
         } else {
-            $builder->where('IdTahunAjaran', $IdTahunAjaran);
+            $builder->where('tbl_nilai.IdTahunAjaran', $IdTahunAjaran);
         }
 
         if ($IdKelas != 0) {
             if (is_array($IdKelas)) {
-                $builder->whereIn('IdKelas', $IdKelas);
+                $builder->whereIn('tbl_nilai.IdKelas', $IdKelas);
             } else {
-                $builder->where('IdKelas', $IdKelas);
+                $builder->where('tbl_nilai.IdKelas', $IdKelas);
             }
         }
 
-        $builder->where('Semester', $Semester);
+        $builder->where('tbl_nilai.Semester', $Semester);
         return $builder;
     }
 

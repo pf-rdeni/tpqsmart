@@ -114,39 +114,37 @@ class SantriModel extends Model
     {
         $db = db_connect();
 
-        // Base SQL query
-        $sql = 'SELECT 
-                    COUNT(s.IdSantri) AS TotalSantri
-                FROM 
-                    tbl_kelas_santri ks
-                LEFT JOIN 
-                    tbl_kelas k ON ks.IdKelas = k.IdKelas
-                LEFT JOIN 
-                    tbl_santri_baru s ON ks.IdSantri = s.IdSantri
-                LEFT JOIN 
-                    tbl_tpq t ON ks.IdTpq = t.IdTpq
-                LEFT JOIN 
-                    tbl_guru_kelas w ON w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq
-                LEFT JOIN 
-                    tbl_guru g ON w.IdGuru = g.IdGuru
-                WHERE 
-                    1=1';  // Baseline query (always true)
+        $sql = "SELECT COUNT(DISTINCT s.IdSantri) AS TotalSantri
+                FROM tbl_kelas_santri ks
+                INNER JOIN tbl_santri_baru s ON ks.IdSantri = s.IdSantri AND s.Active = 1
+                INNER JOIN tbl_kelas k ON ks.IdKelas = k.IdKelas
+                INNER JOIN tbl_tpq t ON ks.IdTpq = t.IdTpq
+                LEFT JOIN tbl_guru_kelas w ON w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq
+                LEFT JOIN tbl_guru g ON w.IdGuru = g.IdGuru
+                WHERE ks.IdTpq = " . $db->escape($IdTpq);
 
-        // Add filters to the SQL query
-        $sql .= $this->addFilterById($db, 'ks.IdTpq', $IdTpq);
-        $sql .= $this->addFilterById($db, 'ks.IdTahunAjaran', $IdTahunAjaran);
+        if (!empty($IdTahunAjaran)) {
+            if (is_array($IdTahunAjaran)) {
+                $escapedIds = array_map([$db, 'escape'], $IdTahunAjaran);
+                $sql .= " AND ks.IdTahunAjaran IN (" . implode(',', $escapedIds) . ")";
+            } else {
+                $sql .= " AND ks.IdTahunAjaran = " . $db->escape($IdTahunAjaran);
+            }
+        }
 
-        // Khusus untuk IdGuru dan IdKelas
         if ($IdGuru !== null && $IdGuru != 0) {
-            $sql .= $this->addFilterById($db, 'w.IdGuru', $IdGuru);
+            $sql .= " AND w.IdGuru = " . $db->escape($IdGuru);
         }
 
-        if ($IdKelas != 0) {
-            $sql .= $this->addFilterById($db, 'k.IdKelas', $IdKelas);
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $escapedIds = array_map([$db, 'escape'], $IdKelas);
+                $sql .= " AND k.IdKelas IN (" . implode(',', $escapedIds) . ")";
+            } else {
+                $sql .= " AND k.IdKelas = " . $db->escape($IdKelas);
+            }
         }
 
-
-        // Execute the query
         return $db->query($sql)->getRow()->TotalSantri;
     }
 }
