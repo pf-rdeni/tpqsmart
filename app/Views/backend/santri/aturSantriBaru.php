@@ -23,8 +23,10 @@
                         <th>Aksi</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
-                        <th>Kelurahan/Desa</th>
-                        <th>TPQ</th>
+                        <?php if (in_groups('Admin')): ?>
+                            <th>Kelurahan/Desa</th>
+                            <th>TPQ</th>
+                        <?php endif; ?>
                         <th>Kelas</th>
                         <th>Tanggal Reg</th>
                     </tr>
@@ -96,11 +98,13 @@
                                 <?php endif; ?>
                             </td>
                             <td><?= $santri['IdSantri']; ?></td>
-                            <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
-                            <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
-                            <td><?= preg_replace_callback('/\b(al|el|ad)-(\w+)/i', function ($matches) {
-                                    return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
-                                }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
+                            <td data-column="Nama"><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
+                            <?php if (in_groups('Admin')): ?>
+                                <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
+                                <td><?= preg_replace_callback('/\b(al|el|ad)-(\w+)/i', function ($matches) {
+                                        return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
+                                    }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
+                            <?php endif; ?>
                             <td><?= $santri['NamaKelas']; ?></td>
                             <td><?= date('d-m-Y H:i:s', strtotime($santri['updated_at'])); ?></td>
                         </tr>
@@ -116,8 +120,10 @@
                         <th>Aksi</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
-                        <th>Kelurahan/Desa</th>
-                        <th>TPQ</th>
+                        <?php if (in_groups('Admin')): ?>
+                            <th>Kelurahan/Desa</th>
+                            <th>TPQ</th>
+                        <?php endif; ?>
                         <th>Kelas</th>
                         <th>Tanggal Reg</th>
                     </tr>
@@ -468,6 +474,21 @@
     </div>
 </div>
 
+<style>
+    /* Style untuk checkbox yang lebih besar */
+    input[type="checkbox"] {
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+    }
+
+    /* Style untuk hover effect */
+    input[type="checkbox"]:hover {
+        transform: scale(1.1);
+        transition: transform 0.2s;
+    }
+</style>
+
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
 <script>
@@ -475,7 +496,7 @@
     function deleteSantri(IdSantri) {
         // Dapatkan nama santri dari baris tabel
         const row = event.target.closest('tr');
-        const namaSantri = row.querySelector('td:nth-child(4)').textContent;
+        const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
 
         Swal.fire({
             title: 'Apakah Anda yakin?',
@@ -538,7 +559,7 @@
 
         // Ambil data dari row yang dipilih
         const row = checkbox.closest('tr');
-        const namaSantri = row.querySelector('td:nth-child(5)').innerText;
+        const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
 
         Swal.fire({
             title: 'Apakah Anda yakin?',
@@ -573,15 +594,16 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
+                            // Update tampilan checkbox
+                            checkbox.checked = status;
+
                             Swal.fire({
                                 title: 'Berhasil!',
                                 text: data.message,
                                 icon: 'success',
                                 showConfirmButton: false,
-                                timer: 1500
+                                timer: 1000
                             });
-                            // Setelah update berhasil
-                            table.column(0).draw();
                         } else {
                             throw new Error(data.message);
                         }
@@ -593,11 +615,16 @@
                             icon: 'error',
                             confirmButtonText: 'OK'
                         });
+                        // Kembalikan ke nilai asli jika gagal
                         checkbox.checked = originalStatus;
                     });
             } else {
+                // Kembalikan ke nilai asli jika dibatalkan
                 checkbox.checked = originalStatus;
             }
+        }).catch(() => {
+            // Kembalikan ke nilai asli jika terjadi error pada SweetAlert
+            checkbox.checked = originalStatus;
         });
     }
 
@@ -672,7 +699,7 @@
 
         // Ambil data dari row yang dipilih
         const row = select.closest('tr');
-        const namaSantri = row.querySelector('td:nth-child(5)').innerText;
+        const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
 
         Swal.fire({
             title: 'Apakah Anda yakin?',
@@ -708,17 +735,18 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
+                            // Update nilai asli setelah berhasil
+                            select.setAttribute('data-original-status', status);
+                            // Update tampilan select
+                            updateSelectColor(select);
+
                             Swal.fire({
                                 title: 'Berhasil!',
                                 text: data.message,
                                 icon: 'success',
                                 showConfirmButton: false,
-                                timer: 1500
+                                timer: 1000
                             });
-                            // Update nilai asli setelah berhasil
-                            select.setAttribute('data-original-status', status);
-                            // Setelah update berhasil
-                            table.column(<?= (in_groups('Admin') || in_groups('Operator')) ? 1 : 0 ?>).draw();
                         } else {
                             throw new Error(data.message);
                         }
