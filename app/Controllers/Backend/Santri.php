@@ -598,7 +598,7 @@ class Santri extends BaseController
         return view('backend/santri/listSantriBaru', $data);
     }
 
-    public function showAturSantriBaru($IdTpq = null)
+    public function showAturSantriBaru()
     {
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
@@ -606,58 +606,42 @@ class Santri extends BaseController
         // ambil IdKelas dari session
         $IdKelas = session()->get('IdKelas');
 
-        // Mulai membangun query
-        $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+        // Mulai membangun query dengan builder pattern
+        $builder = $this->DataSantriBaru
+            ->select([
+                'tbl_santri_baru.*',
+                'tbl_kelas.NamaKelas',
+                'tbl_tpq.NamaTpq',
+                'tbl_tpq.KelurahanDesa'
+            ])
             ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdTpq', $IdTpq);
+
+        // Tambahkan filter Active=1 jika user adalah Guru
+        if (in_groups('Guru')) {
+            $builder->where('tbl_santri_baru.Active', 1);
+        }
 
         // Terapkan filter IdKelas jika ada
         if ($IdKelas !== null) {
-            // check jika IdKelas adalah array, maka filter where in
             if (is_array($IdKelas)) {
-                $this->DataSantriBaru->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
             } else {
-                $this->DataSantriBaru->where('tbl_santri_baru.IdKelas', $IdKelas);
+                $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
             }
         }
 
-        // Tambahkan filter IdTpq dan pengurutan yang umum
-        $santri = $this->DataSantriBaru
-            ->where('tbl_santri_baru.IdTpq', $IdTpq)
+        // Tambahkan pengurutan
+        $santri = $builder
             ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
             ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
             ->orderBy('tbl_santri_baru.Status', 'DESC')
             ->findAll();
 
-        $tpq = $this->helpFunction->getDataTpq();
-        usort($tpq, function ($a, $b) {
-            return strcmp($a['NamaTpq'], $b['NamaTpq']);
-        });
-
-        // Tambahkan query untuk menghitung jumlah santri per TPQ
-        $santriPerTpq = $this->DataSantriBaru
-            ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
-            ->groupBy('tbl_tpq.IdTpq')
-            ->findAll();
-
-        // Gabungkan data jumlah santri ke array TPQ
-        foreach ($tpq as &$t) {
-            $jumlahSantri = 0;
-            foreach ($santriPerTpq as $count) {
-                if ($count['IdTpq'] == $t['IdTpq']) {
-                    $jumlahSantri = $count['JumlahSantri'];
-                    break;
-                }
-            }
-            $t['JumlahSantri'] = $jumlahSantri;
-        }
-
         $data = [
             'page_title' => 'Data Santri',
-            'dataSantri' => $santri,
-            'dataTpq' => $tpq
+            'dataSantri' => $santri
         ];
         return view('backend/santri/aturSantriBaru', $data);
     }

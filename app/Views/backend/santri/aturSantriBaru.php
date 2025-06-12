@@ -15,7 +15,9 @@
             <table id="tblAturSantri" class="table table-bordered table-striped">
                 <thead>
                     <tr>
-                        <th>Active</th>
+                        <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                            <th>Active</th>
+                        <?php endif; ?>
                         <th>Verifikasi</th>
                         <th>Profil</th>
                         <th>Aksi</th>
@@ -31,11 +33,13 @@
                     <?php
                     foreach ($dataSantri as $santri) : ?>
                         <tr>
-                            <td>
-                                <input type="checkbox" id="status<?= $santri['id']; ?>" <?= $santri['Active'] == 1 ? 'checked' : ''; ?>
-                                    onchange="updateStatus(<?= $santri['id']; ?>, this.checked)">
-                            </td>
-                            <td>
+                            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                                <td data-order="<?= $santri['Active'] ?>">
+                                    <input type="checkbox" id="status<?= $santri['id']; ?>" <?= $santri['Active'] == 1 ? 'checked' : ''; ?>
+                                        onchange="updateStatus(<?= $santri['id']; ?>, this.checked)">
+                                </td>
+                            <?php endif; ?>
+                            <td data-order="<?= $santri['Status'] === 'Belum Diverifikasi' ? 1 : ($santri['Status'] === 'Sudah Diverifikasi' ? 2 : 3) ?>">
                                 <select class="form-control form-control-sm status-select"
                                     onchange="updateVerifikasi(<?= $santri['id']; ?>, this.value)"
                                     data-original-status="<?= $santri['Status']; ?>">
@@ -94,13 +98,6 @@
                             <td><?= $santri['IdSantri']; ?></td>
                             <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
-                            <!-- Mengubah format nama TPQ -->
-                            <!-- detail keterangan:
-                            \b(al|el|ad)-(\w+) = kata yang diawali dengan al- atau el- atau ad- dan diikuti dengan kata lain
-                            \b = kata awal
-                            (al|el|ad) = al atau el atau ad
-                            - = tanda hubung
-                            (\w+) = kata setelah tanda hubung -->
                             <td><?= preg_replace_callback('/\b(al|el|ad)-(\w+)/i', function ($matches) {
                                     return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
                                 }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
@@ -111,7 +108,9 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th>Active</th>
+                        <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                            <th>Active</th>
+                        <?php endif; ?>
                         <th>Verifikasi</th>
                         <th>Profil</th>
                         <th>Aksi</th>
@@ -533,6 +532,8 @@
 
     function updateStatus(id, status) {
         const checkbox = document.getElementById('status' + id);
+        const td = checkbox.closest('td');
+        td.setAttribute('data-order', status ? 1 : 0);
         const originalStatus = !status;
 
         // Ambil data dari row yang dipilih
@@ -579,6 +580,8 @@
                                 showConfirmButton: false,
                                 timer: 1500
                             });
+                            // Setelah update berhasil
+                            table.column(0).draw();
                         } else {
                             throw new Error(data.message);
                         }
@@ -610,6 +613,24 @@
                 updateSelectColor(this);
             });
         });
+
+        // Tambahkan event listener untuk DataTable page change
+        $('#tblAturSantri').on('page.dt', function() {
+            setTimeout(function() {
+                const statusSelects = document.querySelectorAll('.status-select');
+                statusSelects.forEach(select => {
+                    updateSelectColor(select);
+                });
+            }, 100);
+        });
+
+        // Tambahkan event listener untuk DataTable draw
+        $('#tblAturSantri').on('draw.dt', function() {
+            const statusSelects = document.querySelectorAll('.status-select');
+            statusSelects.forEach(select => {
+                updateSelectColor(select);
+            });
+        });
     });
 
     function updateSelectColor(select) {
@@ -625,10 +646,27 @@
                 select.classList.add(className);
             }
         });
+
+        // Tambahkan style langsung ke elemen untuk memastikan konsistensi
+        if (selectedOption.value === 'Belum Diverifikasi') {
+            select.style.backgroundColor = '#ffc107';
+            select.style.color = '#000';
+        } else if (selectedOption.value === 'Sudah Diverifikasi') {
+            select.style.backgroundColor = '#28a745';
+            select.style.color = '#fff';
+        } else if (selectedOption.value === 'Perlu Perbaikan') {
+            select.style.backgroundColor = '#dc3545';
+            select.style.color = '#fff';
+        }
     }
 
     function updateVerifikasi(id, status) {
         const select = document.querySelector(`select[onchange="updateVerifikasi(${id}, this.value)"]`);
+        const td = select.closest('td');
+        let orderValue = 1;
+        if (status === 'Sudah Diverifikasi') orderValue = 2;
+        else if (status === 'Perlu Perbaikan') orderValue = 3;
+        td.setAttribute('data-order', orderValue);
         const originalStatus = select.getAttribute('data-original-status');
         const originalOption = Array.from(select.options).find(opt => opt.value === originalStatus);
 
@@ -679,6 +717,8 @@
                             });
                             // Update nilai asli setelah berhasil
                             select.setAttribute('data-original-status', status);
+                            // Setelah update berhasil
+                            table.column(<?= (in_groups('Admin') || in_groups('Operator')) ? 1 : 0 ?>).draw();
                         } else {
                             throw new Error(data.message);
                         }
@@ -851,7 +891,30 @@
         }
     }
     // Initialize DataTable for #tblTpq
-    initializeDataTableUmum("#tblAturSantri", true, true);
+    const table = initializeDataTableUmum("#tblAturSantri", true, true, {
+        columnDefs: [
+            <?php if (in_groups('Admin') || in_groups('Operator')): ?> {
+                    targets: 0,
+                    orderable: true,
+                    type: 'num'
+                },
+            <?php endif; ?> {
+                targets: <?= (in_groups('Admin') || in_groups('Operator')) ? 1 : 0 ?>,
+                orderable: true,
+                type: 'num'
+            }
+        ]
+    });
+
+    // Tambahkan event handler untuk perubahan status
+    $('#tblAturSantri').on('change', 'input[type="checkbox"]', function() {
+        table.column(0).draw();
+    });
+
+    $('#tblAturSantri').on('change', '.status-select', function() {
+        table.column(<?= (in_groups('Admin') || in_groups('Operator')) ? 1 : 0 ?>).draw();
+    });
+
     //initializeDataTableWithFilter("#tblAturSantri", true, true, ["excel", "pdf", "print", "colvis"]);
 </script>
 <?= $this->endSection(); ?>
