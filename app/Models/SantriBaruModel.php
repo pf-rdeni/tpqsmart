@@ -251,69 +251,42 @@ class SantriBaruModel extends Model
     public function GetDataSantriPerKelas($IdTahunAjaran = 0, $IdKelas = 0, $IdGuru = null)
     {
         $db = db_connect();
+        $builder = $db->table('tbl_kelas_santri ks');
 
-        // Base SQL query dengan DISTINCT untuk menghindari duplikasi
-        $sql =
-        'SELECT DISTINCT
-                    ks.IdTahunAjaran,
-                    k.IdKelas,
-                    k.NamaKelas,
-                    g.IdGuru,
-                    g.Nama AS GuruNama,
-                    s.IdSantri,
-                    s.NamaSantri,
-                    s.JenisKelamin,
-                    t.IdTpq,
-                    t.NamaTpq,
-                    t.Alamat,
-                    w.IdJabatan,
-                    j.NamaJabatan
-                FROM 
-                    tbl_kelas_santri ks
-                JOIN 
-                    tbl_kelas k ON ks.IdKelas = k.IdKelas
-                JOIN 
-                    tbl_santri_baru s ON ks.IdSantri = s.IdSantri
-                JOIN 
-                    tbl_tpq t ON ks.IdTpq = t.IdTpq
-                LEFT JOIN 
-                    tbl_guru_kelas w ON w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq
-                LEFT JOIN 
-                    tbl_guru g ON w.IdGuru = g.IdGuru
-                    LEFT JOIN
-                    tbl_jabatan j ON w.IdJabatan = j.IdJabatan 
-                WHERE 
-                    1=1';
+        $builder->select('ks.IdTahunAjaran, k.IdKelas, k.NamaKelas, g.IdGuru, g.Nama AS GuruNama, 
+                        s.IdSantri, s.NamaSantri, s.JenisKelamin, t.IdTpq, t.NamaTpq, t.Alamat, 
+                        w.IdJabatan, j.NamaJabatan')
+            ->distinct()
+            ->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas')
+            ->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri')
+            ->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq')
+            ->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq', 'left')
+            ->join('tbl_guru g', 'w.IdGuru = g.IdGuru', 'left')
+            ->join('tbl_jabatan j', 'w.IdJabatan = j.IdJabatan', 'left')
+            ->where('s.Active', 1);
 
-        // Add filters to the SQL query
-        $sql .= $this->addFilterById($db, 'ks.IdTahunAjaran', $IdTahunAjaran);
-        $sql .= $this->addFilterById($db, 'w.IdGuru', $IdGuru);
-        $sql .= $this->addFilterById($db, 'k.IdKelas', $IdKelas);
-
-        // Add ORDER BY clause
-        $sql .= ' ORDER BY k.NamaKelas ASC, s.NamaSantri ASC';
-
-        // Execute the query
-        $query = $db->query($sql)->getResultObject();
-
-        return $query;
-    }
-
-    private function addFilterById($db, $column, $id)
-    {
-        $filter = '';
-
-        if (!empty($id)) {
-            if (is_array($id)) {
-                // Escape each element in array and use WHERE IN
-                $escapedId = array_map([$db, 'escape'], $id);
-                $filter .= ' AND ' . $column . ' IN (' . implode(',', $escapedId) . ')';
+        if (!empty($IdTahunAjaran)) {
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
             } else {
-                // If id is a single value
-                $filter .= ' AND ' . $column . ' = ' . $db->escape($id);
+                $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
             }
         }
 
-        return $filter;
+        if (!empty($IdGuru)) {
+            $builder->where('w.IdGuru', $IdGuru);
+        }
+
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builder->whereIn('k.IdKelas', $IdKelas);
+            } else {
+                $builder->where('k.IdKelas', $IdKelas);
+            }
+        }
+
+        $builder->orderBy('k.NamaKelas ASC, s.NamaSantri ASC');
+
+        return $builder->get()->getResultObject();
     }
 }
