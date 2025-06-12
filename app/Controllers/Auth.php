@@ -23,186 +23,159 @@ class Auth extends BaseController
         $this->santriModel = new SantriModel();
         $this->tabunganModel = new TabunganModel();
     }
+
+    private function getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $kelasList, $semester)
+    {
+        // Ekstrak ID kelas dari array/object
+        $kelasIds = array_map(function ($kelas) {
+            return is_object($kelas) ? $kelas->IdKelas : $kelas;
+        }, $kelasList);
+
+        // Ambil semua data dalam satu query
+        $statusNilai = $this->helpFunctionModel->getStatusInputNilaiBulk(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+            IdKelas: $kelasIds,
+            Semester: $semester
+        );
+
+        // Ambil semua nama kelas dalam satu query
+        $namaKelas = $this->helpFunctionModel->getNamaKelasBulk($kelasIds);
+
+        // Gabungkan data
+        $result = [];
+        foreach ($kelasIds as $idKelas) {
+            $result[] = [
+                'IdKelas' => $idKelas,
+                'NamaKelas' => $namaKelas[$idKelas] ?? '',
+                'StatusInputNilai' => $statusNilai[$idKelas] ?? false
+            ];
+        }
+        return $result;
+    }
+
+    private function getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru)
+    {
+        $saldoTabungan = $this->tabunganModel->getSaldoTabunganSantri(
+            $idTpq,
+            $idTahunAjaran,
+            $idKelas,
+            $idGuru
+        );
+
+        $totalSantri = $this->santriModel->getTotalSantri(
+            $idTpq,
+            $idTahunAjaran,
+            $idKelas,
+            $idGuru
+        );
+
+        $JumlahKelasDiajar = empty($idKelas) ? 0 : count($idKelas);
+
+        // Ambil jumlah santri per kelas
+        $jumlahSantriPerKelas = $this->helpFunctionModel->getJumlahSantriPerKelas(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+            kelasIds: $idKelas
+        );
+
+        $statusInputNilaiPerKelasGanjil = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $idKelas, 'Ganjil');
+        $statusInputNilaiPerKelasGenap = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $idKelas, 'Genap');
+
+        return [
+            'page_title' => 'Dashboard',
+            'JumlahKelasDiajar' => $JumlahKelasDiajar,
+            'TotalSantri' => $totalSantri,
+            'TotalTabungan' => $saldoTabungan ?? 0,
+            'TahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran),
+            'StatusInputNilaiSemesterGanjil' => $this->helpFunctionModel->getStatusInputNilai(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+                IdKelas: $idKelas,
+                Semester: 'Ganjil'
+            ),
+            'StatusInputNilaiSemesterGenap' => $this->helpFunctionModel->getStatusInputNilai(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+                IdKelas: $idKelas,
+                Semester: 'Genap'
+            ),
+            'StatusInputNilaiPerKelasGanjil' => $statusInputNilaiPerKelasGanjil,
+            'StatusInputNilaiPerKelasGenap' => $statusInputNilaiPerKelasGenap,
+            'JumlahSantriPerKelas' => $jumlahSantriPerKelas,
+        ];
+    }
+
+    private function getAdminDashboardData($idTpq, $idTahunAjaran)
+    {
+        $listKelas = $this->helpFunctionModel->getListKelas(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+        );
+
+        // Ambil jumlah santri per kelas
+        $jumlahSantriPerKelas = $this->helpFunctionModel->getJumlahSantriPerKelas(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+            kelasIds: array_map(function ($kelas) {
+                return is_object($kelas) ? $kelas->IdKelas : $kelas;
+            }, $listKelas)
+        );
+
+        $statusInputNilaiPerKelasGanjil = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $listKelas, 'Ganjil');
+        $statusInputNilaiPerKelasGenap = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $listKelas, 'Genap');
+
+        return [
+            'page_title' => 'Dashboard',
+            'TotalWaliKelas' => $this->helpFunctionModel->getTotalWaliKelas(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+            ),
+            'TotalSantri' => $this->helpFunctionModel->getTotalSantri(IdTpq: $idTpq),
+            'TotalGuru' => $this->helpFunctionModel->getTotalGuru(IdTpq: $idTpq),
+            'TotalKelas' => $this->helpFunctionModel->getTotalKelas(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+            ),
+            'TotalSantriBaru' => $this->helpFunctionModel->getTotalSantriBaru(
+                IdTpq: $idTpq,
+                IdKelas: session()->get('IdKelas'),
+            ),
+            'TahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran),
+            'StatusInputNilaiSemesterGanjil' => $this->helpFunctionModel->getStatusInputNilai(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+                Semester: 'Ganjil'
+            ),
+            'StatusInputNilaiSemesterGenap' => $this->helpFunctionModel->getStatusInputNilai(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+                Semester: 'Genap'
+            ),
+            'StatusInputNilaiPerKelasGanjil' => $statusInputNilaiPerKelasGanjil,
+            'StatusInputNilaiPerKelasGenap' => $statusInputNilaiPerKelasGenap,
+            'JumlahSantriPerKelas' => $jumlahSantriPerKelas,
+        ];
+    }
+
+
+
     public function index()
     {
         $idTpq = session()->get('IdTpq');
         $idTahunAjaran = session()->get('IdTahunAjaran');
         $idKelas = session()->get('IdKelas');
         $idGuru = session()->get('IdGuru');
+
         if (in_groups('Guru')) {
-
-            // Mendapatkan saldo tabungan santri
-            $saldoTabungan = $this->tabunganModel->getSaldoTabunganSantri(
-                $idTpq,
-                $idTahunAjaran,
-                $idKelas,
-                $idGuru
-            );
-
-            // Mengambil total santri dari model santri GetTotalSantri
-            $totalSantri = $this->santriModel->getTotalSantri(
-                $idTpq,
-                $idTahunAjaran,
-                $idKelas,
-                $idGuru
-            );
-
-            //Jumloh kelas yang diajar count dari session IdKelas
-            // Jika IdKelas tidak ada di session, set ke 0
-            $idKelas = session()->get('IdKelas') ?? 0;
-            if ($idKelas == 0) {
-                $JumlahKelasDiajar = 0;
-            } else {
-                $JumlahKelasDiajar = count($idKelas);
-            }
-
-            // mendapakan status input nilai semester ganjil untuk kelas
-            $statusInputNilaiSemesterGanjil = $this->helpFunctionModel->getStatusInputNilai(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-                IdKelas: $idKelas,
-                Semester: 'Ganjil'
-            );
-            // mendapakan status input nilai semester genap untuk kelas
-            $statusInputNilaiSemesterGenap = $this->helpFunctionModel->getStatusInputNilai(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-                IdKelas: $idKelas,
-                Semester: 'Genap'
-            );
-
-            // loop untuk mendapatkan status input nilai per kelas ganjil dan genap filter idTahunAjaran idKelas dan semester
-            $statusInputNilaiPerKelasGanjil = [];
-            $statusInputNilaiPerKelasGenap = [];
-            foreach ($idKelas as $kelas) {
-                $statusInputNilaiPerKelasGanjil[] = [
-                    'IdKelas' => $kelas,
-                    'NamaKelas' => $this->helpFunctionModel->getNamaKelas($kelas),
-                    'StatusInputNilai' => $this->helpFunctionModel->getStatusInputNilai(
-                        IdTpq: $idTpq,
-                        IdTahunAjaran: $idTahunAjaran,
-                        IdKelas: $kelas,
-                        Semester: 'Ganjil'
-                    )
-                ];
-                $statusInputNilaiPerKelasGenap[] = [
-                    'IdKelas' => $kelas,
-                    'NamaKelas' => $this->helpFunctionModel->getNamaKelas($kelas),
-                    'StatusInputNilai' => $this->helpFunctionModel->getStatusInputNilai(
-                        IdTpq: $idTpq,
-                        IdTahunAjaran: $idTahunAjaran,
-                        IdKelas: $kelas,
-                        Semester: 'Genap'
-                    )
-                ];
-            }
-
-            $data = [
-                'page_title' => 'Dashboard',
-                'JumlahKelasDiajar' => $JumlahKelasDiajar,
-                'TotalSantri' => $totalSantri, // Akan diisi dengan data dari model
-                'TotalTabungan' => $saldoTabungan ?? 0, // Akan diisi dengan data dari model
-                'TahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran),
-                'StatusInputNilaiSemesterGanjil' => $statusInputNilaiSemesterGanjil,
-                'StatusInputNilaiSemesterGenap' => $statusInputNilaiSemesterGenap,
-                'StatusInputNilaiPerKelasGanjil' => $statusInputNilaiPerKelasGanjil,
-                'StatusInputNilaiPerKelasGenap' => $statusInputNilaiPerKelasGenap,
-            ];
+            $data = $this->getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru);
         } else if (in_groups('Admin') || in_groups('Operator')) {
-            // ambil tahun ajaran saat ini dari fungsi help function
             $idTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
-            // Mendapatkan total santri
-            $totalSantri = $this->helpFunctionModel->getTotalSantri(
-                IdTpq: $idTpq,
-            );
-
-            // Mendapatkan total guru
-            $totalGuru = $this->helpFunctionModel->getTotalGuru(
-                IdTpq: $idTpq
-            );
-
-            // Mendapatkan total kelas
-            $totalKelas = $this->helpFunctionModel->getTotalKelas(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-            );
-            // Mendapatkan total santri baru active =0
-            $totalSantriBaru = $this->helpFunctionModel->getTotalSantriBaru(
-                IdTpq: $idTpq,
-                IdKelas: $idKelas,
-            );
-
-            // Mendapatkan jumlah nilai yang sudah diinput dan belum diinput
-            $statusInputNilaiSemesterGanjil = $this->helpFunctionModel->getStatusInputNilai(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-                Semester: 'Ganjil'
-            );
-
-            //untuk status input nilai semester genap
-            $statusInputNilaiSemesterGenap = $this->helpFunctionModel->getStatusInputNilai(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-                Semester: 'Genap'
-            );
-
-            // Loop untuk mendapatkan status input nilai per kelas Genap dan Ganjil filter tahun ajaran saat ini
-            $statusInputNilaiPerKelasGanjil = [];
-            $statusInputNilaiPerKelasGenap = [];
-
-            //Ambil list kelas 
-            $listKelas = $this->helpFunctionModel->getListKelas(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-            );
-            // loop dari getListKelas
-            foreach ($listKelas as $kelas) {
-                $statusInputNilaiPerKelasGanjil[] = [
-                    'IdKelas' => $kelas->IdKelas,
-                    'NamaKelas' => $this->helpFunctionModel->getNamaKelas($kelas->IdKelas),
-                    'StatusInputNilai' => $this->helpFunctionModel->getStatusInputNilai(
-                        IdTpq: $idTpq,
-                        IdTahunAjaran: $idTahunAjaran,
-                        IdKelas: $kelas->IdKelas,
-                        Semester: 'Ganjil'
-                    )
-                ];
-                $statusInputNilaiPerKelasGenap[] = [
-                    'IdKelas' => $kelas->IdKelas,
-                    'NamaKelas' => $this->helpFunctionModel->getNamaKelas($kelas->IdKelas),
-                    'StatusInputNilai' => $this->helpFunctionModel->getStatusInputNilai(
-                        IdTpq: $idTpq,
-                        IdTahunAjaran: $idTahunAjaran,
-                        IdKelas: $kelas->IdKelas,
-                        Semester: 'Genap'
-                    )
-                ];
-            }
-
-            // Mengambil data wali kelas
-            $totalWaliKelas = $this->helpFunctionModel->getTotalWaliKelas(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-            );
-
-            $data = [
-                'page_title' => 'Dashboard',
-                'TotalWaliKelas' => $totalWaliKelas,
-                'TotalSantri' => $totalSantri,
-                'TotalGuru' => $totalGuru,
-                'TotalKelas' => $totalKelas,
-                'TotalSantriBaru' => $totalSantriBaru,
-                'TahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran),
-                'StatusInputNilaiSemesterGanjil' => $statusInputNilaiSemesterGanjil,
-                'StatusInputNilaiSemesterGenap' => $statusInputNilaiSemesterGenap,
-                'StatusInputNilaiPerKelasGanjil' => $statusInputNilaiPerKelasGanjil,
-                'StatusInputNilaiPerKelasGenap' => $statusInputNilaiPerKelasGenap,
-            ];
+            $data = $this->getAdminDashboardData($idTpq, $idTahunAjaran);
         } else {
-            $data = [
-                'page_title' => 'Dashboard',
-            ];
+            $data = ['page_title' => 'Dashboard'];
         }
+
         return view('backend/dashboard/index', $data);
     }
     public function logout()

@@ -107,7 +107,7 @@
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGanjil as $item) : ?>
                                                 <div class="col-md-6 col-sm-6 col-12">
-                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
+                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?> <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small></span>
                                                     <div class="progress">
                                                         <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
                                                     </div>
@@ -187,7 +187,7 @@
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGenap as $item) : ?>
                                                 <div class="col-md-6 col-sm-6 col-12">
-                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
+                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?> <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small></span>
                                                     <div class="progress">
                                                         <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
                                                     </div>
@@ -424,7 +424,7 @@
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGanjil as $item) : ?>
                                                 <div class="col-md-6 col-sm-6 col-12">
-                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
+                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?> <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small></span>
                                                     <div class="progress">
                                                         <div class="progress-bar" style="width:<?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
                                                     </div>
@@ -477,7 +477,7 @@
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGenap as $item) : ?>
                                                 <div class="col-md-6 col-sm-6 col-12">
-                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?></span>
+                                                    <span class="info-box-text"><?= $item['NamaKelas'] ?> <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small></span>
                                                     <div class="progress">
                                                         <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
                                                     </div>

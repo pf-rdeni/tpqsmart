@@ -958,5 +958,81 @@ class HelpFunctionModel extends Model
 
         return $materiBaru;
     }
+
+    public function getStatusInputNilaiBulk($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
+    {
+        $builder = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester);
+
+        // Menggunakan GROUP BY untuk mendapatkan status per kelas
+        $result = $builder->select('
+            tbl_nilai.IdKelas,
+            COUNT(*) as countTotal,
+            SUM(CASE WHEN tbl_nilai.Nilai != 0 THEN 1 ELSE 0 END) as countSudah,
+            SUM(CASE WHEN tbl_nilai.Nilai = 0 THEN 1 ELSE 0 END) as countBelum
+        ')
+            ->groupBy('tbl_nilai.IdKelas')
+            ->get()
+            ->getResultArray();
+
+        // Format hasil
+        $formattedResult = [];
+        foreach ($result as $row) {
+            $persentasiSudah = $row['countTotal'] > 0 ?
+                round(($row['countSudah'] / $row['countTotal']) * 100, 2) : 0;
+            $persentasiBelum = $row['countTotal'] > 0 ?
+                round(($row['countBelum'] / $row['countTotal']) * 100, 2) : 0;
+
+            $formattedResult[$row['IdKelas']] = (object)[
+                'countTotal' => $row['countTotal'],
+                'countSudah' => $row['countSudah'],
+                'countBelum' => $row['countBelum'],
+                'persentasiSudah' => $persentasiSudah,
+                'persentasiBelum' => $persentasiBelum,
+            ];
+        }
+
+        return $formattedResult;
+    }
+
+    public function getNamaKelasBulk($kelasIds)
+    {
+        $result = $this->db->table('tbl_kelas')
+            ->select('IdKelas, NamaKelas')
+            ->whereIn('IdKelas', $kelasIds)
+            ->get()
+            ->getResultArray();
+
+        $formattedResult = [];
+        foreach ($result as $row) {
+            $formattedResult[$row['IdKelas']] = $row['NamaKelas'];
+        }
+
+        return $formattedResult;
+    }
+
+    public function getJumlahSantriPerKelas($IdTpq, $IdTahunAjaran, $kelasIds)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('IdKelas, COUNT(DISTINCT IdSantri) as jumlah_santri');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('Active', 1);
+
+        if (is_array($kelasIds)) {
+            $builder->whereIn('IdKelas', $kelasIds);
+        } else {
+            $builder->where('IdKelas', $kelasIds);
+        }
+
+        $builder->groupBy('IdKelas');
+        $result = $builder->get()->getResultArray();
+
+        // Format hasil ke array asosiatif
+        $formattedResult = [];
+        foreach ($result as $row) {
+            $formattedResult[$row['IdKelas']] = $row['jumlah_santri'];
+        }
+
+        return $formattedResult;
+    }
 }
 
