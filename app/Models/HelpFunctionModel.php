@@ -978,9 +978,9 @@ class HelpFunctionModel extends Model
         $formattedResult = [];
         foreach ($result as $row) {
             $persentasiSudah = $row['countTotal'] > 0 ?
-                round(($row['countSudah'] / $row['countTotal']) * 100, 2) : 0;
+                round(($row['countSudah'] / $row['countTotal']) * 100, 1) : 0;
             $persentasiBelum = $row['countTotal'] > 0 ?
-                round(($row['countBelum'] / $row['countTotal']) * 100, 2) : 0;
+                round(($row['countBelum'] / $row['countTotal']) * 100, 1) : 0;
 
             $formattedResult[$row['IdKelas']] = (object)[
                 'countTotal' => $row['countTotal'],
