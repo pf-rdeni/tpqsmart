@@ -1,5 +1,29 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
+
+<?php
+function render_progress_bar($persentase, $height = 25)
+{
+    $color_class = '';
+    if ($persentase <= 40) {
+        $color_class = 'bg-danger';
+    } elseif ($persentase <= 80) {
+        $color_class = 'bg-warning';
+    } else {
+        $color_class = 'bg-success';
+    }
+
+    $html = '<div class="progress" style="height: ' . $height . 'px;">';
+    $html .= '<div class="progress-bar ' . $color_class . '" ';
+    $html .= 'style="width: ' . $persentase . '%; display: flex; align-items: center; justify-content: center; font-size: 15px;">';
+    $html .= $persentase . '%';
+    $html .= '</div>';
+    $html .= '</div>';
+
+    return $html;
+}
+?>
+
 <!-- Main content -->
 <section class="content">
     <div class="card">
@@ -98,21 +122,17 @@
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Ganjil</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
-                                        </div>
+                                        <?= render_progress_bar($StatusInputNilaiSemesterGanjil->persentasiSudah) ?>
                                         <span class="progress-description" style="font-size: smaller;">
-                                            <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?> nilai)
+                                            Input nilai (<?= $StatusInputNilaiSemesterGanjil->countSudah ?>/<?= $StatusInputNilaiSemesterGanjil->countTotal ?>)
                                         </span>
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGanjil as $item) : ?>
                                                 <div class="col-md-6 col-sm-6 col-12">
                                                     <span class="info-box-text"><?= $item['NamaKelas'] ?> <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small></span>
-                                                    <div class="progress">
-                                                        <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
-                                                    </div>
+                                                    <?= render_progress_bar($item['StatusInputNilai']->persentasiSudah) ?>
                                                     <span class="progress-description" style="font-size: smaller;">
-                                                        <?= $item['StatusInputNilai']->persentasiSudah ?>% (<?= $item['StatusInputNilai']->countSudah ?> dari <?= $item['StatusInputNilai']->countTotal ?> nilai)
+                                                        Input nilai (<?= $item['StatusInputNilai']->countSudah ?>/<?= $item['StatusInputNilai']->countTotal ?>)
                                                     </span>
                                                 </div>
                                             <?php endforeach; ?>
@@ -178,21 +198,17 @@
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Genap</span>
                                         <span class="info-box-number"><?= $TotalSantri ?> Santri dari <?= $JumlahKelasDiajar ?> Kelas </span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
-                                        </div>
+                                        <?= render_progress_bar($StatusInputNilaiSemesterGenap->persentasiSudah) ?>
                                         <span class="progress-description" style="font-size: smaller;">
-                                            <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?> nilai)
+                                            Input nilai (<?= $StatusInputNilaiSemesterGenap->countSudah ?>/<?= $StatusInputNilaiSemesterGenap->countTotal ?>)
                                         </span>
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGenap as $item) : ?>
                                                 <div class="col-md-6 col-sm-6 col-12">
                                                     <span class="info-box-text"><?= $item['NamaKelas'] ?> <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small></span>
-                                                    <div class="progress">
-                                                        <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
-                                                    </div>
+                                                    <?= render_progress_bar($item['StatusInputNilai']->persentasiSudah) ?>
                                                     <span class="progress-description" style="font-size: smaller;">
-                                                        <?= $item['StatusInputNilai']->persentasiSudah ?>% (<?= $item['StatusInputNilai']->countSudah ?> dari <?= $item['StatusInputNilai']->countTotal ?> nilai)
+                                                        Input nilai (<?= $item['StatusInputNilai']->countSudah ?>/<?= $item['StatusInputNilai']->countTotal ?>)
                                                     </span>
                                                 </div>
                                             <?php endforeach; ?>
@@ -415,21 +431,17 @@
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Ganjil</span>
                                         <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width:<?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>%"></div>
-                                        </div>
+                                        <?= render_progress_bar($StatusInputNilaiSemesterGanjil->persentasiSudah) ?>
                                         <span class="progress-description" style="font-size: smaller;">
-                                            <?= $StatusInputNilaiSemesterGanjil->persentasiSudah ?>% nilai diinput (<?= $StatusInputNilaiSemesterGanjil->countSudah ?> dari <?= $StatusInputNilaiSemesterGanjil->countTotal ?>)
+                                            Input nilai (<?= $StatusInputNilaiSemesterGanjil->countSudah ?>/<?= $StatusInputNilaiSemesterGanjil->countTotal ?>)
                                         </span>
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGanjil as $item) : ?>
                                                 <div class="col-md-6 col-sm-6 col-12">
                                                     <span class="info-box-text"><?= $item['NamaKelas'] ?> <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small></span>
-                                                    <div class="progress">
-                                                        <div class="progress-bar" style="width:<?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
-                                                    </div>
+                                                    <?= render_progress_bar($item['StatusInputNilai']->persentasiSudah) ?>
                                                     <span class="progress-description" style="font-size: smaller;">
-                                                        <?= $item['StatusInputNilai']->persentasiSudah ?>% (<?= $item['StatusInputNilai']->countSudah ?> dari <?= $item['StatusInputNilai']->countTotal ?>)
+                                                        Input nilai (<?= $item['StatusInputNilai']->countSudah ?>/<?= $item['StatusInputNilai']->countTotal ?>)
                                                     </span>
                                                 </div>
                                             <?php endforeach; ?>
@@ -468,21 +480,17 @@
                                     <div class="info-box-content">
                                         <span class="info-box-text">Info Semester Genap</span>
                                         <span class="info-box-number"><?= $TotalKelas ?> Kelas </span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width:  <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>%"></div>
-                                        </div>
+                                        <?= render_progress_bar($StatusInputNilaiSemesterGenap->persentasiSudah) ?>
                                         <span class="progress-description" style="font-size: smaller;">
-                                            <?= $StatusInputNilaiSemesterGenap->persentasiSudah ?>% nilai diinput (<?= $StatusInputNilaiSemesterGenap->countSudah ?> dari <?= $StatusInputNilaiSemesterGenap->countTotal ?>)
+                                            Input nilai (<?= $StatusInputNilaiSemesterGenap->countSudah ?>/<?= $StatusInputNilaiSemesterGenap->countTotal ?>)
                                         </span>
                                         <div class="row">
                                             <?php foreach ($StatusInputNilaiPerKelasGenap as $item) : ?>
                                                 <div class="col-md-6 col-sm-6 col-12">
                                                     <span class="info-box-text"><?= $item['NamaKelas'] ?> <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small></span>
-                                                    <div class="progress">
-                                                        <div class="progress-bar" style="width:  <?= $item['StatusInputNilai']->persentasiSudah ?>%"></div>
-                                                    </div>
+                                                    <?= render_progress_bar($item['StatusInputNilai']->persentasiSudah) ?>
                                                     <span class="progress-description" style="font-size: smaller;">
-                                                        <?= $item['StatusInputNilai']->persentasiSudah ?>% (<?= $item['StatusInputNilai']->countSudah ?> dari <?= $item['StatusInputNilai']->countTotal ?>)
+                                                        Input nilai (<?= $item['StatusInputNilai']->countSudah ?>/<?= $item['StatusInputNilai']->countTotal ?>)
                                                     </span>
                                                 </div>
                                             <?php endforeach; ?>
