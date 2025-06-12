@@ -269,7 +269,13 @@
                                     <tr>
                                         <td>Status</td>
                                         <td>:</td>
-                                        <td id="modalStatus" style="font-weight: bold;"></td>
+                                        <td id="modalStatus">
+                                            <select class="form-control form-control-sm status-select">
+                                                <option value="Belum Diverifikasi" class="bg-warning text-dark">Belum Diverifikasi</option>
+                                                <option value="Sudah Diverifikasi" class="bg-success text-white">Sudah Diverifikasi</option>
+                                                <option value="Perlu Perbaikan" class="bg-danger text-white">Perlu Perbaikan</option>
+                                            </select>
+                                        </td>
                                     </tr>
                                 </table>
                             </div>
@@ -804,15 +810,12 @@
             document.getElementById('modalYangBiayaSekolah').textContent = santri.YangBiayaSekolah;
             document.getElementById('modalNamaKepalaKeluarga').textContent = santri.NamaKepalaKeluarga;
 
-            // Set Status dengan badge
-            const statusElement = document.getElementById('modalStatus');
-            let badgeClass = 'bg-success';
-            if (santri.Status === 'Belum Diverifikasi') {
-                badgeClass = 'bg-warning';
-            } else if (santri.Status === 'Perlu Perbaikan') {
-                badgeClass = 'bg-danger';
-            }
-            statusElement.innerHTML = `<span class="badge ${badgeClass}">${santri.Status}</span>`;
+            // Set Status dengan select input
+            const statusSelect = document.querySelector('#modalStatus select');
+            statusSelect.setAttribute('onchange', `updateVerifikasi(${santri.id}, this.value)`);
+            statusSelect.setAttribute('data-original-status', santri.Status);
+            statusSelect.value = santri.Status;
+            updateSelectColor(statusSelect);
 
             // Set nilai untuk tab Data Orang Tua
             // Data Ayah
@@ -918,6 +921,12 @@
             $('#detailSantriModal').modal('show');
         }
     }
+
+    // Tambahkan event listener untuk modal
+    $('#detailSantriModal').on('hidden.bs.modal', function() {
+        location.reload();
+    });
+
     // Initialize DataTable for #tblTpq
     const table = initializeDataTableUmum("#tblAturSantri", true, true, {
         columnDefs: [
