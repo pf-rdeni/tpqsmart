@@ -25,6 +25,21 @@ $settingAlphabetActive = [];
 foreach ($dataNilai as $santri) {
     $settingAlphabetActive[$santri['IdKelas']] = getAlphabetKelasSettings($settingNilai, $santri['IdKelas'])['isAlphabetKelas'];
 }
+
+// buat fungsi kontrol menentukan huruf atau angka dan juka huruf arab, berdasarkan settingan IdTpq, IdKelas
+function konversiNilaiAngkaArabic($nilai)
+{
+    // ambil settingan dari session angka arabic
+    $settingNilaiArabic = session()->get('SettingNilaiArabic') ?? false;
+    if ($settingNilaiArabic) {
+        // Jika settingan angka arabic aktif, konversi ke angka arab
+        return angkaKeHurufArab($nilai);
+    } else {
+        // Jika tidak, kembalikan nilai apa adanya
+        return $nilai;
+    }
+}
+
 ?>
 <div class="col-12">
     <div class="card">
@@ -131,7 +146,7 @@ foreach ($dataNilai as $santri) {
                                                             if ($settingAlphabetActive[$kelasId] ?? false) {
                                                                 echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars(konversiNilaiHuruf($nilai, $settingNilai)) . '</td>';
                                                             } else {
-                                                                echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars($nilai) . '</td>';
+                                                                echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars(konversiNilaiAngkaArabic($nilai)) . '</td>';
                                                             }
 
                                                             // Hitung total nilai
@@ -146,8 +161,8 @@ foreach ($dataNilai as $santri) {
                                                     <?php if ($settingAlphabetActive[$kelasId] ?? false): ?>
                                                         <td><?= $jumlahKolomNilai > 0 ? konversiNilaiHuruf(round($totalNilai / $jumlahKolomNilai, 1), $settingNilai) : ' ' ?></td>
                                                     <?php else: ?>
-                                                        <td><?= $totalNilai >= 0 ? $totalNilai : ' ' ?></td>
-                                                        <td><?= $jumlahKolomNilai > 0 ? round($totalNilai / $jumlahKolomNilai, 1) : ' ' ?></td>
+                                                        <td><?= $totalNilai >= 0 ? konversiNilaiAngkaArabic($totalNilai) : ' ' ?></td>
+                                                        <td><?= $jumlahKolomNilai > 0 ? konversiNilaiAngkaArabic(round($totalNilai / $jumlahKolomNilai, 1)) : ' ' ?></td>
                                                     <?php endif; ?>
                                                 </tr>
                                             <?php endif; ?>
@@ -174,7 +189,7 @@ foreach ($dataNilai as $santri) {
                                                     if ($settingAlphabetActive[$kelasId] ?? false) {
                                                         echo '<th>' . ($rataRata >= 0 ? konversiNilaiHuruf($rataRata, $settingNilai) : ' ') . '</th>';
                                                     } else {
-                                                        echo '<th>' . ($rataRata >= 0 ? $rataRata : ' ') . '</th>';
+                                                        echo '<th>' . ($rataRata >= 0 ? konversiNilaiAngkaArabic($rataRata) : ' ') . '</th>';
                                                     }
 
                                                     if ($rataRata >= 0) {
@@ -187,8 +202,8 @@ foreach ($dataNilai as $santri) {
                                             <?php if ($settingAlphabetActive[$kelasId] ?? false): ?>
                                                 <th><?= $nilaiKolomCount > 0 ? konversiNilaiHuruf(round(($grandTotal / $nilaiKolomCount) / $rowCount, 1), $settingNilai) : ' ' ?></th>
                                             <?php else: ?>
-                                                <th><?= $rowCount > 0 ? round($grandTotal / $rowCount, 1) : ' ' ?></th>
-                                                <th><?= $nilaiKolomCount > 0 ? round(($grandTotal / $nilaiKolomCount) / $rowCount, 1) : ' ' ?></th>
+                                                <th><?= $rowCount > 0 ? konversiNilaiAngkaArabic(round($grandTotal / $rowCount, 1)) : ' ' ?></th>
+                                                <th><?= $nilaiKolomCount > 0 ? konversiNilaiAngkaArabic(round(($grandTotal / $nilaiKolomCount) / $rowCount, 1)) : ' ' ?></th>
                                             <?php endif; ?>
                                         </tr>
                                     </tbody>
@@ -273,8 +288,8 @@ foreach ($dataNilai as $santri) {
                                                         <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= konversiNilaiHuruf($nilai, $settingNilai) ?></td>
                                                         <td><?= $rataRata >= 0 ? konversiNilaiHuruf($rataRata, $settingNilai) : ' ' ?></td>
                                                     <?php else: ?>
-                                                        <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= htmlspecialchars($nilai) ?></td>
-                                                        <td><?= $rataRata >= 0 ? $rataRata : ' ' ?></td>
+                                                        <td style="color: <?= $nilai === 0 ? 'red' : 'black' ?>"><?= konversiNilaiAngkaArabic($nilai) ?></td>
+                                                        <td><?= $rataRata >= 0 ? konversiNilaiAngkaArabic($rataRata) : ' ' ?></td>
                                                     <?php endif; ?>
                                                 </tr>
                                         <?php
@@ -284,7 +299,7 @@ foreach ($dataNilai as $santri) {
                                         <?php if (!$settingAlphabetActive[$kelasId]): ?>
                                             <tr class="table-info">
                                                 <td><strong>Total Nilai</strong></td>
-                                                <td><strong><?= $totalNilaiSantri >= 0 ? $totalNilaiSantri : ' ' ?></strong></td>
+                                                <td><strong><?= $totalNilaiSantri >= 0 ? konversiNilaiAngkaArabic($totalNilaiSantri) : ' ' ?></strong></td>
                                                 <td></td>
                                             </tr>
                                         <?php endif; ?>
@@ -295,7 +310,7 @@ foreach ($dataNilai as $santri) {
                                                 <td></td>
                                             <?php else: ?>
                                                 <td><strong>Rata-Rata</strong></td>
-                                                <td><strong><?= $jumlahMateri > 0 ? round($totalNilaiSantri / $jumlahMateri, 1) : ' ' ?></strong></td>
+                                                <td><strong><?= $jumlahMateri > 0 ? konversiNilaiAngkaArabic(round($totalNilaiSantri / $jumlahMateri, 1)) : ' ' ?></strong></td>
                                                 <td></td>
                                             <?php endif; ?>
                                         </tr>

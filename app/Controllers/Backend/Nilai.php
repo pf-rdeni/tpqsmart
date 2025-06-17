@@ -156,6 +156,9 @@ class Nilai extends BaseController
         // ambil jika settingan nilai alfabetic dari session
         $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
 
+        // ambil jika nilai settingan angka arabic dari tbl_tools 
+        $settingNilai->NilaiArabic = session()->get('SettingNilaiArabic') ?? false;
+
         $data = [
             'page_title' => 'Data Nilai Santri Per Kelas',
             'dataKelas' => $dataKelas,

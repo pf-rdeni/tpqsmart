@@ -291,3 +291,182 @@ if (!function_exists('convertTahunAjaran')) {
         return $StartYear . '/' . $EndYear;
     }
 }
+
+//buat fungsi untuk merubah angka ke huruf arabic
+if (!function_exists('angkaKeHurufArab')) {
+    function angkaKeHurufArab($angka)
+    {
+        $hurufArab = [
+            0 => '٠',
+            1 => '١',
+            2 => '٢',
+            3 => '٣',
+            4 => '٤',
+            5 => '٥',
+            6 => '٦',
+            7 => '٧',
+            8 => '٨',
+            9 => '٩',
+            '.' => '٫',  // Titik desimal Arab
+            ',' => '٬'   // Koma desimal Arab
+        ];
+
+        $hasil = '';
+        $angkaStr = strval($angka);
+
+        for ($i = 0; $i < strlen($angkaStr); $i++) {
+            $karakter = $angkaStr[$i];
+            if (is_numeric($karakter)) {
+                $digit = intval($karakter);
+                $hasil .= $hurufArab[$digit];
+            } elseif ($karakter === '.' || $karakter === ',') {
+                $hasil .= $hurufArab[$karakter];
+            } else {
+                $hasil .= $karakter;
+            }
+        }
+
+        return $hasil;
+    }
+}
+
+
+// fungsi merubah angka ke huruf arabic dengan format terbilang bahasa arab
+
+if (!function_exists('angkaKeTerbilangArab')) {
+    function angkaKeTerbilangArab($angka)
+    {
+        $angka = floatval($angka);
+        $bilangan = [
+            0 => '',
+            1 => 'واحد',
+            2 => 'اثنان',
+            3 => 'ثلاثة',
+            4 => 'أربعة',
+            5 => 'خمسة',
+            6 => 'ستة',
+            7 => 'سبعة',
+            8 => 'ثمانية',
+            9 => 'تسعة',
+            10 => 'عشرة',
+            11 => 'أحد عشر',
+            12 => 'اثنا عشر',
+            13 => 'ثلاثة عشر',
+            14 => 'أربعة عشر',
+            15 => 'خمسة عشر',
+            16 => 'ستة عشر',
+            17 => 'سبعة عشر',
+            18 => 'ثمانية عشر',
+            19 => 'تسعة عشر',
+            20 => 'عشرون',
+            30 => 'ثلاثون',
+            40 => 'أربعون',
+            50 => 'خمسون',
+            60 => 'ستون',
+            70 => 'سبعون',
+            80 => 'ثمانون',
+            90 => 'تسعون',
+            100 => 'مائة',
+            200 => 'مئتان',
+            300 => 'ثلاثمائة',
+            400 => 'أربعمائة',
+            500 => 'خمسمائة',
+            600 => 'ستمائة',
+            700 => 'سبعمائة',
+            800 => 'ثمانمائة',
+            900 => 'تسعمائة',
+            1000 => 'ألف',
+            2000 => 'ألفان',
+            3000 => 'ثلاثة آلاف',
+            4000 => 'أربعة آلاف',
+            5000 => 'خمسة آلاف',
+            6000 => 'ستة آلاف',
+            7000 => 'سبعة آلاف',
+            8000 => 'ثمانية آلاف',
+            9000 => 'تسعة آلاف',
+            10000 => 'عشرة آلاف',
+            100000 => 'مائة ألف',
+            1000000 => 'مليون',
+            1000000000 => 'مليار'
+        ];
+
+        if ($angka < 20) {
+            return $bilangan[$angka];
+        } elseif ($angka < 100) {
+            $puluhan = floor($angka / 10) * 10;
+            $satuan = $angka % 10;
+            if ($satuan == 0) {
+                return $bilangan[$puluhan];
+            } else {
+                return $bilangan[$satuan] . ' و ' . $bilangan[$puluhan];
+            }
+        } elseif ($angka < 1000) {
+            $ratusan = floor($angka / 100) * 100;
+            $sisa = $angka % 100;
+            if ($sisa == 0) {
+                return $bilangan[$ratusan];
+            } else {
+                return $bilangan[$ratusan] . ' و ' . angkaKeTerbilangArab($sisa);
+            }
+        } elseif ($angka < 1000000) {
+            $ribuan = floor($angka / 1000);
+            $sisa = $angka % 1000;
+            if ($sisa == 0) {
+                return angkaKeTerbilangArab($ribuan) . ' ألف';
+            } else {
+                return angkaKeTerbilangArab($ribuan) . ' ألف و ' . angkaKeTerbilangArab($sisa);
+            }
+        } elseif ($angka < 1000000000) {
+            $jutaan = floor($angka / 1000000);
+            $sisa = $angka % 1000000;
+            if ($sisa == 0) {
+                return angkaKeTerbilangArab($jutaan) . ' مليون';
+            } else {
+                return angkaKeTerbilangArab($jutaan) . ' مليون و ' . angkaKeTerbilangArab($sisa);
+            }
+        } else {
+            $milyar = floor($angka / 1000000000);
+            $sisa = $angka % 1000000000;
+            if ($sisa == 0) {
+                return angkaKeTerbilangArab($milyar) . ' مليار';
+            } else {
+                return angkaKeTerbilangArab($milyar) . ' مليار و ' . angkaKeTerbilangArab($sisa);
+            }
+        }
+    }
+}
+
+if (!function_exists('formatTerbilangArab')) {
+    function formatTerbilangArab($angka)
+    {
+        $angka = floatval($angka);
+        $bagian_bulat = floor($angka);
+        $bagian_desimal = $angka - $bagian_bulat;
+
+        $hasil = angkaKeTerbilangArab($bagian_bulat);
+
+        if ($bagian_desimal > 0) {
+            $desimal_str = number_format($bagian_desimal, 2, '.', '');
+            $desimal_str = rtrim($desimal_str, '0');
+            $desimal_str = rtrim($desimal_str, '.');
+
+            $hasil .= ' فاصلة ';
+            for ($i = 0; $i < strlen($desimal_str); $i++) {
+                if ($desimal_str[$i] != '.') {
+                    $hasil .= angkaKeTerbilangArab($desimal_str[$i]) . ' ';
+                }
+            }
+        }
+
+        return trim($hasil);
+    }
+}
+
+// Update fungsi angkaKeHurufArabTerbilang untuk menggunakan formatTerbilangArab
+if (!function_exists('angkaKeHurufArabTerbilang')) {
+    function angkaKeHurufArabTerbilang($angka)
+    {
+        $terbilang = formatTerbilangArab($angka);
+        return $terbilang;
+    }
+}

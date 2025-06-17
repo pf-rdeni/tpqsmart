@@ -549,6 +549,42 @@ class HelpFunctionModel extends Model
         }
     }
 
+    // Get nilai setting angka arabic 
+    public function getNilaiArabicSettings($IdTpq)
+    {
+        // jika IdTpq tidak ada, kembalikan null
+        if (empty($IdTpq)) {
+            return null;
+        }
+        // Check the value of Nilai_Arabic setting
+        $nilaiArabicSetting = $this->db->table('tbl_tools')
+            ->select('SettingValue')
+            ->where('IdTpq', $IdTpq)
+            ->where('SettingKey', 'Nilai_Angka_Arabic')
+            ->get()
+            ->getRowArray();
+
+        // If Nilai_Arabic setting is 1, retrieve other settings
+        if ($nilaiArabicSetting && $nilaiArabicSetting['SettingValue'] == '1') {
+            $settings = $this->db->table('tbl_tools')
+                ->select('SettingKey, SettingValue')
+                ->where('IdTpq', $IdTpq)
+                ->whereIn('SettingKey', ['Nilai_Angka_Arabic'])
+                ->get()
+                ->getResultArray();
+
+            $result = [];
+            foreach ($settings as $setting) {
+                $result[$setting['SettingKey']] = $setting['SettingValue'];
+            }
+
+            return (object)$result;
+        } else {
+            // Return empty array or null if condition not met
+            return null;
+        }
+    }
+
     // Get nama Materi pelajaran berdasarkan IdKelas, IdTpq, Semester, TahunAjaran
     public function getMateriPelajaranByKelas($IdTpq, $IdKelas = null, $Semester)
     {
