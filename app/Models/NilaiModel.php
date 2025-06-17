@@ -55,6 +55,8 @@ class NilaiModel extends Model
         $builder->select('n.IdSantri, s.NamaSantri, s.JenisKelamin, IdTahunAjaran, n.Semester, k.NamaKelas, k.IdKelas, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata, RANK() OVER (PARTITION BY n.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking');
         $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
         $builder->join('tbl_kelas k', 'n.IdKelas = k.IdKelas');
+        //Active=1
+        $builder->where('s.Active', 1);
 
         $builder->whereIn('n.IdKelas', $IdKelas);
         $builder->where('n.Semester', $semester);
