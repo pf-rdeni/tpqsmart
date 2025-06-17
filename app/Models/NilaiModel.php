@@ -199,6 +199,8 @@ class NilaiModel extends Model
             }
             $builder->where('n.Semester', $Semester);
 
+            $builder->where('s.Active', 1);
+
             $builder->groupBy(['IdSantri', 'IdTahunAjaran', 'Semester']);
             $builder->orderBy('n.IdKelas', 'ASC');
             $builder->orderBy('s.NamaSantri', 'ASC');
