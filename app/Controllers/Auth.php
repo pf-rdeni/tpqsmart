@@ -45,11 +45,13 @@ class Auth extends BaseController
         // Gabungkan data
         $result = [];
         foreach ($kelasIds as $idKelas) {
-            $result[] = [
-                'IdKelas' => $idKelas,
-                'NamaKelas' => $namaKelas[$idKelas] ?? '',
-                'StatusInputNilai' => $statusNilai[$idKelas] ?? false
-            ];
+            if (isset($statusNilai[$idKelas])) {
+                $result[] = [
+                    'IdKelas' => $idKelas,
+                    'NamaKelas' => $namaKelas[$idKelas] ?? '',
+                    'StatusInputNilai' => $statusNilai[$idKelas] ?? false
+                ];
+            }
         }
         return $result;
     }

@@ -408,8 +408,11 @@ class HelpFunctionModel extends Model
         $builder = $this->db->table('tbl_nilai');
         $builder->select('tbl_nilai.*');
         $builder->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_nilai.IdSantri');
-        $builder->where('tbl_nilai.IdTpq', $IdTpq);
+        if (!empty($IdTpq)) {
+            $builder->where('tbl_nilai.IdTpq', $IdTpq);
+        }
         $builder->where('tbl_santri_baru.Active', 1);
+
 
         if (is_array($IdTahunAjaran)) {
             $builder->whereIn('tbl_nilai.IdTahunAjaran', $IdTahunAjaran);
@@ -482,8 +485,17 @@ class HelpFunctionModel extends Model
         $builder = $this->db->table('tbl_kelas_santri');
         $builder->select('tbl_kelas_santri.IdKelas, NamaKelas');
         $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_santri.IdKelas');
-        $builder->where('IdTpq', $IdTpq);
-        $builder->where('IdTahunAjaran', $IdTahunAjaran);
+        if (!empty($IdTpq)) {
+            $builder->where('tbl_kelas_santri.IdTpq', $IdTpq);
+        }
+        if (!empty($IdTahunAjaran)) {
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
+            } else {
+                $builder->where('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
+            }
+        }
+
         // Jika IdKelas tidak null, filter berdasarkan IdKelas
         if ($IdKelas !== null) {
             if (is_array($IdKelas)) {
