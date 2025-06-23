@@ -5,8 +5,8 @@
 if (ENVIRONMENT === 'production') {
     $required = 'required';
 } else {
-    $required = '';
-    //$required = 'required';
+    //$required = '';
+    $required = 'required';
 }
 
 ?>
@@ -123,8 +123,8 @@ if (ENVIRONMENT === 'production') {
                                     </div>
                                     <div class="form-group">
                                         <div class="row">
-                                            <div class="col-md-3" style="display: none;">
-                                                <label class="text-center w-100">Photo Profil</label>
+                                            <div class="col-md-12">
+                                                <label class="text-center w-100">Photo Profil<span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="text-center">
                                                     <img id="previewPhotoProfil" src="/images/no-photo.jpg" alt="Preview Photo"
                                                         class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover; cursor: pointer;">
@@ -139,7 +139,7 @@ if (ENVIRONMENT === 'production') {
                                                 </div> <small class="text-center d-block mb-2 text-primary">
                                                     <i class="fas fa-exclamation-circle"></i>
                                                     Direkomendasikan untuk upload foto dengan latar belakang merah jika tidak memiliki gunakan foto lainnya, rasio 2:3 atau 3:4</small>
-                                                <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" style="display: none;">
+                                                <input class="form-control" type="file" id="PhotoProfil" name="PhotoProfil" accept=".jpg,.jpeg,.png,.png,image/*;capture=camera" onchange="previewPhoto(this)" style="display: none;" <?= $required ?>>
                                                 <span id="PhotoProfilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                             </div>
                                             <div class="col-md-12">
@@ -383,10 +383,10 @@ if (ENVIRONMENT === 'production') {
                                                 <span id="IdKartuKeluargaError" class="text-danger" style="display:none;">No Kartu Keluarga diperlukan.</span>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="FileKkSantri">Upload KK Santri</label>
+                                                <label for="FileKkSantri">Upload KK Santri <span class="text-danger font-weight-bold">*</span></label>
                                                 <div class="input-group mb-3">
                                                     <div class="custom-file">
-                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png">
+                                                        <input type="file" class="form-control custom-file-input" id="FileKkSantri" name="FileKkSantri" accept=".pdf,.jpg,.jpeg,.png" <?= $required ?>>
                                                         <label class="custom-file-label" for="FileKkSantri">Upload KK</label>
                                                     </div>
                                                 </div>

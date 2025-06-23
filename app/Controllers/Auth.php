@@ -117,7 +117,6 @@ class Auth extends BaseController
         // Ambil jumlah santri per kelas
         $jumlahSantriPerKelas = $this->helpFunctionModel->getJumlahSantriPerKelas(
             IdTpq: $idTpq,
-            IdTahunAjaran: $idTahunAjaran,
             kelasIds: array_map(function ($kelas) {
                 return is_object($kelas) ? $kelas->IdKelas : $kelas;
             }, $listKelas)

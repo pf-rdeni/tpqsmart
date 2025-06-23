@@ -615,8 +615,10 @@ class Santri extends BaseController
                 'tbl_tpq.KelurahanDesa'
             ])
             ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdTpq', $IdTpq);
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+        if ($IdTpq) {
+            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+        }
 
         // Tambahkan filter Active=1 jika user adalah Guru
         if (in_groups('Guru')) {
