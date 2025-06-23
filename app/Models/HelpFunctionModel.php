@@ -5,11 +5,26 @@ use CodeIgniter\Model;
 
 class HelpFunctionModel extends Model
 {
+    /**
+     * Model untuk tabel santri
+     */
     protected $santriModel;
+    /**
+     * Model untuk tabel kelas
+     */
     protected $kelasModel;
+    /**
+     * Model untuk tabel nilai
+     */
     protected $nilaiModel;
+    /**
+     * Model untuk tabel santri baru
+     */
     protected $santriBaruModel;
 
+    /**
+     * Konstruktor, inisialisasi model-model terkait
+     */
     public function __construct()
     {
         parent::__construct();
@@ -20,6 +35,12 @@ class HelpFunctionModel extends Model
     }
     //=================================================================
     // Select Related to Read tabel
+    /**
+     * Mengambil data santri berdasarkan status aktif dan IdTpq
+     * @param int $Active Status aktif santri (0: baru, 1: aktif, 2: nonaktif)
+     * @param int $IdTpq ID TPQ
+     * @return array
+     */
     public function getDataSantriStatus($Active = 0, $IdTpq = 0)
     {
         $builder = $this->db->table('tbl_santri_baru');
@@ -40,6 +61,11 @@ class HelpFunctionModel extends Model
     }
 
 
+    /**
+     * Mengambil data TPQ, bisa berdasarkan ID tertentu
+     * @param mixed $id ID TPQ (optional)
+     * @return array
+     */
     public function getDataTpq($id = false)
     {
         $namaTable = "tbl_tpq";
@@ -52,6 +78,13 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultArray();
     }
 
+    /**
+     * Mengambil data guru berdasarkan ID, status, dan IdTpq
+     * @param mixed $id ID Guru (optional)
+     * @param bool $status Status guru (default: true)
+     * @param mixed $IdTpq ID TPQ (optional)
+     * @return array
+     */
     public function getDataGuru($id = false, $status = true, $IdTpq = null)
     {
         $namaTable = "tbl_guru";
@@ -68,6 +101,10 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultArray();
     }
 
+    /**
+     * Mengambil data seluruh kelas
+     * @return array
+     */
     public function getDataKelas()
     {
         return $this->db->table('tbl_kelas')
@@ -75,7 +112,12 @@ class HelpFunctionModel extends Model
             ->get()->getResultArray();
     }
 
-     public function getDataJabatan($id = false)
+    /**
+     * Mengambil data jabatan, bisa berdasarkan ID tertentu
+     * @param mixed $id ID Jabatan (optional)
+     * @return array
+     */
+    public function getDataJabatan($id = false)
     {
         $namaTable = "tbl_jabatan";
         $builder = $this->db->table($namaTable);
@@ -86,6 +128,15 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultArray();
     }
 
+    /**
+     * Mengambil data guru kelas berdasarkan filter yang diberikan
+     * @param mixed $IdGuru
+     * @param mixed $IdTpq
+     * @param mixed $IdKelas
+     * @param mixed $IdTahunAjaran
+     * @param mixed $IdJabatan
+     * @return object|array
+     */
     public function getDataGuruKelas($IdGuru = null, $IdTpq = null, $IdKelas = null, $IdTahunAjaran = null, $IdJabatan = null)
     {
         $builder = $this->db->table('tbl_guru_kelas gk')
@@ -129,6 +180,13 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultObject();
     }
 
+    /**
+     * Mengambil data materi pelajaran yang terkait dengan kelas tertentu
+     * @param mixed $kelas
+     * @param mixed $IdTpq
+     * @param mixed $Semester
+     * @return object|array
+     */
     public function getKelasMateriPelajaran($kelas = null, $IdTpq = null, $Semester = null)
     {
         $builder = $this->db->table('tbl_kelas_materi_pelajaran kmp');
@@ -152,6 +210,11 @@ class HelpFunctionModel extends Model
         return $builder->get()->getResultObject();
     }
 
+    /**
+     * Mengambil data materi pelajaran, bisa berdasarkan ID tertentu
+     * @param mixed $IdMateri
+     * @return array
+     */
     public function getDataMateriPelajaran($IdMateri = null)
     {
         $builder = $this->db->table('tbl_materi_pelajaran');
@@ -164,6 +227,11 @@ class HelpFunctionModel extends Model
     }
 
     //get IdTpq dari IdGuru
+    /**
+     * Mengambil IdTpq berdasarkan IdGuru
+     * @param mixed $IdGuru
+     * @return array|null
+     */
     public function getIdTpq($IdGuru)
     {
         $builder = $this->db->table('tbl_guru')
@@ -173,6 +241,11 @@ class HelpFunctionModel extends Model
     }
 
     //get data auth_groups
+    /**
+     * Mengambil data auth_groups, bisa berdasarkan ID tertentu
+     * @param mixed $id
+     * @return array
+     */
     public function getDataAuthGoups($id = false)
     {
         $namaTable = "auth_groups";
@@ -185,6 +258,11 @@ class HelpFunctionModel extends Model
     }
 
     //get user by username
+    /**
+     * Mengambil data user berdasarkan username
+     * @param string $username
+     * @return array|null
+     */
     public function getUserByUsername($username)
     {
         $builder = $this->db->table('users')
@@ -193,6 +271,11 @@ class HelpFunctionModel extends Model
     }
 
     //get user available by nik guru atau username 
+    /**
+     * Mengambil data guru berdasarkan NIK
+     * @param string $idNik
+     * @return array|null
+     */
     public function getGuruByIdNik($idNik)
     {
         $builder = $this->db->table('users')
@@ -201,6 +284,11 @@ class HelpFunctionModel extends Model
     }
 
     //get nama guru by IdNik
+    /**
+     * Mengambil nama guru berdasarkan IdGuru
+     * @param string $idNik
+     * @return array|null
+     */
     public function getNamaGuruByIdNik($idNik)
     {
         $builder = $this->db->table('tbl_guru')
@@ -210,6 +298,13 @@ class HelpFunctionModel extends Model
     }
 
     // get nama wali kelas dari inputan IdKelas check di tbl_guru_kelas fiter IdTpq IdTahunAjaran
+    /**
+     * Mengambil nama wali kelas berdasarkan IdKelas, IdTpq, dan IdTahunAjaran
+     * @param mixed $IdKelas
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @return object|null
+     */
     public function getWaliKelasByIdKelas($IdKelas, $IdTpq, $IdTahunAjaran)
     {
         $builder = $this->db->table('tbl_guru_kelas');
@@ -229,6 +324,11 @@ class HelpFunctionModel extends Model
     //===================================================================
     // Set Related
     // Set Related to Insert tabel auth_groups_users
+    /**
+     * Menyisipkan data ke tabel auth_groups_users
+     * @param array $data
+     * @return bool
+     */
     public function insertAuthGroupsUsers($data)
     {
         $builder = $this->db->table('auth_groups_users');
@@ -237,6 +337,11 @@ class HelpFunctionModel extends Model
     //===================================================================
     // Delete Related
     // Delete Related to Delete tabel auth_groups_users
+    /**
+     * Menghapus data dari tabel auth_groups_users berdasarkan user_id
+     * @param mixed $id
+     * @return bool
+     */
     public function deleteAuthGroupsUsers($id)
     {
         $builder = $this->db->table('auth_groups_users');
@@ -244,6 +349,11 @@ class HelpFunctionModel extends Model
     }
     //===================================================================
 
+    /**
+     * Mendapatkan kelas berikutnya berdasarkan ID kelas saat ini
+     * @param string $idKelas
+     * @return string
+     */
     public function getNextKelas($idKelas)
     {
         $classMapping = [
@@ -265,6 +375,11 @@ class HelpFunctionModel extends Model
     }
 
 
+    /**
+     * Mendapatkan tahun ajaran berikutnya dari tahun ajaran saat ini
+     * @param string $currentTahunAjaran
+     * @return string
+     */
     public function getTahuanAjaranBerikutnya($currentTahunAjaran)
     {
         $startYear = (int) substr($currentTahunAjaran, 0, 4);
@@ -276,6 +391,11 @@ class HelpFunctionModel extends Model
         return $nextStartYear . $nextEndYear;
     }
 
+    /**
+     * Mengonversi tahun ajaran ke format StartYear/EndYear
+     * @param mixed $TahunAjaran
+     * @return string
+     */
     public function convertTahunAjaran($TahunAjaran)
     {
         // jika array ambil index 0
@@ -291,6 +411,10 @@ class HelpFunctionModel extends Model
         return $StartYear .'/'. $EndYear;
     }
 
+    /**
+     * Mendapatkan tahun ajaran saat ini berdasarkan bulan berjalan
+     * @return string
+     */
     public function getTahunAjaranSaatIni()
     {
         $currentYear = date('Y');
@@ -299,6 +423,10 @@ class HelpFunctionModel extends Model
         return ($currentMonth >= 7) ? $currentYear . ($currentYear + 1) : ($currentYear - 1) . $currentYear;
     }
 
+    /**
+     * Mendapatkan tahun ajaran sebelumnya
+     * @return string
+     */
     public function getTahunAjaranSebelumnya()
     {
         $currentYear = date('Y');
@@ -308,18 +436,33 @@ class HelpFunctionModel extends Model
     }
 
     // convert data for nominal e.g Rp. 100.000 to 100000
+    /**
+     * Mengonversi nominal rupiah (Rp. 100.000) menjadi angka (100000)
+     * @param string $nominal
+     * @return string
+     */
     public function convertToNumber($nominal)
     {
         return preg_replace('/\D/', '', $nominal);
     }
 
     // convert data for nominal e.g 100000 to Rp. 100.000
+    /**
+     * Mengonversi angka menjadi format rupiah (Rp. 100.000)
+     * @param int $nominal
+     * @return string
+     */
     public function convertToRupiah($nominal)
     {
         return 'Rp. ' . number_format($nominal, 0, ',', '.');
     }
 
     // conver month number to month name indonesia
+    /**
+     * Mengonversi nomor bulan ke nama bulan dalam bahasa Indonesia
+     * @param int $number
+     * @return string
+     */
     public function numberToMonth($number)
     {
         $months = [
@@ -340,12 +483,24 @@ class HelpFunctionModel extends Model
         return $months[$number];
     }
 
+    /**
+     * Mengambil nama TPQ berdasarkan IdTpq
+     * @param mixed $IdTpq
+     * @return array|null
+     */
     public function getNamaTpqById($IdTpq)
     {
         return $this->db->table('tbl_tpq')->where('IdTpq', $IdTpq)->get()->getRowArray();
     }
 
     //get data total santri
+    /**
+     * Mengambil total santri berdasarkan IdTpq, IdKelas, dan IdGuru
+     * @param mixed $IdTpq
+     * @param mixed $IdKelas
+     * @param mixed $IdGuru
+     * @return int
+     */
     public function getTotalSantri($IdTpq, $IdKelas = null, $IdGuru = null)
     {
         $builder = $this->db->table('tbl_santri_baru');
@@ -366,6 +521,11 @@ class HelpFunctionModel extends Model
         return $builder->get()->getRow()->total;
     }
     // get data total guru
+    /**
+     * Mengambil total guru aktif berdasarkan IdTpq
+     * @param mixed $IdTpq
+     * @return int
+     */
     public function getTotalGuru($IdTpq)
     {
         $builder = $this->db->table('tbl_guru');
@@ -377,6 +537,12 @@ class HelpFunctionModel extends Model
     }
 
     // get data total kelas
+    /**
+     * Mengambil total kelas berdasarkan IdTpq dan IdTahunAjaran
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @return int
+     */
     public function getTotalKelas($IdTpq, $IdTahunAjaran)
     {
         $builder = $this->db->table('tbl_kelas_santri');
@@ -388,6 +554,13 @@ class HelpFunctionModel extends Model
     }
 
     // get data santri baru active = 0
+    /**
+     * Mengambil total santri baru berdasarkan IdTpq, IdKelas, dan status aktif
+     * @param mixed $IdTpq
+     * @param mixed $IdKelas
+     * @param int $Active
+     * @return int
+     */
     public function getTotalSantriBaru($IdTpq, $IdKelas = null, $Active = 0)
     {
         $builder = $this->db->table('tbl_santri_baru');
@@ -403,6 +576,14 @@ class HelpFunctionModel extends Model
         return $builder->get()->getRow()->total;
     }
 
+    /**
+     * Membuat query builder untuk nilai berdasarkan filter
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $IdKelas
+     * @param mixed $Semester
+     * @return \CodeIgniter\Database\BaseBuilder
+     */
     private function buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
     {
         $builder = $this->db->table('tbl_nilai');
@@ -432,6 +613,14 @@ class HelpFunctionModel extends Model
         return $builder;
     }
 
+    /**
+     * Mengambil status input nilai (total, sudah, belum, persentase) berdasarkan filter
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $IdKelas
+     * @param mixed $Semester
+     * @return object
+     */
     public function getStatusInputNilai($IdTpq, $IdTahunAjaran, $IdKelas = null, $Semester = null)
     {
         $builder = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester);
@@ -462,6 +651,12 @@ class HelpFunctionModel extends Model
     }
 
     // get total wali kelas dari tbl_guru_kelas
+    /**
+     * Mengambil total wali kelas berdasarkan IdTpq dan IdTahunAjaran
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @return int
+     */
     public function getTotalWaliKelas($IdTpq, $IdTahunAjaran)
     {
         $builder = $this->db->table('tbl_guru_kelas');
@@ -474,12 +669,24 @@ class HelpFunctionModel extends Model
     }
 
     // get nama kelas dari IdKelas return hanya nama kelas
+    /**
+     * Mengambil nama kelas berdasarkan IdKelas
+     * @param mixed $IdKelas
+     * @return string
+     */
     public function getNamaKelas($IdKelas)
     {
         return $this->db->table('tbl_kelas')->where('IdKelas', $IdKelas)->get()->getRowArray()['NamaKelas'];
     }
 
     // get list kelas grouped kelas filter IdTpq, IdTahunAjaran dari tbl_kelas_santri
+    /**
+     * Mengambil daftar kelas berdasarkan IdTpq, IdTahunAjaran, dan IdKelas
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $IdKelas
+     * @return object|array
+     */
     public function getListKelas($IdTpq, $IdTahunAjaran, $IdKelas = null)
     {
         $builder = $this->db->table('tbl_kelas_santri');
@@ -511,6 +718,12 @@ class HelpFunctionModel extends Model
     }
 
     // Get value setting input nilai min dan max dari tbl_tools
+    /**
+     * Mengambil nilai setting limit input nilai dari tabel tools
+     * @param mixed $IdTpq
+     * @param string $SettingKey
+     * @return int|null
+     */
     public function getSettingLimitInputNilai($IdTpq = null, $SettingKey)
     {
         $builder = $this->db->table('tbl_tools');
@@ -526,6 +739,11 @@ class HelpFunctionModel extends Model
     }
 
     // Get nilai alfabetic settings based on keys
+    /**
+     * Mengambil setting nilai alfabetik berdasarkan IdTpq
+     * @param mixed $IdTpq
+     * @return object|null
+     */
     public function getNilaiAlphabetSettings($IdTpq)
     {
         // jika IdTpq tidak ada, kembalikan null
@@ -562,6 +780,11 @@ class HelpFunctionModel extends Model
     }
 
     // Get nilai setting angka arabic 
+    /**
+     * Mengambil setting nilai angka arabic berdasarkan IdTpq
+     * @param mixed $IdTpq
+     * @return object|null
+     */
     public function getNilaiArabicSettings($IdTpq)
     {
         // jika IdTpq tidak ada, kembalikan null
@@ -598,6 +821,13 @@ class HelpFunctionModel extends Model
     }
 
     // Get nama Materi pelajaran berdasarkan IdKelas, IdTpq, Semester, TahunAjaran
+    /**
+     * Mengambil nama materi pelajaran berdasarkan IdKelas, IdTpq, Semester
+     * @param mixed $IdTpq
+     * @param mixed $IdKelas
+     * @param mixed $Semester
+     * @return object|array
+     */
     public function getMateriPelajaranByKelas($IdTpq, $IdKelas = null, $Semester)
     {
         $builder = $this->db->table('tbl_kelas_materi_pelajaran');
@@ -635,6 +865,12 @@ class HelpFunctionModel extends Model
      * Start Fungsi untuk menyimpan data santri dan materi pelajaran ke dalam tabel nilai
      * ====================================================================================
      */
+    /**
+     * Menyimpan data santri dan materi pelajaran ke tabel nilai
+     * @param int $StatusSantri
+     * @param array $santriList
+     * @return void
+     */
     public function saveDataSantriDanMateriDiTabelNilai($StatusSantri, $santriList)
     {
         // 1. Tentukan status dan tahun ajaran
@@ -649,6 +885,8 @@ class HelpFunctionModel extends Model
 
     /**
      * Mendapatkan tahun ajaran berdasarkan status santri
+     * @param int $StatusSantri
+     * @return string
      */
     private function getTahunAjaran($StatusSantri)
     {
@@ -659,7 +897,11 @@ class HelpFunctionModel extends Model
     }
 
     /**
-     * Memproses data satu santri
+     * Memproses data satu santri (baru/naik kelas)
+     * @param array $santri
+     * @param bool $isSantriBaru
+     * @param string $tahunAjaran
+     * @return void
      */
     private function prosesSantri($santri, $isSantriBaru, $tahunAjaran)
     {
@@ -679,6 +921,8 @@ class HelpFunctionModel extends Model
 
     /**
      * Mengambil data dasar santri
+     * @param array $santri
+     * @return array
      */
     private function getDataSantri($santri)
     {
@@ -691,7 +935,9 @@ class HelpFunctionModel extends Model
     }
 
     /**
-     * Memproses data santri baru
+     * Memproses data santri baru (insert kelas_santri dan update status aktif)
+     * @param array $dataSantri
+     * @return void
      */
     private function prosesSantriBaru($dataSantri)
     {
@@ -703,7 +949,10 @@ class HelpFunctionModel extends Model
     }
 
     /**
-     * Memproses kenaikan kelas
+     * Memproses kenaikan kelas santri
+     * @param array $dataSantri
+     * @param string $tahunAjaran
+     * @return void
      */
     private function prosesNaikKelas($dataSantri, $tahunAjaran)
     {
@@ -723,7 +972,10 @@ class HelpFunctionModel extends Model
     }
 
     /**
-     * Memproses materi dan nilai
+     * Memproses materi dan nilai untuk santri
+     * @param array $dataSantri
+     * @param string $tahunAjaran
+     * @return void
      */
     private function prosesMateriDanNilai($dataSantri, $tahunAjaran)
     {
@@ -741,6 +993,10 @@ class HelpFunctionModel extends Model
 
     /**
      * Menyimpan nilai untuk satu materi
+     * @param object $materi
+     * @param array $dataSantri
+     * @param string $tahunAjaran
+     * @return void
      */
     private function simpanNilaiMateri($materi, $dataSantri, $tahunAjaran)
     {
@@ -757,6 +1013,11 @@ class HelpFunctionModel extends Model
 
     /**
      * Insert nilai ke database
+     * @param object $materi
+     * @param array $dataSantri
+     * @param string $tahunAjaran
+     * @param string $semester
+     * @return void
      */
     private function insertNilai($materi, $dataSantri, $tahunAjaran, $semester)
     {
@@ -776,6 +1037,12 @@ class HelpFunctionModel extends Model
     //================================================================================
 
     // Membuat fungsi untuk mengupdate jika ada perubahan pada materi pelajaran untuk di update di tabel nilai
+    /**
+     * Mengupdate materi pelajaran pada tabel nilai jika ada perubahan
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @return bool|int
+     */
     public function updateMateriPelajaranPadaTabelNilai($IdTpq, $IdTahunAjaran)
     {
         // Step1: Ambil Data Santri Actif di tbl_santri_baru filter by IdTpq
@@ -850,6 +1117,12 @@ class HelpFunctionModel extends Model
     }
 
     // Fungsi untuk check apakah ada materi pelajaran yang sudah tidak ada di daftar materi pelajaran tetapi ada di tabel nilai
+    /**
+     * Mengecek materi pelajaran yang sudah tidak ada di daftar materi pelajaran namun masih ada di tabel nilai
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @return array
+     */
     public function getMateriPelajaranYangSudahTidakAda($IdTpq, $IdTahunAjaran)
     {
         // Step1: Ambil Data Santri Actif di tbl_santri_baru filter by IdTpq
@@ -938,6 +1211,12 @@ class HelpFunctionModel extends Model
         return $materiToDelete;
     }
 
+    /**
+     * Mendapatkan materi baru yang perlu ditambahkan ke tabel nilai
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @return array
+     */
     public function getMateriBaruUntukDitambahkan($IdTpq, $IdTahunAjaran)
     {
         // Step1: Ambil Data Santri Actif di tbl_santri_baru filter by IdTpq
@@ -1007,6 +1286,14 @@ class HelpFunctionModel extends Model
         return $materiBaru;
     }
 
+    /**
+     * Mengambil status input nilai secara bulk per kelas
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $IdKelas
+     * @param mixed $Semester
+     * @return array
+     */
     public function getStatusInputNilaiBulk($IdTpq, $IdTahunAjaran, $IdKelas, $Semester)
     {
         $builder = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester);
@@ -1042,6 +1329,11 @@ class HelpFunctionModel extends Model
         return $formattedResult;
     }
 
+    /**
+     * Mengambil nama kelas secara bulk berdasarkan array ID kelas
+     * @param array $kelasIds
+     * @return array
+     */
     public function getNamaKelasBulk($kelasIds)
     {
         $result = $this->db->table('tbl_kelas')
@@ -1058,6 +1350,13 @@ class HelpFunctionModel extends Model
         return $formattedResult;
     }
 
+    /**
+     * Mengambil jumlah santri per kelas berdasarkan IdTpq, IdTahunAjaran, dan array kelas
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $kelasIds
+     * @return array
+     */
     public function getJumlahSantriPerKelas($IdTpq, $IdTahunAjaran, $kelasIds)
     {
         $builder = $this->db->table('tbl_santri_baru');
@@ -1069,6 +1368,16 @@ class HelpFunctionModel extends Model
             $builder->whereIn('IdKelas', $kelasIds);
         } else {
             $builder->where('IdKelas', $kelasIds);
+        }
+
+        if (!empty($IdTahunAjaran)) {
+            // Jika IdTahunAjaran adalah array, gunakan whereIn
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('IdTahunAjaran', $IdTahunAjaran);
+            } else {
+                // Jika IdTahunAjaran adalah string atau integer, gunakan where
+                $builder->where('IdTahunAjaran', $IdTahunAjaran);
+            }
         }
 
         $builder->groupBy('IdKelas');
