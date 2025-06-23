@@ -6,10 +6,6 @@ use CodeIgniter\Model;
 class HelpFunctionModel extends Model
 {
     /**
-     * Model untuk tabel santri
-     */
-    protected $santriModel;
-    /**
      * Model untuk tabel kelas
      */
     protected $kelasModel;
@@ -28,7 +24,6 @@ class HelpFunctionModel extends Model
     public function __construct()
     {
         parent::__construct();
-        $this->santriModel = new \App\Models\SantriModel();
         $this->kelasModel = new \App\Models\KelasModel();
         $this->nilaiModel = new \App\Models\NilaiModel();
         $this->santriBaruModel = new \App\Models\SantriBaruModel();
@@ -1357,7 +1352,7 @@ class HelpFunctionModel extends Model
      * @param mixed $kelasIds
      * @return array
      */
-    public function getJumlahSantriPerKelas($IdTpq, $IdTahunAjaran, $kelasIds)
+    public function getJumlahSantriPerKelas($IdTpq, $kelasIds)
     {
         $builder = $this->db->table('tbl_santri_baru');
         $builder->select('IdKelas, COUNT(DISTINCT IdSantri) as jumlah_santri');
@@ -1369,17 +1364,6 @@ class HelpFunctionModel extends Model
         } else {
             $builder->where('IdKelas', $kelasIds);
         }
-
-        if (!empty($IdTahunAjaran)) {
-            // Jika IdTahunAjaran adalah array, gunakan whereIn
-            if (is_array($IdTahunAjaran)) {
-                $builder->whereIn('IdTahunAjaran', $IdTahunAjaran);
-            } else {
-                // Jika IdTahunAjaran adalah string atau integer, gunakan where
-                $builder->where('IdTahunAjaran', $IdTahunAjaran);
-            }
-        }
-
         $builder->groupBy('IdKelas');
         $result = $builder->get()->getResultArray();
 

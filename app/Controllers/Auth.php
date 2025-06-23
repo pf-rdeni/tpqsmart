@@ -77,7 +77,6 @@ class Auth extends BaseController
         // Ambil jumlah santri per kelas
         $jumlahSantriPerKelas = $this->helpFunctionModel->getJumlahSantriPerKelas(
             IdTpq: $idTpq,
-            IdTahunAjaran: $idTahunAjaran,
             kelasIds: $idKelas
         );
 
