@@ -48,9 +48,9 @@ $routes->post('backend/kelas/store', 'Kelas::store');      // Store new record i
 $routes->get('backend/kelas/edit/(:num)', 'Kelas::edit/$1');  // Show form to edit a specific record (Read/Update)
 $routes->post('backend/kelas/update/(:num)', 'Kelas::update/$1');  // Update a specific record in database (Update)
 $routes->get('kelas/delete/(:num)', 'Kelas::delete/$1');  // Delete a specific record from database (Delete)
-$routes->get('backend/kelas/showListSantriPerKelas/(:any)', 'Kelas::showListSantriPerKelas/$1');
-$routes->get('backend/kelas/updateNaikKelas/(:num)/(:num)', 'Kelas::updateNaikKelas/$1/$2');
-$routes->get('backend/kelas/showSantriPerKelas/(:any)', 'Kelas::showSantriPerKelas/$1');
+$routes->get('backend/kelas/showListSantriPerKelas/(:any)', 'Backend\Kelas::showListSantriPerKelas/$1');
+$routes->get('backend/kelas/updateNaikKelas/(:num)/(:num)', 'Backend\Kelas::updateNaikKelas/$1/$2');
+$routes->get('backend/kelas/showSantriPerKelas/(:any)', 'Backend\Kelas::showSantriPerKelas/$1');
 $routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'Backend\Santri::showSuccessEmisStep/$1');
 
 //Tabel Materi

@@ -31,7 +31,7 @@
                                 <td><?= $dataKelas['NamaKelas']; ?></td>
                                 <td><?= $dataKelas['SumIdKelas']; ?></td>
                                 <td>
-                                    <a href="<?php echo base_url('kelas/updateNaikKelas/'.$dataKelas['IdTahunAjaran'].'/' . $dataKelas['IdKelas']) ?>" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
+                                    <a href="<?php echo base_url('backend/kelas/updateNaikKelas/' . $dataKelas['IdTahunAjaran'] . '/' . $dataKelas['IdKelas']) ?>" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
                                 </td>
                             </tr>
                         <?php endforeach ?>

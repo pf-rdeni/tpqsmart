@@ -352,21 +352,19 @@ class HelpFunctionModel extends Model
     public function getNextKelas($idKelas)
     {
         $classMapping = [
-            'TK1' => 'TKA',
-            'TK2' => 'SD1',
-            'TK' => 'SD1',
-            'SD1' => 'SD2',
-            'SD2' => 'SD3',
-            'SD3' => 'SD4',
-            'SD4' => 'SD5',
-            'SD5' => 'SD6',
-            'SD6' => 'SMP1',
-            'SMP1' => 'SMP2',
-            'SMP2' => 'SMP3',
-            'SMP3' => 'Alumni'
+            1 => 2,   // TKQ -> TKQA
+            2 => 3,   // TKQA -> TKQB
+            3 => 4,   // TKQB -> TPQ1/SD1
+            4 => 5,   // TPQ1/SD1 -> TPQ2/SD2
+            5 => 6,   // TPQ2/SD2 -> TPQ3/SD3
+            6 => 7,   // TPQ3/SD3 -> TPQ4/SD4
+            7 => 8,   // TPQ4/SD4 -> TPQ5/SD5
+            8 => 9,   // TPQ5/SD5 -> TPQ6/SD6
+            9 => 10,  // TPQ6/SD6 -> ALUMNI
+            10 => 10, // ALUMNI tetap ALUMNI
         ];
 
-        return $classMapping[$idKelas] ?? 'Alumni';
+        return $classMapping[$idKelas] ?? 10;
     }
 
 
@@ -596,7 +594,7 @@ class HelpFunctionModel extends Model
             $builder->where('tbl_nilai.IdTahunAjaran', $IdTahunAjaran);
         }
 
-        if ($IdKelas != 0) {
+        if ($IdKelas != null) {
             if (is_array($IdKelas)) {
                 $builder->whereIn('tbl_nilai.IdKelas', $IdKelas);
             } else {
@@ -1331,11 +1329,14 @@ class HelpFunctionModel extends Model
      */
     public function getNamaKelasBulk($kelasIds)
     {
-        $result = $this->db->table('tbl_kelas')
-            ->select('IdKelas, NamaKelas')
-            ->whereIn('IdKelas', $kelasIds)
-            ->get()
-            ->getResultArray();
+        $builder = $this->db->table('tbl_kelas')
+            ->select('IdKelas, NamaKelas');
+
+        if ($kelasIds != null) {
+            $builder->whereIn('IdKelas', $kelasIds);
+        }
+
+        $result = $builder->get()->getResultArray();
 
         $formattedResult = [];
         foreach ($result as $row) {
@@ -1358,13 +1359,14 @@ class HelpFunctionModel extends Model
         $builder->select('IdKelas, COUNT(DISTINCT IdSantri) as jumlah_santri');
         $builder->where('IdTpq', $IdTpq);
         $builder->where('Active', 1);
-
-        if (is_array($kelasIds)) {
-            $builder->whereIn('IdKelas', $kelasIds);
-        } else {
-            $builder->where('IdKelas', $kelasIds);
+        if ($kelasIds != null) {
+            if (is_array($kelasIds)) {
+                $builder->whereIn('IdKelas', $kelasIds);
+            } else {
+                $builder->where('IdKelas', $kelasIds);
+            }
+            $builder->groupBy('IdKelas');
         }
-        $builder->groupBy('IdKelas');
         $result = $builder->get()->getResultArray();
 
         // Format hasil ke array asosiatif
