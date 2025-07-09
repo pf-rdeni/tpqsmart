@@ -494,11 +494,14 @@ class HelpFunctionModel extends Model
      * @param mixed $IdGuru
      * @return int
      */
-    public function getTotalSantri($IdTpq, $IdKelas = null, $IdGuru = null)
+    public function getTotalSantri($IdTpq, $IdKelas = null, $IdGuru = null, $Active = 1)
     {
         $builder = $this->db->table('tbl_santri_baru');
         $builder->select('COUNT(DISTINCT IdSantri) as total');
         $builder->where('IdTpq', $IdTpq);
+        if ($Active == 1) {
+            $builder->where('Active', $Active);
+        }
 
         if ($IdKelas) {
             if (is_array($IdKelas)) {
@@ -519,12 +522,14 @@ class HelpFunctionModel extends Model
      * @param mixed $IdTpq
      * @return int
      */
-    public function getTotalGuru($IdTpq)
+    public function getTotalGuru($IdTpq, $Status = 1)
     {
         $builder = $this->db->table('tbl_guru');
         $builder->select('COUNT(DISTINCT IdGuru) as total');
         $builder->where('IdTpq', $IdTpq);
-        $builder->where('Status', 1);
+        if ($Status == 1) {
+            $builder->where('Status', $Status);
+        }
 
         return $builder->get()->getRow()->total;
     }
