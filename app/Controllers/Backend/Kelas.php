@@ -178,15 +178,23 @@ class Kelas extends BaseController
     // page : view/backend/kelas/naikKelas
     public function updateNaikKelas($idTahunAjaran, $idKelas)
     {
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+
         //Step 1 get tahun berikunya dari idTahun Sebelumnya/saat ini
         $newTahunAjaran = $this->helpFunction->getTahuanAjaranBerikutnya($idTahunAjaran);
+        // Tambahkan previousAcademicYear
+        $previousAcademicYear = $this->helpFunction->getTahunAjaranSebelumnya();
 
         //Step 2 ambil list santri tbl_kelas_santri
         //tabel ini informasi penyimmpanan santri berdasarkan tahun ajaran, kelas, tpq dan status active = 1
-        $santriList = $this->kelasModel->where('IdTahunAjaran', $idTahunAjaran)
-                            ->where('IdKelas', $idKelas)
-                            ->where('Status', 1)
-                            ->findAll();
+        $builder = $this->kelasModel->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('IdKelas', $idKelas)
+            ->where('Status', 1);
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builder = $builder->where('IdTpq', $IdTpq);
+        }
+        $santriList = $builder->findAll();
 
         $dataKelasBaru = [];
         $dataNilaiBaru = [];
@@ -199,16 +207,24 @@ class Kelas extends BaseController
             $idTpq = $santri['IdTpq'];
             $idSantri = $santri['IdSantri'];
 
+            // Tentukan tahun ajaran untuk alumni
+            $tahunAjaranUntukKelasBaru = ($idKelasBaru == 10) ? $previousAcademicYear : $newTahunAjaran;
+
+            // Data untuk update status kelas lama
+            $idsKelasLama[] = $santri['Id'];
+
+            // Jika alumni, tidak perlu collect listMateri dan dataNilaiBaru
+            if ($idKelasBaru == 10) {
+                continue;
+            }
+
             // Data untuk insert kelas baru
             $dataKelasBaru[] = [
                 'IdKelas' => $idKelasBaru,
                 'IdTpq' => $idTpq,
                 'IdSantri' => $idSantri,
-                'IdTahunAjaran' => $newTahunAjaran
+                'IdTahunAjaran' => $tahunAjaranUntukKelasBaru
             ];
-
-            // Data untuk update status kelas lama
-            $idsKelasLama[] = $santri['Id'];
 
             // Data nilai
             $listMateriPelajaran = $this->helpFunction->getKelasMateriPelajaran($idKelasBaru, $idTpq);
@@ -219,7 +235,7 @@ class Kelas extends BaseController
                         'IdSantri' => $idSantri,
                         'IdKelas' => $materiPelajaran->IdKelas,
                         'IdMateri' => $materiPelajaran->IdMateri,
-                        'IdTahunAjaran' => $newTahunAjaran,
+                        'IdTahunAjaran' => $tahunAjaranUntukKelasBaru,
                         'Semester' => "Ganjil"
                     ];
                 }
@@ -229,7 +245,7 @@ class Kelas extends BaseController
                         'IdSantri' => $idSantri,
                         'IdKelas' => $materiPelajaran->IdKelas,
                         'IdMateri' => $materiPelajaran->IdMateri,
-                        'IdTahunAjaran' => $newTahunAjaran,
+                        'IdTahunAjaran' => $tahunAjaranUntukKelasBaru,
                         'Semester' => "Genap"
                     ];
                 }
@@ -259,9 +275,7 @@ class Kelas extends BaseController
     public function setKelasSantriBaru()
     {
         // Step 1 definisi set Tahun Ajaran saat ini
-        $currentYear = date('Y');
-        $currentMonth = date('n');
-        $idTahunAjaran = ($currentMonth >= 7) ? $currentYear . ($currentYear + 1) : ($currentYear - 1) . $currentYear;
+        $idTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
 
         // Step 2 ambil data yang dikirim dari proses POST masukan santri baru ke tabel tbl_kelas_santri 
         // Data ini diambildari data satri yang sudah registarasi tapi belum dimasukan ke kelas
