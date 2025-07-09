@@ -14,7 +14,9 @@ class SantriModel extends Model
 
     protected $table      = 'tbl_santri_baru';
     protected $allowedFields = [
-        'Active'
+        'Active',
+        'IdKelas',
+        'Status'
     ];
 
     public function GetData($id = false)

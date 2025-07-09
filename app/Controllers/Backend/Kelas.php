@@ -8,7 +8,7 @@ use App\Models\KelasModel;
 use App\Models\SantriBaruModel;
 use App\Models\KelasMateriPelajaranModel;
 use App\Models\NilaiModel;
-
+use App\Models\SantriModel;
 class Kelas extends BaseController
 {
     protected $santriBaruModel;
@@ -17,6 +17,7 @@ class Kelas extends BaseController
     protected $nilaiModel;
     protected $helpFunction;
     protected $IdTpq;
+    protected $santriModel;
 
     public function __construct()
     {
@@ -26,6 +27,7 @@ class Kelas extends BaseController
         $this->kelasMateriPelajaranModel = new KelasMateriPelajaranModel();
         $this->nilaiModel = new NilaiModel();
         $this->helpFunction = new HelpFunctionModel();
+        $this->santriModel = new SantriModel();
 
         $this->IdTpq = session()->get('IdTpq');
     }
@@ -199,6 +201,7 @@ class Kelas extends BaseController
         $dataKelasBaru = [];
         $dataNilaiBaru = [];
         $idsKelasLama = [];
+        $dataSantri = [];
 
         // Step 3 collect data santri yang akan di naikkan kelas dan data nilai
         foreach ($santriList as $santri) {
@@ -206,6 +209,12 @@ class Kelas extends BaseController
             $idKelasBaru = $this->helpFunction->getNextKelas($idKelasLama);
             $idTpq = $santri['IdTpq'];
             $idSantri = $santri['IdSantri'];
+
+            // Ambil id santri dari tabel santri untuk update IdKelas pada tabel santri
+            $dataSantri[] = [
+                'IdSantri' => $idSantri,
+                'IdKelas' => $idKelasBaru
+            ];
 
             // Tentukan tahun ajaran untuk alumni
             $tahunAjaranUntukKelasBaru = ($idKelasBaru == 10) ? $previousAcademicYear : $newTahunAjaran;
@@ -252,6 +261,11 @@ class Kelas extends BaseController
             }
         }
 
+        // update tabel santri dengan IdSantri dan IdKelas baru  
+        if (!empty($dataSantri)) {
+            $this->santriModel->updateBatch($dataSantri, 'IdSantri');
+        }
+
         // Insert semua santri naik kelas sekaligus
         if (!empty($dataKelasBaru)) {
             $this->kelasModel->insertBatch($dataKelasBaru);
@@ -294,7 +308,20 @@ class Kelas extends BaseController
             }
         }
 
-        // Step 3 ambil individual santri dari POST IdKelas
+
+        // Step 3 Update IdKelas pada tabel santri sesuai dataSantriBaru
+        $dataUpdateSantri = [];
+        foreach ($dataSantriBaru as $row) {
+            $dataUpdateSantri[] = [
+                'IdSantri' => $row['IdSantri'], // ambil dari data santri
+                'IdKelas' => $row['IdKelas']
+            ];
+        }
+        if (!empty($dataUpdateSantri)) {
+            $this->santriModel->updateBatch($dataUpdateSantri, 'IdSantri');
+        }
+
+        // Step 4 ambil individual santri dari POST IdKelas
         $this->helpFunction->saveDataSantriDanMateriDiTabelNilai(0, santriList: $dataSantriBaru);
 
         //Check kembali jika masih ada dan tampilkan
