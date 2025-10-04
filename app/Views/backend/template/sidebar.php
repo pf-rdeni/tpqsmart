@@ -15,7 +15,7 @@
                     class="img-circle elevation-2" alt="User Image">
             </div>
             <div class="info">
-                <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname . ' - ' . convertTahunAjaran(session()->get('IdTahunAjaran')); ?></a>
+                <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname . (session()->has('IdTahunAjaran') ? ' - ' . convertTahunAjaran(session()->get('IdTahunAjaran')) : ''); ?></a>
             </div>
         </div>
         <?php if (in_groups('Guru')): ?>
