@@ -186,4 +186,76 @@ class Auth extends BaseController
         // Redirect ke halaman login
         return redirect()->to(base_url('login'));
     }
+
+    /**
+     * Update tahun ajaran dalam session
+     */
+    public function updateTahunAjaran()
+    {
+        // Cek apakah request adalah AJAX
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        // Cek apakah user sudah login
+        if (!logged_in()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'User belum login'
+            ]);
+        }
+
+        // Cek apakah user adalah Guru
+        if (!in_groups('Guru')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Hanya guru yang dapat mengubah tahun ajaran'
+            ]);
+        }
+
+        // Ambil data dari request
+        $input = $this->request->getJSON(true);
+        $tahunAjaran = $input['tahunAjaran'] ?? null;
+
+        // Validasi input
+        if (empty($tahunAjaran)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tahun ajaran tidak boleh kosong'
+            ]);
+        }
+
+        // Cek apakah tahun ajaran ada dalam list yang diizinkan
+        $tahunAjaranList = session()->get('IdTahunAjaranList');
+        if (!in_array($tahunAjaran, $tahunAjaranList)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tahun ajaran tidak valid'
+            ]);
+        }
+
+        try {
+            // Update session IdTahunAjaran
+            session()->set('IdTahunAjaran', $tahunAjaran);
+
+            // Log aktivitas (opsional)
+            log_message('info', 'User ' . user()->username . ' mengubah tahun ajaran ke ' . $tahunAjaran);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Tahun ajaran berhasil diubah',
+                'tahunAjaran' => $tahunAjaran
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error update tahun ajaran: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengubah tahun ajaran'
+            ]);
+        }
+    }
 }

@@ -15,9 +15,21 @@
                     class="img-circle elevation-2" alt="User Image">
             </div>
             <div class="info">
-                <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname; ?></a>
+                <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname . ' - ' . convertTahunAjaran(session()->get('IdTahunAjaran')); ?></a>
             </div>
         </div>
+        <?php if (in_groups('Guru')): ?>
+            <div class="info">
+                <select class="form-control" id="tahunAjaranSelect">
+                    <?php foreach (session()->get('IdTahunAjaranList') as $idTahunAjaran): ?>
+                        <option value="<?= $idTahunAjaran; ?>" <?= ($idTahunAjaran == session()->get('IdTahunAjaran')) ? 'selected' : ''; ?>>
+                            <?= convertTahunAjaran($idTahunAjaran); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        <?php endif; ?>
+
 
         <!-- Sidebar Menu -->
         <nav class="mt-2">
@@ -514,3 +526,53 @@
     </div>
     <!-- /.sidebar -->
 </aside>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tahunAjaranSelect = document.getElementById('tahunAjaranSelect');
+
+        if (tahunAjaranSelect) {
+            tahunAjaranSelect.addEventListener('change', function() {
+                const selectedTahunAjaran = this.value;
+
+                // Tampilkan loading
+                this.disabled = true;
+                this.style.opacity = '0.6';
+
+                // Kirim request ke server untuk update session
+                fetch('<?= base_url('auth/updateTahunAjaran') ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            tahunAjaran: selectedTahunAjaran
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Refresh halaman setelah session berhasil diupdate
+                            window.location.reload();
+                        } else {
+                            // Jika gagal, kembalikan ke nilai sebelumnya
+                            this.value = '<?= session()->get('IdTahunAjaran') ?>';
+                            alert('Gagal mengubah tahun ajaran: ' + (data.message || 'Terjadi kesalahan'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Jika error, kembalikan ke nilai sebelumnya
+                        this.value = '<?= session()->get('IdTahunAjaran') ?>';
+                        alert('Terjadi kesalahan saat mengubah tahun ajaran');
+                    })
+                    .finally(() => {
+                        // Enable select kembali
+                        this.disabled = false;
+                        this.style.opacity = '1';
+                    });
+            });
+        }
+    });
+</script>
