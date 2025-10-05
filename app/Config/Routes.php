@@ -27,7 +27,7 @@ $routes->setAutoRoute(true);
  * --------------------------------------------------------------------
  */
 $routes->get('/', 'Auth::index');
-$routes->post('auth/updateTahunAjaran', 'Auth::updateTahunAjaran');
+$routes->post('auth/updateTahunAjaranDanKelas', 'Auth::updateTahunAjaranDanKelas');
 //$routes->get('/', 'Backend\Pages::index');
 //$routes->get('/', 'Frontend\Home::index');
 $routes->get('program', 'Frontend\Program::index');

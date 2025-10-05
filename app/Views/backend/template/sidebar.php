@@ -540,7 +540,7 @@
                 this.style.opacity = '0.6';
 
                 // Kirim request ke server untuk update session
-                fetch('<?= base_url('auth/updateTahunAjaran') ?>', {
+                fetch('<?= base_url('auth/updateTahunAjaranDanKelas') ?>', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

@@ -208,9 +208,9 @@ class Auth extends BaseController
     }
 
     /**
-     * Update tahun ajaran dalam session
+     * Update tahun ajaran dan list kelas dalam session
      */
-    public function updateTahunAjaran()
+    public function updateTahunAjaranDanKelas()
     {
         // Cek apakah request adalah AJAX
         if (!$this->request->isAJAX()) {
@@ -261,9 +261,10 @@ class Auth extends BaseController
             // Update session IdTahunAjaran
             session()->set('IdTahunAjaran', $tahunAjaran);
 
-            // Ambil list kelas berdasarkan tahun ajaran yang dipilih
+            // Ambil list kelas berdasarkan tahun ajaran yang dipilih dan IdGuru
             $idTpq = session()->get('IdTpq');
-            $listKelas = $this->helpFunctionModel->getListKelas($idTpq, $tahunAjaran);
+            $idGuru = session()->get('IdGuru');
+            $listKelas = $this->helpFunctionModel->getListKelas($idTpq, $tahunAjaran, null, $idGuru);
 
             // Ekstrak IdKelas dari hasil query
             $idKelasList = array_map(function ($kelas) {
@@ -271,15 +272,7 @@ class Auth extends BaseController
             }, $listKelas);
 
             // Update session IdKelasList
-            session()->set('IdKelasList', $idKelasList);
-
-            // Jika ada kelas, set kelas pertama sebagai default (jika IdKelas belum ada atau tidak valid)
-            $currentIdKelas = session()->get('IdKelas');
-            if (empty($currentIdKelas) || !in_array($currentIdKelas, $idKelasList)) {
-                if (!empty($idKelasList)) {
-                    session()->set('IdKelas', $idKelasList[0]);
-                }
-            }
+            session()->set('IdKelas', $idKelasList);
 
             // Log aktivitas (opsional)
             log_message('info', 'User ' . user()->username . ' mengubah tahun ajaran ke ' . $tahunAjaran . ' dengan ' . count($idKelasList) . ' kelas');

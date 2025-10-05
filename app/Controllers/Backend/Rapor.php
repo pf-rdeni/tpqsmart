@@ -30,7 +30,8 @@ class Rapor extends BaseController
         $IdTpq = session()->get('IdTpq');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $IdKelas = session()->get('IdKelas');
-        $lisKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $IdKelas);
+        $IdGuru = session()->get('IdGuru');
+        $lisKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
         // Ambil data santri joint dengan tbl_kelas_santri dan tbl_kelas
         $listSantri = $this->santriBaruModel->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')

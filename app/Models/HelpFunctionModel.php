@@ -680,37 +680,74 @@ class HelpFunctionModel extends Model
 
     // get list kelas grouped kelas filter IdTpq, IdTahunAjaran dari tbl_kelas_santri
     /**
-     * Mengambil daftar kelas berdasarkan IdTpq, IdTahunAjaran, dan IdKelas
+     * Mengambil daftar kelas berdasarkan IdTpq, IdTahunAjaran, IdKelas, dan IdGuru
      * @param mixed $IdTpq
      * @param mixed $IdTahunAjaran
      * @param mixed $IdKelas
+     * @param mixed $IdGuru
      * @return object|array
      */
-    public function getListKelas($IdTpq, $IdTahunAjaran, $IdKelas = null)
+    public function getListKelas($IdTpq, $IdTahunAjaran, $IdKelas = null, $IdGuru = null)
     {
-        $builder = $this->db->table('tbl_kelas_santri');
-        $builder->select('tbl_kelas_santri.IdKelas, NamaKelas, IdTahunAjaran');
-        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_santri.IdKelas');
-        if (!empty($IdTpq)) {
-            $builder->where('tbl_kelas_santri.IdTpq', $IdTpq);
+        // Jika IdGuru diberikan, gunakan join dengan tabel guru_kelas
+        if (!empty($IdGuru)) {
+            $builder = $this->db->table('tbl_guru_kelas gk');
+            $builder->select('gk.IdKelas, k.NamaKelas, gk.IdTahunAjaran');
+            $builder->join('tbl_kelas k', 'k.IdKelas = gk.IdKelas');
+            $builder->where('gk.IdGuru', $IdGuru);
+        } else {
+            // Jika tidak ada IdGuru, gunakan tabel kelas_santri seperti sebelumnya
+            $builder = $this->db->table('tbl_kelas_santri');
+            $builder->select('tbl_kelas_santri.IdKelas, NamaKelas, IdTahunAjaran');
+            $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_santri.IdKelas');
         }
+
+        if (!empty($IdTpq)) {
+            if (!empty($IdGuru)) {
+                $builder->where('gk.IdTpq', $IdTpq);
+            } else {
+                $builder->where('tbl_kelas_santri.IdTpq', $IdTpq);
+            }
+        }
+
         if (!empty($IdTahunAjaran)) {
             if (is_array($IdTahunAjaran)) {
-                $builder->whereIn('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
+                if (!empty($IdGuru)) {
+                    $builder->whereIn('gk.IdTahunAjaran', $IdTahunAjaran);
+                } else {
+                    $builder->whereIn('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
+                }
             } else {
-                $builder->where('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
+                if (!empty($IdGuru)) {
+                    $builder->where('gk.IdTahunAjaran', $IdTahunAjaran);
+                } else {
+                    $builder->where('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
+                }
             }
         }
 
         // Jika IdKelas tidak null, filter berdasarkan IdKelas
         if ($IdKelas !== null) {
             if (is_array($IdKelas)) {
-                $builder->whereIn('tbl_kelas_santri.IdKelas', $IdKelas);
+                if (!empty($IdGuru)) {
+                    $builder->whereIn('gk.IdKelas', $IdKelas);
+                } else {
+                    $builder->whereIn('tbl_kelas_santri.IdKelas', $IdKelas);
+                }
             } else {
-                $builder->where('tbl_kelas_santri.IdKelas', $IdKelas);
+                if (!empty($IdGuru)) {
+                    $builder->where('gk.IdKelas', $IdKelas);
+                } else {
+                    $builder->where('tbl_kelas_santri.IdKelas', $IdKelas);
+                }
             }
         }
-        $builder->groupBy('tbl_kelas_santri.IdKelas, NamaKelas, IdTahunAjaran');
+
+        if (!empty($IdGuru)) {
+            $builder->groupBy('gk.IdKelas, k.NamaKelas, gk.IdTahunAjaran');
+        } else {
+            $builder->groupBy('tbl_kelas_santri.IdKelas, NamaKelas, IdTahunAjaran');
+        }
         $builder->orderBy('NamaKelas', 'ASC');
 
         return $builder->get()->getResultObject();
@@ -1324,7 +1361,6 @@ class HelpFunctionModel extends Model
                 'persentasiBelum' => $persentasiBelum,
             ];
         }
-
         return $formattedResult;
     }
 
