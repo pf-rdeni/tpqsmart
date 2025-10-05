@@ -174,7 +174,11 @@ class NilaiModel extends Model
         $materiBuilder->where('n.IdTpq', $IdTpq);
 
         if ($IdKelas !== null) {
-            $materiBuilder->whereIn('n.IdKelas', $IdKelas);
+            if (is_array($IdKelas)) {
+                $materiBuilder->whereIn('n.IdKelas', $IdKelas);
+            } else {
+                $materiBuilder->where('n.IdKelas', $IdKelas);
+            }
         }
         if ($IdTahunAjaran !== null) {
             if (is_array($IdTahunAjaran)) {
@@ -196,7 +200,11 @@ class NilaiModel extends Model
 
             $builder->where('n.IdTpq', $IdTpq);
             if ($IdKelas !== null) {
-                $builder->whereIn('n.IdKelas', $IdKelas);
+                if (is_array($IdKelas)) {
+                    $builder->whereIn('n.IdKelas', $IdKelas);
+                } else {
+                    $builder->where('n.IdKelas', $IdKelas);
+                }
             }
             if ($IdTahunAjaran !== null) {
                 if (is_array($IdTahunAjaran)) {
@@ -234,6 +242,7 @@ class NilaiModel extends Model
         } else {
             $builder->where('n.IdKelas', $IdKelas);
         }
+
         $builder->where('n.Semester', $semester);
 
         return $builder->get()->getResult();

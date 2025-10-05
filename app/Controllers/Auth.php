@@ -27,9 +27,13 @@ class Auth extends BaseController
     private function getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $kelasList, $semester)
     {
         // Ekstrak ID kelas dari array/object
-        $kelasIds = array_map(function ($kelas) {
-            return is_object($kelas) ? $kelas->IdKelas : $kelas;
-        }, $kelasList);
+        if (is_array($kelasList)) {
+            $kelasIds = array_map(function ($kelas) {
+                return is_object($kelas) ? $kelas->IdKelas : $kelas;
+            }, $kelasList);
+        } else {
+            $kelasIds = $kelasList;
+        }
 
         // Ambil semua data dalam satu query
         $statusNilai = $this->helpFunctionModel->getStatusInputNilaiBulk(
@@ -44,7 +48,19 @@ class Auth extends BaseController
 
         // Gabungkan data
         $result = [];
-        foreach ($kelasIds as $idKelas) {
+        if (is_array($kelasIds)) {
+            foreach ($kelasIds as $idKelas) {
+                if (isset($statusNilai[$idKelas])) {
+                    $result[] = [
+                        'IdKelas' => $idKelas,
+                        'NamaKelas' => $namaKelas[$idKelas] ?? '',
+                        'StatusInputNilai' => $statusNilai[$idKelas] ?? false
+                    ];
+                }
+            }
+        } else {
+            // Kondisi jika $kelasIds bukan array (single ID)
+            $idKelas = $kelasIds;
             if (isset($statusNilai[$idKelas])) {
                 $result[] = [
                     'IdKelas' => $idKelas,
@@ -72,7 +88,11 @@ class Auth extends BaseController
             $idGuru
         );
 
-        $JumlahKelasDiajar = empty($idKelas) ? 0 : count($idKelas);
+        if (is_array($idKelas)) {
+            $JumlahKelasDiajar = count($idKelas);
+        } else {
+            $JumlahKelasDiajar = empty($idKelas) ? 0 : 1;
+        }
 
         // Ambil jumlah santri per kelas
         $jumlahSantriPerKelas = $this->helpFunctionModel->getJumlahSantriPerKelas(
@@ -241,13 +261,35 @@ class Auth extends BaseController
             // Update session IdTahunAjaran
             session()->set('IdTahunAjaran', $tahunAjaran);
 
+            // Ambil list kelas berdasarkan tahun ajaran yang dipilih
+            $idTpq = session()->get('IdTpq');
+            $listKelas = $this->helpFunctionModel->getListKelas($idTpq, $tahunAjaran);
+
+            // Ekstrak IdKelas dari hasil query
+            $idKelasList = array_map(function ($kelas) {
+                return $kelas->IdKelas;
+            }, $listKelas);
+
+            // Update session IdKelasList
+            session()->set('IdKelasList', $idKelasList);
+
+            // Jika ada kelas, set kelas pertama sebagai default (jika IdKelas belum ada atau tidak valid)
+            $currentIdKelas = session()->get('IdKelas');
+            if (empty($currentIdKelas) || !in_array($currentIdKelas, $idKelasList)) {
+                if (!empty($idKelasList)) {
+                    session()->set('IdKelas', $idKelasList[0]);
+                }
+            }
+
             // Log aktivitas (opsional)
-            log_message('info', 'User ' . user()->username . ' mengubah tahun ajaran ke ' . $tahunAjaran);
+            log_message('info', 'User ' . user()->username . ' mengubah tahun ajaran ke ' . $tahunAjaran . ' dengan ' . count($idKelasList) . ' kelas');
 
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Tahun ajaran berhasil diubah',
-                'tahunAjaran' => $tahunAjaran
+                'tahunAjaran' => $tahunAjaran,
+                'kelasCount' => count($idKelasList),
+                'kelasList' => $listKelas
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Error update tahun ajaran: ' . $e->getMessage());

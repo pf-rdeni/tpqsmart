@@ -50,6 +50,7 @@
                                                         <th>Nama Santri</th>
                                                         <th>NIS</th>
                                                         <th>Kelas</th>
+                                                        <th>Tahun Ajaran</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -68,6 +69,7 @@
                                                                 <td><?= $santri['NamaSantri'] ?></td>
                                                                 <td><?= $santri['IdSantri'] ?></td>
                                                                 <td><?= $santri['NamaKelas'] ?></td>
+                                                                <td><?= $kelas->IdTahunAjaran ?></td>
                                                             </tr>
                                                     <?php
                                                         endif;

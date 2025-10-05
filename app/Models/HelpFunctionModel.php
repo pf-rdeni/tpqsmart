@@ -594,6 +594,7 @@ class HelpFunctionModel extends Model
 
 
         if (is_array($IdTahunAjaran)) {
+
             $builder->whereIn('tbl_nilai.IdTahunAjaran', $IdTahunAjaran);
         } else {
             $builder->where('tbl_nilai.IdTahunAjaran', $IdTahunAjaran);
@@ -688,7 +689,7 @@ class HelpFunctionModel extends Model
     public function getListKelas($IdTpq, $IdTahunAjaran, $IdKelas = null)
     {
         $builder = $this->db->table('tbl_kelas_santri');
-        $builder->select('tbl_kelas_santri.IdKelas, NamaKelas');
+        $builder->select('tbl_kelas_santri.IdKelas, NamaKelas, IdTahunAjaran');
         $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_santri.IdKelas');
         if (!empty($IdTpq)) {
             $builder->where('tbl_kelas_santri.IdTpq', $IdTpq);
@@ -709,7 +710,7 @@ class HelpFunctionModel extends Model
                 $builder->where('tbl_kelas_santri.IdKelas', $IdKelas);
             }
         }
-        $builder->groupBy('tbl_kelas_santri.IdKelas, NamaKelas');
+        $builder->groupBy('tbl_kelas_santri.IdKelas, NamaKelas, IdTahunAjaran');
         $builder->orderBy('NamaKelas', 'ASC');
 
         return $builder->get()->getResultObject();
@@ -1338,7 +1339,11 @@ class HelpFunctionModel extends Model
             ->select('IdKelas, NamaKelas');
 
         if ($kelasIds != null) {
-            $builder->whereIn('IdKelas', $kelasIds);
+            if (is_array($kelasIds)) {
+                $builder->whereIn('IdKelas', $kelasIds);
+            } else {
+                $builder->where('IdKelas', $kelasIds);
+            }
         }
 
         $result = $builder->get()->getResultArray();

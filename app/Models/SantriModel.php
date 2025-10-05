@@ -58,7 +58,11 @@ class SantriModel extends Model
         $builder->where('s.Active', 1);
 
         if (!empty($IdTahunAjaran)) {
-            $builder->whereIn('ks.IdTahunAjaran', (array)$IdTahunAjaran);
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('ks.IdTahunAjaran', (array)$IdTahunAjaran);
+            } else {
+                $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            }
         }
 
         if ($IdGuru !== null && $IdGuru != 0) {
@@ -66,11 +70,19 @@ class SantriModel extends Model
         }
 
         if (!empty($IdKelas)) {
-            $builder->whereIn('k.IdKelas', (array)$IdKelas);
+            if (is_array($IdKelas)) {
+                $builder->whereIn('k.IdKelas', (array)$IdKelas);
+            } else {
+                $builder->where('k.IdKelas', $IdKelas);
+            }
         }
 
         if (!empty($IdTpq)) {
-            $builder->where('ks.IdTpq', $IdTpq);
+            if (is_array($IdTpq)) {
+                $builder->whereIn('ks.IdTpq', (array)$IdTpq);
+            } else {
+                $builder->where('ks.IdTpq', $IdTpq);
+            }
         }
 
         $builder->groupBy([
@@ -110,7 +122,11 @@ class SantriModel extends Model
         $builder->where('ks.IdTpq', $IdTpq);
 
         if (!empty($IdTahunAjaran)) {
-            $builder->whereIn('ks.IdTahunAjaran', (array)$IdTahunAjaran);
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('ks.IdTahunAjaran', (array)$IdTahunAjaran);
+            } else {
+                $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            }
         }
 
         if ($IdGuru !== null && $IdGuru != 0) {
@@ -118,7 +134,11 @@ class SantriModel extends Model
         }
 
         if (!empty($IdKelas)) {
-            $builder->whereIn('k.IdKelas', (array)$IdKelas);
+            if (is_array($IdKelas)) {
+                $builder->whereIn('k.IdKelas', (array)$IdKelas);
+            } else {
+                $builder->where('k.IdKelas', $IdKelas);
+            }
         }
 
         return $builder->get()->getRow()->TotalSantri;

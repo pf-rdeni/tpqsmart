@@ -28,11 +28,11 @@ class Rapor extends BaseController
     public function index($semester = 'Ganjil')
     {
         $IdTpq = session()->get('IdTpq');
-        $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
         $IdKelas = session()->get('IdKelas');
         $lisKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $IdKelas);
 
-        // Ambil semua data santri
+        // Ambil data santri joint dengan tbl_kelas_santri dan tbl_kelas
         $listSantri = $this->santriBaruModel->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
             ->where([
                 'tbl_santri_baru.IdTpq' => $IdTpq,
@@ -71,7 +71,7 @@ class Rapor extends BaseController
             mb_internal_encoding('UTF-8');
 
             $IdTpq = session()->get('IdTpq');
-            $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
 
             // Ambil data santri
             $santri = $this->santriBaruModel->getDetailSantri($IdSantri);

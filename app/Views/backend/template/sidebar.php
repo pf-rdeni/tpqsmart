@@ -15,7 +15,7 @@
                     class="img-circle elevation-2" alt="User Image">
             </div>
             <div class="info">
-                <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname . (session()->has('IdTahunAjaran') ? ' - ' . convertTahunAjaran(session()->get('IdTahunAjaran')) : ''); ?></a>
+                <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname; ?></a>
             </div>
         </div>
         <?php if (in_groups('Guru')): ?>
@@ -553,8 +553,15 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Refresh halaman setelah session berhasil diupdate
-                            window.location.reload();
+                            // Tampilkan informasi kelas yang tersedia
+                            if (data.kelasCount > 0) {
+                                console.log('Tahun ajaran berhasil diubah. Tersedia ' + data.kelasCount + ' kelas.');
+                                // Refresh halaman setelah session berhasil diupdate
+                                window.location.reload();
+                            } else {
+                                alert('Tahun ajaran berhasil diubah, namun tidak ada kelas yang tersedia untuk tahun ajaran ini.');
+                                window.location.reload();
+                            }
                         } else {
                             // Jika gagal, kembalikan ke nilai sebelumnya
                             this.value = '<?= session()->get('IdTahunAjaran') ?>';
