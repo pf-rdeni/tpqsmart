@@ -119,7 +119,10 @@ class Rapor extends BaseController
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isPhpEnabled', true);
             $options->set('isRemoteEnabled', true);
-            $options->set('defaultFont', 'Arial');
+            // Gunakan font yang mendukung huruf Arab
+            $options->set('defaultFont', 'DejaVu Sans');
+            // Aktifkan subsetting font untuk dukungan karakter luas
+            $options->set('isFontSubsettingEnabled', true);
 
             $dompdf = new Dompdf($options);
             $dompdf->loadHtml($html);
@@ -175,7 +178,10 @@ class Rapor extends BaseController
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isPhpEnabled', true);
             $options->set('isRemoteEnabled', true);
-            $options->set('defaultFont', 'Arial');
+            // Gunakan font yang mendukung huruf Arab
+            $options->set('defaultFont', 'DejaVu Sans');
+            // Aktifkan subsetting font untuk dukungan karakter luas
+            $options->set('isFontSubsettingEnabled', true);
 
             $dompdf = new Dompdf($options);
 

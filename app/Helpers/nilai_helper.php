@@ -330,6 +330,83 @@ if (!function_exists('angkaKeHurufArab')) {
     }
 }
 
+// konversi huruf latin (A-E) ke aksara Arab
+if (!function_exists('hurufLatinKeArab')) {
+    function hurufLatinKeArab($huruf)
+    {
+        $map = [
+            'A' => 'أ',
+            'a' => 'أ',
+            'B' => 'ب',
+            'b' => 'ب',
+            'C' => 'ج',
+            'c' => 'ج',
+            'D' => 'د',
+            'd' => 'د',
+            'E' => 'هـ',
+            'e' => 'هـ',
+            '+' => '+',
+            '-' => '-',
+            ' ' => ' '
+        ];
+
+        $result = '';
+        $str = (string) $huruf;
+        $len = mb_strlen($str, 'UTF-8');
+        for ($i = 0; $i < $len; $i++) {
+            $ch = mb_substr($str, $i, 1, 'UTF-8');
+            $result .= $map[$ch] ?? $ch;
+        }
+
+        return $result;
+    }
+}
+
+// pembungkus: aktifkan konversi huruf ke Arab berdasarkan setting session
+if (!function_exists('konversiHurufArabic')) {
+    function konversiHurufArabic($huruf)
+    {
+        $settingNilaiArabic = session()->get('SettingNilaiArabic') ?? false;
+        if ($settingNilaiArabic) {
+            return hurufLatinKeArab($huruf);
+        }
+        return $huruf;
+    }
+}
+
+// check settingan converi ke arab?
+if (!function_exists('konversiNilaiAngkaArabic')) {
+    function konversiNilaiAngkaArabic($nilai)
+    {
+        // ambil settingan dari session angka arabic
+        $settingNilaiArabic = session()->get('SettingNilaiArabic') ?? false;
+        if ($settingNilaiArabic) {
+            // Jika settingan angka arabic aktif, konversi ke angka arab
+            return angkaKeHurufArab($nilai);
+        } else {
+            // Jika tidak, kembalikan nilai apa adanya
+            return $nilai;
+        }
+    }
+}
+
+//Check conversi terbilang ke arab
+if (!function_exists('konversiTerbilangArabic')) {
+    function konversiTerbilangArabic($angka)
+    {
+        // ambil settingan dari session angka arabic
+        $settingNilaiArabic = session()->get('SettingNilaiArabic') ?? false;
+        if ($settingNilaiArabic) {
+            // Jika settingan angka arabic aktif, konversi ke terbilang arab
+            return angkaKeTerbilangArab($angka);
+        } else {
+            // Jika tidak, kembalikan nilai apa adanya
+
+            return formatTerbilang($angka);
+        }
+    }
+}
+
 
 // fungsi merubah angka ke huruf arabic dengan format terbilang bahasa arab
 

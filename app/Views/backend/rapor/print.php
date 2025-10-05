@@ -1,5 +1,8 @@
 <?php
 helper('nilai');
+
+
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -9,13 +12,20 @@ helper('nilai');
     <title>Rapor Santri</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
             margin: 20px;
         }
 
         .header {
             text-align: center;
             margin-bottom: 30px;
+        }
+
+        /* Kelas bantu untuk teks Arab (RTL) */
+        .arabic {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            direction: rtl;
+            unicode-bidi: isolate-override;
         }
 
         .header h2 {
@@ -123,10 +133,10 @@ helper('nilai');
                     <td><?= $no++ ?></td>
                     <td><?= htmlspecialchars(toTitleCase($n->NamaMateri)) ?></td>
                     <td><?= htmlspecialchars(toTitleCase($n->Kategori)) ?></td>
-                    <td><?= $n->Nilai ?></td>
-                    <td><?= konversiNilaiHuruf($n->Nilai) ?></td>
-                    <td><?= number_format($n->RataKelas, 2) ?></td>
-                    <td><?= formatTerbilang($n->Nilai) ?></td>
+                    <td><?= konversiNilaiAngkaArabic($n->Nilai) ?></td>
+                    <td><?= konversiHurufArabic(konversiNilaiHuruf($n->Nilai)) ?></td>
+                    <td><?= konversiNilaiAngkaArabic(number_format($n->RataKelas, 2)) ?></td>
+                    <td><span class="arabic"><?= konversiTerbilangArabic($n->Nilai) ?></span></td>
                 </tr>
             <?php endforeach; ?>
             <?php
@@ -144,17 +154,17 @@ helper('nilai');
             ?>
             <tr style="font-weight: bold;">
                 <td colspan="3" style="text-align: right;">Total Nilai:</td>
-                <td><?= number_format($total, 0) ?></td>
+                <td><?= konversiNilaiAngkaArabic(number_format($total, 0)) ?></td>
                 <td></td>
                 <td></td>
-                <td><?= formatTerbilang($total) ?></td>
+                <td><span class="arabic"><?= konversiTerbilangArabic($total) ?></span></td>
             </tr>
             <tr style="font-weight: bold;">
                 <td colspan="3" style="text-align: right;">Rata-Rata:</td>
-                <td><?= $rata_rata ?></td>
-                <td><?= konversiNilaiHuruf($rata_rata) ?></td>
-                <td><?= number_format($rata_rata_kelas, 1) ?></td>
-                <td><?= formatTerbilang($rata_rata) ?></td>
+                <td><?= konversiNilaiAngkaArabic($rata_rata) ?></td>
+                <td><?= konversiHurufArabic(konversiNilaiHuruf($rata_rata)) ?></td>
+                <td><?= konversiNilaiAngkaArabic(number_format($rata_rata_kelas, 1)) ?></td>
+                <td><span class="arabic"><?= konversiTerbilangArabic($rata_rata) ?></span></td>
             </tr>
         </tbody>
     </table>
