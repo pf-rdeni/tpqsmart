@@ -486,6 +486,44 @@ class HelpFunctionModel extends Model
         return $this->db->table('tbl_tpq')->where('IdTpq', $IdTpq)->get()->getRowArray();
     }
 
+    /**
+     * Mengambil detail santri dari tbl_kelas_santri yang di-join ke tbl_santri_baru
+     * Filter berdasarkan IdSantri, IdTahunAjaran, IdTpq
+     * @param mixed $IdSantri
+     * @param mixed $IdTahunAjaran
+     * @param mixed $IdTpq
+     * @return array|null
+     */
+    public function getDetailSantriByKelasSantri($IdSantri, $IdTahunAjaran, $IdTpq)
+    {
+        $builder = $this->db->table('tbl_kelas_santri ks');
+        $builder->select('s.*, ks.IdKelas, k.NamaKelas');
+        $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
+
+        $builder->where('ks.IdSantri', $IdSantri);
+        if (!empty($IdTahunAjaran)) {
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
+            } else {
+                $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            }
+        }
+        if (!empty($IdTpq)) {
+            if (is_array($IdTpq)) {
+                $builder->whereIn('ks.IdTpq', $IdTpq);
+            } else {
+                $builder->where('ks.IdTpq', $IdTpq);
+            }
+        }
+
+        // Jika ada banyak baris (multi tahun), ambil yang terbaru
+        $builder->orderBy('ks.IdTahunAjaran', 'DESC');
+        $builder->limit(1);
+
+        return $builder->get()->getRowArray();
+    }
+
     //get data total santri
     /**
      * Mengambil total santri berdasarkan IdTpq, IdKelas, dan IdGuru

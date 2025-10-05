@@ -85,7 +85,8 @@ class NilaiModel extends Model
         $builder->select('n.*, m.NamaMateri, m.Kategori, k.NamaKelas, kmp.UrutanMateri');
         $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
         $builder->join('tbl_kelas k', 'k.IdKelas = n.IdKelas');
-        $builder->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas');
+        // Gunakan LEFT JOIN agar data nilai santri tetap muncul meskipun belum dimapping di kmp
+        $builder->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas', 'left');
 
         // Handle IdTpq jika array
         if (is_array($IdTpq)) {

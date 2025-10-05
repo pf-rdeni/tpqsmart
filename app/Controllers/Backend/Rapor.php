@@ -74,8 +74,12 @@ class Rapor extends BaseController
             $IdTpq = session()->get('IdTpq');
             $IdTahunAjaran = session()->get('IdTahunAjaran');
 
-            // Ambil data santri
-            $santri = $this->santriBaruModel->getDetailSantri($IdSantri);
+            // Ambil data santri dari tbl_kelas_santri join tbl_santri_baru
+            $santri = $this->helpFunctionModel->getDetailSantriByKelasSantri(
+                $IdSantri,
+                $IdTahunAjaran,
+                $IdTpq
+            );
 
             // Ambil data nilai berdasarkan semester
             $nilai = $this->nilaiModel->getDataNilaiPerSantri(
