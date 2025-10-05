@@ -590,8 +590,6 @@ class HelpFunctionModel extends Model
         if (!empty($IdTpq)) {
             $builder->where('tbl_nilai.IdTpq', $IdTpq);
         }
-        $builder->where('tbl_santri_baru.Active', 1);
-
 
         if (is_array($IdTahunAjaran)) {
 
