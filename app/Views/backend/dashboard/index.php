@@ -33,7 +33,14 @@ function render_progress_bar($persentase, $height = 25)
                     <h4 class="m-0">Bismillahirrahmanirrahim</h4>
                 </div>
                 <div class="col-sm-12">
-                    <p>Assalamu'alaikum! Selamat datang di aplikasi TPQ ini. Semoga Allah senantiasa memberkahi langkah kita dalam menuntut ilmu dan mendidik generasi penerus.</p>
+                    <p>Assalamu'alaikum, <strong><?= esc(($SapaanLogin ?? '') . ' ' . ($NamaLogin ?? (function_exists('user') && user() ? (user()->username ?? 'Pengguna') : 'Pengguna'))) ?></strong>...!
+                        Selamat datang di aplikasi ini, anda logged in sebagai <strong><?= esc($PeranLogin ?? 'Pengguna') ?></strong>
+                        <?php if (($PeranLogin ?? '') === 'Wali Kelas' && !empty($WaliKelasNamaKelas ?? '')): ?>
+                            - <strong><?= esc($WaliKelasNamaKelas) ?></strong>
+                            <span>(Tahun Ajaran <?= esc($TahunAjaran ?? '') ?>)</span>
+                            <?php endif; ?>.
+                            Semoga Allah senantiasa memberkahi langkah kita dalam menuntut ilmu dan mendidik generasi penerus.
+                    </p>
                 </div>
             </div>
         </div>

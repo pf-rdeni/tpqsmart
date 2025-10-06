@@ -288,6 +288,54 @@ class Auth extends BaseController
         $idTahunAjaran = session()->get('IdTahunAjaran');
         $idKelas = session()->get('IdKelas');
         $idGuru = session()->get('IdGuru');
+        // Tentukan nama login dan peran login
+        $namaLogin = null;
+        $sapaanLogin = null;
+        if (!empty($idGuru)) {
+            $guruRow = $this->helpFunctionModel->getGuruById($idGuru);
+            if (is_array($guruRow)) {
+                if (isset($guruRow['Nama'])) {
+                    $namaLogin = $guruRow['Nama'];
+                }
+                $jk = strtolower(trim($guruRow['JenisKelamin'] ?? ''));
+                // Asumsi: 'P' atau 'Perempuan' => Ustadzah; lainnya => Ustadz
+                if ($jk === 'p' || $jk === 'perempuan' || $jk === 'female' || $jk === 'f') {
+                    $sapaanLogin = 'Ustadzah';
+                } else if ($jk === 'l' || $jk === 'laki-laki' || $jk === 'laki laki' || $jk === 'male' || $jk === 'm') {
+                    $sapaanLogin = 'Ustadz';
+                }
+            }
+        }
+        if ($namaLogin === null && function_exists('user') && user()) {
+            $namaLogin = user()->username ?? user()->email ?? 'Pengguna';
+        }
+        if ($sapaanLogin === null) {
+            $sapaanLogin = 'Ustadz';
+        }
+
+        // Tentukan peran login dengan cek langsung ke tbl_guru_kelas berdasarkan session
+        $peranLogin = (in_groups('Admin') ? 'Admin' : (in_groups('Operator') ? 'Operator' : 'Pengguna'));
+        if (in_groups('Guru')) {
+            $peranLogin = 'Guru Kelas';
+            try {
+                $guruKelasRows = $this->helpFunctionModel->getDataGuruKelas(
+                    IdGuru: $idGuru,
+                    IdTpq: $idTpq,
+                    IdKelas: $idKelas,
+                    IdTahunAjaran: $idTahunAjaran
+                );
+                if (!empty($guruKelasRows)) {
+                    foreach ($guruKelasRows as $row) {
+                        if (isset($row->IdJabatan) && (int)$row->IdJabatan === 3) {
+                            $peranLogin = 'Wali Kelas';
+                            break;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // fallback tetap 'Guru Kelas' jika terjadi error
+            }
+        }
 
         if (in_groups('Guru')) {
             $data = $this->getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru);
@@ -296,6 +344,35 @@ class Auth extends BaseController
             $data = $this->getAdminDashboardData($idTpq, $idTahunAjaran);
         } else {
             $data = ['page_title' => 'Dashboard'];
+        }
+
+        // Tambahkan NamaLogin dan PeranLogin ke data view
+        $data['NamaLogin'] = $namaLogin;
+        $data['PeranLogin'] = $peranLogin;
+        $data['SapaanLogin'] = $sapaanLogin;
+
+        // Jika wali kelas, kumpulkan daftar nama kelas yang diwalikan
+        if ($peranLogin === 'Wali Kelas') {
+            try {
+                $waliRows = $this->helpFunctionModel->getDataGuruKelas(
+                    IdGuru: $idGuru,
+                    IdTpq: $idTpq,
+                    IdKelas: $idKelas,
+                    IdTahunAjaran: $idTahunAjaran,
+                    IdJabatan: 3
+                );
+                $kelasNames = [];
+                if (!empty($waliRows)) {
+                    foreach ($waliRows as $row) {
+                        if (!empty($row->NamaKelas)) {
+                            $kelasNames[$row->NamaKelas] = true; // unique by name
+                        }
+                    }
+                }
+                $data['WaliKelasNamaKelas'] = implode(', ', array_keys($kelasNames));
+            } catch (\Throwable $e) {
+                $data['WaliKelasNamaKelas'] = '';
+            }
         }
 
         return view('backend/dashboard/index', $data);

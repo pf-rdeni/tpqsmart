@@ -292,6 +292,20 @@ class HelpFunctionModel extends Model
         return $builder->get()->getRowArray();
     }
 
+    /**
+     * Mengambil data guru (Nama, JenisKelamin) berdasarkan IdGuru
+     * @param string $IdGuru
+     * @return array|null
+     */
+    public function getGuruById($IdGuru)
+    {
+        return $this->db->table('tbl_guru')
+            ->select('Nama, JenisKelamin')
+            ->where('IdGuru', $IdGuru)
+            ->get()
+            ->getRowArray();
+    }
+
     // get nama wali kelas dari inputan IdKelas check di tbl_guru_kelas fiter IdTpq IdTahunAjaran
     /**
      * Mengambil nama wali kelas berdasarkan IdKelas, IdTpq, dan IdTahunAjaran
