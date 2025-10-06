@@ -316,6 +316,26 @@ class HelpFunctionModel extends Model
         // Mengembalikan hasil sebagai object
         return $builder->get()->getRowObject();
     }
+    // get guru pendamping dari IdKelas, IdTpq, IdTahunAjaran
+    /**
+     * Mengambil guru pendamping berdasarkan IdKelas, IdTpq, dan IdTahunAjaran
+     * @param mixed $IdKelas
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @return object|null
+     */
+    public function getGuruPendampingByIdKelas($IdKelas, $IdTpq, $IdTahunAjaran)
+    {
+        $builder = $this->db->table('tbl_guru_kelas');
+        $builder->select('g.Nama');
+        $builder->join('tbl_guru g', 'g.IdGuru = tbl_guru_kelas.IdGuru');
+        $builder->where('tbl_guru_kelas.IdKelas', $IdKelas);
+        $builder->where('tbl_guru_kelas.IdTpq', $IdTpq);
+        $builder->where('tbl_guru_kelas.IdTahunAjaran', $IdTahunAjaran);
+        $builder->where('tbl_guru_kelas.IdJabatan', 4); // Guru Pendamping
+        // $builder->limit(1);
+        return $builder->get()->getResultObject();
+    }
     //===================================================================
     // Set Related
     // Set Related to Insert tabel auth_groups_users

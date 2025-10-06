@@ -398,10 +398,11 @@ if (!function_exists('konversiTerbilangArabic')) {
         $settingNilaiArabic = session()->get('SettingNilaiArabic') ?? false;
         if ($settingNilaiArabic) {
             // Jika settingan angka arabic aktif, konversi ke terbilang arab
-            return angkaKeTerbilangArab($angka);
+            $terbilang = angkaKeTerbilangArab($angka);
+            // Balik urutan karakter dalam kata Arab untuk PDF
+            return reverseArabicCharacters($terbilang);
         } else {
             // Jika tidak, kembalikan nilai apa adanya
-
             return formatTerbilang($angka);
         }
     }
@@ -475,7 +476,7 @@ if (!function_exists('angkaKeTerbilangArab')) {
             if ($satuan == 0) {
                 return $bilangan[$puluhan];
             } else {
-                return $bilangan[$satuan] . ' و ' . $bilangan[$puluhan];
+                return $bilangan[$puluhan] . ' و ' . $bilangan[$satuan];
             }
         } elseif ($angka < 1000) {
             $ratusan = floor($angka / 100) * 100;
@@ -491,7 +492,7 @@ if (!function_exists('angkaKeTerbilangArab')) {
             if ($sisa == 0) {
                 return angkaKeTerbilangArab($ribuan) . ' ألف';
             } else {
-                return angkaKeTerbilangArab($ribuan) . ' ألف و ' . angkaKeTerbilangArab($sisa);
+                return angkaKeTerbilangArab($sisa) . ' ألف و ' . angkaKeTerbilangArab($ribuan);
             }
         } elseif ($angka < 1000000000) {
             $jutaan = floor($angka / 1000000);
@@ -536,6 +537,43 @@ if (!function_exists('formatTerbilangArab')) {
         }
 
         return trim($hasil);
+    }
+}
+
+// Fungsi untuk membalik urutan karakter dalam kata Arab
+if (!function_exists('reverseArabicCharacters')) {
+    function reverseArabicCharacters($text)
+    {
+        // Hanya balik jika teks mengandung karakter Arab
+        if (preg_match('/[\x{0600}-\x{06FF}]/u', $text)) {
+            // Pisahkan kata-kata
+            $words = explode(' ', $text);
+            $reversedWords = [];
+
+            foreach ($words as $word) {
+                // Balik urutan karakter dalam setiap kata
+                $reversedWords[] = mb_strrev($word, 'UTF-8');
+            }
+
+            return implode(' ', $reversedWords);
+        }
+
+        return $text;
+    }
+}
+
+// Fungsi untuk membalik string multibyte
+if (!function_exists('mb_strrev')) {
+    function mb_strrev($str, $encoding = 'UTF-8')
+    {
+        $length = mb_strlen($str, $encoding);
+        $reversed = '';
+
+        for ($i = $length - 1; $i >= 0; $i--) {
+            $reversed .= mb_substr($str, $i, 1, $encoding);
+        }
+
+        return $reversed;
     }
 }
 

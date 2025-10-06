@@ -12,8 +12,18 @@ helper('nilai');
     <title>Rapor Santri</title>
     <style>
         body {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'Arial Unicode MS', 'Times New Roman', 'DejaVu Sans', Arial, sans-serif;
             margin: 20px;
+        }
+
+        /* CSS untuk memastikan karakter Arab tidak terpisah */
+        .arabic-text {
+            font-family: 'Arial Unicode MS', 'Times New Roman', 'DejaVu Sans', serif;
+            direction: rtl;
+            unicode-bidi: bidi-override;
+            text-align: right;
+            white-space: nowrap;
+            font-feature-settings: "liga" 1, "calt" 1;
         }
 
         .header {
@@ -23,9 +33,24 @@ helper('nilai');
 
         /* Kelas bantu untuk teks Arab (RTL) */
         .arabic {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'Arial Unicode MS', 'Times New Roman', 'DejaVu Sans', serif;
             direction: rtl;
-            unicode-bidi: isolate-override;
+            unicode-bidi: bidi-override;
+            text-align: right;
+            font-feature-settings: "liga" 1, "calt" 1;
+        }
+
+        /* CSS khusus untuk kolom terbilang Arab */
+        .terbilang-arabic {
+            font-family: 'Arial Unicode MS', 'Times New Roman', 'DejaVu Sans', serif;
+            direction: rtl;
+            unicode-bidi: bidi-override;
+            text-align: right;
+            writing-mode: horizontal-tb;
+            font-feature-settings: "liga" 1, "calt" 1;
+            white-space: nowrap;
+            word-spacing: normal;
+            letter-spacing: normal;
         }
 
         .header h2 {
@@ -136,7 +161,7 @@ helper('nilai');
                     <td><?= konversiNilaiAngkaArabic($n->Nilai) ?></td>
                     <td><?= konversiHurufArabic(konversiNilaiHuruf($n->Nilai)) ?></td>
                     <td><?= konversiNilaiAngkaArabic(number_format($n->RataKelas, 2)) ?></td>
-                    <td><span class="arabic"><?= konversiTerbilangArabic($n->Nilai) ?></span></td>
+                    <td class="terbilang-arabic"><?= konversiTerbilangArabic($n->Nilai) ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php
@@ -157,18 +182,47 @@ helper('nilai');
                 <td><?= konversiNilaiAngkaArabic(number_format($total, 0)) ?></td>
                 <td></td>
                 <td></td>
-                <td><span class="arabic"><?= konversiTerbilangArabic($total) ?></span></td>
+                <td class="terbilang-arabic"><?= konversiTerbilangArabic($total) ?></td>
             </tr>
             <tr style="font-weight: bold;">
                 <td colspan="3" style="text-align: right;">Rata-Rata:</td>
                 <td><?= konversiNilaiAngkaArabic($rata_rata) ?></td>
                 <td><?= konversiHurufArabic(konversiNilaiHuruf($rata_rata)) ?></td>
                 <td><?= konversiNilaiAngkaArabic(number_format($rata_rata_kelas, 1)) ?></td>
-                <td><span class="arabic"><?= konversiTerbilangArabic($rata_rata) ?></span></td>
+                <td class="terbilang-arabic"><?= konversiTerbilangArabic($rata_rata) ?></td>
             </tr>
         </tbody>
     </table>
 
+    <!-- tabel catatan-->
+    <table class="nilai-table">
+        <thead>
+            <tr>
+                <th width="30%">Catatan</th>
+            </tr>
+            <tr>
+                <td>Ananda menunjukkan kemampuan akademik yang sangat baik di seluruh mata pelajaran. Ia selalu aktif, memiliki rasa ingin tahu yang tinggi, dan bertanggung jawab penuh dalam setiap tugas yang diberikan. Pertahankan terus semangat belajarnya!"</td>
+            </tr>
+        </thead>
+    </table>
+    <table class="nilai-table">
+        <thead>
+            <tr>
+                <th width="30%">Guru Pendamping</th>
+            </tr>
+            <?php if (!empty($santri['GuruPendamping'])): ?>
+                <?php foreach ($santri['GuruPendamping'] as $key => $guru): ?>
+                    <tr>
+                        <td><?= $key + 1 ?>. <?= htmlspecialchars(toTitleCase($guru->Nama)) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <tr>
+                    <td>-</td>
+                </tr>
+            <?php endif; ?>
+        </thead>
+    </table>
     <!-- Tanda Tangan Layout Gambar Tabel -->
     <table style="width: 100%; border-collapse: collapse; margin-top: 50px; font-size: 12px; page-break-inside: avoid;">
         <tr>
