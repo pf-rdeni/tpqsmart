@@ -13,7 +13,7 @@
             <div class="row">
                 <div class="col-md-3 text-center mb-3">
                     <?php
-                        $thumb = !empty($dataSantri['PhotoProfil']) ? base_url('uploads/santri/thumbnails/thumb_' . $dataSantri['PhotoProfil']) : base_url('images/no-photo.jpg');
+$thumb = !empty($dataSantri['PhotoProfil']) ? base_url('uploads/santri/' . $dataSantri['PhotoProfil']) : base_url('images/no-photo.jpg');
                     ?>
                     <img src="<?= $thumb; ?>" alt="Foto" class="img-fluid img-thumbnail" style="max-height:180px;">
                 </div>
