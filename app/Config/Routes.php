@@ -91,6 +91,10 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('qr/generate', 'Qr::generate');
     $routes->post('qr/generate', 'Qr::generate');
     $routes->get('qr/print', 'Qr::print');
+
+    // Profil Santri
+    $routes->get('santri/showProfilSantri', 'Santri::showProfilSantri');
+    $routes->get('santri/profilDetailSantri/(:segment)', 'Santri::profilDetailSantri/$1');
 });
 
 $routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::validateSignature/$1');

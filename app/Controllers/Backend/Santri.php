@@ -598,6 +598,67 @@ class Santri extends BaseController
         return view('backend/santri/listSantriBaru', $data);
     }
 
+    // Page: Profil Data Santri - List
+    public function showProfilSantri()
+    {
+        $IdTpq = session()->get('IdTpq');
+
+        $query = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        if ($IdTpq == null) {
+            $santri = $query
+                ->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
+                ->findAll();
+        } else {
+            $IdKelas = session()->get('IdKelas');
+            if ($IdKelas !== null) {
+                if (is_array($IdKelas)) {
+                    $query->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                } else {
+                    $query->where('tbl_santri_baru.IdKelas', $IdKelas);
+                }
+            }
+
+            $santri = $query
+                ->where('tbl_santri_baru.IdTpq', $IdTpq)
+                ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
+                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+                ->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->findAll();
+        }
+
+        $data = [
+            'page_title' => 'Profil Data Santri',
+            'dataSantri' => $santri,
+        ];
+        return view('backend/santri/listDataProfilSantri', $data);
+    }
+
+    // Page: Profil Data Santri - Detail
+    public function profilDetailSantri($IdSantri)
+    {
+        $santri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa as KelurahanDesaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri)
+            ->first();
+
+        if (!$santri) {
+            return redirect()->back()->with('error', 'Data santri tidak ditemukan');
+        }
+
+        $data = [
+            'page_title' => 'Profil Detail Santri',
+            'dataSantri' => $santri,
+        ];
+        return view('backend/santri/profilDatailSantri', $data);
+    }
+
     public function showAturSantriBaru()
     {
         // ambil IdTpq dari session

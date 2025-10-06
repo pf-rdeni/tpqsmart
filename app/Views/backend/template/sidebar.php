@@ -299,6 +299,12 @@
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Data Santri</p>
                                 </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Profil Data Santri</p>
+                                </a>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
