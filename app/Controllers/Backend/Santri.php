@@ -1036,6 +1036,8 @@ class Santri extends BaseController
 
             // Gunakan fungsi getDataSantri
             $dataSantri = $this->getDataSantri($IdSantri);
+            // Ambil data TPQ untuk mendapatkan Kepala TPQ
+            $tpqRow = $this->helpFunction->getNamaTpqById($dataSantri['IdTpq']);
 
             // Siapkan data untuk template
             $data = [
@@ -1144,6 +1146,80 @@ class Santri extends BaseController
 
             // log footer ================================
             log_message('info', 'Santri: generatePDFSantriBaru - Footer');
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function generatePDFprofilSantriRaport($IdSantri = null)
+    {
+        log_message('info', 'Santri: generatePDFprofilSantriRaport - Header');
+        try {
+            if (!$IdSantri) {
+                throw new \Exception('ID Santri tidak ditemukan');
+            }
+
+            $dataSantri = $this->getDataSantri($IdSantri);
+            $tpqRow = $this->helpFunction->getNamaTpqById($dataSantri['IdTpq']);
+
+            $data = [
+                'printNamaTpq' => $dataSantri['NamaTpq'],
+                'printNamaKelas' => $dataSantri['NamaKelas'],
+                'printNamaSantri' => $dataSantri['NamaSantri'],
+                'printNikSantri' => $dataSantri['NikSantri'],
+                'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . $dataSantri['TanggalLahirSantri'],
+                'printJenisKelamin' => $dataSantri['JenisKelamin'],
+                'printAlamatSantri' => $dataSantri['AlamatSantri'],
+                'printRtSantri' => $dataSantri['RtSantri'] ?? '',
+                'printRwSantri' => $dataSantri['RwSantri'] ?? '',
+                'printKelurahanDesaSantri' => $dataSantri['KelurahanDesaSantri'] ?? '',
+                'printKecamatanSantri' => $dataSantri['KecamatanSantri'] ?? '',
+                'printKabupatenKotaSantri' => $dataSantri['KabupatenKotaSantri'] ?? '',
+                'printProvinsiSantri' => $dataSantri['ProvinsiSantri'] ?? '',
+                'printNamaAyah' => $dataSantri['NamaAyah'],
+                'printNamaIbu' => $dataSantri['NamaIbu'],
+                'printTelp' => $dataSantri['NoHpSantri'] ?: ($dataSantri['NoHpAyah'] ?: $dataSantri['NoHpIbu']),
+                'printPekerjaanAyah' => $dataSantri['PekerjaanUtamaAyah'],
+                'printPekerjaanIbu' => $dataSantri['PekerjaanUtamaIbu'],
+                'printTanggalDiterima' => date('d-m-Y', strtotime($dataSantri['created_at'])),
+                'printFotoSantri' => null,
+                'printKepalaTpq' => $tpqRow['KepalaSekolah'] ?? '',
+            ];
+
+            if (!empty($dataSantri['PhotoProfil'])) {
+                if (ENVIRONMENT === 'production') {
+                    $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
+                } else {
+                    $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                }
+                $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
+                $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
+                if ($fotoData) {
+                    $data['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
+                }
+            }
+
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $dompdf = new Dompdf($options);
+
+            $html = view('backend/santri/pdftemplateprofileraport', [
+                'data' => $data,
+            ]);
+
+            // Gunakan ukuran kertas Folio (F4) portrait
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('folio', 'portrait');
+            $dompdf->render();
+
+            $filename = 'Profil_Santri_' . str_replace(' ', '_', $dataSantri['NamaSantri']) . '.pdf';
+            return $this->response
+                ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+                ->setBody($dompdf->output());
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: generatePDFprofilSantriRaport - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }

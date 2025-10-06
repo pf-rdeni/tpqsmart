@@ -95,6 +95,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     // Profil Santri
     $routes->get('santri/showProfilSantri', 'Santri::showProfilSantri');
     $routes->get('santri/profilDetailSantri/(:segment)', 'Santri::profilDetailSantri/$1');
+    $routes->get('santri/generatePDFprofilSantriRaport/(:segment)', 'Santri::generatePDFprofilSantriRaport/$1');
 });
 
 $routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::validateSignature/$1');
