@@ -25,6 +25,106 @@ class Rapor extends BaseController
         mb_internal_encoding('UTF-8');
     }
 
+    /**
+     * Setup Dompdf configuration dengan pengaturan optimal untuk karakter Arab
+     */
+    private function setupDompdfConfig()
+    {
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        // Gunakan font yang mendukung huruf Arab dengan baik
+        $options->set('defaultFont', 'Arial Unicode MS');
+        // Aktifkan subsetting font untuk dukungan karakter luas
+        $options->set('isFontSubsettingEnabled', true);
+        // Aktifkan dukungan Unicode untuk karakter Arab
+        $options->set('defaultMediaType', 'print');
+        $options->set('isJavascriptEnabled', false);
+        // Aktifkan dukungan untuk karakter kompleks seperti Arab
+        $options->set('isFontSubsettingEnabled', true);
+
+        return new Dompdf($options);
+    }
+
+    /**
+     * Output PDF dengan headers yang sesuai
+     */
+    private function outputPdf($dompdf, $filename)
+    {
+        // Hapus semua output sebelumnya
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // Set header
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $filename . '"');
+        header('Cache-Control: private, max-age=0, must-revalidate');
+        header('Pragma: public');
+
+        // Output PDF
+        echo $dompdf->output();
+        exit();
+    }
+
+    /**
+     * Ambil data santri lengkap dengan nilai dan wali kelas
+     */
+    private function getSantriDataWithNilai($IdSantri, $IdTpq, $IdTahunAjaran, $semester)
+    {
+        // Ambil data santri dari tbl_kelas_santri join tbl_santri_baru
+        $santri = $this->helpFunctionModel->getDetailSantriByKelasSantri(
+            $IdSantri,
+            $IdTahunAjaran,
+            $IdTpq
+        );
+
+        if (empty($santri)) {
+            return null;
+        }
+
+        // Ambil data nilai berdasarkan semester
+        $nilai = $this->nilaiModel->getDataNilaiPerSantri(
+            IdTpq: $IdTpq,
+            IdTahunAjaran: $IdTahunAjaran,
+            IdKelas: $santri['IdKelas'],
+            IdSantri: $IdSantri,
+            semester: $semester
+        );
+
+        // Ambil Nama Wali Kelas dari IdKelas data nilai ke tbl_guru_kelas
+        $IdKelas = $santri['IdKelas'];
+        $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(IdKelas: $IdKelas, IdTpq: $IdTpq, IdTahunAjaran: $IdTahunAjaran);
+        $santri['WaliKelas'] = $waliKelas->Nama;
+        // Ambil guru pendamping dari tbl_guru_kelas
+        $guruPendamping = $this->helpFunctionModel->getGuruPendampingByIdKelas($IdKelas, $IdTpq, $IdTahunAjaran);
+        $santri['GuruPendamping'] = !empty($guruPendamping) ? $guruPendamping : [];
+
+        return [
+            'santri' => $santri,
+            'nilai' => $nilai
+        ];
+    }
+
+    /**
+     * Siapkan data untuk view rapor
+     */
+    private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester)
+    {
+        // Ambil data TPQ
+        $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
+
+        return [
+            'santri' => $santriData['santri'],
+            'nilai' => $santriData['nilai'],
+            'tpq' => $tpq,
+            'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
+            'semester' => $semester,
+            'tanggal' => formatTanggalIndonesia(date('Y-m-d'), 'd F Y')
+        ];
+    }
+
     public function index($semester = 'Ganjil')
     {
         $IdTpq = session()->get('IdTpq');
@@ -74,78 +174,28 @@ class Rapor extends BaseController
             $IdTpq = session()->get('IdTpq');
             $IdTahunAjaran = session()->get('IdTahunAjaran');
 
-            // Ambil data santri dari tbl_kelas_santri join tbl_santri_baru
-            $santri = $this->helpFunctionModel->getDetailSantriByKelasSantri(
-                $IdSantri,
-                $IdTahunAjaran,
-                $IdTpq
-            );
+            // Ambil data santri lengkap dengan nilai dan wali kelas
+            $santriData = $this->getSantriDataWithNilai($IdSantri, $IdTpq, $IdTahunAjaran, $semester);
 
-            // Ambil data nilai berdasarkan semester
-            $nilai = $this->nilaiModel->getDataNilaiPerSantri(
-                IdTpq: $IdTpq,
-                IdTahunAjaran: $IdTahunAjaran,
-                IdKelas: $santri['IdKelas'],
-                IdSantri: $IdSantri,
-                semester: $semester
-            );
-
-            // Ambil Nama Wali Kelas dari IdKelas data nilai ke tbl_guru_kelas
-            if (!empty($santri)) {
-                $IdKelas = $santri['IdKelas'];
-                $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(IdKelas: $IdKelas, IdTpq: $IdTpq, IdTahunAjaran: $IdTahunAjaran);
-                $santri['WaliKelas'] = $waliKelas->Nama;
-            } else {
-                $santri['WaliKelas'] = 'Tidak ada data nilai';
+            if (!$santriData) {
+                throw new \Exception('Data santri tidak ditemukan');
             }
 
-            // Ambil data TPQ
-            $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
-
-            $data = [
-                'santri' => $santri,
-                'nilai' => $nilai,
-                'tpq' => $tpq,
-                'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
-                'semester' => $semester,
-                'tanggal' => formatTanggalIndonesia(date('Y-m-d'), 'd F Y')
-            ];
+            // Siapkan data untuk view rapor
+            $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester);
 
             // Load view untuk PDF
             $html = view('backend/rapor/print', $data);
 
-            // Inisialisasi Dompdf dengan konfigurasi minimal
-            $options = new Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isPhpEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            // Gunakan font yang mendukung huruf Arab
-            $options->set('defaultFont', 'DejaVu Sans');
-            // Aktifkan subsetting font untuk dukungan karakter luas
-            $options->set('isFontSubsettingEnabled', true);
-
-            $dompdf = new Dompdf($options);
+            // Setup Dompdf dan render PDF
+            $dompdf = $this->setupDompdfConfig();
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
 
-            // Output PDF dengan cara yang lebih sederhana
-            $filename = 'rapor_' . str_replace(' ', '_', $santri['NamaSantri']) . '_' . $semester . '.pdf';
-
-            // Hapus semua output sebelumnya
-            if (ob_get_level()) {
-                ob_end_clean();
-            }
-
-            // Set header
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="' . $filename . '"');
-            header('Cache-Control: private, max-age=0, must-revalidate');
-            header('Pragma: public');
-
             // Output PDF
-            echo $dompdf->output();
-            exit();
+            $filename = str_replace(' ', '_', $santriData['santri']['NamaSantri']) . '_' . $IdTahunAjaran . '_' . $semester . '.pdf';
+            $this->outputPdf($dompdf, $filename);
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdf - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
@@ -155,7 +205,7 @@ class Rapor extends BaseController
     public function printPdfBulk($IdKelas, $semester)
     {
         try {
-            // Set memory limit dan timeout
+            // Set memory limit dan timeout untuk bulk processing
             ini_set('memory_limit', '512M');
             set_time_limit(600);
             mb_internal_encoding('UTF-8');
@@ -170,49 +220,25 @@ class Rapor extends BaseController
                 'Active' => 1
             ])->findAll();
 
-            // Ambil data TPQ
-            $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
+            if (empty($listSantri)) {
+                throw new \Exception('Tidak ada santri dalam kelas ini');
+            }
 
-            // Inisialisasi Dompdf dengan konfigurasi
-            $options = new Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isPhpEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            // Gunakan font yang mendukung huruf Arab
-            $options->set('defaultFont', 'DejaVu Sans');
-            // Aktifkan subsetting font untuk dukungan karakter luas
-            $options->set('isFontSubsettingEnabled', true);
-
-            $dompdf = new Dompdf($options);
+            // Setup Dompdf
+            $dompdf = $this->setupDompdfConfig();
 
             // Gabungkan semua HTML
             $combinedHtml = '';
             foreach ($listSantri as $index => $santri) {
-                // Ambil data nilai
-                $nilai = $this->nilaiModel->getDataNilaiPerSantri(
-                    IdTpq: $IdTpq,
-                    IdTahunAjaran: $IdTahunAjaran,
-                    IdKelas: $santri['IdKelas'],
-                    IdSantri: $santri['IdSantri'],
-                    semester: $semester
-                );
+                // Ambil data santri lengkap dengan nilai dan wali kelas
+                $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
 
-                // Ambil Wali Kelas
-                $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(
-                    IdKelas: $santri['IdKelas'],
-                    IdTpq: $IdTpq,
-                    IdTahunAjaran: $IdTahunAjaran
-                );
-                $santri['WaliKelas'] = $waliKelas->Nama;
+                if (!$santriData) {
+                    continue; // Skip jika data santri tidak ditemukan
+                }
 
-                $data = [
-                    'santri' => $santri,
-                    'nilai' => $nilai,
-                    'tpq' => $tpq,
-                    'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
-                    'semester' => $semester,
-                    'tanggal' => formatTanggalIndonesia(date('Y-m-d'), 'd F Y')
-                ];
+                // Siapkan data untuk view rapor
+                $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester);
 
                 // Load view untuk setiap santri
                 $html = view('backend/rapor/print', $data);
@@ -232,21 +258,7 @@ class Rapor extends BaseController
 
             // Output PDF
             $filename = 'rapor_kelas_' . $IdKelas . '_' . $semester . '.pdf';
-
-            // Hapus semua output sebelumnya
-            if (ob_get_level()) {
-                ob_end_clean();
-            }
-
-            // Set header
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="' . $filename . '"');
-            header('Cache-Control: private, max-age=0, must-revalidate');
-            header('Pragma: public');
-
-            // Output PDF
-            echo $dompdf->output();
-            exit();
+            $this->outputPdf($dompdf, $filename);
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdfBulk - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
