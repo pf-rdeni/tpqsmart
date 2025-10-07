@@ -127,6 +127,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Profil Santri</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Ubah Santri</p>
