@@ -91,7 +91,7 @@
         }
 
         table.kv td.k {
-            width: 30%;
+            width: 200px;
             color: #444;
         }
 
@@ -152,9 +152,10 @@
     <!-- Kop Lembaga -->
     <div class="kop-lembaga">
         <div class="nama-lembaga"><?= htmlspecialchars($d['printNamaTpq']); ?></div>
-        <div class="alamat-lembaga">Alamat TPQ</div>
-        <div class="alamat-lembaga">Kelurahan/Desa, Kecamatan, Kabupaten/Kota</div>
-        <div class="kontak-lembaga">Telp: - | Email: -</div>
+        <div class="alamat-lembaga"><?= htmlspecialchars($d['printAlamatTpq']); ?></div>
+        <div class="alamat-lembaga"><?= htmlspecialchars($d['printKelurahanDesaTpq']); ?>, <?= htmlspecialchars($d['printKecamatanTpq']); ?>, <?= htmlspecialchars($d['printKabupatenKotaTpq']); ?></div>
+        <div class="alamat-lembaga"><?= htmlspecialchars($d['printProvinsiTpq']); ?> <?= htmlspecialchars($d['printKodePosTpq']); ?></div>
+        <div class="kontak-lembaga">Telp: <?= htmlspecialchars($d['printTelpTpq']); ?> | Email: <?= htmlspecialchars($d['printEmailTpq']); ?></div>
     </div>
 
     <table class="header">
@@ -169,7 +170,7 @@
 
     <table class="grid">
         <tr>
-            <td style="width:70%; padding-right:10px;">
+            <td style="width:75%; padding-right:10px;">
                 <div class="section">
                     <div class="section-title">Biodata Santri</div>
                     <table class="kv">
@@ -212,7 +213,7 @@
                     </table>
                 </div>
             </td>
-            <td style="width:30%; text-align:center; vertical-align:top;">
+            <td style="width:25%; text-align:center; vertical-align:top;">
                 <div class="section">
                     <div class="section-title">Foto</div>
                     <div class="photo-box" style="margin:auto;">
@@ -229,7 +230,6 @@
     <table class="grid">
         <tr>
             <td style="width:100%; padding-right:0;">
-
                 <div class="section">
                     <div class="section-title">Informasi Kesiswaan</div>
                     <table class="kv">
@@ -273,45 +273,48 @@
                         </tr>
                     </table>
                 </div>
-
-                <!-- Baris bawah: tanda tangan Kepala TPQ -->
-                <table class="grid" style="margin-top:6px;">
-                    <tr>
-                        <td style="width:50%; text-align:left;">
-                            <div class="section-bottom" style="text-align:left;">
-                                <div class="section-title">Kepala TPQ</div>
-                                <div class="sign-placeholder">
-                                    <?php
-                                    // Coba ambil QR dari folder uploads/qr, gunakan file pertama yang ditemukan
-                                    $qrBase = FCPATH . 'uploads/qr/';
-                                    $qrImg = null;
-                                    if (is_dir($qrBase)) {
-                                        $files = glob($qrBase . '*.svg');
-                                        if (!$files) {
-                                            $files = glob($qrBase . '*.png');
-                                        }
-                                        if (!$files) {
-                                            $files = glob($qrBase . '*.jpg');
-                                        }
-                                        if ($files && file_exists($files[0])) {
-                                            $ext = pathinfo($files[0], PATHINFO_EXTENSION);
-                                            $mime = $ext === 'svg' ? 'image/svg+xml' : 'image/' . strtolower($ext);
-                                            $qrContent = file_get_contents($files[0]);
-                                            $qrImg = 'data:' . $mime . ';base64,' . base64_encode($qrContent);
-                                        }
-                                    }
-                                    ?>
-                                    <?php if (!empty($qrImg)): ?>
-                                        <img src="<?= $qrImg; ?>" alt="QR" style="width:80px;height:80px;" />
-                                    <?php endif; ?>
-                                </div>
-                                <div class="sign-name">( <?= htmlspecialchars($d['printKepalaTpq'] ?? 'Kepala TPQ') ?> )</div>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
             </td>
         </tr>
+    </table>
+
+    <!-- Baris bawah: tanda tangan Kepala TPQ -->
+    <table class="grid" style="margin-top:6px;">
+        <tr>
+            <td style="width:50%; text-align:left;">
+                <div class="section-bottom" style="text-align:left;">
+                    <div class="section-title">Kepala TPQ</div>
+                    <div class="sign-placeholder">
+                        <?php
+                        // Coba ambil QR dari folder uploads/qr, gunakan file pertama yang ditemukan
+                        $qrBase = FCPATH . 'uploads/qr/';
+                        $qrImg = null;
+                        if (is_dir($qrBase)) {
+                            $files = glob($qrBase . '*.svg');
+                            if (!$files) {
+                                $files = glob($qrBase . '*.png');
+                            }
+                            if (!$files) {
+                                $files = glob($qrBase . '*.jpg');
+                            }
+                            if ($files && file_exists($files[0])) {
+                                $ext = pathinfo($files[0], PATHINFO_EXTENSION);
+                                $mime = $ext === 'svg' ? 'image/svg+xml' : 'image/' . strtolower($ext);
+                                $qrContent = file_get_contents($files[0]);
+                                $qrImg = 'data:' . $mime . ';base64,' . base64_encode($qrContent);
+                            }
+                        }
+                        ?>
+                        <?php if (!empty($qrImg)): ?>
+                            <img src="<?= $qrImg; ?>" alt="QR" style="width:80px;height:80px;" />
+                        <?php endif; ?>
+                    </div>
+                    <div class="sign-name">( <?= htmlspecialchars($d['printKepalaTpq'] ?? 'Kepala TPQ') ?> )</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+    </td>
+    </tr>
     </table>
 </body>
 

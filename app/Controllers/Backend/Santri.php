@@ -1183,6 +1183,15 @@ class Santri extends BaseController
                 'printTanggalDiterima' => date('d-m-Y', strtotime($dataSantri['created_at'])),
                 'printFotoSantri' => null,
                 'printKepalaTpq' => $tpqRow['KepalaSekolah'] ?? '',
+                // Data TPQ untuk kop lembaga
+                'printAlamatTpq' => $tpqRow['AlamatTpq'] ?? '',
+                'printKelurahanDesaTpq' => $tpqRow['KelurahanDesa'] ?? '',
+                'printKecamatanTpq' => $tpqRow['Kecamatan'] ?? 'Seri Kuala Lobam',
+                'printKabupatenKotaTpq' => $tpqRow['KabupatenKota'] ?? 'Bintan',
+                'printProvinsiTpq' => $tpqRow['Provinsi'] ?? 'Kepulauan Riau',
+                'printKodePosTpq' => $tpqRow['KodePos'] ?? '29152',
+                'printTelpTpq' => $tpqRow['NoHp'] ?? '081234567890',
+                'printEmailTpq' => $tpqRow['Email'] ?? $tpqRow['NamaTpq'] . '@TpqSmart.simpedis.com',
             ];
 
             if (!empty($dataSantri['PhotoProfil'])) {
