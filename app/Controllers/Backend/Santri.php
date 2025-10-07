@@ -1166,7 +1166,7 @@ class Santri extends BaseController
                 'printNamaKelas' => $dataSantri['NamaKelas'],
                 'printNamaSantri' => $dataSantri['NamaSantri'],
                 'printNikSantri' => $dataSantri['NikSantri'],
-                'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . $dataSantri['TanggalLahirSantri'],
+                'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . formatTanggalIndonesia($dataSantri['TanggalLahirSantri'], 'd F Y'),
                 'printJenisKelamin' => $dataSantri['JenisKelamin'],
                 'printAlamatSantri' => $dataSantri['AlamatSantri'],
                 'printRtSantri' => $dataSantri['RtSantri'] ?? '',
@@ -1180,7 +1180,7 @@ class Santri extends BaseController
                 'printTelp' => $dataSantri['NoHpSantri'] ?: ($dataSantri['NoHpAyah'] ?: $dataSantri['NoHpIbu']),
                 'printPekerjaanAyah' => $dataSantri['PekerjaanUtamaAyah'],
                 'printPekerjaanIbu' => $dataSantri['PekerjaanUtamaIbu'],
-                'printTanggalDiterima' => date('d-m-Y', strtotime($dataSantri['created_at'])),
+                'printTanggalDiterima' => formatTanggalIndonesia($dataSantri['created_at'], 'd F Y'),
                 'printFotoSantri' => null,
                 'printKepalaTpq' => $tpqRow['KepalaSekolah'] ?? '',
                 // Data TPQ untuk kop lembaga
