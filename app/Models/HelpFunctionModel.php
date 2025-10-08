@@ -1520,5 +1520,56 @@ class HelpFunctionModel extends Model
 
         return $builder->get()->getResultArray();
     }
+
+    /**
+     * Get jabatan by ID
+     */
+    public function getJabatanById($IdJabatan)
+    {
+        $builder = $this->db->table('tbl_jabatan');
+        $builder->select('*');
+        $builder->where('IdJabatan', $IdJabatan);
+
+        return $builder->get()->getRowArray();
+    }
+
+    /**
+     * Check guru kelas permission
+     */
+    public function checkGuruKelasPermission($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran)
+    {
+        $builder = $this->db->table('tbl_guru_kelas gk');
+        $builder->select('gk.*, j.NamaJabatan');
+        $builder->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
+        $builder->where('gk.IdTpq', $IdTpq);
+        $builder->where('gk.IdGuru', $IdGuru);
+        $builder->where('gk.IdKelas', $IdKelas);
+        $builder->where('gk.IdTahunAjaran', $IdTahunAjaran);
+        $builder->where('gk.Status', 'active');
+
+        return $builder->get()->getRowArray();
+    }
+
+    /**
+     * Get all guru kelas permissions for multiple classes
+     */
+    public function getGuruKelasPermissions($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran)
+    {
+        $builder = $this->db->table('tbl_guru_kelas gk');
+        $builder->select('gk.*, j.NamaJabatan, k.NamaKelas');
+        $builder->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
+        $builder->join('tbl_kelas k', 'k.IdKelas = gk.IdKelas');
+        $builder->where('gk.IdTpq', $IdTpq);
+        $builder->where('gk.IdGuru', $IdGuru);
+        $builder->where('gk.IdTahunAjaran', $IdTahunAjaran);
+
+        if (is_array($IdKelas)) {
+            $builder->whereIn('gk.IdKelas', $IdKelas);
+        } else {
+            $builder->where('gk.IdKelas', $IdKelas);
+        }
+
+        return $builder->get()->getResultArray();
+    }
 }
 

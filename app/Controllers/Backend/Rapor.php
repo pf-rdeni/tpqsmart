@@ -187,13 +187,22 @@ class Rapor extends BaseController
         // Ambil data summary nilai untuk setiap santri
         $summaryData = $this->getSummaryDataForSantri($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
 
+        // Ambil data permission guru kelas untuk semua kelas
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdGuru = session()->get('IdGuru');
+        $IdKelas = session()->get('IdKelas');
+
+        $guruKelasPermissions = $this->helpFunctionModel->getGuruKelasPermissions($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
+
         $data = [
             'page_title' => 'Rapor Santri',
             'listKelas' => $lisKelas,
             'listSantri' => $listSantri,
             'nilai' => $summaryData['nilai'],
             'dataKelas' => $summaryData['dataKelas'],
-            'semester' => $semester
+            'semester' => $semester,
+            'guruKelasPermissions' => $guruKelasPermissions
         ];
 
         return view('backend/rapor/index', $data);
@@ -317,57 +326,7 @@ class Rapor extends BaseController
      */
     public function ttdWalas($IdSantri, $semester)
     {
-        try {
-            $IdTpq = session()->get('IdTpq');
-            $IdTahunAjaran = session()->get('IdTahunAjaran');
-            $kelasData = $this->helpFunctionModel->getIdKelasByTahunAjaranDanSemester($IdTpq, $IdTahunAjaran, $semester, $IdSantri);
-            $IdGuru = session()->get('IdGuru');
-
-            // Generate token unik
-            $token = $this->generateUniqueToken();
-
-            // Data untuk disimpan ke tbl_tanda_tangan
-            $signatureData = [
-                'Token' => $token,
-                'IdSantri' => $IdSantri,
-                'IdKelas' => !empty($kelasData) ? $kelasData[0]['IdKelas'] : null,
-                'IdTahunAjaran' => $IdTahunAjaran,
-                'Semester' => $semester,
-                'IdGuru' => $IdGuru,
-                'IdTpq' => $IdTpq,
-                'JenisDokumen' => 'Rapor',
-                'StatusValidasi' => 'Valid',
-                'TanggalTtd' => date('Y-m-d H:i:s')
-            ];
-
-            // Simpan data tanda tangan
-            $IdSignature = $this->signatureModel->insert($signatureData);
-
-            if ($IdSignature) {
-                // Generate QR Code
-                $qrCodeData = $this->generateQRCode($token);
-
-                if ($qrCodeData) {
-                    // Update data tanda tangan dengan nama file QR
-                    $this->signatureModel->where('Id', $IdSignature)
-                        ->set(['QrCode' => $qrCodeData['filename']])
-                        ->update();
-
-                    return redirect()->to(base_url('backend/rapor'))
-                        ->with('success', 'Tanda tangan wali kelas berhasil disimpan dan QR Code telah dibuat.');
-                } else {
-                    return redirect()->to(base_url('backend/rapor'))
-                        ->with('error', 'Tanda tangan berhasil disimpan, namun gagal membuat QR Code.');
-                }
-            } else {
-                return redirect()->to(base_url('backend/rapor'))
-                    ->with('error', 'Gagal menyimpan tanda tangan.');
-            }
-        } catch (\Exception $e) {
-            log_message('error', 'Rapor: ttdWalas - Error: ' . $e->getMessage());
-            return redirect()->to(base_url('backend/rapor'))
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
+        return $this->handleSignature($IdSantri, $semester, 'walas');
     }
 
     /**
@@ -375,57 +334,7 @@ class Rapor extends BaseController
      */
     public function ttdKepsek($IdSantri, $semester)
     {
-        try {
-            $IdTpq = session()->get('IdTpq');
-            $IdTahunAjaran = session()->get('IdTahunAjaran');
-            $kelasData = $this->helpFunctionModel->getIdKelasByTahunAjaranDanSemester($IdTpq, $IdTahunAjaran, $semester, $IdSantri);
-            $IdGuru = session()->get('IdGuru');
-
-            // Generate token unik
-            $token = $this->generateUniqueToken();
-
-            // Data untuk disimpan ke tbl_tanda_tangan
-            $signatureData = [
-                'Token' => $token,
-                'IdSantri' => $IdSantri,
-                'IdKelas' => !empty($kelasData) ? $kelasData[0]['IdKelas'] : null,
-                'IdTahunAjaran' => $IdTahunAjaran,
-                'Semester' => $semester,
-                'IdGuru' => $IdGuru,
-                'IdTpq' => $IdTpq,
-                'JenisDokumen' => 'Rapor',
-                'StatusValidasi' => 'Valid',
-                'TanggalTtd' => date('Y-m-d H:i:s')
-            ];
-
-            // Simpan data tanda tangan
-            $IdSignature = $this->signatureModel->insert($signatureData);
-
-            if ($IdSignature) {
-                // Generate QR Code
-                $qrCodeData = $this->generateQRCode($token);
-
-                if ($qrCodeData) {
-                    // Update data tanda tangan dengan nama file QR
-                    $this->signatureModel->where('Id', $IdSignature)
-                        ->set(['QrCode' => $qrCodeData['filename']])
-                        ->update();
-
-                    return redirect()->to(base_url('backend/rapor'))
-                        ->with('success', 'Tanda tangan kepala sekolah berhasil disimpan dan QR Code telah dibuat.');
-                } else {
-                    return redirect()->to(base_url('backend/rapor'))
-                        ->with('error', 'Tanda tangan berhasil disimpan, namun gagal membuat QR Code.');
-                }
-            } else {
-                return redirect()->to(base_url('backend/rapor'))
-                    ->with('error', 'Gagal menyimpan tanda tangan.');
-            }
-        } catch (\Exception $e) {
-            log_message('error', 'Rapor: ttdKepsek - Error: ' . $e->getMessage());
-            return redirect()->to(base_url('backend/rapor'))
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
+        return $this->handleSignature($IdSantri, $semester, 'kepsek');
     }
 
     /**
@@ -440,6 +349,142 @@ class Rapor extends BaseController
         } while ($this->signatureModel->where('Token', $token)->first());
 
         return $token;
+    }
+
+    /**
+     * Hapus file QR code
+     */
+    private function deleteQRCodeFile($qrCodeFilename)
+    {
+        if (!empty($qrCodeFilename)) {
+            $qrFilePath = FCPATH . 'uploads/qr/' . $qrCodeFilename;
+            if (file_exists($qrFilePath)) {
+                return unlink($qrFilePath);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Handle tanda tangan (untuk wali kelas dan kepala sekolah)
+     */
+    private function handleSignature($IdSantri, $semester, $signatureType)
+    {
+        try {
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $IdGuru = session()->get('IdGuru');
+            $IdKelas = session()->get('IdKelas');
+
+            // Cek permission berdasarkan tbl_guru_kelas
+            $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
+
+            if (!$guruKelasPermission) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki akses untuk kelas ini pada tahun ajaran ini.'
+                ]);
+            }
+
+            // Cek permission berdasarkan jabatan dari tbl_guru_kelas
+            if ($signatureType === 'walas' && $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki permission untuk menandatangani sebagai wali kelas.'
+                ]);
+            }
+
+            if ($signatureType === 'kepsek' && $guruKelasPermission['NamaJabatan'] !== 'Kepala Sekolah') {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki permission untuk menandatangani sebagai kepala sekolah.'
+                ]);
+            }
+
+            // Cek apakah signature sudah ada
+            $existingSignature = $this->signatureModel->where([
+                'IdSantri' => $IdSantri,
+                'IdTpq' => $IdTpq,
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'IdGuru' => $IdGuru,
+                'Semester' => $semester,
+                'JenisDokumen' => 'Rapor',
+                'Status' => 'active'
+            ])->first();
+
+            // Jika ada request untuk replace dan signature sudah ada
+            if ($this->request->getPost('replace') && $existingSignature) {
+                // Hapus file QR code lama jika ada
+                $this->deleteQRCodeFile($existingSignature['QrCode']);
+                // Hapus signature lama
+                $this->signatureModel->delete($existingSignature['Id']);
+            } elseif ($existingSignature && !$this->request->getPost('replace')) {
+                $typeName = $signatureType === 'walas' ? 'wali kelas' : 'kepala sekolah';
+                return $this->response->setJSON([
+                    'status' => 'info',
+                    'message' => "Tanda tangan {$typeName} untuk santri ini sudah pernah dibuat pada " . date('d F Y H:i', strtotime($existingSignature['TanggalTtd'])) . '. Apakah Anda ingin menggantinya?',
+                    'existing_signature' => true,
+                    'existing_id' => $existingSignature['Id']
+                ]);
+            }
+
+            $kelasData = $this->helpFunctionModel->getIdKelasByTahunAjaranDanSemester($IdTpq, $IdTahunAjaran, $semester, $IdSantri);
+
+            // Generate token unik
+            $token = $this->generateUniqueToken();
+
+            // Data untuk disimpan ke tbl_tanda_tangan
+            $signatureData = [
+                'Token' => $token,
+                'IdSantri' => $IdSantri,
+                'IdKelas' => !empty($kelasData) ? $kelasData[0]['IdKelas'] : null,
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'Semester' => $semester,
+                'IdGuru' => $IdGuru,
+                'IdTpq' => $IdTpq,
+                'JenisDokumen' => 'Rapor',
+                'StatusValidasi' => 'Valid',
+                'TanggalTtd' => date('Y-m-d H:i:s')
+            ];
+
+            // Simpan data tanda tangan
+            $IdSignature = $this->signatureModel->insert($signatureData);
+
+            if ($IdSignature) {
+                // Generate QR Code
+                $qrCodeData = $this->generateQRCode($token);
+
+                if ($qrCodeData) {
+                    // Update data tanda tangan dengan nama file QR
+                    $this->signatureModel->where('Id', $IdSignature)
+                        ->set(['QrCode' => $qrCodeData['filename']])
+                        ->update();
+
+                    $typeName = $signatureType === 'walas' ? 'wali kelas' : 'kepala sekolah';
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'message' => "Tanda tangan {$typeName} berhasil disimpan dan QR Code telah dibuat."
+                    ]);
+                } else {
+                    return $this->response->setJSON([
+                        'status' => 'warning',
+                        'message' => 'Tanda tangan berhasil disimpan, namun gagal membuat QR Code.'
+                    ]);
+                }
+            } else {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal menyimpan tanda tangan.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            $typeName = $signatureType === 'walas' ? 'wali kelas' : 'kepala sekolah';
+            log_message('error', "Rapor: ttd{$typeName} - Error: " . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
     }
 
     /**

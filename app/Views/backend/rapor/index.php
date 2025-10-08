@@ -70,10 +70,10 @@
                                                                         <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>">
                                                                             <i class="fas fa-print"></i> Cetak Rapor
                                                                         </button>
-                                                                        <button type="button" class="btn btn-info btn-sm btn-ttd-walas" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>">
+                                                                        <button type="button" class="btn btn-info btn-sm btn-ttd-walas" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>" data-kelas="<?= $DataNilai->IdKelas ?>">
                                                                             <i class="fas fa-signature"></i> Ttd Walas
                                                                         </button>
-                                                                        <button type="button" class="btn btn-success btn-sm btn-ttd-kepsek" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>">
+                                                                        <button type="button" class="btn btn-success btn-sm btn-ttd-kepsek" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>" data-kelas="<?= $DataNilai->IdKelas ?>">
                                                                             <i class="fas fa-signature"></i> Ttd Kepsek
                                                                         </button>
                                                                     </div>
@@ -113,6 +113,203 @@
             initializeDataTableUmum("#tableSantri-<?= $kelasId ?>", true, true);
         <?php endforeach; ?>
 
+        // Tampilkan pesan dari session jika ada
+        <?php if (session()->getFlashdata('success')): ?>
+            Swal.fire({
+                title: 'Berhasil!',
+                text: '<?= session()->getFlashdata('success') ?>',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        <?php endif; ?>
+
+        <?php if (session()->getFlashdata('error')): ?>
+            Swal.fire({
+                title: 'Error!',
+                text: '<?= session()->getFlashdata('error') ?>',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        <?php endif; ?>
+
+        <?php if (session()->getFlashdata('warning')): ?>
+            Swal.fire({
+                title: 'Peringatan!',
+                text: '<?= session()->getFlashdata('warning') ?>',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+        <?php endif; ?>
+
+        <?php if (session()->getFlashdata('info')): ?>
+            Swal.fire({
+                title: 'Informasi!',
+                text: '<?= session()->getFlashdata('info') ?>',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        <?php endif; ?>
+
+        // Fungsi untuk mengecek role user dan mengaktifkan button signature
+        function checkSignaturePermissions() {
+            const guruKelasPermissions = <?= json_encode($guruKelasPermissions) ?>;
+
+            // Cek apakah data permission tersedia
+            if (!guruKelasPermissions || guruKelasPermissions.length === 0) {
+                console.error('Data permission guru kelas tidak tersedia');
+                // Disable semua button signature
+                $('.btn-ttd-walas, .btn-ttd-kepsek').prop('disabled', true)
+                    .removeClass('btn-primary btn-success')
+                    .addClass('btn-secondary')
+                    .attr('title', 'Anda tidak memiliki akses untuk kelas ini');
+                return;
+            }
+
+            // Buat mapping permission berdasarkan IdKelas
+            const permissionMap = {};
+            guruKelasPermissions.forEach(permission => {
+                permissionMap[permission.IdKelas] = permission;
+            });
+
+            // Cek permission untuk setiap button berdasarkan kelas
+            $('.btn-ttd-walas').each(function() {
+                const IdKelas = $(this).data('kelas');
+                const permission = permissionMap[IdKelas];
+
+                if (permission && permission.NamaJabatan === 'Wali Kelas') {
+                    $(this).prop('disabled', false)
+                        .removeClass('btn-secondary')
+                        .addClass('btn-primary')
+                        .attr('title', 'Tandatangani sebagai Wali Kelas')
+                        .removeAttr('data-toggle data-placement');
+                } else {
+                    $(this).prop('disabled', true)
+                        .removeClass('btn-primary')
+                        .addClass('btn-secondary')
+                        .attr('title', 'Hanya Wali Kelas yang dapat menandatangani')
+                        .attr('data-toggle', 'tooltip')
+                        .attr('data-placement', 'top');
+                }
+            });
+
+            $('.btn-ttd-kepsek').each(function() {
+                const IdKelas = $(this).data('kelas');
+                const permission = permissionMap[IdKelas];
+
+                if (permission && permission.NamaJabatan === 'Kepala Sekolah') {
+                    $(this).prop('disabled', false)
+                        .removeClass('btn-secondary')
+                        .addClass('btn-success')
+                        .attr('title', 'Tandatangani sebagai Kepala Sekolah')
+                        .removeAttr('data-toggle data-placement');
+                } else {
+                    $(this).prop('disabled', true)
+                        .removeClass('btn-success')
+                        .addClass('btn-secondary')
+                        .attr('title', 'Hanya Kepala Sekolah yang dapat menandatangani')
+                        .attr('data-toggle', 'tooltip')
+                        .attr('data-placement', 'top');
+                }
+            });
+
+            // Initialize tooltips
+            $('[data-toggle="tooltip"]').tooltip();
+        }
+
+        // Fungsi helper untuk menangani signature request
+        function handleSignatureRequest(IdSantri, semester, signatureType) {
+            const url = `<?= base_url('backend/rapor/ttd') ?>${signatureType}/${IdSantri}/${semester}`;
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    } else if (response.status === 'warning') {
+                        Swal.fire({
+                            title: 'Peringatan!',
+                            text: response.message,
+                            icon: 'warning',
+                            confirmButtonText: 'OK'
+                        });
+                    } else if (response.status === 'info') {
+                        Swal.fire({
+                            title: 'Informasi!',
+                            text: response.message,
+                            icon: 'info',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, Ganti',
+                            cancelButtonText: 'Batal',
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Kirim request untuk mengganti signature
+                                $.ajax({
+                                    url: url,
+                                    type: 'POST',
+                                    data: {
+                                        replace: true,
+                                        existing_id: response.existing_id
+                                    },
+                                    dataType: 'json',
+                                    success: function(replaceResponse) {
+                                        if (replaceResponse.status === 'success') {
+                                            Swal.fire({
+                                                title: 'Berhasil!',
+                                                text: 'Tanda tangan berhasil diganti.',
+                                                icon: 'success',
+                                                confirmButtonText: 'OK'
+                                            });
+                                        } else {
+                                            Swal.fire({
+                                                title: 'Error!',
+                                                text: replaceResponse.message,
+                                                icon: 'error',
+                                                confirmButtonText: 'OK'
+                                            });
+                                        }
+                                    },
+                                    error: function() {
+                                        Swal.fire({
+                                            title: 'Error!',
+                                            text: 'Terjadi kesalahan saat mengganti tanda tangan.',
+                                            icon: 'error',
+                                            confirmButtonText: 'OK'
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan saat memproses request: ' + error,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        }
+
+        // Panggil fungsi pengecekan permission saat halaman dimuat
+        checkSignaturePermissions();
         // Handle print PDF button click
         $(document).on('click', '.btn-print-pdf', function() {
             const IdSantri = $(this).data('id');
@@ -154,6 +351,11 @@
 
         // Handle Ttd Walas button click
         $(document).on('click', '.btn-ttd-walas', function() {
+            // Cek apakah button disabled
+            if ($(this).prop('disabled')) {
+                return false;
+            }
+
             const IdSantri = $(this).data('id');
             const semester = $(this).data('semester');
 
@@ -168,20 +370,18 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Redirect to signature page for wali kelas
-                    window.location.href = `<?= base_url('backend/rapor/ttdWalas') ?>/${IdSantri}/${semester}`;
-                } else {
-                    Swal.fire({
-                        title: 'Tanda Tangan Wali Kelas',
-                        text: 'Tanda tangan wali kelas gagal disimpan',
-                        icon: 'error'
-                    });
+                    handleSignatureRequest(IdSantri, semester, 'Walas');
                 }
             });
         });
 
         // Handle Ttd Kepsek button click
         $(document).on('click', '.btn-ttd-kepsek', function() {
+            // Cek apakah button disabled
+            if ($(this).prop('disabled')) {
+                return false;
+            }
+
             const IdSantri = $(this).data('id');
             const semester = $(this).data('semester');
 
@@ -196,14 +396,7 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Redirect to signature page for kepala sekolah
-                    window.location.href = `<?= base_url('backend/rapor/ttdKepsek') ?>/${IdSantri}/${semester}`;
-                } else {
-                    Swal.fire({
-                        title: 'Tanda Tangan Kepala Sekolah',
-                        text: 'Tanda tangan kepala sekolah gagal disimpan',
-                        icon: 'error'
-                    });
+                    handleSignatureRequest(IdSantri, semester, 'Kepsek');
                 }
             });
         });
