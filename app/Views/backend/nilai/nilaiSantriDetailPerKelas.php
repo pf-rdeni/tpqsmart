@@ -26,19 +26,6 @@ foreach ($dataNilai as $santri) {
     $settingAlphabetActive[$santri['IdKelas']] = getAlphabetKelasSettings($settingNilai, $santri['IdKelas'])['isAlphabetKelas'];
 }
 
-// buat fungsi kontrol menentukan huruf atau angka dan juka huruf arab, berdasarkan settingan IdTpq, IdKelas
-function konversiNilaiAngkaArabic($nilai)
-{
-    // ambil settingan dari session angka arabic
-    $settingNilaiArabic = session()->get('SettingNilaiArabic') ?? false;
-    if ($settingNilaiArabic) {
-        // Jika settingan angka arabic aktif, konversi ke angka arab
-        return angkaKeHurufArab($nilai);
-    } else {
-        // Jika tidak, kembalikan nilai apa adanya
-        return $nilai;
-    }
-}
 
 ?>
 <div class="col-12">
