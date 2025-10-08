@@ -236,20 +236,49 @@ helper('nilai');
         <tr>
             <td colspan="2" style="height: 50px; text-align: center;">
                 <?php
-                $qrPath = FCPATH . 'uploads/qr/68406ef85f725.svg';
-                if (file_exists($qrPath)) {
-                    $qrContent = file_get_contents($qrPath);
-                    echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code" style="width: 80px; height: 80px;">';
+                                                                                // Cari signature untuk kepala sekolah (kolom kiri)
+                                                                                $kepsekSignature = null;
+                                                                                $walasSignature = null;
+
+                                                                                foreach ($signatures as $signature) {
+                                                                                    if ($signature['JenisDokumen'] == 'Rapor' && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
+                                                                                        // Ambil signature pertama untuk kepala sekolah
+                                                                                        if ($kepsekSignature === null) {
+                                                                                            $kepsekSignature = $signature;
+                                                                                        } else {
+                                                                                            // Ambil signature kedua untuk wali kelas
+                                                                                            $walasSignature = $signature;
+                                                                                            break;
+                                                                                        }
+                                                                                    }
+                                                                                }
+
+                                                                                if ($kepsekSignature && !empty($kepsekSignature['QrCode'])) {
+                                                                                    $qrPath = FCPATH . 'uploads/qr/' . $kepsekSignature['QrCode'];
+                                                                                    if (file_exists($qrPath)) {
+                                                                                        $qrContent = file_get_contents($qrPath);
+                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Kepala Sekolah" style="width: 80px; height: 80px;">';
+                    } else {
+                        echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">QR Code<br>tidak ditemukan</div>';
+                    }
+                } else {
+                    echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">Belum ada<br>tanda tangan</div>';
                 }
                 ?>
             </td>
             <td></td>
             <td colspan="2" style="height: 50px; text-align: center;">
                 <?php
-                $qrPath = FCPATH . 'uploads/qr/683f13e3909ae.svg';
-                if (file_exists($qrPath)) {
-                    $qrContent = file_get_contents($qrPath);
-                    echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code" style="width: 80px; height: 80px;">';
+                                                                                if ($walasSignature && !empty($walasSignature['QrCode'])) {
+                                                                                    $qrPath = FCPATH . 'uploads/qr/' . $walasSignature['QrCode'];
+                                                                                    if (file_exists($qrPath)) {
+                                                                                        $qrContent = file_get_contents($qrPath);
+                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Wali Kelas" style="width: 80px; height: 80px;">';
+                    } else {
+                        echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">QR Code<br>tidak ditemukan</div>';
+                    }
+                } else {
+                    echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">Belum ada<br>tanda tangan</div>';
                 }
                 ?>
             </td>

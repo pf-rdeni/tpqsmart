@@ -17,7 +17,7 @@ class SignatureModel extends Model
         'IdGuru',
         'IdTpq',
         'JenisDokumen',
-        'NamaFile',
+        'QrCode',
         'StatusValidasi',
         'TanggalTtd',
         'CreatedAt',

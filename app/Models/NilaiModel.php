@@ -27,12 +27,13 @@ class NilaiModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    public function getDataNilaiDetail($IdSantri = null, $IdSemester = null)
+    public function getDataNilaiDetail($IdSantri = null, $IdSemester = null, $IdTahunAjaran = null, $IdKelas = null)
     {
         $builder = $this->db->table('tbl_nilai n');
-        $builder->select('n.Id, n.IdTahunAjaran, n.IdTpq, n.IdKelas, k.NamaKelas, s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Semester, n.Nilai');
-        $builder->join('tbl_kelas k', 'n.IdKelas = k.IdKelas');
+        $builder->select('n.Id, n.IdTahunAjaran, n.IdTpq, ks.IdKelas, k.NamaKelas, s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Semester, n.Nilai');
         $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
         $builder->join('tbl_materi_pelajaran m', 'n.IdMateri = m.IdMateri');
 
         if ($IdSantri !== null) {
@@ -41,7 +42,20 @@ class NilaiModel extends Model
         if ($IdSemester !== null) {
             $builder->where('n.Semester', $IdSemester);
         }
-
+        if ($IdTahunAjaran !== null) {
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+            } else {
+                $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+            }
+        }
+        if ($IdKelas !== null) {
+            if (is_array($IdKelas)) {
+                $builder->whereIn('ks.IdKelas', $IdKelas);
+            } else {
+                $builder->where('ks.IdKelas', $IdKelas);
+            }
+        }
         $builder->orderBy('n.IdMateri', 'ASC');
 
         return $builder->get();
@@ -52,28 +66,27 @@ class NilaiModel extends Model
     public function getDataNilaiPerSemester($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
     {
         $builder = $this->db->table('tbl_nilai n');
-        $builder->select('n.IdSantri, s.NamaSantri, s.JenisKelamin, IdTahunAjaran, n.Semester, k.NamaKelas, k.IdKelas, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata, RANK() OVER (PARTITION BY n.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking');
+        $builder->select('n.IdSantri, s.NamaSantri, s.JenisKelamin, ks.IdTahunAjaran, n.Semester, k.NamaKelas, ks.IdKelas, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata, RANK() OVER (PARTITION BY ks.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking');
         $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
-        $builder->join('tbl_kelas k', 'n.IdKelas = k.IdKelas');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
         //Active=1
-        $builder->where('s.Active', 1);
-
         if (is_array($IdKelas)) {
-            $builder->whereIn('n.IdKelas', $IdKelas);
+            $builder->whereIn('ks.IdKelas', $IdKelas);
         } else {
-            $builder->where('n.IdKelas', $IdKelas);
+            $builder->where('ks.IdKelas', $IdKelas);
         }
         if (is_array($IdTahunAjaran)) {
-            $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+            $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
         } else {
-            $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
         }
         $builder->where('n.Semester', $semester);
         $builder->where('n.IdTpq', $IdTpq);
 
 
-        $builder->groupBy(['n.IdSantri', 'n.Semester']);
-        $builder->orderBy('k.IdKelas', 'ASC');
+        $builder->groupBy(['n.IdSantri', 'n.Semester', 'ks.IdKelas']);
+        $builder->orderBy('ks.IdKelas', 'ASC');
         $builder->orderBy('n.Semester', 'ASC');
         $builder->orderBy('TotalNilai', 'DESC');
 

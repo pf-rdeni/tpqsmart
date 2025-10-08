@@ -30,6 +30,8 @@ class Nilai extends BaseController
     public function showDetail($IdSantri, $IdSemseter, $Edit = null, $IdJabatan = null)
     {
         // ambil settingan nilai minimun dan maksimal dari session
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdKelas = session()->get('IdKelas');
         $settingNilai = (object)[
             'NilaiMin' => session()->get('SettingNilaiMin'),
             'NilaiMax' => session()->get('SettingNilaiMax')
@@ -38,7 +40,7 @@ class Nilai extends BaseController
         // ambil jika settingan nilai alfabetic dari session
         $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
 
-        $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter);
+        $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas);
 
         $data = [
             'page_title' => 'Data Nilai',

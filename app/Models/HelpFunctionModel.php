@@ -1493,5 +1493,32 @@ class HelpFunctionModel extends Model
 
         return $formattedResult;
     }
+
+    /**
+     * Mengambil IdKelas dari tbl_kelas_santri berdasarkan IdTpq, IdTahunAjaran, dan Semester
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $Semester
+     * @return array
+     */
+    public function getIdKelasByTahunAjaranDanSemester($IdTpq, $IdTahunAjaran, $Semester, $IdSantri = null)
+    {
+        $builder = $this->db->table('tbl_kelas_santri ks');
+        $builder->select('ks.IdKelas, k.NamaKelas');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
+        $builder->where('ks.IdTpq', $IdTpq);
+        $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        if ($IdSantri != null) {
+            $builder->where('ks.IdSantri', $IdSantri);
+        }
+
+        // Filter berdasarkan semester - cek apakah ada nilai untuk semester tersebut
+        $builder->join('tbl_nilai n', 'n.IdSantri = ks.IdSantri AND n.IdKelas = ks.IdKelas AND n.Semester = "' . $Semester . '"', 'inner');
+
+        $builder->groupBy('ks.IdKelas, k.NamaKelas');
+        $builder->orderBy('k.NamaKelas', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
 }
 

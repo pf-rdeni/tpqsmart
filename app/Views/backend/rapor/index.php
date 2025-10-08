@@ -49,27 +49,42 @@
                                                         <th>Aksi</th>
                                                         <th>Nama Santri</th>
                                                         <th>NIS</th>
+                                                        <th>Total Nilai</th>
+                                                        <th>Nilai Rata-Rata</th>
+                                                        <th>Rangking</th>
                                                         <th>Kelas</th>
                                                         <th>Tahun Ajaran</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     <?php
+                                                    $MainDataNilai = $nilai->getResult();
                                                     $no = 1;
-                                                    foreach ($listSantri as $santri) :
-                                                        if ($santri['IdKelas'] === $kelas->IdKelas) :
+                                                    foreach ($MainDataNilai as $DataNilai) :
+                                                        if ($DataNilai->IdKelas == $kelas->IdKelas) :
                                                     ?>
                                                             <tr>
                                                                 <td><?= $no++ ?></td>
                                                                 <td>
-                                                                    <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $santri['IdSantri'] ?>" data-semester="<?= $semester ?>">
-                                                                        <i class="fas fa-print"></i> Cetak Rapor
-                                                                    </button>
+                                                                    <div class="btn-group" role="group">
+                                                                        <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>">
+                                                                            <i class="fas fa-print"></i> Cetak Rapor
+                                                                        </button>
+                                                                        <button type="button" class="btn btn-info btn-sm btn-ttd-walas" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>">
+                                                                            <i class="fas fa-signature"></i> Ttd Walas
+                                                                        </button>
+                                                                        <button type="button" class="btn btn-success btn-sm btn-ttd-kepsek" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>">
+                                                                            <i class="fas fa-signature"></i> Ttd Kepsek
+                                                                        </button>
+                                                                    </div>
                                                                 </td>
-                                                                <td><?= $santri['NamaSantri'] ?></td>
-                                                                <td><?= $santri['IdSantri'] ?></td>
-                                                                <td><?= $santri['NamaKelas'] ?></td>
-                                                                <td><?= $kelas->IdTahunAjaran ?></td>
+                                                                <td><?= $DataNilai->NamaSantri ?></td>
+                                                                <td><?= $DataNilai->IdSantri ?></td>
+                                                                <td><?= $DataNilai->TotalNilai ?></td>
+                                                                <td><?= $DataNilai->NilaiRataRata ?></td>
+                                                                <td><?= $DataNilai->Rangking ?></td>
+                                                                <td><?= $DataNilai->NamaKelas ?></td>
+                                                                <td><?= $DataNilai->IdTahunAjaran ?></td>
                                                             </tr>
                                                     <?php
                                                         endif;
@@ -88,6 +103,7 @@
         </div>
     </div>
 </div>
+<?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script>
@@ -135,8 +151,62 @@
                 }
             }, 2000);
         });
+
+        // Handle Ttd Walas button click
+        $(document).on('click', '.btn-ttd-walas', function() {
+            const IdSantri = $(this).data('id');
+            const semester = $(this).data('semester');
+
+            Swal.fire({
+                title: 'Tanda Tangan Wali Kelas',
+                text: 'Apakah Anda yakin ingin menandatangani rapor ini?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Tandatangani',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect to signature page for wali kelas
+                    window.location.href = `<?= base_url('backend/rapor/ttdWalas') ?>/${IdSantri}/${semester}`;
+                } else {
+                    Swal.fire({
+                        title: 'Tanda Tangan Wali Kelas',
+                        text: 'Tanda tangan wali kelas gagal disimpan',
+                        icon: 'error'
+                    });
+                }
+            });
+        });
+
+        // Handle Ttd Kepsek button click
+        $(document).on('click', '.btn-ttd-kepsek', function() {
+            const IdSantri = $(this).data('id');
+            const semester = $(this).data('semester');
+
+            Swal.fire({
+                title: 'Tanda Tangan Kepala Sekolah',
+                text: 'Apakah Anda yakin ingin menandatangani rapor ini?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Tandatangani',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect to signature page for kepala sekolah
+                    window.location.href = `<?= base_url('backend/rapor/ttdKepsek') ?>/${IdSantri}/${semester}`;
+                } else {
+                    Swal.fire({
+                        title: 'Tanda Tangan Kepala Sekolah',
+                        text: 'Tanda tangan kepala sekolah gagal disimpan',
+                        icon: 'error'
+                    });
+                }
+            });
+        });
     });
 </script>
-<?= $this->endSection() ?>
-
 <?= $this->endSection() ?>
