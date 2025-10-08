@@ -49,11 +49,11 @@
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex justify-content-start">
-                                                            <?php if ($santri->StatusPenilaian == 0 && $santri->NamaJabatan == "GURU KELAS" || $santri->NamaJabatan == "WALI KELAS") : ?>
+                                                            <?php if ($santri->StatusPenilaian == 0 && $santri->NamaJabatan == "Guru Kelas" || $santri->NamaJabatan == "Wali Kelas") : ?>
                                                                 <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn w-80 btn-warning me-2">
                                                                     <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Edit&nbsp;
                                                                 </a>
-                                                            <?php elseif ($santri->StatusPenilaian == 1 && $santri->NamaJabatan == "GURU KELAS"): ?>
+                                                            <?php elseif ($santri->StatusPenilaian == 1 && $santri->NamaJabatan == "Guru Kelas"): ?>
                                                                 <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 0 . '/' . $santri->IdJabatan) ?>" class="btn w-70 btn-primary me-2">
                                                                     <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
                                                                 </a>
