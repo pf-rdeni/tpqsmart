@@ -58,10 +58,19 @@ class NilaiModel extends Model
         //Active=1
         $builder->where('s.Active', 1);
 
-        $builder->whereIn('n.IdKelas', $IdKelas);
+        if (is_array($IdKelas)) {
+            $builder->whereIn('n.IdKelas', $IdKelas);
+        } else {
+            $builder->where('n.IdKelas', $IdKelas);
+        }
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+        }
         $builder->where('n.Semester', $semester);
         $builder->where('n.IdTpq', $IdTpq);
-        $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+
 
         $builder->groupBy(['n.IdSantri', 'n.Semester']);
         $builder->orderBy('k.IdKelas', 'ASC');
