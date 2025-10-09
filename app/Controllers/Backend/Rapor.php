@@ -123,9 +123,9 @@ class Rapor extends BaseController
 
         // Ambil data signature untuk santri ini dengan informasi posisi guru
         $signatures = $this->signatureModel->getSignaturesWithPosition(
-            $santriData['santri']['IdSantri'],
-            $IdTahunAjaran,
-            $semester
+            idSantri: $santriData['santri']['IdSantri'],
+            idTahunAjaran: $IdTahunAjaran,
+            semester: $semester
         );
 
         return [
@@ -193,6 +193,23 @@ class Rapor extends BaseController
 
         $guruKelasPermissions = $this->helpFunctionModel->getGuruKelasPermissions($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
 
+        // Ambil status signature untuk semua santri dalam kelas ini
+        $signatures = $this->signatureModel->getSignaturesWithPosition(
+            idKelas: $IdKelas,
+            idTahunAjaran: $IdTahunAjaran,
+            semester: $semester
+        );
+
+        // Buat mapping signature status per santri dan guru
+        $signatureStatus = [];
+        foreach ($signatures as $signature) {
+            $key = $signature['IdSantri'] . '_' . $signature['IdGuru'];
+            if (!isset($signatureStatus[$key])) {
+                $signatureStatus[$key] = [];
+            }
+            $signatureStatus[$key][] = $signature;
+        }
+
         $data = [
             'page_title' => 'Rapor Santri',
             'listKelas' => $lisKelas,
@@ -200,7 +217,10 @@ class Rapor extends BaseController
             'nilai' => $summaryData['nilai'],
             'dataKelas' => $summaryData['dataKelas'],
             'semester' => $semester,
-            'guruKelasPermissions' => $guruKelasPermissions
+            'guruKelasPermissions' => $guruKelasPermissions,
+            'signatures' => $signatures,
+            'signatureStatus' => $signatureStatus,
+            'currentGuruId' => $IdGuru
         ];
 
         return view('backend/rapor/index', $data);

@@ -149,13 +149,15 @@
         // Fungsi untuk mengecek role user dan mengaktifkan button signature
         function checkSignaturePermissions() {
             const guruKelasPermissions = <?= json_encode($guruKelasPermissions) ?>;
+            const signatureStatus = <?= json_encode($signatureStatus) ?>;
+            const currentGuruId = '<?= $currentGuruId ?>';
 
             // Cek apakah data permission tersedia
             if (!guruKelasPermissions || guruKelasPermissions.length === 0) {
                 console.error('Data permission guru kelas tidak tersedia');
                 // Disable semua button signature
                 $('.btn-ttd-walas, .btn-ttd-kepsek').prop('disabled', true)
-                    .removeClass('btn-primary btn-success')
+                    .removeClass('btn-info btn-primary btn-success')
                     .addClass('btn-secondary')
                     .attr('title', 'Anda tidak memiliki akses untuk kelas ini');
                 return;
@@ -170,37 +172,81 @@
             // Cek permission untuk setiap button berdasarkan kelas
             $('.btn-ttd-walas').each(function() {
                 const IdKelas = $(this).data('kelas');
+                const IdSantri = $(this).data('id');
                 const permission = permissionMap[IdKelas];
 
+                // Cek apakah guru sudah menandatangani untuk santri ini
+                const signatureKey = IdSantri + '_' + currentGuruId;
+                const hasSigned = signatureStatus && signatureStatus[signatureKey] && signatureStatus[signatureKey].length > 0;
+
                 if (permission && permission.NamaJabatan === 'Wali Kelas') {
-                    $(this).prop('disabled', false)
-                        .removeClass('btn-secondary')
-                        .addClass('btn-primary')
-                        .attr('title', 'Tandatangani sebagai Wali Kelas')
-                        .removeAttr('data-toggle data-placement');
+                    if (hasSigned) {
+                        // Guru sudah menandatangani, disable button - warna grey
+                        $(this).prop('disabled', true)
+                            .removeClass('btn-info btn-primary')
+                            .addClass('btn-secondary')
+                            .attr('title', 'Sudah ditandatangani')
+                            .attr('data-toggle', 'tooltip')
+                            .attr('data-placement', 'top');
+                    } else {
+                        // Guru belum menandatangani, enable button - warna biru menyala (primary)
+                        $(this).prop('disabled', false)
+                            .removeClass('btn-info btn-secondary')
+                            .addClass('btn-primary')
+                            .attr('title', 'Tandatangani sebagai Wali Kelas')
+                            .removeAttr('data-toggle data-placement');
+                    }
                 } else {
-                    $(this).prop('disabled', true)
-                        .removeClass('btn-primary')
-                        .addClass('btn-secondary')
-                        .attr('title', 'Hanya Wali Kelas yang dapat menandatangani')
-                        .attr('data-toggle', 'tooltip')
-                        .attr('data-placement', 'top');
+                    // Bukan Wali Kelas (Guru Kelas atau lainnya)
+                    if (hasSigned) {
+                        // Sudah di TTD button grey
+                        $(this).prop('disabled', true)
+                            .removeClass('btn-info btn-primary')
+                            .addClass('btn-secondary')
+                            .attr('title', 'Sudah ditandatangani')
+                            .attr('data-toggle', 'tooltip')
+                            .attr('data-placement', 'top');
+                    } else {
+                        // Belum di TTD - warna biru tapi disable
+                        $(this).prop('disabled', true)
+                            .removeClass('btn-info btn-secondary')
+                            .addClass('btn-primary')
+                            .attr('title', 'Hanya Wali Kelas yang dapat menandatangani')
+                            .attr('data-toggle', 'tooltip')
+                            .attr('data-placement', 'top');
+                    }
                 }
             });
 
             $('.btn-ttd-kepsek').each(function() {
                 const IdKelas = $(this).data('kelas');
+                const IdSantri = $(this).data('id');
                 const permission = permissionMap[IdKelas];
 
+                // Cek apakah guru sudah menandatangani untuk santri ini
+                const signatureKey = IdSantri + '_' + currentGuruId;
+                const hasSigned = signatureStatus && signatureStatus[signatureKey] && signatureStatus[signatureKey].length > 0;
+
                 if (permission && permission.NamaJabatan === 'Kepala Sekolah') {
-                    $(this).prop('disabled', false)
-                        .removeClass('btn-secondary')
-                        .addClass('btn-success')
-                        .attr('title', 'Tandatangani sebagai Kepala Sekolah')
-                        .removeAttr('data-toggle data-placement');
+                    if (hasSigned) {
+                        // Guru sudah menandatangani, disable button
+                        $(this).prop('disabled', true)
+                            .removeClass('btn-secondary')
+                            .addClass('btn-success')
+                            .attr('title', 'Sudah ditandatangani')
+                            .attr('data-toggle', 'tooltip')
+                            .attr('data-placement', 'top');
+                    } else {
+                        // Guru belum menandatangani, enable button
+                        $(this).prop('disabled', false)
+                            //.removeClass('btn-secondary')
+                            .addClass('btn-success')
+                            .attr('title', 'Tandatangani sebagai Kepala Sekolah')
+                        //.removeAttr('data-toggle data-placement');
+                    }
                 } else {
                     $(this).prop('disabled', true)
-                        .removeClass('btn-success')
+                        .removeClass('btn-secondary')
                         .addClass('btn-secondary')
                         .attr('title', 'Hanya Kepala Sekolah yang dapat menandatangani')
                         .attr('data-toggle', 'tooltip')
@@ -227,6 +273,9 @@
                             text: response.message,
                             icon: 'success',
                             confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Refresh halaman untuk update status signature
+                            location.reload();
                         });
                     } else if (response.status === 'warning') {
                         Swal.fire({
@@ -263,6 +312,9 @@
                                                 text: 'Tanda tangan berhasil diganti.',
                                                 icon: 'success',
                                                 confirmButtonText: 'OK'
+                                            }).then(() => {
+                                                // Refresh halaman untuk update status signature
+                                                location.reload();
                                             });
                                         } else {
                                             Swal.fire({
