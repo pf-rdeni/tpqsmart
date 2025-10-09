@@ -121,14 +121,12 @@ class Rapor extends BaseController
         // Ambil data TPQ
         $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
 
-        // Ambil data signature untuk santri ini
-        $signatures = $this->signatureModel->where([
-            'IdSantri' => $santriData['santri']['IdSantri'],
-            'IdTahunAjaran' => $IdTahunAjaran,
-            'Semester' => $semester,
-            'JenisDokumen' => 'Rapor',
-            'Status' => 'active'
-        ])->findAll();
+        // Ambil data signature untuk santri ini dengan informasi posisi guru
+        $signatures = $this->signatureModel->getSignaturesWithPosition(
+            $santriData['santri']['IdSantri'],
+            $IdTahunAjaran,
+            $semester
+        );
 
         return [
             'santri' => $santriData['santri'],

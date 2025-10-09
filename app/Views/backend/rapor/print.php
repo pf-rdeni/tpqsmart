@@ -236,22 +236,14 @@ helper('nilai');
         <tr>
             <td colspan="2" style="height: 50px; text-align: center;">
                 <?php
-                                                                                // Cari signature untuk kepala sekolah (kolom kiri)
+                                                                                // Cari signature untuk kepala sekolah berdasarkan posisi
                                                                                 $kepsekSignature = null;
-                                                                                $walasSignature = null;
-
                                                                                 foreach ($signatures as $signature) {
-                                                                                    if ($signature['JenisDokumen'] == 'Rapor' && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
-                                                                                        // Ambil signature pertama untuk kepala sekolah
-                                                                                        if ($kepsekSignature === null) {
-                                                                                            $kepsekSignature = $signature;
-                                                                                        } else {
-                                                                                            // Ambil signature kedua untuk wali kelas
-                                                                                            $walasSignature = $signature;
-                                                                                            break;
-                                                                                        }
-                                                                                    }
-                                                                                }
+                    if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] == 'Kepala TPQ' && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
+                        $kepsekSignature = $signature;
+                        break;
+                    }
+                }
 
                                                                                 if ($kepsekSignature && !empty($kepsekSignature['QrCode'])) {
                                                                                     $qrPath = FCPATH . 'uploads/qr/' . $kepsekSignature['QrCode'];
@@ -269,6 +261,15 @@ helper('nilai');
             <td></td>
             <td colspan="2" style="height: 50px; text-align: center;">
                 <?php
+                                                                                // Cari signature untuk wali kelas berdasarkan posisi
+                                                                                $walasSignature = null;
+                                                                                foreach ($signatures as $signature) {
+                                                                                    if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] == 'Wali Kelas' && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
+                                                                                        $walasSignature = $signature;
+                                                                                        break;
+                                                                                    }
+                                                                                }
+
                                                                                 if ($walasSignature && !empty($walasSignature['QrCode'])) {
                                                                                     $qrPath = FCPATH . 'uploads/qr/' . $walasSignature['QrCode'];
                                                                                     if (file_exists($qrPath)) {

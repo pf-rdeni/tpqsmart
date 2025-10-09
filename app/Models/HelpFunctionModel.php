@@ -1545,8 +1545,6 @@ class HelpFunctionModel extends Model
         $builder->where('gk.IdGuru', $IdGuru);
         $builder->where('gk.IdKelas', $IdKelas);
         $builder->where('gk.IdTahunAjaran', $IdTahunAjaran);
-        $builder->where('gk.Status', 'active');
-
         return $builder->get()->getRowArray();
     }
 
