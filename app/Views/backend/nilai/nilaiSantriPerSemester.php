@@ -48,19 +48,18 @@
                                     </thead>
                                     <tbody>
                                         <?php
-                                        $MainDataNilai = $nilai->getResult();
-                                        foreach ($MainDataNilai as $DataNilai) : ?>
-                                            <?php if ($DataNilai->IdKelas == $kelasId || $kelasId == 0) : ?>
+                                        foreach ($nilai as $nilaiDetail) : ?>
+                                            <?php if ($nilaiDetail->IdKelas == $kelasId || $kelasId == 0) : ?>
                                                 <tr>
                                                     <td>
-                                                        <a href="<?php echo base_url('/backend/nilai/showDetail/' . $DataNilai->IdSantri . '/' . $DataNilai->Semester) ?>" class="btn btn-warning btn-sm"><i class="fas fa-list"></i></a>
+                                                        <a href="<?php echo base_url('/backend/nilai/showDetail/' . $nilaiDetail->IdSantri . '/' . $nilaiDetail->Semester) ?>" class="btn btn-warning btn-sm"><i class="fas fa-list"></i></a>
                                                     </td>
-                                                    <td><?php echo $DataNilai->Rangking; ?></td>
-                                                    <td><?php echo $DataNilai->NamaSantri; ?></td>
-                                                    <td><?php echo $DataNilai->NamaKelas; ?></td>
-                                                    <td><?php echo $DataNilai->TotalNilai; ?></td>
-                                                    <td><?php echo $DataNilai->NilaiRataRata; ?></td>
-                                                    <td><?php echo $DataNilai->IdTahunAjaran; ?></td>
+                                                    <td><?php echo $nilaiDetail->Rangking; ?></td>
+                                                    <td><?php echo $nilaiDetail->NamaSantri; ?></td>
+                                                    <td><?php echo $nilaiDetail->NamaKelas; ?></td>
+                                                    <td><?php echo $nilaiDetail->TotalNilai; ?></td>
+                                                    <td><?php echo $nilaiDetail->NilaiRataRata; ?></td>
+                                                    <td><?php echo $nilaiDetail->IdTahunAjaran; ?></td>
                                                 </tr>
                                             <?php endif; ?>
                                         <?php endforeach ?>

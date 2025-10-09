@@ -107,8 +107,9 @@ class Nilai extends BaseController
     public function showSumaryPersemester($semester = null)
     {
         $datanilai = $this->DataNilai->getDataNilaiPerSemester($this->IdTpq, $this->IdKelas, $this->IdTahunAjaran, $semester);
-        foreach ($datanilai->getResult() as $nilai) {
-            $dataKelas[$nilai->IdKelas] = $nilai->NamaKelas;
+        $dataKelas = [];
+        foreach ($datanilai as $nilai) {
+            $dataKelas = array_column($datanilai, 'NamaKelas', 'IdKelas');
         }
         return view('backend/nilai/nilaiSantriPerSemester', [
             'page_title' => 'Rank Data Nilai Semester ' . $semester,

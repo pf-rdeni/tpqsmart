@@ -151,7 +151,7 @@ class Rapor extends BaseController
 
         // Buat array dataKelas untuk struktur yang sama dengan nilaiSantriPerSemester
         $dataKelas = [];
-        foreach ($summaryData->getResult() as $nilai) {
+        foreach ($summaryData as $nilai) {
             $dataKelas[$nilai->IdKelas] = $nilai->NamaKelas;
         }
 

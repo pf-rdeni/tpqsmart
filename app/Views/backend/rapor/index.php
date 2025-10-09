@@ -1,108 +1,104 @@
 <?= $this->extend('backend/template/template') ?>
 
 <?= $this->section('content') ?>
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><?= $page_title ?> - Semester <?= $semester ?></h3>
+<div class="col-12">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><?= $page_title ?> - Semester <?= $semester ?></h3>
+        </div>
+        <div class="card-body">
+            <!-- Tab Navigation -->
+            <div class="card card-primary card-tabs">
+                <div class="card-header p-0 pt-1">
+                    <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="kelasTab" role="tablist">
+                        <?php foreach ($listKelas as $kelas) : ?>
+                            <li class="nav-item flex-fill mx-1 my-md-0 my-1">
+                                <a class="nav-link border-white text-center <?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'active' : '' ?>"
+                                    id="tab-<?= $kelas->IdKelas ?>"
+                                    data-toggle="tab"
+                                    href="#kelas-<?= $kelas->IdKelas ?>"
+                                    role="tab"
+                                    aria-controls="kelas-<?= $kelas->IdKelas ?>"
+                                    aria-selected="<?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'true' : 'false' ?>">
+                                    <?= $kelas->NamaKelas ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
                 </div>
+                <br>
                 <div class="card-body">
-                    <!-- Tab Navigation -->
-                    <div class="card card-primary card-tabs">
-                        <div class="card-header p-0 pt-1">
-                            <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="kelasTab" role="tablist">
-                                <?php foreach ($listKelas as $kelas) : ?>
-                                    <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                                        <a class="nav-link border-white text-center <?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'active' : '' ?>"
-                                            id="tab-<?= $kelas->IdKelas ?>"
-                                            data-toggle="tab"
-                                            href="#kelas-<?= $kelas->IdKelas ?>"
-                                            role="tab"
-                                            aria-controls="kelas-<?= $kelas->IdKelas ?>"
-                                            aria-selected="<?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'true' : 'false' ?>">
-                                            <?= $kelas->NamaKelas ?>
-                                        </a>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                        <br>
-                        <div class="card-body">
-                            <div class="tab-content" id="kelasTabContent">
-                                <?php foreach ($listKelas as $kelas) : ?>
-                                    <div class="tab-pane fade <?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'show active' : '' ?>"
-                                        id="kelas-<?= $kelas->IdKelas ?>"
-                                        role="tabpanel"
-                                        aria-labelledby="tab-<?= $kelas->IdKelas ?>">
-                                        <div class="table-responsive">
-                                            <div class="mb-3">
-                                                <button type="button" class="btn btn-primary btn-sm btn-print-all" data-kelas="<?= $kelas->IdKelas ?>" data-semester="<?= $semester ?>">
-                                                    <i class="fas fa-print"></i> Cetak Semua Rapor Kelas <?= $kelas->NamaKelas ?>
-                                                </button>
-                                            </div>
-                                            <table class="table table-bordered table-striped" id="tableSantri-<?= $kelas->IdKelas ?>">
-                                                <thead>
-                                                    <tr>
-                                                        <th>No</th>
-                                                        <th>Aksi</th>
-                                                        <th>Nama Santri</th>
-                                                        <th>NIS</th>
-                                                        <th>Total Nilai</th>
-                                                        <th>Nilai Rata-Rata</th>
-                                                        <th>Rangking</th>
-                                                        <th>Kelas</th>
-                                                        <th>Tahun Ajaran</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <?php
-                                                    $MainDataNilai = $nilai->getResult();
-                                                    $no = 1;
-                                                    foreach ($MainDataNilai as $DataNilai) :
-                                                        if ($DataNilai->IdKelas == $kelas->IdKelas) :
-                                                    ?>
-                                                            <tr>
-                                                                <td><?= $no++ ?></td>
-                                                                <td>
-                                                                    <div class="btn-group" role="group">
-                                                                        <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>">
-                                                                            <i class="fas fa-print"></i> Cetak Rapor
-                                                                        </button>
-                                                                        <button type="button" class="btn btn-info btn-sm btn-ttd-walas" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>" data-kelas="<?= $DataNilai->IdKelas ?>">
-                                                                            <i class="fas fa-signature"></i> Ttd Walas
-                                                                        </button>
-                                                                        <button type="button" class="btn btn-success btn-sm btn-ttd-kepsek" data-id="<?= $DataNilai->IdSantri ?>" data-semester="<?= $semester ?>" data-kelas="<?= $DataNilai->IdKelas ?>">
-                                                                            <i class="fas fa-signature"></i> Ttd Kepsek
-                                                                        </button>
-                                                                    </div>
-                                                                </td>
-                                                                <td><?= $DataNilai->NamaSantri ?></td>
-                                                                <td><?= $DataNilai->IdSantri ?></td>
-                                                                <td><?= $DataNilai->TotalNilai ?></td>
-                                                                <td><?= $DataNilai->NilaiRataRata ?></td>
-                                                                <td><?= $DataNilai->Rangking ?></td>
-                                                                <td><?= $DataNilai->NamaKelas ?></td>
-                                                                <td><?= $DataNilai->IdTahunAjaran ?></td>
-                                                            </tr>
-                                                    <?php
-                                                        endif;
-                                                    endforeach;
-                                                    ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
+                    <div class="tab-content" id="kelasTabContent">
+                        <?php foreach ($listKelas as $kelas) : ?>
+                            <div class="tab-pane fade <?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'show active' : '' ?>"
+                                id="kelas-<?= $kelas->IdKelas ?>"
+                                role="tabpanel"
+                                aria-labelledby="tab-<?= $kelas->IdKelas ?>">
+                                <div class="table-responsive">
+                                    <div class="mb-3">
+                                        <button type="button" class="btn btn-primary btn-sm btn-print-all" data-kelas="<?= $kelas->IdKelas ?>" data-semester="<?= $semester ?>">
+                                            <i class="fas fa-print"></i> Cetak Semua Rapor Kelas <?= $kelas->NamaKelas ?>
+                                        </button>
                                     </div>
-                                <?php endforeach; ?>
+                                    <table class="table table-bordered table-striped" id="tableSantri-<?= $kelas->IdKelas ?>">
+                                        <thead>
+                                            <tr>
+                                                <th>No</th>
+                                                <th>Aksi</th>
+                                                <th>Nama Santri</th>
+                                                <th>NIS</th>
+                                                <th>Total Nilai</th>
+                                                <th>Nilai Rata-Rata</th>
+                                                <th>Rangking</th>
+                                                <th>Kelas</th>
+                                                <th>Tahun Ajaran</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php
+                                            $no = 1;
+                                            foreach ($nilai as $nilaiDetail) :
+                                                if ($nilaiDetail->IdKelas == $kelas->IdKelas) :
+                                            ?>
+                                                    <tr>
+                                                        <td><?= $no++ ?></td>
+                                                        <td>
+                                                            <div class="btn-group" role="group">
+                                                                <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $nilaiDetail->IdSantri ?>" data-semester="<?= $semester ?>">
+                                                                    <i class="fas fa-print"></i> Cetak Rapor
+                                                                </button>
+                                                                <button type="button" class="btn btn-info btn-sm btn-ttd-walas" data-id="<?= $nilaiDetail->IdSantri ?>" data-semester="<?= $semester ?>" data-kelas="<?= $nilaiDetail->IdKelas ?>">
+                                                                    <i class="fas fa-signature"></i> Ttd Walas
+                                                                </button>
+                                                                <button type="button" class="btn btn-success btn-sm btn-ttd-kepsek" data-id="<?= $nilaiDetail->IdSantri ?>" data-semester="<?= $semester ?>" data-kelas="<?= $nilaiDetail->IdKelas ?>">
+                                                                    <i class="fas fa-signature"></i> Ttd Kepsek
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td><?= $nilaiDetail->NamaSantri ?></td>
+                                                        <td><?= $nilaiDetail->IdSantri ?></td>
+                                                        <td><?= $nilaiDetail->TotalNilai ?></td>
+                                                        <td><?= $nilaiDetail->NilaiRataRata ?></td>
+                                                        <td><?= $nilaiDetail->Rangking ?></td>
+                                                        <td><?= $nilaiDetail->NamaKelas ?></td>
+                                                        <td><?= $nilaiDetail->IdTahunAjaran ?></td>
+                                                    </tr>
+                                            <?php
+                                                endif;
+                                            endforeach;
+                                            ?>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
