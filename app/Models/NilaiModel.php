@@ -65,32 +65,13 @@ class NilaiModel extends Model
     // Retrieve nilai data per semester
     public function getDataNilaiPerSemester($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
     {
-        $builder = $this->db->table('tbl_nilai n');
-        $builder->select('n.IdSantri, s.NamaSantri, s.JenisKelamin, ks.IdTahunAjaran, n.Semester, k.NamaKelas, ks.IdKelas, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata, RANK() OVER (PARTITION BY ks.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking');
-        $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
-        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
-        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
-        //Active=1
-        if (is_array($IdKelas)) {
-            $builder->whereIn('ks.IdKelas', $IdKelas);
-        } else {
-            $builder->where('ks.IdKelas', $IdKelas);
-        }
-        if (is_array($IdTahunAjaran)) {
-            $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
-        } else {
-            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
-        }
-        $builder->where('n.Semester', $semester);
-        $builder->where('n.IdTpq', $IdTpq);
+        $resultOptimized = $this->getDataNilaiPerSemesterOptimized($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+        var_dump($resultOptimized);
+        $resultSingleQuery = $this->getDataNilaiPerSemesterSingleQuery($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
 
-
-        $builder->groupBy(['n.IdSantri', 'n.Semester', 'ks.IdKelas']);
-        $builder->orderBy('ks.IdKelas', 'ASC');
-        $builder->orderBy('n.Semester', 'ASC');
-        $builder->orderBy('TotalNilai', 'DESC');
-
-        return $builder->get();
+        $result = $resultSingleQuery;
+        //$result = $resultOld;
+        return $result;
     }
 
     // Insert nilai data
@@ -269,5 +250,328 @@ class NilaiModel extends Model
         $builder->where('n.Semester', $semester);
 
         return $builder->get()->getResult();
+    }
+
+    // ===== VERSI DIURAIKAN UNTUK PERFORMANCE MONITORING =====
+
+    /*
+     * PENGGUNAAN FUNGSI-FUNGSI BARU:
+     * 
+     * 1. getDataNilaiPerSemesterOptimized() - Versi yang dipecah untuk monitoring performa
+     *    - Memecah query kompleks menjadi 5 tahap terpisah
+     *    - Setiap tahap memiliki timing sendiri
+     *    - Log waktu eksekusi untuk setiap tahap
+     * 
+     * 2. getDataNilaiPerSemesterSingleQuery() - Versi query tunggal untuk perbandingan
+     *    - Query asli yang dioptimalkan
+     *    - Untuk perbandingan performa dengan versi yang dipecah
+     * 
+     * 3. Fungsi-fungsi individual untuk setiap tahap:
+     *    - getDataSantriForNilai() - Tahap 1: Join dengan tabel santri
+     *    - getDataKelasSantriForNilai() - Tahap 2: Join dengan tabel kelas
+     *    - calculateNilaiAggregation() - Tahap 3: Perhitungan agregasi
+     *    - calculateRankingPerKelas() - Tahap 4: Perhitungan ranking
+     * 
+     * CARA PENGGUNAAN:
+     * 
+     * // Untuk monitoring performa (versi yang dipecah)
+     * $result = $nilaiModel->getDataNilaiPerSemesterOptimized($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+     * 
+     * // Untuk perbandingan (versi query tunggal)
+     * $result = $nilaiModel->getDataNilaiPerSemesterSingleQuery($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+     * 
+     * // Untuk testing individual tahap
+     * $dataSantri = $nilaiModel->getDataSantriForNilai($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+     * 
+     * MONITORING:
+     * - Cek log debug untuk melihat waktu eksekusi setiap tahap
+     * - Bandingkan performa antara versi yang dipecah vs query tunggal
+     * - Identifikasi tahap mana yang paling lambat untuk optimasi lebih lanjut
+     */
+
+    /**
+     * Tahap 1: Mendapatkan data santri dengan join ke tabel santri
+     * Timing: Untuk mengukur waktu join dengan tabel santri
+     */
+    public function getDataSantriForNilai($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        $startTime = microtime(true);
+
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.IdSantri, s.NamaSantri, s.JenisKelamin');
+        $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
+
+        // Apply filters
+        if (is_array($IdKelas)) {
+            $builder->whereIn('n.IdKelas', $IdKelas);
+        } else {
+            $builder->where('n.IdKelas', $IdKelas);
+        }
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+        }
+        $builder->where('n.Semester', $semester);
+        $builder->where('n.IdTpq', $IdTpq);
+
+        $result = $builder->get()->getResult();
+
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
+
+        log_message('debug', "Tahap 1 - Data Santri: {$executionTime}ms");
+
+        return $result;
+    }
+
+    /**
+     * Tahap 2: Mendapatkan data kelas santri dengan join ke tabel kelas
+     * Timing: Untuk mengukur waktu join dengan tabel kelas
+     */
+    public function getDataKelasSantriForNilai($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        $startTime = microtime(true);
+
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.IdSantri, ks.IdTahunAjaran, ks.IdKelas, k.NamaKelas');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
+
+        // Apply filters
+        if (is_array($IdKelas)) {
+            $builder->whereIn('ks.IdKelas', $IdKelas);
+        } else {
+            $builder->where('ks.IdKelas', $IdKelas);
+        }
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        }
+        $builder->where('n.Semester', $semester);
+        $builder->where('n.IdTpq', $IdTpq);
+
+        $result = $builder->get()->getResult();
+
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
+
+        log_message('debug', "Tahap 2 - Data Kelas Santri: {$executionTime}ms");
+
+        return $result;
+    }
+
+    /**
+     * Tahap 3: Menghitung total nilai dan rata-rata per santri
+     * Timing: Untuk mengukur waktu perhitungan agregasi
+     */
+    public function calculateNilaiAggregation($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        $startTime = microtime(true);
+
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.IdSantri, n.Semester, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
+
+        // Apply filters
+        if (is_array($IdKelas)) {
+            $builder->whereIn('ks.IdKelas', $IdKelas);
+        } else {
+            $builder->where('ks.IdKelas', $IdKelas);
+        }
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        }
+        $builder->where('n.Semester', $semester);
+        $builder->where('n.IdTpq', $IdTpq);
+
+        $builder->groupBy(['n.IdSantri', 'n.Semester']);
+
+        $result = $builder->get()->getResult();
+
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
+
+        log_message('debug', "Tahap 3 - Perhitungan Agregasi: {$executionTime}ms");
+
+        return $result;
+    }
+
+    /**
+     * Tahap 4: Menghitung ranking per kelas
+     * Timing: Untuk mengukur waktu perhitungan ranking
+     */
+    public function calculateRankingPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        $startTime = microtime(true);
+
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.IdSantri, ks.IdKelas, RANK() OVER (PARTITION BY ks.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
+
+        // Apply filters
+        if (is_array($IdKelas)) {
+            $builder->whereIn('ks.IdKelas', $IdKelas);
+        } else {
+            $builder->where('ks.IdKelas', $IdKelas);
+        }
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        }
+        $builder->where('n.Semester', $semester);
+        $builder->where('n.IdTpq', $IdTpq);
+
+        $builder->groupBy(['n.IdSantri', 'ks.IdKelas']);
+
+        $result = $builder->get()->getResult();
+
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
+
+        log_message('debug', "Tahap 4 - Perhitungan Ranking: {$executionTime}ms");
+
+        return $result;
+    }
+
+    /**
+     * Fungsi utama yang menggabungkan semua tahap dengan monitoring waktu
+     * Versi ini memecah query kompleks menjadi beberapa tahap untuk monitoring performa
+     */
+    public function getDataNilaiPerSemesterOptimized($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        $totalStartTime = microtime(true);
+
+        log_message('debug', "=== MULAI getDataNilaiPerSemesterOptimized ===");
+
+        // Tahap 1: Data Santri
+        $dataSantri = $this->getDataSantriForNilai($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+
+        // Tahap 2: Data Kelas Santri
+        $dataKelasSantri = $this->getDataKelasSantriForNilai($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+
+        // Tahap 3: Perhitungan Agregasi
+        $nilaiAggregation = $this->calculateNilaiAggregation($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+
+        // Tahap 4: Perhitungan Ranking
+        $rankingData = $this->calculateRankingPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+
+        // Tahap 5: Penggabungan Data (Manual Join)
+        $startTime = microtime(true);
+
+        $result = [];
+        $dataSantriMap = [];
+        $dataKelasMap = [];
+        $nilaiMap = [];
+        $rankingMap = [];
+
+        // Buat mapping untuk efisiensi
+        foreach ($dataSantri as $santri) {
+            $dataSantriMap[$santri->IdSantri] = $santri;
+        }
+
+        foreach ($dataKelasSantri as $kelas) {
+            $dataKelasMap[$kelas->IdSantri] = $kelas;
+        }
+
+        foreach ($nilaiAggregation as $nilai) {
+            $nilaiMap[$nilai->IdSantri] = $nilai;
+        }
+
+        foreach ($rankingData as $ranking) {
+            $rankingMap[$ranking->IdSantri] = $ranking;
+        }
+
+        // Gabungkan data
+        foreach ($dataSantriMap as $idSantri => $santri) {
+            $kelas = $dataKelasMap[$idSantri] ?? null;
+            $nilai = $nilaiMap[$idSantri] ?? null;
+            $ranking = $rankingMap[$idSantri] ?? null;
+
+            if ($kelas && $nilai && $ranking) {
+                $result[] = (object) [
+                    'IdSantri' => $idSantri,
+                    'NamaSantri' => $santri->NamaSantri,
+                    'JenisKelamin' => $santri->JenisKelamin,
+                    'IdTahunAjaran' => $kelas->IdTahunAjaran,
+                    'Semester' => $nilai->Semester,
+                    'NamaKelas' => $kelas->NamaKelas,
+                    'IdKelas' => $kelas->IdKelas,
+                    'TotalNilai' => $nilai->TotalNilai,
+                    'NilaiRataRata' => $nilai->NilaiRataRata,
+                    'Rangking' => $ranking->Rangking
+                ];
+            }
+        }
+
+        // Sorting
+        usort($result, function ($a, $b) {
+            if ($a->IdKelas == $b->IdKelas) {
+                if ($a->Semester == $b->Semester) {
+                    return $b->TotalNilai <=> $a->TotalNilai;
+                }
+                return $a->Semester <=> $b->Semester;
+            }
+            return $a->IdKelas <=> $b->IdKelas;
+        });
+
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000;
+
+        log_message('debug', "Tahap 5 - Penggabungan Data: {$executionTime}ms");
+
+        $totalEndTime = microtime(true);
+        $totalExecutionTime = ($totalEndTime - $totalStartTime) * 1000;
+
+        log_message('debug', "=== TOTAL WAKTU getDataNilaiPerSemesterOptimized: {$totalExecutionTime}ms ===");
+
+        return $result;
+    }
+
+    /**
+     * Versi alternatif dengan query tunggal yang dioptimalkan
+     * Untuk perbandingan performa dengan versi yang dipecah
+     */
+    public function getDataNilaiPerSemesterSingleQuery($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        $startTime = microtime(true);
+
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.IdSantri, s.NamaSantri, s.JenisKelamin, ks.IdTahunAjaran, n.Semester, k.NamaKelas, ks.IdKelas, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata, RANK() OVER (PARTITION BY ks.IdKelas ORDER BY AVG(n.Nilai) DESC) AS Rangking');
+        $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
+
+        // Apply filters
+        if (is_array($IdKelas)) {
+            $builder->whereIn('ks.IdKelas', $IdKelas);
+        } else {
+            $builder->where('ks.IdKelas', $IdKelas);
+        }
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        }
+        $builder->where('n.Semester', $semester);
+        $builder->where('n.IdTpq', $IdTpq);
+
+        $builder->groupBy(['n.IdSantri', 'n.Semester', 'ks.IdKelas']);
+        $builder->orderBy('ks.IdKelas', 'ASC');
+        $builder->orderBy('n.Semester', 'ASC');
+        $builder->orderBy('TotalNilai', 'DESC');
+
+        $result = $builder->get();
+
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000;
+
+        log_message('debug', "Single Query Version: {$executionTime}ms");
+
+        return $result;
     }
 }
