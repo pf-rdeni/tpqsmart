@@ -79,6 +79,14 @@ $routes->get('edit/(:num)', 'GuruKelas::edit/$1');
 $routes->post('update/(:num)', 'GuruKelasr::update/$1');
 $routes->post('delete/(:num)', 'GuruKelas::delete/$1');
 
+//Table tbl_struktur_lembaga
+$routes->get('backend/strukturlembaga', 'Backend\StrukturLembaga::index');
+$routes->get('backend/strukturlembaga/create', 'Backend\StrukturLembaga::create');
+$routes->post('backend/strukturlembaga/store', 'Backend\StrukturLembaga::store');
+$routes->get('backend/strukturlembaga/edit/(:num)', 'Backend\StrukturLembaga::edit/$1');
+$routes->post('backend/strukturlembaga/update/(:num)', 'Backend\StrukturLembaga::update/$1');
+$routes->get('backend/strukturlembaga/delete/(:num)', 'Backend\StrukturLembaga::delete/$1');
+
 $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
     $routes->get('rapor/(:segment)', 'Rapor::index/$1');
     $routes->get('rapor/getSantriByKelas/(:num)', 'Rapor::getSantriByKelas/$1');

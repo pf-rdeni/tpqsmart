@@ -1569,5 +1569,26 @@ class HelpFunctionModel extends Model
 
         return $builder->get()->getResultArray();
     }
+
+    /**
+     * Get list IdTahunAjaran from tbl_guru_kelas filter IdTpq grouped IdTahunAjaran
+     */
+    public function getListIdTahunAjaranFromGuruKelas($IdTpq = null)
+    {
+        $builder = $this->db->table('tbl_guru_kelas gk');
+        $builder->select('gk.IdTahunAjaran');
+        if ($IdTpq != null) {
+            if (is_array($IdTpq)) {
+                $builder->whereIn('gk.IdTpq', $IdTpq);
+            } else {
+                $builder->where('gk.IdTpq', $IdTpq);
+            }
+        }
+        $builder->groupBy('gk.IdTahunAjaran');
+        $result = $builder->get()->getResultArray();
+
+        // Extract only the IdTahunAjaran values into a simple array
+        return array_column($result, 'IdTahunAjaran');
+    }
 }
 

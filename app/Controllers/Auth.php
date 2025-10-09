@@ -123,6 +123,14 @@ class Auth extends BaseController
             if (is_array($IdTpqArr) && isset($IdTpqArr['IdTpq'])) {
                 session()->set('IdTpq', $IdTpqArr['IdTpq']);
             }
+
+            // Get tahun ajaran dari tabel tbl_guru_kelas filter IdTpq ggrouped IdTahunAjaran
+            $IdTahunAjaranArr = $this->helpFunctionModel->getListIdTahunAjaranFromGuruKelas(IdTpq: $IdTpqArr['IdTpq']);
+            if (is_array($IdTahunAjaranArr) && !empty($IdTahunAjaranArr)) {
+                session()->set('IdTahunAjaranList', $IdTahunAjaranArr);
+                $idTahunAjaran = $IdTahunAjaranArr[count($IdTahunAjaranArr) - 1];
+                session()->set('IdTahunAjaran', $idTahunAjaran);
+            }
         }
     }
 
@@ -408,7 +416,7 @@ class Auth extends BaseController
         }
 
         // Cek apakah user adalah Guru
-        if (!in_groups('Guru')) {
+        if (!in_groups('Guru') && !in_groups('Operator')) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Hanya guru yang dapat mengubah tahun ajaran'

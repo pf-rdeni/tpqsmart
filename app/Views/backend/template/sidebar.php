@@ -18,7 +18,7 @@
                 <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname; ?></a>
             </div>
         </div>
-        <?php if (in_groups('Guru')): ?>
+        <?php if (in_groups('Guru') || in_groups('Operator')): ?>
             <div class="info">
                 <select class="form-control" id="tahunAjaranSelect">
                     <?php foreach (session()->get('IdTahunAjaranList') as $idTahunAjaran): ?>
@@ -271,6 +271,12 @@
                                 <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Guru Kelas</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/strukturlembaga') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Struktur Lembaga</p>
                                 </a>
                             </li>
                             <li class="nav-item">
