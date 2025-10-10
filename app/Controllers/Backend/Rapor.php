@@ -161,6 +161,7 @@ class Rapor extends BaseController
 
     public function index($semester = 'Ganjil')
     {
+        // Ambil data permission guru kelas untuk semua kelas
         $IdTpq = session()->get('IdTpq');
         $IdGuru = session()->get('IdGuru');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
@@ -192,17 +193,12 @@ class Rapor extends BaseController
         // Ambil data summary nilai untuk setiap santri
         $summaryData = $this->getSummaryDataForSantri($IdTpq, $listIdKelas, $IdTahunAjaran, $semester);
 
-        // Ambil data permission guru kelas untuk semua kelas
-        $IdTpq = session()->get('IdTpq');
-        $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $IdGuru = session()->get('IdGuru');
-        $listIdKelas = session()->get('IdKelas');
-
         $guruKelasPermissions = $this->helpFunctionModel->getGuruKelasPermissions($IdTpq, $IdGuru, $listIdKelas, $IdTahunAjaran);
 
         // Ambil status signature untuk semua santri dalam kelas ini
         $signatures = $this->signatureModel->getSignaturesWithPosition(
             idKelas: $listIdKelas,
+            idTpq: $IdTpq,
             idTahunAjaran: $IdTahunAjaran,
             semester: $semester
         );
@@ -349,17 +345,17 @@ class Rapor extends BaseController
     /**
      * Handle tanda tangan wali kelas
      */
-    public function ttdWalas($IdSantri, $semester)
+    public function ttdWalas($IdSantri, $IdKelas, $semester)
     {
-        return $this->handleSignature($IdSantri, $semester, 'walas');
+        return $this->handleSignature($IdSantri, $IdKelas, $semester, 'walas');
     }
 
     /**
      * Handle tanda tangan kepala sekolah
      */
-    public function ttdKepsek($IdSantri, $semester)
+    public function ttdKepsek($IdSantri, $IdKelas, $semester)
     {
-        return $this->handleSignature($IdSantri, $semester, 'kepsek');
+        return $this->handleSignature($IdSantri, $IdKelas, $semester, 'kepsek');
     }
 
     /**
@@ -393,13 +389,12 @@ class Rapor extends BaseController
     /**
      * Handle tanda tangan (untuk wali kelas dan kepala sekolah)
      */
-    private function handleSignature($IdSantri, $semester, $signatureType)
+    private function handleSignature($IdSantri, $IdKelas, $semester, $signatureType)
     {
         try {
             $IdTpq = session()->get('IdTpq');
             $IdTahunAjaran = session()->get('IdTahunAjaran');
             $IdGuru = session()->get('IdGuru');
-            $IdKelas = session()->get('IdKelas');
 
             // Cek permission berdasarkan tbl_guru_kelas
             $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);

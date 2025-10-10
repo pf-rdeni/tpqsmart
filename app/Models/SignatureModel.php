@@ -55,7 +55,7 @@ class SignatureModel extends Model
     /**
      * Get signatures with teacher position information for rapor
      */
-    public function getSignaturesWithPosition($idSantri = null, $idKelas = null, $idTahunAjaran = null, $semester = null)
+    public function getSignaturesWithPosition($idSantri = null, $idKelas = null, $idTpq = null, $idTahunAjaran = null, $semester = null)
     {
         $builder = $this->db->table('tbl_tanda_tangan s');
         $builder->select('s.*, j.NamaJabatan, g.Nama as NamaGuru');
@@ -71,6 +71,9 @@ class SignatureModel extends Model
             } else {
                 $builder->where('s.IdKelas', $idKelas);
             }
+        }
+        if ($idTpq) {
+            $builder->where('s.IdTpq', $idTpq);
         }
         if ($idTahunAjaran) {
             if (is_array($idTahunAjaran)) {

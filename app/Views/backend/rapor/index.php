@@ -259,8 +259,8 @@
         }
 
         // Fungsi helper untuk menangani signature request
-        function handleSignatureRequest(IdSantri, semester, signatureType) {
-            const url = `<?= base_url('backend/rapor/ttd') ?>${signatureType}/${IdSantri}/${semester}`;
+        function handleSignatureRequest(IdSantri, IdKelas, semester, signatureType) {
+            const url = `<?= base_url('backend/rapor/ttd') ?>${signatureType}/${IdSantri}/${IdKelas}/${semester}`;
 
             $.ajax({
                 url: url,
@@ -406,7 +406,7 @@
 
             const IdSantri = $(this).data('id');
             const semester = $(this).data('semester');
-
+            const IdKelas = $(this).data('kelas');
             Swal.fire({
                 title: 'Tanda Tangan Wali Kelas',
                 text: 'Apakah Anda yakin ingin menandatangani rapor ini?',
@@ -418,7 +418,7 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    handleSignatureRequest(IdSantri, semester, 'Walas');
+                    handleSignatureRequest(IdSantri, IdKelas, semester, 'Walas');
                 }
             });
         });
@@ -432,7 +432,7 @@
 
             const IdSantri = $(this).data('id');
             const semester = $(this).data('semester');
-
+            const IdKelas = $(this).data('kelas');
             Swal.fire({
                 title: 'Tanda Tangan Kepala Sekolah',
                 text: 'Apakah Anda yakin ingin menandatangani rapor ini?',
@@ -444,7 +444,7 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    handleSignatureRequest(IdSantri, semester, 'Kepsek');
+                    handleSignatureRequest(IdSantri, IdKelas, semester, 'Kepsek');
                 }
             });
         });
