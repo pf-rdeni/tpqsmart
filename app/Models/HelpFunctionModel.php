@@ -748,79 +748,156 @@ class HelpFunctionModel extends Model
         return $this->db->table('tbl_kelas')->where('IdKelas', $IdKelas)->get()->getRowArray()['NamaKelas'];
     }
 
-    // get list kelas grouped kelas filter IdTpq, IdTahunAjaran dari tbl_kelas_santri
     /**
-     * Mengambil daftar kelas berdasarkan IdTpq, IdTahunAjaran, IdKelas, dan IdGuru
-     * @param mixed $IdTpq
-     * @param mixed $IdTahunAjaran
-     * @param mixed $IdKelas
-     * @param mixed $IdGuru
-     * @return object|array
+     * Mengambil daftar kelas berdasarkan ID guru atau admin
+     * 
+     * Fungsi ini digunakan untuk mendapatkan list kelas dengan tiga mode:
+     * 1. Mode Guru: Jika IdGuru diberikan dan bukan Kepala Sekolah, akan mengambil kelas yang diajar oleh guru tersebut
+     * 2. Mode Kepala Sekolah: Jika IdGuru adalah Kepala Sekolah, akan mengambil semua kelas (akses penuh)
+     * 3. Mode Admin: Jika IdGuru tidak diberikan, akan mengambil semua kelas (akses admin)
+     * 
+     * @param mixed $IdTpq ID TPQ untuk filter
+     * @param mixed $IdTahunAjaran ID Tahun Ajaran (bisa array atau single value)
+     * @param mixed $IdKelas ID Kelas untuk filter (bisa array atau single value, optional)
+     * @param mixed $IdGuru ID Guru untuk filter (optional - jika tidak ada maka mode admin)
+     * @return object|array Daftar kelas yang memenuhi kriteria
      */
     public function getListKelas($IdTpq, $IdTahunAjaran, $IdKelas = null, $IdGuru = null)
     {
-        // Jika IdGuru diberikan, gunakan join dengan tabel guru_kelas
-        if (!empty($IdGuru)) {
+        // Tentukan mode query berdasarkan IdGuru dan status jabatan
+        $isKepalaSekolah = $this->isKepalaSekolah($IdGuru, $IdTpq);
+        $isGuruMode = !empty($IdGuru) && !$isKepalaSekolah;
+
+        // Buat query builder sesuai mode (Guru, Kepala Sekolah, atau Admin)
+        $builder = $this->createKelasQueryBuilder($isGuruMode, $IdGuru, $isKepalaSekolah);
+
+        // Terapkan filter-filter yang diberikan
+        $this->applyKelasFilters($builder, $IdTpq, $IdTahunAjaran, $IdKelas, $isGuruMode, $isKepalaSekolah);
+
+        // Set grouping dan ordering
+        $this->setKelasGroupingAndOrdering($builder, $isGuruMode, $isKepalaSekolah);
+
+        return $builder->get()->getResultObject();
+    }
+
+    /**
+     * Mengecek apakah guru adalah Kepala Sekolah
+     * 
+     * @param mixed $IdGuru ID Guru
+     * @param mixed $IdTpq ID TPQ
+     * @return bool True jika guru adalah Kepala Sekolah
+     */
+    private function isKepalaSekolah($IdGuru, $IdTpq)
+    {
+        if (empty($IdGuru) || empty($IdTpq)) {
+            return false;
+        }
+
+        $jabatanData = $this->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+
+        if (empty($jabatanData)) {
+            return false;
+        }
+
+        // Cek apakah ada jabatan "Kepala Sekolah" dalam data jabatan
+        foreach ($jabatanData as $jabatan) {
+            if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Membuat query builder untuk mengambil data kelas
+     * 
+     * @param bool $isGuruMode True jika menggunakan mode guru, false jika mode admin
+     * @param mixed $IdGuru ID Guru (hanya digunakan jika isGuruMode = true)
+     * @param bool $isKepalaSekolah True jika guru adalah Kepala Sekolah
+     * @return \CodeIgniter\Database\BaseBuilder
+     */
+    private function createKelasQueryBuilder($isGuruMode, $IdGuru, $isKepalaSekolah = false)
+    {
+        if ($isGuruMode) {
+            // Mode Guru: Ambil kelas yang diajar oleh guru tertentu
             $builder = $this->db->table('tbl_guru_kelas gk');
             $builder->select('gk.IdKelas, k.NamaKelas, gk.IdTahunAjaran');
             $builder->join('tbl_kelas k', 'k.IdKelas = gk.IdKelas');
             $builder->where('gk.IdGuru', $IdGuru);
         } else {
-            // Jika tidak ada IdGuru, gunakan tabel kelas_santri seperti sebelumnya
+            // Mode Admin atau Kepala Sekolah: Ambil semua kelas dari data santri
             $builder = $this->db->table('tbl_kelas_santri');
             $builder->select('tbl_kelas_santri.IdKelas, NamaKelas, IdTahunAjaran');
             $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_santri.IdKelas');
         }
 
+        return $builder;
+    }
+
+    /**
+     * Menerapkan filter-filter pada query builder
+     * 
+     * @param \CodeIgniter\Database\BaseBuilder $builder Query builder
+     * @param mixed $IdTpq ID TPQ
+     * @param mixed $IdTahunAjaran ID Tahun Ajaran
+     * @param mixed $IdKelas ID Kelas
+     * @param bool $isGuruMode Mode query (guru atau admin)
+     * @param bool $isKepalaSekolah True jika guru adalah Kepala Sekolah
+     */
+    private function applyKelasFilters($builder, $IdTpq, $IdTahunAjaran, $IdKelas, $isGuruMode, $isKepalaSekolah = false)
+    {
+        // Tentukan prefix tabel berdasarkan mode
+        $tablePrefix = $isGuruMode ? 'gk' : 'tbl_kelas_santri';
+
+        // Filter berdasarkan TPQ
         if (!empty($IdTpq)) {
-            if (!empty($IdGuru)) {
-                $builder->where('gk.IdTpq', $IdTpq);
-            } else {
-                $builder->where('tbl_kelas_santri.IdTpq', $IdTpq);
-            }
+            $builder->where($tablePrefix . '.IdTpq', $IdTpq);
         }
 
+        // Filter berdasarkan Tahun Ajaran
         if (!empty($IdTahunAjaran)) {
-            if (is_array($IdTahunAjaran)) {
-                if (!empty($IdGuru)) {
-                    $builder->whereIn('gk.IdTahunAjaran', $IdTahunAjaran);
-                } else {
-                    $builder->whereIn('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
-                }
-            } else {
-                if (!empty($IdGuru)) {
-                    $builder->where('gk.IdTahunAjaran', $IdTahunAjaran);
-                } else {
-                    $builder->where('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
-                }
-            }
+            $this->applyArrayOrSingleFilter($builder, $tablePrefix . '.IdTahunAjaran', $IdTahunAjaran);
         }
 
-        // Jika IdKelas tidak null, filter berdasarkan IdKelas
+        // Filter berdasarkan Kelas
         if ($IdKelas !== null) {
-            if (is_array($IdKelas)) {
-                if (!empty($IdGuru)) {
-                    $builder->whereIn('gk.IdKelas', $IdKelas);
-                } else {
-                    $builder->whereIn('tbl_kelas_santri.IdKelas', $IdKelas);
-                }
-            } else {
-                if (!empty($IdGuru)) {
-                    $builder->where('gk.IdKelas', $IdKelas);
-                } else {
-                    $builder->where('tbl_kelas_santri.IdKelas', $IdKelas);
-                }
-            }
+            $this->applyArrayOrSingleFilter($builder, $tablePrefix . '.IdKelas', $IdKelas);
         }
+    }
 
-        if (!empty($IdGuru)) {
+    /**
+     * Menerapkan filter yang bisa berupa array atau single value
+     * 
+     * @param \CodeIgniter\Database\BaseBuilder $builder Query builder
+     * @param string $column Nama kolom
+     * @param mixed $value Value yang bisa berupa array atau single value
+     */
+    private function applyArrayOrSingleFilter($builder, $column, $value)
+    {
+        if (is_array($value)) {
+            $builder->whereIn($column, $value);
+        } else {
+            $builder->where($column, $value);
+        }
+    }
+
+    /**
+     * Mengatur grouping dan ordering untuk query
+     * 
+     * @param \CodeIgniter\Database\BaseBuilder $builder Query builder
+     * @param bool $isGuruMode Mode query (guru atau admin)
+     * @param bool $isKepalaSekolah True jika guru adalah Kepala Sekolah
+     */
+    private function setKelasGroupingAndOrdering($builder, $isGuruMode, $isKepalaSekolah = false)
+    {
+        if ($isGuruMode) {
             $builder->groupBy('gk.IdKelas, k.NamaKelas, gk.IdTahunAjaran');
         } else {
             $builder->groupBy('tbl_kelas_santri.IdKelas, NamaKelas, IdTahunAjaran');
         }
-        $builder->orderBy('NamaKelas', 'ASC');
 
-        return $builder->get()->getResultObject();
+        $builder->orderBy('NamaKelas', 'ASC');
     }
 
     // Get value setting input nilai min dan max dari tbl_tools
@@ -1589,6 +1666,28 @@ class HelpFunctionModel extends Model
 
         // Extract only the IdTahunAjaran values into a simple array
         return array_column($result, 'IdTahunAjaran');
+    }
+
+    // Get Nama Jabatan dan Jabatan by IdGuru dan IdTpq pada tbl_struktur_lembaga
+    public function getStrukturLembagaJabatan($IdGuru, $IdTpq)
+    {
+        $builder = $this->db->table('tbl_struktur_lembaga sl');
+        $builder->select('sl.*, j.NamaJabatan');
+        $builder->join('tbl_jabatan j', 'j.IdJabatan = sl.IdJabatan');
+        $builder->where('sl.IdGuru', $IdGuru);
+        $builder->where('sl.IdTpq', $IdTpq);
+        return $builder->get()->getResultArray();
+    }
+
+    // Get list IdKelas dari tbl_kelas_santri filter IdTpq, IdTahunAjaran, IdKelas
+    public function getListIdKelasFromKelasSantri($IdTpq, $IdTahunAjaran)
+    {
+        $builder = $this->db->table('tbl_kelas_santri');
+        $builder->select('IdKelas');
+        $builder->where('IdTpq', $IdTpq);
+        $builder->where('IdTahunAjaran', $IdTahunAjaran);
+        $builder->groupBy('IdKelas');
+        return array_column($builder->get()->getResultArray(), 'IdKelas');
     }
 }
 
