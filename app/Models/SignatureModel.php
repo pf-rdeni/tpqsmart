@@ -17,6 +17,7 @@ class SignatureModel extends Model
         'IdGuru',
         'IdTpq',
         'JenisDokumen',
+        'SignatureData',
         'QrCode',
         'StatusValidasi',
         'TanggalTtd',
@@ -59,7 +60,7 @@ class SignatureModel extends Model
     {
         $builder = $this->db->table('tbl_tanda_tangan s');
         $builder->select('s.*, j.NamaJabatan, g.Nama as NamaGuru');
-        $builder->join('tbl_guru_kelas gk', 'gk.IdGuru = s.IdGuru AND gk.IdTpq = s.IdTpq AND gk.IdTahunAjaran = s.IdTahunAjaran');
+        $builder->join('tbl_guru_kelas gk', 'gk.IdGuru = s.IdGuru AND gk.IdTpq = s.IdTpq AND gk.IdTahunAjaran = s.IdTahunAjaran AND gk.IdKelas = s.IdKelas');
         $builder->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
         $builder->join('tbl_guru g', 'g.IdGuru = s.IdGuru');
         if ($idSantri) {

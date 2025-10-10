@@ -11,15 +11,15 @@
             <div class="card card-primary card-tabs">
                 <div class="card-header p-0 pt-1">
                     <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="kelasTab" role="tablist">
-                        <?php foreach ($listKelas as $kelas) : ?>
+                        <?php foreach ($dataKelas as $kelas) : ?>
                             <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                                <a class="nav-link border-white text-center <?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'active' : '' ?>"
+                                <a class="nav-link border-white text-center <?= $kelas->IdKelas === $dataKelas[0]->IdKelas ? 'active' : '' ?>"
                                     id="tab-<?= $kelas->IdKelas ?>"
                                     data-toggle="tab"
                                     href="#kelas-<?= $kelas->IdKelas ?>"
                                     role="tab"
                                     aria-controls="kelas-<?= $kelas->IdKelas ?>"
-                                    aria-selected="<?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'true' : 'false' ?>">
+                                    aria-selected="<?= $kelas->IdKelas === $dataKelas[0]->IdKelas ? 'true' : 'false' ?>">
                                     <?= $kelas->NamaKelas ?>
                                 </a>
                             </li>
@@ -29,8 +29,8 @@
                 <br>
                 <div class="card-body">
                     <div class="tab-content" id="kelasTabContent">
-                        <?php foreach ($listKelas as $kelas) : ?>
-                            <div class="tab-pane fade <?= $kelas->IdKelas === $listKelas[0]->IdKelas ? 'show active' : '' ?>"
+                        <?php foreach ($dataKelas as $kelas) : ?>
+                            <div class="tab-pane fade <?= $kelas->IdKelas === $dataKelas[0]->IdKelas ? 'show active' : '' ?>"
                                 id="kelas-<?= $kelas->IdKelas ?>"
                                 role="tabpanel"
                                 aria-labelledby="tab-<?= $kelas->IdKelas ?>">
@@ -105,7 +105,7 @@
 <script>
     $(document).ready(function() {
         // Inisialisasi DataTable untuk setiap kelas
-        <?php foreach ($listKelas as $kelasId => $IdKelas): ?>
+        <?php foreach ($dataKelas as $kelasId => $IdKelas): ?>
             initializeDataTableUmum("#tableSantri-<?= $kelasId ?>", true, true);
         <?php endforeach; ?>
 

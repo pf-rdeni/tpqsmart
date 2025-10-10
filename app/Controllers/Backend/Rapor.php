@@ -167,28 +167,15 @@ class Rapor extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $isKepalaSekolah = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
 
+        // Ambil list id kelas dari tbl_kelas_santri
         if ($isKepalaSekolah) {
             $listIdKelas = $this->helpFunctionModel->getListIdKelasFromKelasSantri($IdTpq, $IdTahunAjaran);
         } else {
             $listIdKelas = session()->get('IdKelas');
         }
-        $listKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $IdGuru);
 
-
-        // Ambil data santri joint dengan tbl_kelas_santri dan tbl_kelas
-        $builder = $this->santriBaruModel->join('tbl_kelas_santri', 'tbl_kelas_santri.IdSantri = tbl_santri_baru.IdSantri');
-        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_kelas_santri.IdKelas');
-        $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
-
-        if (is_array($listIdKelas)) {
-            $builder->whereIn('tbl_kelas_santri.IdKelas', $listIdKelas);
-        } else {
-            $builder->where('tbl_kelas_santri.IdKelas', $listIdKelas);
-        }
-
-        $builder->where('tbl_kelas_santri.IdTahunAjaran', $IdTahunAjaran);
-
-        $listSantri = $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas')->findAll();
+        // Ambil object data kelas
+        $dataKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $IdGuru);
 
         // Ambil data summary nilai untuk setiap santri
         $summaryData = $this->getSummaryDataForSantri($IdTpq, $listIdKelas, $IdTahunAjaran, $semester);
@@ -215,10 +202,8 @@ class Rapor extends BaseController
 
         $data = [
             'page_title' => 'Rapor Santri',
-            'listKelas' => $listKelas,
-            'listSantri' => $listSantri,
+            'dataKelas' => $dataKelas,
             'nilai' => $summaryData['nilai'],
-            'dataKelas' => $summaryData['dataKelas'],
             'semester' => $semester,
             'guruKelasPermissions' => $guruKelasPermissions,
             'signatures' => $signatures,
@@ -453,6 +438,9 @@ class Rapor extends BaseController
             // Generate token unik
             $token = $this->generateUniqueToken();
 
+            // Data untuk signature
+            $signatureData = $signatureType === 'walas' ? 'Walas' : 'Kepsek';
+
             // Data untuk disimpan ke tbl_tanda_tangan
             $signatureData = [
                 'Token' => $token,
@@ -463,6 +451,7 @@ class Rapor extends BaseController
                 'IdGuru' => $IdGuru,
                 'IdTpq' => $IdTpq,
                 'JenisDokumen' => 'Rapor',
+                'SignatureData' => $signatureData,
                 'StatusValidasi' => 'Valid',
                 'TanggalTtd' => date('Y-m-d H:i:s')
             ];
