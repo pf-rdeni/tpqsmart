@@ -640,7 +640,11 @@ class HelpFunctionModel extends Model
         
 
         if ($IdKelas) {
-            $builder->where('IdKelas', $IdKelas);
+            if (is_array($IdKelas)) {
+                $builder->whereIn('IdKelas', $IdKelas);
+            } else {
+                $builder->where('IdKelas', $IdKelas);
+            }
         }
 
         return $builder->get()->getRow()->total;

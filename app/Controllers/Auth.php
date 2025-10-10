@@ -213,24 +213,33 @@ class Auth extends BaseController
         $statusInputNilaiPerKelasGanjil = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $idKelas, 'Ganjil');
         $statusInputNilaiPerKelasGenap = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $idKelas, 'Genap');
 
+        // Data statistik utama
+        $pageTitle = 'Dashboard';
+        $totalTabungan = $saldoTabungan ?? 0;
+        $tahunAjaran = $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran);
+
+        // Status input nilai semester
+        $statusInputNilaiSemesterGanjil = $this->helpFunctionModel->getStatusInputNilai(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+            IdKelas: $idKelas,
+            Semester: 'Ganjil'
+        );
+        $statusInputNilaiSemesterGenap = $this->helpFunctionModel->getStatusInputNilai(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+            IdKelas: $idKelas,
+            Semester: 'Genap'
+        );
+
         return [
-            'page_title' => 'Dashboard',
+            'page_title' => $pageTitle,
             'JumlahKelasDiajar' => $JumlahKelasDiajar,
             'TotalSantri' => $totalSantri,
-            'TotalTabungan' => $saldoTabungan ?? 0,
-            'TahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran),
-            'StatusInputNilaiSemesterGanjil' => $this->helpFunctionModel->getStatusInputNilai(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-                IdKelas: $idKelas,
-                Semester: 'Ganjil'
-            ),
-            'StatusInputNilaiSemesterGenap' => $this->helpFunctionModel->getStatusInputNilai(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-                IdKelas: $idKelas,
-                Semester: 'Genap'
-            ),
+            'TotalTabungan' => $totalTabungan,
+            'TahunAjaran' => $tahunAjaran,
+            'StatusInputNilaiSemesterGanjil' => $statusInputNilaiSemesterGanjil,
+            'StatusInputNilaiSemesterGenap' => $statusInputNilaiSemesterGenap,
             'StatusInputNilaiPerKelasGanjil' => $statusInputNilaiPerKelasGanjil,
             'StatusInputNilaiPerKelasGenap' => $statusInputNilaiPerKelasGenap,
             'JumlahSantriPerKelas' => $jumlahSantriPerKelas,
@@ -255,33 +264,46 @@ class Auth extends BaseController
         $statusInputNilaiPerKelasGanjil = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $listKelas, 'Ganjil');
         $statusInputNilaiPerKelasGenap = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $listKelas, 'Genap');
 
+        // Data statistik utama
+        $pageTitle = 'Dashboard';
+        $totalWaliKelas = $this->helpFunctionModel->getTotalWaliKelas(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+        );
+        $totalSantri = $this->helpFunctionModel->getTotalSantri(IdTpq: $idTpq);
+        $totalGuru = $this->helpFunctionModel->getTotalGuru(IdTpq: $idTpq);
+        $totalKelas = $this->helpFunctionModel->getTotalKelas(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+        );
+        $totalSantriBaru = $this->helpFunctionModel->getTotalSantriBaru(
+            IdTpq: $idTpq,
+            IdKelas: session()->get('IdKelas'),
+        );
+        $tahunAjaran = $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran);
+
+        // Status input nilai semester
+        $statusInputNilaiSemesterGanjil = $this->helpFunctionModel->getStatusInputNilai(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+            Semester: 'Ganjil'
+        );
+        $statusInputNilaiSemesterGenap = $this->helpFunctionModel->getStatusInputNilai(
+            IdTpq: $idTpq,
+            IdTahunAjaran: $idTahunAjaran,
+            Semester: 'Genap'
+        );
+
         return [
-            'page_title' => 'Dashboard',
-            'TotalWaliKelas' => $this->helpFunctionModel->getTotalWaliKelas(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-            ),
-            'TotalSantri' => $this->helpFunctionModel->getTotalSantri(IdTpq: $idTpq),
-            'TotalGuru' => $this->helpFunctionModel->getTotalGuru(IdTpq: $idTpq),
-            'TotalKelas' => $this->helpFunctionModel->getTotalKelas(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-            ),
-            'TotalSantriBaru' => $this->helpFunctionModel->getTotalSantriBaru(
-                IdTpq: $idTpq,
-                IdKelas: session()->get('IdKelas'),
-            ),
-            'TahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran),
-            'StatusInputNilaiSemesterGanjil' => $this->helpFunctionModel->getStatusInputNilai(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-                Semester: 'Ganjil'
-            ),
-            'StatusInputNilaiSemesterGenap' => $this->helpFunctionModel->getStatusInputNilai(
-                IdTpq: $idTpq,
-                IdTahunAjaran: $idTahunAjaran,
-                Semester: 'Genap'
-            ),
+            'page_title' => $pageTitle,
+            'TotalWaliKelas' => $totalWaliKelas,
+            'TotalSantri' => $totalSantri,
+            'TotalGuru' => $totalGuru,
+            'TotalKelas' => $totalKelas,
+            'TotalSantriBaru' => $totalSantriBaru,
+            'TahunAjaran' => $tahunAjaran,
+            'StatusInputNilaiSemesterGanjil' => $statusInputNilaiSemesterGanjil,
+            'StatusInputNilaiSemesterGenap' => $statusInputNilaiSemesterGenap,
             'StatusInputNilaiPerKelasGanjil' => $statusInputNilaiPerKelasGanjil,
             'StatusInputNilaiPerKelasGenap' => $statusInputNilaiPerKelasGenap,
             'JumlahSantriPerKelas' => $jumlahSantriPerKelas,
@@ -348,7 +370,7 @@ class Auth extends BaseController
         if (in_groups('Guru')) {
             $data = $this->getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru);
         } else if (in_groups('Admin') || in_groups('Operator')) {
-            $idTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+            //$idTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
             $data = $this->getAdminDashboardData($idTpq, $idTahunAjaran);
         } else {
             $data = ['page_title' => 'Dashboard'];
