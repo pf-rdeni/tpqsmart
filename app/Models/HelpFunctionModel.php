@@ -1672,6 +1672,148 @@ class HelpFunctionModel extends Model
         return array_column($result, 'IdTahunAjaran');
     }
 
+    /**
+     * Get all settings for a TPQ in one optimized query with caching
+     * This replaces multiple getSettingLimitInputNilai, getNilaiAlphabetSettings, and getNilaiArabicSettings calls
+     * 
+     * @param string $IdTpq TPQ ID
+     * @return array Array containing all settings
+     */
+    public function getAllTpqSettings($IdTpq)
+    {
+        // Check cache first
+        $cacheKey = 'tpq_settings_' . $IdTpq;
+        $cachedSettings = cache($cacheKey);
+
+        if ($cachedSettings !== null) {
+            return $cachedSettings;
+        }
+
+        $settings = [];
+
+        // Use single query with UNION to get both TPQ and default settings
+        $query = "
+            SELECT SettingKey, SettingValue, IdTpq 
+            FROM tbl_tools 
+            WHERE IdTpq IN (?, 'default') 
+            AND SettingKey IN ('Min', 'Max', 'Nilai_Alphabet', 'Nilai_Angka_Arabic')
+            ORDER BY IdTpq = ? DESC, IdTpq
+        ";
+
+        $result = $this->db->query($query, [$IdTpq, $IdTpq])->getResultArray();
+
+        // Process results - prioritize TPQ settings over defaults
+        foreach ($result as $setting) {
+            if (!isset($settings[$setting['SettingKey']])) {
+                $settings[$setting['SettingKey']] = $setting['SettingValue'];
+            }
+        }
+
+        // Set final defaults if still missing
+        $settings['Min'] = $settings['Min'] ?? 0;
+        $settings['Max'] = $settings['Max'] ?? 100;
+
+        // Cache for 1 hour (3600 seconds)
+        cache()->save($cacheKey, $settings, 3600);
+
+        return $settings;
+    }
+
+    /**
+     * Clear TPQ settings cache
+     * Call this method when settings are updated
+     * 
+     * @param string $IdTpq TPQ ID
+     */
+    public function clearTpqSettingsCache($IdTpq = null)
+    {
+        if ($IdTpq) {
+            // Clear specific TPQ cache
+            cache()->delete('tpq_settings_' . $IdTpq);
+        } else {
+            // Clear all TPQ settings cache
+            $cache = \Config\Services::cache();
+            $cacheInfo = $cache->getCacheInfo();
+
+            if (isset($cacheInfo['tpq_settings_'])) {
+                foreach ($cacheInfo['tpq_settings_'] as $key => $value) {
+                    if (strpos($key, 'tpq_settings_') === 0) {
+                        cache()->delete($key);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Get comprehensive guru session data in optimized queries
+     * This replaces multiple separate queries in setGuruSessionData
+     * 
+     * @param string $idGuru Guru ID
+     * @return array Comprehensive guru data including settings
+     */
+    public function getPreConditionDataGuruForSession($idGuru)
+    {
+        // Start database transaction for consistency
+        $this->db->transStart();
+
+        try {
+            // Get guru kelas data with all related information in one query
+            $guruKelasData = $this->getDataGuruKelas(IdGuru: $idGuru);
+
+            $result = [
+                'guruKelasData' => $guruKelasData,
+                'settings' => null,
+                'kelasOnLatestTa' => null,
+                'idTpqFromGuru' => null,
+                'tahunAjaranFromGuruKelas' => null
+            ];
+
+            if (!empty($guruKelasData)) {
+                // Extract TPQ ID from first record
+                $idTpq = $guruKelasData[0]->IdTpq ?? null;
+
+                if ($idTpq) {
+                    // Get all settings in one optimized query
+                    $result['settings'] = $this->getAllTpqSettings($idTpq);
+
+                    // Get unique tahun ajaran list
+                    $idTahunAjaranList = array_unique(array_column($guruKelasData, 'IdTahunAjaran'));
+                    $idTahunAjaranList = array_values($idTahunAjaranList);
+
+                    if (!empty($idTahunAjaranList)) {
+                        // Get kelas on latest tahun ajaran
+                        $latestTahunAjaran = $idTahunAjaranList[count($idTahunAjaranList) - 1];
+                        $result['kelasOnLatestTa'] = $this->getListKelas(
+                            IdTpq: $idTpq,
+                            IdTahunAjaran: $latestTahunAjaran,
+                            IdGuru: $idGuru
+                        );
+                    }
+                }
+            } else {
+                // If no guru kelas data, get TPQ from guru table
+                $idTpqData = $this->getIdTpq($idGuru);
+                if ($idTpqData && isset($idTpqData['IdTpq'])) {
+                    $result['idTpqFromGuru'] = $idTpqData['IdTpq'];
+
+                    // Get settings for this TPQ
+                    $result['settings'] = $this->getAllTpqSettings($idTpqData['IdTpq']);
+
+                    // Get tahun ajaran from guru kelas
+                    $result['tahunAjaranFromGuruKelas'] = $this->getListIdTahunAjaranFromGuruKelas($idTpqData['IdTpq']);
+                }
+            }
+
+            $this->db->transComplete();
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            throw $e;
+        }
+    }
+
     // Get Nama Jabatan dan Jabatan by IdGuru dan IdTpq pada tbl_struktur_lembaga
     public function getStrukturLembagaJabatan($IdGuru, $IdTpq)
     {

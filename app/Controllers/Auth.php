@@ -34,103 +34,76 @@ class Auth extends BaseController
             return;
         }
 
-        $dataGuruKelas = $this->helpFunctionModel->getDataGuruKelas(IdGuru: $idGuru);
+        try {
+            // Get all guru session data in optimized queries
+            $guruData = $this->helpFunctionModel->getPreConditionDataGuruForSession($idGuru);
 
-        $IdKelasList = [];
-        $IdJabatanList = [];
-        $IdTahunAjaranList = [];
-        $IdTpq = '';
+            $dataGuruKelas = $guruData['guruKelasData'];
+            $settings = $guruData['settings'];
+            $kelasOnLatestTa = $guruData['kelasOnLatestTa'];
+            $idTpqFromGuru = $guruData['idTpqFromGuru'];
+            $tahunAjaranFromGuruKelas = $guruData['tahunAjaranFromGuruKelas'];
 
-        foreach ($dataGuruKelas as $dataGuru) {
-            $IdKelasList[] = $dataGuru->IdKelas;
-            $IdJabatanList[] = $dataGuru->IdJabatan;
-            $IdTahunAjaranList[] = $dataGuru->IdTahunAjaran;
-            $IdTpq = $dataGuru->IdTpq;
-        }
+            // Set settings
+            if ($settings) {
+                session()->set('SettingNilaiMin', (int)($settings['Min'] ?? 0));
+                session()->set('SettingNilaiMax', (int)($settings['Max'] ?? 100));
 
-        // Setting nilai minimum
-        $settingNilai = $this->helpFunctionModel->getSettingLimitInputNilai(IdTpq: $IdTpq, SettingKey: 'Min');
-        if ($settingNilai) {
-            session()->set('SettingNilaiMin', $settingNilai);
-        } else {
-            $defaultSettingNilai = $this->helpFunctionModel->getSettingLimitInputNilai(IdTpq: 'default', SettingKey: 'Min');
-            if ($defaultSettingNilai) {
-                session()->set('SettingNilaiMin', $defaultSettingNilai);
+                if (isset($settings['Nilai_Alphabet'])) {
+                    session()->set('SettingNilaiAlphabet', $settings['Nilai_Alphabet']);
+                }
+
+                if (isset($settings['Nilai_Angka_Arabic'])) {
+                    session()->set('SettingNilaiArabic', $settings['Nilai_Angka_Arabic']);
+                }
+            }
+
+            // Set session utama
+            if ($dataGuruKelas) {
+                $IdKelasList = [];
+                $IdJabatanList = [];
+                $IdTahunAjaranList = [];
+                $IdTpq = '';
+
+                foreach ($dataGuruKelas as $dataGuru) {
+                    $IdKelasList[] = $dataGuru->IdKelas;
+                    $IdJabatanList[] = $dataGuru->IdJabatan;
+                    $IdTahunAjaranList[] = $dataGuru->IdTahunAjaran;
+                    $IdTpq = $dataGuru->IdTpq;
+                }
+
+                $IdTahunAjaranList = array_unique($IdTahunAjaranList);
+                $IdTahunAjaranList = array_values($IdTahunAjaranList);
+
+                // Use optimized kelas data if available
+                if ($kelasOnLatestTa) {
+                    $IdKelasList = array_map(function ($kelas) {
+                        return $kelas->IdKelas;
+                    }, $kelasOnLatestTa);
+                }
+
+                session()->set('IdGuru', $idGuru);
+                session()->set('IdKelas', $IdKelasList);
+                session()->set('IdJabatan', $IdJabatanList);
+                session()->set('IdTahunAjaranList', $IdTahunAjaranList);
+                session()->set('IdTahunAjaran', $IdTahunAjaranList[count($IdTahunAjaranList) - 1]);
+                session()->set('IdTpq', $IdTpq);
             } else {
-                session()->set('SettingNilaiMin', 0);
+                session()->set('IdGuru', $idGuru);
+
+                if ($idTpqFromGuru) {
+                    session()->set('IdTpq', $idTpqFromGuru);
+                }
+
+                if ($tahunAjaranFromGuruKelas && !empty($tahunAjaranFromGuruKelas)) {
+                    session()->set('IdTahunAjaranList', $tahunAjaranFromGuruKelas);
+                    $idTahunAjaran = $tahunAjaranFromGuruKelas[count($tahunAjaranFromGuruKelas) - 1];
+                    session()->set('IdTahunAjaran', $idTahunAjaran);
+                }
             }
-        }
-
-        // Setting nilai maksimum
-        $settingNilai = $this->helpFunctionModel->getSettingLimitInputNilai(IdTpq: $IdTpq, SettingKey: 'Max');
-        if ($settingNilai) {
-            session()->set('SettingNilaiMax', $settingNilai);
-        } else {
-            $defaultSettingNilai = $this->helpFunctionModel->getSettingLimitInputNilai(IdTpq: 'default', SettingKey: 'Max');
-            if ($defaultSettingNilai) {
-                session()->set('SettingNilaiMax', $defaultSettingNilai);
-            } else {
-                session()->set('SettingNilaiMax', 100);
-            }
-        }
-
-        // Setting nilai alfabet
-        $settingNilaiAlfabet = $this->helpFunctionModel->getNilaiAlphabetSettings(IdTpq: $IdTpq);
-        if ($settingNilaiAlfabet) {
-            session()->set('SettingNilaiAlphabet', $settingNilaiAlfabet);
-        } else {
-            $defaultSettingNilaiAlfabet = $this->helpFunctionModel->getNilaiAlphabetSettings(IdTpq: 'default');
-            if ($defaultSettingNilaiAlfabet) {
-                session()->set('SettingNilaiAlphabet', $defaultSettingNilaiAlfabet);
-            }
-        }
-
-        // Setting angka Arabic
-        $settingNilaiArabic = $this->helpFunctionModel->getNilaiArabicSettings(IdTpq: $IdTpq);
-        if ($settingNilaiArabic) {
-            session()->set('SettingNilaiArabic', $settingNilaiArabic);
-        } else {
-            $defaultSettingNilaiArabic = $this->helpFunctionModel->getNilaiArabicSettings(IdTpq: 'default');
-            if ($defaultSettingNilaiArabic) {
-                session()->set('SettingNilaiArabic', $defaultSettingNilaiArabic);
-            }
-        }
-
-        // Set session utama
-        if ($dataGuruKelas) {
-            $IdTahunAjaranList = array_unique($IdTahunAjaranList);
-            $IdTahunAjaranList = array_values($IdTahunAjaranList);
-
-            // Ambil IdKelas pada tahun ajaran terakhir
-            $kelasOnLatestTa = $this->helpFunctionModel->getListKelas(
-                IdTpq: $IdTpq,
-                IdTahunAjaran: $IdTahunAjaranList[count($IdTahunAjaranList) - 1],
-                IdGuru: $idGuru
-            );
-            $IdKelasList = array_map(function ($kelas) {
-                return $kelas->IdKelas;
-            }, $kelasOnLatestTa);
-
-            session()->set('IdGuru', $idGuru);
-            session()->set('IdKelas', $IdKelasList);
-            session()->set('IdJabatan', $IdJabatanList);
-            session()->set('IdTahunAjaranList', $IdTahunAjaranList);
-            session()->set('IdTahunAjaran', $IdTahunAjaranList[count($IdTahunAjaranList) - 1]);
-            session()->set('IdTpq', $IdTpq);
-        } else {
-            session()->set('IdGuru', $idGuru);
-            $IdTpqArr = $this->helpFunctionModel->getIdTpq($idGuru);
-            if (is_array($IdTpqArr) && isset($IdTpqArr['IdTpq'])) {
-                session()->set('IdTpq', $IdTpqArr['IdTpq']);
-            }
-
-            // Get tahun ajaran dari tabel tbl_guru_kelas filter IdTpq ggrouped IdTahunAjaran
-            $IdTahunAjaranArr = $this->helpFunctionModel->getListIdTahunAjaranFromGuruKelas(IdTpq: $IdTpqArr['IdTpq']);
-            if (is_array($IdTahunAjaranArr) && !empty($IdTahunAjaranArr)) {
-                session()->set('IdTahunAjaranList', $IdTahunAjaranArr);
-                $idTahunAjaran = $IdTahunAjaranArr[count($IdTahunAjaranArr) - 1];
-                session()->set('IdTahunAjaran', $idTahunAjaran);
-            }
+        } catch (\Exception $e) {
+            // Log error and fallback to original method if needed
+            log_message('error', 'Error in optimized setGuruSessionData: ' . $e->getMessage());
         }
     }
 
