@@ -106,7 +106,15 @@ class Prestasi extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $IdTpq = session()->get('IdTpq');
 
-        $dataSantri = $this->prestasiModel->getSantriWithPrestasi($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+        try {
+            // Gunakan method yang dioptimasi dengan window function
+            $dataSantri = $this->prestasiModel->getSantriWithPrestasiOptimized($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+        } catch (\Exception $e) {
+            // Log error dan fallback ke method lama
+            log_message('error', 'Error in showPerKelas optimized method: ' . $e->getMessage());
+            $dataSantri = $this->prestasiModel->getSantriWithPrestasi($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+        }
+
         //ambil data materi pelajaran
         $dataMateriPelajaran = $this->prestasiModel->getMateriPelajaran($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
         $data = [

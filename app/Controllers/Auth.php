@@ -36,7 +36,7 @@ class Auth extends BaseController
 
         try {
             // Get all guru session data in optimized queries
-            $guruData = $this->helpFunctionModel->getPreConditionDataGuruForSession($idGuru);
+            $guruData = $this->helpFunctionModel->getGuruSessionDataOptimized($idGuru);
 
             $dataGuruKelas = $guruData['guruKelasData'];
             $settings = $guruData['settings'];

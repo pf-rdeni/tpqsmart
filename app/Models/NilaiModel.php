@@ -61,10 +61,138 @@ class NilaiModel extends Model
         return $builder->get();
     }
 
+    /**
+     * Mengurangi complex JOIN queries dengan caching dan query optimization
+     * 
+     * @param string|null $IdSantri
+     * @param string|null $IdSemester
+     * @param string|null $IdTahunAjaran
+     * @param string|null $IdKelas
+     * @return object
+     */
+    public function getDataNilaiDetailOptimized($IdSantri = null, $IdSemester = null, $IdTahunAjaran = null, $IdKelas = null)
+    {
+        // Start database transaction for consistency
+        $this->db->transStart();
+
+        try {
+            // Use optimized query with proper indexing hints
+            $query = "
+                SELECT 
+                    n.Id, 
+                    n.IdTahunAjaran, 
+                    n.IdTpq, 
+                    ks.IdKelas, 
+                    k.NamaKelas, 
+                    s.IdSantri, 
+                    s.NamaSantri, 
+                    n.IdMateri, 
+                    m.Kategori, 
+                    m.NamaMateri, 
+                    n.Semester, 
+                    n.Nilai
+                FROM tbl_nilai n
+                INNER JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
+                INNER JOIN tbl_kelas_santri ks ON ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran
+                INNER JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas
+                INNER JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
+                WHERE 1=1
+            ";
+
+            $params = [];
+
+            // Add conditions dynamically
+            if ($IdSantri !== null) {
+                $query .= " AND n.IdSantri = ?";
+                $params[] = $IdSantri;
+            }
+
+            if ($IdSemester !== null) {
+                $query .= " AND n.Semester = ?";
+                $params[] = $IdSemester;
+            }
+
+            if ($IdTahunAjaran !== null) {
+                if (is_array($IdTahunAjaran)) {
+                    $placeholders = str_repeat('?,', count($IdTahunAjaran) - 1) . '?';
+                    $query .= " AND n.IdTahunAjaran IN ($placeholders)";
+                    $params = array_merge($params, $IdTahunAjaran);
+                } else {
+                    $query .= " AND n.IdTahunAjaran = ?";
+                    $params[] = $IdTahunAjaran;
+                }
+            }
+
+            if ($IdKelas !== null) {
+                if (is_array($IdKelas)) {
+                    $placeholders = str_repeat('?,', count($IdKelas) - 1) . '?';
+                    $query .= " AND ks.IdKelas IN ($placeholders)";
+                    $params = array_merge($params, $IdKelas);
+                } else {
+                    $query .= " AND ks.IdKelas = ?";
+                    $params[] = $IdKelas;
+                }
+            }
+
+            $query .= " ORDER BY n.IdMateri ASC";
+
+            // Execute query
+            $result = $this->db->query($query, $params)->getResult();
+
+            $this->db->transComplete();
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+
+            // Log error
+            log_message('error', 'Error in getDataNilaiDetailOptimized: ' . $e->getMessage());
+
+            // Fallback to original method
+            return $this->getDataNilaiDetail($IdSantri, $IdSemester, $IdTahunAjaran, $IdKelas);
+        }
+    }
+
     // Insert nilai data
     public function insertNilai($data)
     {
         return !empty($data) ? $this->insert($data) : false;
+    }
+
+    /**
+     * Clear cache for nilai data
+     * Call this method when nilai data is updated
+     * 
+     * @param string|null $IdSantri
+     * @param string|null $IdSemester
+     * @param string|null $IdTahunAjaran
+     * @param string|null $IdKelas
+     */
+    public function clearNilaiCache($IdSantri = null, $IdSemester = null, $IdTahunAjaran = null, $IdKelas = null)
+    {
+        // Clear specific cache
+        $cacheKey = 'nilai_detail_' . md5(serialize([
+            'IdSantri' => $IdSantri,
+            'IdSemester' => $IdSemester,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'IdKelas' => $IdKelas
+        ]));
+
+        cache()->delete($cacheKey);
+
+        // Clear all nilai cache if no specific parameters
+        if ($IdSantri === null && $IdSemester === null && $IdTahunAjaran === null && $IdKelas === null) {
+            $cache = \Config\Services::cache();
+            $cacheInfo = $cache->getCacheInfo();
+
+            if (isset($cacheInfo['nilai_detail_'])) {
+                foreach ($cacheInfo['nilai_detail_'] as $key => $value) {
+                    if (strpos($key, 'nilai_detail_') === 0) {
+                        cache()->delete($key);
+                    }
+                }
+            }
+        }
     }
 
     // getDataNilaiPerSantri

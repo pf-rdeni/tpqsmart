@@ -38,9 +38,22 @@ class Nilai extends BaseController
         ];
 
         // ambil jika settingan nilai alfabetic dari session
-        $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
+        $nilaiAlphabetEnabled = session()->get('SettingNilaiAlphabet') ?? false;
+        if ($nilaiAlphabetEnabled) {
+            // Jika alphabet enabled, ambil detail settings
+            $settingNilai->NilaiAlphabet = $this->helpFunction->getNilaiAlphabetSettings($this->IdTpq);
+        } else {
+            $settingNilai->NilaiAlphabet = false;
+        }
 
-        $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas);
+        try {
+            // Gunakan method yang dioptimasi dengan caching
+            $datanilai = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas);
+        } catch (\Exception $e) {
+            // Log error dan fallback ke method lama
+            log_message('error', 'Error in showDetail optimized method: ' . $e->getMessage());
+            $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas);
+        }
 
         $data = [
             'page_title' => 'Data Nilai',
@@ -67,7 +80,14 @@ class Nilai extends BaseController
         ];
 
         // ambil jika settingan nilai alfabetic dari session
-        $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
+        $nilaiAlphabetEnabled = session()->get('SettingNilaiAlphabet') ?? false;
+
+        if ($nilaiAlphabetEnabled) {
+            // Jika alphabet enabled, ambil detail settings
+            $settingNilai->NilaiAlphabet = $this->helpFunction->getNilaiAlphabetSettings($this->IdTpq);
+        } else {
+            $settingNilai->NilaiAlphabet = false;
+        }
 
         // Optimasi pengecekan nilai dengan single query
         $allNilai = $this->DataNilai->getAllNilaiPerKelas($IdTahunAjaran, $semester, $this->IdTpq, $IdKelas);
@@ -121,7 +141,15 @@ class Nilai extends BaseController
 
     public function showNilaiProfilDetail($IdSantri)
     {
-        $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, 1);
+        try {
+            // Gunakan method yang dioptimasi dengan caching
+            $datanilai = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, 1);
+        } catch (\Exception $e) {
+            // Log error dan fallback ke method lama
+            log_message('error', 'Error in showNilaiProfilDetail optimized method: ' . $e->getMessage());
+            $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, 1);
+        }
+
         return view('backend/nilai/nilaiSantriDetailPersonal', [
             'page_title' => 'Detail Nilai',
             'nilai' => $datanilai
@@ -157,7 +185,14 @@ class Nilai extends BaseController
         ];
 
         // ambil jika settingan nilai alfabetic dari session
-        $settingNilai->NilaiAlphabet = session()->get('SettingNilaiAlphabet') ?? false;
+        $nilaiAlphabetEnabled = session()->get('SettingNilaiAlphabet') ?? false;
+
+        if ($nilaiAlphabetEnabled) {
+            // Jika alphabet enabled, ambil detail settings
+            $settingNilai->NilaiAlphabet = $this->helpFunction->getNilaiAlphabetSettings($this->IdTpq);
+        } else {
+            $settingNilai->NilaiAlphabet = false;
+        }
 
         // ambil jika nilai settingan angka arabic dari tbl_tools 
         $settingNilai->NilaiArabic = session()->get('SettingNilaiArabic') ?? false;
@@ -187,13 +222,22 @@ class Nilai extends BaseController
                 // Jika tidak ada nilai dari radio button, ambil dari inputan teks
                 $Nilai = $this->request->getVar('Nilai');
             }
-            $this->DataNilai->save([
+
+            $result = $this->DataNilai->save([
                 'Id' => $Id,
                 'IdGuru' => $IdGuru,
                 'Nilai' => $Nilai,
             ]);
-            // Mengembalikan respons JSON
-            return $this->response->setJSON(['status' => 'success', 'newValue' => $Nilai, 'message' => 'Data berhasil diperbarui']);
+
+            if ($result) {
+                // Clear cache setelah update nilai
+                $this->DataNilai->clearNilaiCache();
+
+                // Mengembalikan respons JSON
+                return $this->response->setJSON(['status' => 'success', 'newValue' => $Nilai, 'message' => 'Data berhasil diperbarui']);
+            } else {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Gagal memperbarui data']);
+            }
         } catch (\Exception $e) {
             // Mengembalikan respons JSON dengan kesalahan
             return $this->response->setJSON(['status' => 'error', 'message' => $e->getMessage()]);

@@ -67,6 +67,88 @@ class PrestasiModel extends Model
         return $santriList;
     }
 
+    /**
+     * OPTIMIZED: Get santri with prestasi using bulk operations
+     * Mengurangi N+1 query problem dengan menggunakan single query dengan window functions
+     * 
+     * @param string $IdTpq
+     * @param string $IdTahunAjaran
+     * @param string $IdKelas
+     * @param string $IdGuru
+     * @return array
+     */
+    public function getSantriWithPrestasiOptimized($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru)
+    {
+        // Start database transaction for consistency
+        $this->db->transStart();
+
+        try {
+            // 1. Get santri data
+            $santriModel = new SantriModel();
+            $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+
+            if (empty($santriList)) {
+                $this->db->transComplete();
+                return [];
+            }
+
+            // 2. Extract santri IDs
+            $santriIds = array_column($santriList, 'IdSantri');
+
+            // 3. Get all prestasi data for all santri in one query using window function
+            $prestasiQuery = "
+                SELECT 
+                    p.*,
+                    mp.NamaMateri,
+                    mp.Kategori,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY p.IdSantri, p.IdMateriPelajaran 
+                        ORDER BY p.updated_at DESC, p.Id DESC
+                    ) as rn
+                FROM tbl_prestasi p
+                INNER JOIN tbl_materi_pelajaran mp ON p.IdMateriPelajaran = mp.IdMateri
+                WHERE p.IdSantri IN (" . implode(',', array_map('intval', $santriIds)) . ")
+            ";
+
+            $allPrestasi = $this->db->query($prestasiQuery)->getResultArray();
+
+            // 4. Filter to get only the latest record for each santri-materi combination
+            $latestPrestasi = array_filter($allPrestasi, function ($item) {
+                return $item['rn'] == 1;
+            });
+
+            // 5. Group prestasi by santri ID
+            $prestasiBySantri = [];
+            foreach ($latestPrestasi as $prestasi) {
+                $prestasiBySantri[$prestasi['IdSantri']][] = (object)$prestasi;
+            }
+
+            // 6. Attach prestasi data to santri objects
+            foreach ($santriList as $key => $santri) {
+                $santriList[$key]->lastPrestasiList = $prestasiBySantri[$santri->IdSantri] ?? [];
+
+                // Set JenisPrestasi from first record if exists
+                if (!empty($santriList[$key]->lastPrestasiList)) {
+                    $santriList[$key]->JenisPrestasi = $santriList[$key]->lastPrestasiList[0]->JenisPrestasi ?? '';
+                } else {
+                    $santriList[$key]->JenisPrestasi = '';
+                }
+            }
+
+            $this->db->transComplete();
+
+            return $santriList;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+
+            // Log error
+            log_message('error', 'Error in getSantriWithPrestasiOptimized: ' . $e->getMessage());
+
+            // Fallback to original method
+            return $this->getSantriWithPrestasi($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+        }
+    }
+
     // buat fungsi untuk mengambil  data materi pelajaran getMateriPelajaran
     public function getMateriPelajaran($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru)
     {

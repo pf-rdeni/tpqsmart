@@ -937,33 +937,39 @@ class HelpFunctionModel extends Model
         if (empty($IdTpq)) {
             return null;
         }
-        // Check the value of Nilai_Alphabet setting
+
+        // Check the value of Nilai_Alphabet setting dengan type conversion
         $nilaiAlfabeticSetting = $this->db->table('tbl_tools')
-            ->select('SettingValue')
+            ->select('SettingValue, SettingType')
             ->where('IdTpq', $IdTpq)
             ->where('SettingKey', 'Nilai_Alphabet')
             ->get()
             ->getRowArray();
 
-        // If Nilai_Alfabetic setting is 1, retrieve other settings
-        if ($nilaiAlfabeticSetting && $nilaiAlfabeticSetting['SettingValue'] == '1') {
-            $settings = $this->db->table('tbl_tools')
-                ->select('SettingKey, SettingValue')
-                ->where('IdTpq', $IdTpq)
-                ->whereIn('SettingKey', ['Nilai_Alphabet', 'Nilai_Alphabet_Persamaan', 'Nilai_Alphabet_Kelas'])
-                ->get()
-                ->getResultArray();
+        // If Nilai_Alfabetic setting is true (boolean), retrieve other settings
+        if ($nilaiAlfabeticSetting) {
+            $isEnabled = $this->convertSettingValue($nilaiAlfabeticSetting['SettingValue'], $nilaiAlfabeticSetting['SettingType']);
 
-            $result = [];
-            foreach ($settings as $setting) {
-                $result[$setting['SettingKey']] = $setting['SettingValue'];
+            if ($isEnabled) {
+                $settings = $this->db->table('tbl_tools')
+                    ->select('SettingKey, SettingValue, SettingType')
+                    ->where('IdTpq', $IdTpq)
+                    ->whereIn('SettingKey', ['Nilai_Alphabet', 'Nilai_Alphabet_Persamaan', 'Nilai_Alphabet_Kelas'])
+                    ->get()
+                    ->getResultArray();
+
+                $result = [];
+                foreach ($settings as $setting) {
+                    // Convert value berdasarkan type
+                    $result[$setting['SettingKey']] = $this->convertSettingValue($setting['SettingValue'], $setting['SettingType']);
+                }
+
+                return (object)$result;
             }
-
-            return (object)$result;
-        } else {
-            // Return empty array or null if condition not met
-            return null;
         }
+
+        // Return null if condition not met
+        return null;
     }
 
     // Get nilai setting angka arabic 
@@ -1067,6 +1073,67 @@ class HelpFunctionModel extends Model
         // 2. Proses setiap santri
         foreach ($santriList as $santri) {
             $this->prosesSantri($santri, $isSantriBaru, $tahunAjaran);
+        }
+    }
+
+    /**
+     * OPTIMIZED: Menyimpan data santri dan materi di tabel nilai dengan bulk operations
+     * Mengurangi N+1 query problem dengan menggunakan bulk operations
+     * 
+     * @param int $StatusSantri Status santri (0: baru, 1: aktif, 2: nonaktif)
+     * @param array $santriList List santri yang akan diproses
+     * @return array Result dengan success count dan error count
+     */
+    public function saveDataSantriDanMateriDiTabelNilaiOptimized($StatusSantri, $santriList)
+    {
+        if (empty($santriList)) {
+            return ['success' => 0, 'errors' => 0, 'message' => 'No santri to process'];
+        }
+
+        // Start database transaction for consistency
+        $this->db->transStart();
+
+        try {
+            // 1. Tentukan status dan tahun ajaran
+            $tahunAjaran = $this->getTahunAjaran($StatusSantri);
+            $isSantriBaru = ($StatusSantri == 0);
+
+            $result = [
+                'success' => 0,
+                'errors' => 0,
+                'processed_santri' => [],
+                'failed_santri' => []
+            ];
+
+            // 2. Bulk process santri baru (if needed)
+            if ($isSantriBaru) {
+                $this->prosesSantriBaruBulk($santriList);
+            } else {
+                $this->prosesNaikKelasBulk($santriList, $tahunAjaran);
+            }
+
+            // 3. Bulk process materi dan nilai
+            $this->prosesMateriDanNilaiBulk($santriList, $tahunAjaran);
+
+            // 4. Mark all as successful
+            $result['success'] = count($santriList);
+            $result['processed_santri'] = array_column($santriList, 'IdSantri');
+
+            $this->db->transComplete();
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+
+            // Log error
+            log_message('error', 'Error in saveDataSantriDanMateriDiTabelNilaiOptimized: ' . $e->getMessage());
+
+            return [
+                'success' => 0,
+                'errors' => count($santriList),
+                'message' => 'Transaction failed: ' . $e->getMessage(),
+                'failed_santri' => array_column($santriList, 'IdSantri')
+            ];
         }
     }
 
@@ -1175,6 +1242,165 @@ class HelpFunctionModel extends Model
         // 2. Proses setiap materi
         foreach ($listMateri as $materi) {
             $this->simpanNilaiMateri($materi, $dataSantri, $tahunAjaran);
+        }
+    }
+
+    /**
+     * OPTIMIZED: Bulk process santri baru
+     * @param array $santriList
+     * @return void
+     */
+    private function prosesSantriBaruBulk($santriList)
+    {
+        if (empty($santriList)) {
+            return;
+        }
+
+        // Prepare bulk data for kelas_santri table
+        $kelasSantriData = [];
+        $santriIds = [];
+
+        foreach ($santriList as $santri) {
+            $kelasSantriData[] = [
+                'IdKelas' => $santri['IdKelas'],
+                'IdTpq' => $santri['IdTpq'],
+                'IdSantri' => $santri['IdSantri'],
+                'IdTahunAjaran' => $santri['IdTahunAjaran']
+            ];
+            $santriIds[] = $santri['IdSantri'];
+        }
+
+        // Bulk insert kelas_santri
+        if (!empty($kelasSantriData)) {
+            $this->db->table('tbl_kelas_santri')->insertBatch($kelasSantriData);
+        }
+
+        // Bulk update status aktif santri
+        if (!empty($santriIds)) {
+            $this->db->table('tbl_santri_baru')
+                ->whereIn('IdSantri', $santriIds)
+                ->update(['Active' => 1]);
+        }
+    }
+
+    /**
+     * OPTIMIZED: Bulk process naik kelas
+     * @param array $santriList
+     * @param string $tahunAjaran
+     * @return void
+     */
+    private function prosesNaikKelasBulk($santriList, $tahunAjaran)
+    {
+        if (empty($santriList)) {
+            return;
+        }
+
+        $kelasSantriData = [];
+        $updateIds = [];
+
+        foreach ($santriList as $santri) {
+            // Get next kelas
+            $kelasBaru = $this->getNextKelas($santri['IdKelas']);
+
+            $kelasSantriData[] = [
+                'IdKelas' => $kelasBaru,
+                'IdTpq' => $santri['IdTpq'],
+                'IdSantri' => $santri['IdSantri'],
+                'IdTahunAjaran' => $tahunAjaran
+            ];
+
+            $updateIds[] = $santri['Id'];
+        }
+
+        // Bulk insert new kelas_santri records
+        if (!empty($kelasSantriData)) {
+            $this->db->table('tbl_kelas_santri')->insertBatch($kelasSantriData);
+        }
+
+        // Bulk update old records status
+        if (!empty($updateIds)) {
+            $this->db->table('tbl_kelas_santri')
+                ->whereIn('Id', $updateIds)
+                ->update(['Status' => 0]);
+        }
+    }
+
+    /**
+     * OPTIMIZED: Bulk process materi dan nilai
+     * @param array $santriList
+     * @param string $tahunAjaran
+     * @return void
+     */
+    private function prosesMateriDanNilaiBulk($santriList, $tahunAjaran)
+    {
+        if (empty($santriList)) {
+            return;
+        }
+
+        // Get unique TPQ and Kelas combinations
+        $tpqKelasMap = [];
+        foreach ($santriList as $santri) {
+            $key = $santri['IdTpq'] . '_' . $santri['IdKelas'];
+            if (!isset($tpqKelasMap[$key])) {
+                $tpqKelasMap[$key] = [
+                    'IdTpq' => $santri['IdTpq'],
+                    'IdKelas' => $santri['IdKelas']
+                ];
+            }
+        }
+
+        // Get all materi for all unique TPQ-Kelas combinations
+        $allMateri = [];
+        foreach ($tpqKelasMap as $tpqKelas) {
+            $materi = $this->getKelasMateriPelajaran(
+                $tpqKelas['IdKelas'],
+                $tpqKelas['IdTpq']
+            );
+            $allMateri = array_merge($allMateri, $materi);
+        }
+
+        // Prepare bulk data for nilai table
+        $nilaiData = [];
+        foreach ($santriList as $santri) {
+            foreach ($allMateri as $materi) {
+                // Only process materi for this santri's kelas
+                if ($materi->IdKelas == $santri['IdKelas']) {
+                    // Process semester ganjil
+                    if ($materi->SemesterGanjil == 1) {
+                        $nilaiData[] = [
+                            'IdTpq' => $santri['IdTpq'],
+                            'IdSantri' => $santri['IdSantri'],
+                            'IdKelas' => $materi->IdKelas,
+                            'IdMateri' => $materi->IdMateri,
+                            'IdTahunAjaran' => $tahunAjaran,
+                            'Semester' => 'Ganjil',
+                            'Nilai' => 0,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ];
+                    }
+
+                    // Process semester genap
+                    if ($materi->SemesterGenap == 1) {
+                        $nilaiData[] = [
+                            'IdTpq' => $santri['IdTpq'],
+                            'IdSantri' => $santri['IdSantri'],
+                            'IdKelas' => $materi->IdKelas,
+                            'IdMateri' => $materi->IdMateri,
+                            'IdTahunAjaran' => $tahunAjaran,
+                            'Semester' => 'Genap',
+                            'Nilai' => 0,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Bulk insert nilai data
+        if (!empty($nilaiData)) {
+            $this->db->table('tbl_nilai')->insertBatch($nilaiData);
         }
     }
 
@@ -1675,9 +1901,10 @@ class HelpFunctionModel extends Model
     /**
      * Get all settings for a TPQ in one optimized query with caching
      * This replaces multiple getSettingLimitInputNilai, getNilaiAlphabetSettings, and getNilaiArabicSettings calls
+     * Handles different data types based on SettingType column
      * 
      * @param string $IdTpq TPQ ID
-     * @return array Array containing all settings
+     * @return array Array containing all settings with proper data types
      */
     public function getAllTpqSettings($IdTpq)
     {
@@ -1691,9 +1918,9 @@ class HelpFunctionModel extends Model
 
         $settings = [];
 
-        // Use single query with UNION to get both TPQ and default settings
+        // Use single query with UNION to get both TPQ and default settings including SettingType
         $query = "
-            SELECT SettingKey, SettingValue, IdTpq 
+            SELECT SettingKey, SettingValue, SettingType, IdTpq 
             FROM tbl_tools 
             WHERE IdTpq IN (?, 'default') 
             AND SettingKey IN ('Min', 'Max', 'Nilai_Alphabet', 'Nilai_Angka_Arabic')
@@ -1705,18 +1932,59 @@ class HelpFunctionModel extends Model
         // Process results - prioritize TPQ settings over defaults
         foreach ($result as $setting) {
             if (!isset($settings[$setting['SettingKey']])) {
-                $settings[$setting['SettingKey']] = $setting['SettingValue'];
+                // Convert SettingValue based on SettingType
+                $settings[$setting['SettingKey']] = $this->convertSettingValue(
+                    $setting['SettingValue'],
+                    $setting['SettingType']
+                );
             }
         }
 
-        // Set final defaults if still missing
-        $settings['Min'] = $settings['Min'] ?? 0;
-        $settings['Max'] = $settings['Max'] ?? 100;
+        // Set final defaults if still missing with proper data types
+        $settings['Min'] = $settings['Min'] ?? 0; // Always integer
+        $settings['Max'] = $settings['Max'] ?? 100; // Always integer
+        $settings['Nilai_Alphabet'] = $settings['Nilai_Alphabet'] ?? false; // Always boolean
+        $settings['Nilai_Angka_Arabic'] = $settings['Nilai_Angka_Arabic'] ?? false; // Always boolean
 
         // Cache for 1 hour (3600 seconds)
         cache()->save($cacheKey, $settings, 3600);
 
         return $settings;
+    }
+
+    /**
+     * Convert SettingValue based on SettingType
+     * 
+     * @param string $value Raw setting value from database
+     * @param string $type Setting type (text, number, boolean, json)
+     * @return mixed Converted value with proper data type
+     */
+    private function convertSettingValue($value, $type)
+    {
+        switch (strtolower($type)) {
+            case 'number':
+                // Convert to integer or float
+                return is_numeric($value) ? (int)$value : 0;
+
+            case 'boolean':
+                // Convert to boolean
+                if (is_bool($value)) {
+                    return $value;
+                }
+
+                $lowerValue = strtolower(trim($value));
+                return in_array($lowerValue, ['true', '1', 'yes', 'on', 'enabled', 'active']);
+
+            case 'json':
+                // Decode JSON string
+                $decoded = json_decode($value, true);
+                return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
+
+            case 'text':
+            default:
+                // Return as string
+                return (string)$value;
+        }
     }
 
     /**
@@ -1752,7 +2020,7 @@ class HelpFunctionModel extends Model
      * @param string $idGuru Guru ID
      * @return array Comprehensive guru data including settings
      */
-    public function getPreConditionDataGuruForSession($idGuru)
+    public function getGuruSessionDataOptimized($idGuru)
     {
         // Start database transaction for consistency
         $this->db->transStart();

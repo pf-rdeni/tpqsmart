@@ -1296,6 +1296,10 @@ class Santri extends BaseController
 
             // Validasi direktori
             if (!is_dir($uploadPath) || !is_writable($uploadPath)) {
+                if (!is_dir($uploadPath))
+                    log_message('error', 'Tidak ditemukan Main Directory:' . $uploadPath);
+                if (!is_writable($uploadPath))
+                    log_message('error', 'Tidak memeiliki akses write ke Main Directory:' . $uploadPath);
                 throw new \Exception('Direktori upload tidak valid atau tidak dapat ditulis');
             }
 

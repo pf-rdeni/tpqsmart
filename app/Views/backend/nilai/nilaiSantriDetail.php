@@ -4,8 +4,8 @@
     <?php echo session()->getFlashdata('pesan'); ?>
     <div class="card">
         <?php
-        // Extracting the first result from $dataNilai (assuming it has at least one result)
-        $dataNilai = $nilai->getResult();
+// Extracting the first result from $dataNilai (assuming it has at least one result)
+$dataNilai = $nilai;
         if (!empty($dataNilai)) {
             $firstResult = $dataNilai[0];
             $IdSantri = htmlspecialchars($firstResult->IdSantri, ENT_QUOTES, 'UTF-8');
@@ -61,7 +61,7 @@
                 </thead>
                 <tbody>
                     <?php
-                    $MainDataNilai = $nilai->getResult();
+$MainDataNilai = $nilai;
                     foreach ($MainDataNilai as $DataNilai) : ?>
 
                         <tr>
@@ -107,7 +107,7 @@
 
 <!-- Modal Edit Data-->
 <?php
-$MainDataNilai = $nilai->getResult();
+$MainDataNilai = $nilai;
 foreach ($MainDataNilai as $DataNilai) : ?>
     <div class="modal fade" id="EditNilai<?= $DataNilai->Id ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
         <div class="modal-dialog " role="document">

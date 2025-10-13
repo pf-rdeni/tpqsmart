@@ -322,7 +322,23 @@ class Kelas extends BaseController
         }
 
         // Step 4 ambil individual santri dari POST IdKelas
-        $this->helpFunction->saveDataSantriDanMateriDiTabelNilai(0, santriList: $dataSantriBaru);
+        try {
+            // Gunakan method yang dioptimasi dengan bulk operations
+            $result = $this->helpFunction->saveDataSantriDanMateriDiTabelNilaiOptimized(0, $dataSantriBaru);
+
+            if ($result['success'] > 0) {
+                $this->setFlashData('success', "Berhasil memproses {$result['success']} santri baru.");
+            }
+
+            if ($result['errors'] > 0) {
+                $this->setFlashData('warning', "Ada {$result['errors']} santri yang gagal diproses.");
+            }
+        } catch (\Exception $e) {
+            // Log error dan fallback ke method lama
+            log_message('error', 'Error in saveDataSantriDanMateriDiTabelNilaiOptimized: ' . $e->getMessage());
+            $this->helpFunction->saveDataSantriDanMateriDiTabelNilai(0, santriList: $dataSantriBaru);
+            $this->setFlashData('info', 'Santri baru diproses dengan method fallback.');
+        }
 
         //Check kembali jika masih ada dan tampilkan
         $dataKelas = $this->helpFunction->getDataKelas();
@@ -337,5 +353,16 @@ class Kelas extends BaseController
         ];
 
         return view('backend/kelas/kelasBaru', $data);
+    }
+
+    private function setFlashData($type, $message)
+    {
+        session()->setFlashdata('pesan', '
+        <div class="alert alert-' . $type . ' alert-dismissible fade show" role="alert">
+            ' . $message . '
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>');
     }
 }

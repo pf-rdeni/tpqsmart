@@ -25,9 +25,7 @@ if (!function_exists('parseAlphabeticNilai')) {
 if (!function_exists('isValidNilaiAlphabet')) {
     function isValidNilaiAlphabet($settingNilai)
     {
-        return isset($settingNilai->NilaiAlphabet) &&
-            $settingNilai->NilaiAlphabet &&
-            $settingNilai->NilaiAlphabet->Nilai_Alphabet;
+        return isset($settingNilai->NilaiAlphabet) ? true : false;
     }
 }
 
@@ -37,7 +35,9 @@ if (!function_exists('konversiNilaiHuruf')) {
         if ($nilai === ' ') return ' ';
 
         if ($settingNilai && isValidNilaiAlphabet($settingNilai)) {
-            $nilaiArray = parseAlphabeticNilai($settingNilai->NilaiAlphabet->Nilai_Alphabet_Persamaan);
+            // Handle both string and array types for Nilai_Alphabet_Persamaan
+            $persamaanData = $settingNilai->NilaiAlphabet->Nilai_Alphabet_Persamaan;
+            $nilaiArray = parseAlphabeticNilai($persamaanData);
 
             foreach ($nilaiArray as $item) {
                 if ($nilai >= $item['Value']) {
@@ -65,7 +65,9 @@ if (!function_exists('getAlphabetKelasSettings')) {
         ];
 
         if (isValidNilaiAlphabet($settingNilai)) {
-            $kelasArray = explode(',', $settingNilai->NilaiAlphabet->Nilai_Alphabet_Kelas);
+            // Handle both string and array types for Nilai_Alphabet_Kelas
+            $kelasData = $settingNilai->NilaiAlphabet->Nilai_Alphabet_Kelas;
+            $kelasArray = is_array($kelasData) ? $kelasData : explode(',', (string)$kelasData);
 
             if (in_array($idKelas, $kelasArray)) {
                 $result['isAlphabetKelas'] = true;
