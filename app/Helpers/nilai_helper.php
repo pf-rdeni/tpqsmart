@@ -25,7 +25,8 @@ if (!function_exists('parseAlphabeticNilai')) {
 if (!function_exists('isValidNilaiAlphabet')) {
     function isValidNilaiAlphabet($settingNilai)
     {
-        return isset($settingNilai->NilaiAlphabet) ? true : false;
+        $nilaiAlphabetEnabled = session()->get('SettingNilaiAlphabet') ?? false;
+        return $nilaiAlphabetEnabled;
     }
 }
 
