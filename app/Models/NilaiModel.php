@@ -284,10 +284,8 @@ class NilaiModel extends Model
     // getDataNilaiPerKelas IdKelas dan IdTahunAjaran in array
     public function getDataNilaiPerKelas($IdTpq, $IdKelas = null, $IdTahunAjaran = null, $Semester)
     {
-        $db = \Config\Database::connect();
-
         // Query untuk mendapatkan kolom dinamis
-        $materiBuilder = $db->table('tbl_nilai n');
+        $materiBuilder = $this->db->table('tbl_nilai n');
         $materiBuilder->select("GROUP_CONCAT(DISTINCT CONCAT('MAX(CASE WHEN n.IdMateri = \"', n.IdMateri, '\" THEN n.Nilai END) AS \"', m.NamaMateri, '\"')) AS dynamic_columns");
         $materiBuilder->join('tbl_materi_pelajaran m', 'n.IdMateri = m.IdMateri');
         $materiBuilder->where('n.IdTpq', $IdTpq);
@@ -312,7 +310,7 @@ class NilaiModel extends Model
         $dynamicColumns = $materiResult->dynamic_columns;
 
         if ($dynamicColumns) {
-            $builder = $db->table('tbl_nilai n');
+            $builder = $this->db->table('tbl_nilai n');
             $builder->select("n.IdSantri AS 'IdSantri', s.NamaSantri AS 'Nama Santri', n.IdKelas, k.NamaKelas AS 'Nama Kelas', IdTahunAjaran AS 'Tahun Ajaran', Semester, $dynamicColumns");
             $builder->join('tbl_kelas k', 'n.IdKelas = k.IdKelas');
             $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');

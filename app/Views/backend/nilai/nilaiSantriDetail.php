@@ -4,10 +4,9 @@
     <?php echo session()->getFlashdata('pesan'); ?>
     <div class="card">
         <?php
-// Extracting the first result from $dataNilai (assuming it has at least one result)
-$dataNilai = $nilai;
-        if (!empty($dataNilai)) {
-            $firstResult = $dataNilai[0];
+        // Extracting the first result from $dataNilai (assuming it has at least one result)
+        if (!empty($nilai)) {
+            $firstResult = $nilai[0];
             $IdSantri = htmlspecialchars($firstResult->IdSantri, ENT_QUOTES, 'UTF-8');
             $NamaSantri = htmlspecialchars($firstResult->NamaSantri, ENT_QUOTES, 'UTF-8');
             $Semester = htmlspecialchars($firstResult->Semester, ENT_QUOTES, 'UTF-8');
@@ -61,8 +60,7 @@ $dataNilai = $nilai;
                 </thead>
                 <tbody>
                     <?php
-$MainDataNilai = $nilai;
-                    foreach ($MainDataNilai as $DataNilai) : ?>
+                    foreach ($nilai as $DataNilai) : ?>
 
                         <tr>
                             <?php if ($pageEdit) {
@@ -107,8 +105,7 @@ $MainDataNilai = $nilai;
 
 <!-- Modal Edit Data-->
 <?php
-$MainDataNilai = $nilai;
-foreach ($MainDataNilai as $DataNilai) : ?>
+foreach ($nilai as $DataNilai) : ?>
     <div class="modal fade" id="EditNilai<?= $DataNilai->Id ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
         <div class="modal-dialog " role="document">
             <div class="modal-content ">
