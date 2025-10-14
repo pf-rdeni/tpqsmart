@@ -37,8 +37,20 @@
                         <tr>
                             <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <td data-order="<?= $santri['Active'] ?>">
-                                    <input type="checkbox" id="status<?= $santri['id']; ?>" <?= $santri['Active'] == 1 ? 'checked' : ''; ?>
-                                        onchange="updateStatus(<?= $santri['id']; ?>, this.checked)">
+                                    <?php if ($santri['Active'] == 2): ?>
+                                        <!-- Status Alumni/Keluar - Tidak bisa diubah -->
+                                        <span class="badge badge-secondary" title="Santri Alumni/Keluar - Tidak dapat diubah">
+                                            <i class="fas fa-graduation-cap"></i> Alumni
+                                        </span>
+                                    <?php else: ?>
+                                        <!-- Status Aktif/Non-Aktif - Bisa diubah -->
+                                        <div class="form-check form-switch">
+                                            <input type="checkbox" class="form-check-input" id="status<?= $santri['id']; ?>"
+                                                <?= $santri['Active'] == 1 ? 'checked' : ''; ?>
+                                                onchange="updateStatus(<?= $santri['id']; ?>, this.checked)"
+                                                title="<?= $santri['Active'] == 1 ? 'Santri Aktif' : 'Santri Non-Aktif' ?>">
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                             <?php endif; ?>
                             <td data-order="<?= $santri['Status'] === 'Belum Diverifikasi' ? 1 : ($santri['Status'] === 'Sudah Diverifikasi' ? 2 : 3) ?>">
@@ -498,11 +510,11 @@
                     <div class="col-12 mb-3">
                         <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                             <button type="button" class="btn btn-warning btn-lg btn-block" onclick="ubahKelasSantri()">
-                                <i class="fas fa-graduation-cap"></i> Ubah Kelas
+                                <i class="fas fa-graduation-cap"></i> Ubah Kelas Santri
                             </button>
                         <?php else: ?>
                             <button type="button" class="btn btn-warning btn-lg btn-block" disabled title="Hanya Admin dan Operator yang dapat mengubah kelas santri">
-                                <i class="fas fa-graduation-cap"></i> Ubah Kelas
+                                <i class="fas fa-graduation-cap"></i> Ubah Kelas Santri
                                 <small class="d-block text-muted">(Hanya Admin/Operator)</small>
                             </button>
                         <?php endif; ?>
@@ -510,11 +522,11 @@
                     <div class="col-12 mb-3">
                         <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                             <button type="button" class="btn btn-info btn-lg btn-block" onclick="ubahTpqSantri()">
-                                <i class="fas fa-school"></i> Ubah TPQ (Pindah Sekolah)
+                                <i class="fas fa-school"></i> Ubah TPQ (Pindah Sekolah) Santri
                             </button>
                         <?php else: ?>
                             <button type="button" class="btn btn-info btn-lg btn-block" disabled title="Hanya Admin dan Operator yang dapat mengubah TPQ santri">
-                                <i class="fas fa-school"></i> Ubah TPQ (Pindah Sekolah)
+                                <i class="fas fa-school"></i> Ubah TPQ (Pindah Sekolah) Santri
                                 <small class="d-block text-muted">(Hanya Admin/Operator)</small>
                             </button>
                         <?php endif; ?>
@@ -522,11 +534,11 @@
                     <div class="col-12 mb-3">
                         <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                             <button type="button" class="btn btn-danger btn-lg btn-block" onclick="deleteSantriFromModal()">
-                                <i class="fas fa-trash"></i> Hapus Santri
+                                <i class="fas fa-trash"></i> Hapus Data Santri
                             </button>
                         <?php else: ?>
                             <button type="button" class="btn btn-danger btn-lg btn-block" disabled title="Hanya Admin dan Operator yang dapat menghapus santri">
-                                <i class="fas fa-trash"></i> Hapus Santri
+                                <i class="fas fa-trash"></i> Hapus Data Santri
                                 <small class="d-block text-muted">(Hanya Admin/Operator)</small>
                             </button>
                         <?php endif; ?>
@@ -558,6 +570,30 @@
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
 <style>
+    /* Styling untuk status badge dan form switch */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .badge i {
+        margin-right: 0.25rem;
+    }
+
+    .form-check-input:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+
+    .form-check-input:focus {
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+
+    .form-check-label small {
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+    }
+
     /* Styling untuk button disabled */
     .btn:disabled {
         opacity: 0.6;
@@ -671,12 +707,33 @@
     function updateStatus(id, status) {
         const checkbox = document.getElementById('status' + id);
         const td = checkbox.closest('td');
-        td.setAttribute('data-order', status ? 1 : 0);
         const originalStatus = !status;
 
         // Ambil data dari row yang dipilih
         const row = checkbox.closest('tr');
         const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
+
+        // Cek apakah santri adalah alumni (Active = 2)
+        const currentActiveValue = parseInt(td.getAttribute('data-order'));
+        if (currentActiveValue === 2) {
+            Swal.fire({
+                title: 'Tidak Dapat Diubah',
+                html: `<div class="text-left">
+                        <p><strong>Santri ini adalah Alumni/Keluar dan tidak dapat diubah statusnya.</strong></p>
+                        <ul class="text-left">
+                            <li><strong>Status:</strong> Alumni/Keluar (Active = 2)</li>
+                            <li><strong>Nama:</strong> ${namaSantri}</li>
+                        </ul>
+                        <p class="mt-3 text-muted">Status alumni tidak dapat diubah untuk menjaga integritas data.</p>
+                       </div>`,
+                icon: 'info',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#3085d6'
+            });
+            // Kembalikan checkbox ke status asli
+            checkbox.checked = originalStatus;
+            return;
+        }
 
         Swal.fire({
             title: 'Apakah Anda yakin?',
@@ -713,6 +770,18 @@
                         if (data.success) {
                             // Update tampilan checkbox
                             checkbox.checked = status;
+
+                            // Update data-order untuk sorting
+                            td.setAttribute('data-order', status ? 1 : 0);
+
+                            // Update label status
+                            const label = checkbox.nextElementSibling;
+                            if (label && label.querySelector('small')) {
+                                label.querySelector('small').textContent = status ? 'Aktif' : 'Non-Aktif';
+                            }
+
+                            // Update title
+                            checkbox.title = status ? 'Santri Aktif' : 'Santri Non-Aktif';
 
                             Swal.fire({
                                 title: 'Berhasil!',
