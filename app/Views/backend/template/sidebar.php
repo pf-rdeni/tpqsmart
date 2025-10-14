@@ -307,25 +307,21 @@
                         </a>
                         <ul class="nav nav-treeview" style="display: none;">
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/showSantriBaru') ?> class="nav-link">
+                                <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Data Santri</p>
+                                    <p>Input Data Santri</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Ubah Data Santri</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Profil Data Santri</p>
-                                </a>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Input Data Santri</p>
-                                </a>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Ubah Data Santri</p>
                                 </a>
                             </li>
                         </ul>
@@ -452,7 +448,7 @@
                                     </li>
                                 </ul>
                             </li>
-                            <li class="nav-item">
+                            <!--li class="nav-item">
                                 <a href="#" class="nav-link no-hover">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Rangking</p>
@@ -477,7 +473,7 @@
                                         </a>
                                     </li>
                                 </ul>
-                            </li>
+                            </li-->
                             <li class="nav-item">
                                 <a href="#" class="nav-link no-hover">
                                     <i class="far fa-circle nav-icon"></i>
