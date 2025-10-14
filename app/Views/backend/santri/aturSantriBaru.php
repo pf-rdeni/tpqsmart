@@ -84,18 +84,10 @@
                                     }
                                 </script>
                             </td>
-                            <td class="d-flex justify-content-between gap-1">
-                                <a href="javascript:void(0)" onclick="showDetailSantri('<?= $santri['IdSantri']; ?>')" class="btn btn-info btn-sm flex-fill">
-                                    <i class="fas fa-eye"></i><span class="d-none d-md-inline">&nbsp;Detail</span>
-                                </a>
-                                <a href="<?= base_url('backend/santri/editSantri/' . $santri['IdSantri']); ?>" class="btn btn-warning btn-sm flex-fill">
+                            <td class="text-center">
+                                <a href="javascript:void(0)" onclick="showEditOptions('<?= $santri['IdSantri']; ?>', '<?= $santri['NamaSantri']; ?>')" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i><span class="d-none d-md-inline">&nbsp;Edit</span>
                                 </a>
-                                <?php if (in_groups('Admin') || in_groups('Operator')): ?>
-                                    <a href="javascript:void(0)" onclick="deleteSantri('<?= $santri['IdSantri']; ?>')" class="btn btn-danger btn-sm flex-fill">
-                                        <i class="fas fa-trash"></i><span class="d-none d-md-inline">&nbsp;Hapus</span>
-                                    </a>
-                                <?php endif; ?>
                             </td>
                             <td><?= $santri['IdSantri']; ?></td>
                             <td data-column="Nama"><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
@@ -480,6 +472,74 @@
     </div>
 </div>
 
+<!-- Modal Pilihan Edit Santri -->
+<div class="modal fade" id="editOptionsModal" tabindex="-1" role="dialog" aria-labelledby="editOptionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editOptionsModalLabel">Pilih Aksi</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-4">Pilih aksi yang ingin dilakukan untuk santri:</p>
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <button type="button" class="btn btn-info btn-lg btn-block" onclick="showDetailSantriFromModal()">
+                            <i class="fas fa-eye"></i> Lihat Detail Santri
+                        </button>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <button type="button" class="btn btn-primary btn-lg btn-block" onclick="editSantriData()">
+                            <i class="fas fa-user-edit"></i> Edit Data Santri
+                        </button>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                            <button type="button" class="btn btn-warning btn-lg btn-block" onclick="ubahKelasSantri()">
+                                <i class="fas fa-graduation-cap"></i> Ubah Kelas
+                            </button>
+                        <?php else: ?>
+                            <button type="button" class="btn btn-warning btn-lg btn-block" disabled title="Hanya Admin dan Operator yang dapat mengubah kelas santri">
+                                <i class="fas fa-graduation-cap"></i> Ubah Kelas
+                                <small class="d-block text-muted">(Hanya Admin/Operator)</small>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                            <button type="button" class="btn btn-info btn-lg btn-block" onclick="ubahTpqSantri()">
+                                <i class="fas fa-school"></i> Ubah TPQ (Pindah Sekolah)
+                            </button>
+                        <?php else: ?>
+                            <button type="button" class="btn btn-info btn-lg btn-block" disabled title="Hanya Admin dan Operator yang dapat mengubah TPQ santri">
+                                <i class="fas fa-school"></i> Ubah TPQ (Pindah Sekolah)
+                                <small class="d-block text-muted">(Hanya Admin/Operator)</small>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                            <button type="button" class="btn btn-danger btn-lg btn-block" onclick="deleteSantriFromModal()">
+                                <i class="fas fa-trash"></i> Hapus Santri
+                            </button>
+                        <?php else: ?>
+                            <button type="button" class="btn btn-danger btn-lg btn-block" disabled title="Hanya Admin dan Operator yang dapat menghapus santri">
+                                <i class="fas fa-trash"></i> Hapus Santri
+                                <small class="d-block text-muted">(Hanya Admin/Operator)</small>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     /* Style untuk checkbox yang lebih besar */
     input[type="checkbox"] {
@@ -497,6 +557,57 @@
 
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
+<style>
+    /* Styling untuk button disabled */
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        position: relative;
+    }
+
+    .btn:disabled:hover {
+        opacity: 0.6;
+    }
+
+    .btn:disabled .fas {
+        opacity: 0.5;
+    }
+
+    .btn:disabled small {
+        font-size: 0.75rem;
+        font-weight: normal;
+        margin-top: 2px;
+    }
+
+    /* Tooltip untuk button disabled */
+    .btn:disabled[title]:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        margin-bottom: 5px;
+    }
+
+    .btn:disabled[title]:hover::before {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #333;
+        z-index: 1000;
+        margin-bottom: -5px;
+    }
+</style>
 <script>
     /*=== Modal Delete santri===*/
     function deleteSantri(IdSantri) {
@@ -953,5 +1064,117 @@
     });
 
     //initializeDataTableWithFilter("#tblAturSantri", true, true, ["excel", "pdf", "print", "colvis"]);
+
+    // Variabel global untuk menyimpan IdSantri yang dipilih
+    let selectedSantriId = null;
+    let selectedSantriName = null;
+
+    // Fungsi untuk menampilkan modal pilihan edit
+    function showEditOptions(IdSantri, NamaSantri) {
+        selectedSantriId = IdSantri;
+        selectedSantriName = NamaSantri;
+
+        // Update modal title dengan nama santri
+        document.getElementById('editOptionsModalLabel').textContent = `Pilih Aksi - ${NamaSantri}`;
+
+        // Tampilkan modal
+        $('#editOptionsModal').modal('show');
+    }
+
+    // Fungsi untuk edit data santri (tombol 1)
+    function editSantriData() {
+        if (selectedSantriId) {
+            window.location.href = '<?= base_url('backend/santri/editSantri/') ?>' + selectedSantriId;
+        }
+    }
+
+    // Fungsi untuk ubah kelas santri (tombol 2)
+    function ubahKelasSantri() {
+        if (selectedSantriId) {
+            window.location.href = '<?= base_url('backend/santri/ubahKelas/') ?>' + selectedSantriId;
+        }
+    }
+
+    // Fungsi untuk ubah TPQ santri (tombol 4)
+    function ubahTpqSantri() {
+        if (selectedSantriId) {
+            // Tampilkan konfirmasi sebelum pindah ke halaman ubah TPQ
+            Swal.fire({
+                title: 'Konfirmasi Pindah TPQ',
+                html: `Apakah Anda yakin ingin memindahkan santri <strong>${selectedSantriName}</strong> ke TPQ lain?<br><br>
+                       <small class="text-muted">Aksi ini akan mengubah status Active menjadi 0 pada TPQ saat ini.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Pindahkan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '<?= base_url('backend/santri/ubahTpq/') ?>' + selectedSantriId;
+                }
+            });
+        }
+    }
+
+    // Fungsi untuk menampilkan detail santri dari modal
+    function showDetailSantriFromModal() {
+        if (selectedSantriId) {
+            // Tutup modal edit options terlebih dahulu
+            $('#editOptionsModal').modal('hide');
+            // Tampilkan detail santri
+            showDetailSantri(selectedSantriId);
+        }
+    }
+
+    // Fungsi untuk menghapus santri dari modal
+    function deleteSantriFromModal() {
+        if (selectedSantriId) {
+            // Tutup modal edit options terlebih dahulu
+            $('#editOptionsModal').modal('hide');
+            // Panggil fungsi delete santri yang sudah ada
+            deleteSantri(selectedSantriId);
+        }
+    }
+
+    // Fungsi untuk menangani klik pada button disabled
+    function handleDisabledButton(buttonType) {
+        Swal.fire({
+            title: 'Akses Terbatas',
+            html: `<div class="text-left">
+                    <p><strong>Fitur ini hanya tersedia untuk Admin dan Operator.</strong></p>
+                    <ul class="text-left">
+                        <li><strong>Admin:</strong> Dapat mengelola semua data santri</li>
+                        <li><strong>Operator:</strong> Dapat mengelola data santri</li>
+                        <li><strong>Guru:</strong> Hanya dapat melihat dan mengedit data santri</li>
+                    </ul>
+                    <p class="mt-3 text-muted">Silakan hubungi administrator untuk akses lebih lanjut.</p>
+                   </div>`,
+            icon: 'info',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#3085d6'
+        });
+    }
+
+    // Event handler untuk button disabled
+    $(document).ready(function() {
+        // Handler untuk button Ubah Kelas disabled
+        $('button[onclick="ubahKelasSantri()"]:disabled').on('click', function(e) {
+            e.preventDefault();
+            handleDisabledButton('ubahKelas');
+        });
+
+        // Handler untuk button Ubah TPQ disabled
+        $('button[onclick="ubahTpqSantri()"]:disabled').on('click', function(e) {
+            e.preventDefault();
+            handleDisabledButton('ubahTpq');
+        });
+
+        // Handler untuk button Hapus Santri disabled
+        $('button[onclick="deleteSantriFromModal()"]:disabled').on('click', function(e) {
+            e.preventDefault();
+            handleDisabledButton('hapusSantri');
+        });
+    });
 </script>
 <?= $this->endSection(); ?>

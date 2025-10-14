@@ -7,6 +7,8 @@ use App\Models\SantriModel;
 use App\Models\EncryptModel;
 use App\Models\HelpFunctionModel;
 use App\Models\SantriBaruModel;
+use App\Models\NilaiModel;
+use App\Models\KelasModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -16,12 +18,17 @@ class Santri extends BaseController
     protected $encryptModel;
     protected $helpFunction;
     protected $DataSantriBaru;
+    protected $nilaiModel;
+    protected $kelasModel;
+
     public function __construct()
     {
         $this->encryptModel = new EncryptModel();
         $this->DataSantri = new SantriModel();
         $this->DataSantriBaru = new SantriBaruModel();
         $this->helpFunction = new HelpFunctionModel();
+        $this->nilaiModel = new NilaiModel();
+        $this->kelasModel = new KelasModel();
     }
 
     // fungsi untuk menampilkan form tambah santri
@@ -789,6 +796,266 @@ class Santri extends BaseController
         ];
 
         return view('backend/santri/editDataSantri', $data);
+    }
+
+    public function ubahKelas($IdSantri = null)
+    {
+        // Ambil data santri
+        $santri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri)
+            ->first();
+
+        if (!$santri) {
+            return redirect()->back()->with('error', 'Data santri tidak ditemukan');
+        }
+
+        // Ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+
+        // Ambil tahun ajaran saat ini
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+
+        // Cek apakah santri sudah ada di tbl_kelas_santri dengan tahun ajaran saat ini
+        $existingKelasSantri = $this->kelasModel
+            ->where('IdSantri', $IdSantri)
+            ->where('IdTahunAjaran', $currentTahunAjaran)
+            ->where('Status', 1)
+            ->first();
+
+        // Cek apakah ada nilai yang sudah diisi (Nilai > 0) untuk santri ini di tahun ajaran saat ini
+        $existingNilai = $this->nilaiModel
+            ->where('IdSantri', $IdSantri)
+            ->where('IdTahunAjaran', $currentTahunAjaran)
+            ->where('Nilai >', 0)
+            ->first();
+
+        // Cek total semua record nilai (baik yang ada nilai maupun tidak)
+        $totalNilaiRecords = $this->nilaiModel
+            ->where('IdSantri', $IdSantri)
+            ->where('IdTahunAjaran', $currentTahunAjaran)
+            ->countAllResults();
+
+        $data = [
+            'page_title' => 'Ubah Kelas Santri',
+            'dataTpq' => $this->helpFunction->getDataTpq(),
+            'dataKelas' => $this->helpFunction->getDataKelas(),
+            'dataSantri' => $santri,
+            'currentTahunAjaran' => $this->helpFunction->convertTahunAjaran($currentTahunAjaran),
+            'existingKelasSantri' => $existingKelasSantri,
+            'hasExistingNilai' => $existingNilai ? true : false,
+            'existingNilaiCount' => $existingNilai ? $this->nilaiModel->where('IdSantri', $IdSantri)->where('IdTahunAjaran', $currentTahunAjaran)->where('Nilai >', 0)->countAllResults() : 0,
+            'totalNilaiRecords' => $totalNilaiRecords
+        ];
+
+        return view('backend/santri/ubahKelas', $data);
+    }
+
+    public function processUbahKelas()
+    {
+        $IdSantri = $this->request->getPost('IdSantri');
+        $IdKelasBaru = $this->request->getPost('IdKelas');
+
+        // Validasi input
+        if (!$IdSantri || !$IdKelasBaru) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        try {
+            // Ambil data santri
+            $santri = $this->DataSantriBaru->where('IdSantri', $IdSantri)->first();
+            if (!$santri) {
+                throw new \Exception('Data santri tidak ditemukan');
+            }
+
+            $IdTpq = $santri['IdTpq'];
+            $IdKelasLama = $santri['IdKelas'];
+            $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+
+            // Jika kelas tidak berubah
+            if ($IdKelasLama == $IdKelasBaru) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Kelas yang dipilih sama dengan kelas saat ini'
+                ]);
+            }
+
+            // Cek apakah ada data nilai untuk dihapus (tidak perlu validasi lagi karena sudah di view)
+            $totalNilaiRecords = $this->nilaiModel
+                ->where('IdSantri', $IdSantri)
+                ->where('IdTahunAjaran', $currentTahunAjaran)
+                ->countAllResults();
+
+            // Mulai transaksi database
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            // 1. Hapus semua nilai lama jika ada (konfirmasi sudah dilakukan di view)
+            if ($totalNilaiRecords > 0) {
+                $db->table('tbl_nilai')
+                    ->where('IdSantri', $IdSantri)
+                    ->where('IdTahunAjaran', $currentTahunAjaran)
+                    ->delete();
+            }
+
+            // 2. Update status kelas lama di tbl_kelas_santri
+            $db->table('tbl_kelas_santri')
+                ->where('IdSantri', $IdSantri)
+                ->where('IdTahunAjaran', $currentTahunAjaran)
+                ->where('Status', 1)
+                ->set(['Status' => 0])
+                ->update();
+
+            // 3. Update IdKelas di tbl_santri_baru
+            $db->table('tbl_santri_baru')
+                ->where('IdSantri', $IdSantri)
+                ->set(['IdKelas' => $IdKelasBaru])
+                ->update();
+
+            // 4. Insert kelas baru di tbl_kelas_santri
+            $db->table('tbl_kelas_santri')->insert([
+                'IdKelas' => $IdKelasBaru,
+                'IdTpq' => $IdTpq,
+                'IdSantri' => $IdSantri,
+                'IdTahunAjaran' => $currentTahunAjaran,
+                'Status' => 1
+            ]);
+
+            // 5. Buat data nilai baru untuk kelas baru (mengikuti logika updateNaikKelas)
+            $listMateriPelajaran = $this->helpFunction->getKelasMateriPelajaran($IdKelasBaru, $IdTpq);
+            $dataNilaiBaru = [];
+
+            foreach ($listMateriPelajaran as $materiPelajaran) {
+                if ($materiPelajaran->SemesterGanjil == 1) {
+                    $dataNilaiBaru[] = [
+                        'IdTpq' => $IdTpq,
+                        'IdSantri' => $IdSantri,
+                        'IdKelas' => $materiPelajaran->IdKelas,
+                        'IdMateri' => $materiPelajaran->IdMateri,
+                        'IdTahunAjaran' => $currentTahunAjaran,
+                        'Semester' => "Ganjil"
+                    ];
+                }
+                if ($materiPelajaran->SemesterGenap == 1) {
+                    $dataNilaiBaru[] = [
+                        'IdTpq' => $IdTpq,
+                        'IdSantri' => $IdSantri,
+                        'IdKelas' => $materiPelajaran->IdKelas,
+                        'IdMateri' => $materiPelajaran->IdMateri,
+                        'IdTahunAjaran' => $currentTahunAjaran,
+                        'Semester' => "Genap"
+                    ];
+                }
+            }
+
+            // Insert data nilai baru
+            if (!empty($dataNilaiBaru)) {
+                $db->table('tbl_nilai')->insertBatch($dataNilaiBaru);
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Terjadi kesalahan saat memproses perubahan kelas');
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Kelas santri berhasil diubah'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function ubahTpq($IdSantri = null)
+    {
+        // Ambil data santri
+        $santri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri)
+            ->first();
+
+        if (!$santri) {
+            return redirect()->back()->with('error', 'Data santri tidak ditemukan');
+        }
+
+        $data = [
+            'page_title' => 'Ubah TPQ Santri (Pindah Sekolah)',
+            'dataTpq' => $this->helpFunction->getDataTpq(),
+            'dataSantri' => $santri
+        ];
+
+        return view('backend/santri/ubahTpq', $data);
+    }
+
+    public function processUbahTpq()
+    {
+        $IdSantri = $this->request->getPost('IdSantri');
+        $IdTpqBaru = $this->request->getPost('IdTpq');
+
+        // Validasi input dasar (validasi lengkap sudah dilakukan di view)
+        if (!$IdSantri || !$IdTpqBaru) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        try {
+            // Ambil data santri
+            $santri = $this->DataSantriBaru->where('IdSantri', $IdSantri)->first();
+            if (!$santri) {
+                throw new \Exception('Data santri tidak ditemukan');
+            }
+
+            // Validasi TPQ tidak berubah (validasi ini tetap diperlukan untuk keamanan)
+            $IdTpqLama = $santri['IdTpq'];
+            if ($IdTpqLama == $IdTpqBaru) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'TPQ yang dipilih sama dengan TPQ saat ini'
+                ]);
+            }
+
+            // Mulai transaksi database
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            // 1. Update IdTpq dan set Active = 0 di tbl_santri_baru
+            $this->DataSantriBaru->where('IdSantri', $IdSantri)
+                ->set([
+                    'IdTpq' => $IdTpqBaru,
+                    'Active' => 0
+                ])
+                ->update();
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Terjadi kesalahan saat memproses perubahan TPQ');
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'TPQ santri berhasil diubah. Status Active diubah menjadi 0.'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 
     public function deleteSantriBaru($IdSantri = null)

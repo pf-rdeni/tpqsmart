@@ -77,7 +77,7 @@ if (ENVIRONMENT === 'production') {
                                     </div>
                                     <div class="form-group">
                                         <label for="KelurahanDesaTpq">Lokasi TPQ<span class="text-danger font-weight-bold">*</span></label>
-                                        <select class="form-control" id="KelurahanDesaTpq" name="KelurahanDesaTpq" <?= $required ?>>
+                                        <select class="form-control" id="KelurahanDesaTpq" name="KelurahanDesaTpq" <?= $required ?> <?= !in_groups('Admin') ? 'disabled' : '' ?>>
                                             <option value="<?= isset($dataSantri['KelurahanDesaTpq']) ? ucwords(strtolower($dataSantri['KelurahanDesaTpq'])) : '' ?>"><?= isset($dataSantri['KelurahanDesaTpq']) ? ucwords(strtolower($dataSantri['KelurahanDesaTpq'])) : 'Pilih Lokasi TPQ' ?></option>
                                             <option value="Teluk Sasah">Teluk Sasah</option>
                                             <option value="Busung">Busung</option>
@@ -85,11 +85,14 @@ if (ENVIRONMENT === 'production') {
                                             <option value="Tanjung Permai">Tanjung Permai</option>
                                             <option value="Teluk Lobam">Teluk Lobam</option>
                                         </select>
+                                        <?php if (!in_groups('Admin')): ?>
+                                            <small class="text-muted"><i class="fas fa-lock"></i> Hanya Admin yang dapat mengubah lokasi TPQ</small>
+                                        <?php endif; ?>
                                         <span id="KelurahanDesaTpqError" class="text-danger" style="display:none;">Desa/Kelurahan diperlukan.</span>
                                     </div>
                                     <div class="form-group">
                                         <label for="IdTpq">Nama TPQ<span class="text-danger font-weight-bold">*</span></label>
-                                        <select class="form-control" id="IdTpq" name="IdTpq" <?= $required ?>>
+                                        <select class="form-control" id="IdTpq" name="IdTpq" <?= $required ?> <?= !in_groups('Admin') ? 'disabled' : '' ?>>
                                             <option value="">Pilih Nama TPQ sesuai Desa/Kelurahan</option>
                                             <?php foreach ($dataTpq as $tpq): ?>
                                                 <option value="<?= $tpq['IdTpq'] ?>"
@@ -99,11 +102,14 @@ if (ENVIRONMENT === 'production') {
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
+                                        <?php if (!in_groups('Admin')): ?>
+                                            <small class="text-muted"><i class="fas fa-lock"></i> Hanya Admin yang dapat mengubah nama TPQ</small>
+                                        <?php endif; ?>
                                         <span id="IdTpqError" class="text-danger" style="display:none;">Nama TPQ diperlukan.</span>
                                     </div>
                                     <div class="form-group">
                                         <label for="IdKelas">Kelas<span class="text-danger font-weight-bold">*</span></label>
-                                        <select class="form-control" id="IdKelas" name="IdKelas" <?= $required ?>>
+                                        <select class="form-control" id="IdKelas" name="IdKelas" <?= $required ?> <?= !in_groups('Admin') ? 'disabled' : '' ?>>
                                             <option value="">Pilih Kelas</option>
                                             <?php foreach ($dataKelas as $kelas): ?>
                                                 <option value="<?= $kelas['IdKelas'] ?>"
@@ -112,6 +118,9 @@ if (ENVIRONMENT === 'production') {
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
+                                        <?php if (!in_groups('Admin')): ?>
+                                            <small class="text-muted"><i class="fas fa-lock"></i> Hanya Admin yang dapat mengubah kelas</small>
+                                        <?php endif; ?>
                                         <span id="IdKelasError" class="text-danger" style="display:none;">Kelas diperlukan.</span>
                                     </div>
                                     <!-- button cancel kembali ke page sebelumnya -->
@@ -1736,7 +1745,62 @@ if (ENVIRONMENT === 'production') {
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
+<style>
+    /* Styling untuk field disabled */
+    .form-control:disabled {
+        background-color: #f8f9fa;
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .form-control:disabled+small {
+        display: block;
+        margin-top: 5px;
+    }
+
+    .form-control:disabled+small i {
+        color: #6c757d;
+        margin-right: 5px;
+    }
+
+    /* Styling untuk alert info yang lebih menonjol */
+    .alert-info {
+        border-left: 4px solid #17a2b8;
+    }
+
+    .alert-info i {
+        color: #17a2b8;
+    }
+</style>
 <script>
+    /* ===== Region: Handle Disabled Fields ===== */
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle field disabled untuk non-admin
+        const disabledFields = document.querySelectorAll('select:disabled');
+        disabledFields.forEach(field => {
+            // Tambahkan event listener untuk mencegah interaksi
+            field.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!<?= in_groups('Admin') ? 'true' : 'false' ?>) {
+                    Swal.fire({
+                        title: 'Akses Terbatas',
+                        html: `<div class="text-left">
+                                <p><strong>Field ini hanya dapat diubah oleh Admin.</strong></p>
+                                <ul class="text-left">
+                                    <li><strong>Admin:</strong> Dapat mengubah semua data santri termasuk TPQ dan Kelas</li>
+                                    <li><strong>Operator/Guru:</strong> Hanya dapat mengubah data pribadi santri</li>
+                                </ul>
+                                <p class="mt-3 text-muted">Silakan hubungi administrator untuk perubahan TPQ atau Kelas.</p>
+                               </div>`,
+                        icon: 'info',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#3085d6'
+                    });
+                }
+            });
+        });
+    });
+
     /* ===== Region: Submit Form dengan AJAX ===== */
     function submitForm() {
         // Tampilkan loading indicator
