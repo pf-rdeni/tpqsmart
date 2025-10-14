@@ -647,9 +647,25 @@
 <script>
     /*=== Modal Delete santri===*/
     function deleteSantri(IdSantri) {
-        // Dapatkan nama santri dari baris tabel
-        const row = event.target.closest('tr');
-        const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
+        console.log('deleteSantri called with IdSantri:', IdSantri);
+        console.log('selectedSantriName:', selectedSantriName);
+        console.log('event available:', typeof event !== 'undefined');
+
+        // Dapatkan nama santri dari baris tabel atau dari selectedSantriName
+        let namaSantri = selectedSantriName || 'Santri';
+
+        // Jika ada event (dipanggil dari button langsung), gunakan data dari row
+        if (typeof event !== 'undefined' && event.target) {
+            const row = event.target.closest('tr');
+            if (row) {
+                const namaElement = row.querySelector('td[data-column="Nama"]');
+                if (namaElement) {
+                    namaSantri = namaElement.innerText;
+                }
+            }
+        }
+
+        console.log('Final namaSantri:', namaSantri);
 
         Swal.fire({
             title: 'Apakah Anda yakin?',
@@ -1143,6 +1159,13 @@
         selectedSantriId = IdSantri;
         selectedSantriName = NamaSantri;
 
+        console.log('showEditOptions called with:', {
+            IdSantri,
+            NamaSantri
+        });
+        console.log('selectedSantriId set to:', selectedSantriId);
+        console.log('selectedSantriName set to:', selectedSantriName);
+
         // Update modal title dengan nama santri
         document.getElementById('editOptionsModalLabel').textContent = `Pilih Aksi - ${NamaSantri}`;
 
@@ -1199,10 +1222,37 @@
     // Fungsi untuk menghapus santri dari modal
     function deleteSantriFromModal() {
         if (selectedSantriId) {
+            console.log('deleteSantriFromModal called with ID:', selectedSantriId);
+            console.log('selectedSantriName:', selectedSantriName);
+
             // Tutup modal edit options terlebih dahulu
             $('#editOptionsModal').modal('hide');
-            // Panggil fungsi delete santri yang sudah ada
-            deleteSantri(selectedSantriId);
+
+            // Konfirmasi sebelum pindah ke halaman konfirmasi delete
+            Swal.fire({
+                title: 'Konfirmasi Hapus Santri',
+                html: `Apakah Anda yakin ingin menghapus santri <strong>${selectedSantriName}</strong>?<br><br>
+                       <small class="text-muted">Anda akan diarahkan ke halaman konfirmasi untuk melihat detail data yang akan dihapus.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Lanjutkan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect ke halaman konfirmasi delete
+                    window.location.href = '<?= base_url('backend/santri/konfirmasiDeleteSantri/') ?>' + selectedSantriId;
+                }
+            });
+        } else {
+            console.error('selectedSantriId is null or undefined');
+            Swal.fire({
+                title: 'Error!',
+                text: 'ID Santri tidak ditemukan',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         }
     }
 

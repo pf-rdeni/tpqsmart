@@ -1698,4 +1698,120 @@ class Santri extends BaseController
             ]);
         }
     }
+
+    public function konfirmasiDeleteSantri($IdSantri = null)
+    {
+        if (!$IdSantri) {
+            return redirect()->to('backend/santri/showAturSantriBaru')->with('error', 'ID Santri tidak ditemukan');
+        }
+
+        // Ambil data santri dengan join ke tabel kelas dan TPQ
+        $santri = $this->DataSantriBaru
+            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri)
+            ->first();
+
+        if (!$santri) {
+            return redirect()->to('backend/santri/showAturSantriBaru')->with('error', 'Data santri tidak ditemukan');
+        }
+
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+
+        // Cek data nilai yang ada
+        $existingNilai = $this->nilaiModel
+            ->where('IdSantri', $IdSantri)
+            ->where('Nilai >', 0) // Check for filled values
+            ->first();
+
+        $totalNilaiRecords = $this->nilaiModel
+            ->where('IdSantri', $IdSantri)
+            ->countAllResults();
+
+        // Cek data kelas santri
+        $existingKelasSantri = $this->kelasModel
+            ->where('IdSantri', $IdSantri)
+            ->countAllResults();
+
+        // Cek data absensi
+        $existingAbsensi = $this->DataSantriBaru
+            ->select('COUNT(*) as total')
+            ->where('IdSantri', $IdSantri)
+            ->countAllResults();
+
+        $data = [
+            'page_title' => 'Konfirmasi Hapus Santri',
+            'dataSantri' => $santri,
+            'currentTahunAjaran' => $currentTahunAjaran,
+            'hasExistingNilai' => $existingNilai ? true : false,
+            'existingNilaiCount' => $existingNilai ? $this->nilaiModel->where('IdSantri', $IdSantri)->where('Nilai >', 0)->countAllResults() : 0,
+            'totalNilaiRecords' => $totalNilaiRecords,
+            'existingKelasSantri' => $existingKelasSantri,
+            'existingAbsensi' => $existingAbsensi
+        ];
+
+        return view('backend/santri/konfirmasiDeleteSantri', $data);
+    }
+
+    public function processDeleteSantri()
+    {
+        $IdSantri = $this->request->getPost('IdSantri');
+        $confirmDelete = $this->request->getPost('confirmDelete');
+
+        if (!$IdSantri) {
+            return $this->response->setJSON(['success' => false, 'message' => 'ID Santri tidak ditemukan']);
+        }
+
+        if (!$confirmDelete) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Konfirmasi penghapusan diperlukan']);
+        }
+
+        try {
+            // Log untuk debugging
+            log_message('info', '[processDeleteSantri] Starting deletion for IdSantri: ' . $IdSantri);
+
+            // Mulai transaksi database
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            // 1. Hapus data nilai (semua tahun ajaran)
+            $nilaiDeleted = $db->table('tbl_nilai')
+                ->where('IdSantri', $IdSantri)
+                ->delete();
+            log_message('info', '[processDeleteSantri] Deleted ' . $nilaiDeleted . ' records from tbl_nilai');
+
+            // 2. Hapus data kelas santri (semua tahun ajaran)
+            $kelasSantriDeleted = $db->table('tbl_kelas_santri')
+                ->where('IdSantri', $IdSantri)
+                ->delete();
+            log_message('info', '[processDeleteSantri] Deleted ' . $kelasSantriDeleted . ' records from tbl_kelas_santri');
+
+            // 3. Hapus data absensi (semua tahun ajaran)
+            $absensiDeleted = $db->table('tbl_absensi_santri')
+                ->where('IdSantri', $IdSantri)
+                ->delete();
+            log_message('info', '[processDeleteSantri] Deleted ' . $absensiDeleted . ' records from tbl_absensi_santri');
+
+            // 4. Hapus data santri dari tbl_santri_baru
+            $santriBaruDeleted = $db->table('tbl_santri_baru')
+                ->where('IdSantri', $IdSantri)
+                ->delete();
+            log_message('info', '[processDeleteSantri] Deleted ' . $santriBaruDeleted . ' records from tbl_santri_baru');
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                $error = $db->error();
+                log_message('error', '[processDeleteSantri] Transaction failed: ' . json_encode($error));
+                throw new \Exception('Terjadi kesalahan saat menghapus data santri: ' . ($error['message'] ?? 'Unknown database error'));
+            }
+
+            log_message('info', '[processDeleteSantri] Successfully deleted santri IdSantri: ' . $IdSantri);
+            return $this->response->setJSON(['success' => true, 'message' => 'Data santri berhasil dihapus permanen']);
+        } catch (\Exception $e) {
+            log_message('error', '[processDeleteSantri] Error: ' . $e->getMessage());
+            return $this->response->setJSON(['success' => false, 'message' => 'Gagal menghapus data santri: ' . $e->getMessage()]);
+        }
+    }
 }
