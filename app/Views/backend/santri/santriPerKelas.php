@@ -40,6 +40,7 @@
                                             <th>Aksi</th>
                                             <th>Nama Santri</th>
                                             <th>Tingkat Kelas</th>
+                                            <th>Id Santri</th>
                                             <th>Tahun Ajaran</th>
                                         </tr>
                                     </thead>
@@ -68,6 +69,7 @@
                                                     </td>
                                                     <td><?php echo $santri->NamaSantri; ?></td>
                                                     <td><?php echo $santri->NamaKelas; ?></td>
+                                                    <td><?php echo $santri->IdSantri; ?></td>
                                                     <td><?php echo $santri->IdTahunAjaran; ?></td>
                                                 </tr>
                                             <?php endif; ?>

@@ -75,6 +75,7 @@ foreach ($dataNilai as $santri) {
                                                 <th>Aksi</th>
                                                 <th>Nama Santri</th>
                                                 <th>Nama Kelas</th>
+                                                <th>Id Santri</th>
                                                 <th>Tahun Ajaran</th>
                                                 <th>Semester</th>
                                                 <?php
@@ -114,6 +115,7 @@ foreach ($dataNilai as $santri) {
                                                     </td>
                                                     <td><?= htmlspecialchars($santri['Nama Santri']) ?></td>
                                                     <td><?= htmlspecialchars($santri['Nama Kelas']) ?></td>
+                                                    <td><?= htmlspecialchars($santri['IdSantri']) ?></td>
                                                     <td><?= htmlspecialchars($santri['Tahun Ajaran']) ?></td>
                                                     <td><?= htmlspecialchars($santri['Semester']) ?></td>
                                                     <?php
@@ -155,6 +157,7 @@ foreach ($dataNilai as $santri) {
                                             <?php endif; ?>
                                         <?php endforeach; ?>
                                         <tr>
+                                            <th></th>
                                             <th></th>
                                             <th></th>
                                             <th></th>
