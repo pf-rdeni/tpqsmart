@@ -1771,6 +1771,12 @@ class Santri extends BaseController
             // Log untuk debugging
             log_message('info', '[processDeleteSantri] Starting deletion for IdSantri: ' . $IdSantri);
 
+            // Ambil data santri untuk mendapatkan nama file yang akan dihapus
+            $santriData = $this->DataSantriBaru->where('IdSantri', $IdSantri)->first();
+            if (!$santriData) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Data santri tidak ditemukan']);
+            }
+
             // Mulai transaksi database
             $db = \Config\Database::connect();
             $db->transStart();
@@ -1807,11 +1813,79 @@ class Santri extends BaseController
                 throw new \Exception('Terjadi kesalahan saat menghapus data santri: ' . ($error['message'] ?? 'Unknown database error'));
             }
 
+            // Hapus file-file terkait santri setelah transaksi database berhasil
+            $this->deleteSantriFiles($santriData);
+
             log_message('info', '[processDeleteSantri] Successfully deleted santri IdSantri: ' . $IdSantri);
-            return $this->response->setJSON(['success' => true, 'message' => 'Data santri berhasil dihapus permanen']);
+            return $this->response->setJSON(['success' => true, 'message' => 'Data santri dan file terkait berhasil dihapus permanen']);
         } catch (\Exception $e) {
             log_message('error', '[processDeleteSantri] Error: ' . $e->getMessage());
             return $this->response->setJSON(['success' => false, 'message' => 'Gagal menghapus data santri: ' . $e->getMessage()]);
+        }
+    }
+
+    // Method untuk menghapus file-file terkait santri
+    private function deleteSantriFiles($santriData)
+    {
+        try {
+            // Tentukan path berdasarkan environment (sama seperti uploadFile)
+            if (ENVIRONMENT === 'production') {
+                $basePath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
+                $thumbnailPath = $basePath . 'thumbnails/';
+            } else {
+                $basePath = ROOTPATH . 'public/uploads/santri/';
+                $thumbnailPath = $basePath . 'thumbnails/';
+            }
+
+            $filesDeleted = 0;
+            $filesToDelete = [];
+
+            // Daftar file yang perlu dihapus (semua file disimpan di root folder uploads/santri/)
+            if (!empty($santriData['PhotoProfil'])) {
+                $filesToDelete[] = $basePath . $santriData['PhotoProfil'];
+                // Hapus juga file thumbnail jika ada (disimpan di subfolder thumbnails/)
+                $thumbnailFile = $thumbnailPath . 'thumb_' . $santriData['PhotoProfil'];
+                if (file_exists($thumbnailFile)) {
+                    $filesToDelete[] = $thumbnailFile;
+                }
+            }
+            if (!empty($santriData['FileKIP'])) {
+                $filesToDelete[] = $basePath . $santriData['FileKIP'];
+            }
+            if (!empty($santriData['FileKkSantri'])) {
+                $filesToDelete[] = $basePath . $santriData['FileKkSantri'];
+            }
+            if (!empty($santriData['FileKKAyah'])) {
+                $filesToDelete[] = $basePath . $santriData['FileKKAyah'];
+            }
+            if (!empty($santriData['FileKKIbu'])) {
+                $filesToDelete[] = $basePath . $santriData['FileKKIbu'];
+            }
+            if (!empty($santriData['FileKKS'])) {
+                $filesToDelete[] = $basePath . $santriData['FileKKS'];
+            }
+            if (!empty($santriData['FilePKH'])) {
+                $filesToDelete[] = $basePath . $santriData['FilePKH'];
+            }
+
+            // Hapus setiap file
+            foreach ($filesToDelete as $filePath) {
+                if (file_exists($filePath)) {
+                    if (unlink($filePath)) {
+                        $filesDeleted++;
+                        log_message('info', '[deleteSantriFiles] Deleted file: ' . $filePath);
+                    } else {
+                        log_message('warning', '[deleteSantriFiles] Failed to delete file: ' . $filePath);
+                    }
+                } else {
+                    log_message('info', '[deleteSantriFiles] File not found: ' . $filePath);
+                }
+            }
+
+            log_message('info', '[deleteSantriFiles] Successfully deleted ' . $filesDeleted . ' files for IdSantri: ' . $santriData['IdSantri']);
+        } catch (\Exception $e) {
+            log_message('error', '[deleteSantriFiles] Error: ' . $e->getMessage());
+            // Tidak throw exception karena penghapusan file bukan critical error
         }
     }
 }

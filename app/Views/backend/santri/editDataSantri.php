@@ -86,6 +86,8 @@ if (ENVIRONMENT === 'production') {
                                             <option value="Teluk Lobam">Teluk Lobam</option>
                                         </select>
                                         <?php if (!in_groups('Admin')): ?>
+                                            <!-- Hidden input untuk mengirimkan nilai KelurahanDesaTpq saat field disabled -->
+                                            <input type="hidden" name="KelurahanDesaTpq" value="<?= isset($dataSantri['KelurahanDesaTpq']) ? $dataSantri['KelurahanDesaTpq'] : '' ?>">
                                             <small class="text-muted"><i class="fas fa-lock"></i> Hanya Admin yang dapat mengubah lokasi TPQ</small>
                                         <?php endif; ?>
                                         <span id="KelurahanDesaTpqError" class="text-danger" style="display:none;">Desa/Kelurahan diperlukan.</span>
@@ -103,6 +105,8 @@ if (ENVIRONMENT === 'production') {
                                             <?php endforeach; ?>
                                         </select>
                                         <?php if (!in_groups('Admin')): ?>
+                                            <!-- Hidden input untuk mengirimkan nilai IdTpq saat field disabled -->
+                                            <input type="hidden" name="IdTpq" value="<?= isset($dataSantri['IdTpq']) ? $dataSantri['IdTpq'] : '' ?>">
                                             <small class="text-muted"><i class="fas fa-lock"></i> Hanya Admin yang dapat mengubah nama TPQ</small>
                                         <?php endif; ?>
                                         <span id="IdTpqError" class="text-danger" style="display:none;">Nama TPQ diperlukan.</span>
@@ -119,6 +123,8 @@ if (ENVIRONMENT === 'production') {
                                             <?php endforeach; ?>
                                         </select>
                                         <?php if (!in_groups('Admin')): ?>
+                                            <!-- Hidden input untuk mengirimkan nilai IdKelas saat field disabled -->
+                                            <input type="hidden" name="IdKelas" value="<?= isset($dataSantri['IdKelas']) ? $dataSantri['IdKelas'] : '' ?>">
                                             <small class="text-muted"><i class="fas fa-lock"></i> Hanya Admin yang dapat mengubah kelas</small>
                                         <?php endif; ?>
                                         <span id="IdKelasError" class="text-danger" style="display:none;">Kelas diperlukan.</span>
