@@ -1,4 +1,10 @@
-<?= $this->extend('backend/template/template'); ?>
+<?php
+// Deteksi konteks (public vs admin)
+$isPublic = isset($isPublic) ? $isPublic : false;
+$templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/template/template';
+?>
+
+<?= $this->extend($templatePath); ?>
 <?= $this->section('content'); ?>
 <?php echo session()->getFlashdata('pesan');
 // Cek environment untuk menentukan nilai $required
@@ -17,12 +23,14 @@ if (ENVIRONMENT === 'production') {
             <div class="card card-default">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center w-100">
-                        <h3 class="card-title m-0">Formulir Data Santri Baru</h3>
-                        <div class="d-flex">
-                            <a href="<?= base_url('backend/santri/showSantriBaru') ?>" class="btn btn-info">
-                                <i class="fas fa-list"></i><span class="d-none d-md-inline">&nbsp;Data List Santri Baru</span>
-                            </a>
-                        </div>
+                        <h3 class="card-title m-0"><?= $isPublic ? 'Formulir Pendaftaran Santri Baru' : 'Formulir Data Santri Baru' ?></h3>
+                        <?php if (!$isPublic): ?>
+                            <div class="d-flex">
+                                <a href="<?= base_url('backend/santri/showSantriBaru') ?>" class="btn btn-info">
+                                    <i class="fas fa-list"></i><span class="d-none d-md-inline">&nbsp;Data List Santri Baru</span>
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -67,7 +75,7 @@ if (ENVIRONMENT === 'production') {
                         </div>
                         <div class="bs-stepper-content">
                             <!-- your steps content here -->
-                            <form action="<?= base_url('backend/santri/save') ?>" method="POST" id="santriForm" enctype="multipart/form-data">
+                            <form action="<?= $isPublic ? base_url('pendaftaran/save') : base_url('backend/santri/save') ?>" method="POST" id="santriForm" enctype="multipart/form-data">
                                 <div id="tpq-part" class="content" role="tabpanel" aria-labelledby="tpq-part-trigger">
                                     <br>
                                     <div class="alert alert-info">
@@ -1593,9 +1601,11 @@ if (ENVIRONMENT === 'production') {
                     </div>
                 </div>
                 <!-- /.card-body -->
-                <div class="card-footer">
-                    Melihat <a href="<?= base_url('backend/santri/showSantriBaru') ?>">data yang sudah masuk</a>.
-                </div>
+                <?php if (!$isPublic): ?>
+                    <div class="card-footer">
+                        Melihat <a href="<?= base_url('backend/santri/showSantriBaru') ?>">data yang sudah masuk</a>.
+                    </div>
+                <?php endif; ?>
             </div>
             <!-- /.card -->
         </div>
@@ -3550,7 +3560,8 @@ if (ENVIRONMENT === 'production') {
 
             // Cek duplikasi hanya untuk NIK Santri
             if (inputId === 'NikSantri' && nilai.length === 16 && pola.test(nilai)) {
-                fetch('/backend/santri/getNikSantri/' + nilai, {
+                const validationUrl = <?= $isPublic ? "'/pendaftaran/getNikSantri/'" : "'/backend/santri/getNikSantri/'" ?>;
+                fetch(validationUrl + nilai, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',

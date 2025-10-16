@@ -80,6 +80,8 @@ class Filters extends BaseFilters
                     'signature/validateSignature',
                     'signature/validateSignature/*',
                     'frontend/home',
+                    'pendaftaran',           // Form pendaftaran publik
+                    'pendaftaran/*',         // Semua route pendaftaran
                     'auth/logout', // untuk logout
                 ]
             ],

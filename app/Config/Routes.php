@@ -33,7 +33,20 @@ $routes->post('auth/updateTahunAjaranDanKelas', 'Auth::updateTahunAjaranDanKelas
 $routes->get('program', 'Frontend\Program::index');
 $routes->get('kontak', 'Frontend\Kontak::index');
 
-$routes->get('backend/santri', 'Backend\Santri::createEmisStep');
+// Routes untuk pendaftaran santri menggunakan controller SantriPendaftaran
+// Public routes (tanpa login)
+$routes->get('pendaftaran', 'SantriPendaftaran::createEmisStep/public');
+$routes->post('pendaftaran/save', 'SantriPendaftaran::save/public');
+$routes->get('pendaftaran/success/(:segment)', 'SantriPendaftaran::showSuccessEmisStep/$1/public');
+$routes->get('pendaftaran/getNikSantri/(:segment)', 'SantriPendaftaran::getNikSantri/$1');
+$routes->get('pendaftaran/generatePDFSantriBaru/(:segment)', 'SantriPendaftaran::generatePDFSantriBaru/$1');
+
+// Admin routes (dengan login)
+$routes->get('backend/santri', 'SantriPendaftaran::createEmisStep/admin');
+$routes->post('backend/santri/save', 'SantriPendaftaran::save/admin');
+$routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'SantriPendaftaran::showSuccessEmisStep/$1/admin');
+$routes->get('backend/santri/getNikSantri/(:segment)', 'SantriPendaftaran::getNikSantri/$1');
+$routes->get('backend/santri/generatePDFSantriBaru/(:segment)', 'SantriPendaftaran::generatePDFSantriBaru/$1');
 //Table Tpq
 $routes->get('backend/tpq/tpq', 'Tpq::create');
 $routes->delete('backend/tpq/(:num)', 'Tpq::delete/$1');

@@ -45,7 +45,8 @@ class Santri extends BaseController
         $data = [
             'page_title' => 'Form Data Tambah Santri',
             'dataTpq' => $dataTpq,
-            'dataKelas' => $dataKelas
+            'dataKelas' => $dataKelas,
+            'isPublic' => false  // Admin context
         ];
 
         return view('backend/santri/createEmisStep', $data);
