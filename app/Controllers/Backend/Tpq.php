@@ -89,7 +89,7 @@ class Tpq extends BaseController
     public function update($id)
     {
         // Ambil ID TPQ dari session
-        $idTpq = session('id_tpq');
+        $idTpq = session('IdTpq');
 
         if (!$this->validate([
             'NamaTpq' => [
@@ -164,7 +164,7 @@ class Tpq extends BaseController
     {
         $file = $this->request->getFile('logo');
         // Ambil ID TPQ dari session
-        $idTpq = session('id_tpq');
+        $idTpq = session('IdTpq');
 
         if ($this->validateUploadFile($file) && !empty($idTpq)) {
             // Buat direktori uploads/logo jika belum ada
