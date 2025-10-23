@@ -39,7 +39,18 @@ class Signature extends \App\Controllers\BaseController
         }
 
         $santri = $this->santriModel->where('IdSantri', $signature['IdSantri'])->first();
-        $guru = $this->helpfunctionModel->getDataGuruKelas($signature['IdGuru'], $signature['IdTpq'], $signature['IdKelas'])[0];
+
+        // Ambil data guru kelas
+        $guruKelas = $this->helpfunctionModel->getDataGuruKelas($signature['IdGuru'], $signature['IdTpq'], $signature['IdKelas']);
+
+        // Ambil data kepala TPQ
+        $kepalaTpq = $this->helpfunctionModel->getDataKepalaTpqStrukturLembaga($signature['IdGuru'], $signature['IdTpq']);
+
+        // Gabungkan data guru
+        $guru = array_merge($guruKelas, $kepalaTpq);
+
+        // Ambil data guru pertama yang ditemukan (bisa guru kelas atau kepala TPQ)
+        $guruData = !empty($guru) ? $guru[0] : null;
 
         $kelas = $this->kelasModel->find($signature['IdKelas']);
         $namaKelas = $this->helpfunctionModel->getNamaKelas($signature['IdKelas']);
@@ -49,7 +60,7 @@ class Signature extends \App\Controllers\BaseController
         return view('frontend/signature/valid', [
             'signature' => $signature,
             'santri' => $santri,
-            'guru' => $guru,
+            'guru' => $guruData,
             'kelas' => $kelas,
             'tpq' => $tpq
         ]);

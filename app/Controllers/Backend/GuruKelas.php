@@ -22,6 +22,7 @@ class GuruKelas extends BaseController
         $IdTpq = session()->get('IdTpq');
         $GuruKelas = $this->helpFunction->getDataGuruKelas(IdTpq: $IdTpq);
         $Kelas = $this->helpFunction->getDataKelas();
+
         $data = [
             'page_title' => 'Daftar Guru Kelas',
             'guruKelas' => $GuruKelas,
@@ -84,17 +85,19 @@ class GuruKelas extends BaseController
 
     public function delete($id)
     {
-        try {
-            $this->guruKelasModel->delete($id);
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Data guru kelas berhasil dihapus'
-            ]);
-        } catch (\Exception $e) {
+        //cek apakah data guru kelas ada
+        $data = $this->guruKelasModel->where('Id', $id)->first();
+        if (!$data) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Gagal menghapus data guru kelas: ' . $e->getMessage()
+                'message' => 'Data guru kelas tidak ditemukan'
             ]);
         }
+        //cek apakah data guru kelas ada di tabel tbl_guru_kelas
+        $this->guruKelasModel->where('Id', $id)->delete();
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Data guru kelas berhasil dihapus'
+        ]);
     }
 }

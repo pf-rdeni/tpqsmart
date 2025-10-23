@@ -134,72 +134,75 @@ class HelpFunctionModel extends Model
      */
     public function getDataGuruKelas($IdGuru = null, $IdTpq = null, $IdKelas = null, $IdTahunAjaran = null, $IdJabatan = null)
     {
-        // Query untuk guru kelas (Wali Kelas, Guru Kelas)
-        $builder1 = $this->db->table('tbl_guru_kelas gk')
-            ->select('j.IdJabatan, j.NamaJabatan, gk.IdTahunAjaran, gk.Id, gk.IdGuru, gk.IdTpq, gk.IdKelas, g.Nama, t.NamaTpq, k.NamaKelas, g.Status')
+        $builder = $this->db->table('tbl_guru_kelas gk')
+            ->select('j.IdJabatan, j.NamaJabatan, gk.IdTahunAjaran, gk.Id, gk.IdGuru, gk.IdTpq, gk.IdKelas, g.Nama, t.NamaTpq, k.NamaKelas,g.Status')
             ->join('tbl_guru g', 'g.IdGuru = gk.IdGuru')
             ->join('tbl_tpq t', 't.IdTpq = gk.IdTpq')
             ->join('tbl_kelas k', 'k.IdKelas = gk.IdKelas')
             ->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
 
-        // Filter berdasarkan parameter yang diberikan untuk guru kelas
+        // Filter berdasarkan parameter yang diberikan
         if ($IdGuru !== null) {
-            $builder1->where('gk.IdGuru', $IdGuru);
+            $builder->where('gk.IdGuru', $IdGuru);
         }
         if ($IdTpq !== null) {
-            $builder1->where('gk.IdTpq', $IdTpq);
+            $builder->where('gk.IdTpq', $IdTpq);
         }
         if ($IdKelas !== null) {
             if (is_array($IdKelas)) {
-                $builder1->whereIn('gk.IdKelas', $IdKelas);
+                $builder->whereIn('gk.IdKelas', $IdKelas);
             } else {
-                $builder1->where('gk.IdKelas', $IdKelas);
+                $builder->where('gk.IdKelas', $IdKelas);
             }
         }
         if ($IdTahunAjaran !== null) {
             if (is_array($IdTahunAjaran)) {
-                $builder1->whereIn('gk.IdTahunAjaran', $IdTahunAjaran);
+                $builder->whereIn('gk.IdTahunAjaran', $IdTahunAjaran);
             } else {
-                $builder1->where('gk.IdTahunAjaran', $IdTahunAjaran);
+                $builder->where('gk.IdTahunAjaran', $IdTahunAjaran);
             }
         }
         if ($IdJabatan !== null) {
-            $builder1->where('gk.IdJabatan', $IdJabatan);
+            $builder->where('gk.IdJabatan', $IdJabatan);
         }
 
-        $result1 = $builder1->get()->getResultArray();
+        // Jika hanya mencari satu data spesifik (IdGuru dan IdTpq), kembalikan satu baris
+        if ($IdGuru !== null && $IdTpq !== null && $IdKelas === null && $IdTahunAjaran === null && $IdJabatan === null) {
+            return $builder->get()->getResultObject();
+        }
 
-        // Query untuk Kepala TPQ dari struktur lembaga
-        $builder2 = $this->db->table('tbl_struktur_lembaga sl')
+        // Jika tidak, kembalikan semua hasil
+        return $builder->get()->getResultObject();
+    }
+
+    /**
+     * Mengambil data Kepala TPQ dari struktur lembaga
+     * @param mixed $IdGuru
+     * @param mixed $IdTpq
+     * @param mixed $IdJabatan
+     * @return object|array
+     */
+    public function getDataKepalaTpqStrukturLembaga($IdGuru = null, $IdTpq = null, $IdJabatan = null)
+    {
+        $builder = $this->db->table('tbl_struktur_lembaga sl')
             ->select('j.IdJabatan, j.NamaJabatan, NULL as IdTahunAjaran, sl.Id, sl.IdGuru, sl.IdTpq, NULL as IdKelas, g.Nama, t.NamaTpq, NULL as NamaKelas, g.Status')
             ->join('tbl_guru g', 'g.IdGuru = sl.IdGuru')
             ->join('tbl_tpq t', 't.IdTpq = sl.IdTpq')
             ->join('tbl_jabatan j', 'j.IdJabatan = sl.IdJabatan')
             ->where('j.NamaJabatan', 'Kepala TPQ');
 
-        // Filter berdasarkan parameter yang diberikan untuk kepala TPQ
+        // Filter berdasarkan parameter yang diberikan
         if ($IdGuru !== null) {
-            $builder2->where('sl.IdGuru', $IdGuru);
+            $builder->where('sl.IdGuru', $IdGuru);
         }
         if ($IdTpq !== null) {
-            $builder2->where('sl.IdTpq', $IdTpq);
+            $builder->where('sl.IdTpq', $IdTpq);
         }
         if ($IdJabatan !== null) {
-            $builder2->where('sl.IdJabatan', $IdJabatan);
+            $builder->where('sl.IdJabatan', $IdJabatan);
         }
 
-        $result2 = $builder2->get()->getResultArray();
-
-        // Gabungkan hasil dari kedua query
-        $allResults = array_merge($result1, $result2);
-
-        // Konversi ke object jika diperlukan
-        $objects = [];
-        foreach ($allResults as $row) {
-            $objects[] = (object) $row;
-        }
-
-        return $objects;
+        return $builder->get()->getResultObject();
     }
 
     /**

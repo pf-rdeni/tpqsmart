@@ -90,7 +90,7 @@ $routes->get('GuruKelas/create', 'GuruKelas::create');
 $routes->post('GuruKelas/store', 'GuruKelasC::store');
 $routes->get('edit/(:num)', 'GuruKelas::edit/$1');
 $routes->post('update/(:num)', 'GuruKelasr::update/$1');
-$routes->post('delete/(:num)', 'GuruKelas::delete/$1');
+$routes->get('backend/GuruKelas/delete/(:num)', 'Backend\GuruKelas::delete/$1');
 
 //Table tbl_struktur_lembaga
 $routes->get('backend/strukturlembaga', 'Backend\StrukturLembaga::index');

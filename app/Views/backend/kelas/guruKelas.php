@@ -32,6 +32,7 @@
                 </thead>
                 <tbody>
                     <?php $no = 1;
+                    // Debug: Tampilkan semua data guru kelas
                     foreach ($guruKelas as $row) : ?>
                         <tr>
                             <td><?= $no++; ?></td>
@@ -40,10 +41,12 @@
                             <td><?= $helpModel->convertTahunAjaran($row->IdTahunAjaran) ?></td>
                             <td><?= $row->NamaJabatan ?></td>
                             <td>
+                                <!-- Debug: ID = <?= $row->Id ?>, URL = <?= base_url('backend/GuruKelas/delete/' . $row->Id) ?> -->
                                 <button class="btn btn-warning btn-sm" data-toggle="modal"
                                     data-target="#GuruKelasEdit<?= $row->Id  ?>"><i class="fas fa-edit"></i></button>
                                 <button class="btn btn-danger btn-sm"
-                                    onclick="deleteDataGuruKelas('<?= base_url('backend/GuruKelas/delete/' . $row->Id) ?>')">
+                                    onclick="deleteDataGuruKelas('<?= base_url('backend/GuruKelas/delete/' . $row->Id) ?>')"
+                                    data-id="<?= $row->Id ?>">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>
@@ -76,7 +79,15 @@
                         <div class="form-group">
                             <input type="hidden" name="Id" id="FormGuruKelas" value="<?= $row->Id ?>">
                             <input type="hidden" name="IdTpq" id="FormGuruKelas" value="<?= $row->IdTpq ?>">
-                            <input type="hidden" name="IdTahunAjaran" id="FormGuruKelas" value="<?= $row->IdTahunAjaran ?>">
+                        </div>
+                        <div class="form-group">
+                            <label for="FormGuruKelas">Tahun Ajaran</label>
+                            <select name="IdTahunAjaran" class="form-control" id="FormGuruKelas">
+                                <option value="" disabled selected>Pilih Tahun Ajaran</option>
+                                <option value="<?= $helpModel->getTahunAjaranSaatIni() ?>" <?= $row->IdTahunAjaran == $helpModel->getTahunAjaranSaatIni() ? 'selected' : ''; ?>>Saat ini <?= $helpModel->convertTahunAjaran($helpModel->getTahunAjaranSaatIni()) ?> </option>
+                                <option value="<?= $helpModel->getTahunAjaranSebelumnya($helpModel->getTahunAjaranSaatIni()) ?>" <?= $row->IdTahunAjaran == $helpModel->getTahunAjaranSebelumnya($helpModel->getTahunAjaranSaatIni()) ? 'selected' : ''; ?>>Sebelumnya <?= $helpModel->convertTahunAjaran($helpModel->getTahunAjaranSebelumnya($helpModel->getTahunAjaranSaatIni())) ?> </option>
+                                <option value="<?= $helpModel->getTahuanAjaranBerikutnya($helpModel->getTahunAjaranSaatIni()) ?>" <?= $row->IdTahunAjaran == $helpModel->getTahuanAjaranBerikutnya($helpModel->getTahunAjaranSaatIni()) ? 'selected' : ''; ?>>Berikutnya <?= $helpModel->convertTahunAjaran($helpModel->getTahuanAjaranBerikutnya($helpModel->getTahunAjaranSaatIni())) ?> </option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="FormGuruKelas">Nama Kelas</label>
