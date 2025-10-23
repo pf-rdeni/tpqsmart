@@ -61,21 +61,21 @@
                             <?php endif; ?>
                             <?php if (in_groups('Operator')): ?>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/tpq/showProfilTpq') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/tpq/profilLembaga') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Profil TPQ</p>
+                                        <p>Profil Lembaga</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/tpq/showStrukturTpq') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/strukturlembaga') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Struktur TPQ</p>
+                                        <p>Struktur Lembaga</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/tpq/showSaranaPrasarana') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/tpq/showSaranaLembaga') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Sarana Prasarana</p>
+                                        <p>Sarana Lembaga</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
@@ -271,12 +271,6 @@
                                 <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Guru Kelas</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/strukturlembaga') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Struktur Lembaga</p>
                                 </a>
                             </li>
                             <li class="nav-item">

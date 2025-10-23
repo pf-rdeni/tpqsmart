@@ -50,6 +50,11 @@ $routes->get('backend/santri/generatePDFSantriBaru/(:segment)', 'SantriPendaftar
 //Table Tpq
 $routes->get('backend/tpq/tpq', 'Tpq::create');
 $routes->delete('backend/tpq/(:num)', 'Tpq::delete/$1');
+$routes->get('backend/tpq/profilLembaga', 'Backend\Tpq::profilLembaga');
+$routes->get('backend/tpq/edit/(:segment)', 'Backend\Tpq::edit/$1');
+$routes->post('backend/tpq/update/(:segment)', 'Backend\Tpq::update/$1');
+$routes->post('backend/tpq/uploadLogo', 'Backend\Tpq::uploadLogo');
+$routes->post('backend/tpq/uploadKop', 'Backend\Tpq::uploadKop');
 
 //Table Nilai
 $routes->get('nilai/showDetail/(:num)/(:num)', 'Nilai::showDetail/$1/$2');

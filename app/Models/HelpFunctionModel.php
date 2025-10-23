@@ -541,13 +541,17 @@ class HelpFunctionModel extends Model
     }
 
     /**
-     * Mengambil nama TPQ berdasarkan IdTpq
+     * Mengambil data TPQ lengkap berdasarkan IdTpq termasuk KopLembaga dan LogoLembaga
      * @param mixed $IdTpq
      * @return array|null
      */
     public function getNamaTpqById($IdTpq)
     {
-        return $this->db->table('tbl_tpq')->where('IdTpq', $IdTpq)->get()->getRowArray();
+        return $this->db->table('tbl_tpq')
+            ->select('IdTpq, NamaTpq, Alamat, TahunBerdiri, TempatBelajar, KepalaSekolah, NoHp, LogoLembaga, KopLembaga')
+            ->where('IdTpq', $IdTpq)
+            ->get()
+            ->getRowArray();
     }
 
     /**

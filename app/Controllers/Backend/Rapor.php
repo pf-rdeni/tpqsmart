@@ -32,14 +32,14 @@ class Rapor extends BaseController
     }
 
     /**
-     * Setup Dompdf configuration dengan pengaturan optimal untuk karakter Arab
+     * Setup Dompdf configuration dengan pengaturan optimal untuk karakter Arab dan performa
      */
     private function setupDompdfConfig()
     {
         $options = new Options();
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isPhpEnabled', true);
-        $options->set('isRemoteEnabled', true);
+        $options->set('isRemoteEnabled', false); // Disable remote untuk performa
         // Gunakan font yang mendukung huruf Arab dengan baik
         $options->set('defaultFont', 'Arial Unicode MS');
         // Aktifkan subsetting font untuk dukungan karakter luas
@@ -47,8 +47,15 @@ class Rapor extends BaseController
         // Aktifkan dukungan Unicode untuk karakter Arab
         $options->set('defaultMediaType', 'print');
         $options->set('isJavascriptEnabled', false);
-        // Aktifkan dukungan untuk karakter kompleks seperti Arab
+        // Optimasi untuk performa
         $options->set('isFontSubsettingEnabled', true);
+        $options->set('debugKeepTemp', false);
+        $options->set('debugCss', false);
+        $options->set('debugLayout', false);
+        $options->set('debugLayoutLines', false);
+        $options->set('debugLayoutBlocks', false);
+        $options->set('debugLayoutInline', false);
+        $options->set('debugLayoutPaddingBox', false);
 
         return new Dompdf($options);
     }

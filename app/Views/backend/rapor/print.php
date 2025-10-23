@@ -103,18 +103,121 @@ helper('nilai');
             font-weight: bold;
             margin: 10px 0;
         }
+
+        /* CSS untuk kop lembaga */
+        .kop-lembaga {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .kop-lembaga img {
+            max-width: 100%;
+            width: 100%;
+            max-height: 200px;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Media query untuk print */
+        @media print {
+            .kop-lembaga img {
+                max-height: 150px;
+            }
+        }
     </style>
 </head>
 
 <body>
     <!-- Header Rapor -->
     <div class="header">
-        <div style="background-color: red; color: white; padding: 10px; text-align: center;">
-            Dokumen ini masih dalam pengembangan.
-        </div>
-        <h2>RAPOR SANTRI</h2>
-        <h3><?= $tpq['NamaTpq'] ?></h3>
-        <p>Tahun Ajaran <?= $tahunAjaran ?></p>
+        <?php if (!empty($tpq['KopLembaga'])): ?>
+            <!-- Kop Lembaga -->
+            <div class="kop-lembaga">
+                <?php
+                $kopPath = FCPATH . 'uploads/kop/' . $tpq['KopLembaga'];
+                if (file_exists($kopPath)) {
+                    // Cek ukuran file untuk optimasi
+                    $fileSize = filesize($kopPath);
+                    if ($fileSize > 2 * 1024 * 1024) { // Jika file > 2MB
+                        // Resize image untuk performa yang lebih baik
+                        $imageInfo = getimagesize($kopPath);
+                        if ($imageInfo) {
+                            $width = $imageInfo[0];
+                            $height = $imageInfo[1];
+                            $mimeType = $imageInfo['mime'];
+
+                            // Resize jika terlalu besar
+                            if ($width > 1200) {
+                                $newWidth = 1200;
+                                $newHeight = ($height * $newWidth) / $width;
+
+                                // Buat image resource berdasarkan tipe
+                                switch ($mimeType) {
+                                    case 'image/jpeg':
+                                        $source = imagecreatefromjpeg($kopPath);
+                                        break;
+                                    case 'image/png':
+                                        $source = imagecreatefrompng($kopPath);
+                                        break;
+                                    case 'image/gif':
+                                        $source = imagecreatefromgif($kopPath);
+                                        break;
+                                    default:
+                                        $source = false;
+                                }
+
+                                if ($source) {
+                                    $resized = imagecreatetruecolor($newWidth, $newHeight);
+                                    imagecopyresampled($resized, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+                                    // Output ke buffer
+                                    ob_start();
+                                    switch ($mimeType) {
+                                        case 'image/jpeg':
+                                            imagejpeg($resized, null, 85);
+                                            break;
+                                        case 'image/png':
+                                            imagepng($resized, null, 8);
+                                            break;
+                                        case 'image/gif':
+                                            imagegif($resized);
+                                            break;
+                                    }
+                                    $kopContent = ob_get_contents();
+                                    ob_end_clean();
+
+                                    imagedestroy($source);
+                                    imagedestroy($resized);
+                                } else {
+                                    $kopContent = file_get_contents($kopPath);
+                                }
+                            } else {
+                                $kopContent = file_get_contents($kopPath);
+                            }
+                        } else {
+                            $kopContent = file_get_contents($kopPath);
+                        }
+                    } else {
+                        $kopContent = file_get_contents($kopPath);
+                    }
+
+                    $kopBase64 = base64_encode($kopContent);
+                    $kopMimeType = mime_content_type($kopPath);
+                    echo '<img src="data:' . $kopMimeType . ';base64,' . $kopBase64 . '" alt="Kop Lembaga" style="width: 100%; max-width: 800px; height: auto; display: block; margin: 0 auto;">';
+                } else {
+                    echo '<div style="text-align: center; padding: 20px; border: 1px dashed #ccc;">Kop lembaga tidak ditemukan</div>';
+                }
+                ?>
+            </div>
+            <h2>RAPOR SANTRI</h2>
+            <p>Tahun Ajaran <?= $tahunAjaran ?> - Semester <?= $semester ?></p>
+        <?php else: ?>
+            <!-- Fallback jika tidak ada kop lembaga -->
+            <h2>RAPOR SANTRI</h2>
+            <p>Tahun Ajaran <?= $tahunAjaran ?> Semester <?= $semester ?></p>
+        <?php endif; ?>
     </div>
 
     <!-- Data Santri -->
@@ -136,7 +239,6 @@ helper('nilai');
     </div>
 
     <!-- Nilai Semester -->
-    <div class="semester-title">Nilai Semester <?= $semester ?></div>
     <table class="nilai-table">
         <thead>
             <tr>
@@ -236,19 +338,19 @@ helper('nilai');
         <tr>
             <td colspan="2" style="height: 50px; text-align: center;">
                 <?php
-                                                                                // Cari signature untuk kepala sekolah berdasarkan posisi
-                                                                                $kepsekSignature = null;
-                                                                                foreach ($signatures as $signature) {
+                // Cari signature untuk kepala sekolah berdasarkan posisi
+                $kepsekSignature = null;
+                foreach ($signatures as $signature) {
                     if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] == 'Kepala TPQ' && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
                         $kepsekSignature = $signature;
                         break;
                     }
                 }
 
-                                                                                if ($kepsekSignature && !empty($kepsekSignature['QrCode'])) {
-                                                                                    $qrPath = FCPATH . 'uploads/qr/' . $kepsekSignature['QrCode'];
-                                                                                    if (file_exists($qrPath)) {
-                                                                                        $qrContent = file_get_contents($qrPath);
+                if ($kepsekSignature && !empty($kepsekSignature['QrCode'])) {
+                    $qrPath = FCPATH . 'uploads/qr/' . $kepsekSignature['QrCode'];
+                    if (file_exists($qrPath)) {
+                        $qrContent = file_get_contents($qrPath);
                         echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Kepala Sekolah" style="width: 80px; height: 80px;">';
                     } else {
                         echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">QR Code<br>tidak ditemukan</div>';
@@ -261,19 +363,19 @@ helper('nilai');
             <td></td>
             <td colspan="2" style="height: 50px; text-align: center;">
                 <?php
-                                                                                // Cari signature untuk wali kelas berdasarkan posisi
-                                                                                $walasSignature = null;
-                                                                                foreach ($signatures as $signature) {
-                                                                                    if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] == 'Wali Kelas' && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
-                                                                                        $walasSignature = $signature;
-                                                                                        break;
-                                                                                    }
-                                                                                }
+                // Cari signature untuk wali kelas berdasarkan posisi
+                $walasSignature = null;
+                foreach ($signatures as $signature) {
+                    if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] == 'Wali Kelas' && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
+                        $walasSignature = $signature;
+                        break;
+                    }
+                }
 
-                                                                                if ($walasSignature && !empty($walasSignature['QrCode'])) {
-                                                                                    $qrPath = FCPATH . 'uploads/qr/' . $walasSignature['QrCode'];
-                                                                                    if (file_exists($qrPath)) {
-                                                                                        $qrContent = file_get_contents($qrPath);
+                if ($walasSignature && !empty($walasSignature['QrCode'])) {
+                    $qrPath = FCPATH . 'uploads/qr/' . $walasSignature['QrCode'];
+                    if (file_exists($qrPath)) {
+                        $qrContent = file_get_contents($qrPath);
                         echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Wali Kelas" style="width: 80px; height: 80px;">';
                     } else {
                         echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">QR Code<br>tidak ditemukan</div>';
