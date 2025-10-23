@@ -58,39 +58,85 @@ class SignatureModel extends Model
      */
     public function getSignaturesWithPosition($idSantri = null, $idKelas = null, $idTpq = null, $idTahunAjaran = null, $semester = null)
     {
-        $builder = $this->db->table('tbl_tanda_tangan s');
-        $builder->select('s.*, j.NamaJabatan, g.Nama as NamaGuru');
-        $builder->join('tbl_guru_kelas gk', 'gk.IdGuru = s.IdGuru AND gk.IdTpq = s.IdTpq AND gk.IdTahunAjaran = s.IdTahunAjaran AND gk.IdKelas = s.IdKelas');
-        $builder->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
-        $builder->join('tbl_guru g', 'g.IdGuru = s.IdGuru');
+        // Query untuk guru kelas (Wali Kelas, Guru Kelas)
+        $builder1 = $this->db->table('tbl_tanda_tangan s');
+        $builder1->select('s.*, j.NamaJabatan, g.Nama as NamaGuru, gk.IdKelas');
+        $builder1->join('tbl_guru_kelas gk', 'gk.IdGuru = s.IdGuru AND gk.IdTpq = s.IdTpq AND gk.IdTahunAjaran = s.IdTahunAjaran AND gk.IdKelas = s.IdKelas');
+        $builder1->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
+        $builder1->join('tbl_guru g', 'g.IdGuru = s.IdGuru');
+
         if ($idSantri) {
-            $builder->where('s.IdSantri', $idSantri);
+            $builder1->where('s.IdSantri', $idSantri);
         }
         if ($idKelas) {
             if (is_array($idKelas)) {
-                $builder->whereIn('s.IdKelas', $idKelas);
+                $builder1->whereIn('s.IdKelas', $idKelas);
             } else {
-                $builder->where('s.IdKelas', $idKelas);
+                $builder1->where('s.IdKelas', $idKelas);
             }
         }
         if ($idTpq) {
-            $builder->where('s.IdTpq', $idTpq);
+            $builder1->where('s.IdTpq', $idTpq);
         }
         if ($idTahunAjaran) {
             if (is_array($idTahunAjaran)) {
-                $builder->whereIn('s.IdTahunAjaran', $idTahunAjaran);
+                $builder1->whereIn('s.IdTahunAjaran', $idTahunAjaran);
             } else {
-                $builder->where('s.IdTahunAjaran', $idTahunAjaran);
+                $builder1->where('s.IdTahunAjaran', $idTahunAjaran);
             }
         }
         if ($semester) {
-            $builder->where('s.Semester', $semester);
+            $builder1->where('s.Semester', $semester);
         }
-        $builder->where('s.JenisDokumen', 'Rapor');
-        $builder->where('s.Status', 'active');
-        $builder->orderBy('s.IdKelas', 'ASC');
-        $builder->orderBy('s.IdGuru', 'ASC');
+        $builder1->where('s.JenisDokumen', 'Rapor');
+        $builder1->where('s.Status', 'active');
 
-        return $builder->get()->getResultArray();
+        $result1 = $builder1->get()->getResultArray();
+
+        // Query untuk Kepala TPQ dari struktur lembaga
+        $builder2 = $this->db->table('tbl_tanda_tangan s');
+        $builder2->select('s.*, j.NamaJabatan, g.Nama as NamaGuru, NULL as IdKelas');
+        $builder2->join('tbl_struktur_lembaga sl', 'sl.IdGuru = s.IdGuru AND sl.IdTpq = s.IdTpq');
+        $builder2->join('tbl_jabatan j', 'j.IdJabatan = sl.IdJabatan');
+        $builder2->join('tbl_guru g', 'g.IdGuru = s.IdGuru');
+        $builder2->where('j.NamaJabatan', 'Kepala TPQ');
+
+        if ($idSantri) {
+            $builder2->where('s.IdSantri', $idSantri);
+        }
+        if ($idTpq) {
+            $builder2->where('s.IdTpq', $idTpq);
+        }
+        if ($idTahunAjaran) {
+            if (is_array($idTahunAjaran)) {
+                $builder2->whereIn('s.IdTahunAjaran', $idTahunAjaran);
+            } else {
+                $builder2->where('s.IdTahunAjaran', $idTahunAjaran);
+            }
+        }
+        if ($semester) {
+            $builder2->where('s.Semester', $semester);
+        }
+        $builder2->where('s.JenisDokumen', 'Rapor');
+        $builder2->where('s.Status', 'active');
+
+        $result2 = $builder2->get()->getResultArray();
+
+        // Gabungkan hasil dari kedua query
+        $allResults = array_merge($result1, $result2);
+
+        // Urutkan berdasarkan IdKelas dan IdGuru
+        usort($allResults, function ($a, $b) {
+            // Urutkan berdasarkan IdKelas (null di akhir)
+            $kelasA = $a['IdKelas'] ?? 999999;
+            $kelasB = $b['IdKelas'] ?? 999999;
+
+            if ($kelasA == $kelasB) {
+                return $a['IdGuru'] <=> $b['IdGuru'];
+            }
+            return $kelasA <=> $kelasB;
+        });
+
+        return $allResults;
     }
 }

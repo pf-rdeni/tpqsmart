@@ -152,6 +152,10 @@
             const signatureStatus = <?= json_encode($signatureStatus) ?>;
             const currentGuruId = '<?= $currentGuruId ?>';
 
+            // Debug logging
+            console.log('Guru Kelas Permissions:', guruKelasPermissions);
+            console.log('Current Guru ID:', currentGuruId);
+
             // Cek apakah data permission tersedia
             if (!guruKelasPermissions || guruKelasPermissions.length === 0) {
                 console.error('Data permission guru kelas tidak tersedia');
@@ -163,11 +167,26 @@
                 return;
             }
 
-            // Buat mapping permission berdasarkan IdKelas
+            // Buat mapping permission berdasarkan IdKelas dan cek Kepala TPQ
             const permissionMap = {};
+            let isKepalaTpq = false;
+            let kepalaTpqPermission = null;
+
             guruKelasPermissions.forEach(permission => {
-                permissionMap[permission.IdKelas] = permission;
+                console.log('Processing permission:', permission);
+                if (permission.IdKelas !== null && permission.IdKelas !== undefined) {
+                    // Permission untuk kelas tertentu
+                    permissionMap[permission.IdKelas] = permission;
+                } else if (permission.NamaJabatan === 'Kepala TPQ') {
+                    // Kepala TPQ - bisa akses semua kelas
+                    isKepalaTpq = true;
+                    kepalaTpqPermission = permission;
+                    console.log('Found Kepala TPQ permission:', permission);
+                }
             });
+
+            console.log('Is Kepala TPQ:', isKepalaTpq);
+            console.log('Permission Map:', permissionMap);
 
             // Cek permission untuk setiap button berdasarkan kelas
             $('.btn-ttd-walas').each(function() {
@@ -223,11 +242,34 @@
                 const IdSantri = $(this).data('id');
                 const permission = permissionMap[IdKelas];
 
+                console.log('Checking TTD Kepsek for:', {
+                    IdKelas,
+                    IdSantri,
+                    permission,
+                    isKepalaTpq
+                });
+
                 // Cek apakah guru sudah menandatangani untuk santri ini
                 const signatureKey = IdSantri + '_' + currentGuruId;
                 const hasSigned = signatureStatus && signatureStatus[signatureKey] && signatureStatus[signatureKey].length > 0;
 
-                if (permission && permission.NamaJabatan === 'Kepala Sekolah') {
+                // Cek apakah guru adalah Kepala TPQ (prioritas utama)
+                let canSign = false;
+                let signTitle = '';
+
+                if (isKepalaTpq) {
+                    // Kepala TPQ dapat menandatangani semua kelas
+                    canSign = true;
+                    signTitle = 'Tandatangani sebagai Kepala TPQ';
+                    console.log('Kepala TPQ can sign for all classes');
+                } else if (permission && (permission.NamaJabatan === 'Kepala TPQ' || permission.NamaJabatan === 'Kepala Sekolah')) {
+                    // Permission untuk kelas tertentu
+                    canSign = true;
+                    signTitle = 'Tandatangani sebagai ' + permission.NamaJabatan;
+                    console.log('Has specific permission for this class:', permission.NamaJabatan);
+                }
+
+                if (canSign) {
                     if (hasSigned) {
                         // Guru sudah menandatangani, disable button
                         $(this).prop('disabled', true)
@@ -236,21 +278,24 @@
                             .attr('title', 'Sudah ditandatangani')
                             .attr('data-toggle', 'tooltip')
                             .attr('data-placement', 'top');
+                        console.log('Already signed, disabling button');
                     } else {
                         // Guru belum menandatangani, enable button
                         $(this).prop('disabled', false)
-                            //.removeClass('btn-secondary')
+                            .removeClass('btn-secondary')
                             .addClass('btn-success')
-                            .attr('title', 'Tandatangani sebagai Kepala Sekolah')
-                        //.removeAttr('data-toggle data-placement');
+                            .attr('title', signTitle)
+                            .removeAttr('data-toggle data-placement');
+                        console.log('Can sign, enabling button');
                     }
                 } else {
                     $(this).prop('disabled', true)
-                        .removeClass('btn-secondary')
+                        .removeClass('btn-success')
                         .addClass('btn-secondary')
-                        .attr('title', 'Hanya Kepala Sekolah yang dapat menandatangani')
+                        .attr('title', 'Hanya Kepala TPQ yang dapat menandatangani')
                         .attr('data-toggle', 'tooltip')
                         .attr('data-placement', 'top');
+                    console.log('Cannot sign, no permission');
                 }
             });
 

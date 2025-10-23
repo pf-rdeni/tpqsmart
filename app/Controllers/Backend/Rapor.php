@@ -180,7 +180,9 @@ class Rapor extends BaseController
         // Ambil data summary nilai untuk setiap santri
         $summaryData = $this->getSummaryDataForSantri($IdTpq, $listIdKelas, $IdTahunAjaran, $semester);
 
+        // Ambil data permission guru kelas untuk semua kelas
         $guruKelasPermissions = $this->helpFunctionModel->getGuruKelasPermissions($IdTpq, $IdGuru, $listIdKelas, $IdTahunAjaran);
+
 
         // Ambil status signature untuk semua santri dalam kelas ini
         $signatures = $this->signatureModel->getSignaturesWithPosition(
@@ -399,7 +401,7 @@ class Rapor extends BaseController
                 ]);
             }
 
-            if ($signatureType === 'kepsek' && $guruKelasPermission['NamaJabatan'] !== 'Kepala Sekolah') {
+            if ($signatureType === 'kepsek' && $guruKelasPermission['NamaJabatan'] !== 'Kepala TPQ') {
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'Anda tidak memiliki permission untuk menandatangani sebagai kepala sekolah.'

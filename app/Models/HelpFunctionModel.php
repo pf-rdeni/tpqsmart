@@ -134,45 +134,72 @@ class HelpFunctionModel extends Model
      */
     public function getDataGuruKelas($IdGuru = null, $IdTpq = null, $IdKelas = null, $IdTahunAjaran = null, $IdJabatan = null)
     {
-        $builder = $this->db->table('tbl_guru_kelas gk')
-            ->select('j.IdJabatan, j.NamaJabatan, gk.IdTahunAjaran, gk.Id, gk.IdGuru, gk.IdTpq, gk.IdKelas, g.Nama, t.NamaTpq, k.NamaKelas,g.Status')
-                            ->join('tbl_guru g', 'g.IdGuru = gk.IdGuru')
-                            ->join('tbl_tpq t', 't.IdTpq = gk.IdTpq')
-                            ->join('tbl_kelas k', 'k.IdKelas = gk.IdKelas')
-                            ->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
+        // Query untuk guru kelas (Wali Kelas, Guru Kelas)
+        $builder1 = $this->db->table('tbl_guru_kelas gk')
+            ->select('j.IdJabatan, j.NamaJabatan, gk.IdTahunAjaran, gk.Id, gk.IdGuru, gk.IdTpq, gk.IdKelas, g.Nama, t.NamaTpq, k.NamaKelas, g.Status')
+            ->join('tbl_guru g', 'g.IdGuru = gk.IdGuru')
+            ->join('tbl_tpq t', 't.IdTpq = gk.IdTpq')
+            ->join('tbl_kelas k', 'k.IdKelas = gk.IdKelas')
+            ->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
 
-        // Filter berdasarkan parameter yang diberikan
+        // Filter berdasarkan parameter yang diberikan untuk guru kelas
         if ($IdGuru !== null) {
-            $builder->where('gk.IdGuru', $IdGuru);
+            $builder1->where('gk.IdGuru', $IdGuru);
         }
         if ($IdTpq !== null) {
-            $builder->where('gk.IdTpq', $IdTpq);
+            $builder1->where('gk.IdTpq', $IdTpq);
         }
         if ($IdKelas !== null) {
             if (is_array($IdKelas)) {
-                $builder->whereIn('gk.IdKelas', $IdKelas);
+                $builder1->whereIn('gk.IdKelas', $IdKelas);
             } else {
-                $builder->where('gk.IdKelas', $IdKelas);
+                $builder1->where('gk.IdKelas', $IdKelas);
             }
         }
         if ($IdTahunAjaran !== null) {
             if (is_array($IdTahunAjaran)) {
-                $builder->whereIn('gk.IdTahunAjaran', $IdTahunAjaran);
+                $builder1->whereIn('gk.IdTahunAjaran', $IdTahunAjaran);
             } else {
-                $builder->where('gk.IdTahunAjaran', $IdTahunAjaran);
+                $builder1->where('gk.IdTahunAjaran', $IdTahunAjaran);
             }
         }
         if ($IdJabatan !== null) {
-            $builder->where('gk.IdJabatan', $IdJabatan);
+            $builder1->where('gk.IdJabatan', $IdJabatan);
         }
 
-        // Jika hanya mencari satu data spesifik (IdGuru dan IdTpq), kembalikan satu baris
-        if ($IdGuru !== null && $IdTpq !== null && $IdKelas === null && $IdTahunAjaran === null && $IdJabatan === null) {
-            return $builder->get()->getResultObject();
+        $result1 = $builder1->get()->getResultArray();
+
+        // Query untuk Kepala TPQ dari struktur lembaga
+        $builder2 = $this->db->table('tbl_struktur_lembaga sl')
+            ->select('j.IdJabatan, j.NamaJabatan, NULL as IdTahunAjaran, sl.Id, sl.IdGuru, sl.IdTpq, NULL as IdKelas, g.Nama, t.NamaTpq, NULL as NamaKelas, g.Status')
+            ->join('tbl_guru g', 'g.IdGuru = sl.IdGuru')
+            ->join('tbl_tpq t', 't.IdTpq = sl.IdTpq')
+            ->join('tbl_jabatan j', 'j.IdJabatan = sl.IdJabatan')
+            ->where('j.NamaJabatan', 'Kepala TPQ');
+
+        // Filter berdasarkan parameter yang diberikan untuk kepala TPQ
+        if ($IdGuru !== null) {
+            $builder2->where('sl.IdGuru', $IdGuru);
+        }
+        if ($IdTpq !== null) {
+            $builder2->where('sl.IdTpq', $IdTpq);
+        }
+        if ($IdJabatan !== null) {
+            $builder2->where('sl.IdJabatan', $IdJabatan);
         }
 
-        // Jika tidak, kembalikan semua hasil
-        return $builder->get()->getResultObject();
+        $result2 = $builder2->get()->getResultArray();
+
+        // Gabungkan hasil dari kedua query
+        $allResults = array_merge($result1, $result2);
+
+        // Konversi ke object jika diperlukan
+        $objects = [];
+        foreach ($allResults as $row) {
+            $objects[] = (object) $row;
+        }
+
+        return $objects;
     }
 
     /**
@@ -1845,6 +1872,36 @@ class HelpFunctionModel extends Model
      */
     public function checkGuruKelasPermission($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran)
     {
+        // Cek apakah guru adalah Kepala TPQ dari struktur lembaga
+        $kepalaTpqData = $this->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+        $isKepalaTpq = false;
+
+        foreach ($kepalaTpqData as $jabatan) {
+            if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                $isKepalaTpq = true;
+                break;
+            }
+        }
+
+        // Jika adalah Kepala TPQ, kembalikan data jabatan tanpa kelas
+        if ($isKepalaTpq) {
+            foreach ($kepalaTpqData as $jabatan) {
+                if ($jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    return [
+                        'IdGuru' => $IdGuru,
+                        'IdTpq' => $IdTpq,
+                        'IdKelas' => null, // Kepala TPQ tidak memiliki kelas
+                        'IdTahunAjaran' => $IdTahunAjaran,
+                        'IdJabatan' => $jabatan['IdJabatan'],
+                        'NamaJabatan' => $jabatan['NamaJabatan'],
+                        'TanggalStart' => $jabatan['TanggalStart'],
+                        'TanggalAkhir' => $jabatan['TanggalAkhir']
+                    ];
+                }
+            }
+        }
+
+        // Jika bukan Kepala TPQ, cek dari guru kelas seperti biasa
         $builder = $this->db->table('tbl_guru_kelas gk');
         $builder->select('gk.*, j.NamaJabatan');
         $builder->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
@@ -1860,6 +1917,39 @@ class HelpFunctionModel extends Model
      */
     public function getGuruKelasPermissions($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran)
     {
+        // Cek apakah guru adalah Kepala TPQ dari struktur lembaga
+        $kepalaTpqData = $this->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+        $isKepalaTpq = false;
+
+        foreach ($kepalaTpqData as $jabatan) {
+            if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                $isKepalaTpq = true;
+                break;
+            }
+        }
+
+        // Jika adalah Kepala TPQ, kembalikan data jabatan tanpa kelas
+        if ($isKepalaTpq) {
+            $result = [];
+            foreach ($kepalaTpqData as $jabatan) {
+                if ($jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    $result[] = [
+                        'IdGuru' => $IdGuru,
+                        'IdTpq' => $IdTpq,
+                        'IdKelas' => null, // Kepala TPQ tidak memiliki kelas
+                        'IdTahunAjaran' => $IdTahunAjaran,
+                        'IdJabatan' => $jabatan['IdJabatan'],
+                        'NamaJabatan' => $jabatan['NamaJabatan'],
+                        'NamaKelas' => null, // Kepala TPQ tidak memiliki kelas
+                        'TanggalStart' => $jabatan['TanggalStart'],
+                        'TanggalAkhir' => $jabatan['TanggalAkhir']
+                    ];
+                }
+            }
+            return $result;
+        }
+
+        // Jika bukan Kepala TPQ, ambil data dari guru kelas seperti biasa
         $builder = $this->db->table('tbl_guru_kelas gk');
         $builder->select('gk.*, j.NamaJabatan, k.NamaKelas');
         $builder->join('tbl_jabatan j', 'j.IdJabatan = gk.IdJabatan');
