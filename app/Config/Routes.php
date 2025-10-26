@@ -92,9 +92,9 @@ $routes->get('kelasMateriPelajaran/kelasMateriPelajaranModel/(:segment)/(:segmen
 //Table tbl_guru_kelas
 $routes->get('GuruKelas/show','GuruKelas::show');
 $routes->get('GuruKelas/create', 'GuruKelas::create');
-$routes->post('GuruKelas/store', 'GuruKelasC::store');
+$routes->post('GuruKelas/store', 'GuruKelas::store');
 $routes->get('edit/(:num)', 'GuruKelas::edit/$1');
-$routes->post('update/(:num)', 'GuruKelasr::update/$1');
+$routes->post('update/(:num)', 'GuruKelas::update/$1');
 $routes->get('backend/GuruKelas/delete/(:num)', 'Backend\GuruKelas::delete/$1');
 
 //Table tbl_struktur_lembaga
@@ -122,6 +122,81 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('santri/showProfilSantri', 'Santri::showProfilSantri');
     $routes->get('santri/profilDetailSantri/(:segment)', 'Santri::profilDetailSantri/$1');
     $routes->get('santri/generatePDFprofilSantriRaport/(:segment)', 'Santri::generatePDFprofilSantriRaport/$1');
+
+    // Munaqosah Routes
+    $routes->get('munaqosah', 'Munaqosah::index');
+    $routes->get('munaqosah/nilai', 'Munaqosah::nilai');
+    $routes->get('munaqosah/input-nilai', 'Munaqosah::inputNilai');
+    $routes->post('munaqosah/save-nilai', 'Munaqosah::saveNilai');
+    $routes->get('munaqosah/edit-nilai/(:num)', 'Munaqosah::editNilai/$1');
+    $routes->post('munaqosah/update-nilai/(:num)', 'Munaqosah::updateNilai/$1');
+    $routes->get('munaqosah/delete-nilai/(:num)', 'Munaqosah::deleteNilai/$1');
+
+    $routes->get('munaqosah/antrian', 'Munaqosah::antrian');
+    $routes->get('munaqosah/input-antrian', 'Munaqosah::inputAntrian');
+    $routes->post('munaqosah/save-antrian', 'Munaqosah::saveAntrian');
+    $routes->post('munaqosah/update-status-antrian/(:num)', 'Munaqosah::updateStatusAntrian/$1');
+    $routes->get('munaqosah/delete-antrian/(:num)', 'Munaqosah::deleteAntrian/$1');
+
+    $routes->get('munaqosah/bobot', 'Munaqosah::bobotNilai');
+    $routes->post('munaqosah/save-bobot', 'Munaqosah::saveBobotNilai');
+    $routes->post('munaqosah/update-bobot/(:num)', 'Munaqosah::updateBobotNilai/$1');
+    $routes->post('munaqosah/delete-bobot/(:num)', 'Munaqosah::deleteBobotNilai/$1');
+
+    $routes->get('munaqosah/peserta', 'Munaqosah::pesertaMunaqosah');
+    $routes->post('munaqosah/save-peserta', 'Munaqosah::savePesertaMunaqosah');
+    $routes->post('munaqosah/save-peserta-multiple', 'Munaqosah::savePesertaMunaqosahMultiple');
+    $routes->get('munaqosah/check-data-terkait/(:num)', 'Munaqosah::checkDataTerkait/$1');
+    $routes->delete('munaqosah/delete-peserta/(:num)', 'Munaqosah::deletePesertaMunaqosah/$1');
+    $routes->delete('munaqosah/delete-peserta-by-santri/(:num)', 'Munaqosah::deletePesertaBySantri/$1');
+
+    // Routes untuk registrasi peserta munaqosah
+    $routes->get('munaqosah/registrasi-peserta', 'Munaqosah::registrasiPesertaMunaqosah');
+    $routes->get('munaqosah/get-santri-for-registrasi', 'Munaqosah::getSantriForRegistrasi');
+    $routes->post('munaqosah/get-preview-registrasi', 'Munaqosah::getPreviewRegistrasi');
+    $routes->post('munaqosah/process-registrasi-peserta', 'Munaqosah::processRegistrasiPeserta');
+
+    // Routes untuk edit peserta munaqosah
+    $routes->post('munaqosah/get-detail-santri', 'Munaqosah::getDetailSantri');
+    $routes->post('munaqosah/update-santri', 'Munaqosah::updateSantri');
+
+    $routes->get('munaqosah/materi', 'Munaqosah::materiMunaqosah');
+    $routes->post('munaqosah/save-materi', 'Munaqosah::saveMateriMunaqosah');
+    $routes->post('munaqosah/save-materi-batch', 'Munaqosah::saveMateriBatch');
+    $routes->post('munaqosah/save-materi-batch-confirm', 'Munaqosah::saveMateriBatchWithConfirmation');
+
+    // Grup Materi Ujian routes
+    $routes->get('munaqosah/grup-materi-ujian', 'Munaqosah::grupMateriUjian');
+    $routes->post('munaqosah/save-grup-materi-ujian', 'Munaqosah::saveIdGrupMateriUjian');
+    $routes->post('munaqosah/update-grup-materi-ujian/(:num)', 'Munaqosah::updateIdGrupMateriUjian/$1');
+    $routes->post('munaqosah/delete-grup-materi-ujian/(:num)', 'Munaqosah::deleteIdGrupMateriUjian/$1');
+    $routes->get('munaqosah/get-grup-materi-aktif', 'Munaqosah::getGrupMateriAktif');
+    $routes->get('munaqosah/get-next-id-grup-materi', 'Munaqosah::getNextIdIdGrupMateriUjian');
+    $routes->post('munaqosah/update-materi/(:num)', 'Munaqosah::updateMateriMunaqosah/$1');
+    $routes->post('munaqosah/update-status-materi/(:num)', 'Munaqosah::updateStatusMateri/$1');
+    $routes->post('munaqosah/update-grup-materi/(:num)', 'Munaqosah::updateGrupMateri/$1');
+    $routes->post('munaqosah/save-bobot-batch', 'Munaqosah::saveBobotBatch');
+    $routes->post('munaqosah/delete-bobot-by-tahun', 'Munaqosah::deleteBobotByTahun');
+    $routes->get('munaqosah/get-default-bobot', 'Munaqosah::getDefaultBobot');
+    $routes->get('munaqosah/get-bobot-by-tahun/(:any)', 'Munaqosah::getBobotByTahun/$1');
+    $routes->get('munaqosah/get-tahun-ajaran-options', 'Munaqosah::getTahunAjaranOptions');
+    $routes->post('munaqosah/duplicate-bobot-data', 'Munaqosah::duplicateBobotData');
+    $routes->post('munaqosah/duplicate-default-bobot', 'Munaqosah::duplicateDefaultBobot');
+    $routes->post('munaqosah/delete-materi/(:num)', 'Munaqosah::deleteMateriMunaqosah/$1');
+
+    // API Routes
+    $routes->get('munaqosah/api/santri/(:num)/(:num)', 'Munaqosah::getSantriData/$1/$2');
+    $routes->get('munaqosah/api/tpq', 'Munaqosah::getTpqData');
+    $routes->get('munaqosah/api/guru', 'Munaqosah::getGuruData');
+    $routes->get('munaqosah/api/materi', 'Munaqosah::getMateriData');
+    $routes->get('munaqosah/api/statistik', 'Munaqosah::getStatistikData');
+    $routes->get('munaqosah/api/nilai/(:segment)', 'Munaqosah::getNilaiByPeserta/$1');
+    $routes->get('munaqosah/api/antrian/(:segment)', 'Munaqosah::getAntrianByStatus/$1');
+    $routes->get('munaqosah/api/bobot/(:segment)', 'Munaqosah::getBobotByTahunAjaran/$1');
+    $routes->get('munaqosah/api/peserta/(:segment)', 'Munaqosah::getPesertaByTpq/$1');
+
+    // API Routes untuk data master
+    $routes->get('backend/tpq/get-all', 'Tpq::getAll');
 });
 
 $routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::validateSignature/$1');

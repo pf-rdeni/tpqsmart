@@ -350,4 +350,30 @@ class Tpq extends BaseController
         }
         return true;
     }
+
+    /**
+     * API endpoint untuk mengambil semua data TPQ
+     * Digunakan untuk AJAX requests
+     */
+    public function getAll()
+    {
+        try {
+            $data = $this->DataTpq->GetData();
+
+            // Format data untuk response JSON
+            $response = [];
+            foreach ($data as $tpq) {
+                $response[] = [
+                    'IdTpq' => $tpq['IdTpq'],
+                    'NamaTpq' => $tpq['NamaTpq']
+                ];
+            }
+
+            return $this->response->setJSON($response);
+        } catch (Exception $e) {
+            return $this->response->setJSON([
+                'error' => 'Gagal mengambil data TPQ: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
 }

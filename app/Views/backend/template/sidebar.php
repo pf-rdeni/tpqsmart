@@ -40,6 +40,72 @@
                         <p> Dashboard</p>
                     </a>
                 </li>
+                <?php if (in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || in_groups('Operator')): ?>
+                    <!-- Munaqosah -->
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-graduation-cap"></i>
+                            <p>
+                                Munaqosah
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Dashboard</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Daftar Peserta</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Data Nilai</p>
+                                </a>
+                            </li>
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/grup-materi-ujian') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Grup Materi Ujian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/materi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Materi Ujian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/bobot') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Bobot Nilai</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Panitia') || in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/registrasi-peserta') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Registrasi Peserta</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/antrian') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Antrian Ujian</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </li>
+                <?php endif; ?>
                 <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                     <!--  Kelembagaan -->
                     <li class="nav-item">

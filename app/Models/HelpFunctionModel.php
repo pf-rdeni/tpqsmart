@@ -36,7 +36,7 @@ class HelpFunctionModel extends Model
      * @param int $IdTpq ID TPQ
      * @return array
      */
-    public function getDataSantriStatus($Active = 0, $IdTpq = 0)
+    public function getDataSantriStatus($Active = 0, $IdTpq = 0, $IdKelas = 0)
     {
         $builder = $this->db->table('tbl_santri_baru');
 
@@ -49,9 +49,19 @@ class HelpFunctionModel extends Model
         if ($Active != 1 && $Active != 2) {
             $builder->where('tbl_santri_baru.Active', 0);
         }
+
+        // Filter TPQ - hanya jika IdTpq tidak 0 (bukan "semua")
         if ($IdTpq != 0) {
             $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
         }
+
+        // Filter Kelas - hanya jika IdKelas tidak 0 (bukan "semua")
+        if ($IdKelas != 0) {
+            $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+        }
+        $builder->orderBy('tbl_santri_baru.IdTpq', 'ASC');
+        $builder->orderBy('tbl_santri_baru.IdKelas', 'ASC');
+        $builder->orderBy('tbl_santri_baru.NamaSantri', 'ASC');
         return $builder->get()->getResultArray();
     }
 
