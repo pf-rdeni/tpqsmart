@@ -1703,9 +1703,16 @@ class Munaqosah extends BaseController
     {
         // Ambil tahun ajaran saat ini
         $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
-        
+
         // Ambil data TPQ
-        $tpq = $this->tpqModel->findAll();
+        $idTpq = session()->get('IdTpq');
+        if ($idTpq) {
+            // User TPQ - hanya tampilkan TPQ mereka
+            $tpq = [$this->tpqModel->find($idTpq)];
+        } else {
+            // Admin - tampilkan semua TPQ
+            $tpq = $this->tpqModel->findAll();
+        }
         
         // Ambil data kelas
         $kelas = $this->helpFunction->getDataKelas();
@@ -1726,14 +1733,32 @@ class Munaqosah extends BaseController
         try {
             $filterTpq = $this->request->getGet('filterTpq') ?? 0;
             $filterKelas = $this->request->getGet('filterKelas') ?? 0;
+            $typeUjian = $this->request->getGet('typeUjian') ?? 'munaqosah';
             $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
-            
+
+            // Check if user is admin (IdTpq = 0 or null means Admin)
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = empty($sessionIdTpq) || $sessionIdTpq == 0;
+
+            // Force Pra-Munaqosah for non-admin users
+            if (!$isAdmin) {
+                $typeUjian = 'pra-munaqosah';
+                // Force filter TPQ to user's TPQ only
+                $filterTpq = $sessionIdTpq;
+            }
+
             // Ambil data peserta munaqosah dengan relasi ke tabel santri
             $builder = $this->db->table('tbl_munaqosah_peserta mp');
-            $builder->select('mp.*, s.*, t.NamaTpq, k.NamaKelas');
+            $builder->select('mp.*, s.*, t.NamaTpq, k.NamaKelas, 
+                            mn_munaqosah.NoPeserta as NoPesertaMunaqosah,
+                            mn_pra.NoPeserta as NoPesertaPraMunaqosah');
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
             $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
+            // Join untuk data munaqosah
+            $builder->join('tbl_munaqosah_nilai mn_munaqosah', 'mn_munaqosah.IdSantri = mp.IdSantri AND mn_munaqosah.IdTahunAjaran = mp.IdTahunAjaran AND mn_munaqosah.TypeUjian = "munaqosah"', 'left');
+            // Join untuk data pra-munaqosah
+            $builder->join('tbl_munaqosah_nilai mn_pra', 'mn_pra.IdSantri = mp.IdSantri AND mn_pra.IdTahunAjaran = mp.IdTahunAjaran AND mn_pra.TypeUjian = "pra-munaqosah"', 'left');
             $builder->where('mp.IdTahunAjaran', $tahunAjaran);
             
             // Filter TPQ
@@ -1745,7 +1770,10 @@ class Munaqosah extends BaseController
             if ($filterKelas != 0) {
                 $builder->where('s.IdKelas', $filterKelas);
             }
-            
+
+            // Group by untuk menghindari duplikasi
+            $builder->groupBy('mp.IdSantri, mp.IdTpq, mp.IdTahunAjaran, mn_munaqosah.NoPeserta, mn_pra.NoPeserta');
+
             $builder->orderBy('mp.IdTpq', 'ASC');
             $builder->orderBy('s.NamaSantri', 'ASC');
             $builder->orderBy('mp.created_at', 'DESC');
@@ -1755,20 +1783,37 @@ class Munaqosah extends BaseController
             // Cek apakah santri sudah memiliki data di tabel nilai munaqosah
             $result = [];
             foreach ($santriData as $santri) {
-                // Cek apakah santri sudah memiliki data nilai
-                $hasNilai = $this->nilaiMunaqosahModel->where('IdSantri', $santri['IdSantri'])
-                                                    ->where('IdTahunAjaran', $tahunAjaran)
-                                                    ->countAllResults() > 0;
-                
-                $santri['isPeserta'] = $hasNilai; // true jika sudah ada data nilai, false jika belum
+                // Cek status berdasarkan type ujian yang dipilih
+                if ($typeUjian === 'pra-munaqosah') {
+                    $hasNilai = !empty($santri['NoPesertaPraMunaqosah']);
+                    $santri['isPesertaPraMunaqosah'] = $hasNilai;
+                    $santri['NoPesertaMunaqosah'] = $santri['NoPesertaPraMunaqosah'] ?? '-';
+                } else {
+                    $hasNilai = !empty($santri['NoPesertaMunaqosah']);
+                    $santri['isPeserta'] = $hasNilai;
+                    $santri['NoPesertaMunaqosah'] = $santri['NoPesertaMunaqosah'] ?? '-';
+                }
+
                 $result[] = $santri;
             }
             
             return $this->response->setJSON($result);
         } catch (\Exception $e) {
+            // Log error untuk debugging
+            log_message('error', 'Error in getSantriForRegistrasi: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+
+            // Return detailed error information
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan saat mengambil data santri',
+                'error_details' => [
+                    'error_message' => $e->getMessage(),
+                    'error_type' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ],
+                'user_message' => 'Gagal memuat data santri. Silakan coba lagi atau hubungi administrator jika masalah berlanjut.'
             ]);
         }
     }
@@ -1867,6 +1912,18 @@ class Munaqosah extends BaseController
             // Validasi input data
             $santriIds = json_decode($this->request->getPost('santri_ids'), true);
             $tahunAjaran = $this->request->getPost('tahunAjaran');
+            $typeUjian = $this->request->getPost('typeUjian') ?? 'munaqosah';
+
+            // Check if user is admin (IdTpq = 0 or null means Admin)
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = empty($sessionIdTpq) || $sessionIdTpq == 0;
+
+            // Force Pra-Munaqosah for non-admin users
+            if (!$isAdmin) {
+                $typeUjian = 'pra-munaqosah';
+                // Force filter TPQ to user's TPQ only
+                $filterTpq = $sessionIdTpq;
+            }
             
             // Detail validasi input
             $validationErrors = [];
@@ -1893,10 +1950,11 @@ class Munaqosah extends BaseController
                     'error_count' => count($validationErrors)
                 ]);
             }
-            
-            // Validasi: cek apakah ada santri yang sudah memiliki data nilai
+
+            // Validasi: cek apakah ada santri yang sudah memiliki data nilai berdasarkan type ujian
             $existingNilai = $this->nilaiMunaqosahModel->whereIn('IdSantri', $santriIds)
                                                       ->where('IdTahunAjaran', $tahunAjaran)
+                ->where('TypeUjian', $typeUjian)
                                                       ->findAll();
             
             if (!empty($existingNilai)) {
@@ -1964,11 +2022,30 @@ class Munaqosah extends BaseController
             // Generate semua NoPeserta sekaligus dengan validasi ketat
             $noPesertaMap = [];
             $usedNoPeserta = [];
+            $minRange = 100;
+            $maxRange = 400;
             
             foreach ($santriIds as $santriId) {
-                $noPeserta = $this->generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta);
-                $noPesertaMap[$santriId] = $noPeserta;
-                $usedNoPeserta[] = $noPeserta; // Tambahkan ke daftar yang sudah digunakan
+                try {
+                    $noPeserta = $this->generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta, $typeUjian);
+
+                    // Validasi ketat: pastikan nomor peserta dalam range
+                    if ($noPeserta < $minRange || $noPeserta > $maxRange) {
+                        throw new \Exception("Nomor peserta {$noPeserta} di luar range yang diizinkan ({$minRange}-{$maxRange})");
+                    }
+
+                    $noPesertaMap[$santriId] = $noPeserta;
+                    $usedNoPeserta[] = $noPeserta; // Tambahkan ke daftar yang sudah digunakan
+
+                    log_message('info', "Generated NoPeserta {$noPeserta} for santri {$santriId} with type {$typeUjian}");
+                } catch (\Exception $e) {
+                    $this->db->transRollback();
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Gagal generate nomor peserta: ' . $e->getMessage(),
+                        'santri_id' => $santriId
+                    ]);
+                }
             }
             
             // Proses semua santri dan kumpulkan data untuk batch insert
@@ -2000,7 +2077,7 @@ class Munaqosah extends BaseController
                                 'IdMateri' => $randomMateri['IdMateri'],
                                 'IdGrupMateriUjian' => $randomMateri['IdGrupMateriUjian'],
                                 'KategoriMateriUjian' => $kategori,
-                                'TypeUjian' => 'munaqosah',
+                                'TypeUjian' => $typeUjian,
                                 'Nilai' => 0,
                                 'Catatan' => ''
                             ];
@@ -2023,8 +2100,18 @@ class Munaqosah extends BaseController
             
             // Insert semua data sekaligus
             if (!empty($allNilaiData)) {
+                // Validasi final: cek range nomor peserta sebelum validasi lainnya
+                $rangeValidation = $this->validateNoPesertaRange($allNilaiData, $minRange, $maxRange);
+                if (!$rangeValidation['valid']) {
+                    $this->db->transRollback();
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Validasi range gagal: ' . $rangeValidation['message']
+                    ]);
+                }
+
                 // Validasi final: cek duplikasi NoPeserta sebelum insert dan perbaiki jika ada
-                $finalValidation = $this->validateNoPesertaUniqueness($allNilaiData, $tahunAjaran);
+                $finalValidation = $this->validateNoPesertaUniqueness($allNilaiData, $tahunAjaran, $typeUjian);
                 if (!$finalValidation['valid']) {
                     $this->db->transRollback();
                     return $this->response->setJSON([
@@ -2144,15 +2231,20 @@ class Munaqosah extends BaseController
         return $noPeserta;
     }
 
-    private function generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta = [])
+    private function generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta = [], $typeUjian = 'munaqosah')
     {
+        // Validasi ketat: nomor peserta harus dalam range 100-400
+        $minRange = 100;
+        $maxRange = 400;
+        $maxAttempts = 100; // Maksimal 100 percobaan untuk menghindari infinite loop
+
         // Generate random number between 100-400
-        $noPeserta = rand(100, 400);
+        $noPeserta = rand($minRange, $maxRange);
         
         // Cek apakah NoPeserta sudah ada di database untuk tahun ajaran dan TypeUjian yang sama
         $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
                                             ->where('IdTahunAjaran', $tahunAjaran)
-                                            ->where('TypeUjian', 'munaqosah')
+            ->where('TypeUjian', $typeUjian)
                                             ->first();
         
         // Cek apakah NoPeserta sudah digunakan dalam batch yang sama
@@ -2160,50 +2252,79 @@ class Munaqosah extends BaseController
         
         // Jika sudah ada di database atau sudah digunakan dalam batch, coba generate ulang
         $attempts = 0;
-        while (($existing || $isUsedInBatch) && $attempts < 20) {
-            $noPeserta = rand(100, 400);
+        while (($existing || $isUsedInBatch) && $attempts < $maxAttempts) {
+            $noPeserta = rand($minRange, $maxRange);
             $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
                                                 ->where('IdTahunAjaran', $tahunAjaran)
-                                                ->where('TypeUjian', 'munaqosah')
+                ->where('TypeUjian', $typeUjian)
                                                 ->first();
             $isUsedInBatch = in_array($noPeserta, $usedNoPeserta);
             $attempts++;
         }
-        
-        // Jika masih ada duplikasi, ubah NoPeserta dengan berbagai strategi
+
+        // Jika masih ada duplikasi setelah maxAttempts, cari nomor yang tersedia secara sequential
         if ($existing || $isUsedInBatch) {
-            // Strategi 1: Tambahkan timestamp
-            $noPeserta = $noPeserta . substr(time(), -3);
-            
-            // Cek lagi apakah masih duplikasi
-            $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
-                                                ->where('IdTahunAjaran', $tahunAjaran)
-                                                ->where('TypeUjian', 'munaqosah')
-                                                ->first();
-            $isUsedInBatch = in_array($noPeserta, $usedNoPeserta);
-            
-            // Strategi 2: Jika masih duplikasi, tambahkan random suffix
-            if ($existing || $isUsedInBatch) {
-                $noPeserta = $noPeserta . rand(10, 99);
-            }
-            
-            // Cek lagi apakah masih duplikasi
-            $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
-                                                ->where('IdTahunAjaran', $tahunAjaran)
-                                                ->where('TypeUjian', 'munaqosah')
-                                                ->first();
-            $isUsedInBatch = in_array($noPeserta, $usedNoPeserta);
-            
-            // Strategi 3: Jika masih duplikasi, gunakan microtime
-            if ($existing || $isUsedInBatch) {
-                $noPeserta = substr(microtime(true) * 10000, -6); // 6 digit terakhir dari microtime
-            }
+            $noPeserta = $this->findAvailableNoPesertaInRange($tahunAjaran, $usedNoPeserta, $minRange, $maxRange, $typeUjian);
         }
-        
+
+        // Validasi final: pastikan nomor peserta dalam range yang benar
+        if ($noPeserta < $minRange || $noPeserta > $maxRange) {
+            log_message('error', "Generated NoPeserta out of range: {$noPeserta}. Expected range: {$minRange}-{$maxRange}");
+            throw new \Exception("Tidak dapat menghasilkan nomor peserta dalam range {$minRange}-{$maxRange}. Semua nomor dalam range sudah digunakan.");
+        }
+
         return $noPeserta;
     }
 
-    private function validateNoPesertaUniqueness($allNilaiData, $tahunAjaran)
+    private function findAvailableNoPesertaInRange($tahunAjaran, $usedNoPeserta, $minRange, $maxRange, $typeUjian = 'munaqosah')
+    {
+        // Cari nomor yang tersedia secara sequential dalam range
+        for ($i = $minRange; $i <= $maxRange; $i++) {
+            // Cek apakah nomor sudah digunakan dalam batch
+            if (in_array($i, $usedNoPeserta)) {
+                continue;
+            }
+
+            // Cek apakah nomor sudah ada di database
+            $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $i)
+                                                ->where('IdTahunAjaran', $tahunAjaran)
+                ->where('TypeUjian', $typeUjian)
+                                                ->first();
+
+            if (!$existing) {
+                return $i; // Nomor tersedia ditemukan
+            }
+        }
+
+        // Jika tidak ada nomor yang tersedia dalam range, throw exception
+        throw new \Exception("Tidak ada nomor peserta yang tersedia dalam range {$minRange}-{$maxRange} untuk tahun ajaran {$tahunAjaran}");
+    }
+
+    private function validateNoPesertaRange($allNilaiData, $minRange, $maxRange)
+    {
+        $outOfRangeNumbers = [];
+
+        foreach ($allNilaiData as $data) {
+            $noPeserta = $data['NoPeserta'];
+
+            // Validasi: pastikan nomor peserta dalam range yang benar
+            if ($noPeserta < $minRange || $noPeserta > $maxRange) {
+                $outOfRangeNumbers[] = $noPeserta;
+            }
+        }
+
+        if (!empty($outOfRangeNumbers)) {
+            $uniqueOutOfRange = array_unique($outOfRangeNumbers);
+            return [
+                'valid' => false,
+                'message' => "Ditemukan nomor peserta di luar range {$minRange}-{$maxRange}: " . implode(', ', $uniqueOutOfRange)
+            ];
+        }
+
+        return ['valid' => true];
+    }
+
+    private function validateNoPesertaUniqueness($allNilaiData, $tahunAjaran, $typeUjian = 'munaqosah')
     {
         // Group data by IdSantri untuk memastikan satu IdSantri = satu NoPeserta
         $santriNoPesertaMap = [];
@@ -2236,12 +2357,12 @@ class Munaqosah extends BaseController
         // Cek apakah NoPeserta sudah ada di database untuk TypeUjian yang sama
         $existingNoPeserta = $this->nilaiMunaqosahModel->whereIn('NoPeserta', $uniqueNoPesertaList)
                                                       ->where('IdTahunAjaran', $tahunAjaran)
-                                                      ->where('TypeUjian', 'munaqosah')
+            ->where('TypeUjian', $typeUjian)
                                                       ->findAll();
         
         if (!empty($existingNoPeserta)) {
             // Jika ada duplikasi dengan database, perbaiki dengan mengubah NoPeserta yang konflik
-            $fixedData = $this->fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta);
+            $fixedData = $this->fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta, $typeUjian);
             return [
                 'valid' => true,
                 'message' => 'Duplikasi dengan database telah diperbaiki',
@@ -2257,7 +2378,7 @@ class Munaqosah extends BaseController
     }
 
 
-    private function fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta)
+    private function fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta, $typeUjian = 'munaqosah')
     {
         $fixedData = [];
         $usedNoPeserta = [];
@@ -2274,9 +2395,9 @@ class Munaqosah extends BaseController
             if (!isset($santriNoPesertaMap[$idSantri]) || 
                 in_array($noPeserta, $existingNumbers) || 
                 in_array($noPeserta, $usedNoPeserta)) {
-                
+
                 // Generate NoPeserta baru untuk IdSantri ini
-                $newNoPeserta = $this->generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta);
+                $newNoPeserta = $this->generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta, $typeUjian);
                 $santriNoPesertaMap[$idSantri] = $newNoPeserta;
                 $usedNoPeserta[] = $newNoPeserta;
             }
@@ -2540,3 +2661,4 @@ class Munaqosah extends BaseController
         }
     }
 }
+

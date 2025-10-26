@@ -54,7 +54,7 @@
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Dashboard</p>
+                                    <p>Informasi Umum</p>
                                 </a>
                             </li>
                             <li class="nav-item">

@@ -45,12 +45,10 @@ class MunaqosahPesertaModel extends Model
 
         if ($idTpq) {
             $builder->where('pm.IdTpq', $idTpq);
-            return $builder->get()->getResult();
         }
 
         $builder->orderBy('pm.IdTpq', 'ASC');
         $builder->orderBy('s.NamaSantri', 'ASC');
-        $builder->orderBy('pm.created_at', 'DESC');
 
         return $builder->get()->getResult();
     }
