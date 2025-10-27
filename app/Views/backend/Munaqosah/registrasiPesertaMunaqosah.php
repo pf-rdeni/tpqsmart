@@ -87,13 +87,25 @@
                                             <?php endif; ?>
                                         </div>
                                     </div>
+                                </div>
 
+                                <div class="row">
                                     <!-- Tahun Ajaran -->
                                     <div class="col-md-3">
                                         <div class="form-group">
                                             <label for="tahunAjaran">Tahun Ajaran:</label>
                                             <input type="text" class="form-control" id="tahunAjaran" name="tahunAjaran"
                                                 value="<?= $tahunAjaran ?>" readonly>
+                                        </div>
+                                    </div>
+
+                                    <!-- Button Print Kartu Peserta Ujian -->
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>&nbsp;</label>
+                                            <button type="button" class="btn btn-info btn-block" id="printKartuBtn" disabled>
+                                                <i class="fas fa-print"></i> Print Kartu Ujian
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -794,6 +806,11 @@
             `;
                 tbody.append(row);
             });
+
+            // Update button status setelah data dimuat dengan delay kecil
+            setTimeout(() => {
+                updateProcessButton();
+            }, 100);
         }
 
         function selectAllSantri() {
@@ -819,6 +836,43 @@
         function updateProcessButton() {
             const hasSelection = selectedSantri.length > 0;
             $('#processBtn').prop('disabled', !hasSelection);
+
+            // Button Print Kartu Ujian aktif jika ada santri dengan status "Sudah Ada Data" (tidak perlu dipilih)
+            const hasValidPrintData = checkValidPrintData();
+            console.log('Updating print button. Has valid print data:', hasValidPrintData);
+            $('#printKartuBtn').prop('disabled', !hasValidPrintData);
+            console.log('Print button disabled:', $('#printKartuBtn').prop('disabled'));
+        }
+
+        function checkValidPrintData() {
+            // Cek apakah ada santri dengan status "Sudah Ada Data" di tabel (tidak perlu dipilih)
+            let hasValidData = false;
+            let validCount = 0;
+
+            console.log('Checking valid print data...');
+            console.log('Total rows in table:', $('#santriTableBody tr').length);
+
+            $('#santriTableBody tr').each(function() {
+                // Cari badge di kolom terakhir
+                const statusBadge = $(this).find('td:last-child .badge');
+                const statusText = statusBadge.text().trim();
+
+                console.log('Row status text:', statusText);
+                console.log('Badge element:', statusBadge);
+                console.log('Badge length:', statusBadge.length);
+
+                // Cek apakah status menunjukkan "Sudah Ada Data" (untuk Munaqosah atau Pra-Munaqosah)
+                if (statusText.includes('Sudah Ada Data')) {
+                    hasValidData = true;
+                    validCount++;
+                    console.log('Found valid data row');
+                }
+            });
+
+            console.log('Valid data count:', validCount);
+            console.log('Has valid data:', hasValidData);
+
+            return hasValidData;
         }
 
         // Process button click
@@ -860,8 +914,139 @@
             });
         });
 
+        // Print Kartu Ujian button click
+        $('#printKartuBtn').click(function() {
+            // Validasi bahwa ada santri dengan status "Sudah Ada Data"
+            if (!checkValidPrintData()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: 'Tidak ada santri dengan status "Sudah Ada Data" untuk dicetak kartu ujiannya',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
 
+            // Konfirmasi print kartu ujian
+            const typeUjian = $('#typeUjian').val();
+            const typeUjianText = typeUjian === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
 
+            // Hitung jumlah santri yang valid untuk print (semua santri dengan status "Sudah Ada Data")
+            let validCount = 0;
+            let validSantriNames = [];
+            $('#santriTableBody tr').each(function() {
+                const statusBadge = $(this).find('td:last-child .badge');
+                const statusText = statusBadge.text().trim();
+                const santriName = $(this).find('td:nth-child(4)').text().trim();
+
+                if (statusText.includes('Sudah Ada Data')) {
+                    validCount++;
+                    validSantriNames.push(santriName);
+                }
+            });
+
+            Swal.fire({
+                title: 'Konfirmasi Print Kartu Ujian',
+                html: `
+                    <div class="text-left">
+                        <p><strong>Type Ujian:</strong> ${typeUjianText}</p>
+                        <p><strong>Jumlah Santri:</strong> ${validCount} santri dengan status "Sudah Ada Data"</p>
+                        <p><strong>Keterangan:</strong> Semua santri dengan status "Sudah Ada Data" akan dicetak kartu ujiannya</p>
+                        ${validCount <= 5 ? `<p><strong>Daftar Santri:</strong><br>${validSantriNames.join('<br>')}</p>` : ''}
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#17a2b8',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Print Sekarang',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    printKartuUjian();
+                }
+            });
+        });
+
+        function printKartuUjian() {
+            // Show loading
+            Swal.fire({
+                title: 'Menyiapkan Kartu Ujian...',
+                text: 'Sedang memproses data untuk print kartu ujian',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Ambil semua santri yang memiliki status "Sudah Ada Data"
+            const validSantriIds = [];
+            $('#santriTableBody tr').each(function() {
+                const statusBadge = $(this).find('td:last-child .badge');
+                const statusText = statusBadge.text().trim();
+                const santriId = $(this).find('td:nth-child(3)').text().trim();
+
+                if (statusText.includes('Sudah Ada Data')) {
+                    validSantriIds.push(santriId);
+                }
+            });
+
+            // Prepare data for print
+            const printData = {
+                santri_ids: validSantriIds,
+                typeUjian: $('#typeUjian').val(),
+                tahunAjaran: $('#tahunAjaran').val(),
+                filterTpq: $('#filterTpq').val(),
+                filterKelas: $('#filterKelas').val()
+            };
+
+            // Create form for POST request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '<?= base_url('backend/munaqosah/printKartuUjian') ?>';
+            form.target = '_blank';
+
+            // Add form fields
+            Object.keys(printData).forEach(key => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = typeof printData[key] === 'object' ? JSON.stringify(printData[key]) : printData[key];
+                form.appendChild(input);
+            });
+
+            // Add CSRF token if available
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (csrfToken) {
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '<?= csrf_token() ?>';
+                csrfInput.value = csrfToken.getAttribute('content');
+                form.appendChild(csrfInput);
+            }
+
+            // Submit form
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            // Close loading
+            Swal.close();
+
+            // Show success message
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Kartu Ujian Dibuka!',
+                text: 'Kartu ujian telah dibuka dalam tab baru untuk dicetak',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        }
 
         function processRegistrasi() {
             // Show loading with SweetAlert2

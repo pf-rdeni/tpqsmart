@@ -15,6 +15,8 @@ use App\Models\MateriPelajaranModel;
 use App\Models\HelpFunctionModel;
 use App\Models\MunaqosahGrupMateriUjiModel;
 use App\Models\SantriBaruModel;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 class Munaqosah extends BaseController
 {
     protected $nilaiMunaqosahModel;
@@ -2500,6 +2502,162 @@ class Munaqosah extends BaseController
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mengambil data santri: ' . $e->getMessage()
             ]);
+        }
+    }
+
+    public function printKartuUjian()
+    {
+        try {
+            // Set memory limit dan timeout
+            ini_set('memory_limit', '256M');
+            set_time_limit(300);
+            mb_internal_encoding('UTF-8');
+
+            // Ambil data dari POST request
+            $santriIds = $this->request->getPost('santri_ids');
+            $typeUjian = $this->request->getPost('typeUjian') ?? 'munaqosah';
+            $tahunAjaran = $this->request->getPost('tahunAjaran');
+            $filterTpq = $this->request->getPost('filterTpq') ?? 0;
+            $filterKelas = $this->request->getPost('filterKelas') ?? 0;
+
+            // Validasi input
+            if (empty($santriIds)) {
+                throw new \Exception('Tidak ada santri yang dipilih untuk dicetak');
+            }
+
+            // Decode JSON jika berupa string
+            if (is_string($santriIds)) {
+                $santriIds = json_decode($santriIds, true);
+            }
+
+            if (!is_array($santriIds) || empty($santriIds)) {
+                throw new \Exception('Data santri tidak valid');
+            }
+
+            // Ambil data peserta munaqosah dengan relasi
+            $builder = $this->db->table('tbl_munaqosah_peserta mp');
+            $builder->select('mp.*, s.*, t.NamaTpq, k.NamaKelas, 
+                            mn.NoPeserta, mn.TypeUjian');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
+            $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
+            $builder->join('tbl_munaqosah_nilai mn', 'mn.IdSantri = mp.IdSantri AND mn.IdTahunAjaran = mp.IdTahunAjaran AND mn.TypeUjian = "' . $typeUjian . '"', 'left');
+            $builder->whereIn('mp.IdSantri', $santriIds);
+            $builder->where('mp.IdTahunAjaran', $tahunAjaran);
+            $builder->where('mn.NoPeserta IS NOT NULL'); // Hanya ambil yang sudah ada nomor peserta
+
+            // Filter TPQ
+            if ($filterTpq != 0) {
+                $builder->where('mp.IdTpq', $filterTpq);
+            }
+
+            // Filter Kelas
+            if ($filterKelas != 0) {
+                $builder->where('s.IdKelas', $filterKelas);
+            }
+
+            $builder->groupBy('mp.IdSantri');
+            $builder->orderBy('mp.IdTpq', 'ASC');
+            $builder->orderBy('s.NamaSantri', 'ASC');
+
+            $pesertaData = $builder->get()->getResultArray();
+
+            // Debug log untuk melihat jumlah data
+            log_message('info', 'Print Kartu Ujian - Jumlah data peserta: ' . count($pesertaData));
+            log_message('info', 'Print Kartu Ujian - Data peserta: ' . json_encode(array_column($pesertaData, 'IdSantri')));
+
+            if (empty($pesertaData)) {
+                throw new \Exception('Tidak ada data peserta yang ditemukan untuk dicetak');
+            }
+
+            // Tambahkan QR code ke data peserta
+            foreach ($pesertaData as &$peserta) {
+                $noPeserta = $peserta['NoPeserta'];
+
+                // Generate QR code langsung untuk nomor peserta
+                $qrOptions = new QROptions([
+                    'outputType' => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                    'eccLevel' => \chillerlan\QRCode\Common\EccLevel::L,
+                    'scale' => 2,
+                    'imageBase64' => false,
+                    'addQuietzone' => true,
+                    'quietzoneSize' => 1,
+                ]);
+
+                $qrCode = new QRCode($qrOptions);
+                $qrContent = (string)$noPeserta;
+                $svgContent = $qrCode->render($qrContent);
+                $base64Svg = 'data:image/svg+xml;base64,' . base64_encode($svgContent);
+                $peserta['qrCode'] = '<img src="' . $base64Svg . '" style="width: 40px; height: 40px;" />';
+
+                // QR Code footer untuk link
+                $footerQrOptions = new QROptions([
+                    'outputType' => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                    'eccLevel' => \chillerlan\QRCode\Common\EccLevel::L,
+                    'scale' => 1,
+                    'imageBase64' => false,
+                    'addQuietzone' => true,
+                    'quietzoneSize' => 1,
+                ]);
+
+                // Generate 64 bit hash dari no peserta
+                $hash = hash('sha256', $noPeserta);
+                $footerQrCode = new QRCode($footerQrOptions);
+                $footerSvgContent = $footerQrCode->render('www.tpqsmart.simaq/nilai-ujian/' . $hash);
+                $footerBase64Svg = 'data:image/svg+xml;base64,' . base64_encode($footerSvgContent);
+                $peserta['footerQrCode'] = '<img src="' . $footerBase64Svg . '" style="width: 30px; height: 30px;" />';
+            }
+
+            // Siapkan data untuk view
+            $data = [
+                'peserta' => $pesertaData,
+                'typeUjian' => $typeUjian,
+                'tahunAjaran' => $tahunAjaran
+            ];
+
+            // Load view untuk PDF
+            $html = view('backend/Munaqosah/printKartuUjian', $data);
+
+            // Setup Dompdf
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', false);
+            $options->set('defaultFont', 'Arial');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+            $options->set('isCssFloatEnabled', true);
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('debugPng', false);
+            $options->set('debugKeepTemp', false);
+            $options->set('debugCss', false);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('F4', 'portrait');
+            $dompdf->render();
+
+            // Output PDF
+            $filename = 'kartu_ujian_' . $typeUjian . '_' . date('Y-m-d_H-i-s') . '.pdf';
+
+            // Hapus semua output sebelumnya
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set header
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printKartuUjian - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
 

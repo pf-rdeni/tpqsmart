@@ -155,6 +155,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/get-santri-for-registrasi', 'Munaqosah::getSantriForRegistrasi');
     $routes->post('munaqosah/get-preview-registrasi', 'Munaqosah::getPreviewRegistrasi');
     $routes->post('munaqosah/process-registrasi-peserta', 'Munaqosah::processRegistrasiPeserta');
+    $routes->post('munaqosah/print-kartu-ujian', 'Munaqosah::printKartuUjian');
 
     // Routes untuk edit peserta munaqosah
     $routes->post('munaqosah/get-detail-santri', 'Munaqosah::getDetailSantri');
