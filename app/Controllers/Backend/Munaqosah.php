@@ -2570,6 +2570,27 @@ class Munaqosah extends BaseController
                 throw new \Exception('Tidak ada data peserta yang ditemukan untuk dicetak');
             }
 
+            // check HasKey IdSantri di tabel tbl_munaqosah_peserta dari data pesertaData
+            $hasKey = $this->db->table('tbl_munaqosah_peserta')
+                ->whereIn('IdSantri', array_column($pesertaData, 'IdSantri'))
+                ->get()
+                ->getResultArray();
+
+            // Buat mapping IdSantri -> HasKey
+            $hasKeyMap = [];
+            foreach ($hasKey as $hk) {
+                $hasKeyMap[$hk['IdSantri']] = $hk['HasKey'];
+            }
+
+            // Tambahkan HasKey ke data peserta
+            foreach ($pesertaData as &$peserta) {
+                $peserta['HasKey'] = $hasKeyMap[$peserta['IdSantri']] ?? null;
+            }
+
+
+            // Siapkan array untuk batch update
+            $batchUpdateData = [];
+
             // Tambahkan QR code ke data peserta
             foreach ($pesertaData as &$peserta) {
                 $noPeserta = $peserta['NoPeserta'];
@@ -2584,6 +2605,7 @@ class Munaqosah extends BaseController
                     'quietzoneSize' => 1,
                 ]);
 
+                // QR Code untuk nomor peserta
                 $qrCode = new QRCode($qrOptions);
                 $qrContent = (string)$noPeserta;
                 $svgContent = $qrCode->render($qrContent);
@@ -2600,12 +2622,29 @@ class Munaqosah extends BaseController
                     'quietzoneSize' => 1,
                 ]);
 
-                // Generate 64 bit hash dari no peserta
-                $hash = hash('sha256', $noPeserta);
+                // Jika HasKey sudah ada, gunakan HasKey yang sudah ada
+                if ($peserta['HasKey'] != null && $peserta['HasKey'] != '') {
+                    $hash = $peserta['HasKey'];
+                } else {
+                    // Generate 64 bit hash dari no peserta
+                    $hash = hash('sha256', $noPeserta);
+                    $batchUpdateData[] = [
+                        'IdSantri' => $peserta['IdSantri'],
+                        'HasKey' => $hash
+                    ];
+                }
+
+                // QR Code footer untuk link hasil ujian
                 $footerQrCode = new QRCode($footerQrOptions);
                 $footerSvgContent = $footerQrCode->render('www.tpqsmart.simaq/nilai-ujian/' . $hash);
                 $footerBase64Svg = 'data:image/svg+xml;base64,' . base64_encode($footerSvgContent);
                 $peserta['footerQrCode'] = '<img src="' . $footerBase64Svg . '" style="width: 30px; height: 30px;" />';
+            }
+
+            // Batch update HasKey setelah loop selesai
+            if (!empty($batchUpdateData)) {
+                $this->db->table('tbl_munaqosah_peserta')->updateBatch($batchUpdateData, 'IdSantri');
+                log_message('info', 'Batch update HasKey for ' . count($batchUpdateData) . ' participants');
             }
 
             // Siapkan data untuk view
