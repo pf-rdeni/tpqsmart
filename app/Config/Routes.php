@@ -153,7 +153,6 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     // Routes untuk registrasi peserta munaqosah
     $routes->get('munaqosah/registrasi-peserta', 'Munaqosah::registrasiPesertaMunaqosah');
     $routes->get('munaqosah/get-santri-for-registrasi', 'Munaqosah::getSantriForRegistrasi');
-    $routes->post('munaqosah/get-preview-registrasi', 'Munaqosah::getPreviewRegistrasi');
     $routes->post('munaqosah/process-registrasi-peserta', 'Munaqosah::processRegistrasiPeserta');
     $routes->post('munaqosah/print-kartu-ujian', 'Munaqosah::printKartuUjian');
 
@@ -172,7 +171,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/update-grup-materi-ujian/(:num)', 'Munaqosah::updateIdGrupMateriUjian/$1');
     $routes->post('munaqosah/delete-grup-materi-ujian/(:num)', 'Munaqosah::deleteIdGrupMateriUjian/$1');
     $routes->get('munaqosah/get-grup-materi-aktif', 'Munaqosah::getGrupMateriAktif');
-    $routes->get('munaqosah/get-next-id-grup-materi', 'Munaqosah::getNextIdIdGrupMateriUjian');
+    $routes->get('munaqosah/get-next-id-grup-materi-ujian', 'Munaqosah::getNextIdGrupMateriUjian');
     $routes->post('munaqosah/update-materi/(:num)', 'Munaqosah::updateMateriMunaqosah/$1');
     $routes->post('munaqosah/update-status-materi/(:num)', 'Munaqosah::updateStatusMateri/$1');
     $routes->post('munaqosah/update-grup-materi/(:num)', 'Munaqosah::updateGrupMateri/$1');

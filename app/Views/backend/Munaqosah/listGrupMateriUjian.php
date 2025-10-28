@@ -1,35 +1,35 @@
 <?= $this->extend('backend/template/template') ?>
 
 <?= $this->section('content') ?>
-    <section class="content">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Data Grup Materi Ujian</h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalAddGrupMateri">
-                                    <i class="fas fa-plus"></i> Tambah Grup Materi
-                                </button>
-                            </div>
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Data Grup Materi Ujian</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalAddGrupMateri">
+                                <i class="fas fa-plus"></i> Tambah Grup Materi
+                            </button>
                         </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="tableGrupMateri" class="table table-bordered table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>No</th>
-                                            <th>ID Grup Materi</th>
-                                            <th>Nama Materi Grup</th>
-                                            <th>Status</th>
-                                            <th>Created At</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php $no = 1; ?>
-                                        <?php foreach ($grupMateri as $row): ?>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="tableGrupMateri" class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>ID Grup Materi</th>
+                                        <th>Nama Materi Grup</th>
+                                        <th>Status</th>
+                                        <th>Created At</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php $no = 1; ?>
+                                    <?php foreach ($grupMateri as $row): ?>
                                         <tr>
                                             <td><?= $no++ ?></td>
                                             <td><?= $row['IdGrupMateriUjian'] ?></td>
@@ -42,30 +42,30 @@
                                             <td><?= date('d/m/Y H:i', strtotime($row['created_at'])) ?></td>
                                             <td>
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-warning btn-sm edit-grup-materi-btn" 
-                                                            data-id="<?= $row['id'] ?>"
-                                                            data-id-grup="<?= htmlspecialchars($row['IdGrupMateriUjian'], ENT_QUOTES) ?>"
-                                                            data-nama-grup="<?= htmlspecialchars($row['NamaMateriGrup'], ENT_QUOTES) ?>"
-                                                            data-status="<?= htmlspecialchars($row['Status'], ENT_QUOTES) ?>">
+                                                    <button type="button" class="btn btn-warning btn-sm edit-grup-materi-btn"
+                                                        data-id="<?= $row['id'] ?>"
+                                                        data-id-grup="<?= htmlspecialchars($row['IdGrupMateriUjian'], ENT_QUOTES) ?>"
+                                                        data-nama-grup="<?= htmlspecialchars($row['NamaMateriGrup'], ENT_QUOTES) ?>"
+                                                        data-status="<?= htmlspecialchars($row['Status'], ENT_QUOTES) ?>">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-danger btn-sm" 
-                                                            onclick="deleteGrupMateri(<?= $row['id'] ?>)">
+                                                    <button type="button" class="btn btn-danger btn-sm"
+                                                        onclick="deleteGrupMateri(<?= $row['id'] ?>)">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
                                             </td>
                                         </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 </div>
 
 <!-- Modal Add Grup Materi -->
@@ -159,196 +159,66 @@
 
 <?= $this->section('scripts') ?>
 <script>
-$(document).ready(function() {
-    // Initialize DataTable
-    $('#tableGrupMateri').DataTable({
-        "responsive": true,
-        "lengthChange": false,
-        "autoWidth": false,
-        "order": [[ 0, "asc" ]]
-    });
-
-    // Auto-generate ID when modal opens
-    $('#modalAddGrupMateri').on('show.bs.modal', function() {
-        generateNextId();
-    });
-
-    // Generate ID button click
-    $('#btnGenerateId').on('click', function() {
-        generateNextId();
-    });
-
-    // Function to generate next ID
-    function generateNextId() {
-        $.ajax({
-            url: '<?= base_url('backend/munaqosah/get-next-id-grup-materi') ?>',
-            type: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#addIdGrupMateriUjian').val(response.next_id);
-                }
-            },
-            error: function() {
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'Gagal generate ID',
-                    icon: 'error'
-                });
-            }
+    $(document).ready(function() {
+        // Initialize DataTable
+        $('#tableGrupMateri').DataTable({
+            "responsive": true,
+            "lengthChange": false,
+            "autoWidth": false,
+            "order": [
+                [0, "asc"]
+            ]
         });
-    }
 
-    // Auto uppercase for nama materi grup fields
-    $('#addNamaMateriGrup, #editNamaMateriGrup').on('input', function() {
-        this.value = this.value.toUpperCase();
-    });
-
-    // Disable ID field saat edit
-    $('#editIdGrupMateriUjian').on('focus', function() {
-        this.blur();
-    });
-
-    // Add Grup Materi form
-    $('#formAddGrupMateri').on('submit', function(e) {
-        e.preventDefault();
-        
-        $.ajax({
-            url: '<?= base_url('backend/munaqosah/save-grup-materi-ujian') ?>',
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    Swal.fire({
-                        title: 'Berhasil!',
-                        text: response.message,
-                        icon: 'success'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else if (response.duplicate_name) {
-                    // Tampilkan informasi detail untuk nama duplikat
-                    Swal.fire({
-                        title: 'Nama Grup Materi Sudah Ada!',
-                        html: '<div style="text-align: left;">' +
-                              '<p><strong>Nama grup materi yang Anda masukkan sudah digunakan.</strong></p>' +
-                              '<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
-                              '<p><strong>Nama yang sudah ada:</strong> ' + response.existing_name + '</p>' +
-                              '<p><strong>Saran:</strong> ' + response.suggestion + '</p>' +
-                              '</div>' +
-                              '<p style="color: #6c757d; font-size: 14px;">' +
-                              'Sistem tidak membedakan huruf besar dan kecil. Silakan gunakan nama yang berbeda.' +
-                              '</p>' +
-                              '</div>',
-                        icon: 'warning',
-                        confirmButtonText: 'Mengerti',
-                        confirmButtonColor: '#ffc107'
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: response.message,
-                        icon: 'error'
-                    });
-                }
-            },
-            error: function() {
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'Terjadi kesalahan pada server',
-                    icon: 'error'
-                });
-            }
+        // Auto-generate ID when modal opens
+        $('#modalAddGrupMateri').on('show.bs.modal', function() {
+            generateNextId();
         });
-    });
 
-    // Edit Grup Materi button click
-    $(document).on('click', '.edit-grup-materi-btn', function() {
-        var id = $(this).data('id');
-        var idGrup = $(this).data('id-grup');
-        var namaGrup = $(this).data('nama-grup');
-        var status = $(this).data('status');
-        
-        $('#editId').val(id);
-        $('#editIdGrupMateriUjian').val(idGrup);
-        $('#editNamaMateriGrup').val(namaGrup);
-        $('#editStatus').val(status);
-        $('#modalEditGrupMateri').modal('show');
-    });
-
-    // Edit Grup Materi form
-    $('#formEditGrupMateri').on('submit', function(e) {
-        e.preventDefault();
-        
-        var id = $('#editId').val();
-        
-        $.ajax({
-            url: '<?= base_url('backend/munaqosah/update-grup-materi-ujian/') ?>' + id,
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    Swal.fire({
-                        title: 'Berhasil!',
-                        text: response.message,
-                        icon: 'success'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else if (response.duplicate_name) {
-                    // Tampilkan informasi detail untuk nama duplikat
-                    Swal.fire({
-                        title: 'Nama Grup Materi Sudah Ada!',
-                        html: '<div style="text-align: left;">' +
-                              '<p><strong>Nama grup materi yang Anda masukkan sudah digunakan.</strong></p>' +
-                              '<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
-                              '<p><strong>Nama yang sudah ada:</strong> ' + response.existing_name + '</p>' +
-                              '<p><strong>Saran:</strong> ' + response.suggestion + '</p>' +
-                              '</div>' +
-                              '<p style="color: #6c757d; font-size: 14px;">' +
-                              'Sistem tidak membedakan huruf besar dan kecil. Silakan gunakan nama yang berbeda.' +
-                              '</p>' +
-                              '</div>',
-                        icon: 'warning',
-                        confirmButtonText: 'Mengerti',
-                        confirmButtonColor: '#ffc107'
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: response.message,
-                        icon: 'error'
-                    });
-                }
-            },
-            error: function() {
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'Terjadi kesalahan pada server',
-                    icon: 'error'
-                });
-            }
+        // Generate ID button click
+        $('#btnGenerateId').on('click', function() {
+            generateNextId();
         });
-    });
-});
 
-function deleteGrupMateri(id) {
-    Swal.fire({
-        title: 'Apakah Anda yakin?',
-        text: "Data yang dihapus tidak dapat dikembalikan!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Ya, hapus!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
+        // Function to generate next ID
+        function generateNextId() {
             $.ajax({
-                url: '<?= base_url('backend/munaqosah/delete-grup-materi-ujian/') ?>' + id,
+                url: '<?= base_url('backend/munaqosah/get-next-id-grup-materi-ujian') ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        $('#addIdGrupMateriUjian').val(response.next_id);
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Gagal generate ID',
+                        icon: 'error'
+                    });
+                }
+            });
+        }
+
+        // Auto uppercase for nama materi grup fields
+        $('#addNamaMateriGrup, #editNamaMateriGrup').on('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        // Disable ID field saat edit
+        $('#editIdGrupMateriUjian').on('focus', function() {
+            this.blur();
+        });
+
+        // Add Grup Materi form
+        $('#formAddGrupMateri').on('submit', function(e) {
+            e.preventDefault();
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/save-grup-materi-ujian') ?>',
                 type: 'POST',
+                data: $(this).serialize(),
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
@@ -359,27 +229,23 @@ function deleteGrupMateri(id) {
                         }).then(() => {
                             location.reload();
                         });
-                    } else if (response.blocked_delete) {
-                        // Tampilkan informasi detail mengapa tidak bisa dihapus
-                        var usageCount = response.usage_count || 0;
-                        var grupInfo = response.grup_info || {};
-                        
+                    } else if (response.duplicate_name) {
+                        // Tampilkan informasi detail untuk nama duplikat
                         Swal.fire({
-                            title: 'Tidak Dapat Dihapus!',
+                            title: 'Nama Grup Materi Sudah Ada!',
                             html: '<div style="text-align: left;">' +
-                                  '<p><strong>Grup materi tidak dapat dihapus karena sudah digunakan dalam sistem.</strong></p>' +
-                                  '<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
-                                  '<p><strong>ID Grup Materi:</strong> ' + grupInfo.IdGrupMateriUjian + '</p>' +
-                                  '<p><strong>Nama Grup:</strong> ' + grupInfo.NamaMateriGrup + '</p>' +
-                                  '<p><strong>Digunakan di:</strong> ' + usageCount + ' data materi munaqosah</p>' +
-                                  '</div>' +
-                                  '<p style="color: #6c757d; font-size: 14px;">' +
-                                  'Untuk menghapus grup materi ini, Anda harus menghapus terlebih dahulu semua data materi yang menggunakan grup ini.' +
-                                  '</p>' +
-                                  '</div>',
-                            icon: 'error',
+                                '<p><strong>Nama grup materi yang Anda masukkan sudah digunakan.</strong></p>' +
+                                '<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
+                                '<p><strong>Nama yang sudah ada:</strong> ' + response.existing_name + '</p>' +
+                                '<p><strong>Saran:</strong> ' + response.suggestion + '</p>' +
+                                '</div>' +
+                                '<p style="color: #6c757d; font-size: 14px;">' +
+                                'Sistem tidak membedakan huruf besar dan kecil. Silakan gunakan nama yang berbeda.' +
+                                '</p>' +
+                                '</div>',
+                            icon: 'warning',
                             confirmButtonText: 'Mengerti',
-                            confirmButtonColor: '#6c757d'
+                            confirmButtonColor: '#ffc107'
                         });
                     } else {
                         Swal.fire({
@@ -397,8 +263,144 @@ function deleteGrupMateri(id) {
                     });
                 }
             });
-        }
+        });
+
+        // Edit Grup Materi button click
+        $(document).on('click', '.edit-grup-materi-btn', function() {
+            var id = $(this).data('id');
+            var idGrup = $(this).data('id-grup');
+            var namaGrup = $(this).data('nama-grup');
+            var status = $(this).data('status');
+
+            $('#editId').val(id);
+            $('#editIdGrupMateriUjian').val(idGrup);
+            $('#editNamaMateriGrup').val(namaGrup);
+            $('#editStatus').val(status);
+            $('#modalEditGrupMateri').modal('show');
+        });
+
+        // Edit Grup Materi form
+        $('#formEditGrupMateri').on('submit', function(e) {
+            e.preventDefault();
+
+            var id = $('#editId').val();
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/update-grup-materi-ujian/') ?>' + id,
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else if (response.duplicate_name) {
+                        // Tampilkan informasi detail untuk nama duplikat
+                        Swal.fire({
+                            title: 'Nama Grup Materi Sudah Ada!',
+                            html: '<div style="text-align: left;">' +
+                                '<p><strong>Nama grup materi yang Anda masukkan sudah digunakan.</strong></p>' +
+                                '<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
+                                '<p><strong>Nama yang sudah ada:</strong> ' + response.existing_name + '</p>' +
+                                '<p><strong>Saran:</strong> ' + response.suggestion + '</p>' +
+                                '</div>' +
+                                '<p style="color: #6c757d; font-size: 14px;">' +
+                                'Sistem tidak membedakan huruf besar dan kecil. Silakan gunakan nama yang berbeda.' +
+                                '</p>' +
+                                '</div>',
+                            icon: 'warning',
+                            confirmButtonText: 'Mengerti',
+                            confirmButtonColor: '#ffc107'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message,
+                            icon: 'error'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan pada server',
+                        icon: 'error'
+                    });
+                }
+            });
+        });
     });
-}
+
+    function deleteGrupMateri(id) {
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: "Data yang dihapus tidak dapat dikembalikan!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/delete-grup-materi-ujian/') ?>' + id,
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else if (response.blocked_delete) {
+                            // Tampilkan informasi detail mengapa tidak bisa dihapus
+                            var usageCount = response.usage_count || 0;
+                            var grupInfo = response.grup_info || {};
+
+                            Swal.fire({
+                                title: 'Tidak Dapat Dihapus!',
+                                html: '<div style="text-align: left;">' +
+                                    '<p><strong>Grup materi tidak dapat dihapus karena sudah digunakan dalam sistem.</strong></p>' +
+                                    '<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
+                                    '<p><strong>ID Grup Materi:</strong> ' + grupInfo.IdGrupMateriUjian + '</p>' +
+                                    '<p><strong>Nama Grup:</strong> ' + grupInfo.NamaMateriGrup + '</p>' +
+                                    '<p><strong>Digunakan di:</strong> ' + usageCount + ' data materi munaqosah</p>' +
+                                    '</div>' +
+                                    '<p style="color: #6c757d; font-size: 14px;">' +
+                                    'Untuk menghapus grup materi ini, Anda harus menghapus terlebih dahulu semua data materi yang menggunakan grup ini.' +
+                                    '</p>' +
+                                    '</div>',
+                                icon: 'error',
+                                confirmButtonText: 'Mengerti',
+                                confirmButtonColor: '#6c757d'
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan pada server',
+                            icon: 'error'
+                        });
+                    }
+                });
+            }
+        });
+    }
 </script>
 <?= $this->endSection() ?>

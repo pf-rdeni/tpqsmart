@@ -14,6 +14,7 @@ use App\Models\GuruModel;
 use App\Models\MateriPelajaranModel;
 use App\Models\HelpFunctionModel;
 use App\Models\MunaqosahGrupMateriUjiModel;
+use App\Models\MunaqosahAlquranModel;
 use App\Models\SantriBaruModel;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -30,6 +31,7 @@ class Munaqosah extends BaseController
     protected $materiPelajaranModel;
     protected $helpFunction;
     protected $grupMateriUjiMunaqosahModel;
+    protected $munaqosahAlquranModel;
     protected $santriBaruModel;
     protected $db;
     
@@ -46,6 +48,7 @@ class Munaqosah extends BaseController
         $this->materiPelajaranModel = new MateriPelajaranModel();
         $this->helpFunction = new HelpFunctionModel();
         $this->grupMateriUjiMunaqosahModel = new MunaqosahGrupMateriUjiModel();
+        $this->munaqosahAlquranModel = new MunaqosahAlquranModel();
         $this->santriBaruModel = new SantriBaruModel();
         $this->db = \Config\Database::connect();
     }
@@ -876,7 +879,7 @@ class Munaqosah extends BaseController
             'active_menu' => 'munaqosah',
             'grupMateri' => $this->grupMateriUjiMunaqosahModel->findAll()
         ];
-        return view('backend/Munaqosah/listIdGrupMateriUjian', $data);
+        return view('backend/Munaqosah/listGrupMateriUjian', $data);
     }
 
     public function saveIdGrupMateriUjian()
@@ -1032,9 +1035,9 @@ class Munaqosah extends BaseController
         return $this->response->setJSON($grupMateri);
     }
 
-    public function getNextIdIdGrupMateriUjian()
+    public function getNextIdGrupMateriUjian()
     {
-        $nextId = $this->grupMateriUjiMunaqosahModel->generateNextIdIdGrupMateriUjian();
+        $nextId = $this->grupMateriUjiMunaqosahModel->generateNextIdGrupMateriUjian();
         return $this->response->setJSON([
             'success' => true,
             'next_id' => $nextId
@@ -1291,16 +1294,6 @@ class Munaqosah extends BaseController
         }
     }
 
-    public function testUpdateStatus($id)
-    {
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Test route berfungsi',
-            'id' => $id,
-            'method' => $this->request->getMethod(),
-            'data' => $this->request->getPost()
-        ]);
-    }
 
     public function updateGrupMateri($id)
     {
@@ -1701,6 +1694,10 @@ class Munaqosah extends BaseController
 
     // ==================== REGISTRASI PESERTA MUNAQOSAH ====================
 
+    /**
+     * Registrasi peserta munaqosah
+     * @return \CodeIgniter\HTTP\Response
+     */
     public function registrasiPesertaMunaqosah()
     {
         // Ambil tahun ajaran saat ini
@@ -1730,6 +1727,10 @@ class Munaqosah extends BaseController
         return view('backend/Munaqosah/registrasiPesertaMunaqosah', $data);
     }
 
+    /**
+     * Get santri for registrasi peserta munaqosah
+     * @return \CodeIgniter\HTTP\Response
+     */
     public function getSantriForRegistrasi()
     {
         try {
@@ -1820,94 +1821,10 @@ class Munaqosah extends BaseController
         }
     }
 
-    public function getPreviewRegistrasi()
-    {
-        try {
-            $santriIds = json_decode($this->request->getPost('santri_ids'), true);
-            $tahunAjaran = $this->request->getPost('tahunAjaran');
-            
-            if (empty($santriIds)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Tidak ada santri yang dipilih'
-                ]);
-            }
-            
-            // Ambil data grup materi ujian aktif
-            $grupMateri = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
-            
-            // Ambil data materi per kategori
-            $materiPerKategori = [];
-            foreach ($grupMateri as $grup) {
-                $materi = $this->materiMunaqosahModel->getMateriByGrup($grup['IdGrupMateriUjian']);
-                if (!empty($materi)) {
-                    // Group by KategoriMateri instead of NamaMateriGrup
-                    foreach ($materi as $m) {
-                        $kategori = $m['KategoriMateri'];
-                        if (!isset($materiPerKategori[$kategori])) {
-                            $materiPerKategori[$kategori] = [];
-                        }
-                        $materiPerKategori[$kategori][] = $m;
-                    }
-                }
-            }
-            
-            // Ambil semua data peserta munaqosah sekaligus
-            $builder = $this->db->table('tbl_munaqosah_peserta mp');
-            $builder->select('mp.*, s.*');
-            $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
-            $builder->whereIn('mp.IdSantri', $santriIds);
-            $builder->where('mp.IdTahunAjaran', $tahunAjaran);
-            $allSantri = $builder->get()->getResultArray();
-            
-            // Buat mapping untuk akses cepat
-            $santriMap = [];
-            foreach ($allSantri as $santri) {
-                $santriMap[$santri['IdSantri']] = $santri;
-            }
-            
-            $previewData = [];
-            
-            foreach ($santriIds as $santriId) {
-                if (!isset($santriMap[$santriId])) continue;
-                
-                $santri = $santriMap[$santriId];
-                
-                // Generate NoPeserta random (100-400)
-                $noPeserta = $this->generateNoPeserta($tahunAjaran);
-                
-                // Untuk setiap kategori materi, pilih satu materi secara random
-                foreach ($materiPerKategori as $kategori => $materiList) {
-                    if (!empty($materiList)) {
-                        $randomMateri = $materiList[array_rand($materiList)];
-                        
-                        $previewData[] = [
-                            'NoPeserta' => $noPeserta,
-                            'IdSantri' => $santriId,
-                            'NamaSantri' => $santri['NamaSantri'],
-                            'IdTpq' => $santri['IdTpq'],
-                            'IdTahunAjaran' => $tahunAjaran,
-                            'IdMateri' => $randomMateri['IdMateri'],
-                            'NamaMateri' => $randomMateri['NamaMateri'],
-                            'IdGrupMateriUjian' => $randomMateri['IdGrupMateriUjian'],
-                            'KategoriMateriUjian' => $kategori
-                        ];
-                    }
-                }
-            }
-            
-            return $this->response->setJSON([
-                'success' => true,
-                'data' => $previewData
-            ]);
-        } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ]);
-        }
-    }
-
+    /**
+     * Process registrasi peserta munaqosah
+     * @return \CodeIgniter\HTTP\Response
+     */
     public function processRegistrasiPeserta()
     {
         try {
@@ -2016,7 +1933,13 @@ class Munaqosah extends BaseController
                     }
                 }
             }
-            
+
+            // Ambil data surah alquran untuk kategori QURAN
+            $alquranMateri = $this->munaqosahAlquranModel->getSurahForMunaqosah();
+            if (!empty($alquranMateri)) {
+                $allMateri['QURAN'] = $alquranMateri;
+            }
+
             // Debug: Log data materi
             log_message('info', 'Grup materi: ' . json_encode($grupMateri));
             log_message('info', 'All materi: ' . json_encode($allMateri));
@@ -2069,20 +1992,38 @@ class Munaqosah extends BaseController
                     // Generate data nilai untuk santri ini
                     foreach ($allMateri as $kategori => $materiList) {
                         if (!empty($materiList)) {
+                            // Pilih materi secara acak
                             $randomMateri = $materiList[array_rand($materiList)];
-                            
-                            $nilaiRecord = [
-                                'NoPeserta' => $noPeserta,
-                                'IdSantri' => $santriId,
-                                'IdTpq' => $santri['IdTpq'],
-                                'IdTahunAjaran' => $tahunAjaran,
-                                'IdMateri' => $randomMateri['IdMateri'],
-                                'IdGrupMateriUjian' => $randomMateri['IdGrupMateriUjian'],
-                                'KategoriMateriUjian' => $kategori,
-                                'TypeUjian' => $typeUjian,
-                                'Nilai' => 0,
-                                'Catatan' => ''
-                            ];
+
+                            // Untuk kategori QURAN, gunakan data dari tabel alquran
+                            if ($kategori === 'QURAN' || $kategori === "QUR'AN") {
+                                $nilaiRecord = [
+                                    'NoPeserta' => $noPeserta,
+                                    'IdSantri' => $santriId,
+                                    'IdTpq' => $santri['IdTpq'],
+                                    'IdTahunAjaran' => $tahunAjaran,
+                                    'IdMateri' => $randomMateri['IdMateri'], // id dari tbl_munaqosah_alquran
+                                    'IdGrupMateriUjian' => $randomMateri['IdGrupMateriUjian'], // 'QURAN'
+                                    'KategoriMateriUjian' => $kategori,
+                                    'TypeUjian' => $typeUjian,
+                                    'Nilai' => 0,
+                                    'Catatan' => ''
+                                ];
+                            } else {
+                                // Untuk kategori lain, gunakan data dari tabel materi biasa
+                                $nilaiRecord = [
+                                    'NoPeserta' => $noPeserta,
+                                    'IdSantri' => $santriId,
+                                    'IdTpq' => $santri['IdTpq'],
+                                    'IdTahunAjaran' => $tahunAjaran,
+                                    'IdMateri' => $randomMateri['IdMateri'],
+                                    'IdGrupMateriUjian' => $randomMateri['IdGrupMateriUjian'],
+                                    'KategoriMateriUjian' => $kategori,
+                                    'TypeUjian' => $typeUjian,
+                                    'Nilai' => 0,
+                                    'Catatan' => ''
+                                ];
+                            }
                             
                             $allNilaiData[] = $nilaiRecord;
                             
@@ -2203,36 +2144,13 @@ class Munaqosah extends BaseController
         }
     }
 
-    private function generateNoPeserta($tahunAjaran)
-    {
-        // Generate random number between 100-400
-        $noPeserta = rand(100, 400);
-        
-        // Cek apakah NoPeserta sudah ada di database untuk tahun ajaran dan TypeUjian yang sama
-        $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
-                                            ->where('IdTahunAjaran', $tahunAjaran)
-                                            ->where('TypeUjian', 'munaqosah')
-                                            ->first();
-        
-        // Jika sudah ada, generate ulang (maksimal 10 kali percobaan)
-        $attempts = 0;
-        while ($existing && $attempts < 10) {
-            $noPeserta = rand(100, 400);
-            $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
-                                                ->where('IdTahunAjaran', $tahunAjaran)
-                                                ->where('TypeUjian', 'munaqosah')
-                                                ->first();
-            $attempts++;
-        }
-        
-        // Jika masih ada duplikasi setelah 10 percobaan, tambahkan timestamp
-        if ($existing) {
-            $noPeserta = $noPeserta . substr(time(), -3);
-        }
-        
-        return $noPeserta;
-    }
-
+    /**
+     * Generate unique NoPeserta for peserta munaqosah
+     * @param int $tahunAjaran
+     * @param array $usedNoPeserta
+     * @param string $typeUjian
+     * @return int $noPeserta
+     */
     private function generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta = [], $typeUjian = 'munaqosah')
     {
         // Validasi ketat: nomor peserta harus dalam range 100-400
@@ -2278,6 +2196,15 @@ class Munaqosah extends BaseController
         return $noPeserta;
     }
 
+    /**
+     * Find available NoPeserta in range
+     * @param int $tahunAjaran
+     * @param array $usedNoPeserta
+     * @param int $minRange
+     * @param int $maxRange
+     * @param string $typeUjian
+     * @return int $availableNoPeserta
+     */
     private function findAvailableNoPesertaInRange($tahunAjaran, $usedNoPeserta, $minRange, $maxRange, $typeUjian = 'munaqosah')
     {
         // Cari nomor yang tersedia secara sequential dalam range
@@ -2302,6 +2229,13 @@ class Munaqosah extends BaseController
         throw new \Exception("Tidak ada nomor peserta yang tersedia dalam range {$minRange}-{$maxRange} untuk tahun ajaran {$tahunAjaran}");
     }
 
+    /**
+     * Validate NoPeserta Range
+     * @param array $allNilaiData
+     * @param int $minRange
+     * @param int $maxRange
+     * @return array $validatedData
+     */
     private function validateNoPesertaRange($allNilaiData, $minRange, $maxRange)
     {
         $outOfRangeNumbers = [];
@@ -2326,6 +2260,13 @@ class Munaqosah extends BaseController
         return ['valid' => true];
     }
 
+    /**
+     * Validate NoPeserta Uniqueness
+     * @param array $allNilaiData
+     * @param int $tahunAjaran
+     * @param string $typeUjian
+     * @return array $validatedData
+     */
     private function validateNoPesertaUniqueness($allNilaiData, $tahunAjaran, $typeUjian = 'munaqosah')
     {
         // Group data by IdSantri untuk memastikan satu IdSantri = satu NoPeserta
@@ -2379,7 +2320,14 @@ class Munaqosah extends BaseController
         ];
     }
 
-
+    /**
+     * Fix duplicate NoPeserta with database
+     * @param array $allNilaiData
+     * @param int $tahunAjaran
+     * @param array $existingNoPeserta
+     * @param string $typeUjian
+     * @return array $fixedData
+     */
     private function fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta, $typeUjian = 'munaqosah')
     {
         $fixedData = [];

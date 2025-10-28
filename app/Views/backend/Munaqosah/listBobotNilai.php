@@ -8,7 +8,7 @@
                 <div class="col-sm-12 float-sm-left">
                     <button class="btn btn-primary" data-toggle="modal" data-target="#modalDuplicateBobot">
                         <i class="fas fa-copy"></i> Duplikasi Nilai Bobot
-                                </button>
+                    </button>
                 </div><!-- /.col -->
             </div><!-- /.row -->
         </div>
@@ -31,7 +31,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php 
+                        <?php
                         $no = 1;
                         $groupedBobot = [];
                         foreach ($bobot as $row) {
@@ -45,10 +45,10 @@
                             }
                             $groupedBobot[$tahunAjaran]['data'][$row['KategoriMateriUjian']] = $row['NilaiBobot'];
                         }
-                        
+
                         foreach ($groupedBobot as $tahun => $group): ?>
                             <tr>
-                                                <td><?= $no++ ?></td>
+                                <td><?= $no++ ?></td>
                                 <td><strong><?= $group['tahun'] ?></strong></td>
                                 <td class="text-center"><?= $group['data']['SHOLAT'] ?? '-' ?></td>
                                 <td class="text-center"><?= $group['data']['AYAT PILIHAN'] ?? '-' ?></td>
@@ -59,23 +59,23 @@
                                 <td><?= date('d/m/Y H:i', strtotime($group['created_at'])) ?></td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-warning btn-sm" 
-                                                onclick="editBobotTahun('<?= $group['tahun'] ?>')">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-danger btn-sm" 
-                                                onclick="deleteBobotTahun('<?= $group['tahun'] ?>')">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
+                                        <button type="button" class="btn btn-warning btn-sm"
+                                            onclick="editBobotTahun('<?= $group['tahun'] ?>')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm"
+                                            onclick="deleteBobotTahun('<?= $group['tahun'] ?>')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-    </div><!-- /.card-body -->  
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><!-- /.card-body -->
 </div><!-- /.card -->
 
 <!-- Modal Duplicate Bobot -->
@@ -99,9 +99,9 @@
                     </div>
                     <div class="form-group">
                         <label for="targetTahunAjaran">Tahun Ajaran Baru <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="targetTahunAjaran" name="targetTahunAjaran" 
-                               placeholder="Masukkan 8 digit angka, contoh: 20252026" 
-                               maxlength="8" pattern="[0-9]{8}" required>
+                        <input type="text" class="form-control" id="targetTahunAjaran" name="targetTahunAjaran"
+                            placeholder="Masukkan 8 digit angka, contoh: 20252026"
+                            maxlength="8" pattern="[0-9]{8}" required>
                         <small class="form-text text-muted">
                             Format: 8 digit angka (contoh: 20252026 untuk tahun ajaran 2025/2026)
                         </small>
@@ -113,10 +113,10 @@
                 <button type="button" class="btn btn-primary" id="btnSimpanDuplicate">
                     <i class="fas fa-save"></i> Simpan
                 </button>
-                    </div>
-                </div>
             </div>
         </div>
+    </div>
+</div>
 
 <!-- Modal Edit Bobot -->
 <div class="modal fade" id="modalEditBobot" tabindex="-1" role="dialog" aria-labelledby="modalEditBobotLabel" aria-hidden="true">
@@ -153,9 +153,9 @@
                         </button>
                     </div>
                 </div>
-                </div>
+            </div>
         </div>
-    </div>  
+    </div>
 </div>
 
 <!-- Modal Edit Bobot -->
@@ -169,10 +169,10 @@
                 </button>
             </div>
             <div class="modal-body">
-                    <div class="form-group">
-                        <label for="editIdTahunAjaran">Tahun Ajaran <span class="text-danger">*</span></label>
+                <div class="form-group">
+                    <label for="editIdTahunAjaran">Tahun Ajaran <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="editIdTahunAjaran" name="editIdTahunAjaran" readonly>
-                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-bordered" id="tableEditBobotForm">
                         <thead class="thead-light">
@@ -186,7 +186,7 @@
                             <!-- Data akan diisi oleh JavaScript -->
                         </tbody>
                     </table>
-                    </div>
+                </div>
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <button type="button" class="btn btn-success" id="btnUpdateBobot">
@@ -194,7 +194,7 @@
                         </button>
                     </div>
                 </div>
-                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -202,388 +202,215 @@
 
 <?= $this->section('scripts') ?>
 <style>
-/* Styling untuk form bobot */
-.bobot-input {
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    width: 100%;
-    transition: all 0.3s ease;
-}
+    /* Styling untuk form bobot */
+    .bobot-input {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
 
-.bobot-input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    outline: none;
-}
+    .bobot-input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        outline: none;
+    }
 
-.bobot-input.changed {
-    background-color: #ffebee;
-    border-color: #f44336;
-    color: #d32f2f;
-}
+    .bobot-input.changed {
+        background-color: #ffebee;
+        border-color: #f44336;
+        color: #d32f2f;
+    }
 
-.bobot-input.changed:focus {
-    border-color: #f44336;
-    box-shadow: 0 0 0 0.2rem rgba(244, 67, 54, 0.25);
-}
+    .bobot-input.changed:focus {
+        border-color: #f44336;
+        box-shadow: 0 0 0 0.2rem rgba(244, 67, 54, 0.25);
+    }
 
-/* Styling untuk edit form bobot */
-.edit-bobot-input {
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    width: 100%;
-    transition: all 0.3s ease;
-}
+    /* Styling untuk edit form bobot */
+    .edit-bobot-input {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
 
-.edit-bobot-input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    outline: none;
-}
+    .edit-bobot-input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        outline: none;
+    }
 
-.edit-bobot-input.changed {
-    background-color: #ffebee;
-    border-color: #f44336;
-    color: #d32f2f;
-}
+    .edit-bobot-input.changed {
+        background-color: #ffebee;
+        border-color: #f44336;
+        color: #d32f2f;
+    }
 
-.edit-bobot-input.changed:focus {
-    border-color: #f44336;
-    box-shadow: 0 0 0 0.2rem rgba(244, 67, 54, 0.25);
-}
+    .edit-bobot-input.changed:focus {
+        border-color: #f44336;
+        box-shadow: 0 0 0 0.2rem rgba(244, 67, 54, 0.25);
+    }
 
-.table td {
-    vertical-align: middle;
-}
+    .table td {
+        vertical-align: middle;
+    }
 
-/* Badge styling untuk total bobot */
-.badge {
-    display: inline-block;
-    padding: 0.25em 0.4em;
-    font-size: 75%;
-    font-weight: 700;
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: baseline;
-    border-radius: 0.25rem;
-}
+    /* Badge styling untuk total bobot */
+    .badge {
+        display: inline-block;
+        padding: 0.25em 0.4em;
+        font-size: 75%;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+    }
 
-.badge-success {
-    color: #fff;
-    background-color: #28a745;
-}
+    .badge-success {
+        color: #fff;
+        background-color: #28a745;
+    }
 
-.badge-danger {
-    color: #fff;
-    background-color: #dc3545;
-}
+    .badge-danger {
+        color: #fff;
+        background-color: #dc3545;
+    }
 
-/* Validasi tahun ajaran */
-.is-valid {
-    border-color: #28a745;
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-}
+    /* Validasi tahun ajaran */
+    .is-valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
 
-.is-invalid {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
+    .is-invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
 
-.form-control.is-valid:focus {
-    border-color: #28a745;
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-}
+    .form-control.is-valid:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
 
-.form-control.is-invalid:focus {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
+    .form-control.is-invalid:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
 
-.btn-group-custom {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
+    .btn-group-custom {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
 
-.btn-group-custom .btn {
-    flex: 1;
-    min-width: 120px;
-}
+    .btn-group-custom .btn {
+        flex: 1;
+        min-width: 120px;
+    }
 </style>
 <script>
-// Data default akan diambil dari database
-let defaultBobotData = [];
-let currentBobotData = [];
-let originalValues = {};
-let isEditMode = false;
+    // Data default akan diambil dari database
+    let defaultBobotData = [];
+    let currentBobotData = [];
+    let originalValues = {};
+    let isEditMode = false;
 
-$(document).ready(function() {
-    // DataTable initialization
-    $('#tableBobot').DataTable({
-        "responsive": true,
-        "lengthChange": false,
-        "autoWidth": false,
-        "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
-    }).buttons().container().appendTo('#tableBobot_wrapper .col-md-6:eq(0)');
-
-    // Load tahun ajaran options saat modal dibuka
-    $('#modalDuplicateBobot').on('show.bs.modal', function() {
-        loadTahunAjaranOptions();
-        $('#targetTahunAjaran').val('');
-    });
-
-    // Validasi real-time format tahun ajaran
-    $('#targetTahunAjaran').on('input', function() {
-        const value = $(this).val();
-        const tahunAjaranRegex = /^\d{8}$/;
-        
-        // Remove non-numeric characters
-        const numericValue = value.replace(/\D/g, '');
-        $(this).val(numericValue);
-        
-        // Limit to 8 digits
-        if (numericValue.length > 8) {
-            $(this).val(numericValue.substring(0, 8));
-        }
-        
-        // Visual feedback
-        if (numericValue.length === 8 && tahunAjaranRegex.test(numericValue)) {
-            $(this).removeClass('is-invalid').addClass('is-valid');
-        } else if (numericValue.length > 0) {
-            $(this).removeClass('is-valid').addClass('is-invalid');
-        } else {
-            $(this).removeClass('is-valid is-invalid');
-        }
-    });
-
-    // Button Duplicate
-    $('#btnDuplicate').on('click', function() {
-        const tahunAjaran = $('#IdTahunAjaran').val();
-        if (!tahunAjaran) {
-                    Swal.fire({
-                title: 'Peringatan!',
-                text: 'Tahun Ajaran harus diisi terlebih dahulu',
-                icon: 'warning'
-            });
-            return;
-        }
-        
-        duplicateDefaultData(tahunAjaran);
-    });
-
-    // Button Delete
-    $('#btnDelete').on('click', function() {
-        const tahunAjaran = $('#IdTahunAjaran').val();
-        if (!tahunAjaran) {
-                Swal.fire({
-                title: 'Peringatan!',
-                text: 'Tahun Ajaran harus diisi terlebih dahulu',
-                icon: 'warning'
-            });
-            return;
-        }
-        
-        deleteBobotByTahunAjaran(tahunAjaran);
-    });
-
-    // Button Simpan Duplicate
-    $('#btnSimpanDuplicate').on('click', function() {
-        duplicateBobotData();
-    });
-
-    // Button Update Bobot
-    $('#btnUpdateBobot').on('click', function() {
-        updateBobotData();
-    });
-
-    // Form Edit Bobot
-    $('#formEditBobot').on('submit', function(e) {
-        e.preventDefault();
-        
-        var id = $('#editId').val();
-        
-        $.ajax({
-            url: '<?= base_url('backend/munaqosah/update-bobot/') ?>' + id,
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    Swal.fire({
-                        title: 'Berhasil!',
-                        text: response.message,
-                        icon: 'success'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: response.message,
-                        icon: 'error'
-                    });
-                }
-            },
-            error: function() {
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'Terjadi kesalahan pada server',
-                    icon: 'error'
-                });
-            }
+    $(document).ready(function() {
+        // DataTable initialization
+        $('#tableBobot').DataTable({
+            "responsive": true,
+            "lengthChange": false,
+            "autoWidth": false,
+            "order": [
+                [0, "asc"]
+            ]
         });
-    });
-});
 
-// Fungsi untuk load data default dari database
-function loadDefaultDataFromDatabase() {
-    $.ajax({
-        url: '<?= base_url('backend/munaqosah/get-default-bobot') ?>',
-        type: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                defaultBobotData = response.data;
-                loadDefaultData();
+        // Load tahun ajaran options saat modal dibuka
+        $('#modalDuplicateBobot').on('show.bs.modal', function() {
+            loadTahunAjaranOptions();
+            $('#targetTahunAjaran').val('');
+        });
+
+        // Validasi real-time format tahun ajaran
+        $('#targetTahunAjaran').on('input', function() {
+            const value = $(this).val();
+            const tahunAjaranRegex = /^\d{8}$/;
+
+            // Remove non-numeric characters
+            const numericValue = value.replace(/\D/g, '');
+            $(this).val(numericValue);
+
+            // Limit to 8 digits
+            if (numericValue.length > 8) {
+                $(this).val(numericValue.substring(0, 8));
+            }
+
+            // Visual feedback
+            if (numericValue.length === 8 && tahunAjaranRegex.test(numericValue)) {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            } else if (numericValue.length > 0) {
+                $(this).removeClass('is-valid').addClass('is-invalid');
             } else {
-                Swal.fire({
-                    title: 'Error!',
-                    text: response.message || 'Gagal mengambil data default',
-                    icon: 'error'
-                });
+                $(this).removeClass('is-valid is-invalid');
             }
-        },
-        error: function() {
-            Swal.fire({
-                title: 'Error!',
-                text: 'Terjadi kesalahan pada server',
-                icon: 'error'
-            });
-        }
-    });
-}
+        });
 
-// Fungsi untuk load tahun ajaran options
-function loadTahunAjaranOptions() {
-    $.ajax({
-        url: '<?= base_url('backend/munaqosah/get-tahun-ajaran-options') ?>',
-        type: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                const select = $('#sourceTahunAjaran');
-                select.empty();
-                select.append('<option value="">Pilih Tahun Ajaran Sumber</option>');
-                
-                response.data.forEach(function(item) {
-                    select.append(`<option value="${item.IdTahunAjaran}">${item.IdTahunAjaran}</option>`);
-                });
-            } else {
+        // Button Duplicate
+        $('#btnDuplicate').on('click', function() {
+            const tahunAjaran = $('#IdTahunAjaran').val();
+            if (!tahunAjaran) {
                 Swal.fire({
-                    title: 'Error!',
-                    text: response.message,
-                    icon: 'error'
+                    title: 'Peringatan!',
+                    text: 'Tahun Ajaran harus diisi terlebih dahulu',
+                    icon: 'warning'
                 });
+                return;
             }
-        },
-        error: function() {
-            Swal.fire({
-                title: 'Error!',
-                text: 'Terjadi kesalahan pada server',
-                icon: 'error'
-            });
-        }
-    });
-}
 
-// Fungsi untuk duplicate bobot data
-function duplicateBobotData() {
-    const sourceTahunAjaran = $('#sourceTahunAjaran').val();
-    const targetTahunAjaran = $('#targetTahunAjaran').val();
-    
-    if (!sourceTahunAjaran) {
-        Swal.fire({
-            title: 'Peringatan!',
-            text: 'Tahun Ajaran Sumber harus dipilih',
-            icon: 'warning'
+            duplicateDefaultData(tahunAjaran);
         });
-        return;
-    }
-    
-    if (!targetTahunAjaran) {
-        Swal.fire({
-            title: 'Peringatan!',
-            text: 'Tahun Ajaran Baru harus diisi',
-            icon: 'warning'
+
+        // Button Delete
+        $('#btnDelete').on('click', function() {
+            const tahunAjaran = $('#IdTahunAjaran').val();
+            if (!tahunAjaran) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Tahun Ajaran harus diisi terlebih dahulu',
+                    icon: 'warning'
+                });
+                return;
+            }
+
+            deleteBobotByTahunAjaran(tahunAjaran);
         });
-        return;
-    }
-    
-    // Validasi format tahun ajaran (harus 8 digit angka)
-    const tahunAjaranRegex = /^\d{8}$/;
-    if (!tahunAjaranRegex.test(targetTahunAjaran)) {
-        Swal.fire({
-            title: 'Format Salah!',
-            text: 'Tahun Ajaran harus berupa 8 digit angka (contoh: 20252026)',
-            icon: 'error'
+
+        // Button Simpan Duplicate
+        $('#btnSimpanDuplicate').on('click', function() {
+            duplicateBobotData();
         });
-        return;
-    }
-    
-    // Validasi tahun ajaran yang masuk akal
-    const tahun1 = parseInt(targetTahunAjaran.substring(0, 4));
-    const tahun2 = parseInt(targetTahunAjaran.substring(4, 8));
-    const currentYear = new Date().getFullYear();
-    
-    if (tahun2 !== tahun1 + 1) {
-        Swal.fire({
-            title: 'Format Salah!',
-            text: 'Tahun kedua harus tahun pertama + 1 (contoh: 20252026)',
-            icon: 'error'
+
+        // Button Update Bobot
+        $('#btnUpdateBobot').on('click', function() {
+            updateBobotData();
         });
-        return;
-    }
-    
-    if (tahun1 < 2000 || tahun1 > currentYear + 10) {
-        Swal.fire({
-            title: 'Tahun Tidak Valid!',
-            text: `Tahun ajaran harus antara 2000 dan ${currentYear + 10}`,
-            icon: 'error'
-        });
-        return;
-    }
-    
-    if (sourceTahunAjaran === targetTahunAjaran) {
-        Swal.fire({
-            title: 'Peringatan!',
-            text: 'Tahun Ajaran Baru tidak boleh sama dengan Tahun Ajaran Sumber',
-            icon: 'warning'
-        });
-        return;
-    }
-    
-    Swal.fire({
-        title: 'Duplikasi Data?',
-        text: `Apakah Anda yakin ingin menduplikasi data dari ${sourceTahunAjaran} ke ${targetTahunAjaran}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, Duplikasi!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
+
+        // Form Edit Bobot
+        $('#formEditBobot').on('submit', function(e) {
+            e.preventDefault();
+
+            var id = $('#editId').val();
+
             $.ajax({
-                url: '<?= base_url('backend/munaqosah/duplicate-bobot-data') ?>',
+                url: '<?= base_url('backend/munaqosah/update-bobot/') ?>' + id,
                 type: 'POST',
-                data: {
-                    sourceTahunAjaran: sourceTahunAjaran,
-                    targetTahunAjaran: targetTahunAjaran,
-                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-                },
+                data: $(this).serialize(),
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
@@ -592,7 +419,6 @@ function duplicateBobotData() {
                             text: response.message,
                             icon: 'success'
                         }).then(() => {
-                            $('#modalDuplicateBobot').modal('hide');
                             location.reload();
                         });
                     } else {
@@ -611,21 +437,197 @@ function duplicateBobotData() {
                     });
                 }
             });
-        }
+        });
     });
-}
 
-// Fungsi untuk load data default ke tabel
-function loadDefaultData() {
-    const tbody = $('#bobotFormBody');
-    tbody.empty();
-    currentBobotData = [...defaultBobotData];
-    
-    // Get current tahun ajaran from input
-    const currentTahunAjaran = $('#IdTahunAjaran').val() || 'Default';
-    
-    defaultBobotData.forEach((item, index) => {
-        const row = `
+    // Fungsi untuk load data default dari database
+    function loadDefaultDataFromDatabase() {
+        $.ajax({
+            url: '<?= base_url('backend/munaqosah/get-default-bobot') ?>',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    defaultBobotData = response.data;
+                    loadDefaultData();
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message || 'Gagal mengambil data default',
+                        icon: 'error'
+                    });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Terjadi kesalahan pada server',
+                    icon: 'error'
+                });
+            }
+        });
+    }
+
+    // Fungsi untuk load tahun ajaran options
+    function loadTahunAjaranOptions() {
+        $.ajax({
+            url: '<?= base_url('backend/munaqosah/get-tahun-ajaran-options') ?>',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    const select = $('#sourceTahunAjaran');
+                    select.empty();
+                    select.append('<option value="">Pilih Tahun Ajaran Sumber</option>');
+
+                    response.data.forEach(function(item) {
+                        select.append(`<option value="${item.IdTahunAjaran}">${item.IdTahunAjaran}</option>`);
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message,
+                        icon: 'error'
+                    });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Terjadi kesalahan pada server',
+                    icon: 'error'
+                });
+            }
+        });
+    }
+
+    // Fungsi untuk duplicate bobot data
+    function duplicateBobotData() {
+        const sourceTahunAjaran = $('#sourceTahunAjaran').val();
+        const targetTahunAjaran = $('#targetTahunAjaran').val();
+
+        if (!sourceTahunAjaran) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Tahun Ajaran Sumber harus dipilih',
+                icon: 'warning'
+            });
+            return;
+        }
+
+        if (!targetTahunAjaran) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Tahun Ajaran Baru harus diisi',
+                icon: 'warning'
+            });
+            return;
+        }
+
+        // Validasi format tahun ajaran (harus 8 digit angka)
+        const tahunAjaranRegex = /^\d{8}$/;
+        if (!tahunAjaranRegex.test(targetTahunAjaran)) {
+            Swal.fire({
+                title: 'Format Salah!',
+                text: 'Tahun Ajaran harus berupa 8 digit angka (contoh: 20252026)',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // Validasi tahun ajaran yang masuk akal
+        const tahun1 = parseInt(targetTahunAjaran.substring(0, 4));
+        const tahun2 = parseInt(targetTahunAjaran.substring(4, 8));
+        const currentYear = new Date().getFullYear();
+
+        if (tahun2 !== tahun1 + 1) {
+            Swal.fire({
+                title: 'Format Salah!',
+                text: 'Tahun kedua harus tahun pertama + 1 (contoh: 20252026)',
+                icon: 'error'
+            });
+            return;
+        }
+
+        if (tahun1 < 2000 || tahun1 > currentYear + 10) {
+            Swal.fire({
+                title: 'Tahun Tidak Valid!',
+                text: `Tahun ajaran harus antara 2000 dan ${currentYear + 10}`,
+                icon: 'error'
+            });
+            return;
+        }
+
+        if (sourceTahunAjaran === targetTahunAjaran) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Tahun Ajaran Baru tidak boleh sama dengan Tahun Ajaran Sumber',
+                icon: 'warning'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Duplikasi Data?',
+            text: `Apakah Anda yakin ingin menduplikasi data dari ${sourceTahunAjaran} ke ${targetTahunAjaran}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Duplikasi!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/duplicate-bobot-data') ?>',
+                    type: 'POST',
+                    data: {
+                        sourceTahunAjaran: sourceTahunAjaran,
+                        targetTahunAjaran: targetTahunAjaran,
+                        <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                $('#modalDuplicateBobot').modal('hide');
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan pada server',
+                            icon: 'error'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // Fungsi untuk load data default ke tabel
+    function loadDefaultData() {
+        const tbody = $('#bobotFormBody');
+        tbody.empty();
+        currentBobotData = [...defaultBobotData];
+
+        // Get current tahun ajaran from input
+        const currentTahunAjaran = $('#IdTahunAjaran').val() || 'Default';
+
+        defaultBobotData.forEach((item, index) => {
+            const row = `
             <tr>
                 <td>
                     <input type="text" class="form-control bobot-input" 
@@ -645,52 +647,52 @@ function loadDefaultData() {
                 </td>
             </tr>
         `;
-        tbody.append(row);
-        // Set original values untuk default data (hanya jika bukan edit mode)
-        if (!isEditMode) {
-            originalValues[index] = parseFloat(item.NilaiBobot);
-        }
-    });
-    
-    // Event listener untuk perubahan nilai (hanya jika bukan edit mode)
-    if (!isEditMode) {
-        $('.bobot-input[data-field="nilai"]').off('input').on('input', function() {
-            const index = $(this).data('index');
-            const currentValue = parseFloat($(this).val()) || 0;
-            const originalValue = originalValues[index];
-            
-            if (currentValue !== originalValue) {
-                $(this).addClass('changed');
-            } else {
-                $(this).removeClass('changed');
+            tbody.append(row);
+            // Set original values untuk default data (hanya jika bukan edit mode)
+            if (!isEditMode) {
+                originalValues[index] = parseFloat(item.NilaiBobot);
             }
-            
-            // Update total bobot real-time
-            updateTotalBobot();
         });
-    }
-    
-    // Update total bobot saat pertama kali load
-    updateTotalBobot();
-}
 
-// Fungsi untuk load data edit ke tabel
-function loadEditData(editData, tahunAjaran) {
-    const tbody = $('#bobotFormBody');
-    tbody.empty();
-    originalValues = {};
-    
-    // Create a map of existing data by kategori
-    const dataMap = {};
-    editData.forEach(item => {
-        dataMap[item.KategoriMateriUjian] = item.NilaiBobot;
-    });
-    
-    // Load default data structure but with existing values
-    defaultBobotData.forEach((item, index) => {
-        const existingValue = dataMap[item.KategoriMateriUjian] || item.NilaiBobot;
-        
-        const row = `
+        // Event listener untuk perubahan nilai (hanya jika bukan edit mode)
+        if (!isEditMode) {
+            $('.bobot-input[data-field="nilai"]').off('input').on('input', function() {
+                const index = $(this).data('index');
+                const currentValue = parseFloat($(this).val()) || 0;
+                const originalValue = originalValues[index];
+
+                if (currentValue !== originalValue) {
+                    $(this).addClass('changed');
+                } else {
+                    $(this).removeClass('changed');
+                }
+
+                // Update total bobot real-time
+                updateTotalBobot();
+            });
+        }
+
+        // Update total bobot saat pertama kali load
+        updateTotalBobot();
+    }
+
+    // Fungsi untuk load data edit ke tabel
+    function loadEditData(editData, tahunAjaran) {
+        const tbody = $('#bobotFormBody');
+        tbody.empty();
+        originalValues = {};
+
+        // Create a map of existing data by kategori
+        const dataMap = {};
+        editData.forEach(item => {
+            dataMap[item.KategoriMateriUjian] = item.NilaiBobot;
+        });
+
+        // Load default data structure but with existing values
+        defaultBobotData.forEach((item, index) => {
+            const existingValue = dataMap[item.KategoriMateriUjian] || item.NilaiBobot;
+
+            const row = `
             <tr>
                 <td>
                     <input type="text" class="form-control bobot-input" 
@@ -710,355 +712,355 @@ function loadEditData(editData, tahunAjaran) {
                 </td>
             </tr>
         `;
-        tbody.append(row);
-        
-        // Set original values untuk tracking perubahan
-        originalValues[index] = parseFloat(existingValue);
-    });
-    
-    // Event listener untuk perubahan nilai
-    $('.bobot-input[data-field="nilai"]').off('input').on('input', function() {
-        const index = $(this).data('index');
-        const currentValue = parseFloat($(this).val()) || 0;
-        const originalValue = originalValues[index];
-        
-        if (currentValue !== originalValue) {
-            $(this).addClass('changed');
-        } else {
-            $(this).removeClass('changed');
-        }
-        
-        // Update total bobot real-time
-        updateTotalBobot();
-    });
-}
+            tbody.append(row);
 
-// Fungsi untuk duplicate data default
-function duplicateDefaultData(tahunAjaran) {
-    Swal.fire({
-        title: 'Duplicate Data?',
-        text: `Apakah Anda yakin ingin menduplikasi data default untuk tahun ajaran ${tahunAjaran}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, Duplicate!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // AJAX request untuk duplicate data ke database
-            $.ajax({
-                url: '<?= base_url('backend/munaqosah/duplicate-default-bobot') ?>',
-                type: 'POST',
-                data: {
-                    IdTahunAjaran: tahunAjaran,
-                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        // Update tahun ajaran di tabel
-                        $('.bobot-input[data-field="tahun"]').val(tahunAjaran);
-                        
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: response.message,
-                            icon: 'success',
-                            timer: 1500
-                        });
-                    } else {
+            // Set original values untuk tracking perubahan
+            originalValues[index] = parseFloat(existingValue);
+        });
+
+        // Event listener untuk perubahan nilai
+        $('.bobot-input[data-field="nilai"]').off('input').on('input', function() {
+            const index = $(this).data('index');
+            const currentValue = parseFloat($(this).val()) || 0;
+            const originalValue = originalValues[index];
+
+            if (currentValue !== originalValue) {
+                $(this).addClass('changed');
+            } else {
+                $(this).removeClass('changed');
+            }
+
+            // Update total bobot real-time
+            updateTotalBobot();
+        });
+    }
+
+    // Fungsi untuk duplicate data default
+    function duplicateDefaultData(tahunAjaran) {
+        Swal.fire({
+            title: 'Duplicate Data?',
+            text: `Apakah Anda yakin ingin menduplikasi data default untuk tahun ajaran ${tahunAjaran}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Duplicate!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // AJAX request untuk duplicate data ke database
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/duplicate-default-bobot') ?>',
+                    type: 'POST',
+                    data: {
+                        IdTahunAjaran: tahunAjaran,
+                        <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            // Update tahun ajaran di tabel
+                            $('.bobot-input[data-field="tahun"]').val(tahunAjaran);
+
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: response.message,
+                                icon: 'success',
+                                timer: 1500
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function() {
                         Swal.fire({
                             title: 'Error!',
-                            text: response.message,
+                            text: 'Terjadi kesalahan pada server',
                             icon: 'error'
                         });
                     }
-                },
-                error: function() {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Terjadi kesalahan pada server',
-                        icon: 'error'
-                    });
-                }
-            });
-        }
-    });
-}
+                });
+            }
+        });
+    }
 
-// Fungsi untuk delete berdasarkan tahun ajaran
-function deleteBobotByTahunAjaran(tahunAjaran) {
-    Swal.fire({
-        title: 'Hapus Data?',
-        text: `Apakah Anda yakin ingin menghapus semua data untuk tahun ajaran ${tahunAjaran}?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '<?= base_url('backend/munaqosah/delete-bobot-by-tahun') ?>',
-                type: 'POST',
-                data: {
-                    IdTahunAjaran: tahunAjaran,
-                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: response.message,
-                            icon: 'success'
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
+    // Fungsi untuk delete berdasarkan tahun ajaran
+    function deleteBobotByTahunAjaran(tahunAjaran) {
+        Swal.fire({
+            title: 'Hapus Data?',
+            text: `Apakah Anda yakin ingin menghapus semua data untuk tahun ajaran ${tahunAjaran}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/delete-bobot-by-tahun') ?>',
+                    type: 'POST',
+                    data: {
+                        IdTahunAjaran: tahunAjaran,
+                        <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function() {
                         Swal.fire({
                             title: 'Error!',
-                            text: response.message,
+                            text: 'Terjadi kesalahan pada server',
                             icon: 'error'
                         });
                     }
-                },
-                error: function() {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Terjadi kesalahan pada server',
-                        icon: 'error'
-                    });
-                }
-            });
-        }
-    });
-}
+                });
+            }
+        });
+    }
 
-// Fungsi untuk save data
-function saveBobotData() {
-    const tahunAjaran = $('#IdTahunAjaran').val();
-    if (!tahunAjaran) {
-        Swal.fire({
-            title: 'Peringatan!',
-            text: 'Tahun Ajaran harus diisi',
-            icon: 'warning'
-        });
-        return;
-    }
-    
-    const dataToSave = [];
-    let hasChanges = false;
-    let totalBobot = 0;
-    
-    $('.bobot-input[data-field="nilai"]').each(function() {
-        const index = $(this).data('index');
-        const nilai = parseFloat($(this).val()) || 0;
-        let kategori = $(this).closest('tr').find('.bobot-input[data-field="kategori"]').val();
-        
-        // Convert HTML entity back to apostrophe for database
-        kategori = kategori.replace(/&#39;/g, "'");
-        
-        dataToSave.push({
-            IdTahunAjaran: tahunAjaran,
-            KategoriMateriUjian: kategori,
-            NilaiBobot: nilai
-        });
-        
-        totalBobot += nilai;
-        
-        if ($(this).hasClass('changed')) {
-            hasChanges = true;
+    // Fungsi untuk save data
+    function saveBobotData() {
+        const tahunAjaran = $('#IdTahunAjaran').val();
+        if (!tahunAjaran) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Tahun Ajaran harus diisi',
+                icon: 'warning'
+            });
+            return;
         }
-    });
-    
-    // Validasi total bobot harus 100%
-    if (Math.abs(totalBobot - 100) > 0.01) {
-        Swal.fire({
-            title: 'Validasi Error!',
-            text: `Total bobot nilai harus berjumlah 100%. Saat ini berjumlah ${totalBobot.toFixed(2)}%`,
-            icon: 'error',
-            confirmButtonText: 'OK'
+
+        const dataToSave = [];
+        let hasChanges = false;
+        let totalBobot = 0;
+
+        $('.bobot-input[data-field="nilai"]').each(function() {
+            const index = $(this).data('index');
+            const nilai = parseFloat($(this).val()) || 0;
+            let kategori = $(this).closest('tr').find('.bobot-input[data-field="kategori"]').val();
+
+            // Convert HTML entity back to apostrophe for database
+            kategori = kategori.replace(/&#39;/g, "'");
+
+            dataToSave.push({
+                IdTahunAjaran: tahunAjaran,
+                KategoriMateriUjian: kategori,
+                NilaiBobot: nilai
+            });
+
+            totalBobot += nilai;
+
+            if ($(this).hasClass('changed')) {
+                hasChanges = true;
+            }
         });
-        return;
-    }
-    
-    if (!hasChanges) {
+
+        // Validasi total bobot harus 100%
+        if (Math.abs(totalBobot - 100) > 0.01) {
+            Swal.fire({
+                title: 'Validasi Error!',
+                text: `Total bobot nilai harus berjumlah 100%. Saat ini berjumlah ${totalBobot.toFixed(2)}%`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        if (!hasChanges) {
+            Swal.fire({
+                title: 'Info',
+                text: 'Tidak ada perubahan yang perlu disimpan',
+                icon: 'info'
+            });
+            return;
+        }
+
         Swal.fire({
-            title: 'Info',
-            text: 'Tidak ada perubahan yang perlu disimpan',
-            icon: 'info'
-        });
-        return;
-    }
-    
-    Swal.fire({
-        title: 'Simpan Data?',
-        text: `Apakah Anda yakin ingin menyimpan data untuk tahun ajaran ${tahunAjaran}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, Simpan!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '<?= base_url('backend/munaqosah/save-bobot-batch') ?>',
-                type: 'POST',
-                data: {
-                    data: dataToSave,
-                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: response.message,
-                            icon: 'success'
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
+            title: 'Simpan Data?',
+            text: `Apakah Anda yakin ingin menyimpan data untuk tahun ajaran ${tahunAjaran}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Simpan!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/save-bobot-batch') ?>',
+                    type: 'POST',
+                    data: {
+                        data: dataToSave,
+                        <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function() {
                         Swal.fire({
                             title: 'Error!',
-                            text: response.message,
+                            text: 'Terjadi kesalahan pada server',
                             icon: 'error'
                         });
                     }
-                },
-                error: function() {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Terjadi kesalahan pada server',
-                        icon: 'error'
-                    });
-                }
-            });
-        }
-    });
-}
+                });
+            }
+        });
+    }
 
-// Fungsi untuk update data
-function updateBobotData() {
-    const tahunAjaran = $('#editIdTahunAjaran').val();
-    if (!tahunAjaran) {
-        Swal.fire({
-            title: 'Peringatan!',
-            text: 'Tahun Ajaran harus diisi',
-            icon: 'warning'
-        });
-        return;
-    }
-    
-    const dataToUpdate = [];
-    let hasChanges = false;
-    let totalBobot = 0;
-    
-    $('.edit-bobot-input[data-field="nilai"]').each(function() {
-        const index = $(this).data('index');
-        const nilai = parseFloat($(this).val()) || 0;
-        let kategori = $(this).closest('tr').find('.edit-bobot-input[data-field="kategori"]').val();
-        
-        // Convert HTML entity back to apostrophe for database
-        kategori = kategori.replace(/&#39;/g, "'");
-        
-        dataToUpdate.push({
-            IdTahunAjaran: tahunAjaran,
-            KategoriMateriUjian: kategori,
-            NilaiBobot: nilai
-        });
-        
-        totalBobot += nilai;
-        
-        if ($(this).hasClass('changed')) {
-            hasChanges = true;
+    // Fungsi untuk update data
+    function updateBobotData() {
+        const tahunAjaran = $('#editIdTahunAjaran').val();
+        if (!tahunAjaran) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Tahun Ajaran harus diisi',
+                icon: 'warning'
+            });
+            return;
         }
-    });
-    
-    // Validasi total bobot harus 100%
-    if (Math.abs(totalBobot - 100) > 0.01) {
-        Swal.fire({
-            title: 'Validasi Error!',
-            text: `Total bobot nilai harus berjumlah 100%. Saat ini berjumlah ${totalBobot.toFixed(2)}%`,
-            icon: 'error',
-            confirmButtonText: 'OK'
+
+        const dataToUpdate = [];
+        let hasChanges = false;
+        let totalBobot = 0;
+
+        $('.edit-bobot-input[data-field="nilai"]').each(function() {
+            const index = $(this).data('index');
+            const nilai = parseFloat($(this).val()) || 0;
+            let kategori = $(this).closest('tr').find('.edit-bobot-input[data-field="kategori"]').val();
+
+            // Convert HTML entity back to apostrophe for database
+            kategori = kategori.replace(/&#39;/g, "'");
+
+            dataToUpdate.push({
+                IdTahunAjaran: tahunAjaran,
+                KategoriMateriUjian: kategori,
+                NilaiBobot: nilai
+            });
+
+            totalBobot += nilai;
+
+            if ($(this).hasClass('changed')) {
+                hasChanges = true;
+            }
         });
-        return;
-    }
-    
-    if (!hasChanges) {
+
+        // Validasi total bobot harus 100%
+        if (Math.abs(totalBobot - 100) > 0.01) {
+            Swal.fire({
+                title: 'Validasi Error!',
+                text: `Total bobot nilai harus berjumlah 100%. Saat ini berjumlah ${totalBobot.toFixed(2)}%`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        if (!hasChanges) {
+            Swal.fire({
+                title: 'Info',
+                text: 'Tidak ada perubahan yang perlu disimpan',
+                icon: 'info'
+            });
+            return;
+        }
+
         Swal.fire({
-            title: 'Info',
-            text: 'Tidak ada perubahan yang perlu disimpan',
-            icon: 'info'
-        });
-        return;
-    }
-    
-    Swal.fire({
-        title: 'Update Data?',
-        text: `Apakah Anda yakin ingin mengupdate data untuk tahun ajaran ${tahunAjaran}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, Update!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '<?= base_url('backend/munaqosah/save-bobot-batch') ?>',
-                type: 'POST',
-                data: {
-                    data: dataToUpdate,
-                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: response.message,
-                            icon: 'success'
-                        }).then(() => {
-                            $('#modalEditBobot').modal('hide');
-                            location.reload();
-                        });
-                    } else {
+            title: 'Update Data?',
+            text: `Apakah Anda yakin ingin mengupdate data untuk tahun ajaran ${tahunAjaran}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Update!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/save-bobot-batch') ?>',
+                    type: 'POST',
+                    data: {
+                        data: dataToUpdate,
+                        <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                $('#modalEditBobot').modal('hide');
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function() {
                         Swal.fire({
                             title: 'Error!',
-                            text: response.message,
+                            text: 'Terjadi kesalahan pada server',
                             icon: 'error'
                         });
                     }
-                },
-                error: function() {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Terjadi kesalahan pada server',
-                        icon: 'error'
-                    });
-                }
-            });
-        }
-    });
-}
+                });
+            }
+        });
+    }
 
-// Fungsi untuk update total bobot real-time (Add Mode)
-function updateTotalBobot() {
-    let total = 0;
-    $('.bobot-input[data-field="nilai"]').each(function() {
-        total += parseFloat($(this).val()) || 0;
-    });
-    
-    // Update display total
-    let totalDisplay = $('#totalBobotDisplay');
-    if (totalDisplay.length === 0) {
-        // Create total display if not exists
-        $('#bobotFormBody').after(`
+    // Fungsi untuk update total bobot real-time (Add Mode)
+    function updateTotalBobot() {
+        let total = 0;
+        $('.bobot-input[data-field="nilai"]').each(function() {
+            total += parseFloat($(this).val()) || 0;
+        });
+
+        // Update display total
+        let totalDisplay = $('#totalBobotDisplay');
+        if (totalDisplay.length === 0) {
+            // Create total display if not exists
+            $('#bobotFormBody').after(`
             <tr id="totalBobotRow">
                 <td colspan="2" class="text-right"><strong>Total:</strong></td>
                 <td>
@@ -1068,26 +1070,26 @@ function updateTotalBobot() {
                 </td>
             </tr>
         `);
-    } else {
-        // Update existing total display
-        totalDisplay.text(`${total.toFixed(2)}%`);
-        totalDisplay.removeClass('badge-success badge-danger');
-        totalDisplay.addClass(Math.abs(total - 100) < 0.01 ? 'badge-success' : 'badge-danger');
+        } else {
+            // Update existing total display
+            totalDisplay.text(`${total.toFixed(2)}%`);
+            totalDisplay.removeClass('badge-success badge-danger');
+            totalDisplay.addClass(Math.abs(total - 100) < 0.01 ? 'badge-success' : 'badge-danger');
+        }
     }
-}
 
-// Fungsi untuk update total bobot real-time (Edit Mode)
-function updateTotalBobotEdit() {
-    let total = 0;
-    $('.edit-bobot-input[data-field="nilai"]').each(function() {
-        total += parseFloat($(this).val()) || 0;
-    });
-    
-    // Update display total
-    let totalDisplay = $('#editTotalBobotDisplay');
-    if (totalDisplay.length === 0) {
-        // Create total display if not exists
-        $('#editBobotFormBody').after(`
+    // Fungsi untuk update total bobot real-time (Edit Mode)
+    function updateTotalBobotEdit() {
+        let total = 0;
+        $('.edit-bobot-input[data-field="nilai"]').each(function() {
+            total += parseFloat($(this).val()) || 0;
+        });
+
+        // Update display total
+        let totalDisplay = $('#editTotalBobotDisplay');
+        if (totalDisplay.length === 0) {
+            // Create total display if not exists
+            $('#editBobotFormBody').after(`
             <tr id="editTotalBobotRow">
                 <td class="text-right"><strong>Total:</strong></td>
                 <td>
@@ -1097,41 +1099,41 @@ function updateTotalBobotEdit() {
                 </td>
             </tr>
         `);
-    } else {
-        // Update existing total display
-        totalDisplay.text(`${total.toFixed(2)}%`);
-        totalDisplay.removeClass('badge-success badge-danger');
-        totalDisplay.addClass(Math.abs(total - 100) < 0.01 ? 'badge-success' : 'badge-danger');
+        } else {
+            // Update existing total display
+            totalDisplay.text(`${total.toFixed(2)}%`);
+            totalDisplay.removeClass('badge-success badge-danger');
+            totalDisplay.addClass(Math.abs(total - 100) < 0.01 ? 'badge-success' : 'badge-danger');
+        }
     }
-}
 
-function editBobotTahun(tahunAjaran) {
-    // Load data untuk tahun ajaran yang dipilih
-    $.ajax({
-        url: '<?= base_url('backend/munaqosah/get-bobot-by-tahun/') ?>' + encodeURIComponent(tahunAjaran),
-        type: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                // Populate edit form dengan data yang ada
-    $('#editIdTahunAjaran').val(tahunAjaran);
-                
-                // Clear existing data first
-                $('#editBobotFormBody').empty();
-                
-                // Create data map for easy lookup
-                const dataMap = {};
-                response.data.forEach(item => {
-                    dataMap[item.KategoriMateriUjian] = item.NilaiBobot;
-                });
-                
-                // Load all categories with existing or default values
-                const categories = ['SHOLAT', 'AYAT PILIHAN', 'SURAH PENDEK', "DO'A", 'IMLA', 'UMUM'];
-                const defaultValues = [30, 10, 10, 10, 10, 30];
-                
-                categories.forEach((kategori, index) => {
-                    const existingValue = dataMap[kategori] || defaultValues[index];
-                    const row = `
+    function editBobotTahun(tahunAjaran) {
+        // Load data untuk tahun ajaran yang dipilih
+        $.ajax({
+            url: '<?= base_url('backend/munaqosah/get-bobot-by-tahun/') ?>' + encodeURIComponent(tahunAjaran),
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Populate edit form dengan data yang ada
+                    $('#editIdTahunAjaran').val(tahunAjaran);
+
+                    // Clear existing data first
+                    $('#editBobotFormBody').empty();
+
+                    // Create data map for easy lookup
+                    const dataMap = {};
+                    response.data.forEach(item => {
+                        dataMap[item.KategoriMateriUjian] = item.NilaiBobot;
+                    });
+
+                    // Load all categories with existing or default values
+                    const categories = ['SHOLAT', 'AYAT PILIHAN', 'SURAH PENDEK', "DO'A", 'IMLA', 'UMUM'];
+                    const defaultValues = [30, 10, 10, 10, 10, 30];
+
+                    categories.forEach((kategori, index) => {
+                        const existingValue = dataMap[kategori] || defaultValues[index];
+                        const row = `
                         <tr>
                             <td>
                                 <input type="text" class="form-control edit-bobot-input" 
@@ -1146,102 +1148,102 @@ function editBobotTahun(tahunAjaran) {
                             </td>
                         </tr>
                     `;
-                    $('#editBobotFormBody').append(row);
-                });
-                
-                // Attach event listeners for changes
-                $('.edit-bobot-input[data-field="nilai"]').off('input').on('input', function() {
-                    const index = $(this).data('index');
-                    const currentValue = parseFloat($(this).val()) || 0;
-                    const originalValue = parseFloat($(this).attr('data-original')) || 0;
-                    
-                    if (currentValue !== originalValue) {
-                        $(this).addClass('changed');
-                    } else {
-                        $(this).removeClass('changed');
-                    }
-                    
-                    // Update total bobot real-time
-                    updateTotalBobotEdit();
-                });
-                
-                // Set original values for tracking
-                $('.edit-bobot-input[data-field="nilai"]').each(function() {
-                    $(this).attr('data-original', $(this).val());
-                });
-                
-                // Update total bobot saat pertama kali load
-                updateTotalBobotEdit();
-                
-                // Update modal title untuk edit
-                $('#modalEditBobotLabel').text('Edit Bobot Nilai Munaqosah - ' + tahunAjaran);
-                
-    $('#modalEditBobot').modal('show');
-            } else {
-                Swal.fire({
-                    title: 'Error!',
-                    text: response.message,
-                    icon: 'error'
-                });
-            }
-        },
-        error: function() {
-            Swal.fire({
-                title: 'Error!',
-                text: 'Terjadi kesalahan pada server',
-                icon: 'error'
-            });
-        }
-    });
-}
+                        $('#editBobotFormBody').append(row);
+                    });
 
-function deleteBobotTahun(tahunAjaran) {
-    Swal.fire({
-        title: 'Apakah Anda yakin?',
-        text: `Data untuk tahun ajaran ${tahunAjaran} akan dihapus dan tidak dapat dikembalikan!`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Ya, hapus!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '<?= base_url('backend/munaqosah/delete-bobot-by-tahun') ?>',
-                type: 'POST',
-                data: {
-                    IdTahunAjaran: tahunAjaran,
-                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: response.message,
-                            icon: 'success'
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: response.message,
-                            icon: 'error'
-                        });
-                    }
-                },
-                error: function() {
+                    // Attach event listeners for changes
+                    $('.edit-bobot-input[data-field="nilai"]').off('input').on('input', function() {
+                        const index = $(this).data('index');
+                        const currentValue = parseFloat($(this).val()) || 0;
+                        const originalValue = parseFloat($(this).attr('data-original')) || 0;
+
+                        if (currentValue !== originalValue) {
+                            $(this).addClass('changed');
+                        } else {
+                            $(this).removeClass('changed');
+                        }
+
+                        // Update total bobot real-time
+                        updateTotalBobotEdit();
+                    });
+
+                    // Set original values for tracking
+                    $('.edit-bobot-input[data-field="nilai"]').each(function() {
+                        $(this).attr('data-original', $(this).val());
+                    });
+
+                    // Update total bobot saat pertama kali load
+                    updateTotalBobotEdit();
+
+                    // Update modal title untuk edit
+                    $('#modalEditBobotLabel').text('Edit Bobot Nilai Munaqosah - ' + tahunAjaran);
+
+                    $('#modalEditBobot').modal('show');
+                } else {
                     Swal.fire({
                         title: 'Error!',
-                        text: 'Terjadi kesalahan pada server',
+                        text: response.message,
                         icon: 'error'
                     });
                 }
-            });
-        }
-    });
-}
+            },
+            error: function() {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Terjadi kesalahan pada server',
+                    icon: 'error'
+                });
+            }
+        });
+    }
+
+    function deleteBobotTahun(tahunAjaran) {
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: `Data untuk tahun ajaran ${tahunAjaran} akan dihapus dan tidak dapat dikembalikan!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/delete-bobot-by-tahun') ?>',
+                    type: 'POST',
+                    data: {
+                        IdTahunAjaran: tahunAjaran,
+                        <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan pada server',
+                            icon: 'error'
+                        });
+                    }
+                });
+            }
+        });
+    }
 </script>
 <?= $this->endSection() ?>
