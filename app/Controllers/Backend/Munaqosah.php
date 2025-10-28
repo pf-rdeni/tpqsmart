@@ -2413,6 +2413,21 @@ class Munaqosah extends BaseController
     }
 
     /**
+     * Generate unique key untuk HasKey peserta munaqosah
+     * Menggunakan random bytes yang aman seperti di Rapor.php
+     */
+    private function generateUniqueHasKey()
+    {
+        do {
+            $hasKey = base64_encode(random_bytes(24));
+            $hasKey = str_replace(['+', '/', '='], ['-', '_', ''], $hasKey); // URL-safe
+
+        } while ($this->db->table('tbl_munaqosah_peserta')->where('HasKey', $hasKey)->get()->getRow());
+
+        return $hasKey;
+    }
+
+    /**
      * Format string menjadi Title Case (huruf kapital di awal setiap kata)
      */
     private function formatTitleCase($string)
@@ -2626,8 +2641,8 @@ class Munaqosah extends BaseController
                 if ($peserta['HasKey'] != null && $peserta['HasKey'] != '') {
                     $hash = $peserta['HasKey'];
                 } else {
-                    // Generate 64 bit hash dari no peserta
-                    $hash = hash('sha256', $noPeserta);
+                    // Generate unique key yang aman
+                    $hash = $this->generateUniqueHasKey();
                     $batchUpdateData[] = [
                         'IdSantri' => $peserta['IdSantri'],
                         'HasKey' => $hash
