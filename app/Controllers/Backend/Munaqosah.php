@@ -2602,7 +2602,7 @@ class Munaqosah extends BaseController
 
                 // QR Code footer untuk link hasil ujian
                 $footerQrCode = new QRCode($footerQrOptions);
-                $footerSvgContent = $footerQrCode->render('www.tpqsmart.simaq/nilai-ujian/' . $hash);
+                $footerSvgContent = $footerQrCode->render('https://www.tpqsmart.simpedis.com/nilai-ujian/' . $hash);
                 $footerBase64Svg = 'data:image/svg+xml;base64,' . base64_encode($footerSvgContent);
                 $peserta['footerQrCode'] = '<img src="' . $footerBase64Svg . '" style="width: 30px; height: 30px;" />';
             }

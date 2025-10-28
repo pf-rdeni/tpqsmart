@@ -113,16 +113,16 @@
             width: 100%;
             height: 20px;
             margin-top: 0.2cm;
-            font-size: 8px;
+            font-size: 7.5px;
         }
 
         .footer-qr {
             position: absolute;
             left: 0;
-            top: 50%;
+            top: 70%;
             transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
+            width: 30px;
+            height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -136,8 +136,8 @@
         }
 
         .footer-qr img {
-            width: 100%;
-            height: 100%;
+            width: 110%;
+            height: 110%;
         }
 
         .page-break {
@@ -198,7 +198,7 @@
                     <div class="footer-qr">
                         <?= $p['footerQrCode'] ?? '<div style="font-size: 6px; text-align: center; border: 1px solid #000; padding: 1px; background: #f0f0f0;">QR</div>' ?>
                     </div>
-                    <div class="footer-text"> <br> Scan QR untuk hasil ujian: <br><a href="www.tpqsmart.simaq/nilai-ujian/haskey">www.tpqsmart.simaq/nilai-ujian/haskey</a><br>Simpan kartu ini untuk informasi nilai selanjutnya</div>
+                    <div class="footer-text"> <br> Scan QR untuk hasil ujian:<br>Website: https://www.tpqsmart.simpedis.com/nilai-ujian<br> HasKey: <b><?= $p['HasKey'] ?></b> </div>
                 </div>
             </div>
         </div>
