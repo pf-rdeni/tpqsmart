@@ -15,6 +15,7 @@ use App\Models\MateriPelajaranModel;
 use App\Models\HelpFunctionModel;
 use App\Models\MunaqosahGrupMateriUjiModel;
 use App\Models\MunaqosahAlquranModel;
+use App\Models\MunaqosahRegistrasiUjiModel;
 use App\Models\SantriBaruModel;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -32,6 +33,7 @@ class Munaqosah extends BaseController
     protected $helpFunction;
     protected $grupMateriUjiMunaqosahModel;
     protected $munaqosahAlquranModel;
+    protected $munaqosahRegistrasiUjiModel;
     protected $santriBaruModel;
     protected $db;
     
@@ -49,6 +51,7 @@ class Munaqosah extends BaseController
         $this->helpFunction = new HelpFunctionModel();
         $this->grupMateriUjiMunaqosahModel = new MunaqosahGrupMateriUjiModel();
         $this->munaqosahAlquranModel = new MunaqosahAlquranModel();
+        $this->munaqosahRegistrasiUjiModel = new MunaqosahRegistrasiUjiModel();
         $this->santriBaruModel = new SantriBaruModel();
         $this->db = \Config\Database::connect();
     }
@@ -1759,9 +1762,9 @@ class Munaqosah extends BaseController
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
             $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
             // Join untuk data munaqosah
-            $builder->join('tbl_munaqosah_nilai mn_munaqosah', 'mn_munaqosah.IdSantri = mp.IdSantri AND mn_munaqosah.IdTahunAjaran = mp.IdTahunAjaran AND mn_munaqosah.TypeUjian = "munaqosah"', 'left');
+            $builder->join('tbl_munaqosah_registrasi_uji mn_munaqosah', 'mn_munaqosah.IdSantri = mp.IdSantri AND mn_munaqosah.IdTahunAjaran = mp.IdTahunAjaran AND mn_munaqosah.TypeUjian = "munaqosah"', 'left');
             // Join untuk data pra-munaqosah
-            $builder->join('tbl_munaqosah_nilai mn_pra', 'mn_pra.IdSantri = mp.IdSantri AND mn_pra.IdTahunAjaran = mp.IdTahunAjaran AND mn_pra.TypeUjian = "pra-munaqosah"', 'left');
+            $builder->join('tbl_munaqosah_registrasi_uji mn_pra', 'mn_pra.IdSantri = mp.IdSantri AND mn_pra.IdTahunAjaran = mp.IdTahunAjaran AND mn_pra.TypeUjian = "pra-munaqosah"', 'left');
             $builder->where('mp.IdTahunAjaran', $tahunAjaran);
             
             // Filter TPQ
@@ -1870,24 +1873,24 @@ class Munaqosah extends BaseController
                 ]);
             }
 
-            // Validasi: cek apakah ada santri yang sudah memiliki data nilai berdasarkan type ujian
-            $existingNilai = $this->nilaiMunaqosahModel->whereIn('IdSantri', $santriIds)
+            // Validasi: cek apakah ada santri yang sudah memiliki data registrasi berdasarkan type ujian
+            $existingRegistrasi = $this->munaqosahRegistrasiUjiModel->whereIn('IdSantri', $santriIds)
                                                       ->where('IdTahunAjaran', $tahunAjaran)
                 ->where('TypeUjian', $typeUjian)
                                                       ->findAll();
-            
-            if (!empty($existingNilai)) {
-                $existingIds = array_unique(array_column($existingNilai, 'IdSantri'));
+
+            if (!empty($existingRegistrasi)) {
+                $existingIds = array_unique(array_column($existingRegistrasi, 'IdSantri'));
                 $existingCount = count($existingIds);
                 $totalSelected = count($santriIds);
                 
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Beberapa santri sudah memiliki data nilai munaqosah',
+                    'message' => 'Beberapa santri sudah memiliki data registrasi munaqosah',
                     'detailed_errors' => [
-                        "Ditemukan {$existingCount} santri yang sudah memiliki data nilai dari {$totalSelected} santri yang dipilih",
+                        "Ditemukan {$existingCount} santri yang sudah memiliki data registrasi dari {$totalSelected} santri yang dipilih",
                         "ID Santri yang sudah memiliki data: " . implode(', ', $existingIds),
-                        "Silakan pilih santri lain yang belum memiliki data nilai munaqosah"
+                        "Silakan pilih santri lain yang belum memiliki data registrasi munaqosah"
                     ],
                     'existing_santri_ids' => $existingIds,
                     'existing_count' => $existingCount,
@@ -1901,7 +1904,7 @@ class Munaqosah extends BaseController
             $successCount = 0;
             $errorCount = 0;
             $errors = [];
-            
+
             // Ambil semua data peserta munaqosah sekaligus
             $builder = $this->db->table('tbl_munaqosah_peserta mp');
             $builder->select('mp.*, s.*');
@@ -2071,15 +2074,15 @@ class Munaqosah extends BaseController
                 
                 // Debug: Log data yang akan diinsert
                 log_message('info', 'Data yang akan diinsert: ' . json_encode($allNilaiData));
-                
-                $result = $this->nilaiMunaqosahModel->insertBatch($allNilaiData);
+
+                $result = $this->munaqosahRegistrasiUjiModel->insertBatch($allNilaiData);
                 
                 // Debug: Log hasil insert
                 log_message('info', 'Hasil insert: ' . ($result ? 'Berhasil' : 'Gagal'));
                 
                 if (!$result) {
                     $errorCount++;
-                    $modelErrors = $this->nilaiMunaqosahModel->errors();
+                    $modelErrors = $this->munaqosahRegistrasiUjiModel->errors();
                     $errors[] = "Gagal insert data ke database: " . implode(', ', $modelErrors);
                     
                     // Log detail error untuk debugging
@@ -2160,9 +2163,9 @@ class Munaqosah extends BaseController
 
         // Generate random number between 100-400
         $noPeserta = rand($minRange, $maxRange);
-        
+
         // Cek apakah NoPeserta sudah ada di database untuk tahun ajaran dan TypeUjian yang sama
-        $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
+        $existing = $this->munaqosahRegistrasiUjiModel->where('NoPeserta', $noPeserta)
                                             ->where('IdTahunAjaran', $tahunAjaran)
             ->where('TypeUjian', $typeUjian)
                                             ->first();
@@ -2174,7 +2177,7 @@ class Munaqosah extends BaseController
         $attempts = 0;
         while (($existing || $isUsedInBatch) && $attempts < $maxAttempts) {
             $noPeserta = rand($minRange, $maxRange);
-            $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
+            $existing = $this->munaqosahRegistrasiUjiModel->where('NoPeserta', $noPeserta)
                                                 ->where('IdTahunAjaran', $tahunAjaran)
                 ->where('TypeUjian', $typeUjian)
                                                 ->first();
@@ -2215,7 +2218,7 @@ class Munaqosah extends BaseController
             }
 
             // Cek apakah nomor sudah ada di database
-            $existing = $this->nilaiMunaqosahModel->where('NoPeserta', $i)
+            $existing = $this->munaqosahRegistrasiUjiModel->where('NoPeserta', $i)
                                                 ->where('IdTahunAjaran', $tahunAjaran)
                 ->where('TypeUjian', $typeUjian)
                                                 ->first();
@@ -2296,9 +2299,9 @@ class Munaqosah extends BaseController
         
         // Ekstrak unique NoPeserta (karena satu IdSantri = satu NoPeserta)
         $uniqueNoPesertaList = array_unique(array_column($allNilaiData, 'NoPeserta'));
-        
+
         // Cek apakah NoPeserta sudah ada di database untuk TypeUjian yang sama
-        $existingNoPeserta = $this->nilaiMunaqosahModel->whereIn('NoPeserta', $uniqueNoPesertaList)
+        $existingNoPeserta = $this->munaqosahRegistrasiUjiModel->whereIn('NoPeserta', $uniqueNoPesertaList)
                                                       ->where('IdTahunAjaran', $tahunAjaran)
             ->where('TypeUjian', $typeUjian)
                                                       ->findAll();
@@ -2504,7 +2507,7 @@ class Munaqosah extends BaseController
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
             $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
-            $builder->join('tbl_munaqosah_nilai mn', 'mn.IdSantri = mp.IdSantri AND mn.IdTahunAjaran = mp.IdTahunAjaran AND mn.TypeUjian = "' . $typeUjian . '"', 'left');
+            $builder->join('tbl_munaqosah_registrasi_uji mn', 'mn.IdSantri = mp.IdSantri AND mn.IdTahunAjaran = mp.IdTahunAjaran AND mn.TypeUjian = "' . $typeUjian . '"', 'left');
             $builder->whereIn('mp.IdSantri', $santriIds);
             $builder->where('mp.IdTahunAjaran', $tahunAjaran);
             $builder->where('mn.NoPeserta IS NOT NULL'); // Hanya ambil yang sudah ada nomor peserta
