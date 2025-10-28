@@ -195,6 +195,16 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/api/bobot/(:segment)', 'Munaqosah::getBobotByTahunAjaran/$1');
     $routes->get('munaqosah/api/peserta/(:segment)', 'Munaqosah::getPesertaByTpq/$1');
 
+    // Juri Munaqosah Routes
+    $routes->get('munaqosah/juri', 'Munaqosah::listUserJuriMunaqosah');
+    $routes->get('munaqosah/get-juri-data', 'Munaqosah::getJuriData');
+    $routes->get('munaqosah/get-grup-materi-ujian', 'Munaqosah::getGrupMateriUjian');
+    $routes->get('munaqosah/get-tpq-data-juri', 'Munaqosah::getTpqDataForJuri');
+    $routes->post('munaqosah/generate-username-juri', 'Munaqosah::generateUsernameJuri');
+    $routes->post('munaqosah/save-juri', 'Munaqosah::saveJuri');
+    $routes->post('munaqosah/delete-juri/(:num)', 'Munaqosah::deleteJuri/$1');
+    $routes->post('munaqosah/update-password-juri/(:num)', 'Munaqosah::updatePasswordJuri/$1');
+
     // API Routes untuk data master
     $routes->get('backend/tpq/get-all', 'Tpq::getAll');
 });

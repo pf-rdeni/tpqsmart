@@ -17,6 +17,8 @@ use App\Models\MunaqosahGrupMateriUjiModel;
 use App\Models\MunaqosahAlquranModel;
 use App\Models\MunaqosahRegistrasiUjiModel;
 use App\Models\SantriBaruModel;
+use App\Models\MunaqosahJuriModel;
+use Myth\Auth\Password;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 class Munaqosah extends BaseController
@@ -35,6 +37,7 @@ class Munaqosah extends BaseController
     protected $munaqosahAlquranModel;
     protected $munaqosahRegistrasiUjiModel;
     protected $santriBaruModel;
+    protected $munaqosahJuriModel;
     protected $db;
     
     public function __construct()
@@ -53,6 +56,7 @@ class Munaqosah extends BaseController
         $this->munaqosahAlquranModel = new MunaqosahAlquranModel();
         $this->munaqosahRegistrasiUjiModel = new MunaqosahRegistrasiUjiModel();
         $this->santriBaruModel = new SantriBaruModel();
+        $this->munaqosahJuriModel = new MunaqosahJuriModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -2663,6 +2667,317 @@ class Munaqosah extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Munaqosah: printKartuUjian - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    // ==================== JURI MUNAQOSAH ====================
+
+    /**
+     * Halaman list juri munaqosah
+     */
+    public function listUserJuriMunaqosah()
+    {
+        $data = [
+            'page_title' => 'Data Juri Munaqosah',
+            'active_menu' => 'munaqosah',
+            'juri' => $this->munaqosahJuriModel->getJuriWithRelations()
+        ];
+        return view('backend/Munaqosah/listUserJuriMunaqosah', $data);
+    }
+
+    /**
+     * Get data juri for AJAX
+     */
+    public function getJuriData()
+    {
+        try {
+            $juri = $this->munaqosahJuriModel->getJuriWithRelations();
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $juri
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengambil data juri: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get grup materi ujian untuk dropdown
+     */
+    public function getGrupMateriUjian()
+    {
+        try {
+            $grupMateri = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $grupMateri
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengambil data grup materi: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get TPQ data untuk dropdown
+     */
+    public function getTpqDataForJuri()
+    {
+        try {
+            $tpq = $this->tpqModel->findAll();
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $tpq
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengambil data TPQ: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Generate username juri berdasarkan grup materi dan TPQ
+     */
+    public function generateUsernameJuri()
+    {
+        try {
+            $idGrupMateriUjian = $this->request->getPost('IdGrupMateriUjian');
+            $idTpq = $this->request->getPost('IdTpq');
+
+            if (!$idGrupMateriUjian) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID Grup Materi Ujian harus diisi'
+                ]);
+            }
+
+            $usernameJuri = $this->munaqosahJuriModel->generateUsernameJuri($idGrupMateriUjian, $idTpq);
+
+            if (!$usernameJuri) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal generate username juri'
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'username' => $usernameJuri
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal generate username: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Save juri baru
+     */
+    public function saveJuri()
+    {
+        try {
+            $validation = \Config\Services::validation();
+
+            // Set validation rules
+            $validation->setRules([
+                'IdGrupMateriUjian' => 'required',
+                'UsernameJuri' => 'required|max_length[100]|is_unique[tbl_munaqosah_juri.UsernameJuri]',
+                'Status' => 'required|in_list[Aktif,Tidak Aktif]'
+            ], [
+                'IdGrupMateriUjian' => [
+                    'required' => 'Grup Materi Ujian harus dipilih'
+                ],
+                'UsernameJuri' => [
+                    'required' => 'Username Juri harus diisi',
+                    'max_length' => 'Username Juri maksimal 100 karakter',
+                    'is_unique' => 'Username Juri sudah digunakan'
+                ],
+                'Status' => [
+                    'required' => 'Status harus dipilih',
+                    'in_list' => 'Status harus Aktif atau Tidak Aktif'
+                ]
+            ]);
+
+            if (!$validation->withRequest($this->request)->run()) {
+                $errors = $validation->getErrors();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $errors
+                ]);
+            }
+
+            // Generate IdJuri
+            $idJuri = $this->munaqosahJuriModel->generateNextIdJuri();
+
+            // Prepare data
+            $data = [
+                'IdJuri' => $idJuri,
+                'IdTpq' => $this->request->getPost('IdTpq') ?: null,
+                'UsernameJuri' => $this->request->getPost('UsernameJuri'),
+                'IdGrupMateriUjian' => $this->request->getPost('IdGrupMateriUjian'),
+                'Status' => $this->request->getPost('Status')
+            ];
+
+            // Start database transaction
+            $this->db->transStart();
+
+            // Save to tbl_munaqosah_juri
+            if (!$this->munaqosahJuriModel->save($data)) {
+                throw new \Exception('Gagal menyimpan data juri: ' . implode(', ', $this->munaqosahJuriModel->errors()));
+            }
+
+            // Create user in MyAuth
+            $email = $data['UsernameJuri'] . '@smartpq.simpedis.com';
+            $password = $this->request->getPost('PasswordJuri') ?: 'JuriTpqSmart';
+
+            // Insert to users table
+            $userData = [
+                'username' => $data['UsernameJuri'],
+                'email' => $email,
+                'password_hash' => Password::hash($password),
+                'active' => 1
+            ];
+
+            $this->db->table('users')->insert($userData);
+            $userId = $this->db->insertID();
+
+            // Insert to auth_groups_users table
+            $groupData = [
+                'group_id' => 5, // Group ID untuk juri
+                'user_id' => $userId,
+            ];
+
+            $this->db->table('auth_groups_users')->insert($groupData);
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Database transaction failed');
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data juri berhasil disimpan',
+                'data' => $data
+            ]);
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan data juri: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+
+
+    /**
+     * Update password juri
+     */
+    public function updatePasswordJuri($id)
+    {
+        try {
+            $password = $this->request->getPost('password');
+
+            if (!$password) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Password harus diisi'
+                ]);
+            }
+
+            // Get existing juri data
+            $existingJuri = $this->munaqosahJuriModel->find($id);
+            if (!$existingJuri) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data juri tidak ditemukan'
+                ]);
+            }
+
+            // Update password in users table
+            $this->db->table('users')
+                ->where('username', $existingJuri['UsernameJuri'])
+                ->update([
+                    'password_hash' => Password::hash($password),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Password juri berhasil diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate password: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete juri
+     */
+    public function deleteJuri($id)
+    {
+        try {
+            // Get existing data
+            $existingJuri = $this->munaqosahJuriModel->find($id);
+            if (!$existingJuri) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data juri tidak ditemukan'
+                ]);
+            }
+
+            // Start database transaction
+            $this->db->transStart();
+
+            // Delete from auth_groups_users
+            $this->db->table('auth_groups_users')
+                ->where('user_id', function ($builder) use ($existingJuri) {
+                    $builder->select('id')
+                        ->from('users')
+                        ->where('username', $existingJuri['UsernameJuri']);
+                })
+                ->delete();
+
+            // Delete from users
+            $this->db->table('users')
+                ->where('username', $existingJuri['UsernameJuri'])
+                ->delete();
+
+            // Delete from tbl_munaqosah_juri
+            if (!$this->munaqosahJuriModel->delete($id)) {
+                throw new \Exception('Gagal menghapus data juri');
+            }
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Database transaction failed');
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data juri berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus data juri: ' . $e->getMessage()
+            ]);
         }
     }
 

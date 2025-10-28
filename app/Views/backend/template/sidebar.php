@@ -51,25 +51,33 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview" style="display: none;">
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Informasi Umum</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Daftar Peserta</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Data Nilai</p>
-                                </a>
-                            </li>
+                            <?php if (in_groups('Juri')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Penilaian Munaqosah</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                             <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Informasi Umum</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Daftar Peserta</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Data Nilai</p>
+                                    </a>
+                                </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/grup-materi-ujian') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -86,6 +94,12 @@
                                     <a href=<?php echo base_url('backend/munaqosah/bobot') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Bobot Nilai</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/juri') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Data Juri</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
