@@ -53,6 +53,12 @@
                         <ul class="nav nav-treeview" style="display: none;">
                             <?php if (in_groups('Juri')): ?>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/input-nilai-juri') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Input Nilai Juri</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Penilaian Munaqosah</p>

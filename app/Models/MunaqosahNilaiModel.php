@@ -14,6 +14,7 @@ class MunaqosahNilaiModel extends Model
         'IdSantri',
         'IdTpq',
         'IdTahunAjaran',
+        'IdJuri',
         'IdMateri',
         'IdGrupMateriUjian',
         'KategoriMateriUjian',
@@ -27,6 +28,7 @@ class MunaqosahNilaiModel extends Model
         'IdSantri' => 'required|max_length[50]',
         'IdTpq' => 'required|max_length[50]',
         'IdTahunAjaran' => 'required|max_length[50]',
+        'IdJuri' => 'required|max_length[50]',
         'IdMateri' => 'required|max_length[50]',
         'IdGrupMateriUjian' => 'required|max_length[50]',
         'KategoriMateriUjian' => 'required|max_length[100]',
@@ -51,6 +53,10 @@ class MunaqosahNilaiModel extends Model
         'IdTahunAjaran' => [
             'required' => 'ID Tahun Ajaran harus diisi',
             'max_length' => 'ID Tahun Ajaran maksimal 50 karakter'
+        ],
+        'IdJuri' => [
+            'required' => 'ID Juri harus diisi',
+            'max_length' => 'ID Juri maksimal 50 karakter'
         ],
         'IdMateri' => [
             'required' => 'ID Materi harus diisi',
@@ -98,5 +104,80 @@ class MunaqosahNilaiModel extends Model
     public function getNilaiByTahunAjaran($idTahunAjaran)
     {
         return $this->where('IdTahunAjaran', $idTahunAjaran)->findAll();
+    }
+
+    /**
+     * Ambil 3 No Peserta terakhir yang sudah dinilai oleh juri tertentu dengan durasi
+     */
+    public function getPesertaTerakhirByJuri($idJuri, $idTahunAjaran, $typeUjian, $limit = 3)
+    {
+        // Query sederhana untuk mendapatkan data peserta
+        $sql = "
+            SELECT DISTINCT 
+                mn.NoPeserta, 
+                MAX(mn.updated_at) as updated_at,
+                s.NamaSantri, 
+                j.UsernameJuri
+            FROM tbl_munaqosah_nilai mn
+            LEFT JOIN tbl_munaqosah_juri j ON j.IdJuri = mn.IdJuri
+            LEFT JOIN tbl_santri_baru s ON s.IdSantri = mn.IdSantri
+            WHERE mn.IdJuri = ? 
+                AND mn.IdTahunAjaran = ? 
+                AND mn.TypeUjian = ?
+            GROUP BY mn.NoPeserta, s.NamaSantri, j.UsernameJuri
+            ORDER BY updated_at DESC
+            LIMIT ?
+        ";
+
+        $result = $this->db->query($sql, [$idJuri, $idTahunAjaran, $typeUjian, $limit])->getResultArray();
+
+        // Hitung durasi secara manual untuk akurasi
+        $totalRows = count($result);
+        foreach ($result as $index => &$row) {
+            $durationSeconds = null;
+
+            if ($index < $totalRows - 1) {
+                // Ada data berikutnya, hitung durasi dari data berikutnya
+                $nextRow = $result[$index + 1];
+                $currentTime = strtotime($row['updated_at']);
+                $nextTime = strtotime($nextRow['updated_at']);
+                $durationSeconds = $currentTime - $nextTime;
+            }
+
+            if ($durationSeconds !== null && $durationSeconds > 0) {
+                $minutes = floor($durationSeconds / 60);
+                $seconds = $durationSeconds % 60;
+
+                if ($minutes > 0) {
+                    $row['duration'] = $minutes . 'm ' . $seconds . 's';
+                } else {
+                    $row['duration'] = $seconds . 's';
+                }
+
+                // Tentukan class berdasarkan durasi
+                if ($durationSeconds <= 60) { // <= 1 menit
+                    $row['duration_class'] = 'duration-fast';
+                } elseif ($durationSeconds <= 300) { // <= 5 menit
+                    $row['duration_class'] = 'duration-medium';
+                } else { // > 5 menit
+                    $row['duration_class'] = 'duration-slow';
+                }
+            } else {
+                $row['duration'] = '-';
+                $row['duration_class'] = 'duration-none';
+            }
+        }
+
+        return $result;
+    }
+
+    public function getTotalPesertaByJuri($idJuri, $idTahunAjaran, $typeUjian)
+    {
+        $builder = $this->db->table($this->table . ' mn');
+        $builder->select('COUNT(DISTINCT mn.NoPeserta) as total');
+        $builder->where('mn.IdJuri', $idJuri);
+        $builder->where('mn.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('mn.TypeUjian', $typeUjian);
+        return $builder->get()->getRow()->total;
     }
 }

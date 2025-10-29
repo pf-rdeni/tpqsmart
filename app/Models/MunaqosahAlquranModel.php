@@ -97,7 +97,7 @@ class MunaqosahAlquranModel extends Model
             $formattedData[] = [
                 'IdMateri' => $surah['IdMateri'], 
                 'NamaMateri' => $surah['NamaSurah'],
-                'IdGrupMateriUjian' => 'QURAN', // Grup khusus untuk alquran
+                'IdGrupMateriUjian' => 'GM001', // Grup khusus untuk alquran
                 'KategoriMateri' => 'QURAN',
                 'WebLinkAyat' => $surah['WebLinkAyat'],
                 'Status' => $surah['Status']

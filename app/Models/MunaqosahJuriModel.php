@@ -78,7 +78,7 @@ class MunaqosahJuriModel extends Model
      */
     public function getJuriWithRelations()
     {
-        $builder = $this->db->table('tbl_munaqosah_juri j');
+        $builder = $this->db->table($this->table . ' j');
         $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup');
         $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
         $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
@@ -212,5 +212,20 @@ class MunaqosahJuriModel extends Model
     public function getJuriByIdJuri($idJuri)
     {
         return $this->where('IdJuri', $idJuri)->first();
+    }
+
+    /**
+     * Get juri by UsernameJuri
+     */
+    public function getJuriByUsernameJuri($usernameJuri)
+    {
+        $builder = $this->db->table($this->table . ' j');
+        $builder->select('j.id, j.IdJuri, j.UsernameJuri, j.IdGrupMateriUjian, j.IdTpq, t.NamaTpq, g.NamaMateriGrup');
+        $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
+        $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+        $builder->orderBy('j.created_at', 'DESC');
+        $builder->where('j.UsernameJuri', $usernameJuri);
+        $result = $builder->get()->getRow();
+        return $result;
     }
 }

@@ -101,6 +101,63 @@ class MunaqosahRegistrasiUjiModel extends Model
     /**
      * Ambil data registrasi berdasarkan filter
      */
+    public function getRegistrasiByNoPeserta($noPeserta)
+    {
+        return $this->where('NoPeserta', $noPeserta)->findAll();
+    }
+
+    /**
+     * Ambil materi berdasarkan NoPeserta dengan join ke tabel materi pelajaran
+     * dan khusus untuk grup Quran ambil dari tbl_munaqosah_alquran
+     */
+    public function getMateriByNoPeserta($noPeserta)
+    {
+        $builder = $this->db->table($this->table . ' r');
+        $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli');
+        $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
+        $builder->where('r.NoPeserta', $noPeserta);
+        $builder->where('r.IdGrupMateriUjian !=', 'GM001'); // Exclude Quran grup for now
+
+        $materiData = $builder->get()->getResultArray();
+
+        // Ambil data Quran secara terpisah jika ada
+        $quranBuilder = $this->db->table($this->table . ' r');
+        $quranBuilder->select('r.IdMateri, r.IdGrupMateriUjian, r.KategoriMateriUjian, a.NamaSurah as NamaMateri, a.WebLinkAyat');
+        $quranBuilder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri', 'left');
+        $quranBuilder->where('r.NoPeserta', $noPeserta);
+        $quranBuilder->where('r.IdGrupMateriUjian', 'GM001');
+
+        $quranData = $quranBuilder->get()->getResultArray();
+
+        // Gabungkan data
+        return array_merge($materiData, $quranData);
+    }
+
+    /**
+     * Ambil materi berdasarkan NoPeserta dan IdGrupMateriUjian
+     */
+    public function getMateriByNoPesertaAndGrup($noPeserta, $idGrupMateriUjian)
+    {
+        if ($idGrupMateriUjian === 'GM001') {
+            // Untuk grup Quran, ambil dari tbl_munaqosah_alquran
+            $builder = $this->db->table($this->table . ' r');
+            $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.KategoriMateriUjian, a.NamaSurah as NamaMateri, a.WebLinkAyat');
+            $builder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri', 'left');
+            $builder->where('r.NoPeserta', $noPeserta);
+            $builder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
+            $builder->groupBy('r.IdMateri');
+        } else {
+            // Untuk grup lain, ambil dari tbl_materi_pelajaran
+            $builder = $this->db->table($this->table . ' r');
+            $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli');
+            $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
+            $builder->where('r.NoPeserta', $noPeserta);
+            $builder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
+            $builder->groupBy('r.IdMateri');
+        }
+
+        return $builder->get()->getResultArray();
+    }
     public function getRegistrasiByFilter($filterTpq = 0, $filterKelas = 0, $typeUjian = 'munaqosah')
     {
         $builder = $this->db->table($this->table . ' r');
@@ -148,13 +205,6 @@ class MunaqosahRegistrasiUjiModel extends Model
         return $builder->get()->getResultArray();
     }
 
-    /**
-     * Ambil data registrasi berdasarkan NoPeserta
-     */
-    public function getRegistrasiByNoPeserta($noPeserta)
-    {
-        return $this->where('NoPeserta', $noPeserta)->findAll();
-    }
 
     /**
      * Ambil data registrasi berdasarkan IdSantri dan TypeUjian

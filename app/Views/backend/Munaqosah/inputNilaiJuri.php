@@ -1,0 +1,1773 @@
+<?= $this->extend('backend/template/template'); ?>
+<?= $this->section('content'); ?>
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Form Input Nilai Munaqosah</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Stepper -->
+                        <div class="bs-stepper">
+                            <div class="bs-stepper-header" role="tablist">
+                                <div class="step" data-target="#step1">
+                                    <button type="button" class="step-trigger" role="tab" aria-controls="step1" id="stepper1-trigger" aria-selected="true">
+                                        <span class="bs-stepper-circle">1</span>
+                                        <span class="bs-stepper-label">Input No Peserta</span>
+                                    </button>
+                                </div>
+                                <div class="bs-stepper-line"></div>
+                                <div class="step" data-target="#step2">
+                                    <button type="button" class="step-trigger" role="tab" aria-controls="step2" id="stepper2-trigger" aria-selected="false" disabled="disabled">
+                                        <span class="bs-stepper-circle">2</span>
+                                        <span class="bs-stepper-label">Input Nilai</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bs-stepper-content">
+                                <form id="formInputNilai">
+                                    <!-- Step 1: Input No Peserta -->
+                                    <div id="step1" class="content" role="tabpanel" aria-labelledby="stepper1-trigger">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="form-group">
+                                                    <label for="noPeserta">No Peserta <span class="text-danger">*</span></label>
+                                                     <div class="input-group">
+                                                         <input type="text" class="form-control" id="noPeserta" name="noPeserta" placeholder="Ketikkan atau scan QR No Peserta" required>
+                                                         <div class="input-group-append">
+                                                             <button class="btn btn-outline-secondary" type="button" id="btnScanQR">
+                                                                 <i class="fas fa-qrcode"></i> Scan QR
+                                                             </button>
+                                                         </div>
+                                                     </div>
+                                                     <small class="form-text text-muted">
+                                                         Ketikkan nomor peserta atau gunakan tombol scan untuk membaca QR code pada kartu peserta<br>
+                                                         <span class="text-info"><i class="fas fa-info-circle"></i> Auto search akan aktif setelah 3 digit, atau tekan Enter</span>
+                                                     </small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label>&nbsp;</label>
+                                                    <div>
+                                                        <button type="button" class="btn btn-primary" id="btnCekPeserta">
+                                                            <i class="fas fa-search"></i> Cek Peserta
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Statistik Peserta -->
+                                        <div class="row mt-4">
+                                            <div class="col-12">
+                                                <div class="card">
+                                                    <div class="card-header bg-gradient-info">
+                                                        <h5 class="card-title mb-0 text-white">
+                                                            <i class="fas fa-chart-pie"></i> Statistik Penilaian Munaqosah
+                                                        </h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row">
+                                                            <!-- Total Peserta Terdaftar -->
+                                                            <div class="col-md-3 col-sm-6 mb-3">
+                                                                <div class="info-box bg-info">
+                                                                    <span class="info-box-icon">
+                                                                        <i class="fas fa-users"></i>
+                                                                    </span>
+                                                                    <div class="info-box-content">
+                                                                        <span class="info-box-text">Total Peserta</span>
+                                                                        <span class="info-box-number"><?= $total_peserta + $total_peserta_belum_dinilai ?></span>
+                                                                        <div class="progress">
+                                                                            <div class="progress-bar" style="width: 100%"></div>
+                                                                        </div>
+                                                                        <span class="progress-description">Terregistrasi</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <!-- Sudah Dinilai -->
+                                                            <div class="col-md-3 col-sm-6 mb-3">
+                                                                <div class="info-box bg-success">
+                                                                    <span class="info-box-icon">
+                                                                        <i class="fas fa-check-circle"></i>
+                                                                    </span>
+                                                                    <div class="info-box-content">
+                                                                        <span class="info-box-text">Sudah Dinilai</span>
+                                                                        <span class="info-box-number"><?= $total_peserta ?></span>
+                                                                        <div class="progress">
+                                                                            <div class="progress-bar" style="width: <?= $total_peserta + $total_peserta_belum_dinilai > 0 ? round(($total_peserta / ($total_peserta + $total_peserta_belum_dinilai)) * 100) : 0 ?>%"></div>
+                                                                        </div>
+                                                                        <span class="progress-description"><?= $total_peserta + $total_peserta_belum_dinilai > 0 ? round(($total_peserta / ($total_peserta + $total_peserta_belum_dinilai)) * 100) : 0 ?>% selesai</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <!-- Belum Dinilai -->
+                                                            <div class="col-md-3 col-sm-6 mb-3">
+                                                                <div class="info-box bg-warning">
+                                                                    <span class="info-box-icon">
+                                                                        <i class="fas fa-clock"></i>
+                                                                    </span>
+                                                                    <div class="info-box-content">
+                                                                        <span class="info-box-text">Belum Dinilai</span>
+                                                                        <span class="info-box-number"><?= $total_peserta_belum_dinilai ?></span>
+                                                                        <div class="progress">
+                                                                            <div class="progress-bar" style="width: <?= $total_peserta + $total_peserta_belum_dinilai > 0 ? round(($total_peserta_belum_dinilai / ($total_peserta + $total_peserta_belum_dinilai)) * 100) : 0 ?>%"></div>
+                                                                        </div>
+                                                                        <span class="progress-description"><?= $total_peserta + $total_peserta_belum_dinilai > 0 ? round(($total_peserta_belum_dinilai / ($total_peserta + $total_peserta_belum_dinilai)) * 100) : 0 ?>% pending</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <!-- Progress Keseluruhan -->
+                                                            <div class="col-md-3 col-sm-6 mb-3">
+                                                                <div class="info-box bg-primary">
+                                                                    <span class="info-box-icon">
+                                                                        <i class="fas fa-percentage"></i>
+                                                                    </span>
+                                                                    <div class="info-box-content">
+                                                                        <span class="info-box-text">Progress</span>
+                                                                        <span class="info-box-number"><?= $total_peserta + $total_peserta_belum_dinilai > 0 ? round(($total_peserta / ($total_peserta + $total_peserta_belum_dinilai)) * 100) : 0 ?>%</span>
+                                                                        <div class="progress">
+                                                                            <div class="progress-bar" style="width: <?= $total_peserta + $total_peserta_belum_dinilai > 0 ? round(($total_peserta / ($total_peserta + $total_peserta_belum_dinilai)) * 100) : 0 ?>%"></div>
+                                                                        </div>
+                                                                        <span class="progress-description">Tingkat penyelesaian</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tabel 3 Peserta Terakhir -->
+                                        <?php if (!empty($peserta_terakhir)): ?>
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="card">
+                                                    <div class="card-header bg-gradient-secondary">
+                                                        <h5 class="card-title mb-0 text-white">
+                                                            <i class="fas fa-history"></i> 5 Peserta Terakhir yang Sudah Dinilai
+                                                        </h5>
+                                                    </div>
+                                                    <div class="card-body p-0">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-hover mb-0" id="tabelPesertaTerakhir">
+                                                                <thead class="thead-light">
+                                                                    <tr>
+                                                                        <th width="15%">No Peserta</th>
+                                                                        <th width="20%">Tanggal</th>
+                                                                        <th width="12%">Waktu</th>
+                                                                        <th width="15%">Durasi</th>
+                                                                        <th width="18%">Juri</th>
+                                                                        <th width="20%">Aksi</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="tbodyPesertaTerakhir">
+                                                                    <?php foreach ($peserta_terakhir as $index => $peserta): ?>
+                                                                    <tr>
+                                                                        <td>
+                                                                            <strong><?= $peserta['NoPeserta'] ?></strong>
+                                                                        </td>
+                                                                        <td>
+                                                                            <?= date('d/m/Y', strtotime($peserta['updated_at'])) ?>
+                                                                        </td>
+                                                                        <td>
+                                                                            <?= date('H:i:s', strtotime($peserta['updated_at'])) ?>
+                                                                        </td>
+                                                                        <td class="duration-cell">
+                                                                            <span class="<?= $peserta['duration_class'] ?>"><?= $peserta['duration'] ?></span>
+                                                                        </td>
+                                                                        <td>
+                                                                            <?= $peserta['UsernameJuri'] ?>
+                                                                        </td>
+                                                                        <td>
+                                                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="setNoPeserta('<?= $peserta['NoPeserta'] ?>')">
+                                                                                <i class="fas fa-edit"></i> Ubah Nilai
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <?php endforeach; ?>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                        
+                                        <!-- Info Peserta -->
+                                        <div id="infoPeserta" class="alert alert-info" style="display: none;">
+                                            <h5><i class="icon fas fa-info"></i> Informasi Peserta</h5>
+                                            <div id="pesertaInfo"></div>
+                                        </div>
+
+                                        <!-- Dialog Edit Nilai -->
+                                        <div class="modal fade" id="modalEditNilai" tabindex="-1" role="dialog">
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Nilai Sudah Ada</h5>
+                                                        <button type="button" class="close" data-dismiss="modal">
+                                                            <span>&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Nilai untuk peserta ini sudah pernah diinput. Apakah Anda ingin mengedit nilai yang sudah ada?</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                                                        <button type="button" class="btn btn-warning" id="btnEditNilai">Edit Nilai</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Dialog Approval Admin -->
+                                        <div class="modal fade" id="modalApprovalAdmin" tabindex="-1" role="dialog">
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Persetujuan Admin</h5>
+                                                        <button type="button" class="close" data-dismiss="modal">
+                                                            <span>&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="form-group">
+                                                            <label for="adminUsername">Username Admin</label>
+                                                            <input type="text" class="form-control" id="adminUsername" name="adminUsername" required>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="adminPassword">Password Admin</label>
+                                                            <input type="password" class="form-control" id="adminPassword" name="adminPassword" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                                                        <button type="button" class="btn btn-primary" id="btnConfirmEdit">Konfirmasi Edit</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 2: Input Nilai -->
+                                    <div id="step2" class="content" role="tabpanel" aria-labelledby="stepper2-trigger">
+                                        <div id="formNilaiContainer">
+                                            <!-- Form nilai akan di-generate secara dinamis -->
+                                        </div>
+                                        
+                                        <!-- Button untuk mengirim nilai -->
+                                        <div id="btnKirimNilaiContainer" class="text-center mt-4" style="display: none;">
+                                            <button type="button" class="btn btn-success btn-lg" id="btnKirimNilai">
+                                                <i class="fas fa-paper-plane"></i> Kirim Nilai
+                                            </button>
+                                            <p class="text-muted mt-2">
+                                                <i class="fas fa-info-circle"></i> Pastikan semua nilai sudah diisi dengan benar sebelum mengirim
+                                            </p>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- QR Scanner Modal -->
+<div class="modal fade" id="modalQRScanner" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Scan QR Code</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="qr-reader" style="width: 100%"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section untuk menampilkan Ayat -->
+<div id="ayatSection" class="mt-4" style="display: none;">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <h5 class="card-title mb-0 mr-3" id="ayatTitle">Lihat Ayat</h5>
+                <span class="badge badge-info" id="zoomIndicator">100%</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <!-- Zoom Controls -->
+                <div class="btn-group mr-2" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="zoomOut()" title="Zoom Out">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="resetZoom()" title="Reset Zoom">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="zoomIn()" title="Zoom In">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                </div>
+                <!-- Pan Controls -->
+                <div class="btn-group mr-2" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="panUp()" title="Geser Ke Atas">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="panLeft()" title="Geser Ke Kiri">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="panRight()" title="Geser Ke Kanan">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="panDown()" title="Geser Ke Bawah">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                </div>
+                <!-- Other Controls -->
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openInNewTab()">
+                        <i class="fas fa-external-link-alt"></i> Buka di Tab Baru
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideAyatSection()">
+                        <i class="fas fa-times"></i> Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="iframeContainer">
+                <iframe id="iframeAyat" src="" style="width: 100%; height: 500px; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?= $this->endSection(); ?>
+
+<?= $this->section('scripts'); ?>
+
+
+ <style>
+     /* Styling untuk button kirim nilai */
+     #btnKirimNilai {
+         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+         transition: all 0.3s ease;
+     }
+     
+     #btnKirimNilai:hover {
+         transform: translateY(-2px);
+         box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+     }
+     
+     /* Styling untuk input yang invalid */
+     .nilai-input.is-invalid {
+         border-color: #dc3545;
+         box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+     }
+     
+     /* Animasi untuk button container */
+     #btnKirimNilaiContainer {
+         animation: fadeInUp 0.5s ease-out;
+     }
+     
+     @keyframes fadeInUp {
+         from {
+             opacity: 0;
+             transform: translateY(20px);
+         }
+         to {
+             opacity: 1;
+             transform: translateY(0);
+         }
+     }
+     
+     /* Styling untuk info text */
+     #btnKirimNilaiContainer p {
+         font-size: 0.9em;
+         margin-top: 8px;
+     }
+     
+     /* Styling untuk section ayat */
+     #ayatSection {
+         background-color: #f8f9fa;
+         border-radius: 0.5rem;
+         box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+     }
+     
+     #ayatSection .card {
+         border: none;
+         box-shadow: none;
+     }
+     
+     #ayatSection .card-header {
+         background-color: #e9ecef;
+         border-bottom: 1px solid #dee2e6;
+     }
+     
+     #iframeAyat {
+         border-radius: 0.375rem;
+         box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+         transition: transform 0.3s ease;
+         transform-origin: top left;
+         overflow: hidden;
+     }
+     
+     /* Container untuk iframe dengan pan capability */
+     #iframeContainer {
+         overflow: hidden;
+         position: relative;
+         width: 100%;
+         height: 500px;
+         border-radius: 0.375rem;
+         box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+     }
+     
+     /* Zoom levels */
+     .zoom-50 { transform: scale(0.5); }
+     .zoom-75 { transform: scale(0.75); }
+     .zoom-100 { transform: scale(1); }
+     .zoom-125 { transform: scale(1.25); }
+     .zoom-150 { transform: scale(1.5); }
+     .zoom-200 { transform: scale(2); }
+     .zoom-250 { transform: scale(2.5); }
+     .zoom-300 { transform: scale(3); }
+     
+     /* Styling untuk button lihat ayat */
+     .btn-outline-info {
+         border-color: #17a2b8;
+         color: #17a2b8;
+         transition: all 0.3s ease;
+     }
+     
+     .btn-outline-info:hover {
+         background-color: #17a2b8;
+         border-color: #17a2b8;
+         color: white;
+         transform: translateY(-1px);
+         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+     }
+     
+     /* Styling untuk kategori kesalahan */
+     .error-categories-container {
+         background-color: #f8f9fa;
+         border: 1px solid #e9ecef;
+         border-radius: 0.375rem;
+         padding: 1rem;
+         margin-top: 0.5rem;
+     }
+     
+     .error-categories-container .form-check {
+         margin-bottom: 0.5rem;
+     }
+     
+     .error-categories-container .form-check:last-child {
+         margin-bottom: 0;
+     }
+     
+     .error-categories-container .form-check-input {
+         margin-top: 0.25rem;
+     }
+     
+     .error-categories-container .form-check-label {
+         font-size: 0.9rem;
+         color: #495057;
+         cursor: pointer;
+     }
+     
+     .error-categories-container .form-check-input:checked + .form-check-label {
+         color: #dc3545;
+         font-weight: 500;
+     }
+     
+     /* Styling untuk layout 2 kolom */
+     .row.mb-4 {
+         border-bottom: 1px solid #e9ecef;
+         padding-bottom: 1rem;
+         margin-bottom: 1rem !important;
+     }
+     
+      .row.mb-4:last-child {
+          border-bottom: none;
+          margin-bottom: 0 !important;
+      }
+      
+      /* Styling untuk info-box */
+      .info-box {
+          display: block;
+          min-height: 90px;
+          background: #fff;
+          width: 100%;
+          box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+          border-radius: 0.375rem;
+          margin-bottom: 15px;
+          position: relative;
+          overflow: hidden;
+      }
+      
+      .info-box .info-box-icon {
+          border-top-left-radius: 0.375rem;
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+          border-bottom-left-radius: 0.375rem;
+          display: block;
+          float: left;
+          height: 90px;
+          width: 90px;
+          text-align: center;
+          font-size: 45px;
+          line-height: 90px;
+          background: rgba(0,0,0,0.2);
+      }
+      
+      .info-box .info-box-content {
+          padding: 5px 10px;
+          margin-left: 90px;
+      }
+      
+      .info-box .info-box-text {
+          text-transform: uppercase;
+          font-weight: bold;
+          font-size: 14px;
+      }
+      
+      .info-box .info-box-number {
+          display: block;
+          font-weight: bold;
+          font-size: 18px;
+      }
+      
+      .info-box .progress {
+          background: rgba(0,0,0,0.2);
+          margin: 5px -10px 5px -10px;
+          height: 2px;
+      }
+      
+      .info-box .progress-bar {
+          background: linear-gradient(to right, #667eea 0%, #764ba2 100%);
+      }
+      
+      .info-box .progress-description {
+          display: block;
+          font-size: 13px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+      }
+      
+      /* Color variants */
+      .info-box.bg-info {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+      }
+      
+      .info-box.bg-success {
+          background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+          color: white;
+      }
+      
+      .info-box.bg-warning {
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          color: white;
+      }
+      
+      .info-box.bg-primary {
+          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          color: white;
+      }
+      
+      /* Gradient headers */
+      .bg-gradient-info {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      
+      .bg-gradient-secondary {
+          background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+      }
+      
+      /* Styling untuk kolom durasi */
+      .duration-cell {
+          font-family: 'Courier New', monospace;
+          font-weight: bold;
+          text-align: center;
+          vertical-align: middle;
+      }
+      
+      /* Center header dan isi kolom durasi */
+      #tabelPesertaTerakhir th:nth-child(4) {
+          text-align: center;
+      }
+      
+      #tabelPesertaTerakhir td:nth-child(4) {
+          text-align: center;
+      }
+      
+      .duration-fast {
+          color: #28a745;
+          background-color: rgba(40, 167, 69, 0.1);
+          padding: 2px 6px;
+          border-radius: 4px;
+      }
+      
+      .duration-medium {
+          color: #ffc107;
+          background-color: rgba(255, 193, 7, 0.1);
+          padding: 2px 6px;
+          border-radius: 4px;
+      }
+      
+      .duration-slow {
+          color: #dc3545;
+          background-color: rgba(220, 53, 69, 0.1);
+          padding: 2px 6px;
+          border-radius: 4px;
+      }
+      
+      .duration-none {
+          color: #6c757d;
+          font-style: italic;
+      }
+      
+      /* Styling untuk tabel peserta terakhir */
+      #tabelPesertaTerakhir {
+          font-size: 0.9rem;
+      }
+      
+      #tabelPesertaTerakhir th {
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          padding: 12px 8px;
+          border-bottom: 2px solid #dee2e6;
+          text-align: center;
+      }
+      
+      /* Override untuk kolom No Peserta (left align) */
+      #tabelPesertaTerakhir th:first-child {
+          text-align: left;
+      }
+      
+      #tabelPesertaTerakhir td {
+          padding: 10px 8px;
+          vertical-align: middle;
+          border-bottom: 1px solid #f1f3f4;
+          text-align: center;
+      }
+      
+      /* Override untuk kolom No Peserta (left align) */
+      #tabelPesertaTerakhir td:first-child {
+          text-align: left;
+      }
+      
+      #tabelPesertaTerakhir tbody tr:hover {
+          background-color: #f8f9fa;
+      }
+      
+      /* Styling untuk kolom spesifik */
+      #tabelPesertaTerakhir td:first-child {
+          font-weight: 600;
+          color: #495057;
+      }
+      
+      #tabelPesertaTerakhir td:nth-child(2),
+      #tabelPesertaTerakhir td:nth-child(3) {
+          font-family: 'Courier New', monospace;
+          font-size: 0.85rem;
+          color: #495057;
+      }
+      
+      #tabelPesertaTerakhir td:nth-child(5) {
+          font-size: 0.8rem;
+          color: #6c757d;
+          font-family: 'Courier New', monospace;
+      }
+      
+      /* Styling untuk button aksi */
+      #tabelPesertaTerakhir .btn {
+          font-size: 0.75rem;
+          padding: 4px 8px;
+          border-radius: 4px;
+      }
+      
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+          #tabelPesertaTerakhir {
+              font-size: 0.8rem;
+          }
+          
+          #tabelPesertaTerakhir th,
+          #tabelPesertaTerakhir td {
+              padding: 8px 4px;
+          }
+      }
+  </style>
+
+<script>
+$(document).ready(function() {
+    // Initialize stepper
+    var stepper = new Stepper(document.querySelector('.bs-stepper'));
+    
+    // Global variables
+    let currentPesertaData = null;
+    let currentJuriData = null;
+    let currentMateriData = null;
+    let isEditMode = false;
+
+    // Get current juri data from controller
+    function getCurrentJuriData() {
+        return {
+            IdJuri: '<?= $juri_data->IdJuri ?? "" ?>',
+            UsernameJuri: '<?= $juri_data->UsernameJuri ?? "" ?>',
+            IdGrupMateriUjian: '<?= $juri_data->IdGrupMateriUjian ?? "" ?>'
+        };
+    }
+
+     // Get current tahun ajaran
+     function getCurrentTahunAjaran() {
+         const tahunAjaran = '<?= $current_tahun_ajaran ?? "" ?>';
+         if (tahunAjaran) {
+             return tahunAjaran;
+         }
+         
+         // Fallback: ambil dari server jika tidak tersedia
+         console.warn('IdTahunAjaran tidak tersedia di view, akan mengambil dari server...');
+         return null; // Akan dihandle oleh validasi
+     }
+
+     // Function to fetch tahun ajaran from server
+     function fetchTahunAjaranFromServer() {
+         return new Promise((resolve, reject) => {
+             $.ajax({
+                 url: '<?= base_url("backend/munaqosah/get-current-tahun-ajaran") ?>',
+                 type: 'GET',
+                 dataType: 'json',
+                 success: function(response) {
+                     if (response.success) {
+                         resolve(response.data.IdTahunAjaran);
+                     } else {
+                         reject(new Error(response.message || 'Gagal mengambil tahun ajaran'));
+                     }
+                 },
+                 error: function(xhr, status, error) {
+                     reject(new Error('Error koneksi: ' + error));
+                 }
+             });
+         });
+     }
+
+    // Get type ujian based on username
+    function getTypeUjian() {
+        const username = '<?= session()->get("username") ?? "" ?>';
+        if (username && username.length > 3) {
+            return 'munaqosah'; // Default untuk username tanpa 3 digit terakhir
+        }
+        return 'munaqosah';
+    }
+
+     // Step 1: Cek Peserta
+     $('#btnCekPeserta').click(async function() {
+         // Clear any auto search timeouts when manually clicking
+         if (window.autoSearchTimeout) {
+             clearTimeout(window.autoSearchTimeout);
+         }
+         if (window.autoSearchCountdown) {
+             clearInterval(window.autoSearchCountdown);
+         }
+         $('#noPeserta').removeClass('border-info');
+         $('#noPeserta').attr('placeholder', 'Masukkan atau scan QR No Peserta');
+         
+         const noPeserta = $('#noPeserta').val().trim();
+         let tahunAjaran = getCurrentTahunAjaran();
+         
+         if (!noPeserta) {
+             Swal.fire({
+                 icon: 'warning',
+                 title: 'Peringatan',
+                 text: 'Silakan masukkan nomor peserta terlebih dahulu'
+             });
+             return;
+         }
+
+         // Jika tahun ajaran tidak tersedia, coba ambil dari server
+         if (!tahunAjaran) {
+             try {
+                 Swal.fire({
+                     title: 'Memproses...',
+                     text: 'Mengambil tahun ajaran dari server',
+                     allowOutsideClick: false,
+                     didOpen: () => {
+                         Swal.showLoading();
+                     }
+                 });
+                 
+                 tahunAjaran = await fetchTahunAjaranFromServer();
+                 Swal.close();
+             } catch (error) {
+                 Swal.close();
+                 Swal.fire({
+                     icon: 'error',
+                     title: 'Error',
+                     text: 'Gagal mengambil tahun ajaran: ' + error.message
+                 });
+                 return;
+             }
+         }
+
+        // Show loading
+        Swal.fire({
+            title: 'Memproses...',
+            text: 'Mengecek data peserta',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+         // AJAX call to check peserta
+         $.ajax({
+             url: '<?= base_url("backend/munaqosah/cekPeserta") ?>',
+             type: 'POST',
+             data: {
+                 noPeserta: noPeserta,
+                 IdJuri: getCurrentJuriData().IdJuri || 'J001', // Default fallback
+                 IdTahunAjaran: tahunAjaran,
+                 TypeUjian: getTypeUjian()
+             },
+            dataType: 'json',
+            success: function(response) {
+                Swal.close();
+                
+                if (response.success) {
+                    currentPesertaData = response.data.peserta;
+                    currentJuriData = response.data.juri;
+                    currentMateriData = response.data.materi;
+                    
+                    // Show peserta info
+                    showPesertaInfo(response.data.peserta);
+                    
+                    // Check if nilai already exists
+                    if (response.data.nilaiExists) {
+                        $('#modalEditNilai').modal('show');
+                    } else {
+                        // Proceed to step 2
+                        proceedToStep2();
+                    }
+                } else {
+                    // Handle different error types with detailed messages
+                    let errorTitle = 'Error';
+                    let errorMessage = response.message || 'Terjadi kesalahan saat mengecek peserta';
+                    let errorDetails = response.details || '';
+                    
+                    // Customize error message based on status
+                    switch(response.status) {
+                        case 'VALIDATION_ERROR':
+                            errorTitle = 'Validasi Error';
+                            break;
+                        case 'DATA_NOT_FOUND':
+                            errorTitle = 'Data Tidak Ditemukan';
+                            break;
+                        case 'AUTHENTICATION_ERROR':
+                            errorTitle = 'Error Autentikasi';
+                            break;
+                        case 'AUTHORIZATION_ERROR':
+                            errorTitle = 'Error Otorisasi';
+                            break;
+                        case 'SYSTEM_ERROR':
+                            errorTitle = 'Error Sistem';
+                            break;
+                        default:
+                            errorTitle = 'Error';
+                    }
+                    
+                    // Show detailed error message
+                    Swal.fire({
+                        icon: 'error',
+                        title: errorTitle,
+                        html: `
+                            <div style="text-align: left;">
+                                <p><strong>${errorMessage}</strong></p>
+                                ${errorDetails ? `<p><small>Detail: ${errorDetails}</small></p>` : ''}
+                                ${response.code ? `<p><small>Kode Error: ${response.code}</small></p>` : ''}
+                            </div>
+                        `
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                let errorMessage = 'Terjadi kesalahan koneksi';
+                
+                // Try to parse error response
+                try {
+                    const errorResponse = JSON.parse(xhr.responseText);
+                    if (errorResponse.message) {
+                        errorMessage = errorResponse.message;
+                    }
+                } catch (e) {
+                    // Use default error message
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Koneksi',
+                    text: errorMessage + ' (' + error + ')'
+                });
+            }
+        });
+    });
+
+    // Show peserta info
+    function showPesertaInfo(peserta) {
+        const infoHtml = `
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Nama Santri:</strong> ${peserta.NamaSantri}<br>
+                    <strong>No Peserta:</strong> ${peserta.NoPeserta}
+                </div>
+                <div class="col-md-6">
+                    <strong>Grup Materi:</strong> ${currentJuriData.NamaMateriGrup}<br>
+                    <strong>Juri:</strong> ${currentJuriData.UsernameJuri}
+                </div>
+            </div>
+        `;
+        
+        $('#pesertaInfo').html(infoHtml);
+        $('#infoPeserta').show();
+    }
+
+    // Proceed to step 2
+    function proceedToStep2() {
+        generateNilaiForm();
+        stepper.next();
+    }
+
+    // Generate dynamic form for input nilai
+    function generateNilaiForm() {
+        if (!currentMateriData || currentMateriData.length === 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Tidak ada materi yang tersedia untuk grup ini'
+            });
+            return;
+        }
+
+        let formHtml = '<div class="row">';
+        
+        // Group materi by kategori
+        const groupedMateri = {};
+        currentMateriData.forEach(materi => {
+            if (!groupedMateri[materi.KategoriMateriUjian]) {
+                groupedMateri[materi.KategoriMateriUjian] = [];
+            }
+            groupedMateri[materi.KategoriMateriUjian].push(materi);
+        });
+
+        // Generate form for each kategori
+        Object.keys(groupedMateri).forEach(kategori => {
+            formHtml += `
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title">${kategori}</h5>
+                        </div>
+                        <div class="card-body">
+            `;
+            
+             groupedMateri[kategori].forEach(materi => {
+                 // Tambahkan info tambahan untuk materi Quran
+                 let additionalInfo = '';
+                 if (materi.WebLinkAyat) {
+                     additionalInfo = `
+                         <br>
+                         <div class="mt-2">
+                             <button type="button" class="btn btn-sm btn-outline-info" onclick="showAyatModal('${materi.WebLinkAyat}', '${materi.NamaMateri}')">
+                                 <i class="fas fa-eye"></i> Lihat Ayat
+                             </button>
+                         </div>
+                     `;
+                 }
+                 
+                 // Tentukan kategori kesalahan berdasarkan jenis materi
+                 let errorCategories = getErrorCategoriesForMateri(materi.NamaMateri, kategori);
+                 
+                 formHtml += `
+                     <div class="row mb-4">
+                         <div class="col-md-6">
+                             <div class="form-group">
+                                 <label for="nilai_${materi.IdMateri}">${materi.NamaMateri}</label>
+                                 <input type="number" 
+                                        class="form-control nilai-input" 
+                                        id="nilai_${materi.IdMateri}" 
+                                        name="nilai[${materi.IdMateri}]"
+                                        min="10" 
+                                        max="99" 
+                                        step="0.1"
+                                        required>
+                                 <small class="form-text text-muted">Range nilai: 10 - 99</small>
+                                 ${additionalInfo}
+                             </div>
+                         </div>
+                         <div class="col-md-6">
+                             <div class="form-group">
+                                 <label>Kategori Kesalahan (Opsional)</label>
+                                 <div class="error-categories-container" data-materi-id="${materi.IdMateri}">
+                                     ${errorCategories.map((category, index) => `
+                                         <div class="form-check">
+                                             <input class="form-check-input error-checkbox" 
+                                                    type="checkbox" 
+                                                    value="${index + 1}" 
+                                                    id="error_${materi.IdMateri}_${index + 1}"
+                                                    name="error[${materi.IdMateri}][]">
+                                             <label class="form-check-label" for="error_${materi.IdMateri}_${index + 1}">
+                                                 ${category}
+                                             </label>
+                                         </div>
+                                     `).join('')}
+                                 </div>
+                                 <small class="form-text text-muted">Pilih kategori kesalahan yang ditemukan (boleh dikosongkan)</small>
+                             </div>
+                         </div>
+                     </div>
+                 `;
+             });
+            
+            formHtml += `
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        formHtml += '</div>';
+        
+         $('#formNilaiContainer').html(formHtml);
+         
+         // Setup event listeners for nilai inputs
+         setupNilaiInputListeners();
+     }
+
+     // Function to get error categories based on materi name and kategori
+     function getErrorCategoriesForMateri(materiName, kategori) {
+         const materiLower = materiName.toLowerCase();
+         const kategoriLower = kategori.toLowerCase();
+         
+         // Kategori kesalahan untuk Doa, Surah Pendek, dan Ayat Pilihan
+         if (kategoriLower.includes('doa') || kategoriLower.includes('surah') || kategoriLower.includes('ayat') || 
+             materiLower.includes('doa') || materiLower.includes('surah') || materiLower.includes('ayat')) {
+             return [
+                 'Tidak Hafal',
+                 'Dibantu diawal',
+                 'Ganti materi dari juri',
+                 'Materi sendiri yang hafal'
+             ];
+         }
+         
+         // Kategori kesalahan untuk Praktik Sholat
+         if (kategoriLower.includes('sholat') || kategoriLower.includes('praktik') || 
+             materiLower.includes('sholat') || materiLower.includes('praktik')) {
+             return [
+                 'Tidak Bisa Qunut',
+                 'Tidak Pakai Qunut',
+                 'Salah Gerakan',
+                 'Kurang sempurna gerakan'
+             ];
+         }
+         
+         // Kategori kesalahan untuk Baca Al-Quran
+         if (kategoriLower.includes('baca') || kategoriLower.includes('quran') || 
+             materiLower.includes('baca') || materiLower.includes('quran')) {
+             return [
+                 'Tidak Lancar',
+                 'Salah Makhraj',
+                 'Salah Tajwid',
+                 'Tidak Memahami'
+             ];
+         }
+         
+         // Kategori kesalahan untuk Imla/Tulis Al-Quran
+         if (kategoriLower.includes('imla') || kategoriLower.includes('tulis') || 
+             materiLower.includes('imla') || materiLower.includes('tulis')) {
+             return [
+                 'Salah Ejaan',
+                 'Tidak Rapi',
+                 'Salah Penempatan',
+                 'Tidak Lengkap'
+             ];
+         }
+         
+         // Default categories
+         return [
+             'Tidak Hafal',
+             'Dibantu diawal',
+             'Ganti materi dari juri',
+             'Materi sendiri yang hafal'
+         ];
+     }
+
+     // Setup event listeners for nilai inputs
+     function setupNilaiInputListeners() {
+         $('.nilai-input').on('input', function() {
+             validateAndShowKirimButton();
+         });
+         
+         $('.nilai-input').on('blur', function() {
+             validateAndShowKirimButton();
+         });
+     }
+
+     // Validate all inputs and show/hide kirim button
+     function validateAndShowKirimButton() {
+         const nilaiInputs = $('.nilai-input');
+         let allValid = true;
+         let hasValue = false;
+
+         nilaiInputs.each(function() {
+             const value = parseFloat($(this).val());
+             if ($(this).val().trim() !== '') {
+                 hasValue = true;
+                 if (isNaN(value) || value < 10 || value > 99) {
+                     allValid = false;
+                     $(this).addClass('is-invalid');
+                 } else {
+                     $(this).removeClass('is-invalid');
+                 }
+             } else {
+                 $(this).removeClass('is-invalid');
+             }
+         });
+
+         // Show kirim button if all inputs are valid and at least one has value
+         if (allValid && hasValue) {
+             $('#btnKirimNilaiContainer').show();
+         } else {
+             $('#btnKirimNilaiContainer').hide();
+         }
+     }
+
+
+
+     // Kirim nilai (button baru di step 2)
+     $('#btnKirimNilai').click(async function() {
+         // Validasi semua input terlebih dahulu
+         const nilaiInputs = $('.nilai-input');
+         let isValid = true;
+         let errorMessage = '';
+
+         nilaiInputs.each(function() {
+             const value = parseFloat($(this).val());
+             if ($(this).val().trim() !== '') {
+                 if (isNaN(value) || value < 10 || value > 99) {
+                     isValid = false;
+                     errorMessage = 'Semua nilai harus dalam range 10-99';
+                     return false;
+                 }
+             }
+         });
+
+         if (!isValid) {
+             Swal.fire({
+                 icon: 'error',
+                 title: 'Validasi Error',
+                 text: errorMessage
+             });
+             return;
+         }
+
+         // Panggil fungsi simpan nilai
+         await simpanNilai();
+     });
+
+
+     // Fungsi simpan nilai yang bisa dipanggil dari button manapun
+     async function simpanNilai() {
+         let tahunAjaran = getCurrentTahunAjaran();
+         
+         // Jika tahun ajaran tidak tersedia, coba ambil dari server
+         if (!tahunAjaran) {
+             try {
+                 Swal.fire({
+                     title: 'Memproses...',
+                     text: 'Mengambil tahun ajaran dari server',
+                     allowOutsideClick: false,
+                     didOpen: () => {
+                         Swal.showLoading();
+                     }
+                 });
+                 
+                 tahunAjaran = await fetchTahunAjaranFromServer();
+                 Swal.close();
+             } catch (error) {
+                 Swal.close();
+                 Swal.fire({
+                     icon: 'error',
+                     title: 'Error',
+                     text: 'Gagal mengambil tahun ajaran: ' + error.message
+                 });
+                 return;
+             }
+         }
+
+         // Validate all inputs
+         const nilaiInputs = $('.nilai-input');
+         let isValid = true;
+         let errorMessage = '';
+
+         nilaiInputs.each(function() {
+             const value = parseFloat($(this).val());
+             if ($(this).val().trim() !== '') {
+                 if (isNaN(value) || value < 10 || value > 99) {
+                     isValid = false;
+                     errorMessage = 'Semua nilai harus dalam range 10-99';
+                     return false;
+                 }
+             }
+         });
+
+         if (!isValid) {
+             Swal.fire({
+                 icon: 'error',
+                 title: 'Validasi Error',
+                 text: errorMessage
+             });
+             return;
+         }
+
+         // Collect form data
+         const formData = {
+             NoPeserta: currentPesertaData.NoPeserta,
+             IdSantri: currentPesertaData.IdSantri,
+             IdTpq: currentPesertaData.IdTpq,
+             IdTahunAjaran: tahunAjaran,
+             IdJuri: getCurrentJuriData().IdJuri || 'J001',
+             TypeUjian: getTypeUjian(),
+             isEditMode: isEditMode,
+             nilai: {},
+             catatan: {}
+         };
+
+         nilaiInputs.each(function() {
+             const materiId = $(this).attr('name').replace('nilai[', '').replace(']', '');
+             formData.nilai[materiId] = parseFloat($(this).val());
+         });
+
+         // Collect error categories data
+         $('.error-categories-container').each(function() {
+             const materiId = $(this).data('materi-id');
+             const selectedErrors = [];
+             
+             $(this).find('.error-checkbox:checked').each(function() {
+                 selectedErrors.push($(this).val());
+             });
+             
+             // Format data sebagai string dengan format 1-3-4-8-10
+             if (selectedErrors.length > 0) {
+                 formData.catatan[materiId] = selectedErrors.join('-');
+             }
+         });
+
+         // Show loading
+         Swal.fire({
+             title: 'Menyimpan...',
+             text: 'Sedang menyimpan data nilai',
+             allowOutsideClick: false,
+             didOpen: () => {
+                 Swal.showLoading();
+             }
+         });
+
+         // AJAX call to save nilai
+         $.ajax({
+             url: '<?= base_url("backend/munaqosah/simpanNilaiJuri") ?>',
+             type: 'POST',
+             data: formData,
+             dataType: 'json',
+             success: function(response) {
+                 Swal.close();
+                 
+                 if (response.success) {
+                     Swal.fire({
+                         icon: 'success',
+                         title: 'Berhasil',
+                         text: response.message || 'Nilai berhasil disimpan',
+                         timer: 3000,
+                         showConfirmButton: false
+                    }).then(() => {
+                        // Redirect ke halaman input-nilai-juri untuk refresh data
+                        window.location.href = '<?= base_url("backend/munaqosah/input-nilai-juri") ?>';
+                    });
+                 } else {
+                     // Handle different error types with detailed messages
+                     let errorTitle = 'Error';
+                     let errorMessage = response.message || 'Terjadi kesalahan saat menyimpan nilai';
+                     let errorDetails = response.details || '';
+                     
+                     // Customize error message based on status
+                     switch(response.status) {
+                         case 'VALIDATION_ERROR':
+                             errorTitle = 'Validasi Error';
+                             break;
+                         case 'DATA_NOT_FOUND':
+                             errorTitle = 'Data Tidak Ditemukan';
+                             break;
+                         case 'DATABASE_ERROR':
+                             errorTitle = 'Error Database';
+                             break;
+                         case 'AUTHENTICATION_ERROR':
+                             errorTitle = 'Error Autentikasi';
+                             break;
+                         case 'AUTHORIZATION_ERROR':
+                             errorTitle = 'Error Otorisasi';
+                             break;
+                         case 'SYSTEM_ERROR':
+                             errorTitle = 'Error Sistem';
+                             break;
+                         default:
+                             errorTitle = 'Error';
+                     }
+                     
+                     // Show detailed error message
+                     Swal.fire({
+                         icon: 'error',
+                         title: errorTitle,
+                         html: `
+                             <div style="text-align: left;">
+                                 <p><strong>${errorMessage}</strong></p>
+                                 ${errorDetails ? `<p><small>Detail: ${errorDetails}</small></p>` : ''}
+                                 ${response.code ? `<p><small>Kode Error: ${response.code}</small></p>` : ''}
+                             </div>
+                         `
+                     });
+                 }
+             },
+             error: function(xhr, status, error) {
+                 Swal.close();
+                 let errorMessage = 'Terjadi kesalahan koneksi';
+                 
+                 // Try to parse error response
+                 try {
+                     const errorResponse = JSON.parse(xhr.responseText);
+                     if (errorResponse.message) {
+                         errorMessage = errorResponse.message;
+                     }
+                 } catch (e) {
+                     // Use default error message
+                 }
+                 
+                 Swal.fire({
+                     icon: 'error',
+                     title: 'Error Koneksi',
+                     text: errorMessage + ' (' + error + ')'
+                 });
+             }
+         });
+     }
+
+    // Edit nilai handlers
+    $('#btnEditNilai').click(function() {
+        $('#modalEditNilai').modal('hide');
+        $('#modalApprovalAdmin').modal('show');
+    });
+
+    $('#btnConfirmEdit').click(function() {
+        const adminUsername = $('#adminUsername').val();
+        const adminPassword = $('#adminPassword').val();
+        
+        if (!adminUsername || !adminPassword) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan',
+                text: 'Username dan password admin harus diisi'
+            });
+            return;
+        }
+
+        // Show loading
+        Swal.fire({
+            title: 'Memverifikasi...',
+            text: 'Memverifikasi kredensial admin',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // AJAX call to verify admin credentials
+        $.ajax({
+            url: '<?= base_url("backend/munaqosah/verifyAdminCredentials") ?>',
+            type: 'POST',
+            data: {
+                username: adminUsername,
+                password: adminPassword
+            },
+            dataType: 'json',
+            success: function(response) {
+                Swal.close();
+                
+                if (response.success) {
+                    isEditMode = true;
+                    $('#modalApprovalAdmin').modal('hide');
+                    proceedToStep2();
+                } else {
+                    // Handle different error types with detailed messages
+                    let errorTitle = 'Error';
+                    let errorMessage = response.message || 'Kredensial admin tidak valid';
+                    let errorDetails = response.details || '';
+                    
+                    // Customize error message based on status
+                    switch(response.status) {
+                        case 'VALIDATION_ERROR':
+                            errorTitle = 'Validasi Error';
+                            break;
+                        case 'AUTHENTICATION_ERROR':
+                            errorTitle = 'Error Autentikasi';
+                            break;
+                        case 'AUTHORIZATION_ERROR':
+                            errorTitle = 'Error Otorisasi';
+                            break;
+                        case 'SYSTEM_ERROR':
+                            errorTitle = 'Error Sistem';
+                            break;
+                        default:
+                            errorTitle = 'Error';
+                    }
+                    
+                    // Show detailed error message
+                    Swal.fire({
+                        icon: 'error',
+                        title: errorTitle,
+                        html: `
+                            <div style="text-align: left;">
+                                <p><strong>${errorMessage}</strong></p>
+                                ${errorDetails ? `<p><small>Detail: ${errorDetails}</small></p>` : ''}
+                                ${response.code ? `<p><small>Kode Error: ${response.code}</small></p>` : ''}
+                            </div>
+                        `
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                let errorMessage = 'Terjadi kesalahan koneksi';
+                
+                // Try to parse error response
+                try {
+                    const errorResponse = JSON.parse(xhr.responseText);
+                    if (errorResponse.message) {
+                        errorMessage = errorResponse.message;
+                    }
+                } catch (e) {
+                    // Use default error message
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Koneksi',
+                    text: errorMessage + ' (' + error + ')'
+                });
+            }
+        });
+    });
+
+     // Reset form
+     function resetForm() {
+         $('#noPeserta').val('');
+         $('#infoPeserta').hide();
+         $('#btnKirimNilaiContainer').hide();
+         $('#ayatSection').hide();
+         currentPesertaData = null;
+         currentJuriData = null;
+         currentMateriData = null;
+         isEditMode = false;
+         
+        stepper.to(1);
+     }
+
+    // QR Scanner
+    $('#btnScanQR').click(function() {
+        $('#modalQRScanner').modal('show');
+        
+        // Initialize QR scanner
+        if (typeof Html5QrcodeScanner !== 'undefined') {
+            const html5QrcodeScanner = new Html5QrcodeScanner(
+                "qr-reader",
+                { fps: 10, qrbox: { width: 250, height: 250 } }
+            );
+            
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        }
+    });
+
+    function onScanSuccess(decodedText, decodedResult) {
+        $('#noPeserta').val(decodedText);
+        $('#modalQRScanner').modal('hide');
+        
+        // Auto check peserta after QR scan
+        $('#btnCekPeserta').click();
+    }
+
+    function onScanFailure(error) {
+        // Handle scan failure
+        console.log('QR Scan failed:', error);
+    }
+
+     // Auto search when typing 3+ digits
+     $('#noPeserta').on('input', function() {
+         const noPeserta = $(this).val().trim();
+         
+         // Clear any existing timeout and countdown
+         if (window.autoSearchTimeout) {
+             clearTimeout(window.autoSearchTimeout);
+         }
+         if (window.autoSearchCountdown) {
+             clearInterval(window.autoSearchCountdown);
+         }
+         
+         // Show auto search indicator
+         if (noPeserta.length >= 3) {
+             // Add visual indicator
+             $(this).addClass('border-info');
+             
+             // Show countdown indicator in placeholder
+             const originalPlaceholder = $(this).attr('placeholder');
+             let countdown = 1;
+             
+             const updatePlaceholder = () => {
+                 $(this).attr('placeholder', `Auto search dalam ${countdown} detik...`);
+             };
+             
+             updatePlaceholder();
+             
+             const countdownInterval = setInterval(() => {
+                 countdown--;
+                 if (countdown <= 0) {
+                     clearInterval(countdownInterval);
+                     $(this).attr('placeholder', originalPlaceholder);
+                     $(this).removeClass('border-info');
+                     $('#btnCekPeserta').click();
+                 } else {
+                     updatePlaceholder();
+                 }
+             }, 1000);
+             
+             // Store interval ID for cleanup
+             window.autoSearchCountdown = countdownInterval;
+             
+             window.autoSearchTimeout = setTimeout(function() {
+                 clearInterval(window.autoSearchCountdown);
+                 $(this).attr('placeholder', originalPlaceholder);
+                 $(this).removeClass('border-info');
+                 $('#btnCekPeserta').click();
+             }, 1000); // 1 second delay after user stops typing
+         } else {
+             // Remove visual indicator if less than 3 digits
+             $(this).removeClass('border-info');
+             $(this).attr('placeholder', 'Masukkan atau scan QR No Peserta');
+         }
+     });
+
+     // Enter key handler
+     $('#noPeserta').on('keypress', function(e) {
+         if (e.which === 13) { // Enter key
+             e.preventDefault();
+             $('#btnCekPeserta').click();
+         }
+     });
+
+     // Clear auto search timeout and indicators when user focuses input
+     $('#noPeserta').on('focus', function() {
+         if (window.autoSearchTimeout) {
+             clearTimeout(window.autoSearchTimeout);
+         }
+         if (window.autoSearchCountdown) {
+             clearInterval(window.autoSearchCountdown);
+         }
+         $(this).removeClass('border-info');
+         $(this).attr('placeholder', 'Masukkan atau scan QR No Peserta');
+     });
+
+     // Clear indicators when user clicks away
+     $('#noPeserta').on('blur', function() {
+         if (window.autoSearchTimeout) {
+             clearTimeout(window.autoSearchTimeout);
+         }
+         if (window.autoSearchCountdown) {
+             clearInterval(window.autoSearchCountdown);
+         }
+         $(this).removeClass('border-info');
+         $(this).attr('placeholder', 'Masukkan atau scan QR No Peserta');
+     });
+
+     // Initialize
+ });
+
+// Global variable untuk menyimpan URL ayat saat ini
+let currentAyatUrl = '';
+
+// Global variable untuk zoom level
+let currentZoomLevel = 1;
+const zoomLevels = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
+const zoomClasses = ['zoom-50', 'zoom-75', 'zoom-100', 'zoom-125', 'zoom-150', 'zoom-200', 'zoom-250', 'zoom-300'];
+
+// Global variable untuk pan position
+let panX = 0;
+let panY = 0;
+const panStep = 50; // Pixels per pan step
+
+// Fungsi untuk menampilkan section ayat
+function showAyatModal(url, title) {
+    console.log('showAyatModal called with:', url, title);
+    
+    currentAyatUrl = url;
+    $('#ayatTitle').text(title);
+    
+    // Reset iframe terlebih dahulu
+    $('#iframeAyat').attr('src', '');
+    
+    // Tampilkan section
+    $('#ayatSection').slideDown(300);
+    
+    // Set iframe source setelah section ditampilkan
+    setTimeout(function() {
+        console.log('Setting iframe src to:', url);
+        $('#iframeAyat').attr('src', url);
+    }, 350);
+    
+    // Scroll ke section ayat
+    $('html, body').animate({
+        scrollTop: $('#ayatSection').offset().top - 100
+    }, 500);
+}
+
+// Fungsi untuk menyembunyikan section ayat
+function hideAyatSection() {
+    $('#ayatSection').slideUp(300, function() {
+        $('#iframeAyat').attr('src', '');
+        // Reset zoom dan pan saat section ditutup
+        currentZoomLevel = 1;
+        panX = 0;
+        panY = 0;
+        $('#iframeAyat').removeClass(zoomClasses.join(' '));
+        $('#iframeAyat').css('transform', 'scale(1) translate(0px, 0px)');
+    });
+}
+
+// Fungsi untuk membuka ayat di tab baru
+function openInNewTab() {
+    if (currentAyatUrl) {
+        window.open(currentAyatUrl, '_blank');
+    }
+}
+
+// Fungsi zoom in
+function zoomIn() {
+    const currentIndex = zoomLevels.indexOf(currentZoomLevel);
+    if (currentIndex < zoomLevels.length - 1) {
+        currentZoomLevel = zoomLevels[currentIndex + 1];
+        // Auto scroll ke atas saat zoom untuk fokus membaca
+        if (currentZoomLevel > 1) {
+            panY = Math.max(panY - 30, -200); // Geser ke atas sedikit
+        }
+        applyZoom();
+    }
+}
+
+// Fungsi zoom out
+function zoomOut() {
+    const currentIndex = zoomLevels.indexOf(currentZoomLevel);
+    if (currentIndex > 0) {
+        currentZoomLevel = zoomLevels[currentIndex - 1];
+        applyZoom();
+    }
+}
+
+// Fungsi reset zoom
+function resetZoom() {
+    currentZoomLevel = 1;
+    panX = 0;
+    panY = 0;
+    applyZoom();
+}
+
+// Fungsi pan (geser) ke atas
+function panUp() {
+    panY = Math.max(panY - panStep, -200);
+    applyPan();
+}
+
+// Fungsi pan (geser) ke bawah
+function panDown() {
+    panY = Math.min(panY + panStep, 200);
+    applyPan();
+}
+
+// Fungsi pan (geser) ke kiri
+function panLeft() {
+    panX = Math.max(panX - panStep, -200);
+    applyPan();
+}
+
+// Fungsi pan (geser) ke kanan
+function panRight() {
+    panX = Math.min(panX + panStep, 200);
+    applyPan();
+}
+
+// Fungsi untuk menerapkan pan
+function applyPan() {
+    const iframe = $('#iframeAyat');
+    const translateX = panX;
+    const translateY = panY;
+    
+    // Hapus transform yang ada dan terapkan yang baru
+    iframe.css('transform', `scale(${currentZoomLevel}) translate(${translateX}px, ${translateY}px)`);
+    
+    console.log('Pan applied:', panX, panY);
+}
+
+// Fungsi untuk menerapkan zoom
+function applyZoom() {
+    const iframe = $('#iframeAyat');
+    
+    // Hapus semua class zoom yang ada
+    zoomClasses.forEach(zoomClass => {
+        iframe.removeClass(zoomClass);
+    });
+    
+    // Terapkan zoom dan pan dengan CSS transform
+    const translateX = panX;
+    const translateY = panY;
+    iframe.css('transform', `scale(${currentZoomLevel}) translate(${translateX}px, ${translateY}px)`);
+    
+    // Update zoom indicator
+    $('#zoomIndicator').text(Math.round(currentZoomLevel * 100) + '%');
+    
+    console.log('Zoom level set to:', currentZoomLevel, 'Pan:', panX, panY);
+}
+
+// Fungsi untuk set No Peserta dari tabel peserta terakhir
+function setNoPeserta(noPeserta) {
+    $('#noPeserta').val(noPeserta);
+    // Trigger cek peserta otomatis
+    $('#btnCekPeserta').click();
+}
+
+</script>
+
+<?= $this->endSection(); ?>

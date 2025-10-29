@@ -160,6 +160,13 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/get-detail-santri', 'Munaqosah::getDetailSantri');
     $routes->post('munaqosah/update-santri', 'Munaqosah::updateSantri');
 
+    // Routes untuk input nilai juri
+    $routes->get('munaqosah/input-nilai-juri', 'Munaqosah::inputNilaiJuri');
+    $routes->get('munaqosah/get-current-tahun-ajaran', 'Munaqosah::getCurrentTahunAjaran');
+    $routes->post('munaqosah/cek-peserta', 'Munaqosah::cekPeserta');
+    $routes->post('munaqosah/simpan-nilai-juri', 'Munaqosah::simpanNilaiJuri');
+    $routes->post('munaqosah/verify-admin-credentials', 'Munaqosah::verifyAdminCredentials');
+
     $routes->get('munaqosah/materi', 'Munaqosah::materiMunaqosah');
     $routes->post('munaqosah/save-materi', 'Munaqosah::saveMateriMunaqosah');
     $routes->post('munaqosah/save-materi-batch', 'Munaqosah::saveMateriBatch');

@@ -67,3 +67,6 @@
 
 <!-- calendar -->
 <script src="<?php echo base_url('/plugins') ?>/fullcalendar/main.js"></script>
+
+<!-- QR Code Scanner -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
