@@ -24,13 +24,44 @@
                                 <th width="10%">ID Juri</th>
                                 <th width="20%">Username</th>
                                 <th width="15%">Grup Materi</th>
+                                <th width="10%">Type Ujian</th>
                                 <th width="15%">TPQ</th>
                                 <th width="10%">Status</th>
-                                <th width="15%">Tanggal Dibuat</th>
                                 <th width="10%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
+                            <?php if (!empty($juri)): ?>
+                                <?php $no = 1; ?>
+                                <?php foreach ($juri as $j): ?>
+                                    <tr>
+                                        <td><?= $no++ ?></td>
+                                        <td><?= $j['IdJuri'] ?></td>
+                                        <td><?= $j['UsernameJuri'] ?></td>
+                                        <td><?= $j['NamaMateriGrup'] ?></td>
+                                        <td><?= $j['TypeUjian'] ?></td>
+                                        <td><?= $j['NamaTpq'] ?? '-' ?></td>
+                                        <td>
+                                            <?php
+                                            $statusBadgeClass = $j['Status'] === 'Aktif' ? 'badge-success' : 'badge-danger';
+                                            ?>
+                                            <span class="badge <?= $statusBadgeClass ?>"><?= $j['Status'] ?></span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info btn-edit-password" data-id="<?= $j['id'] ?>" title="Ubah Password">
+                                                <i class="fas fa-key"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger btn-delete" data-id="<?= $j['id'] ?>" title="Hapus">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="9" class="text-center">Tidak ada data juri</td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -57,6 +88,9 @@
                                 <label for="IdGrupMateriUjian">Grup Materi Ujian <span class="text-danger">*</span></label>
                                 <select class="form-control" id="IdGrupMateriUjian" name="IdGrupMateriUjian" required>
                                     <option value="">Pilih Grup Materi Ujian</option>
+                                    <?php foreach ($grupMateriUjian as $grup): ?>
+                                        <option value="<?= $grup['IdGrupMateriUjian'] ?>"><?= $grup['NamaMateriGrup'] ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -65,7 +99,16 @@
                             <div class="form-group">
                                 <label for="IdTpq">TPQ (Opsional)</label>
                                 <select class="form-control" id="IdTpq" name="IdTpq">
-                                    <option value="">Pilih TPQ</option>
+                                    <?php if (count($tpqDropdown) == 1): ?>
+                                        <!-- Jika hanya ada satu TPQ, set sebagai default -->
+                                        <option value="<?= $tpqDropdown[0]['IdTpq'] ?>" selected><?= $tpqDropdown[0]['NamaTpq'] ?></option>
+                                    <?php else: ?>
+                                        <!-- Jika ada banyak TPQ, tampilkan pilihan -->
+                                        <option value="">Pilih TPQ</option>
+                                        <?php foreach ($tpqDropdown as $tpq): ?>
+                                            <option value="<?= $tpq['IdTpq'] ?>"><?= $tpq['NamaTpq'] ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -88,15 +131,15 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                             <div class="form-group">
-                                 <label for="Status">Status <span class="text-danger">*</span></label>
-                                 <select class="form-control" id="Status" name="Status" required>
-                                     <option value="">Pilih Status</option>
-                                     <option value="Aktif" selected>Aktif</option>
-                                     <option value="Tidak Aktif">Tidak Aktif</option>
-                                 </select>
-                                 <div class="invalid-feedback"></div>
-                             </div>
+                            <div class="form-group">
+                                <label for="Status">Status <span class="text-danger">*</span></label>
+                                <select class="form-control" id="Status" name="Status" required>
+                                    <option value="">Pilih Status</option>
+                                    <option value="Aktif" selected>Aktif</option>
+                                    <option value="Tidak Aktif">Tidak Aktif</option>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="row">
@@ -132,11 +175,11 @@
                         <div class="col-md-12">
                             <div class="alert alert-info">
                                 <h6><i class="icon fas fa-info"></i> Informasi Akun:</h6>
-                                 <ul class="mb-0">
-                                     <li><strong>Email:</strong> <span id="emailPreview">username@smartpq.simpedis.com</span></li>
-                                     <li><strong>Password:</strong> JuriTpqSmart</li>
-                                     <li><strong>Group:</strong> Juri (ID: 5)</li>
-                                 </ul>
+                                <ul class="mb-0">
+                                    <li><strong>Email:</strong> <span id="emailPreview">username@smartpq.simpedis.com</span></li>
+                                    <li><strong>Password:</strong> JuriTpqSmart</li>
+                                    <li><strong>Group:</strong> Juri (ID: 5)</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -203,434 +246,369 @@
 
 <?= $this->section('scripts') ?>
 <script>
-$(document).ready(function() {
-    let tableJuri;
-    let currentJuriId = null;
-
-    // Initialize DataTable
-    function initDataTable() {
+    $(document).ready(function() {
+        let tableJuri;
+        let currentJuriId = null;
+// DataTabe
         tableJuri = $('#tableJuri').DataTable({
-            processing: true,
-            serverSide: false,
-            ajax: {
-                url: '<?= base_url('backend/munaqosah/getJuriData') ?>',
-                type: 'GET'
-            },
-            columns: [
-                { data: null, orderable: false, searchable: false },
-                { data: 'IdJuri' },
-                { data: 'UsernameJuri' },
-                { data: 'NamaMateriGrup' },
-                { data: 'NamaTpq', defaultContent: '-' },
-                { 
-                    data: 'Status',
-                    render: function(data, type, row) {
-                        let badgeClass = data === 'Aktif' ? 'badge-success' : 'badge-danger';
-                        return '<span class="badge ' + badgeClass + '">' + data + '</span>';
-                    }
-                },
-                { 
-                    data: 'created_at',
-                    render: function(data, type, row) {
-                        return moment(data).format('DD/MM/YYYY HH:mm');
-                    }
-                },
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    render: function(data, type, row) {
-                        return `
-                            <button class="btn btn-sm btn-info btn-edit-password" data-id="${row.id}" title="Ubah Password">
-                                <i class="fas fa-key"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger btn-delete" data-id="${row.id}" title="Hapus">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        `;
-                    }
-                }
-            ],
-            order: [[6, 'desc']],
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json'
-            }
+            "responsive": true,
+            "lengthChange": false,
+            "autoWidth": false,
+            "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
         });
 
-        // Add row number
-        tableJuri.on('order.dt search.dt', function() {
-            tableJuri.column(0, {search: 'applied', order: 'applied'}).nodes().each(function(cell, i) {
-                cell.innerHTML = i + 1;
-            });
-        }).draw();
-    }
+        // Generate Username
+        function generateUsername() {
+            let idGrupMateriUjian = $('#IdGrupMateriUjian').val();
+            let idTpq = $('#IdTpq').val();
 
-    // Load data for dropdowns
-    function loadDropdownData() {
-        // Load Grup Materi Ujian
-        $.get('<?= base_url('backend/munaqosah/getGrupMateriUjian') ?>')
-            .done(function(response) {
-                if (response.success) {
-                    let options = '<option value="">Pilih Grup Materi Ujian</option>';
-                    response.data.forEach(function(item) {
-                        options += `<option value="${item.IdGrupMateriUjian}">${item.NamaMateriGrup}</option>`;
-                    });
-                    $('#IdGrupMateriUjian').html(options);
-                }
-            });
+            if (!idGrupMateriUjian) {
+                showAlert('Pilih grup materi ujian terlebih dahulu', 'warning');
+                return;
+            }
 
-        // Load TPQ Data
-        $.get('<?= base_url('backend/munaqosah/getTpqDataForJuri') ?>')
-            .done(function(response) {
-                if (response.success) {
-                    let options = '<option value="">Pilih TPQ</option>';
-                    response.data.forEach(function(item) {
-                        options += `<option value="${item.IdTpq}">${item.NamaTpq}</option>`;
-                    });
-                    $('#IdTpq').html(options);
-                }
-            });
-    }
+            // Show loading on button
+            let $btn = $('#generateUsernameBtn');
+            let originalText = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generate...');
 
-    // Generate Username
-    function generateUsername() {
-        let idGrupMateriUjian = $('#IdGrupMateriUjian').val();
-        let idTpq = $('#IdTpq').val();
-
-        if (!idGrupMateriUjian) {
-            showAlert('Pilih grup materi ujian terlebih dahulu', 'warning');
-            return;
+            $.post('<?= base_url('backend/munaqosah/generateUsernameJuri') ?>', {
+                    IdGrupMateriUjian: idGrupMateriUjian,
+                    IdTpq: idTpq
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        $('#UsernameJuri').val(response.username);
+                        $('#emailPreview').text(response.username + '@smartpq.simpedis.com');
+                    } else {
+                        showAlert(response.message, 'error');
+                    }
+                })
+                .fail(function() {
+                    showAlert('Gagal generate username', 'error');
+                })
+                .always(function() {
+                    // Restore button
+                    $btn.prop('disabled', false).html(originalText);
+                });
         }
 
-        // Show loading on button
-        let $btn = $('#generateUsernameBtn');
-        let originalText = $btn.html();
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generate...');
+        // Show Alert using SweetAlert2
+        function showAlert(message, type) {
+            let icon = 'info';
+            let title = 'Informasi';
 
-        $.post('<?= base_url('backend/munaqosah/generateUsernameJuri') ?>', {
-            IdGrupMateriUjian: idGrupMateriUjian,
-            IdTpq: idTpq
-        })
-        .done(function(response) {
-            if (response.success) {
-                $('#UsernameJuri').val(response.username);
-                $('#emailPreview').text(response.username + '@smartpq.simpedis.com');
-            } else {
-                showAlert(response.message, 'error');
+            switch (type) {
+                case 'success':
+                    icon = 'success';
+                    title = 'Berhasil';
+                    break;
+                case 'error':
+                    icon = 'error';
+                    title = 'Error';
+                    break;
+                case 'warning':
+                    icon = 'warning';
+                    title = 'Peringatan';
+                    break;
+                default:
+                    icon = 'info';
+                    title = 'Informasi';
             }
-        })
-        .fail(function() {
-            showAlert('Gagal generate username', 'error');
-        })
-        .always(function() {
-            // Restore button
-            $btn.prop('disabled', false).html(originalText);
-        });
-    }
 
-     // Show Alert using SweetAlert2
-     function showAlert(message, type) {
-         let icon = 'info';
-         let title = 'Informasi';
-         
-         switch(type) {
-             case 'success':
-                 icon = 'success';
-                 title = 'Berhasil';
-                 break;
-             case 'error':
-                 icon = 'error';
-                 title = 'Error';
-                 break;
-             case 'warning':
-                 icon = 'warning';
-                 title = 'Peringatan';
-                 break;
-             default:
-                 icon = 'info';
-                 title = 'Informasi';
-         }
-         
-         Swal.fire({
-             icon: icon,
-             title: title,
-             text: message,
-             confirmButtonText: 'OK',
-             confirmButtonColor: '#3085d6',
-             timer: type === 'success' ? 3000 : null,
-             timerProgressBar: type === 'success' ? true : false
-         });
-     }
+            Swal.fire({
+                icon: icon,
+                title: title,
+                text: message,
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#3085d6',
+                timer: type === 'success' ? 3000 : null,
+                timerProgressBar: type === 'success' ? true : false
+            });
+        }
 
-     // Reset Form
-     function resetForm() {
-         $('#formJuri')[0].reset();
-         $('#formJuri .invalid-feedback').text('');
-         $('#formJuri .form-control').removeClass('is-invalid');
-         $('#modalJuriLabel').text('Tambah Juri Baru');
-         $('#btnSaveJuri').html('<i class="fas fa-save"></i> Simpan');
-         currentJuriId = null;
-         $('#emailPreview').text('username@smartpq.simpedis.com');
-         // Set default status to Aktif
-         $('#Status').val('Aktif');
-         // Set default password
-         $('#useDefaultPassword').prop('checked', true);
-         $('#PasswordJuri').val('JuriTpqSmart').prop('readonly', true);
-         $('#ConfirmPasswordJuri').val('JuriTpqSmart').prop('readonly', true);
-     }
+        // Reset Form
+        function resetForm() {
+            $('#formJuri')[0].reset();
+            $('#formJuri .invalid-feedback').text('');
+            $('#formJuri .form-control').removeClass('is-invalid');
+            $('#modalJuriLabel').text('Tambah Juri Baru');
+            $('#btnSaveJuri').html('<i class="fas fa-save"></i> Simpan');
+            currentJuriId = null;
+            $('#emailPreview').text('username@smartpq.simpedis.com');
+            // Set default status to Aktif
+            $('#Status').val('Aktif');
+            // Set default password
+            $('#useDefaultPassword').prop('checked', true);
+            $('#PasswordJuri').val('JuriTpqSmart').prop('readonly', true);
+            $('#ConfirmPasswordJuri').val('JuriTpqSmart').prop('readonly', true);
+
+            // Reset TPQ dropdown jika hanya ada satu TPQ
+            <?php if (count($tpqDropdown) == 1): ?>
+                $('#IdTpq').val('<?= $tpqDropdown[0]['IdTpq'] ?>');
+            <?php endif; ?>
+        }
 
 
-    // Event Handlers
-    $('#btnGenerateUsername').click(function() {
-        generateUsername();
-    });
-
-    $('#IdGrupMateriUjian, #IdTpq').change(function() {
-        if ($('#IdGrupMateriUjian').val()) {
+        // Event Handlers
+        $('#btnGenerateUsername').click(function() {
             generateUsername();
-        }
-    });
+        });
 
-    // Toggle Password Visibility
-    $(document).on('click', '#togglePasswordBtn', function() {
-        const passwordField = $('#PasswordJuri');
-        const icon = $(this).find('i');
-        
-        if (passwordField.attr('type') === 'password') {
-            passwordField.attr('type', 'text');
-            icon.removeClass('fa-eye').addClass('fa-eye-slash');
-        } else {
-            passwordField.attr('type', 'password');
-            icon.removeClass('fa-eye-slash').addClass('fa-eye');
-        }
-    });
-
-    // Toggle Edit Password Visibility
-    $(document).on('click', '#toggleEditPasswordBtn', function() {
-        const passwordField = $('#editPasswordJuri');
-        const icon = $(this).find('i');
-        
-        if (passwordField.attr('type') === 'password') {
-            passwordField.attr('type', 'text');
-            icon.removeClass('fa-eye').addClass('fa-eye-slash');
-        } else {
-            passwordField.attr('type', 'password');
-            icon.removeClass('fa-eye-slash').addClass('fa-eye');
-        }
-    });
-
-    // Use Default Password Checkbox
-    $(document).on('change', '#useDefaultPassword', function() {
-        const passwordField = $('#PasswordJuri');
-        const confirmField = $('#ConfirmPasswordJuri');
-        
-        if ($(this).is(':checked')) {
-            passwordField.val('JuriTpqSmart').prop('readonly', true);
-            confirmField.val('JuriTpqSmart').prop('readonly', true);
-        } else {
-            passwordField.val('').prop('readonly', false);
-            confirmField.val('').prop('readonly', false);
-        }
-    });
-
-    // Use Default Password Edit Checkbox
-    $(document).on('change', '#useDefaultPasswordEdit', function() {
-        const passwordField = $('#editPasswordJuri');
-        const confirmField = $('#editConfirmPasswordJuri');
-        
-        if ($(this).is(':checked')) {
-            passwordField.val('JuriTpqSmart').prop('readonly', true);
-            confirmField.val('JuriTpqSmart').prop('readonly', false);
-        } else {
-            passwordField.val('').prop('readonly', false);
-            confirmField.val('').prop('readonly', false);
-        }
-    });
-
-     // Form Submit
-     $('#formJuri').submit(function(e) {
-         e.preventDefault();
-         
-         // Show loading
-         Swal.fire({
-             title: 'Memproses...',
-             text: 'Mohon tunggu sebentar',
-             icon: 'info',
-             allowOutsideClick: false,
-             showConfirmButton: false,
-             didOpen: () => {
-                 Swal.showLoading();
-             }
-         });
-         
-         let formData = new FormData(this);
-         let url = currentJuriId ? 
-             '<?= base_url('backend/munaqosah/updateJuri') ?>/' + currentJuriId :
-             '<?= base_url('backend/munaqosah/saveJuri') ?>';
-         
-         $.ajax({
-             url: url,
-             type: 'POST',
-             data: formData,
-             processData: false,
-             contentType: false,
-             success: function(response) {
-                 Swal.close();
-                 
-                 if (response.success) {
-                     Swal.fire({
-                         title: 'Berhasil!',
-                         text: response.message,
-                         icon: 'success',
-                         timer: 2000,
-                         showConfirmButton: false
-                     });
-                     $('#modalJuri').modal('hide');
-                     tableJuri.ajax.reload();
-                     resetForm();
-                 } else {
-                     // Show validation errors
-                     if (response.errors) {
-                         let errorMessages = [];
-                         Object.keys(response.errors).forEach(function(key) {
-                             let field = $('[name="' + key + '"]');
-                             field.addClass('is-invalid');
-                             field.siblings('.invalid-feedback').text(response.errors[key]);
-                             errorMessages.push(response.errors[key]);
-                         });
-                         
-                         // Show detailed error with SweetAlert2
-                         Swal.fire({
-                             icon: 'error',
-                             title: 'Validasi Gagal',
-                             html: '<ul class="text-left"><li>' + errorMessages.join('</li><li>') + '</li></ul>',
-                             confirmButtonText: 'OK',
-                             confirmButtonColor: '#d33'
-                         });
-                     } else {
-                         showAlert(response.message, 'error');
-                     }
-                 }
-             },
-             error: function() {
-                 Swal.close();
-                 showAlert('Terjadi kesalahan saat menyimpan data', 'error');
-             }
-         });
-     });
-
-    // Edit Password Button
-    $(document).on('click', '.btn-edit-password', function() {
-        currentJuriId = $(this).data('id');
-        $('#modalEditPassword').modal('show');
-        // Reset form
-        $('#formEditPassword')[0].reset();
-        $('#useDefaultPasswordEdit').prop('checked', false);
-    });
-
-     // Delete Button
-     $(document).on('click', '.btn-delete', function() {
-         currentJuriId = $(this).data('id');
-         
-         Swal.fire({
-             title: 'Konfirmasi Hapus',
-             text: 'Apakah Anda yakin ingin menghapus data juri ini?',
-             icon: 'warning',
-             showCancelButton: true,
-             confirmButtonColor: '#d33',
-             cancelButtonColor: '#3085d6',
-             confirmButtonText: 'Ya, Hapus!',
-             cancelButtonText: 'Batal'
-         }).then((result) => {
-             if (result.isConfirmed) {
-                 // Proceed with delete
-                 $.ajax({
-                     url: '<?= base_url('backend/munaqosah/deleteJuri') ?>/' + currentJuriId,
-                     type: 'POST',
-                     success: function(response) {
-                         if (response.success) {
-                             Swal.fire({
-                                 title: 'Berhasil!',
-                                 text: response.message,
-                                 icon: 'success',
-                                 timer: 2000,
-                                 showConfirmButton: false
-                             });
-                             tableJuri.ajax.reload();
-                         } else {
-                             showAlert(response.message, 'error');
-                         }
-                     },
-                     error: function() {
-                         showAlert('Terjadi kesalahan saat menghapus data', 'error');
-                     }
-                 });
-             }
-         });
-     });
-
-    // Form Edit Password Submit
-    $('#formEditPassword').submit(function(e) {
-        e.preventDefault();
-        
-        // Validate password match
-        const password = $('#editPasswordJuri').val();
-        const confirmPassword = $('#editConfirmPasswordJuri').val();
-        
-        if (password !== confirmPassword) {
-            showAlert('Password dan konfirmasi password tidak sama', 'error');
-            return;
-        }
-        
-        // Show loading
-        Swal.fire({
-            title: 'Memproses...',
-            text: 'Mohon tunggu sebentar',
-            icon: 'info',
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
+        $('#IdGrupMateriUjian, #IdTpq').change(function() {
+            if ($('#IdGrupMateriUjian').val()) {
+                generateUsername();
             }
         });
-        
-        $.ajax({
-            url: '<?= base_url('backend/munaqosah/updatePasswordJuri') ?>/' + currentJuriId,
-            type: 'POST',
-            data: {
-                password: password
-            },
-            success: function(response) {
-                Swal.close();
-                
-                if (response.success) {
-                    Swal.fire({
-                        title: 'Berhasil!',
-                        text: response.message,
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    $('#modalEditPassword').modal('hide');
-                } else {
-                    showAlert(response.message, 'error');
+
+        // Toggle Password Visibility
+        $(document).on('click', '#togglePasswordBtn', function() {
+            const passwordField = $('#PasswordJuri');
+            const icon = $(this).find('i');
+
+            if (passwordField.attr('type') === 'password') {
+                passwordField.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                passwordField.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+
+        // Toggle Edit Password Visibility
+        $(document).on('click', '#toggleEditPasswordBtn', function() {
+            const passwordField = $('#editPasswordJuri');
+            const icon = $(this).find('i');
+
+            if (passwordField.attr('type') === 'password') {
+                passwordField.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                passwordField.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+
+        // Use Default Password Checkbox
+        $(document).on('change', '#useDefaultPassword', function() {
+            const passwordField = $('#PasswordJuri');
+            const confirmField = $('#ConfirmPasswordJuri');
+
+            if ($(this).is(':checked')) {
+                passwordField.val('JuriTpqSmart').prop('readonly', true);
+                confirmField.val('JuriTpqSmart').prop('readonly', true);
+            } else {
+                passwordField.val('').prop('readonly', false);
+                confirmField.val('').prop('readonly', false);
+            }
+        });
+
+        // Use Default Password Edit Checkbox
+        $(document).on('change', '#useDefaultPasswordEdit', function() {
+            const passwordField = $('#editPasswordJuri');
+            const confirmField = $('#editConfirmPasswordJuri');
+
+            if ($(this).is(':checked')) {
+                passwordField.val('JuriTpqSmart').prop('readonly', true);
+                confirmField.val('JuriTpqSmart').prop('readonly', false);
+            } else {
+                passwordField.val('').prop('readonly', false);
+                confirmField.val('').prop('readonly', false);
+            }
+        });
+
+        // Form Submit
+        $('#formJuri').submit(function(e) {
+            e.preventDefault();
+
+            // Show loading
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Mohon tunggu sebentar',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
-            },
-            error: function() {
-                Swal.close();
-                showAlert('Terjadi kesalahan saat mengupdate password', 'error');
-            }
+            });
+
+            let formData = new FormData(this);
+            let url = currentJuriId ?
+                '<?= base_url('backend/munaqosah/updateJuri') ?>/' + currentJuriId :
+                '<?= base_url('backend/munaqosah/saveJuri') ?>';
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    Swal.close();
+
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#modalJuri').modal('hide');
+                        // Reload halaman untuk menampilkan data terbaru
+                        location.reload();
+                    } else {
+                        // Show validation errors
+                        if (response.errors) {
+                            let errorMessages = [];
+                            Object.keys(response.errors).forEach(function(key) {
+                                let field = $('[name="' + key + '"]');
+                                field.addClass('is-invalid');
+                                field.siblings('.invalid-feedback').text(response.errors[key]);
+                                errorMessages.push(response.errors[key]);
+                            });
+
+                            // Show detailed error with SweetAlert2
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Validasi Gagal',
+                                html: '<ul class="text-left"><li>' + errorMessages.join('</li><li>') + '</li></ul>',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#d33'
+                            });
+                        } else {
+                            showAlert(response.message, 'error');
+                        }
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    showAlert('Terjadi kesalahan saat menyimpan data', 'error');
+                }
+            });
         });
-    });
 
-    // Modal Events
-    $('#modalJuri').on('hidden.bs.modal', function() {
-        resetForm();
-    });
+        // Edit Password Button
+        $(document).on('click', '.btn-edit-password', function() {
+            currentJuriId = $(this).data('id');
+            $('#modalEditPassword').modal('show');
+            // Reset form
+            $('#formEditPassword')[0].reset();
+            $('#useDefaultPasswordEdit').prop('checked', false);
+        });
 
-    // Initialize
-    initDataTable();
-    loadDropdownData();
-});
+        // Delete Button
+        $(document).on('click', '.btn-delete', function() {
+            currentJuriId = $(this).data('id');
+
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                text: 'Apakah Anda yakin ingin menghapus data juri ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Proceed with delete
+                    $.ajax({
+                        url: '<?= base_url('backend/munaqosah/deleteJuri') ?>/' + currentJuriId,
+                        type: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    text: response.message,
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                                // Reload halaman untuk menampilkan data terbaru
+                                location.reload();
+                            } else {
+                                showAlert(response.message, 'error');
+                            }
+                        },
+                        error: function() {
+                            showAlert('Terjadi kesalahan saat menghapus data', 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Form Edit Password Submit
+        $('#formEditPassword').submit(function(e) {
+            e.preventDefault();
+
+            // Validate password match
+            const password = $('#editPasswordJuri').val();
+            const confirmPassword = $('#editConfirmPasswordJuri').val();
+
+            if (password !== confirmPassword) {
+                showAlert('Password dan konfirmasi password tidak sama', 'error');
+                return;
+            }
+
+            // Show loading
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Mohon tunggu sebentar',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/updatePasswordJuri') ?>/' + currentJuriId,
+                type: 'POST',
+                data: {
+                    password: password
+                },
+                success: function(response) {
+                    Swal.close();
+
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#modalEditPassword').modal('hide');
+                    } else {
+                        showAlert(response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    showAlert('Terjadi kesalahan saat mengupdate password', 'error');
+                }
+            });
+        });
+
+        // Modal Events
+        $('#modalJuri').on('hidden.bs.modal', function() {
+            resetForm();
+        });
+
+        // Auto generate username when modal is shown and TPQ is pre-selected
+        $('#modalJuri').on('shown.bs.modal', function() {
+            <?php if (count($tpqDropdown) == 1): ?>
+                // Auto generate username if TPQ is pre-selected
+                if ($('#IdGrupMateriUjian').val()) {
+                    generateUsername();
+                }
+            <?php endif; ?>
+        });
+
+    });
 </script>
 <?= $this->endSection() ?>

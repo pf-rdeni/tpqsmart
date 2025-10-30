@@ -67,18 +67,6 @@
                             <?php endif; ?>
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Informasi Umum</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Daftar Peserta</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Data Nilai</p>
@@ -102,6 +90,21 @@
                                         <p>Bobot Nilai</p>
                                     </a>
                                 </li>
+
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Informasi Umum</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Daftar Peserta</p>
+                                    </a>
+                                </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/juri') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -109,7 +112,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Panitia') || in_groups('Admin')): ?>
+                            <?php if (in_groups('Panitia') || in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/registrasi-peserta') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>

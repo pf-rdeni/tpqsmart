@@ -100,11 +100,10 @@ class Munaqosah extends BaseController
         $pesertaTerakhir = $this->nilaiMunaqosahModel->getPesertaTerakhirByJuri(
             $juriData->IdJuri,
             $currentTahunAjaran,
-            $typeUjian,
-            5
+            $typeUjian
         );
         // Ambil total peserta yang sudah dinilai oleh juri
-        $totalPeserta = $this->nilaiMunaqosahModel->getTotalPesertaByJuri($juriData->IdJuri, $currentTahunAjaran, $typeUjian);
+        $totalPesertaSudahDinilai = $this->nilaiMunaqosahModel->getTotalPesertaByJuri($juriData->IdJuri, $currentTahunAjaran, $typeUjian);
         // Hitung IdPeserta dari tbl_munaqosah_registrasi_uji dan tbl_munaqosah_nilai, dihitung dengan COUNT(DISTINCT NoPeserta) dari tbl_munaqosah_registrasi_uji dikurangi COUNT(DISTINCT NoPeserta) dari tbl_munaqosah_nilai
         $totalRegisteredParticipants = $this->db->table('tbl_munaqosah_registrasi_uji')
             ->select('COUNT(DISTINCT NoPeserta) as count')
@@ -130,8 +129,9 @@ class Munaqosah extends BaseController
             'current_tahun_ajaran' => $currentTahunAjaran,
             'juri_data' => $juriData,
             'peserta_terakhir' => $pesertaTerakhir,
-            'total_peserta' => $totalPeserta,
-            'total_peserta_belum_dinilai' => $totalPesertaBelumDinilai
+            'total_peserta_sudah_dinilai' => $totalPesertaSudahDinilai,
+            'total_peserta_belum_dinilai' => $totalPesertaBelumDinilai,
+            'total_peserta_terdaftar' => $totalRegisteredParticipants
         ];
         return view('backend/Munaqosah/inputNilaiJuri', $data);
     }
@@ -3227,6 +3227,18 @@ class Munaqosah extends BaseController
             $IdTahunAjaran = $this->request->getPost('IdTahunAjaran');
             $TypeUjian = $this->request->getPost('TypeUjian') ?? 'munaqosah';
 
+            // Ambil IdTpq dari data juri
+            $idTpq = $this->munaqosahJuriModel->getJuriByIdJuri($IdJuri)['IdTpq'];
+            if (empty($idTpq)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'DATA_NOT_FOUND',
+                    'code' => 'ID_TPQ_NOT_FOUND',
+                    'message' => 'ID TPQ tidak ditemukan',
+                    'details' => 'ID TPQ dengan ID Juri ' . $IdJuri . ' tidak ditemukan'
+                ]);
+            }
+
             // Validasi parameter input
             if (empty($noPeserta)) {
                 return $this->response->setJSON([
@@ -3260,7 +3272,7 @@ class Munaqosah extends BaseController
             }
 
             // Cek data registrasi peserta
-            $registrasi = $this->munaqosahRegistrasiUjiModel->getRegistrasiByNoPeserta($noPeserta);
+            $registrasi = $this->munaqosahRegistrasiUjiModel->getRegistrasiByNoPeserta($noPeserta, $TypeUjian, $IdTahunAjaran, $idTpq !== null ? $idTpq : 0);
 
             if (empty($registrasi)) {
                 return $this->response->setJSON([
@@ -3273,14 +3285,14 @@ class Munaqosah extends BaseController
             }
 
             // Ambil data santri
-            $santriData = $this->santriBaruModel->getDetailSantri($registrasi[0]['IdSantri']);
-            if (!$santriData) {
+            $santriData = $this->santriBaruModel->getDetailSantri($registrasi['IdSantri']);
+            if (empty($santriData)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'status' => 'DATA_NOT_FOUND',
                     'code' => 'SANTRI_NOT_FOUND',
                     'message' => 'Data santri tidak ditemukan',
-                    'details' => 'Data santri dengan ID ' . $registrasi[0]['IdSantri'] . ' tidak ditemukan'
+                    'details' => 'Data santri dengan ID ' . $registrasi['IdSantri'] . ' tidak ditemukan'
                 ]);
             }
 
@@ -3290,7 +3302,7 @@ class Munaqosah extends BaseController
                 $juriData = $this->munaqosahJuriModel->getJuriByIdJuri($IdJuri);
             }
 
-            if (!$juriData) {
+            if (empty($juriData)) {
                 // Jika tidak ada data juri, coba ambil dari session atau default
                 $juriData = [
                     'IdJuri' => $IdJuri ?? 'J001',
@@ -3312,7 +3324,7 @@ class Munaqosah extends BaseController
             }
 
             // Ambil materi berdasarkan registrasi peserta dan grup materi ujian
-            $materiData = $this->munaqosahRegistrasiUjiModel->getMateriByNoPesertaAndGrup($noPeserta, $juriData['IdGrupMateriUjian']);
+            $materiData = $this->munaqosahRegistrasiUjiModel->getMateriByNoPesertaAndGrup($noPeserta, $juriData['IdGrupMateriUjian'], $TypeUjian, $IdTahunAjaran);
             if (empty($materiData)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -3348,9 +3360,9 @@ class Munaqosah extends BaseController
             // Siapkan data response
             $responseData = [
                 'peserta' => [
-                    'NoPeserta' => $registrasi[0]['NoPeserta'],
-                    'IdSantri' => $registrasi[0]['IdSantri'],
-                    'IdTpq' => $registrasi[0]['IdTpq'],
+                    'NoPeserta' => $registrasi['NoPeserta'],
+                    'IdSantri' => $registrasi['IdSantri'],
+                    'IdTpq' => $registrasi['IdTpq'],
                     'NamaSantri' => $santriData['NamaSantri'],
                     'NamaTpq' => $santriData['IdTpq'],
                     'NamaKelas' => $santriData['IdKelas']

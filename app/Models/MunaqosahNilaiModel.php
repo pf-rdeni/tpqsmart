@@ -109,7 +109,7 @@ class MunaqosahNilaiModel extends Model
     /**
      * Ambil 3 No Peserta terakhir yang sudah dinilai oleh juri tertentu dengan durasi
      */
-    public function getPesertaTerakhirByJuri($idJuri, $idTahunAjaran, $typeUjian, $limit = 3)
+    public function getPesertaTerakhirByJuri($idJuri, $idTahunAjaran, $typeUjian)
     {
         // Query sederhana untuk mendapatkan data peserta
         $sql = "
@@ -126,10 +126,9 @@ class MunaqosahNilaiModel extends Model
                 AND mn.TypeUjian = ?
             GROUP BY mn.NoPeserta, s.NamaSantri, j.UsernameJuri
             ORDER BY updated_at DESC
-            LIMIT ?
         ";
 
-        $result = $this->db->query($sql, [$idJuri, $idTahunAjaran, $typeUjian, $limit])->getResultArray();
+        $result = $this->db->query($sql, [$idJuri, $idTahunAjaran, $typeUjian])->getResultArray();
 
         // Hitung durasi secara manual untuk akurasi
         $totalRows = count($result);

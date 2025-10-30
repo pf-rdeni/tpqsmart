@@ -101,9 +101,17 @@ class MunaqosahRegistrasiUjiModel extends Model
     /**
      * Ambil data registrasi berdasarkan filter
      */
-    public function getRegistrasiByNoPeserta($noPeserta)
+    public function getRegistrasiByNoPeserta($noPeserta, $typeUjian, $idTahunAjaran, $idTpq)
     {
-        return $this->where('NoPeserta', $noPeserta)->findAll();
+        $builder = $this->db->table($this->table . ' r');
+        $builder->select('r.*');
+        $builder->where('r.NoPeserta', $noPeserta);
+        $builder->where('r.TypeUjian', $typeUjian);
+        $builder->where('r.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('r.IdTpq', $idTpq !== null ? $idTpq : 0);
+        $builder->groupBy('r.NoPeserta');
+        $result = $builder->get()->getRowArray();
+        return $result ? $result : [];
     }
 
     /**
@@ -136,7 +144,7 @@ class MunaqosahRegistrasiUjiModel extends Model
     /**
      * Ambil materi berdasarkan NoPeserta dan IdGrupMateriUjian
      */
-    public function getMateriByNoPesertaAndGrup($noPeserta, $idGrupMateriUjian)
+    public function getMateriByNoPesertaAndGrup($noPeserta, $idGrupMateriUjian, $typeUjian, $idTahunAjaran)
     {
         if ($idGrupMateriUjian === 'GM001') {
             // Untuk grup Quran, ambil dari tbl_munaqosah_alquran
@@ -145,6 +153,8 @@ class MunaqosahRegistrasiUjiModel extends Model
             $builder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri', 'left');
             $builder->where('r.NoPeserta', $noPeserta);
             $builder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
+            $builder->where('r.TypeUjian', $typeUjian);
+            $builder->where('r.IdTahunAjaran', $idTahunAjaran);
             $builder->groupBy('r.IdMateri');
         } else {
             // Untuk grup lain, ambil dari tbl_materi_pelajaran
@@ -153,10 +163,12 @@ class MunaqosahRegistrasiUjiModel extends Model
             $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
             $builder->where('r.NoPeserta', $noPeserta);
             $builder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
+            $builder->where('r.TypeUjian', $typeUjian);
+            $builder->where('r.IdTahunAjaran', $idTahunAjaran);
             $builder->groupBy('r.IdMateri');
         }
-
-        return $builder->get()->getResultArray();
+        $result = $builder->get()->getResultArray();
+        return $result ? $result : [];
     }
     public function getRegistrasiByFilter($filterTpq = 0, $filterKelas = 0, $typeUjian = 'munaqosah')
     {

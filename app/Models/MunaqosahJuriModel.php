@@ -17,6 +17,7 @@ class MunaqosahJuriModel extends Model
         'IdTpq',
         'UsernameJuri',
         'IdGrupMateriUjian',
+        'TypeUjian',
         'Status'
     ];
 
@@ -32,6 +33,7 @@ class MunaqosahJuriModel extends Model
         'IdTpq' => 'permit_empty|integer',
         'UsernameJuri' => 'required|max_length[100]|is_unique[tbl_munaqosah_juri.UsernameJuri,id,{id}]',
         'IdGrupMateriUjian' => 'required|max_length[50]',
+        'TypeUjian' => 'required|in_list[pra-munaqosah,munaqosah]',
         'Status' => 'required|in_list[Aktif,Tidak Aktif]'
     ];
 
@@ -52,6 +54,10 @@ class MunaqosahJuriModel extends Model
         'IdGrupMateriUjian' => [
             'required' => 'ID Grup Materi Ujian harus diisi',
             'max_length' => 'ID Grup Materi Ujian maksimal 50 karakter'
+        ],
+        'TypeUjian' => [
+            'required' => 'Type Ujian harus diisi',
+            'in_list' => 'Type Ujian harus pra-munaqosah atau munaqosah'
         ],
         'Status' => [
             'required' => 'Status harus diisi',
@@ -76,14 +82,16 @@ class MunaqosahJuriModel extends Model
     /**
      * Get juri with relations
      */
-    public function getJuriWithRelations()
+    public function getJuriWithRelations($idTpq = null)
     {
         $builder = $this->db->table($this->table . ' j');
         $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup');
         $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
         $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
         $builder->orderBy('j.created_at', 'DESC');
-        
+        if ($idTpq) {
+            $builder->where('j.IdTpq', $idTpq);
+        }
         return $builder->get()->getResultArray();
     }
 
@@ -220,12 +228,36 @@ class MunaqosahJuriModel extends Model
     public function getJuriByUsernameJuri($usernameJuri)
     {
         $builder = $this->db->table($this->table . ' j');
-        $builder->select('j.id, j.IdJuri, j.UsernameJuri, j.IdGrupMateriUjian, j.IdTpq, t.NamaTpq, g.NamaMateriGrup');
+        $builder->select('j.id, j.IdJuri, j.UsernameJuri, j.IdGrupMateriUjian, j.IdTpq, j.TypeUjian, t.NamaTpq, g.NamaMateriGrup');
         $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
         $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
         $builder->orderBy('j.created_at', 'DESC');
         $builder->where('j.UsernameJuri', $usernameJuri);
         $result = $builder->get()->getRow();
         return $result;
+    }
+
+    /**
+     * Get type ujian by IdTpq
+     */
+    public function getTypeUjianByTpq($idTpq = null)
+    {
+        $builder = $this->db->table($this->table . ' j');
+        $builder->select('j.TypeUjian');
+        if ($idTpq !== null) {
+            $builder->where('j.IdTpq', $idTpq);
+        }
+        $result = $builder->get()->getResultArray();
+        if ($result) {
+            foreach ($result as $row) {
+                if ($row['TypeUjian'] == 'munaqosah') {
+                    return 'munaqosah';
+                } else if ($row['TypeUjian'] == 'pra-munaqosah') {
+                    return 'pra-munaqosah';
+                }
+            }
+        } else {
+            return null;
+        }
     }
 }
