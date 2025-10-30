@@ -3604,6 +3604,183 @@ class Munaqosah extends BaseController
     }
 
 
+    // ==================== MONITORING ====================
+
+    /**
+     * Halaman Monitoring Munaqosah (Admin)
+     */
+    public function monitoringMunaqosah()
+    {
+        // helper statistik
+        helper('munaqosah');
+
+        // Tahun ajaran saat ini
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        // Dropdown TPQ (admin bisa melihat semua)
+        $idTpq = session()->get('IdTpq');
+        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+
+        // Statistik global (mengikuti tampilan step-1 di inputNilaiJuri)
+        $statistik = getStatistikMunaqosah();
+
+        $data = [
+            'page_title' => 'Monitoring Munaqosah',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'tpqDropdown' => $dataTpq,
+            'statistik' => $statistik,
+        ];
+
+        return view('backend/Munaqosah/monitoringMunaqosah', $data);
+    }
+
+    /**
+     * Data monitoring untuk DataTables
+     * Param: IdTahunAjaran, IdTpq (optional, 0 = semua)
+     * Rule TypeUjian: jika IdTpq ada (bukan 0/null) => 'pra-munaqosah', selain itu 'munaqosah'
+     */
+    public function getMonitoringData()
+    {
+        try {
+            $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
+            $idTpqParam = $this->request->getGet('IdTpq');
+            $idTpq = ($idTpqParam === null || $idTpqParam === '' ? 0 : (int)$idTpqParam);
+            $typeParam = $this->request->getGet('TypeUjian');
+
+            if (empty($idTahunAjaran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTahunAjaran harus diisi'
+                ]);
+            }
+
+            // Tentukan type ujian: jika dikirim dari UI gunakan itu, jika tidak ikut aturan default
+            $typeUjian = null;
+            if (!empty($typeParam) && in_array($typeParam, ['munaqosah', 'pra-munaqosah'], true)) {
+                $typeUjian = $typeParam;
+            } else {
+                $typeUjian = (!empty($idTpq) && $idTpq != 0) ? 'pra-munaqosah' : 'munaqosah';
+            }
+
+            // Ambil data registrasi untuk tahun ajaran dan type ujian
+            $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+            $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.KategoriMateriUjian,r.TypeUjian, s.NamaSantri, t.NamaTpq');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
+            $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
+            $builder->where('r.IdTahunAjaran', $idTahunAjaran);
+            $builder->where('r.TypeUjian', $typeUjian);
+            if (!empty($idTpq)) {
+                $builder->where('r.IdTpq', $idTpq);
+            }
+            $registrasiRows = $builder->get()->getResultArray();
+
+            if (empty($registrasiRows)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'data' => [
+                        'categories' => [],
+                        'rows' => []
+                    ]
+                ]);
+            }
+
+            // Distinct categories dari registrasi untuk header tabel
+            $categories = [];
+            foreach ($registrasiRows as $r) {
+                if (!in_array($r['KategoriMateriUjian'], $categories, true)) {
+                    $categories[] = $r['KategoriMateriUjian'];
+                }
+            }
+            sort($categories);
+
+            // Ambil semua NoPeserta
+            $noPesertaList = array_values(array_unique(array_column($registrasiRows, 'NoPeserta')));
+
+            // Ambil semua nilai sekaligus untuk efisiensi
+            $nilaiBuilder = $this->db->table('tbl_munaqosah_nilai n');
+            $nilaiBuilder->select('n.NoPeserta,n.KategoriMateriUjian,n.IdJuri,n.Nilai');
+            $nilaiBuilder->where('n.IdTahunAjaran', $idTahunAjaran);
+            $nilaiBuilder->where('n.TypeUjian', $typeUjian);
+            $nilaiBuilder->whereIn('n.NoPeserta', $noPesertaList);
+            $nilaiRows = $nilaiBuilder->get()->getResultArray();
+
+            // Index nilai: NoPeserta -> Kategori -> list nilai (per juri)
+            $nilaiIndex = [];
+            foreach ($nilaiRows as $nr) {
+                $np = $nr['NoPeserta'];
+                $kat = $nr['KategoriMateriUjian'];
+                if (!isset($nilaiIndex[$np])) $nilaiIndex[$np] = [];
+                if (!isset($nilaiIndex[$np][$kat])) $nilaiIndex[$np][$kat] = [];
+                // simpan nilai (maks 2, urutan input)
+                if (count($nilaiIndex[$np][$kat]) < 2) {
+                    $nilaiIndex[$np][$kat][] = (float)$nr['Nilai'];
+                }
+            }
+
+            // Buat map peserta (NoPeserta -> info)
+            $pesertaInfo = [];
+            foreach ($registrasiRows as $r) {
+                $np = $r['NoPeserta'];
+                if (!isset($pesertaInfo[$np])) {
+                    $pesertaInfo[$np] = [
+                        'NoPeserta' => $np,
+                        'NamaSantri' => $r['NamaSantri'] ?? '-',
+                        'NamaTpq' => $r['NamaTpq'] ?? '-',
+                        'TypeUjian' => $r['TypeUjian'],
+                        'IdTahunAjaran' => $r['IdTahunAjaran'],
+                    ];
+                }
+            }
+
+            // Bangun rows untuk tabel: tiap peserta satu baris
+            $rows = [];
+            foreach ($pesertaInfo as $np => $info) {
+                $row = [
+                    'NoPeserta' => $info['NoPeserta'],
+                    'NamaSantri' => $info['NamaSantri'],
+                    'TypeUjian' => $info['TypeUjian'],
+                    'IdTahunAjaran' => $info['IdTahunAjaran'],
+                    'NamaTpq' => $info['NamaTpq'],
+                    'nilai' => []
+                ];
+
+                foreach ($categories as $kat) {
+                    $juriScores = [0, 0];
+                    if (isset($nilaiIndex[$np]) && isset($nilaiIndex[$np][$kat])) {
+                        $vals = $nilaiIndex[$np][$kat];
+                        $juriScores[0] = isset($vals[0]) ? (float)$vals[0] : 0;
+                        $juriScores[1] = isset($vals[1]) ? (float)$vals[1] : 0;
+                    }
+                    $row['nilai'][$kat] = $juriScores;
+                }
+
+                $rows[] = $row;
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [
+                    'categories' => $categories,
+                    'rows' => $rows,
+                    'meta' => [
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'TypeUjian' => $typeUjian,
+                        'IdTpq' => $idTpq
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getMonitoringData: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+
     // ==================== KATEGORI MATERI ====================
 
     /**

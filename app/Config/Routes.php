@@ -167,6 +167,10 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/simpan-nilai-juri', 'Munaqosah::simpanNilaiJuri');
     $routes->post('munaqosah/verify-admin-credentials', 'Munaqosah::verifyAdminCredentials');
 
+    // Monitoring Munaqosah
+    $routes->get('munaqosah/monitoring', 'Munaqosah::monitoringMunaqosah');
+    $routes->get('munaqosah/monitoring-data', 'Munaqosah::getMonitoringData');
+
     $routes->get('munaqosah/materi', 'Munaqosah::materiMunaqosah');
     $routes->post('munaqosah/save-materi', 'Munaqosah::saveMateriMunaqosah');
     $routes->post('munaqosah/save-materi-batch', 'Munaqosah::saveMateriBatch');

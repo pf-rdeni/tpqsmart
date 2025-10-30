@@ -70,69 +70,62 @@
                                                         </h5>
                                                     </div>
                                                     <div class="card-body">
+                                                        <?php
+                                                        $total = $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai;
+                                                        $pctSelesai = $total > 0 ? round(($total_peserta_sudah_dinilai / $total) * 100) : 0;
+                                                        $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100) : 0;
+                                                        ?>
                                                         <div class="row">
-                                                            <!-- Total Peserta Terdaftar -->
                                                             <div class="col-md-3 col-sm-6 mb-3">
                                                                 <div class="info-box bg-info">
-                                                                    <span class="info-box-icon">
-                                                                        <i class="fas fa-users"></i>
-                                                                    </span>
+                                                                    <span class="info-box-icon"><i class="fas fa-users"></i></span>
                                                                     <div class="info-box-content">
                                                                         <span class="info-box-text">Total Peserta</span>
                                                                         <span class="info-box-number"><?= $total_peserta_terdaftar ?></span>
                                                                         <div class="progress">
-                                                                            <div class="progress-bar" style="width: 100%"></div>
+                                                                            <div class="progress-bar" style="width:100%"></div>
                                                                         </div>
                                                                         <span class="progress-description">Terregistrasi</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
 
-                                                            <!-- Sudah Dinilai -->
                                                             <div class="col-md-3 col-sm-6 mb-3">
                                                                 <div class="info-box bg-success">
-                                                                    <span class="info-box-icon">
-                                                                        <i class="fas fa-check-circle"></i>
-                                                                    </span>
+                                                                    <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
                                                                     <div class="info-box-content">
                                                                         <span class="info-box-text">Sudah Dinilai</span>
                                                                         <span class="info-box-number"><?= $total_peserta_sudah_dinilai ?></span>
                                                                         <div class="progress">
-                                                                            <div class="progress-bar" style="width: <?= $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai > 0 ? round(($total_peserta_sudah_dinilai / ($total_peserta_sudah_dinilai + $total_peserta_belum_dinilai)) * 100) : 0 ?>%"></div>
+                                                                            <div class="progress-bar" style="width: <?= $pctSelesai ?>%"></div>
                                                                         </div>
-                                                                        <span class="progress-description"><?= $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai > 0 ? round(($total_peserta_sudah_dinilai / ($total_peserta_sudah_dinilai + $total_peserta_belum_dinilai)) * 100) : 0 ?>% selesai</span>
+                                                                        <span class="progress-description"><?= $pctSelesai ?>% selesai</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
 
-                                                            <!-- Belum Dinilai -->
                                                             <div class="col-md-3 col-sm-6 mb-3">
                                                                 <div class="info-box bg-warning">
-                                                                    <span class="info-box-icon">
-                                                                        <i class="fas fa-clock"></i>
-                                                                    </span>
+                                                                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
                                                                     <div class="info-box-content">
                                                                         <span class="info-box-text">Belum Dinilai</span>
                                                                         <span class="info-box-number"><?= $total_peserta_belum_dinilai ?></span>
                                                                         <div class="progress">
-                                                                            <div class="progress-bar" style="width: <?= $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai > 0 ? round(($total_peserta_belum_dinilai / ($total_peserta_sudah_dinilai + $total_peserta_belum_dinilai)) * 100) : 0 ?>%"></div>
+                                                                            <div class="progress-bar" style="width: <?= $pctBelum ?>%"></div>
                                                                         </div>
-                                                                        <span class="progress-description"><?= $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai > 0 ? round(($total_peserta_belum_dinilai / ($total_peserta_sudah_dinilai + $total_peserta_belum_dinilai)) * 100) : 0 ?>% pending</span>
+                                                                        <span class="progress-description"><?= $pctBelum ?>% pending</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
 
-                                                            <!-- Progress Keseluruhan -->
                                                             <div class="col-md-3 col-sm-6 mb-3">
                                                                 <div class="info-box bg-primary">
-                                                                    <span class="info-box-icon">
-                                                                        <i class="fas fa-percentage"></i>
-                                                                    </span>
+                                                                    <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
                                                                     <div class="info-box-content">
                                                                         <span class="info-box-text">Progress</span>
-                                                                        <span class="info-box-number"><?= $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai > 0 ? round(($total_peserta_sudah_dinilai / ($total_peserta_sudah_dinilai + $total_peserta_belum_dinilai)) * 100) : 0 ?>%</span>
+                                                                        <span class="info-box-number"><?= $pctSelesai ?>%</span>
                                                                         <div class="progress">
-                                                                            <div class="progress-bar" style="width: <?= $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai > 0 ? round(($total_peserta_sudah_dinilai / ($total_peserta_sudah_dinilai + $total_peserta_belum_dinilai)) * 100) : 0 ?>%"></div>
+                                                                            <div class="progress-bar" style="width: <?= $pctSelesai ?>%"></div>
                                                                         </div>
                                                                         <span class="progress-description">Tingkat penyelesaian</span>
                                                                     </div>
@@ -531,89 +524,7 @@
         margin-bottom: 0 !important;
     }
 
-    /* Styling untuk info-box */
-    .info-box {
-        display: block;
-        min-height: 90px;
-        background: #fff;
-        width: 100%;
-        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-        border-radius: 0.375rem;
-        margin-bottom: 15px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .info-box .info-box-icon {
-        border-top-left-radius: 0.375rem;
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        border-bottom-left-radius: 0.375rem;
-        display: block;
-        float: left;
-        height: 90px;
-        width: 90px;
-        text-align: center;
-        font-size: 45px;
-        line-height: 90px;
-        background: rgba(0, 0, 0, 0.2);
-    }
-
-    .info-box .info-box-content {
-        padding: 5px 10px;
-        margin-left: 90px;
-    }
-
-    .info-box .info-box-text {
-        text-transform: uppercase;
-        font-weight: bold;
-        font-size: 14px;
-    }
-
-    .info-box .info-box-number {
-        display: block;
-        font-weight: bold;
-        font-size: 18px;
-    }
-
-    .info-box .progress {
-        background: rgba(0, 0, 0, 0.2);
-        margin: 5px -10px 5px -10px;
-        height: 2px;
-    }
-
-    .info-box .progress-bar {
-        background: linear-gradient(to right, #667eea 0%, #764ba2 100%);
-    }
-
-    .info-box .progress-description {
-        display: block;
-        font-size: 13px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Color variants */
-    .info-box.bg-info {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-    .info-box.bg-success {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        color: white;
-    }
-
-    .info-box.bg-warning {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
-    }
-
-    .info-box.bg-primary {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
-    }
+    /* Simplify: use AdminLTE default info-box styles (remove custom gradients/overrides) */
 
     /* Gradient headers */
     .bg-gradient-info {
