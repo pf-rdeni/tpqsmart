@@ -73,6 +73,18 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/list-kategori-materi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Kategori Materi</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/list-kategori-kesalahan') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Kategori Kesalahan</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/grup-materi-ujian') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Grup Materi Ujian</p>

@@ -212,6 +212,22 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/delete-juri/(:num)', 'Munaqosah::deleteJuri/$1');
     $routes->post('munaqosah/update-password-juri/(:num)', 'Munaqosah::updatePasswordJuri/$1');
 
+    // Kategori Materi Routes
+    $routes->get('munaqosah/list-kategori-materi', 'Munaqosah::listKategoriMateri');
+    $routes->get('munaqosah/get-kategori-materi', 'Munaqosah::getKategoriMateri');
+    $routes->post('munaqosah/save-kategori-materi', 'Munaqosah::saveKategoriMateri');
+    $routes->post('munaqosah/update-kategori-materi/(:num)', 'Munaqosah::updateKategoriMateri/$1');
+    $routes->delete('munaqosah/delete-kategori-materi/(:num)', 'Munaqosah::deleteKategoriMateri/$1');
+
+    // Kategori Kesalahan Routes
+    $routes->get('munaqosah/list-kategori-kesalahan', 'Munaqosah::listKategoriKesalahan');
+    $routes->get('munaqosah/get-kategori-kesalahan', 'Munaqosah::getKategoriKesalahan');
+    $routes->get('munaqosah/get-kategori-materi-dropdown', 'Munaqosah::getKategoriMateriForDropdown');
+    $routes->post('munaqosah/save-kategori-kesalahan', 'Munaqosah::saveKategoriKesalahan');
+    $routes->post('munaqosah/update-kategori-kesalahan/(:num)', 'Munaqosah::updateKategoriKesalahan/$1');
+    $routes->delete('munaqosah/delete-kategori-kesalahan/(:num)', 'Munaqosah::deleteKategoriKesalahan/$1');
+    $routes->get('munaqosah/get-error-categories-by-kategori', 'Munaqosah::getErrorCategoriesByKategori');
+
     // API Routes untuk data master
     $routes->get('backend/tpq/get-all', 'Tpq::getAll');
 });
