@@ -249,7 +249,7 @@
     $(document).ready(function() {
         let tableJuri;
         let currentJuriId = null;
-// DataTabe
+        // DataTabe
         tableJuri = $('#tableJuri').DataTable({
             "responsive": true,
             "lengthChange": false,
@@ -338,6 +338,8 @@
             $('#emailPreview').text('username@smartpq.simpedis.com');
             // Set default status to Aktif
             $('#Status').val('Aktif');
+            // Set default TypeUjian
+            $('#TypeUjian').val('munaqosah');
             // Set default password
             $('#useDefaultPassword').prop('checked', true);
             $('#PasswordJuri').val('JuriTpqSmart').prop('readonly', true);
@@ -347,6 +349,9 @@
             <?php if (count($tpqDropdown) == 1): ?>
                 $('#IdTpq').val('<?= $tpqDropdown[0]['IdTpq'] ?>');
             <?php endif; ?>
+            // Set TypeUjian berdasar TPQ yang terpilih
+            const hasTpq = $('#IdTpq').val() && $('#IdTpq').val() !== '' && $('#IdTpq').val() !== '0';
+            $('#TypeUjian').val(hasTpq ? 'pra-munaqosah' : 'munaqosah');
         }
 
 
@@ -356,6 +361,9 @@
         });
 
         $('#IdGrupMateriUjian, #IdTpq').change(function() {
+            // Atur TypeUjian otomatis berdasarkan pilihan TPQ
+            const hasTpq = $('#IdTpq').val() && $('#IdTpq').val() !== '' && $('#IdTpq').val() !== '0';
+            $('#TypeUjian').val(hasTpq ? 'pra-munaqosah' : 'munaqosah');
             if ($('#IdGrupMateriUjian').val()) {
                 generateUsername();
             }

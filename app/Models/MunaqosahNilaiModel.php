@@ -170,13 +170,26 @@ class MunaqosahNilaiModel extends Model
         return $result;
     }
 
-    public function getTotalPesertaByJuri($idJuri, $idTahunAjaran, $typeUjian)
+    public function getTotalPesertaByJuri($IdTpq, $idJuri, $idTahunAjaran, $typeUjian)
     {
-        $builder = $this->db->table($this->table . ' mn');
-        $builder->select('COUNT(DISTINCT mn.NoPeserta) as total');
-        $builder->where('mn.IdJuri', $idJuri);
-        $builder->where('mn.IdTahunAjaran', $idTahunAjaran);
-        $builder->where('mn.TypeUjian', $typeUjian);
-        return $builder->get()->getRow()->total;
+        return $this->where('IdTpq', $IdTpq)
+            ->where('IdJuri', $idJuri)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
+            ->distinct()
+            ->countAllResults('NoPeserta');
+    }
+
+    /**
+     * Get total unique participants already evaluated per tahun ajaran, type ujian, and TPQ
+     */
+    public function getTotalEvaluatedParticipants($idTahunAjaran, $typeUjian, $idTpq = 0)
+    {
+        $builder = $this->db->table($this->table);
+        $builder->select('COUNT(DISTINCT NoPeserta) as count');
+        $builder->where('IdTahunAjaran', $idTahunAjaran);
+        $builder->where('TypeUjian', $typeUjian);
+        $builder->where('IdTpq', $idTpq);
+        return $builder->get()->getRow()->count;
     }
 }

@@ -66,9 +66,9 @@ class MunaqosahGrupMateriUjiModel extends Model
         return $this->where('Status', 'Aktif')->orderBy('NamaMateriGrup', 'ASC')->findAll();
     }
 
-    public function getGrupMateriById($id)
+    public function getGrupMateriById($idGrupMateriUjian)
     {
-        return $this->find($id);
+        return $this->where('IdGrupMateriUjian', $idGrupMateriUjian)->first();
     }
 
     public function checkGrupMateriUsed($idGrupMateriUjian)

@@ -299,4 +299,18 @@ class MunaqosahRegistrasiUjiModel extends Model
 
         return $builder->get()->getResultArray();
     }
+
+    /**
+     * Get total unique participants registered per tahun ajaran, type ujian, and TPQ
+     */
+    public function getTotalRegisteredParticipants($idTahunAjaran, $typeUjian, $idTpq = 0)
+    {
+        $builder = $this->db->table($this->table);
+        $builder->select('COUNT(DISTINCT NoPeserta) as count');
+        $builder->where('IdTahunAjaran', $idTahunAjaran);
+        $builder->where('TypeUjian', $typeUjian);
+        $builder->where('IdTpq', $idTpq);
+
+        return $builder->get()->getRow()->count;
+    }
 }

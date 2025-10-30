@@ -108,27 +108,21 @@ class Munaqosah extends BaseController
             $currentTahunAjaran,
             $typeUjian
         );
+        // Ambil total peserta yang terdaftar di tbl_munaqosah_registrasi_uji
+        $totalPesertaYangTerregister = $this->munaqosahRegistrasiUjiModel->getTotalRegisteredParticipants(
+            $currentTahunAjaran,
+            $typeUjian,
+            $idTpq
+        );
         // Ambil total peserta yang sudah dinilai oleh juri
-        $totalPesertaSudahDinilai = $this->nilaiMunaqosahModel->getTotalPesertaByJuri($juriData->IdJuri, $currentTahunAjaran, $typeUjian);
-        // Hitung IdPeserta dari tbl_munaqosah_registrasi_uji dan tbl_munaqosah_nilai, dihitung dengan COUNT(DISTINCT NoPeserta) dari tbl_munaqosah_registrasi_uji dikurangi COUNT(DISTINCT NoPeserta) dari tbl_munaqosah_nilai
-        $totalRegisteredParticipants = $this->db->table('tbl_munaqosah_registrasi_uji')
-            ->select('COUNT(DISTINCT NoPeserta) as count')
-            ->where('IdTahunAjaran', $currentTahunAjaran)
-            ->where('TypeUjian', $typeUjian)
-            ->where('IdTpq', $idTpq !== null ? $idTpq : 0)
-            ->get()
-            ->getRow()
-            ->count;
+        $totalPesertaSudahDinilai = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
+            $idTpq,
+            $juriData->IdJuri,
+            $currentTahunAjaran,
+            $typeUjian
+        );
 
-        $totalEvaluatedParticipants = $this->db->table('tbl_munaqosah_nilai')
-            ->select('COUNT(DISTINCT NoPeserta) as count')
-            ->where('IdTahunAjaran', $currentTahunAjaran)
-            ->where('TypeUjian', $typeUjian)
-            ->where('IdTpq', $idTpq !== null ? $idTpq : 0)
-            ->get()
-            ->getRow()
-            ->count;
-        $totalPesertaBelumDinilai = $totalRegisteredParticipants - $totalEvaluatedParticipants;
+        $totalPesertaBelumDinilai = $totalPesertaYangTerregister - $totalPesertaSudahDinilai;
 
         $data = [
             'page_title' => 'Input Nilai Munaqosah',
@@ -137,7 +131,7 @@ class Munaqosah extends BaseController
             'peserta_terakhir' => $pesertaTerakhir,
             'total_peserta_sudah_dinilai' => $totalPesertaSudahDinilai,
             'total_peserta_belum_dinilai' => $totalPesertaBelumDinilai,
-            'total_peserta_terdaftar' => $totalRegisteredParticipants
+            'total_peserta_terdaftar' => $totalPesertaYangTerregister,
         ];
         return view('backend/Munaqosah/inputNilaiJuri', $data);
     }
@@ -3183,6 +3177,8 @@ class Munaqosah extends BaseController
         try {
             $idGrupMateriUjian = $this->request->getPost('IdGrupMateriUjian');
             $idTpq = $this->request->getPost('IdTpq');
+            // Ambil nama grup materi dari tbl_munaqosah_grup_materi_uji
+            $namaGrupMateri = $this->grupMateriUjiMunaqosahModel->getGrupMateriById($idGrupMateriUjian);
 
             if (!$idGrupMateriUjian) {
                 return $this->response->setJSON([
@@ -3191,7 +3187,7 @@ class Munaqosah extends BaseController
                 ]);
             }
 
-            $usernameJuri = $this->munaqosahJuriModel->generateUsernameJuri($idGrupMateriUjian, $idTpq);
+            $usernameJuri = $this->munaqosahJuriModel->generateUsernameJuri($namaGrupMateri, $idTpq);
 
             if (!$usernameJuri) {
                 return $this->response->setJSON([
@@ -3220,19 +3216,14 @@ class Munaqosah extends BaseController
         try {
             $validation = \Config\Services::validation();
 
-            // Set validation rules
+            // Set validation rules (TypeUjian ditentukan server-side berdasar IdTpq)
             $validation->setRules([
                 'IdGrupMateriUjian' => 'required',
-                'TypeUjian' => 'required|in_list[pra-munaqosah,munaqosah]',
                 'UsernameJuri' => 'required|max_length[100]|is_unique[tbl_munaqosah_juri.UsernameJuri]',
                 'Status' => 'required|in_list[Aktif,Tidak Aktif]'
             ], [
                 'IdGrupMateriUjian' => [
                     'required' => 'Grup Materi Ujian harus dipilih'
-                ],
-                'TypeUjian' => [
-                    'required' => 'Type Ujian harus dipilih',
-                    'in_list' => 'Type Ujian harus pra-munaqosah atau munaqosah'
                 ],
                 'UsernameJuri' => [
                     'required' => 'Username Juri harus diisi',
@@ -3257,13 +3248,17 @@ class Munaqosah extends BaseController
             // Generate IdJuri
             $idJuri = $this->munaqosahJuriModel->generateNextIdJuri();
 
+            // Tentukan TypeUjian berdasarkan IdTpq (jika ada nilai dan bukan '0' maka pra-munaqosah, else munaqosah)
+            $idTpqPost = $this->request->getPost('IdTpq');
+            $computedTypeUjian = (!empty($idTpqPost) && $idTpqPost !== '0') ? 'pra-munaqosah' : 'munaqosah';
+
             // Prepare data
             $data = [
                 'IdJuri' => $idJuri,
                 'IdTpq' => $this->request->getPost('IdTpq') ?: null,
                 'UsernameJuri' => $this->request->getPost('UsernameJuri'),
                 'IdGrupMateriUjian' => $this->request->getPost('IdGrupMateriUjian'),
-                'TypeUjian' => $this->request->getPost('TypeUjian'),
+                'TypeUjian' => $computedTypeUjian,
                 'Status' => $this->request->getPost('Status')
             ];
 

@@ -148,37 +148,40 @@ class MunaqosahJuriModel extends Model
     /**
      * Generate UsernameJuri based on grup materi and TPQ
      */
-    public function generateUsernameJuri($idGrupMateriUjian, $idTpq = null)
+    public function generateUsernameJuri($grup, $idTpq = 0)
     {
-        // Ambil nama grup materi
-        $grupModel = new \App\Models\MunaqosahGrupMateriUjiModel();
-        $grup = $grupModel->where('IdGrupMateriUjian', $idGrupMateriUjian)->first();
-        
-        if (!$grup) {
-            return null;
-        }
-        
+        // Aambil nama grup dari tbl_munaqosah_grup_materi_uji
         $namaGrup = strtolower(str_replace(' ', '.', $grup['NamaMateriGrup']));
-        
-        // Cari username yang sudah ada untuk grup ini
         $builder = $this->db->table($this->table);
         $builder->select('UsernameJuri');
-        $builder->like('UsernameJuri', 'juri.' . $namaGrup, 'after');
-        
-        if ($idTpq) {
-            $tpqSuffix = substr($idTpq, -3); // Ambil 3 digit terakhir
-            $builder->like('UsernameJuri', '.' . $tpqSuffix . '.', 'both');
+        // trim id tpq 3 digit terakhir
+        if ($idTpq && $idTpq != '0') {
+            $idTpqTrim = substr($idTpq, -3);
+            // Pencarian untuk TPQ tertentu contoh juri.nama.grup.215.2
+            $prefix = 'juri.' . $namaGrup . '.' . $idTpqTrim . '.';
+            $builder->like('UsernameJuri', $prefix, 'after');
+        } else {
+            // Pencarian untuk TPQ 0 contoh juri.nama.grup.2
+            $prefix = 'juri.' . $namaGrup . '.';
+            $builder->like('UsernameJuri', $prefix, 'after');
+            $builder->Where('IdTpq', null);
         }
-        
         $builder->orderBy('UsernameJuri', 'DESC');
         $builder->limit(1);
-        
         $result = $builder->get()->getRow();
-        
+
+        // Jika format username juri ditemukan maka cek jika pattern match, jika match maka ambil angka setelah pattern
         if ($result) {
-            // Extract number dari username terakhir
             $lastUsername = $result->UsernameJuri;
-            $pattern = '/juri\.' . preg_quote($namaGrup, '/') . '\.(\d+)$/';
+            if ($idTpq && $idTpq != '0') {
+                // juri.nama.grup.215.2
+                $pattern = '/^juri\.' . preg_quote($namaGrup, '/') . '\.' . preg_quote($idTpqTrim, '/') . '\.(\d+)$/';
+            } else {
+                // juri.nama.grup.2
+                $pattern = '/^juri\.' . preg_quote($namaGrup, '/') . '\.(\d+)$/';
+            }
+
+            // cek jika pattern match, jika match maka ambil angka setelah pattern
             if (preg_match($pattern, $lastUsername, $matches)) {
                 $nextNumber = intval($matches[1]) + 1;
             } else {
@@ -187,11 +190,9 @@ class MunaqosahJuriModel extends Model
         } else {
             $nextNumber = 1;
         }
-        
-        // Format username
-        if ($idTpq) {
-            $tpqSuffix = substr($idTpq, -3);
-            return 'juri.' . $namaGrup . '.' . $tpqSuffix . '.' . $nextNumber;
+        // Format
+        if ($idTpq && $idTpq != '0') {
+            return 'juri.' . $namaGrup . '.' . $idTpqTrim . '.' . $nextNumber;
         } else {
             return 'juri.' . $namaGrup . '.' . $nextNumber;
         }
