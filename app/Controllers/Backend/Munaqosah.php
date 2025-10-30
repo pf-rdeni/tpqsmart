@@ -82,27 +82,35 @@ class Munaqosah extends BaseController
      */
     public function inputNilaiJuri()
     {
+
         // Ambil tahun ajaran saat ini dari HelpFunctionModel
         $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        // Ambil tahun ajaran saat ini
         $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
 
+        // Ambil username juri dari user yang login
         $usernameJuri = user()->username;
-        // Ambil informasi juri dari session
+        // Ambil informasi juri dari username juri
         $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
-
+        // Ambil IdTpq dari data juri
+        $idTpq = $juriData->IdTpq;
+        // Ambil Typeujian dari data juri
+        $typeUjian = $juriData->TypeUjian;
         // Ambil 5 peserta terakhir yang sudah dinilai oleh juri ini
         $pesertaTerakhir = $this->nilaiMunaqosahModel->getPesertaTerakhirByJuri(
             $juriData->IdJuri,
             $currentTahunAjaran,
-            'munaqosah',
+            $typeUjian,
             5
         );
         // Ambil total peserta yang sudah dinilai oleh juri
-        $totalPeserta = $this->nilaiMunaqosahModel->getTotalPesertaByJuri($juriData->IdJuri, $currentTahunAjaran, 'munaqosah');
+        $totalPeserta = $this->nilaiMunaqosahModel->getTotalPesertaByJuri($juriData->IdJuri, $currentTahunAjaran, $typeUjian);
         // Hitung IdPeserta dari tbl_munaqosah_registrasi_uji dan tbl_munaqosah_nilai, dihitung dengan COUNT(DISTINCT NoPeserta) dari tbl_munaqosah_registrasi_uji dikurangi COUNT(DISTINCT NoPeserta) dari tbl_munaqosah_nilai
         $totalRegisteredParticipants = $this->db->table('tbl_munaqosah_registrasi_uji')
             ->select('COUNT(DISTINCT NoPeserta) as count')
             ->where('IdTahunAjaran', $currentTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
+            ->where('IdTpq', $idTpq !== null ? $idTpq : 0)
             ->get()
             ->getRow()
             ->count;
@@ -110,6 +118,8 @@ class Munaqosah extends BaseController
         $totalEvaluatedParticipants = $this->db->table('tbl_munaqosah_nilai')
             ->select('COUNT(DISTINCT NoPeserta) as count')
             ->where('IdTahunAjaran', $currentTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
+            ->where('IdTpq', $idTpq !== null ? $idTpq : 0)
             ->get()
             ->getRow()
             ->count;
@@ -2716,31 +2726,24 @@ class Munaqosah extends BaseController
      */
     public function listUserJuriMunaqosah()
     {
+        // Ambil IdTpq dari session
+        $idTpq = session()->get('IdTpq');
+        // Ambil data grup materi ujian langsung dari model
+        $DataGrupMateriUjian = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+        // Ambil data TPQ untuk dropdown dari HelpFunctionModel
+        $DataTpqDropdown = $this->helpFunction->getDataTpq($idTpq);
+        // Ambil data juri dengan relasi untuk ditampilkan langsung
+        $DataJuri = $this->munaqosahJuriModel->getJuriWithRelations($idTpq);
+
         $data = [
             'page_title' => 'Data Juri Munaqosah',
-            'juri' => $this->munaqosahJuriModel->getJuriWithRelations()
+            'juri' => $DataJuri,
+            'grupMateriUjian' => $DataGrupMateriUjian,
+            'tpqDropdown' => $DataTpqDropdown,
         ];
         return view('backend/Munaqosah/listUserJuriMunaqosah', $data);
     }
 
-    /**
-     * Get data juri for AJAX
-     */
-    public function getJuriData()
-    {
-        try {
-            $juri = $this->munaqosahJuriModel->getJuriWithRelations();
-            return $this->response->setJSON([
-                'success' => true,
-                'data' => $juri
-            ]);
-        } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Gagal mengambil data juri: ' . $e->getMessage()
-            ]);
-        }
-    }
 
     /**
      * Get grup materi ujian untuk dropdown
@@ -2828,11 +2831,16 @@ class Munaqosah extends BaseController
             // Set validation rules
             $validation->setRules([
                 'IdGrupMateriUjian' => 'required',
+                'TypeUjian' => 'required|in_list[pra-munaqosah,munaqosah]',
                 'UsernameJuri' => 'required|max_length[100]|is_unique[tbl_munaqosah_juri.UsernameJuri]',
                 'Status' => 'required|in_list[Aktif,Tidak Aktif]'
             ], [
                 'IdGrupMateriUjian' => [
                     'required' => 'Grup Materi Ujian harus dipilih'
+                ],
+                'TypeUjian' => [
+                    'required' => 'Type Ujian harus dipilih',
+                    'in_list' => 'Type Ujian harus pra-munaqosah atau munaqosah'
                 ],
                 'UsernameJuri' => [
                     'required' => 'Username Juri harus diisi',
@@ -2863,6 +2871,7 @@ class Munaqosah extends BaseController
                 'IdTpq' => $this->request->getPost('IdTpq') ?: null,
                 'UsernameJuri' => $this->request->getPost('UsernameJuri'),
                 'IdGrupMateriUjian' => $this->request->getPost('IdGrupMateriUjian'),
+                'TypeUjian' => $this->request->getPost('TypeUjian'),
                 'Status' => $this->request->getPost('Status')
             ];
 
@@ -3387,7 +3396,7 @@ class Munaqosah extends BaseController
             $IdTpq = $this->request->getPost('IdTpq');
             $IdTahunAjaran = $this->request->getPost('IdTahunAjaran');
             $IdJuri = $this->request->getPost('IdJuri');
-            $TypeUjian = $this->request->getPost('TypeUjian') ?? 'munaqosah';
+            $TypeUjian = $this->request->getPost('TypeUjian');
             $isEditMode = $this->request->getPost('isEditMode') === 'true';
             $nilaiData = $this->request->getPost('nilai');
             $catatanData = $this->request->getPost('catatan') ?? [];
@@ -3513,8 +3522,7 @@ class Munaqosah extends BaseController
                         $materi = $materiMap[$idMateri];
 
                         $updateData = [
-                            'Nilai' => floatval($nilai),
-                            'updated_at' => date('Y-m-d H:i:s')
+                            'Nilai' => floatval($nilai)
                         ];
 
                         // Tambahkan catatan jika ada
