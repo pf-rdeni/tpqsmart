@@ -957,11 +957,11 @@
                                         class="form-control nilai-input" 
                                         id="nilai_${materi.IdMateri}" 
                                         name="nilai[${materi.IdMateri}]"
-                                        min="10" 
-                                        max="99" 
+                                        min="<?= $nilai_minimal ?>" 
+                                        max="<?= $nilai_maximal ?>" 
                                         step="0.1"
                                         required>
-                                 <small class="form-text text-muted">Range nilai: 10 - 99</small>
+                                 <small class="form-text text-muted">Range nilai: <?= $nilai_minimal ?> - <?= $nilai_maximal ?></small>
                                  ${additionalInfo}
                              </div>
                          </div>
@@ -1047,6 +1047,10 @@
             });
         }
 
+        // Get nilai range from PHP
+        const nilaiMinimal = <?= $nilai_minimal ?>;
+        const nilaiMaximal = <?= $nilai_maximal ?>;
+
         // Validate all inputs and show/hide kirim button
         function validateAndShowKirimButton() {
             const nilaiInputs = $('.nilai-input');
@@ -1057,7 +1061,7 @@
                 const value = parseFloat($(this).val());
                 if ($(this).val().trim() !== '') {
                     hasValue = true;
-                    if (isNaN(value) || value < 10 || value > 99) {
+                    if (isNaN(value) || value < nilaiMinimal || value > nilaiMaximal) {
                         allValid = false;
                         $(this).addClass('is-invalid');
                     } else {
@@ -1088,9 +1092,9 @@
             nilaiInputs.each(function() {
                 const value = parseFloat($(this).val());
                 if ($(this).val().trim() !== '') {
-                    if (isNaN(value) || value < 10 || value > 99) {
+                    if (isNaN(value) || value < nilaiMinimal || value > nilaiMaximal) {
                         isValid = false;
-                        errorMessage = 'Semua nilai harus dalam range 10-99';
+                        errorMessage = `Semua nilai harus dalam range ${nilaiMinimal}-${nilaiMaximal}`;
                         return false;
                     }
                 }
@@ -1147,9 +1151,9 @@
             nilaiInputs.each(function() {
                 const value = parseFloat($(this).val());
                 if ($(this).val().trim() !== '') {
-                    if (isNaN(value) || value < 10 || value > 99) {
+                    if (isNaN(value) || value < nilaiMinimal || value > nilaiMaximal) {
                         isValid = false;
-                        errorMessage = 'Semua nilai harus dalam range 10-99';
+                        errorMessage = `Semua nilai harus dalam range ${nilaiMinimal}-${nilaiMaximal}`;
                         return false;
                     }
                 }

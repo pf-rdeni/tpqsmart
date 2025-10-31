@@ -20,6 +20,7 @@ use App\Models\SantriBaruModel;
 use App\Models\MunaqosahJuriModel;
 use App\Models\MunaqosahKategoriModel;
 use App\Models\MunaqosahKategoriKesalahanModel;
+use App\Models\MunaqosahKonfigurasiModel;
 use Myth\Auth\Password;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -42,6 +43,7 @@ class Munaqosah extends BaseController
     protected $munaqosahJuriModel;
     protected $munaqosahKategoriModel;
     protected $munaqosahKategoriKesalahanModel;
+    protected $munaqosahKonfigurasiModel;
     protected $db;
     
     public function __construct()
@@ -63,6 +65,7 @@ class Munaqosah extends BaseController
         $this->munaqosahJuriModel = new MunaqosahJuriModel();
         $this->munaqosahKategoriModel = new MunaqosahKategoriModel();
         $this->munaqosahKategoriKesalahanModel = new MunaqosahKategoriKesalahanModel();
+        $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -124,6 +127,12 @@ class Munaqosah extends BaseController
 
         $totalPesertaBelumDinilai = $totalPesertaYangTerregister - $totalPesertaSudahDinilai;
 
+        // Get nilai min dan max from configuration
+        // Use IdTpq from juri, fallback to 'default' if not found
+        $configIdTpq = $idTpq ?? 'default';
+        $nilaiMinimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NilaiMinimal', 40);
+        $nilaiMaximal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NilaiMaximal', 99);
+
         $data = [
             'page_title' => 'Input Nilai Munaqosah',
             'current_tahun_ajaran' => $currentTahunAjaran,
@@ -132,6 +141,8 @@ class Munaqosah extends BaseController
             'total_peserta_sudah_dinilai' => $totalPesertaSudahDinilai,
             'total_peserta_belum_dinilai' => $totalPesertaBelumDinilai,
             'total_peserta_terdaftar' => $totalPesertaYangTerregister,
+            'nilai_minimal' => $nilaiMinimal,
+            'nilai_maximal' => $nilaiMaximal,
         ];
         return view('backend/Munaqosah/inputNilaiJuri', $data);
     }
@@ -2385,16 +2396,20 @@ class Munaqosah extends BaseController
             // Debug: Log data materi
             log_message('info', 'Grup materi: ' . json_encode($grupMateri));
             log_message('info', 'All materi: ' . json_encode($allMateri));
-            
+
+            // Get minRange and maxRange from configuration
+            // Use IdTpq from session, fallback to 'default' if not found
+            $configIdTpq = $sessionIdTpq ?? 'default';
+            $minRange = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NoPesertaStart', 100);
+            $maxRange = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NoPesertaEnd', 400);
+
             // Generate semua NoPeserta sekaligus dengan validasi ketat
             $noPesertaMap = [];
             $usedNoPeserta = [];
-            $minRange = 100;
-            $maxRange = 400;
             
             foreach ($santriIds as $santriId) {
                 try {
-                    $noPeserta = $this->generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta, $typeUjian);
+                    $noPeserta = $this->generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta, $typeUjian, $minRange, $maxRange);
 
                     // Validasi ketat: pastikan nomor peserta dalam range
                     if ($noPeserta < $minRange || $noPeserta > $maxRange) {
@@ -2496,7 +2511,7 @@ class Munaqosah extends BaseController
                 }
 
                 // Validasi final: cek duplikasi NoPeserta sebelum insert dan perbaiki jika ada
-                $finalValidation = $this->validateNoPesertaUniqueness($allNilaiData, $tahunAjaran, $typeUjian);
+                $finalValidation = $this->validateNoPesertaUniqueness($allNilaiData, $tahunAjaran, $typeUjian, $minRange, $maxRange);
                 if (!$finalValidation['valid']) {
                     $this->db->transRollback();
                     return $this->response->setJSON([
@@ -2591,13 +2606,13 @@ class Munaqosah extends BaseController
      * @param int $tahunAjaran
      * @param array $usedNoPeserta
      * @param string $typeUjian
+     * @param int $minRange Range minimum dari konfigurasi
+     * @param int $maxRange Range maksimum dari konfigurasi
      * @return int $noPeserta
      */
-    private function generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta = [], $typeUjian = 'munaqosah')
+    private function generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta = [], $typeUjian = 'munaqosah', $minRange = 100, $maxRange = 400)
     {
-        // Validasi ketat: nomor peserta harus dalam range 100-400
-        $minRange = 100;
-        $maxRange = 400;
+        // Validasi ketat: nomor peserta harus dalam range yang ditentukan dari konfigurasi
         $maxAttempts = 100; // Maksimal 100 percobaan untuk menghindari infinite loop
 
         // Generate random number between 100-400
@@ -2707,9 +2722,11 @@ class Munaqosah extends BaseController
      * @param array $allNilaiData
      * @param int $tahunAjaran
      * @param string $typeUjian
+     * @param int $minRange Range minimum dari konfigurasi
+     * @param int $maxRange Range maksimum dari konfigurasi
      * @return array $validatedData
      */
-    private function validateNoPesertaUniqueness($allNilaiData, $tahunAjaran, $typeUjian = 'munaqosah')
+    private function validateNoPesertaUniqueness($allNilaiData, $tahunAjaran, $typeUjian = 'munaqosah', $minRange = 100, $maxRange = 400)
     {
         // Group data by IdSantri untuk memastikan satu IdSantri = satu NoPeserta
         $santriNoPesertaMap = [];
@@ -2747,7 +2764,7 @@ class Munaqosah extends BaseController
         
         if (!empty($existingNoPeserta)) {
             // Jika ada duplikasi dengan database, perbaiki dengan mengubah NoPeserta yang konflik
-            $fixedData = $this->fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta, $typeUjian);
+            $fixedData = $this->fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta, $typeUjian, $minRange, $maxRange);
             return [
                 'valid' => true,
                 'message' => 'Duplikasi dengan database telah diperbaiki',
@@ -2768,9 +2785,11 @@ class Munaqosah extends BaseController
      * @param int $tahunAjaran
      * @param array $existingNoPeserta
      * @param string $typeUjian
+     * @param int $minRange Range minimum dari konfigurasi
+     * @param int $maxRange Range maksimum dari konfigurasi
      * @return array $fixedData
      */
-    private function fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta, $typeUjian = 'munaqosah')
+    private function fixDuplicateNoPesertaWithDatabase($allNilaiData, $tahunAjaran, $existingNoPeserta, $typeUjian = 'munaqosah', $minRange = 100, $maxRange = 400)
     {
         $fixedData = [];
         $usedNoPeserta = [];
@@ -2788,8 +2807,8 @@ class Munaqosah extends BaseController
                 in_array($noPeserta, $existingNumbers) || 
                 in_array($noPeserta, $usedNoPeserta)) {
 
-                // Generate NoPeserta baru untuk IdSantri ini
-                $newNoPeserta = $this->generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta, $typeUjian);
+                // Generate NoPeserta baru untuk IdSantri ini dengan range dari konfigurasi
+                $newNoPeserta = $this->generateUniqueNoPeserta($tahunAjaran, $usedNoPeserta, $typeUjian, $minRange, $maxRange);
                 $santriNoPesertaMap[$idSantri] = $newNoPeserta;
                 $usedNoPeserta[] = $newNoPeserta;
             }
@@ -4156,6 +4175,296 @@ class Munaqosah extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal mengambil data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // ==================== KONFIGURASI MUNAQOSAH ====================
+
+    /**
+     * Display list konfigurasi munaqosah
+     */
+    public function listKonfigurasiMunaqosah()
+    {
+        // Ambil IdTpq dari session
+        $idTpq = session()->get('IdTpq');
+
+        // Get configuration data based on IdTpq
+        // If IdTpq exists and not 0, show default template + IdTpq data
+        // If IdTpq = 0 or null (admin), show all
+        $konfigurasi = $this->munaqosahKonfigurasiModel->getByTpq($idTpq);
+
+        // Get list TPQ untuk dropdown
+        $listTpq = $this->helpFunction->getDataTpq(false); // false = ambil semua TPQ
+
+        $data = [
+            'page_title' => 'Konfigurasi Munaqosah',
+            'konfigurasi' => $konfigurasi,
+            'idTpq' => $idTpq,
+            'listTpq' => $listTpq
+        ];
+
+        return view('backend/Munaqosah/listKonfigurasiMunaqosah', $data);
+    }
+
+    /**
+     * Save konfigurasi munaqosah
+     */
+    public function saveKonfigurasi()
+    {
+        try {
+            $rules = [
+                'IdTpq' => 'required',
+                'SettingKey' => 'required|min_length[3]',
+                'SettingValue' => 'required',
+                'SettingType' => 'required|in_list[number,text,boolean,json]',
+                'Description' => 'permit_empty'
+            ];
+
+            if (!$this->validate($rules)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $this->validator->getErrors()
+                ]);
+            }
+
+            // Check if combination IdTpq + SettingKey already exists
+            $existing = $this->munaqosahKonfigurasiModel
+                ->where('IdTpq', $this->request->getPost('IdTpq'))
+                ->where('SettingKey', $this->request->getPost('SettingKey'))
+                ->first();
+
+            if ($existing) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Konfigurasi dengan IdTpq dan SettingKey tersebut sudah ada',
+                    'duplicate' => true
+                ]);
+            }
+
+            $data = [
+                'IdTpq' => $this->request->getPost('IdTpq'),
+                'SettingKey' => $this->request->getPost('SettingKey'),
+                'SettingValue' => $this->request->getPost('SettingValue'),
+                'SettingType' => $this->request->getPost('SettingType'),
+                'Description' => $this->request->getPost('Description') ?? ''
+            ];
+
+            if ($this->munaqosahKonfigurasiModel->save($data)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Data konfigurasi berhasil disimpan'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan data',
+                    'errors' => $this->munaqosahKonfigurasiModel->errors()
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in saveKonfigurasi: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update konfigurasi munaqosah
+     */
+    public function updateKonfigurasi($id)
+    {
+        try {
+            // Check if record exists
+            $existing = $this->munaqosahKonfigurasiModel->find($id);
+            if (!$existing) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data konfigurasi tidak ditemukan'
+                ]);
+            }
+
+            $rules = [
+                'SettingValue' => 'required',
+                'SettingType' => 'required|in_list[number,text,boolean,json]',
+                'Description' => 'permit_empty'
+            ];
+
+            if (!$this->validate($rules)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $this->validator->getErrors()
+                ]);
+            }
+
+            $data = [
+                'SettingValue' => $this->request->getPost('SettingValue'),
+                'SettingType' => $this->request->getPost('SettingType'),
+                'Description' => $this->request->getPost('Description') ?? ''
+            ];
+
+            if ($this->munaqosahKonfigurasiModel->update($id, $data)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Data konfigurasi berhasil diupdate'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal mengupdate data',
+                    'errors' => $this->munaqosahKonfigurasiModel->errors()
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in updateKonfigurasi: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Duplicate konfigurasi munaqosah
+     */
+    public function duplicateKonfigurasi()
+    {
+        try {
+            $sourceId = $this->request->getPost('source_id');
+            $targetIdTpq = $this->request->getPost('IdTpq');
+            $settingValue = $this->request->getPost('SettingValue');
+            $description = $this->request->getPost('Description') ?? '';
+
+            // Validate input
+            if (empty($sourceId)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Source ID tidak boleh kosong'
+                ]);
+            }
+
+            if (empty($targetIdTpq)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID TPQ tujuan harus diisi'
+                ]);
+            }
+
+            // Prevent duplicating to 'default'
+            if ($targetIdTpq === 'default') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak dapat menduplikasi ke "default". Gunakan ID TPQ lain atau "0" untuk admin.'
+                ]);
+            }
+
+            // Get source configuration
+            $source = $this->munaqosahKonfigurasiModel->find($sourceId);
+            if (!$source) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data konfigurasi sumber tidak ditemukan'
+                ]);
+            }
+
+            // Verify source is from 'default'
+            if ($source['IdTpq'] !== 'default') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Hanya konfigurasi dengan IdTpq = "default" yang dapat diduplikasi'
+                ]);
+            }
+
+            // Check if configuration already exists for target IdTpq + SettingKey
+            $existing = $this->munaqosahKonfigurasiModel
+                ->where('IdTpq', $targetIdTpq)
+                ->where('SettingKey', $source['SettingKey'])
+                ->first();
+
+            if ($existing) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Konfigurasi dengan IdTpq "' . $targetIdTpq . '" dan SettingKey "' . $source['SettingKey'] . '" sudah ada. Silakan edit konfigurasi yang sudah ada.',
+                    'duplicate' => true,
+                    'existing_id' => $existing['id']
+                ]);
+            }
+
+            // Create new configuration
+            // Use SettingType from source (cannot be changed)
+            // Use SettingValue from form if provided, otherwise use source value
+            $data = [
+                'IdTpq' => $targetIdTpq,
+                'SettingKey' => $source['SettingKey'], // Cannot be changed
+                'SettingValue' => !empty($settingValue) ? $settingValue : $source['SettingValue'],
+                'SettingType' => $source['SettingType'], // Cannot be changed - always from source
+                'Description' => !empty($description) ? $description : $source['Description']
+            ];
+
+            if ($this->munaqosahKonfigurasiModel->save($data)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Konfigurasi berhasil diduplikasi ke IdTpq "' . $targetIdTpq . '"'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menduplikasi data',
+                    'errors' => $this->munaqosahKonfigurasiModel->errors()
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in duplicateKonfigurasi: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete konfigurasi munaqosah
+     */
+    public function deleteKonfigurasi($id)
+    {
+        try {
+            // Check if record exists
+            $existing = $this->munaqosahKonfigurasiModel->find($id);
+            if (!$existing) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data konfigurasi tidak ditemukan'
+                ]);
+            }
+
+            // Prevent deletion of default template (optional - can be removed if needed)
+            // if ($existing['IdTpq'] === 'default') {
+            //     return $this->response->setJSON([
+            //         'success' => false,
+            //         'message' => 'Tidak dapat menghapus konfigurasi default template'
+            //     ]);
+            // }
+
+            if ($this->munaqosahKonfigurasiModel->delete($id)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Data konfigurasi berhasil dihapus'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menghapus data'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in deleteKonfigurasi: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ]);
         }
     }

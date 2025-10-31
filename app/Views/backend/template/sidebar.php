@@ -129,6 +129,12 @@
                                         <p>Data Juri</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/list-konfigurasi-munaqosah') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Konfigurasi Munaqosah</p>
+                                    </a>
+                                </li>
                             <?php endif; ?>
                             <?php if (in_groups('Panitia') || in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">

@@ -232,6 +232,13 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->delete('munaqosah/delete-kategori-kesalahan/(:num)', 'Munaqosah::deleteKategoriKesalahan/$1');
     $routes->get('munaqosah/get-error-categories-by-kategori', 'Munaqosah::getErrorCategoriesByKategori');
 
+    // Konfigurasi Munaqosah Routes
+    $routes->get('munaqosah/list-konfigurasi-munaqosah', 'Munaqosah::listKonfigurasiMunaqosah');
+    $routes->post('munaqosah/save-konfigurasi', 'Munaqosah::saveKonfigurasi');
+    $routes->post('munaqosah/update-konfigurasi/(:num)', 'Munaqosah::updateKonfigurasi/$1');
+    $routes->post('munaqosah/duplicate-konfigurasi', 'Munaqosah::duplicateKonfigurasi');
+    $routes->post('munaqosah/delete-konfigurasi/(:num)', 'Munaqosah::deleteKonfigurasi/$1');
+
     // API Routes untuk data master
     $routes->get('backend/tpq/get-all', 'Tpq::getAll');
 });
