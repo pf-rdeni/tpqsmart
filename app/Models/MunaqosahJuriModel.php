@@ -113,6 +113,32 @@ class MunaqosahJuriModel extends Model
         return $this->where('IdGrupMateriUjian', $idGrupMateriUjian)->findAll();
     }
 
+    public function getRoomsByGrupAndType($idGrupMateriUjian, $typeUjian = null, $idTpq = null)
+    {
+        $builder = $this->db->table($this->table);
+        $builder->select('RoomId');
+        $builder->where('IdGrupMateriUjian', $idGrupMateriUjian);
+        $builder->where('RoomId IS NOT NULL');
+        $builder->where('RoomId !=', '');
+
+        if ($typeUjian !== null) {
+            $builder->where('TypeUjian', $typeUjian);
+        }
+
+        if ($idTpq !== null) {
+            $builder->where('IdTpq', $idTpq);
+        }
+
+        $builder->groupBy('RoomId');
+        $builder->orderBy('RoomId', 'ASC');
+
+        $results = $builder->get()->getResultArray();
+
+        return array_filter($results, function ($row) {
+            return !empty($row['RoomId']);
+        });
+    }
+
     /**
      * Get active juri
      */
