@@ -61,21 +61,21 @@
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Penilaian Munaqosah</p>
+                                        <p>Daftar Nilai Juri</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Data Nilai</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Monitoring Munaqosah</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Data Nilai Kelulusan</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -108,7 +108,6 @@
                                         <p>Bobot Nilai</p>
                                     </a>
                                 </li>
-
                             <?php endif; ?>
                             <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">

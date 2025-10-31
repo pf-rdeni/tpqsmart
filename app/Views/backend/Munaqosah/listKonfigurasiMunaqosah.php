@@ -57,46 +57,46 @@
                                                 <?php
                                                 // Cek apakah user adalah admin (IdTpq = 0)
                                                 $isAdmin = ($idTpq === '0' || $idTpq === 0 || empty($idTpq));
-                                                
+
                                                 // Untuk row dengan IdTpq = 'default', hanya admin yang bisa edit/delete
                                                 $canEditDelete = ($config['IdTpq'] !== 'default') || $isAdmin;
                                                 ?>
-                                                
+
                                                 <?php if ($canEditDelete) : ?>
-                                                    <button type="button" class="btn btn-warning btn-sm edit-konfigurasi-btn" 
-                                                            data-id="<?= $config['id'] ?>"
-                                                            data-idtpq="<?= $config['IdTpq'] ?>"
-                                                            data-settingkey="<?= $config['SettingKey'] ?>"
-                                                            data-settingvalue="<?= $config['SettingValue'] ?>"
-                                                            data-settingtype="<?= $config['SettingType'] ?>"
-                                                            data-description="<?= htmlspecialchars($config['Description']) ?>"
-                                                            title="Edit">
+                                                    <button type="button" class="btn btn-warning btn-sm edit-konfigurasi-btn"
+                                                        data-id="<?= $config['id'] ?>"
+                                                        data-idtpq="<?= $config['IdTpq'] ?>"
+                                                        data-settingkey="<?= $config['SettingKey'] ?>"
+                                                        data-settingvalue="<?= $config['SettingValue'] ?>"
+                                                        data-settingtype="<?= $config['SettingType'] ?>"
+                                                        data-description="<?= htmlspecialchars($config['Description']) ?>"
+                                                        title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 <?php endif; ?>
-                                                
+
                                                 <?php if ($config['IdTpq'] === 'default') : ?>
-                                                    <button type="button" class="btn btn-info btn-sm duplicate-konfigurasi-btn" 
-                                                            data-id="<?= $config['id'] ?>"
-                                                            data-idtpq="<?= $config['IdTpq'] ?>"
-                                                            data-settingkey="<?= $config['SettingKey'] ?>"
-                                                            data-settingvalue="<?= $config['SettingValue'] ?>"
-                                                            data-settingtype="<?= $config['SettingType'] ?>"
-                                                            data-description="<?= htmlspecialchars($config['Description']) ?>"
-                                                            title="Duplikasi">
+                                                    <button type="button" class="btn btn-info btn-sm duplicate-konfigurasi-btn"
+                                                        data-id="<?= $config['id'] ?>"
+                                                        data-idtpq="<?= $config['IdTpq'] ?>"
+                                                        data-settingkey="<?= $config['SettingKey'] ?>"
+                                                        data-settingvalue="<?= $config['SettingValue'] ?>"
+                                                        data-settingtype="<?= $config['SettingType'] ?>"
+                                                        data-description="<?= htmlspecialchars($config['Description']) ?>"
+                                                        title="Duplikasi">
                                                         <i class="fas fa-copy"></i>
                                                     </button>
                                                 <?php endif; ?>
-                                                
+
                                                 <?php if ($canEditDelete) : ?>
-                                                    <button type="button" class="btn btn-danger btn-sm delete-konfigurasi-btn" 
-                                                            data-id="<?= $config['id'] ?>"
-                                                            data-idtpq="<?= $config['IdTpq'] ?>"
-                                                            data-settingkey="<?= $config['SettingKey'] ?>"
-                                                            title="Hapus">
+                                                    <button type="button" class="btn btn-danger btn-sm delete-konfigurasi-btn"
+                                                        data-id="<?= $config['id'] ?>"
+                                                        data-idtpq="<?= $config['IdTpq'] ?>"
+                                                        data-settingkey="<?= $config['SettingKey'] ?>"
+                                                        title="Hapus">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
-                                                <?php endif; ?>                                                
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -130,7 +130,7 @@
                         <label for="addIdTpq">ID TPQ <span class="text-danger">*</span></label>
                         <select class="form-control" id="addIdTpq" name="IdTpq" required>
                             <option value="">-- Pilih ID TPQ --</option>
-                            <?php 
+                            <?php
                             // Check if user is admin
                             $isAdmin = ($idTpq === '0' || $idTpq === 0 || empty($idTpq));
                             ?>
@@ -198,6 +198,7 @@
             <form id="formEditKonfigurasi">
                 <input type="hidden" id="editId" name="id">
                 <input type="hidden" id="editSettingTypeHidden" name="SettingType">
+                <?php $isAdminEdit = ($idTpq === '0' || $idTpq === 0 || empty($idTpq)); ?>
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="editIdTpq">ID TPQ</label>
@@ -206,8 +207,14 @@
                     </div>
                     <div class="form-group">
                         <label for="editSettingKey">Setting Key</label>
-                        <input type="text" class="form-control" id="editSettingKey" name="SettingKey" readonly>
-                        <small class="form-text text-muted">Setting Key tidak dapat diubah</small>
+                        <input type="text" class="form-control" id="editSettingKey" name="SettingKey" <?= $isAdminEdit ? '' : 'readonly' ?>>
+                        <small class="form-text text-muted">
+                            <?php if ($isAdminEdit) : ?>
+                                Admin dapat mengubah Setting Key sesuai kebutuhan.
+                            <?php else : ?>
+                                Setting Key tidak dapat diubah oleh TPQ.
+                            <?php endif; ?>
+                        </small>
                     </div>
                     <div class="form-group">
                         <label for="editSettingValue">Setting Value <span class="text-danger">*</span></label>
@@ -285,8 +292,14 @@
                     </div>
                     <div class="form-group">
                         <label for="duplicateSettingKey">Setting Key</label>
-                        <input type="text" class="form-control" id="duplicateSettingKey" readonly>
-                        <small class="form-text text-muted">Setting Key tidak dapat diubah</small>
+                        <input type="text" class="form-control" id="duplicateSettingKey" name="SettingKey" <?= $isAdmin ? '' : 'readonly' ?>>
+                        <small class="form-text text-muted">
+                            <?php if ($isAdmin) : ?>
+                                Admin dapat mengubah Setting Key sebelum duplikasi.
+                            <?php else : ?>
+                                Setting Key tidak dapat diubah oleh TPQ.
+                            <?php endif; ?>
+                        </small>
                     </div>
                     <div class="form-group">
                         <label for="duplicateSettingValue">Setting Value <span class="text-danger">*</span></label>
@@ -323,304 +336,317 @@
 
 <?= $this->section('scripts') ?>
 <script>
-$(document).ready(function() {
-    // Get current user's IdTpq from session
-    const currentIdTpq = '<?= $idTpq ?? "" ?>';
-    const isAdmin = currentIdTpq === '' || currentIdTpq === '0' || currentIdTpq === 0;
+    $(document).ready(function() {
+        // Get current user's IdTpq from session
+        const currentIdTpq = '<?= $idTpq ?? "" ?>';
+        const isAdmin = currentIdTpq === '' || currentIdTpq === '0' || currentIdTpq === 0;
 
-    // Auto-select IdTpq when opening modal Tambah Konfigurasi
-    $('#modalAddKonfigurasi').on('show.bs.modal', function() {
-        if (!isAdmin && currentIdTpq) {
-            // Set select to current user's IdTpq
-            $('#addIdTpq').val(currentIdTpq);
-            
-            // Optionally disable the select for non-admin users
-            // $('#addIdTpq').prop('disabled', true);
-        }
-    });
+        // Auto-select IdTpq when opening modal Tambah Konfigurasi
+        $('#modalAddKonfigurasi').on('show.bs.modal', function() {
+            if (!isAdmin && currentIdTpq) {
+                // Set select to current user's IdTpq
+                $('#addIdTpq').val(currentIdTpq);
 
-    // Reset form when modal is closed
-    $('#modalAddKonfigurasi').on('hidden.bs.modal', function() {
-        $('#formAddKonfigurasi')[0].reset();
-        // Re-enable select if it was disabled
-        // $('#addIdTpq').prop('disabled', false);
-    });
-
-    // Auto-select IdTpq when opening modal Duplikasi (only for admin)
-    $('#modalDuplicateKonfigurasi').on('show.bs.modal', function() {
-        // For non-admin, IdTpq is already set and locked via hidden field
-        // For admin, they can select freely from dropdown
-        if (isAdmin) {
-            // Admin can select any IdTpq
-            $('#duplicateIdTpq').val('');
-        } else {
-            // Non-admin: ensure hidden field has correct value
-            $('#duplicateIdTpqHidden').val(currentIdTpq);
-            $('#duplicateIdTpq').val(currentIdTpq);
-        }
-    });
-
-    // Form Tambah Konfigurasi
-    $('#formAddKonfigurasi').on('submit', function(e) {
-        e.preventDefault();
-        
-        $.ajax({
-            url: '<?= base_url('backend/munaqosah/save-konfigurasi') ?>',
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            beforeSend: function() {
-                $('#formAddKonfigurasi button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
-            },
-            success: function(response) {
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: response.message
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: response.message || 'Gagal menyimpan data',
-                        html: response.errors ? '<ul>' + Object.values(response.errors).map(err => '<li>' + err + '</li>').join('') + '</ul>' : null
-                    });
-                    $('#formAddKonfigurasi button[type="submit"]').prop('disabled', false).html('Simpan');
-                }
-            },
-            error: function(xhr, status, error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Terjadi kesalahan: ' + error
-                });
-                $('#formAddKonfigurasi button[type="submit"]').prop('disabled', false).html('Simpan');
+                // Optionally disable the select for non-admin users
+                // $('#addIdTpq').prop('disabled', true);
             }
         });
-    });
 
-    // Reset form saat modal ditutup
-    $('#modalAddKonfigurasi').on('hidden.bs.modal', function() {
-        $('#formAddKonfigurasi')[0].reset();
-    });
+        // Reset form when modal is closed
+        $('#modalAddKonfigurasi').on('hidden.bs.modal', function() {
+            $('#formAddKonfigurasi')[0].reset();
+            // Re-enable select if it was disabled
+            // $('#addIdTpq').prop('disabled', false);
+        });
 
-    // Button Edit Click
-    $(document).on('click', '.edit-konfigurasi-btn', function() {
-        var id = $(this).data('id');
-        var idTpq = $(this).data('idtpq');
-        var settingKey = $(this).data('settingkey');
-        var settingValue = $(this).data('settingvalue');
-        var settingType = $(this).data('settingtype');
-        var description = $(this).data('description');
-
-        $('#editId').val(id);
-        $('#editIdTpq').val(idTpq);
-        $('#editSettingKey').val(settingKey);
-        $('#editSettingValue').val(settingValue);
-        $('#editSettingType').val(settingType);
-        $('#editSettingTypeHidden').val(settingType); // Hidden field untuk submit
-        $('#editDescription').val(description);
-
-        $('#modalEditKonfigurasi').modal('show');
-    });
-
-    // Form Edit Konfigurasi
-    $('#formEditKonfigurasi').on('submit', function(e) {
-        e.preventDefault();
-        
-        var id = $('#editId').val();
-        
-        $.ajax({
-            url: '<?= base_url('backend/munaqosah/update-konfigurasi/') ?>' + id,
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            beforeSend: function() {
-                $('#formEditKonfigurasi button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Mengupdate...');
-            },
-            success: function(response) {
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: response.message
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: response.message || 'Gagal mengupdate data',
-                        html: response.errors ? '<ul>' + Object.values(response.errors).map(err => '<li>' + err + '</li>').join('') + '</ul>' : null
-                    });
-                    $('#formEditKonfigurasi button[type="submit"]').prop('disabled', false).html('Update');
-                }
-            },
-            error: function(xhr, status, error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Terjadi kesalahan: ' + error
-                });
-                $('#formEditKonfigurasi button[type="submit"]').prop('disabled', false).html('Update');
+        // Auto-select IdTpq when opening modal Duplikasi (only for admin)
+        $('#modalDuplicateKonfigurasi').on('show.bs.modal', function() {
+            // For non-admin, IdTpq is already set and locked via hidden field
+            // For admin, they can select freely from dropdown
+            if (isAdmin) {
+                // Admin can select any IdTpq
+                $('#duplicateIdTpq').val('').trigger('change');
+            } else {
+                // For non-admin, set to their IdTpq (readonly field + hidden field)
+                $('#duplicateIdTpqHidden').val(currentIdTpq);
+                $('#duplicateIdTpq').val(currentIdTpq);
             }
         });
-    });
 
-    // Button Duplicate Click
-    $(document).on('click', '.duplicate-konfigurasi-btn', function() {
-        var id = $(this).data('id');
-        var idTpq = $(this).data('idtpq');
-        var settingKey = $(this).data('settingkey');
-        var settingValue = $(this).data('settingvalue');
-        var settingType = $(this).data('settingtype');
-        var description = $(this).data('description');
+        // Form Tambah Konfigurasi
+        $('#formAddKonfigurasi').on('submit', function(e) {
+            e.preventDefault();
 
-        // Set form values
-        $('#duplicateId').val(id);
-        
-        // For admin, clear selection; for non-admin, it's already locked
-        if (isAdmin) {
-            $('#duplicateIdTpq').val('').trigger('change');
-        } else {
-            // For non-admin, set to their IdTpq (readonly field + hidden field)
-            $('#duplicateIdTpq').val(currentIdTpq);
-            $('#duplicateIdTpqHidden').val(currentIdTpq);
-        }
-        
-        $('#duplicateSettingKey').val(settingKey);
-        $('#duplicateSettingValue').val(settingValue);
-        $('#duplicateSettingType').val(settingType);
-        $('#duplicateSettingTypeHidden').val(settingType); // Hidden field untuk submit
-        $('#duplicateDescription').val(description);
-
-        $('#modalDuplicateKonfigurasi').modal('show');
-    });
-
-    // Form Duplicate Konfigurasi
-    $('#formDuplicateKonfigurasi').on('submit', function(e) {
-        e.preventDefault();
-        
-        // Validate target IdTpq
-        var targetIdTpq = $('#duplicateIdTpq').val();
-        if (!targetIdTpq || targetIdTpq === '') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'ID TPQ Tujuan harus dipilih'
-            });
-            $('#duplicateIdTpq').focus();
-            return;
-        }
-
-        // Prevent duplicating to 'default' (meskipun option default tidak ada di select duplikasi)
-        if (targetIdTpq === 'default') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Tidak dapat menduplikasi ke "default". Gunakan ID TPQ lain atau "0" untuk admin.'
-            });
-            return;
-        }
-        
-        $.ajax({
-            url: '<?= base_url('backend/munaqosah/duplicate-konfigurasi') ?>',
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            beforeSend: function() {
-                $('#formDuplicateKonfigurasi button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menduplikasi...');
-            },
-            success: function(response) {
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: response.message
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: response.message || 'Gagal menduplikasi data',
-                        html: response.errors ? '<ul>' + Object.values(response.errors).map(err => '<li>' + err + '</li>').join('') + '</ul>' : null
-                    });
-                    $('#formDuplicateKonfigurasi button[type="submit"]').prop('disabled', false).html('<i class="fas fa-copy"></i> Duplikasi');
-                }
-            },
-            error: function(xhr, status, error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Terjadi kesalahan: ' + error
-                });
-                $('#formDuplicateKonfigurasi button[type="submit"]').prop('disabled', false).html('<i class="fas fa-copy"></i> Duplikasi');
-            }
-        });
-    });
-
-    // Reset form saat modal ditutup
-    $('#modalDuplicateKonfigurasi').on('hidden.bs.modal', function() {
-        $('#formDuplicateKonfigurasi')[0].reset();
-    });
-
-    // Button Delete Click
-    $(document).on('click', '.delete-konfigurasi-btn', function() {
-        var id = $(this).data('id');
-        var idTpq = $(this).data('idtpq');
-        var settingKey = $(this).data('settingkey');
-
-        Swal.fire({
-            title: 'Konfirmasi Hapus',
-            html: 'Apakah Anda yakin ingin menghapus konfigurasi ini?<br><br>' +
-                  '<strong>ID TPQ:</strong> ' + idTpq + '<br>' +
-                  '<strong>Setting Key:</strong> ' + settingKey,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Ya, Hapus',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: '<?= base_url('backend/munaqosah/delete-konfigurasi/') ?>' + id,
-                    type: 'POST',
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil',
-                                text: response.message
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: response.message || 'Gagal menghapus data'
-                            });
-                        }
-                    },
-                    error: function(xhr, status, error) {
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/save-konfigurasi') ?>',
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                beforeSend: function() {
+                    $('#formAddKonfigurasi button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Terjadi kesalahan: ' + error
+                            text: response.message || 'Gagal menyimpan data',
+                            html: response.errors ? '<ul>' + Object.values(response.errors).map(err => '<li>' + err + '</li>').join('') + '</ul>' : null
                         });
+                        $('#formAddKonfigurasi button[type="submit"]').prop('disabled', false).html('Simpan');
                     }
-                });
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Terjadi kesalahan: ' + error
+                    });
+                    $('#formAddKonfigurasi button[type="submit"]').prop('disabled', false).html('Simpan');
+                }
+            });
+        });
+
+        // Reset form saat modal ditutup
+        $('#modalAddKonfigurasi').on('hidden.bs.modal', function() {
+            $('#formAddKonfigurasi')[0].reset();
+        });
+
+        // Button Edit Click
+        $(document).on('click', '.edit-konfigurasi-btn', function() {
+            var id = $(this).data('id');
+            var idTpq = $(this).data('idtpq');
+            var settingKey = $(this).data('settingkey');
+            var settingValue = $(this).data('settingvalue');
+            var settingType = $(this).data('settingtype');
+            var description = $(this).data('description');
+
+            // Set form values
+            if (isAdmin) {
+                $('#editSettingKey').prop('readonly', false);
+            } else {
+                $('#editSettingKey').prop('readonly', true);
             }
+
+            $('#editId').val(id);
+            $('#editIdTpq').val(idTpq);
+            $('#editSettingKey').val(settingKey);
+            $('#editSettingValue').val(settingValue);
+            $('#editSettingType').val(settingType);
+            $('#editSettingTypeHidden').val(settingType); // Hidden field untuk submit
+            $('#editDescription').val(description);
+
+            $('#modalEditKonfigurasi').modal('show');
+        });
+
+        // Form Edit Konfigurasi
+        $('#formEditKonfigurasi').on('submit', function(e) {
+            e.preventDefault();
+
+            var id = $('#editId').val();
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/update-konfigurasi/') ?>' + id,
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                beforeSend: function() {
+                    $('#formEditKonfigurasi button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Mengupdate...');
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'Gagal mengupdate data',
+                            html: response.errors ? '<ul>' + Object.values(response.errors).map(err => '<li>' + err + '</li>').join('') + '</ul>' : null
+                        });
+                        $('#formEditKonfigurasi button[type="submit"]').prop('disabled', false).html('Update');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Terjadi kesalahan: ' + error
+                    });
+                    $('#formEditKonfigurasi button[type="submit"]').prop('disabled', false).html('Update');
+                }
+            });
+        });
+
+        // Button Duplicate Click
+        $(document).on('click', '.duplicate-konfigurasi-btn', function() {
+            var id = $(this).data('id');
+            var idTpq = $(this).data('idtpq');
+            var settingKey = $(this).data('settingkey');
+            var settingValue = $(this).data('settingvalue');
+            var settingType = $(this).data('settingtype');
+            var description = $(this).data('description');
+
+            // Set form values
+            if (isAdmin) {
+                $('#duplicateSettingKey').prop('readonly', false);
+            } else {
+                $('#duplicateSettingKey').prop('readonly', true);
+            }
+
+            $('#duplicateId').val(id);
+
+            // For admin, clear selection; for non-admin, it's already locked
+            if (isAdmin) {
+                $('#duplicateIdTpq').val('').trigger('change');
+            } else {
+                // For non-admin, set to their IdTpq (readonly field + hidden field)
+                $('#duplicateIdTpq').val(currentIdTpq);
+                $('#duplicateIdTpqHidden').val(currentIdTpq);
+            }
+
+            $('#duplicateSettingKey').val(settingKey);
+            $('#duplicateSettingValue').val(settingValue);
+            $('#duplicateSettingType').val(settingType);
+            $('#duplicateSettingTypeHidden').val(settingType); // Hidden field untuk submit
+            $('#duplicateDescription').val(description);
+
+            $('#modalDuplicateKonfigurasi').modal('show');
+        });
+
+        // Form Duplicate Konfigurasi
+        $('#formDuplicateKonfigurasi').on('submit', function(e) {
+            e.preventDefault();
+
+            // Validate target IdTpq
+            var targetIdTpq = $('#duplicateIdTpq').val();
+            if (!targetIdTpq || targetIdTpq === '') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'ID TPQ Tujuan harus dipilih'
+                });
+                $('#duplicateIdTpq').focus();
+                return;
+            }
+
+            // Prevent duplicating to 'default' (meskipun option default tidak ada di select duplikasi)
+            if (targetIdTpq === 'default') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Tidak dapat menduplikasi ke "default". Gunakan ID TPQ lain atau "0" untuk admin.'
+                });
+                return;
+            }
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/duplicate-konfigurasi') ?>',
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                beforeSend: function() {
+                    $('#formDuplicateKonfigurasi button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menduplikasi...');
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'Gagal menduplikasi data',
+                            html: response.errors ? '<ul>' + Object.values(response.errors).map(err => '<li>' + err + '</li>').join('') + '</ul>' : null
+                        });
+                        $('#formDuplicateKonfigurasi button[type="submit"]').prop('disabled', false).html('<i class="fas fa-copy"></i> Duplikasi');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Terjadi kesalahan: ' + error
+                    });
+                    $('#formDuplicateKonfigurasi button[type="submit"]').prop('disabled', false).html('<i class="fas fa-copy"></i> Duplikasi');
+                }
+            });
+        });
+
+        // Reset form saat modal ditutup
+        $('#modalDuplicateKonfigurasi').on('hidden.bs.modal', function() {
+            $('#formDuplicateKonfigurasi')[0].reset();
+        });
+
+        // Button Delete Click
+        $(document).on('click', '.delete-konfigurasi-btn', function() {
+            var id = $(this).data('id');
+            var idTpq = $(this).data('idtpq');
+            var settingKey = $(this).data('settingkey');
+
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                html: 'Apakah Anda yakin ingin menghapus konfigurasi ini?<br><br>' +
+                    '<strong>ID TPQ:</strong> ' + idTpq + '<br>' +
+                    '<strong>Setting Key:</strong> ' + settingKey,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '<?= base_url('backend/munaqosah/delete-konfigurasi/') ?>' + id,
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message || 'Gagal menghapus data'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Terjadi kesalahan: ' + error
+                            });
+                        }
+                    });
+                }
+            });
         });
     });
-});
 </script>
 <?= $this->endSection() ?>

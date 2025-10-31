@@ -669,7 +669,8 @@
             return {
                 IdJuri: '<?= $juri_data->IdJuri ?? "" ?>',
                 UsernameJuri: '<?= $juri_data->UsernameJuri ?? "" ?>',
-                IdGrupMateriUjian: '<?= $juri_data->IdGrupMateriUjian ?? "" ?>'
+                IdGrupMateriUjian: '<?= $juri_data->IdGrupMateriUjian ?? "" ?>',
+                RoomId: '<?= $juri_data->RoomId ?? "" ?>'
             };
         }
 
@@ -789,8 +790,8 @@
                         currentJuriData = response.data.juri;
                         currentMateriData = response.data.materi;
 
-                        // Show peserta info
-                        showPesertaInfo(response.data.peserta);
+                        // Show peserta info with room validation info
+                        showPesertaInfo(response.data.peserta, response.data.roomValidation);
 
                         // Check if nilai already exists
                         if (response.data.nilaiExists) {
@@ -864,7 +865,51 @@
         });
 
         // Show peserta info
-        function showPesertaInfo(peserta) {
+        function showPesertaInfo(peserta, roomValidation = null) {
+            let roomInfoHtml = '';
+
+            // Tampilkan info room jika ada
+            if (currentJuriData.RoomId) {
+                roomInfoHtml = `<strong>Room:</strong> <span class="badge badge-info">${currentJuriData.RoomId}</span><br>`;
+            }
+
+            // Tampilkan info room validation jika ada
+            let roomValidationHtml = '';
+            if (roomValidation && roomValidation.enabled) {
+                const juriCount = roomValidation.juriCount || 0;
+                const maxJuri = roomValidation.maxJuri || 2;
+                const remaining = maxJuri - juriCount;
+
+                let statusBadge = '';
+                if (juriCount === 0) {
+                    statusBadge = '<span class="badge badge-success">Belum Ada Juri</span>';
+                } else if (juriCount < maxJuri) {
+                    statusBadge = `<span class="badge badge-warning">Sudah ${juriCount} dari ${maxJuri} Juri</span>`;
+                } else {
+                    statusBadge = `<span class="badge badge-danger">Penuh (${maxJuri} Juri)</span>`;
+                }
+
+                roomValidationHtml = `
+                    <div class="col-md-12 mt-2">
+                        <div class="alert alert-info mb-0">
+                            <h6><i class="fas fa-info-circle"></i> Informasi Room Validation:</h6>
+                            <small>
+                                Status: ${statusBadge}<br>
+                                ${roomValidation.message || ''}
+                                ${juriCount > 0 ? `<br><strong>Juri yang sudah menilai:</strong>` : ''}
+                            </small>
+                            ${juriCount > 0 && roomValidation.juriList ? 
+                                '<ul class="mb-0 mt-1">' + 
+                                roomValidation.juriList.map(j => 
+                                    `<li><small>${j.UsernameJuri} (Nilai: ${j.Nilai}) - ${new Date(j.updated_at).toLocaleString('id-ID')}</small></li>`
+                                ).join('') + 
+                                '</ul>' 
+                            : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
             const infoHtml = `
             <div class="row">
                 <div class="col-md-6">
@@ -873,8 +918,10 @@
                 </div>
                 <div class="col-md-6">
                     <strong>Grup Materi:</strong> ${currentJuriData.NamaMateriGrup}<br>
+                    ${roomInfoHtml}
                     <strong>Juri:</strong> ${currentJuriData.UsernameJuri}
                 </div>
+                ${roomValidationHtml}
             </div>
         `;
 

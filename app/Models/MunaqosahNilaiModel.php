@@ -17,10 +17,15 @@ class MunaqosahNilaiModel extends Model
         'IdJuri',
         'IdMateri',
         'IdGrupMateriUjian',
+        'RoomId',
         'KategoriMateriUjian',
         'TypeUjian',
         'Nilai',
-        'Catatan'
+        'Catatan',
+        'IsModified',
+        'ModifiedBy',
+        'ModifiedAt',
+        'ModificationReason'
     ];
 
     protected $validationRules = [
@@ -191,5 +196,90 @@ class MunaqosahNilaiModel extends Model
         $builder->where('TypeUjian', $typeUjian);
         $builder->where('IdTpq', $idTpq);
         return $builder->get()->getRow()->count;
+    }
+
+    /**
+     * Cek apakah peserta sudah di-test di room tertentu untuk grup materi tertentu
+     * 
+     * @param string $noPeserta
+     * @param string $idGrupMateriUjian
+     * @param string $idTahunAjaran
+     * @param string $typeUjian
+     * @return array|null
+     */
+    public function getPesertaRoomByGrupMateri($noPeserta, $idGrupMateriUjian, $idTahunAjaran, $typeUjian)
+    {
+        return $this->select('RoomId')
+            ->where('NoPeserta', $noPeserta)
+            ->where('IdGrupMateriUjian', $idGrupMateriUjian)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
+            ->where('RoomId IS NOT NULL')
+            ->where('RoomId !=', '')
+            ->first();
+    }
+
+    /**
+     * Cek berapa juri yang sudah menilai peserta di grup materi tertentu
+     * 
+     * @param string $noPeserta
+     * @param string $idGrupMateriUjian
+     * @param string $idTahunAjaran
+     * @param string $typeUjian
+     * @return int
+     */
+    public function countJuriByPesertaGrupMateri($noPeserta, $idGrupMateriUjian, $idTahunAjaran, $typeUjian)
+    {
+        $result = $this->select('COUNT(DISTINCT IdJuri) as total')
+            ->where('NoPeserta', $noPeserta)
+            ->where('IdGrupMateriUjian', $idGrupMateriUjian)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
+            ->first();
+
+        return $result['total'] ?? 0;
+    }
+
+    /**
+     * Get list of juri who already scored a participant for specific grup materi
+     * 
+     * @param string $noPeserta
+     * @param string $idGrupMateriUjian
+     * @param string $idTahunAjaran
+     * @param string $typeUjian
+     * @return array
+     */
+    public function getJuriByPesertaGrupMateri($noPeserta, $idGrupMateriUjian, $idTahunAjaran, $typeUjian)
+    {
+        $builder = $this->db->table($this->table . ' mn');
+        $builder->select('mn.IdJuri, j.UsernameJuri, mn.RoomId, mn.Nilai, mn.updated_at');
+        $builder->join('tbl_munaqosah_juri j', 'j.IdJuri = mn.IdJuri', 'left');
+        $builder->where('mn.NoPeserta', $noPeserta);
+        $builder->where('mn.IdGrupMateriUjian', $idGrupMateriUjian);
+        $builder->where('mn.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('mn.TypeUjian', $typeUjian);
+        $builder->orderBy('mn.created_at', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Check if a jury already scored this participant for specific grup materi
+     * 
+     * @param string $noPeserta
+     * @param string $idJuri
+     * @param string $idGrupMateriUjian
+     * @param string $idTahunAjaran
+     * @param string $typeUjian
+     * @return array|null
+     */
+    public function checkJuriAlreadyScored($noPeserta, $idJuri, $idGrupMateriUjian, $idTahunAjaran, $typeUjian)
+    {
+        return $this->where('NoPeserta', $noPeserta)
+            ->where('IdJuri', $idJuri)
+            ->where('IdGrupMateriUjian', $idGrupMateriUjian)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
+            ->first();
     }
 }

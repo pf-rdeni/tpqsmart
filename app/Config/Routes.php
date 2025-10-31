@@ -213,6 +213,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/get-tpq-data-juri', 'Munaqosah::getTpqDataForJuri');
     $routes->post('munaqosah/generate-username-juri', 'Munaqosah::generateUsernameJuri');
     $routes->post('munaqosah/save-juri', 'Munaqosah::saveJuri');
+    $routes->post('munaqosah/update-room-juri/(:num)', 'Munaqosah::updateRoomJuri/$1');
+    $routes->post('munaqosah/updateRoomJuri/(:num)', 'Munaqosah::updateRoomJuri/$1');
     $routes->post('munaqosah/delete-juri/(:num)', 'Munaqosah::deleteJuri/$1');
     $routes->post('munaqosah/update-password-juri/(:num)', 'Munaqosah::updatePasswordJuri/$1');
 

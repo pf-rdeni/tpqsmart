@@ -288,6 +288,100 @@ class Munaqosah extends BaseController
 
             $nilaiExists = !empty($existingNilai);
 
+            // === VALIDASI ROOM SYSTEM ===
+            $idGrupMateriUjian = $juriData['IdGrupMateriUjian'];
+            $currentJuriRoom = $juriData['RoomId'] ?? null;
+
+            // Cek apakah room validation aktif untuk grup materi ini
+            $configIdTpq = $idTpq ?? 'default';
+            $enableRoomValidation = $this->munaqosahKonfigurasiModel->getSetting(
+                $configIdTpq,
+                'EnableRoomValidation_' . $idGrupMateriUjian
+            );
+
+            $roomValidationInfo = [
+                'enabled' => false,
+                'currentRoom' => $currentJuriRoom,
+                'existingRoom' => null,
+                'juriCount' => 0,
+                'maxJuri' => 2,
+                'canProceed' => true,
+                'message' => null
+            ];
+
+            if ($enableRoomValidation && !$nilaiExists) {
+                $roomValidationInfo['enabled'] = true;
+
+                // Cek apakah peserta sudah di-test di room lain untuk grup materi ini
+                $existingRoom = $this->nilaiMunaqosahModel->getPesertaRoomByGrupMateri(
+                    $noPeserta,
+                    $idGrupMateriUjian,
+                    $IdTahunAjaran,
+                    $TypeUjian
+                );
+
+                if ($existingRoom && !empty($existingRoom['RoomId'])) {
+                    $roomValidationInfo['existingRoom'] = $existingRoom['RoomId'];
+
+                    // Jika room berbeda, tidak bisa proceed
+                    if ($currentJuriRoom && $existingRoom['RoomId'] !== $currentJuriRoom) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'status' => 'ROOM_VALIDATION_ERROR',
+                            'code' => 'DIFFERENT_ROOM',
+                            'message' => 'Peserta sudah diuji di room lain',
+                            'details' => "Peserta {$noPeserta} sudah diuji di room {$existingRoom['RoomId']}. Tidak bisa diuji di room {$currentJuriRoom}.",
+                            'roomInfo' => [
+                                'existingRoom' => $existingRoom['RoomId'],
+                                'currentRoom' => $currentJuriRoom
+                            ]
+                        ]);
+                    }
+                }
+
+                // Cek maksimal juri per room untuk grup materi ini
+                $maxJuriPerRoom = $this->munaqosahKonfigurasiModel->getSettingAsInt(
+                    $configIdTpq,
+                    'MaxJuriPerRoom_' . $idGrupMateriUjian,
+                    2 // default 2 juri
+                );
+
+                $currentJuriCount = $this->nilaiMunaqosahModel->countJuriByPesertaGrupMateri(
+                    $noPeserta,
+                    $idGrupMateriUjian,
+                    $IdTahunAjaran,
+                    $TypeUjian
+                );
+
+                $roomValidationInfo['juriCount'] = $currentJuriCount;
+                $roomValidationInfo['maxJuri'] = $maxJuriPerRoom;
+
+                if ($currentJuriCount >= $maxJuriPerRoom) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'status' => 'ROOM_VALIDATION_ERROR',
+                        'code' => 'MAX_JURI_EXCEEDED',
+                        'message' => 'Maksimal juri sudah tercapai',
+                        'details' => "Peserta {$noPeserta} sudah dinilai oleh {$currentJuriCount} juri (maksimal {$maxJuriPerRoom}).",
+                        'roomInfo' => [
+                            'currentCount' => $currentJuriCount,
+                            'maxCount' => $maxJuriPerRoom
+                        ]
+                    ]);
+                }
+
+                // Get list of juri who already scored
+                $juriList = $this->nilaiMunaqosahModel->getJuriByPesertaGrupMateri(
+                    $noPeserta,
+                    $idGrupMateriUjian,
+                    $IdTahunAjaran,
+                    $TypeUjian
+                );
+
+                $roomValidationInfo['juriList'] = $juriList;
+                $roomValidationInfo['message'] = "Peserta ini sudah dinilai oleh {$currentJuriCount} dari {$maxJuriPerRoom} juri di room " . ($existingRoom['RoomId'] ?? $currentJuriRoom);
+            }
+
             // Siapkan data response
             $responseData = [
                 'peserta' => [
@@ -302,11 +396,13 @@ class Munaqosah extends BaseController
                     'IdJuri' => $juriData['IdJuri'],
                     'UsernameJuri' => $juriData['UsernameJuri'],
                     'IdGrupMateriUjian' => $juriData['IdGrupMateriUjian'],
+                    'RoomId' => $currentJuriRoom,
                     'NamaMateriGrup' => $grupMateri['NamaMateriGrup']
                 ],
                 'materi' => $transformedMateriData,
                 'nilaiExists' => $nilaiExists,
-                'existingNilai' => $existingNilai
+                'existingNilai' => $existingNilai,
+                'roomValidation' => $roomValidationInfo
             ];
 
             return $this->response->setJSON([
@@ -484,6 +580,91 @@ class Munaqosah extends BaseController
                 }
             } else {
                 // Mode baru: insert nilai baru
+
+                // Ambil data juri untuk mendapatkan RoomId
+                $juriData = $this->munaqosahJuriModel->getJuriByIdJuri($IdJuri);
+                $currentJuriRoom = $juriData['RoomId'] ?? null;
+
+                // === VALIDASI ROOM SEBELUM INSERT ===
+                // Ambil grup materi dari data pertama di materiMap
+                $firstMateri = reset($materiMap);
+                $idGrupMateriUjian = $firstMateri['IdGrupMateriUjian'] ?? null;
+
+                if ($idGrupMateriUjian) {
+                    // Cek apakah room validation aktif untuk grup materi ini
+                    $configIdTpq = $IdTpq ?? 'default';
+                    $enableRoomValidation = $this->munaqosahKonfigurasiModel->getSetting(
+                        $configIdTpq,
+                        'EnableRoomValidation_' . $idGrupMateriUjian
+                    );
+
+                    if ($enableRoomValidation) {
+                        // Cek apakah peserta sudah di-test di room lain untuk grup materi ini
+                        $existingRoom = $this->nilaiMunaqosahModel->getPesertaRoomByGrupMateri(
+                            $NoPeserta,
+                            $idGrupMateriUjian,
+                            $IdTahunAjaran,
+                            $TypeUjian
+                        );
+
+                        if ($existingRoom && !empty($existingRoom['RoomId'])) {
+                            // Jika room berbeda, tidak bisa proceed
+                            if ($currentJuriRoom && $existingRoom['RoomId'] !== $currentJuriRoom) {
+                                return $this->response->setJSON([
+                                    'success' => false,
+                                    'status' => 'ROOM_VALIDATION_ERROR',
+                                    'code' => 'DIFFERENT_ROOM',
+                                    'message' => 'Peserta sudah diuji di room lain',
+                                    'details' => "Peserta {$NoPeserta} sudah diuji di room {$existingRoom['RoomId']}. Tidak bisa diuji di room {$currentJuriRoom}."
+                                ]);
+                            }
+                        }
+
+                        // Cek maksimal juri per room untuk grup materi ini
+                        $maxJuriPerRoom = $this->munaqosahKonfigurasiModel->getSettingAsInt(
+                            $configIdTpq,
+                            'MaxJuriPerRoom_' . $idGrupMateriUjian,
+                            2 // default 2 juri
+                        );
+
+                        $currentJuriCount = $this->nilaiMunaqosahModel->countJuriByPesertaGrupMateri(
+                            $NoPeserta,
+                            $idGrupMateriUjian,
+                            $IdTahunAjaran,
+                            $TypeUjian
+                        );
+
+                        if ($currentJuriCount >= $maxJuriPerRoom) {
+                            return $this->response->setJSON([
+                                'success' => false,
+                                'status' => 'ROOM_VALIDATION_ERROR',
+                                'code' => 'MAX_JURI_EXCEEDED',
+                                'message' => 'Maksimal juri sudah tercapai',
+                                'details' => "Peserta {$NoPeserta} sudah dinilai oleh {$currentJuriCount} juri (maksimal {$maxJuriPerRoom})."
+                            ]);
+                        }
+
+                        // Cek apakah juri ini sudah pernah menilai peserta ini
+                        $alreadyScored = $this->nilaiMunaqosahModel->checkJuriAlreadyScored(
+                            $NoPeserta,
+                            $IdJuri,
+                            $idGrupMateriUjian,
+                            $IdTahunAjaran,
+                            $TypeUjian
+                        );
+
+                        if ($alreadyScored) {
+                            return $this->response->setJSON([
+                                'success' => false,
+                                'status' => 'VALIDATION_ERROR',
+                                'code' => 'ALREADY_SCORED',
+                                'message' => 'Juri sudah menilai peserta ini',
+                                'details' => "Juri {$IdJuri} sudah menilai peserta {$NoPeserta} sebelumnya."
+                            ]);
+                        }
+                    }
+                }
+
                 $nilaiRecords = [];
                 foreach ($nilaiData as $idMateri => $nilai) {
                     if (isset($materiMap[$idMateri])) {
@@ -502,6 +683,7 @@ class Munaqosah extends BaseController
                             'IdJuri' => $IdJuri,
                             'IdMateri' => $idMateri,
                             'IdGrupMateriUjian' => $materi['IdGrupMateriUjian'],
+                            'RoomId' => $currentJuriRoom, // Tambahkan RoomId
                             'KategoriMateriUjian' => $materi['KategoriMateriUjian'],
                             'TypeUjian' => $TypeUjian,
                             'Nilai' => floatval($nilai),
@@ -3140,11 +3322,16 @@ class Munaqosah extends BaseController
         // Ambil data juri dengan relasi untuk ditampilkan langsung
         $DataJuri = $this->munaqosahJuriModel->getJuriWithRelations($idTpq);
 
+        $roomConfig = $this->getRoomIdRange($idTpq);
+
         $data = [
             'page_title' => 'Data Juri Munaqosah',
             'juri' => $DataJuri,
             'grupMateriUjian' => $DataGrupMateriUjian,
             'tpqDropdown' => $DataTpqDropdown,
+            'roomOptions' => $roomConfig['rooms'],
+            'roomIdMin' => $roomConfig['min'],
+            'roomIdMax' => $roomConfig['max'],
         ];
         return view('backend/Munaqosah/listUserJuriMunaqosah', $data);
     }
@@ -3271,12 +3458,39 @@ class Munaqosah extends BaseController
             $idTpqPost = $this->request->getPost('IdTpq');
             $computedTypeUjian = (!empty($idTpqPost) && $idTpqPost !== '0') ? 'pra-munaqosah' : 'munaqosah';
 
+            $sessionIdTpq = session()->get('IdTpq');
+            $roomConfigReferenceId = ($idTpqPost !== null && $idTpqPost !== '') ? $idTpqPost : $sessionIdTpq;
+            $roomConfig = $this->getRoomIdRange($roomConfigReferenceId);
+            $allowedRooms = $roomConfig['rooms'];
+            $roomIdMinLabel = sprintf('ROOM-%02d', $roomConfig['min']);
+            $roomIdMaxLabel = sprintf('ROOM-%02d', $roomConfig['max']);
+
+            // Validasi dan siapkan RoomId
+            $roomIdPost = $this->request->getPost('RoomId');
+            $roomId = null;
+            if ($roomIdPost !== null && $roomIdPost !== '') {
+                $roomIdPost = strtoupper(trim($roomIdPost));
+
+                if (empty($allowedRooms) || !in_array($roomIdPost, $allowedRooms, true)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Validasi gagal',
+                        'errors' => [
+                            'RoomId' => sprintf('Room ID tidak valid. Pilih %s sampai %s.', $roomIdMinLabel, $roomIdMaxLabel)
+                        ]
+                    ]);
+                }
+
+                $roomId = $roomIdPost;
+            }
+
             // Prepare data
             $data = [
                 'IdJuri' => $idJuri,
                 'IdTpq' => $this->request->getPost('IdTpq') ?: null,
                 'UsernameJuri' => $this->request->getPost('UsernameJuri'),
                 'IdGrupMateriUjian' => $this->request->getPost('IdGrupMateriUjian'),
+                'RoomId' => $roomId,
                 'TypeUjian' => $computedTypeUjian,
                 'Status' => $this->request->getPost('Status')
             ];
@@ -3333,6 +3547,61 @@ class Munaqosah extends BaseController
     }
 
 
+
+    /**
+     * Update room juri
+     */
+    public function updateRoomJuri($id)
+    {
+        try {
+            $roomIdPost = $this->request->getPost('RoomId');
+            $roomIdPost = $roomIdPost !== null ? trim($roomIdPost) : '';
+
+            $existingJuri = $this->munaqosahJuriModel->find($id);
+            if (!$existingJuri) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data juri tidak ditemukan'
+                ]);
+            }
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $roomConfigReferenceId = (!empty($existingJuri['IdTpq']) || $existingJuri['IdTpq'] === '0')
+                ? $existingJuri['IdTpq']
+                : $sessionIdTpq;
+
+            $roomConfig = $this->getRoomIdRange($roomConfigReferenceId);
+            $allowedRooms = $roomConfig['rooms'];
+            $roomIdMinLabel = sprintf('ROOM-%02d', $roomConfig['min']);
+            $roomIdMaxLabel = sprintf('ROOM-%02d', $roomConfig['max']);
+
+            $roomId = null;
+            if ($roomIdPost !== '') {
+                $roomIdPost = strtoupper($roomIdPost);
+                if (empty($allowedRooms) || !in_array($roomIdPost, $allowedRooms, true)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Room ID tidak valid. Pilih ' . $roomIdMinLabel . ' sampai ' . $roomIdMaxLabel . '.'
+                    ]);
+                }
+                $roomId = $roomIdPost;
+            }
+
+            $this->munaqosahJuriModel->update($id, [
+                'RoomId' => $roomId
+            ]);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Room juri berhasil diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
 
     /**
      * Update password juri
@@ -4287,7 +4556,11 @@ class Munaqosah extends BaseController
                 ]);
             }
 
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = ($sessionIdTpq === '0' || $sessionIdTpq === 0 || empty($sessionIdTpq));
+
             $rules = [
+                'SettingKey' => $isAdmin ? 'required|min_length[3]' : 'required',
                 'SettingValue' => 'required',
                 'SettingType' => 'required|in_list[number,text,boolean,json]',
                 'Description' => 'permit_empty'
@@ -4301,24 +4574,59 @@ class Munaqosah extends BaseController
                 ]);
             }
 
+            $newSettingKey = $this->request->getPost('SettingKey');
+            $settingValue = $this->request->getPost('SettingValue');
+            $settingType = $this->request->getPost('SettingType');
+            $description = $this->request->getPost('Description') ?? '';
+
+            if (!$isAdmin && $newSettingKey !== $existing['SettingKey']) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki izin untuk mengubah Setting Key'
+                ]);
+            }
+
+            if ($isAdmin && $newSettingKey !== $existing['SettingKey']) {
+                $duplicate = $this->munaqosahKonfigurasiModel
+                    ->where('IdTpq', $existing['IdTpq'])
+                    ->where('SettingKey', $newSettingKey)
+                    ->where('id !=', $id)
+                    ->first();
+
+                if ($duplicate) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Setting Key tersebut sudah digunakan untuk ID TPQ yang sama'
+                    ]);
+                }
+            }
+
+            if (!$isAdmin && $settingType !== $existing['SettingType']) {
+                $settingType = $existing['SettingType'];
+            }
+
             $data = [
-                'SettingValue' => $this->request->getPost('SettingValue'),
-                'SettingType' => $this->request->getPost('SettingType'),
-                'Description' => $this->request->getPost('Description') ?? ''
+                'SettingValue' => $settingValue,
+                'SettingType' => $settingType,
+                'Description' => $description
             ];
+
+            if ($isAdmin) {
+                $data['SettingKey'] = $newSettingKey;
+            }
 
             if ($this->munaqosahKonfigurasiModel->update($id, $data)) {
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Data konfigurasi berhasil diupdate'
                 ]);
-            } else {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Gagal mengupdate data',
-                    'errors' => $this->munaqosahKonfigurasiModel->errors()
-                ]);
             }
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate data',
+                'errors' => $this->munaqosahKonfigurasiModel->errors()
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateKonfigurasi: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -4336,8 +4644,12 @@ class Munaqosah extends BaseController
         try {
             $sourceId = $this->request->getPost('source_id');
             $targetIdTpq = $this->request->getPost('IdTpq');
+            $requestedSettingKey = $this->request->getPost('SettingKey');
             $settingValue = $this->request->getPost('SettingValue');
             $description = $this->request->getPost('Description') ?? '';
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = ($sessionIdTpq === '0' || $sessionIdTpq === 0 || empty($sessionIdTpq));
 
             // Validate input
             if (empty($sourceId)) {
@@ -4379,16 +4691,37 @@ class Munaqosah extends BaseController
                 ]);
             }
 
+            if (!$isAdmin && $requestedSettingKey !== $source['SettingKey']) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki izin untuk mengubah Setting Key'
+                ]);
+            }
+
+            $requestedSettingKey = $requestedSettingKey ?: $source['SettingKey'];
+
+            if ($isAdmin) {
+                $requestedSettingKey = trim($requestedSettingKey);
+                if ($requestedSettingKey === '') {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Setting Key tidak boleh kosong'
+                    ]);
+                }
+            } else {
+                $requestedSettingKey = $source['SettingKey'];
+            }
+
             // Check if configuration already exists for target IdTpq + SettingKey
             $existing = $this->munaqosahKonfigurasiModel
                 ->where('IdTpq', $targetIdTpq)
-                ->where('SettingKey', $source['SettingKey'])
+                ->where('SettingKey', $requestedSettingKey)
                 ->first();
 
             if ($existing) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Konfigurasi dengan IdTpq "' . $targetIdTpq . '" dan SettingKey "' . $source['SettingKey'] . '" sudah ada. Silakan edit konfigurasi yang sudah ada.',
+                    'message' => 'Konfigurasi dengan IdTpq "' . $targetIdTpq . '" dan SettingKey "' . $requestedSettingKey . '" sudah ada. Silakan edit konfigurasi yang sudah ada.',
                     'duplicate' => true,
                     'existing_id' => $existing['id']
                 ]);
@@ -4399,9 +4732,9 @@ class Munaqosah extends BaseController
             // Use SettingValue from form if provided, otherwise use source value
             $data = [
                 'IdTpq' => $targetIdTpq,
-                'SettingKey' => $source['SettingKey'], // Cannot be changed
+                'SettingKey' => $requestedSettingKey,
                 'SettingValue' => !empty($settingValue) ? $settingValue : $source['SettingValue'],
-                'SettingType' => $source['SettingType'], // Cannot be changed - always from source
+                'SettingType' => $source['SettingType'],
                 'Description' => !empty($description) ? $description : $source['Description']
             ];
 
@@ -4467,6 +4800,42 @@ class Munaqosah extends BaseController
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ]);
         }
+    }
+
+    private function getRoomIdRange($idTpq)
+    {
+        $configId = $idTpq;
+
+        if ($configId === null || $configId === '') {
+            $configId = 'default';
+        }
+
+        $configId = (string)$configId;
+
+        $roomIdMin = $this->munaqosahKonfigurasiModel->getSetting($configId, 'RoomIdMin');
+        $roomIdMax = $this->munaqosahKonfigurasiModel->getSetting($configId, 'RoomIdMax');
+
+        $roomIdMin = $roomIdMin !== null ? (int)$roomIdMin : 1;
+        $roomIdMax = $roomIdMax !== null ? (int)$roomIdMax : 10;
+
+        if ($roomIdMin < 0) {
+            $roomIdMin = 0;
+        }
+
+        if ($roomIdMax < $roomIdMin) {
+            $roomIdMax = $roomIdMin;
+        }
+
+        $rooms = [];
+        for ($i = $roomIdMin; $i <= $roomIdMax; $i++) {
+            $rooms[] = sprintf('ROOM-%02d', $i);
+        }
+
+        return [
+            'rooms' => $rooms,
+            'min' => $roomIdMin,
+            'max' => $roomIdMax,
+        ];
     }
 }
 

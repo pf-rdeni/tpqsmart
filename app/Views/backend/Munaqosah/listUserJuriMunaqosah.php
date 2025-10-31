@@ -2,6 +2,25 @@
 
 <?= $this->section('content') ?>
 
+<?php
+$roomIdMin = isset($roomIdMin) ? (int)$roomIdMin : 1;
+$roomIdMax = isset($roomIdMax) ? (int)$roomIdMax : 10;
+
+if ($roomIdMax < $roomIdMin) {
+    $roomIdMax = $roomIdMin;
+}
+
+$roomOptions = $roomOptions ?? [];
+if (empty($roomOptions)) {
+    for ($number = $roomIdMin; $number <= $roomIdMax; $number++) {
+        $roomOptions[] = sprintf('ROOM-%02d', $number);
+    }
+}
+
+$roomIdMinLabel = sprintf('ROOM-%02d', $roomIdMin);
+$roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
+?>
+
 <section class="content">
     <div class="container-fluid">
         <div class="card">
@@ -22,11 +41,12 @@
                             <tr>
                                 <th width="5%">No</th>
                                 <th width="10%">ID Juri</th>
-                                <th width="20%">Username</th>
-                                <th width="15%">Grup Materi</th>
+                                <th width="18%">Username</th>
+                                <th width="12%">Grup Materi</th>
+                                <th width="10%">Room ID</th>
                                 <th width="10%">Type Ujian</th>
-                                <th width="15%">TPQ</th>
-                                <th width="10%">Status</th>
+                                <th width="12%">TPQ</th>
+                                <th width="8%">Status</th>
                                 <th width="10%">Aksi</th>
                             </tr>
                         </thead>
@@ -39,6 +59,13 @@
                                         <td><?= $j['IdJuri'] ?></td>
                                         <td><?= $j['UsernameJuri'] ?></td>
                                         <td><?= $j['NamaMateriGrup'] ?></td>
+                                        <td>
+                                            <?php if (!empty($j['RoomId'])): ?>
+                                                <span class="badge badge-info"><?= $j['RoomId'] ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= $j['TypeUjian'] ?></td>
                                         <td><?= $j['NamaTpq'] ?? '-' ?></td>
                                         <td>
@@ -50,6 +77,9 @@
                                         <td>
                                             <button class="btn btn-sm btn-info btn-edit-password" data-id="<?= $j['id'] ?>" title="Ubah Password">
                                                 <i class="fas fa-key"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning btn-edit-room" data-id="<?= $j['id'] ?>" data-room="<?= $j['RoomId'] ?>" title="Ubah Room">
+                                                <i class="fas fa-door-open"></i>
                                             </button>
                                             <button class="btn btn-sm btn-danger btn-delete" data-id="<?= $j['id'] ?>" title="Hapus">
                                                 <i class="fas fa-trash"></i>
@@ -139,6 +169,31 @@
                                     <option value="Tidak Aktif">Tidak Aktif</option>
                                 </select>
                                 <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="RoomId">Room ID (Opsional)</label>
+                                <select class="form-control" id="RoomId" name="RoomId">
+                                    <option value="">Tanpa Room</option>
+                                    <?php foreach ($roomOptions as $roomOption): ?>
+                                        <option value="<?= $roomOption ?>"><?= $roomOption ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Pilih room untuk menempatkan juri (<?= $roomIdMinLabel ?> - <?= $roomIdMaxLabel ?>).
+                                    <strong>Biarkan Tanpa Room jika tidak menggunakan sistem room.</strong>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-sm alert-warning mt-4 mb-0">
+                                <small>
+                                    <i class="fas fa-lightbulb"></i> <strong>Tips:</strong> Pilihan Room ID tersedia dari <?= $roomIdMinLabel ?> hingga <?= $roomIdMaxLabel ?>.
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -242,6 +297,42 @@
     </div>
 </div>
 
+<!-- Modal Edit Room -->
+<div class="modal fade" id="modalEditRoom" tabindex="-1" role="dialog" aria-labelledby="modalEditRoomLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEditRoomLabel">Ubah Room Juri</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formEditRoom">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editRoomId">Room ID</label>
+                        <select class="form-control" id="editRoomId" name="RoomId">
+                            <option value="">Tanpa Room</option>
+                            <?php foreach ($roomOptions as $roomOption): ?>
+                                <option value="<?= $roomOption ?>"><?= $roomOption ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i> Pilih room untuk juri ini (<?= $roomIdMinLabel ?> - <?= $roomIdMaxLabel ?>) atau pilih Tanpa Room jika tidak menggunakan sistem room.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btnUpdateRoom">
+                        <i class="fas fa-save"></i> Update Room
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -268,7 +359,7 @@
             }
 
             // Show loading on button
-            let $btn = $('#generateUsernameBtn');
+            let $btn = $('#btnGenerateUsername');
             let originalText = $btn.html();
             $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generate...');
 
@@ -338,6 +429,8 @@
             $('#emailPreview').text('username@smartpq.simpedis.com');
             // Set default status to Aktif
             $('#Status').val('Aktif');
+            // Reset RoomId selection
+            $('#RoomId').val('');
             // Set default TypeUjian
             $('#TypeUjian').val('munaqosah');
             // Set default password
@@ -506,6 +599,63 @@
             $('#useDefaultPasswordEdit').prop('checked', false);
         });
 
+        // Edit Room Button
+        $(document).on('click', '.btn-edit-room', function() {
+            currentJuriId = $(this).data('id');
+            const roomId = $(this).data('room') || '';
+            $('#editRoomId').val(roomId);
+            $('#modalEditRoom').modal('show');
+        });
+
+        // Form Edit Room Submit
+        $('#formEditRoom').submit(function(e) {
+            e.preventDefault();
+
+            const roomId = $('#editRoomId').val();
+
+            // Show loading
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Mohon tunggu sebentar',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/updateRoomJuri') ?>/' + currentJuriId,
+                type: 'POST',
+                data: {
+                    RoomId: roomId
+                },
+                success: function(response) {
+                    Swal.close();
+
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#modalEditRoom').modal('hide');
+                        // Reload halaman untuk menampilkan data terbaru
+                        location.reload();
+                    } else {
+                        showAlert(response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    showAlert('Terjadi kesalahan saat mengupdate room', 'error');
+                }
+            });
+        });
+
         // Delete Button
         $(document).on('click', '.btn-delete', function() {
             currentJuriId = $(this).data('id');
@@ -605,6 +755,10 @@
         // Modal Events
         $('#modalJuri').on('hidden.bs.modal', function() {
             resetForm();
+        });
+
+        $('#modalEditRoom').on('hidden.bs.modal', function() {
+            $('#formEditRoom')[0].reset();
         });
 
         // Auto generate username when modal is shown and TPQ is pre-selected

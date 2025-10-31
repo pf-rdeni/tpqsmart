@@ -17,6 +17,7 @@ class MunaqosahJuriModel extends Model
         'IdTpq',
         'UsernameJuri',
         'IdGrupMateriUjian',
+        'RoomId',
         'TypeUjian',
         'Status'
     ];
@@ -88,6 +89,7 @@ class MunaqosahJuriModel extends Model
         $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup');
         $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
         $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+        $builder->orderBy('j.RoomId', 'ASC');
         $builder->orderBy('j.created_at', 'DESC');
         if ($idTpq) {
             $builder->where('j.IdTpq', $idTpq);
@@ -229,7 +231,7 @@ class MunaqosahJuriModel extends Model
     public function getJuriByUsernameJuri($usernameJuri)
     {
         $builder = $this->db->table($this->table . ' j');
-        $builder->select('j.id, j.IdJuri, j.UsernameJuri, j.IdGrupMateriUjian, j.IdTpq, j.TypeUjian, t.NamaTpq, g.NamaMateriGrup');
+        $builder->select('j.id, j.IdJuri, j.UsernameJuri, j.IdGrupMateriUjian, j.RoomId, j.IdTpq, j.TypeUjian, t.NamaTpq, g.NamaMateriGrup');
         $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
         $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
         $builder->orderBy('j.created_at', 'DESC');
