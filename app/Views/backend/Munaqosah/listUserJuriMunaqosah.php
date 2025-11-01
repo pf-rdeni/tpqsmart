@@ -341,12 +341,12 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
         let tableJuri;
         let currentJuriId = null;
         // DataTabe
-        tableJuri = $('#tableJuri').DataTable({
-            "responsive": true,
-            "lengthChange": false,
-            "autoWidth": false
-            // "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
-        });
+        // tableJuri = $('#tableJuri').DataTable({
+        //     "responsive": true,
+        //     "lengthChange": false,
+        //     "autoWidth": false
+        //     // "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
+        // });
 
         // Generate Username
         function generateUsername() {

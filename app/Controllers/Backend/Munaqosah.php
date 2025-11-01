@@ -2889,7 +2889,7 @@ class Munaqosah extends BaseController
             // Ambil data surah alquran untuk kategori QURAN
             $alquranMateri = $this->munaqosahAlquranModel->getSurahForMunaqosah();
             if (!empty($alquranMateri)) {
-                $quranKategoriId = $kategoriIdByName['QURAN'] ?? ($kategoriIdByName["QUR'AN"] ?? null);
+                $quranKategoriId = $kategoriIdByName['BACA AL-QURAN'] ?? ($kategoriIdByName["QUR'AN"] ?? null);
                 if ($quranKategoriId) {
                     foreach ($alquranMateri as &$alquran) {
                         $alquran['IdKategoriMateri'] = $quranKategoriId;

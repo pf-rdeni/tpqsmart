@@ -1006,7 +1006,8 @@
                                         name="nilai[${materi.IdMateri}]"
                                         min="<?= $nilai_minimal ?>" 
                                         max="<?= $nilai_maximal ?>" 
-                                        step="0.1"
+                                        step="1"
+                                        oninput="if(this.value.length > 2) this.value = this.value.slice(0, 2);"
                                         required>
                                  <small class="form-text text-muted">Range nilai: <?= $nilai_minimal ?> - <?= $nilai_maximal ?></small>
                                  ${additionalInfo}
