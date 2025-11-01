@@ -363,7 +363,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
             let originalText = $btn.html();
             $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generate...');
 
-            $.post('<?= base_url('backend/munaqosah/generateUsernameJuri') ?>', {
+            $.post('<?= base_url('backend/munaqosah/generate-username-juri') ?>', {
                     IdGrupMateriUjian: idGrupMateriUjian,
                     IdTpq: idTpq
                 })

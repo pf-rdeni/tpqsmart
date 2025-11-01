@@ -170,6 +170,10 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     // Monitoring Munaqosah
     $routes->get('munaqosah/monitoring', 'Munaqosah::monitoringMunaqosah');
     $routes->get('munaqosah/monitoring-data', 'Munaqosah::getMonitoringData');
+    $routes->get('munaqosah/kelulusan', 'Munaqosah::kelulusanUjian');
+    $routes->get('munaqosah/kelulusan-data', 'Munaqosah::getKelulusanData');
+    $routes->get('munaqosah/kelulusan-peserta', 'Munaqosah::kelulusanPesertaUjian');
+    $routes->get('munaqosah/printKelulusanPesertaUjian', 'Munaqosah::printKelulusanPesertaUjian');
 
     $routes->get('munaqosah/materi', 'Munaqosah::materiMunaqosah');
     $routes->post('munaqosah/save-materi', 'Munaqosah::saveMateriMunaqosah');
