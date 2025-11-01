@@ -15,7 +15,11 @@
                     class="img-circle elevation-2" alt="User Image">
             </div>
             <div class="info">
-                <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname; ?></a>
+                <?php if (in_groups('Juri')): ?>
+                    <a href=<?php echo base_url('backend/munaqosah/input-nilai-juri') ?> class="d-block"><?= user()->username; ?></a>
+                <?php else: ?>
+                    <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname; ?></a>
+                <?php endif; ?>
             </div>
         </div>
         <?php if (in_groups('Guru') || in_groups('Operator')): ?>
