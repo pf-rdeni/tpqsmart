@@ -59,7 +59,7 @@
                                             <td><?= $row->NamaSantri ?? '-' ?></td>
                                             <td><?= $row->NamaTpq ?? '-' ?></td>
                                             <td><?= $row->NamaGuru ?? '-' ?></td>
-                                            <td><?= $row->KategoriMateriUjian ?></td>
+                                            <td><?= $row->NamaKategoriMateri ?? '-' ?></td>
                                             <td>
                                                 <span class="badge badge-<?= $row->TypeUjian == 'munaqosah' ? 'primary' : 'warning' ?>">
                                                     <?= ucfirst($row->TypeUjian) ?>

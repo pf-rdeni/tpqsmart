@@ -16,9 +16,10 @@
                                 <label class="mb-0 small">TPQ</label>
                                 <select id="filterTpq" class="form-control form-control-sm">
                                     <option value="0">Semua TPQ</option>
-                                    <?php if (!empty($tpqDropdown)) : foreach($tpqDropdown as $tpq): ?>
-                                        <option value="<?= esc($tpq['IdTpq']) ?>"><?= esc($tpq['NamaTpq']) ?></option>
-                                    <?php endforeach; endif; ?>
+                                    <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
+                                            <option value="<?= esc($tpq['IdTpq']) ?>"><?= esc($tpq['NamaTpq']) ?></option>
+                                    <?php endforeach;
+                                    endif; ?>
                                 </select>
                             </div>
                             <div class="mr-2">
@@ -42,7 +43,9 @@
                                     <div class="info-box-content">
                                         <span class="info-box-text">Total Peserta</span>
                                         <span class="info-box-number" id="statTotalPeserta">-</span>
-                                        <div class="progress"><div class="progress-bar" style="width:100%"></div></div>
+                                        <div class="progress">
+                                            <div class="progress-bar" style="width:100%"></div>
+                                        </div>
                                         <span class="progress-description">Terregistrasi</span>
                                     </div>
                                 </div>
@@ -53,7 +56,9 @@
                                     <div class="info-box-content">
                                         <span class="info-box-text">Sudah Dinilai</span>
                                         <span class="info-box-number" id="statSudah">-</span>
-                                        <div class="progress"><div class="progress-bar" id="barSudah" style="width:0%"></div></div>
+                                        <div class="progress">
+                                            <div class="progress-bar" id="barSudah" style="width:0%"></div>
+                                        </div>
                                         <span class="progress-description" id="descSudah">0% selesai</span>
                                     </div>
                                 </div>
@@ -64,7 +69,9 @@
                                     <div class="info-box-content">
                                         <span class="info-box-text">Belum Dinilai</span>
                                         <span class="info-box-number" id="statBelum">-</span>
-                                        <div class="progress"><div class="progress-bar" id="barBelum" style="width:0%"></div></div>
+                                        <div class="progress">
+                                            <div class="progress-bar" id="barBelum" style="width:0%"></div>
+                                        </div>
                                         <span class="progress-description" id="descBelum">0% pending</span>
                                     </div>
                                 </div>
@@ -75,7 +82,9 @@
                                     <div class="info-box-content">
                                         <span class="info-box-text">Progress</span>
                                         <span class="info-box-number" id="statProgress">-</span>
-                                        <div class="progress"><div class="progress-bar" id="barProgress" style="width:0%"></div></div>
+                                        <div class="progress">
+                                            <div class="progress-bar" id="barProgress" style="width:0%"></div>
+                                        </div>
                                         <span class="progress-description">Tingkat penyelesaian</span>
                                     </div>
                                 </div>
@@ -115,32 +124,52 @@
 
 <?= $this->section('scripts'); ?>
 <style>
-    .nilai-0 { background-color:#f8d7da !important; color:#dc3545; font-weight:600; }
-    .nowrap { white-space: nowrap; }
-    .dt-center { text-align:center; }
-    .dt-left { text-align:left; }
-    .dt-right { text-align:right; }
+    .nilai-0 {
+        background-color: #f8d7da !important;
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .nowrap {
+        white-space: nowrap;
+    }
+
+    .dt-center {
+        text-align: center;
+    }
+
+    .dt-left {
+        text-align: left;
+    }
+
+    .dt-right {
+        text-align: right;
+    }
 </style>
 <script>
     let dtInstance = null;
 
-    function fmt(val){ return (val === 0 || val === '0') ? '<span class="nilai-0">0</span>' : val; }
+    function fmt(val) {
+        return (val === 0 || val === '0') ? '<span class="nilai-0">0</span>' : val;
+    }
 
-    function buildHeader(categories){
-        let th = '<tr>'+
-                 '<th class="dt-left">No Peserta</th>'+
-                 '<th class="dt-left">Nama Santri</th>'+
-                 '<th class="dt-left">TPQ</th>'+
-                 '<th class="dt-center">Type</th>'+
-                 '<th class="dt-center">Thn</th>';
-        categories.forEach(k => {
-            th += `<th class="dt-center nowrap" colspan="2">${k}</th>`;
+    function buildHeader(categories) {
+        const headerCategories = categories || [];
+        let th = '<tr>' +
+            '<th class="dt-left">No Peserta</th>' +
+            '<th class="dt-left">Nama Santri</th>' +
+            '<th class="dt-left">TPQ</th>' +
+            '<th class="dt-center">Type</th>' +
+            '<th class="dt-center">Thn</th>';
+        headerCategories.forEach(k => {
+            const label = (k && (k.name || k.NamaKategoriMateri)) ? (k.name || k.NamaKategoriMateri) : (k.id || k.IdKategoriMateri || '-');
+            th += `<th class="dt-center nowrap" colspan="2">${label}</th>`;
         });
         th += '</tr>';
 
-        let th2 = '<tr>'+
-                  '<th></th><th></th><th></th><th></th><th></th>';
-        categories.forEach(() => {
+        let th2 = '<tr>' +
+            '<th></th><th></th><th></th><th></th><th></th>';
+        headerCategories.forEach(() => {
             th2 += '<th class="dt-center">Juri 1</th><th class="dt-center">Juri 2</th>';
         });
         th2 += '</tr>';
@@ -148,16 +177,22 @@
         $('#theadMonitoring').html(th + th2);
     }
 
-    function buildRows(categories, rows){
+    function buildRows(categories, rows) {
+        const headerCategories = categories || [];
         const tbody = [];
         rows.forEach(r => {
             // hitung status row untuk ikon
-            let allZero = true;      // semua kategori belum ada nilai satupun
-            let allComplete = true;  // setiap kategori sudah punya 2 nilai (dua juri)
-            categories.forEach(k => {
-                const sc = r.nilai[k] || [0,0];
-                if ((sc[0]||0) > 0 || (sc[1]||0) > 0) { allZero = false; }
-                if (!((sc[0]||0) > 0 && (sc[1]||0) > 0)) { allComplete = false; }
+            let allZero = true; // semua kategori belum ada nilai satupun
+            let allComplete = true; // setiap kategori sudah punya 2 nilai (dua juri)
+            headerCategories.forEach(cat => {
+                const key = cat.id || cat.IdKategoriMateri || cat;
+                const sc = r.nilai[key] || [0, 0];
+                if ((sc[0] || 0) > 0 || (sc[1] || 0) > 0) {
+                    allZero = false;
+                }
+                if (!((sc[0] || 0) > 0 && (sc[1] || 0) > 0)) {
+                    allComplete = false;
+                }
             });
 
             let iconHtml = '';
@@ -172,13 +207,14 @@
             // status order: 0=belum, 1=proses, 2=selesai
             const statusOrder = allZero ? 0 : (allComplete ? 2 : 1);
 
-            let tds = `<td class=\"dt-left\" data-order=\"${statusOrder}\">${iconHtml}${r.NoPeserta}</td>`+
-                      `<td class="dt-left">${r.NamaSantri}</td>`+
-                      `<td class="dt-left">${r.NamaTpq}</td>`+
-                      `<td class="dt-center">${r.TypeUjian}</td>`+
-                      `<td class="dt-center">${r.IdTahunAjaran}</td>`;
-            categories.forEach(k => {
-                let sc = r.nilai[k] || [0,0];
+            let tds = `<td class=\"dt-left\" data-order=\"${statusOrder}\">${iconHtml}${r.NoPeserta}</td>` +
+                `<td class="dt-left">${r.NamaSantri}</td>` +
+                `<td class="dt-left">${r.NamaTpq}</td>` +
+                `<td class="dt-center">${r.TypeUjian}</td>` +
+                `<td class="dt-center">${r.IdTahunAjaran}</td>`;
+            headerCategories.forEach(cat => {
+                const key = cat.id || cat.IdKategoriMateri || cat;
+                let sc = r.nilai[key] || [0, 0];
                 tds += `<td class="dt-center">${fmt(sc[0])}</td><td class="dt-center">${fmt(sc[1])}</td>`;
             });
             tbody.push(`<tr>${tds}</tr>`);
@@ -186,19 +222,32 @@
         $('#tbodyMonitoring').html(tbody.join(''));
     }
 
-    function loadMonitoring(){
+    function loadMonitoring() {
         const th = $('#filterTahunAjaran').val().trim();
         const tpq = $('#filterTpq').val();
         const ty = $('#filterTypeUjian').val();
         const url = '<?= base_url("backend/munaqosah/monitoring-data") ?>' + `?IdTahunAjaran=${encodeURIComponent(th)}&IdTpq=${encodeURIComponent(tpq)}&TypeUjian=${encodeURIComponent(ty)}`;
 
-        Swal.fire({title:'Memuat...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
-        $.getJSON(url, function(resp){
+        Swal.fire({
+            title: 'Memuat...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+        $.getJSON(url, function(resp) {
             Swal.close();
-            if(!resp.success){
-                Swal.fire({icon:'error',title:'Gagal',text: resp.message || 'Gagal memuat data'});return;
+            if (!resp.success) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: resp.message || 'Gagal memuat data'
+                });
+                return;
             }
-            const data = resp.data || {categories:[],rows:[]};
+            const data = resp.data || {
+                categories: [],
+                rows: []
+            };
+            const headerCategories = data.categories || [];
 
             // Hancurkan instance lama dan rebuild table skeleton agar DataTables benar-benar refresh
             if (dtInstance) {
@@ -213,32 +262,44 @@
                 </table>'
             );
 
-            buildHeader(data.categories);
-            buildRows(data.categories, data.rows);
+            buildHeader(headerCategories);
+            buildRows(headerCategories, data.rows);
 
             // Tentukan kolom nilai (mulai index 5) untuk di-hide secara default
-            const nilaiColumnCount = (data.categories || []).length * 2;
-            const hiddenTargets = Array.from({length: nilaiColumnCount}, (_,i)=> i + 5);
+            const nilaiColumnCount = headerCategories.length * 2;
+            const hiddenTargets = Array.from({
+                length: nilaiColumnCount
+            }, (_, i) => i + 5);
             // Siapkan label ColVis: "KATEGORI-JURI 1/2"
             const colMetaMap = {};
             let walker = 5;
-            (data.categories || []).forEach(cat => {
-                colMetaMap[walker] = { category: cat, juri: 1 }; walker++;
-                colMetaMap[walker] = { category: cat, juri: 2 }; walker++;
+            headerCategories.forEach(cat => {
+                const label = (cat && (cat.name || cat.NamaKategoriMateri)) ? (cat.name || cat.NamaKategoriMateri) : (cat.id || cat.IdKategoriMateri || '-');
+                colMetaMap[walker] = {
+                    category: label,
+                    juri: 1
+                };
+                walker++;
+                colMetaMap[walker] = {
+                    category: label,
+                    juri: 2
+                };
+                walker++;
             });
 
             // Inisialisasi ulang DataTables setelah table bersih
             dtInstance = $('#tblMonitoring').DataTable({
-                scrollX:true,
-                order:[[0,'asc']],
-                pageLength:25,
-                dom:'Bfrtip',
-                buttons:[
-                    { 
-                        extend:'colvis', 
-                        text:'Column visibility', 
+                scrollX: true,
+                order: [
+                    [0, 'asc']
+                ],
+                pageLength: 25,
+                dom: 'Bfrtip',
+                buttons: [{
+                        extend: 'colvis',
+                        text: 'Column visibility',
                         columns: hiddenTargets,
-                        columnText: function(dt, idx, title){
+                        columnText: function(dt, idx, title) {
                             const meta = colMetaMap[idx];
                             if (meta) {
                                 return meta.category + ' - JURI ' + meta.juri;
@@ -246,47 +307,62 @@
                             return title;
                         }
                     },
-                    'excel','print'
+                    'excel', 'print'
                 ],
-                columnDefs: [
-                    { targets: hiddenTargets, visible: false }
-                ]
+                columnDefs: [{
+                    targets: hiddenTargets,
+                    visible: false
+                }]
             });
 
             // Hitung statistik dasar dari data yang tampil
             const totalPeserta = data.rows.length;
             let sudah = 0;
-            data.rows.forEach(r=>{
+            data.rows.forEach(r => {
                 // dianggap sudah dinilai jika semua kategori punya minimal 1 nilai > 0 (dua juri prinsipnya, tapi toleransi satu nilai)
                 let doneAll = true;
-                data.categories.forEach(k=>{
-                    const sc = r.nilai[k] || [0,0];
-                    if ((sc[0]||0) === 0 && (sc[1]||0) === 0) { doneAll = false; }
+                headerCategories.forEach(cat => {
+                    const key = cat.id || cat.IdKategoriMateri || cat;
+                    const sc = r.nilai[key] || [0, 0];
+                    if ((sc[0] || 0) === 0 && (sc[1] || 0) === 0) {
+                        doneAll = false;
+                    }
                 });
-                if(doneAll) sudah++;
+                if (doneAll) sudah++;
             });
             const belum = totalPeserta - sudah;
-            const pct = totalPeserta>0 ? Math.round((sudah/totalPeserta)*100) : 0;
-            const pctBelum = totalPeserta>0 ? Math.round((belum/totalPeserta)*100) : 0;
+            const pct = totalPeserta > 0 ? Math.round((sudah / totalPeserta) * 100) : 0;
+            const pctBelum = totalPeserta > 0 ? Math.round((belum / totalPeserta) * 100) : 0;
             $('#statTotalPeserta').text(totalPeserta);
-            $('#statSudah').text(sudah); $('#barSudah').css('width', pct+'%'); $('#descSudah').text(pct+'% selesai');
-            $('#statBelum').text(belum); $('#barBelum').css('width', pctBelum+'%'); $('#descBelum').text(pctBelum+'% pending');
-            $('#statProgress').text(pct+'%'); $('#barProgress').css('width', pct+'%');
+            $('#statSudah').text(sudah);
+            $('#barSudah').css('width', pct + '%');
+            $('#descSudah').text(pct + '% selesai');
+            $('#statBelum').text(belum);
+            $('#barBelum').css('width', pctBelum + '%');
+            $('#descBelum').text(pctBelum + '% pending');
+            $('#statProgress').text(pct + '%');
+            $('#barProgress').css('width', pct + '%');
 
             // Monitoring tambahan (ringkas)
             $('#monTotalJuri').text('≈2 per kategori');
-            $('#monTotalTpq').text($('#filterTpq option').length-1);
+            $('#monTotalTpq').text($('#filterTpq option').length - 1);
             $('#monLastUpdate').text(new Date().toLocaleString());
-        }).fail(function(){
+        }).fail(function() {
             Swal.close();
-            Swal.fire({icon:'error',title:'Error Koneksi',text:'Tidak dapat memuat data'});
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Koneksi',
+                text: 'Tidak dapat memuat data'
+            });
         });
     }
 
-    $(function(){
+    $(function() {
         // Jika TPQ hanya satu, set otomatis dan kunci sebagai pra-munaqosah
         const $tpqSel = $('#filterTpq');
-        const realTpqOptions = $tpqSel.find('option').filter(function(){ return $(this).val() !== '0'; });
+        const realTpqOptions = $tpqSel.find('option').filter(function() {
+            return $(this).val() !== '0';
+        });
         if (realTpqOptions.length === 1) {
             const onlyId = $(realTpqOptions[0]).val();
             $tpqSel.val(onlyId).prop('disabled', true);
@@ -300,5 +376,3 @@
     });
 </script>
 <?= $this->endSection(); ?>
-
-

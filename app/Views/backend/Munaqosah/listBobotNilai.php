@@ -15,17 +15,24 @@
         <!-- /.card-header -->
         <div class="card-body">
             <div class="table-responsive">
+                <?php
+                $kategoriList = $kategoriList ?? [];
+                if (empty($kategoriList) && !empty($bobot)) {
+                    foreach ($bobot as $row) {
+                        if (!empty($row['IdKategoriMateri'])) {
+                            $kategoriList[$row['IdKategoriMateri']] = $row['NamaKategoriMateri'] ?? $row['IdKategoriMateri'];
+                        }
+                    }
+                }
+                ?>
                 <table id="tableBobot" class="table table-bordered table-striped">
                     <thead>
                         <tr>
                             <th>No</th>
                             <th>Tahun Ajaran</th>
-                            <th>SHOLAT</th>
-                            <th>AYAT PILIHAN</th>
-                            <th>SURAH PENDEK</th>
-                            <th>DOA</th>
-                            <th>IMLA</th>
-                            <th>UMUM</th>
+                            <?php foreach ($kategoriList as $kategoriName): ?>
+                                <th><?= esc($kategoriName) ?></th>
+                            <?php endforeach; ?>
                             <th>Tanggal Dibuat</th>
                             <th>Aksi</th>
                         </tr>
@@ -39,24 +46,39 @@
                             if (!isset($groupedBobot[$tahunAjaran])) {
                                 $groupedBobot[$tahunAjaran] = [
                                     'tahun' => $tahunAjaran,
-                                    'created_at' => $row['created_at'],
+                                    'created_at' => $row['created_at'] ?? $row['updated_at'] ?? null,
                                     'data' => []
                                 ];
                             }
-                            $groupedBobot[$tahunAjaran]['data'][$row['KategoriMateriUjian']] = $row['NilaiBobot'];
+
+                            if (empty($groupedBobot[$tahunAjaran]['created_at']) && (!empty($row['created_at']) || !empty($row['updated_at']))) {
+                                $groupedBobot[$tahunAjaran]['created_at'] = $row['created_at'] ?? $row['updated_at'];
+                            }
+
+                            $kategoriId = $row['IdKategoriMateri'];
+                            $groupedBobot[$tahunAjaran]['data'][$kategoriId] = [
+                                'nilai' => $row['NilaiBobot'],
+                                'nama' => $row['NamaKategoriMateri'] ?? ($kategoriList[$kategoriId] ?? $kategoriId)
+                            ];
+
+                            if (!isset($kategoriList[$kategoriId])) {
+                                $kategoriList[$kategoriId] = $groupedBobot[$tahunAjaran]['data'][$kategoriId]['nama'];
+                            }
                         }
 
-                        foreach ($groupedBobot as $tahun => $group): ?>
+                        foreach ($groupedBobot as $tahun => $group):
+                            $createdAt = $group['created_at'] ?? null;
+                            $createdAtDisplay = $createdAt ? date('d/m/Y H:i', strtotime($createdAt)) : '-';
+                        ?>
                             <tr>
                                 <td><?= $no++ ?></td>
                                 <td><strong><?= $group['tahun'] ?></strong></td>
-                                <td class="text-center"><?= $group['data']['SHOLAT'] ?? '-' ?></td>
-                                <td class="text-center"><?= $group['data']['AYAT PILIHAN'] ?? '-' ?></td>
-                                <td class="text-center"><?= $group['data']['SURAH PENDEK'] ?? '-' ?></td>
-                                <td class="text-center"><?= $group['data']['DOA'] ?? $group['data']["DO'A"] ?? '-' ?></td>
-                                <td class="text-center"><?= $group['data']['IMLA'] ?? '-' ?></td>
-                                <td class="text-center"><?= $group['data']['UMUM'] ?? '-' ?></td>
-                                <td><?= date('d/m/Y H:i', strtotime($group['created_at'])) ?></td>
+                                <?php foreach ($kategoriList as $kategoriId => $kategoriName): ?>
+                                    <td class="text-center">
+                                        <?= isset($group['data'][$kategoriId]) ? esc($group['data'][$kategoriId]['nilai']) : '-' ?>
+                                    </td>
+                                <?php endforeach; ?>
+                                <td><?= esc($createdAtDisplay) ?></td>
                                 <td>
                                     <div class="btn-group" role="group">
                                         <button type="button" class="btn btn-warning btn-sm"
@@ -201,6 +223,15 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<?php
+$kategoriMaster = [];
+foreach ($kategoriList as $kategoriId => $kategoriName) {
+    $kategoriMaster[] = [
+        'id' => $kategoriId,
+        'name' => $kategoriName
+    ];
+}
+?>
 <style>
     /* Styling untuk form bobot */
     .bobot-input {
@@ -319,6 +350,37 @@
     let currentBobotData = [];
     let originalValues = {};
     let isEditMode = false;
+    const kategoriMaster = <?= json_encode($kategoriMaster, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    let kategoriData = kategoriMaster.slice();
+
+    const kategoriMap = new Map(kategoriData.map(item => [item.id, item.name]));
+
+    function getKategoriName(id) {
+        return kategoriMap.get(id) || id;
+    }
+
+    function escapeHtml(text) {
+        if (typeof text !== 'string') {
+            return text;
+        }
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function ensureKategoriDataFromDefault() {
+        if (kategoriData.length === 0 && defaultBobotData.length > 0) {
+            kategoriData = defaultBobotData.map(item => ({
+                id: item.IdKategoriMateri,
+                name: item.NamaKategoriMateri || item.IdKategoriMateri
+            }));
+            kategoriMap.clear();
+            kategoriData.forEach(item => kategoriMap.set(item.id, item.name));
+        }
+    }
 
     $(document).ready(function() {
         // DataTable initialization
@@ -330,6 +392,8 @@
                 [0, "asc"]
             ]
         });
+
+        loadDefaultDataFromDatabase();
 
         // Load tahun ajaran options saat modal dibuka
         $('#modalDuplicateBobot').on('show.bs.modal', function() {
@@ -448,7 +512,14 @@
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    defaultBobotData = response.data;
+                    defaultBobotData = (response.data || []).map(item => ({
+                        IdTahunAjaran: item.IdTahunAjaran || 'Default',
+                        IdKategoriMateri: item.IdKategoriMateri,
+                        NamaKategoriMateri: item.NamaKategoriMateri || getKategoriName(item.IdKategoriMateri),
+                        NilaiBobot: parseFloat(item.NilaiBobot) || 0
+                    }));
+
+                    ensureKategoriDataFromDefault();
                     loadDefaultData();
                 } else {
                     Swal.fire({
@@ -621,104 +692,68 @@
     function loadDefaultData() {
         const tbody = $('#bobotFormBody');
         tbody.empty();
-        currentBobotData = [...defaultBobotData];
+        currentBobotData = [];
+        originalValues = {};
+        isEditMode = false;
 
-        // Get current tahun ajaran from input
-        const currentTahunAjaran = $('#IdTahunAjaran').val() || 'Default';
+        ensureKategoriDataFromDefault();
 
-        defaultBobotData.forEach((item, index) => {
-            const row = `
-            <tr>
-                <td>
-                    <input type="text" class="form-control bobot-input" 
-                           value="${currentTahunAjaran}" readonly 
-                           data-index="${index}" data-field="tahun">
-                </td>
-                <td>
-                    <input type="text" class="form-control bobot-input" 
-                           value="${item.KategoriMateriUjian.replace(/'/g, "&#39;")}" readonly 
-                           data-index="${index}" data-field="kategori">
-                </td>
-                <td>
-                    <input type="number" class="form-control bobot-input" 
-                           value="${item.NilaiBobot}" 
-                           data-index="${index}" data-field="nilai"
-                           step="0.01" min="0" max="100">
-                </td>
-            </tr>
-        `;
-            tbody.append(row);
-            // Set original values untuk default data (hanya jika bukan edit mode)
-            if (!isEditMode) {
-                originalValues[index] = parseFloat(item.NilaiBobot);
+        const defaultMap = {};
+        defaultBobotData.forEach(item => {
+            if (item && item.IdKategoriMateri) {
+                defaultMap[item.IdKategoriMateri] = item;
+                if (!kategoriMap.has(item.IdKategoriMateri)) {
+                    kategoriMap.set(item.IdKategoriMateri, item.NamaKategoriMateri || item.IdKategoriMateri);
+                    kategoriData.push({
+                        id: item.IdKategoriMateri,
+                        name: item.NamaKategoriMateri || item.IdKategoriMateri
+                    });
+                }
             }
         });
 
-        // Event listener untuk perubahan nilai (hanya jika bukan edit mode)
-        if (!isEditMode) {
-            $('.bobot-input[data-field="nilai"]').off('input').on('input', function() {
-                const index = $(this).data('index');
-                const currentValue = parseFloat($(this).val()) || 0;
-                const originalValue = originalValues[index];
+        const currentTahunAjaran = $('#IdTahunAjaran').val() || (defaultBobotData[0]?.IdTahunAjaran || 'Default');
 
-                if (currentValue !== originalValue) {
-                    $(this).addClass('changed');
-                } else {
-                    $(this).removeClass('changed');
-                }
+        kategoriData.forEach((kategori, index) => {
+            const defaultItem = defaultMap[kategori.id] || {
+                NilaiBobot: 0
+            };
+            const nilai = parseFloat(defaultItem.NilaiBobot) || 0;
+            const namaKategori = defaultItem.NamaKategoriMateri || kategori.name;
 
-                // Update total bobot real-time
-                updateTotalBobot();
+            currentBobotData.push({
+                IdTahunAjaran: currentTahunAjaran,
+                IdKategoriMateri: kategori.id,
+                NamaKategoriMateri: namaKategori,
+                NilaiBobot: nilai
             });
-        }
-
-        // Update total bobot saat pertama kali load
-        updateTotalBobot();
-    }
-
-    // Fungsi untuk load data edit ke tabel
-    function loadEditData(editData, tahunAjaran) {
-        const tbody = $('#bobotFormBody');
-        tbody.empty();
-        originalValues = {};
-
-        // Create a map of existing data by kategori
-        const dataMap = {};
-        editData.forEach(item => {
-            dataMap[item.KategoriMateriUjian] = item.NilaiBobot;
-        });
-
-        // Load default data structure but with existing values
-        defaultBobotData.forEach((item, index) => {
-            const existingValue = dataMap[item.KategoriMateriUjian] || item.NilaiBobot;
 
             const row = `
-            <tr>
+            <tr data-kategori-id="${kategori.id}">
                 <td>
                     <input type="text" class="form-control bobot-input" 
-                           value="${tahunAjaran}" readonly 
+                           value="${escapeHtml(currentTahunAjaran)}" readonly 
                            data-index="${index}" data-field="tahun">
                 </td>
                 <td>
                     <input type="text" class="form-control bobot-input" 
-                           value="${item.KategoriMateriUjian.replace(/'/g, "&#39;")}" readonly 
-                           data-index="${index}" data-field="kategori">
+                           value="${escapeHtml(namaKategori)}" readonly 
+                           data-index="${index}" data-field="kategori"
+                           data-id="${escapeHtml(kategori.id)}">
                 </td>
                 <td>
                     <input type="number" class="form-control bobot-input" 
-                           value="${existingValue}" 
+                           value="${nilai}" 
                            data-index="${index}" data-field="nilai"
+                           data-id="${escapeHtml(kategori.id)}"
                            step="0.01" min="0" max="100">
                 </td>
             </tr>
         `;
             tbody.append(row);
-
-            // Set original values untuk tracking perubahan
-            originalValues[index] = parseFloat(existingValue);
+            originalValues[index] = nilai;
         });
 
-        // Event listener untuk perubahan nilai
         $('.bobot-input[data-field="nilai"]').off('input').on('input', function() {
             const index = $(this).data('index');
             const currentValue = parseFloat($(this).val()) || 0;
@@ -730,7 +765,74 @@
                 $(this).removeClass('changed');
             }
 
-            // Update total bobot real-time
+            updateTotalBobot();
+        });
+
+        updateTotalBobot();
+    }
+
+    // Fungsi untuk load data edit ke tabel
+    function loadEditData(editData, tahunAjaran) {
+        const tbody = $('#bobotFormBody');
+        tbody.empty();
+        originalValues = {};
+        isEditMode = true;
+
+        ensureKategoriDataFromDefault();
+
+        const dataMap = {};
+        (editData || []).forEach(item => {
+            if (item && item.IdKategoriMateri) {
+                dataMap[item.IdKategoriMateri] = parseFloat(item.NilaiBobot) || 0;
+                if (item.NamaKategoriMateri && !kategoriMap.has(item.IdKategoriMateri)) {
+                    kategoriMap.set(item.IdKategoriMateri, item.NamaKategoriMateri);
+                    kategoriData.push({
+                        id: item.IdKategoriMateri,
+                        name: item.NamaKategoriMateri
+                    });
+                }
+            }
+        });
+
+        kategoriData.forEach((kategori, index) => {
+            const existingValue = dataMap[kategori.id] ?? 0;
+            const row = `
+            <tr data-kategori-id="${kategori.id}">
+                <td>
+                    <input type="text" class="form-control bobot-input" 
+                           value="${escapeHtml(tahunAjaran)}" readonly 
+                           data-index="${index}" data-field="tahun">
+                </td>
+                <td>
+                    <input type="text" class="form-control bobot-input" 
+                           value="${escapeHtml(getKategoriName(kategori.id))}" readonly 
+                           data-index="${index}" data-field="kategori"
+                           data-id="${escapeHtml(kategori.id)}">
+                </td>
+                <td>
+                    <input type="number" class="form-control bobot-input" 
+                           value="${existingValue}" 
+                           data-index="${index}" data-field="nilai"
+                           data-id="${escapeHtml(kategori.id)}"
+                           step="0.01" min="0" max="100">
+                </td>
+            </tr>
+        `;
+            tbody.append(row);
+            originalValues[index] = parseFloat(existingValue);
+        });
+
+        $('.bobot-input[data-field="nilai"]').off('input').on('input', function() {
+            const index = $(this).data('index');
+            const currentValue = parseFloat($(this).val()) || 0;
+            const originalValue = originalValues[index];
+
+            if (currentValue !== originalValue) {
+                $(this).addClass('changed');
+            } else {
+                $(this).removeClass('changed');
+            }
+
             updateTotalBobot();
         });
     }
@@ -857,14 +959,22 @@
         $('.bobot-input[data-field="nilai"]').each(function() {
             const index = $(this).data('index');
             const nilai = parseFloat($(this).val()) || 0;
-            let kategori = $(this).closest('tr').find('.bobot-input[data-field="kategori"]').val();
+            const kategoriInput = $(this).closest('tr').find('.bobot-input[data-field="kategori"]');
+            const kategoriId = (kategoriInput.data('id') || kategoriInput.attr('data-id') || '').toString().trim();
 
-            // Convert HTML entity back to apostrophe for database
-            kategori = kategori.replace(/&#39;/g, "'");
+            if (!kategoriId) {
+                Swal.fire({
+                    title: 'Validasi Error!',
+                    text: 'ID kategori materi tidak ditemukan untuk salah satu baris.',
+                    icon: 'error'
+                });
+                hasChanges = false;
+                return false;
+            }
 
             dataToSave.push({
                 IdTahunAjaran: tahunAjaran,
-                KategoriMateriUjian: kategori,
+                IdKategoriMateri: kategoriId,
                 NilaiBobot: nilai
             });
 
@@ -874,6 +984,10 @@
                 hasChanges = true;
             }
         });
+
+        if (dataToSave.length !== $('.bobot-input[data-field="nilai"]').length) {
+            return;
+        }
 
         // Validasi total bobot harus 100%
         if (Math.abs(totalBobot - 100) > 0.01) {
@@ -962,14 +1076,22 @@
         $('.edit-bobot-input[data-field="nilai"]').each(function() {
             const index = $(this).data('index');
             const nilai = parseFloat($(this).val()) || 0;
-            let kategori = $(this).closest('tr').find('.edit-bobot-input[data-field="kategori"]').val();
+            const kategoriInput = $(this).closest('tr').find('.edit-bobot-input[data-field="kategori"]');
+            const kategoriId = (kategoriInput.data('id') || kategoriInput.attr('data-id') || '').toString().trim();
 
-            // Convert HTML entity back to apostrophe for database
-            kategori = kategori.replace(/&#39;/g, "'");
+            if (!kategoriId) {
+                Swal.fire({
+                    title: 'Validasi Error!',
+                    text: 'ID kategori materi tidak ditemukan untuk salah satu baris.',
+                    icon: 'error'
+                });
+                hasChanges = false;
+                return false;
+            }
 
             dataToUpdate.push({
                 IdTahunAjaran: tahunAjaran,
-                KategoriMateriUjian: kategori,
+                IdKategoriMateri: kategoriId,
                 NilaiBobot: nilai
             });
 
@@ -979,6 +1101,10 @@
                 hasChanges = true;
             }
         });
+
+        if (dataToUpdate.length !== $('.edit-bobot-input[data-field="nilai"]').length) {
+            return;
+        }
 
         // Validasi total bobot harus 100%
         if (Math.abs(totalBobot - 100) > 0.01) {
@@ -1121,34 +1247,60 @@
                     // Clear existing data first
                     $('#editBobotFormBody').empty();
 
-                    // Create data map for easy lookup
+                    ensureKategoriDataFromDefault();
+
                     const dataMap = {};
-                    response.data.forEach(item => {
-                        dataMap[item.KategoriMateriUjian] = item.NilaiBobot;
+                    (response.data || []).forEach(item => {
+                        if (item && item.IdKategoriMateri) {
+                            dataMap[item.IdKategoriMateri] = {
+                                nilai: parseFloat(item.NilaiBobot) || 0,
+                                nama: item.NamaKategoriMateri || getKategoriName(item.IdKategoriMateri)
+                            };
+
+                            if (item.NamaKategoriMateri && !kategoriMap.has(item.IdKategoriMateri)) {
+                                kategoriMap.set(item.IdKategoriMateri, item.NamaKategoriMateri);
+                                kategoriData.push({
+                                    id: item.IdKategoriMateri,
+                                    name: item.NamaKategoriMateri
+                                });
+                            }
+                        }
                     });
 
-                    // Load all categories with existing or default values
-                    const categories = ['SHOLAT', 'AYAT PILIHAN', 'SURAH PENDEK', "DO'A", 'IMLA', 'UMUM'];
-                    const defaultValues = [30, 10, 10, 10, 10, 30];
+                    const defaultMap = {};
+                    defaultBobotData.forEach(item => {
+                        if (item && item.IdKategoriMateri) {
+                            defaultMap[item.IdKategoriMateri] = parseFloat(item.NilaiBobot) || 0;
+                        }
+                    });
 
-                    categories.forEach((kategori, index) => {
-                        const existingValue = dataMap[kategori] || defaultValues[index];
+                    kategoriData.forEach((kategori, index) => {
+                        const existing = dataMap[kategori.id];
+                        const nilai = existing ? existing.nilai : (defaultMap[kategori.id] ?? 0);
+                        const namaKategori = existing ? existing.nama : getKategoriName(kategori.id);
+
                         const row = `
-                        <tr>
+                        <tr data-kategori-id="${kategori.id}">
                             <td>
                                 <input type="text" class="form-control edit-bobot-input" 
-                                       value="${kategori.replace(/'/g, "&#39;")}" readonly 
-                                       data-index="${index}" data-field="kategori">
+                                       value="${escapeHtml(namaKategori)}" readonly 
+                                       data-index="${index}" data-field="kategori"
+                                       data-id="${escapeHtml(kategori.id)}">
                             </td>
                             <td>
                                 <input type="number" class="form-control edit-bobot-input" 
-                                       value="${existingValue}" 
+                                       value="${nilai}" 
                                        data-index="${index}" data-field="nilai"
+                                       data-id="${escapeHtml(kategori.id)}"
                                        step="0.01" min="0" max="100">
                             </td>
                         </tr>
                     `;
                         $('#editBobotFormBody').append(row);
+                    });
+
+                    $('.edit-bobot-input[data-field="nilai"]').each(function() {
+                        $(this).attr('data-original', $(this).val());
                     });
 
                     // Attach event listeners for changes
@@ -1163,13 +1315,7 @@
                             $(this).removeClass('changed');
                         }
 
-                        // Update total bobot real-time
                         updateTotalBobotEdit();
-                    });
-
-                    // Set original values for tracking
-                    $('.edit-bobot-input[data-field="nilai"]').each(function() {
-                        $(this).attr('data-original', $(this).val());
                     });
 
                     // Update total bobot saat pertama kali load

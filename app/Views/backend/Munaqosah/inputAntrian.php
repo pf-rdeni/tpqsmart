@@ -89,9 +89,10 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="KategoriMateriUjian">Kategori Materi Ujian <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="KategoriMateriUjian" name="KategoriMateriUjian"
-                                            value="<?= old('KategoriMateriUjian') ?>" placeholder="Otomatis dari registrasi" readonly>
+                                        <label for="NamaKategoriMateri">Kategori Materi Ujian <span class="text-danger">*</span></label>
+                                        <input type="hidden" id="IdKategoriMateri" name="IdKategoriMateri" value="<?= old('IdKategoriMateri') ?>">
+                                        <input type="text" class="form-control" id="NamaKategoriMateri" name="NamaKategoriMateri"
+                                            value="<?= old('NamaKategoriMateri') ?>" placeholder="Otomatis dari registrasi" readonly>
                                         <small class="form-text text-muted">Diisi otomatis berdasarkan registrasi peserta.</small>
                                     </div>
                                 </div>

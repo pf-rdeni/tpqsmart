@@ -269,10 +269,14 @@ class Munaqosah extends BaseController
             // Transform data materi untuk konsistensi
             $transformedMateriData = [];
             foreach ($materiData as $materi) {
+                $namaKategori = $materi['NamaKategoriMateri'] ?? ($materi['KategoriMateriUjian'] ?? null);
+
                 $transformedMateriData[] = [
                     'IdMateri' => $materi['IdMateri'],
                     'NamaMateri' => $materi['NamaMateri'],
-                    'KategoriMateriUjian' => $materi['KategoriMateriUjian'],
+                    'IdKategoriMateri' => $materi['IdKategoriMateri'] ?? null,
+                    'NamaKategoriMateri' => $namaKategori,
+                    'KategoriMateriUjian' => $namaKategori,
                     'IdGrupMateriUjian' => $materi['IdGrupMateriUjian'],
                     'WebLinkAyat' => isset($materi['WebLinkAyat']) ? $materi['WebLinkAyat'] : null,
                     'KategoriAsli' => isset($materi['KategoriAsli']) ? $materi['KategoriAsli'] : null
@@ -684,7 +688,7 @@ class Munaqosah extends BaseController
                             'IdMateri' => $idMateri,
                             'IdGrupMateriUjian' => $materi['IdGrupMateriUjian'],
                             'RoomId' => $currentJuriRoom, // Tambahkan RoomId
-                            'KategoriMateriUjian' => $materi['KategoriMateriUjian'],
+                            'IdKategoriMateri' => $materi['IdKategoriMateri'] ?? null,
                             'TypeUjian' => $TypeUjian,
                             'Nilai' => floatval($nilai),
                             'Catatan' => $catatan
@@ -996,14 +1000,14 @@ class Munaqosah extends BaseController
             return redirect()->back()->withInput()->with('error', 'Peserta sudah berada di antrian aktif untuk grup dan tipe ujian tersebut.');
         }
 
-        $kategori = $registrasi['KategoriMateriUjian'] ?? $this->request->getPost('KategoriMateriUjian');
+        $kategoriId = $registrasi['IdKategoriMateri'] ?? $this->request->getPost('IdKategoriMateri');
 
         $data = [
             'NoPeserta' => $noPeserta,
             'IdTahunAjaran' => $idTahunAjaran,
             'IdGrupMateriUjian' => $idGrupMateri,
             'TypeUjian' => $typeUjian,
-            'KategoriMateriUjian' => $kategori,
+            'IdKategoriMateri' => $kategoriId,
             'Status' => 0,
             'RoomId' => null,
             'Keterangan' => $keterangan
@@ -1085,14 +1089,34 @@ class Munaqosah extends BaseController
 
     public function bobotNilai()
     {
-        // Ambil semua data bobot nilai
-        $bobotData = $this->bobotNilaiMunaqosahModel->orderBy('IdTahunAjaran', 'ASC')
-                                                   ->orderBy('id', 'ASC')
-                                                   ->findAll();
-        
+        // Ambil semua data bobot nilai beserta nama kategori
+        $bobotData = $this->bobotNilaiMunaqosahModel->getBobotWithKategori();
+
+        // Siapkan daftar kategori (id => nama) untuk kebutuhan tampilan/JS
+        $kategoriList = [];
+        foreach ($bobotData as $row) {
+            if (!empty($row['IdKategoriMateri'])) {
+                $kategoriList[$row['IdKategoriMateri']] = $row['NamaKategoriMateri'] ?? $row['IdKategoriMateri'];
+            }
+        }
+
+        // Jika belum ada data bobot, gunakan daftar kategori aktif sebagai fallback
+        if (empty($kategoriList)) {
+            $kategoriAktif = $this->munaqosahKategoriModel
+                ->select('IdKategoriMateri, NamaKategoriMateri')
+                ->where('Status', 'Aktif')
+                ->orderBy('NamaKategoriMateri', 'ASC')
+                ->findAll();
+
+            foreach ($kategoriAktif as $kategori) {
+                $kategoriList[$kategori['IdKategoriMateri']] = $kategori['NamaKategoriMateri'];
+            }
+        }
+
         $data = [
             'page_title' => 'Data Bobot Nilai Munaqosah',
-            'bobot' => $bobotData
+            'bobot' => $bobotData,
+            'kategoriList' => $kategoriList
         ];
         return view('backend/Munaqosah/listBobotNilai', $data);
     }
@@ -1101,7 +1125,7 @@ class Munaqosah extends BaseController
     {
         $rules = [
             'IdTahunAjaran' => 'required',
-            'KategoriMateriUjian' => 'required',
+            'IdKategoriMateri' => 'required',
             'NilaiBobot' => 'required|decimal|greater_than[0]|less_than_equal_to[100]'
         ];
 
@@ -1113,9 +1137,21 @@ class Munaqosah extends BaseController
             ]);
         }
 
+        $idKategori = strtoupper($this->request->getPost('IdKategoriMateri'));
+        $kategoriExists = $this->munaqosahKategoriModel
+            ->where('IdKategoriMateri', $idKategori)
+            ->first();
+
+        if (!$kategoriExists) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Kategori materi tidak ditemukan'
+            ]);
+        }
+
         $data = [
             'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
-            'KategoriMateriUjian' => $this->request->getPost('KategoriMateriUjian'),
+            'IdKategoriMateri' => $idKategori,
             'NilaiBobot' => $this->request->getPost('NilaiBobot')
         ];
 
@@ -1137,7 +1173,7 @@ class Munaqosah extends BaseController
     {
         $rules = [
             'IdTahunAjaran' => 'required',
-            'KategoriMateriUjian' => 'required',
+            'IdKategoriMateri' => 'required',
             'NilaiBobot' => 'required|decimal|greater_than[0]|less_than_equal_to[100]'
         ];
 
@@ -1149,9 +1185,21 @@ class Munaqosah extends BaseController
             ]);
         }
 
+        $idKategori = strtoupper($this->request->getPost('IdKategoriMateri'));
+        $kategoriExists = $this->munaqosahKategoriModel
+            ->where('IdKategoriMateri', $idKategori)
+            ->first();
+
+        if (!$kategoriExists) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Kategori materi tidak ditemukan'
+            ]);
+        }
+
         $data = [
             'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
-            'KategoriMateriUjian' => $this->request->getPost('KategoriMateriUjian'),
+            'IdKategoriMateri' => $idKategori,
             'NilaiBobot' => $this->request->getPost('NilaiBobot')
         ];
 
@@ -1378,6 +1426,30 @@ class Munaqosah extends BaseController
         $materiPelajaran = $this->materiPelajaranModel->findAll();
         // Get grup materi aktif
         $grupMateriAktif = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+
+        // Mapping kategori materi pelajaran ke master kategori munaqosah
+        $kategoriMaster = $this->munaqosahKategoriModel
+            ->select('IdKategoriMateri, NamaKategoriMateri')
+            ->findAll();
+
+        $kategoriNameMap = [];
+        foreach ($kategoriMaster as $km) {
+            $kategoriNameMap[$km['IdKategoriMateri']] = $km['NamaKategoriMateri'];
+        }
+
+        foreach ($materiPelajaran as &$mp) {
+            $kategoriLabel = $mp['Kategori'] ?? null;
+            $idKategori = $this->mapKategoriToId($kategoriLabel);
+
+            $mp['IdKategoriMateri'] = $idKategori;
+            if ($idKategori && isset($kategoriNameMap[$idKategori])) {
+                $mp['NamaKategoriMateri'] = $kategoriNameMap[$idKategori];
+            } else {
+                $mp['NamaKategoriMateri'] = $kategoriLabel ?? '-';
+            }
+        }
+        unset($mp);
+
         $data = [
             'page_title' => 'Data Materi Munaqosah',
             'materi' => $materi,
@@ -1391,7 +1463,7 @@ class Munaqosah extends BaseController
     {
         $rules = [
             'IdMateri' => 'required',
-            'KategoriMateriUjian' => 'required'
+            'IdKategoriMateri' => 'required'
         ];
 
         if (!$this->validate($rules)) {
@@ -1404,7 +1476,7 @@ class Munaqosah extends BaseController
 
         $data = [
             'IdMateri' => $this->request->getPost('IdMateri'),
-            'KategoriMateriUjian' => $this->request->getPost('KategoriMateriUjian')
+            'IdKategoriMateri' => $this->request->getPost('IdKategoriMateri')
         ];
 
         if ($this->materiMunaqosahModel->save($data)) {
@@ -1437,15 +1509,31 @@ class Munaqosah extends BaseController
         $errors = [];
 
         foreach ($materiArray as $materi) {
-            if (!isset($materi['IdMateri']) || !isset($materi['KategoriMateri']) || !isset($materi['IdGrupMateriUjian'])) {
-                $errors[] = "Data materi tidak lengkap";
+            $idMateri = $materi['IdMateri'] ?? null;
+            $idGrupMateri = $materi['IdGrupMateriUjian'] ?? null;
+            $idKategoriMateri = $materi['IdKategoriMateri'] ?? null;
+
+            if (empty($idMateri) || empty($idGrupMateri)) {
+                $errors[] = "ID Materi dan ID Grup Materi Ujian harus diisi";
                 continue;
             }
 
-            if (empty($materi['IdMateri']) || empty($materi['KategoriMateri']) || empty($materi['IdGrupMateriUjian'])) {
-                $errors[] = "ID Materi, Kategori Materi, dan ID Grup Materi Ujian harus diisi";
+            if (empty($idKategoriMateri)) {
+                $kategoriLabel = $materi['KategoriMateri'] ?? $materi['Kategori'] ?? null;
+                $idKategoriMateri = $this->mapKategoriToId($kategoriLabel);
+            } else {
+                $idKategoriMateri = strtoupper(trim($idKategoriMateri));
+            }
+
+            if (empty($idKategoriMateri)) {
+                $label = $materi['KategoriMateri'] ?? $materi['Kategori'] ?? '-';
+                $errors[] = "Kategori materi '{$label}' belum memiliki mapping IdKategoriMateri yang valid";
                 continue;
             }
+
+            $materi['IdMateri'] = $idMateri;
+            $materi['IdKategoriMateri'] = $idKategoriMateri;
+            $materi['IdGrupMateriUjian'] = $idGrupMateri;
 
             $validMateri[] = $materi;
         }
@@ -1483,7 +1571,7 @@ class Munaqosah extends BaseController
         foreach ($validMateri as $materi) {
             $data = [
                 'IdMateri' => $materi['IdMateri'],
-                'KategoriMateri' => $materi['KategoriMateri'],
+                'IdKategoriMateri' => $materi['IdKategoriMateri'],
                 'IdGrupMateriUjian' => $materi['IdGrupMateriUjian'],
                 'Status' => 'Aktif'
             ];
@@ -1528,15 +1616,31 @@ class Munaqosah extends BaseController
         $errors = [];
 
         foreach ($materiArray as $materi) {
-            if (!isset($materi['IdMateri']) || !isset($materi['KategoriMateri']) || !isset($materi['IdGrupMateriUjian'])) {
-                $errors[] = "Data materi tidak lengkap";
+            $idMateri = $materi['IdMateri'] ?? null;
+            $idGrupMateri = $materi['IdGrupMateriUjian'] ?? null;
+            $idKategoriMateri = $materi['IdKategoriMateri'] ?? null;
+
+            if (empty($idMateri) || empty($idGrupMateri)) {
+                $errors[] = "ID Materi dan ID Grup Materi Ujian harus diisi";
                 continue;
             }
 
-            if (empty($materi['IdMateri']) || empty($materi['KategoriMateri']) || empty($materi['IdGrupMateriUjian'])) {
-                $errors[] = "ID Materi, Kategori Materi, dan ID Grup Materi Ujian harus diisi";
+            if (empty($idKategoriMateri)) {
+                $kategoriLabel = $materi['KategoriMateri'] ?? $materi['Kategori'] ?? null;
+                $idKategoriMateri = $this->mapKategoriToId($kategoriLabel);
+            } else {
+                $idKategoriMateri = strtoupper(trim($idKategoriMateri));
+            }
+
+            if (empty($idKategoriMateri)) {
+                $label = $materi['KategoriMateri'] ?? $materi['Kategori'] ?? '-';
+                $errors[] = "Kategori materi '{$label}' belum memiliki mapping IdKategoriMateri yang valid";
                 continue;
             }
+
+            $materi['IdMateri'] = $idMateri;
+            $materi['IdKategoriMateri'] = $idKategoriMateri;
+            $materi['IdGrupMateriUjian'] = $idGrupMateri;
 
             $validMateri[] = $materi;
         }
@@ -1582,7 +1686,7 @@ class Munaqosah extends BaseController
         foreach ($materiToSave as $materi) {
             $data = [
                 'IdMateri' => $materi['IdMateri'],
-                'KategoriMateri' => $materi['KategoriMateri'],
+                'IdKategoriMateri' => $materi['IdKategoriMateri'],
                 'IdGrupMateriUjian' => $materi['IdGrupMateriUjian'],
                 'Status' => 'Aktif'
             ];
@@ -2194,23 +2298,42 @@ class Munaqosah extends BaseController
             }
 
             $bobotNilaiModel = new \App\Models\MunaqosahBobotNilaiModel();
-            
-            // Validasi data
+
+            $kategoriList = $this->munaqosahKategoriModel
+                ->select('IdKategoriMateri')
+                ->findAll();
+            $allowedKategori = array_column($kategoriList, 'IdKategoriMateri');
+
+            $sanitizedData = [];
             foreach ($data as $item) {
-                if (empty($item['IdTahunAjaran']) || empty($item['KategoriMateriUjian']) || !isset($item['NilaiBobot'])) {
+                if (empty($item['IdTahunAjaran']) || empty($item['IdKategoriMateri']) || !isset($item['NilaiBobot'])) {
                     return $this->response->setJSON([
                         'success' => false,
                         'message' => 'Data tidak lengkap'
                     ]);
                 }
+
+                $idKategori = strtoupper($item['IdKategoriMateri']);
+                if (!in_array($idKategori, $allowedKategori, true)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Kategori materi dengan ID ' . $idKategori . ' tidak ditemukan'
+                    ]);
+                }
+
+                $sanitizedData[] = [
+                    'IdTahunAjaran' => $item['IdTahunAjaran'],
+                    'IdKategoriMateri' => $idKategori,
+                    'NilaiBobot' => $item['NilaiBobot']
+                ];
             }
 
             // Hapus data lama untuk tahun ajaran yang sama
-            $tahunAjaran = $data[0]['IdTahunAjaran'];
+            $tahunAjaran = $sanitizedData[0]['IdTahunAjaran'];
             $bobotNilaiModel->where('IdTahunAjaran', $tahunAjaran)->delete();
 
             // Simpan data baru
-            if ($bobotNilaiModel->insertBatch($data)) {
+            if ($bobotNilaiModel->insertBatch($sanitizedData)) {
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Data bobot nilai berhasil disimpan'
@@ -2266,11 +2389,9 @@ class Munaqosah extends BaseController
     {
         try {
             $bobotNilaiModel = new \App\Models\MunaqosahBobotNilaiModel();
-            
+
             // Ambil data default dari database
-            $defaultData = $bobotNilaiModel->where('IdTahunAjaran', 'Default')
-                                         ->orderBy('id', 'ASC')
-                                         ->findAll();
+            $defaultData = $bobotNilaiModel->getDefaultBobot();
             
             if (empty($defaultData)) {
                 return $this->response->setJSON([
@@ -2305,11 +2426,9 @@ class Munaqosah extends BaseController
             }
 
             $bobotNilaiModel = new \App\Models\MunaqosahBobotNilaiModel();
-            
+
             // Ambil data default
-            $defaultData = $bobotNilaiModel->where('IdTahunAjaran', 'Default')
-                                         ->orderBy('id', 'ASC')
-                                         ->findAll();
+            $defaultData = $bobotNilaiModel->getDefaultBobot();
             
             if (empty($defaultData)) {
                 return $this->response->setJSON([
@@ -2332,7 +2451,7 @@ class Munaqosah extends BaseController
             foreach ($defaultData as $item) {
                 $duplicateData[] = [
                     'IdTahunAjaran' => $tahunAjaran,
-                    'KategoriMateriUjian' => $item['KategoriMateriUjian'],
+                    'IdKategoriMateri' => $item['IdKategoriMateri'],
                     'NilaiBobot' => $item['NilaiBobot'],
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
@@ -2363,11 +2482,9 @@ class Munaqosah extends BaseController
     {
         try {
             $bobotNilaiModel = new \App\Models\MunaqosahBobotNilaiModel();
-            
+
             // Ambil data berdasarkan tahun ajaran
-            $data = $bobotNilaiModel->where('IdTahunAjaran', $tahunAjaran)
-                                   ->orderBy('id', 'ASC')
-                                   ->findAll();
+            $data = $bobotNilaiModel->getBobotWithKategori($tahunAjaran);
             
             if (empty($data)) {
                 return $this->response->setJSON([
@@ -2483,7 +2600,7 @@ class Munaqosah extends BaseController
             foreach ($sourceData as $item) {
                 $duplicateData[] = [
                     'IdTahunAjaran' => $targetTahunAjaran,
-                    'KategoriMateriUjian' => $item['KategoriMateriUjian'],
+                    'IdKategoriMateri' => $item['IdKategoriMateri'],
                     'NilaiBobot' => $item['NilaiBobot'],
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s')
@@ -2734,18 +2851,35 @@ class Munaqosah extends BaseController
             
             // Ambil data grup materi ujian aktif sekali saja
             $grupMateri = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
-            
+
+            // Ambil master kategori untuk mapping ID -> Nama
+            $kategoriMaster = $this->munaqosahKategoriModel
+                ->select('IdKategoriMateri, NamaKategoriMateri')
+                ->findAll();
+
+            $kategoriNameById = [];
+            $kategoriIdByName = [];
+            foreach ($kategoriMaster as $kategori) {
+                $idKat = $kategori['IdKategoriMateri'];
+                $namaKat = strtoupper($kategori['NamaKategoriMateri']);
+                $kategoriNameById[$idKat] = $namaKat;
+                $kategoriIdByName[$namaKat] = $idKat;
+            }
+
             // Ambil semua materi sekaligus
             $allMateri = [];
             foreach ($grupMateri as $grup) {
                 $materi = $this->materiMunaqosahModel->getMateriByGrup($grup['IdGrupMateriUjian']);
                 if (!empty($materi)) {
                     foreach ($materi as $m) {
-                        $kategori = $m['KategoriMateri'];
-                        if (!isset($allMateri[$kategori])) {
-                            $allMateri[$kategori] = [];
+                        $kategoriId = $m['IdKategoriMateri'] ?? null;
+                        if (empty($kategoriId)) {
+                            continue;
                         }
-                        $allMateri[$kategori][] = $m;
+                        if (!isset($allMateri[$kategoriId])) {
+                            $allMateri[$kategoriId] = [];
+                        }
+                        $allMateri[$kategoriId][] = $m;
                     }
                 }
             }
@@ -2753,7 +2887,17 @@ class Munaqosah extends BaseController
             // Ambil data surah alquran untuk kategori QURAN
             $alquranMateri = $this->munaqosahAlquranModel->getSurahForMunaqosah();
             if (!empty($alquranMateri)) {
-                $allMateri['QURAN'] = $alquranMateri;
+                $quranKategoriId = $kategoriIdByName['QURAN'] ?? ($kategoriIdByName["QUR'AN"] ?? null);
+                if ($quranKategoriId) {
+                    foreach ($alquranMateri as &$alquran) {
+                        $alquran['IdKategoriMateri'] = $quranKategoriId;
+                        if (empty($alquran['IdGrupMateriUjian'])) {
+                            $alquran['IdGrupMateriUjian'] = 'GM001';
+                        }
+                    }
+                    unset($alquran);
+                    $allMateri[$quranKategoriId] = $alquranMateri;
+                }
             }
 
             // Debug: Log data materi
@@ -2808,15 +2952,16 @@ class Munaqosah extends BaseController
                     
                     // Debug: Log data santri
                     log_message('info', "Processing santri: {$santriId}, NoPeserta: {$noPeserta}");
-                    
+
                     // Generate data nilai untuk santri ini
-                    foreach ($allMateri as $kategori => $materiList) {
+                    foreach ($allMateri as $kategoriId => $materiList) {
                         if (!empty($materiList)) {
+                            $kategoriNama = $kategoriNameById[$kategoriId] ?? $kategoriId;
                             // Pilih materi secara acak
                             $randomMateri = $materiList[array_rand($materiList)];
 
                             // Untuk kategori QURAN, gunakan data dari tabel alquran
-                            if ($kategori === 'QURAN' || $kategori === "QUR'AN") {
+                            if ($kategoriNama === 'QURAN' || $kategoriNama === "QUR'AN") {
                                 $nilaiRecord = [
                                     'NoPeserta' => $noPeserta,
                                     'IdSantri' => $santriId,
@@ -2824,7 +2969,7 @@ class Munaqosah extends BaseController
                                     'IdTahunAjaran' => $tahunAjaran,
                                     'IdMateri' => $randomMateri['IdMateri'], // id dari tbl_munaqosah_alquran
                                     'IdGrupMateriUjian' => $randomMateri['IdGrupMateriUjian'], // 'GM001'
-                                    'KategoriMateriUjian' => $kategori,
+                                    'IdKategoriMateri' => $kategoriId,
                                     'TypeUjian' => $typeUjian,
                                     'Nilai' => 0,
                                     'Catatan' => ''
@@ -2838,7 +2983,7 @@ class Munaqosah extends BaseController
                                     'IdTahunAjaran' => $tahunAjaran,
                                     'IdMateri' => $randomMateri['IdMateri'],
                                     'IdGrupMateriUjian' => $randomMateri['IdGrupMateriUjian'],
-                                    'KategoriMateriUjian' => $kategori,
+                                    'IdKategoriMateri' => $kategoriId,
                                     'TypeUjian' => $typeUjian,
                                     'Nilai' => 0,
                                     'Catatan' => ''
@@ -3047,6 +3192,42 @@ class Munaqosah extends BaseController
 
         // Jika tidak ada nomor yang tersedia dalam range, throw exception
         throw new \Exception("Tidak ada nomor peserta yang tersedia dalam range {$minRange}-{$maxRange} untuk tahun ajaran {$tahunAjaran}");
+    }
+
+    private function mapKategoriToId(?string $kategori): ?string
+    {
+        if ($kategori === null) {
+            return null;
+        }
+
+        $trimmed = trim($kategori);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $upper = strtoupper($trimmed);
+
+        if (preg_match('/^KM\d{3}$/', $upper)) {
+            return $upper;
+        }
+
+        $upper = str_replace(["\"", '`'], chr(39), $upper);
+        $slug = preg_replace('/[\s\'`-]+/', '', $upper);
+        if ($slug === null) {
+            return null;
+        }
+
+        $mapping = [
+            'DOA' => 'KM004',
+            'AYATPILIHAN' => 'KM003',
+            'QURAN' => 'KM001',
+            'ALQURAN' => 'KM001',
+            'IMLA' => 'KM006',
+            'SHOLAT' => 'KM005',
+            'SURATPENDEK' => 'KM002',
+        ];
+
+        return $mapping[$slug] ?? null;
     }
 
     /**
@@ -4134,9 +4315,10 @@ class Munaqosah extends BaseController
 
             // Ambil data registrasi untuk tahun ajaran dan type ujian
             $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
-            $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.KategoriMateriUjian,r.TypeUjian, s.NamaSantri, t.NamaTpq');
+            $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.IdKategoriMateri,r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
             $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
+            $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->where('r.IdTahunAjaran', $idTahunAjaran);
             $builder->where('r.TypeUjian', $typeUjian);
             if (!empty($idTpq)) {
@@ -4157,18 +4339,23 @@ class Munaqosah extends BaseController
             // Distinct categories dari registrasi untuk header tabel
             $categories = [];
             foreach ($registrasiRows as $r) {
-                if (!in_array($r['KategoriMateriUjian'], $categories, true)) {
-                    $categories[] = $r['KategoriMateriUjian'];
+                $catId = $r['IdKategoriMateri'];
+                $catName = $r['NamaKategoriMateri'] ?? $catId;
+                if ($catId === null) {
+                    continue;
+                }
+                if (!isset($categories[$catId])) {
+                    $categories[$catId] = $catName;
                 }
             }
-            sort($categories);
+            ksort($categories);
 
             // Ambil semua NoPeserta
             $noPesertaList = array_values(array_unique(array_column($registrasiRows, 'NoPeserta')));
 
             // Ambil semua nilai sekaligus untuk efisiensi
             $nilaiBuilder = $this->db->table('tbl_munaqosah_nilai n');
-            $nilaiBuilder->select('n.NoPeserta,n.KategoriMateriUjian,n.IdJuri,n.Nilai');
+            $nilaiBuilder->select('n.NoPeserta,n.IdKategoriMateri,n.IdJuri,n.Nilai');
             $nilaiBuilder->where('n.IdTahunAjaran', $idTahunAjaran);
             $nilaiBuilder->where('n.TypeUjian', $typeUjian);
             $nilaiBuilder->whereIn('n.NoPeserta', $noPesertaList);
@@ -4178,7 +4365,10 @@ class Munaqosah extends BaseController
             $nilaiIndex = [];
             foreach ($nilaiRows as $nr) {
                 $np = $nr['NoPeserta'];
-                $kat = $nr['KategoriMateriUjian'];
+                $kat = $nr['IdKategoriMateri'];
+                if ($kat === null) {
+                    continue;
+                }
                 if (!isset($nilaiIndex[$np])) $nilaiIndex[$np] = [];
                 if (!isset($nilaiIndex[$np][$kat])) $nilaiIndex[$np][$kat] = [];
                 // simpan nilai (maks 2, urutan input)
@@ -4214,14 +4404,14 @@ class Munaqosah extends BaseController
                     'nilai' => []
                 ];
 
-                foreach ($categories as $kat) {
+                foreach ($categories as $katId => $katName) {
                     $juriScores = [0, 0];
-                    if (isset($nilaiIndex[$np]) && isset($nilaiIndex[$np][$kat])) {
-                        $vals = $nilaiIndex[$np][$kat];
+                    if (isset($nilaiIndex[$np]) && isset($nilaiIndex[$np][$katId])) {
+                        $vals = $nilaiIndex[$np][$katId];
                         $juriScores[0] = isset($vals[0]) ? (float)$vals[0] : 0;
                         $juriScores[1] = isset($vals[1]) ? (float)$vals[1] : 0;
                     }
-                    $row['nilai'][$kat] = $juriScores;
+                    $row['nilai'][$katId] = $juriScores;
                 }
 
                 $rows[] = $row;
@@ -4230,7 +4420,12 @@ class Munaqosah extends BaseController
             return $this->response->setJSON([
                 'success' => true,
                 'data' => [
-                    'categories' => $categories,
+                    'categories' => array_map(function ($id, $name) {
+                        return [
+                            'id' => $id,
+                            'name' => $name
+                        ];
+                    }, array_keys($categories), array_values($categories)),
                     'rows' => $rows,
                     'meta' => [
                         'IdTahunAjaran' => $idTahunAjaran,

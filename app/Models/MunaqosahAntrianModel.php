@@ -14,7 +14,7 @@ class MunaqosahAntrianModel extends Model
         'IdTahunAjaran',
         'IdGrupMateriUjian',
         'TypeUjian',
-        'KategoriMateriUjian',
+        'IdKategoriMateri',
         'Status',
         'RoomId',
         'Keterangan'
@@ -25,7 +25,7 @@ class MunaqosahAntrianModel extends Model
         'IdTahunAjaran' => 'required|max_length[50]',
         'IdGrupMateriUjian' => 'permit_empty|max_length[50]',
         'TypeUjian' => 'permit_empty|in_list[pra-munaqosah,munaqosah]',
-        'KategoriMateriUjian' => 'permit_empty|max_length[100]',
+        'IdKategoriMateri' => 'permit_empty|max_length[50]',
         'Status' => 'permit_empty|in_list[0,1,2]',
         'RoomId' => 'permit_empty|max_length[20]',
         'Keterangan' => 'permit_empty'
@@ -46,8 +46,8 @@ class MunaqosahAntrianModel extends Model
         'TypeUjian' => [
             'in_list' => 'Type ujian harus pra-munaqosah atau munaqosah'
         ],
-        'KategoriMateriUjian' => [
-            'max_length' => 'Kategori materi ujian maksimal 100 karakter'
+        'IdKategoriMateri' => [
+            'max_length' => 'ID kategori materi maksimal 50 karakter'
         ],
         'Status' => [
             'in_list' => 'Status harus 0 (menunggu), 1 (proses), atau 2 (selesai)'
@@ -91,10 +91,11 @@ class MunaqosahAntrianModel extends Model
     public function getQueueWithDetails(array $filters = [])
     {
         $builder = $this->db->table($this->table . ' q');
-        $builder->select('q.*, COALESCE(q.IdGrupMateriUjian, r.IdGrupMateriUjian) as IdGrupMateriResolved, COALESCE(q.TypeUjian, r.TypeUjian) as TypeUjianResolved, r.IdSantri, r.IdTpq, r.IdGrupMateriUjian, r.TypeUjian, s.NamaSantri, t.NamaTpq');
+        $builder->select('q.*, COALESCE(q.IdGrupMateriUjian, r.IdGrupMateriUjian) as IdGrupMateriResolved, COALESCE(q.TypeUjian, r.TypeUjian) as TypeUjianResolved, COALESCE(q.IdKategoriMateri, r.IdKategoriMateri) as IdKategoriMateriResolved, r.IdSantri, r.IdTpq, r.IdGrupMateriUjian, r.IdKategoriMateri, r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
         $builder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = q.NoPeserta AND r.IdTahunAjaran = q.IdTahunAjaran', 'left');
         $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
         $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
+        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = COALESCE(q.IdKategoriMateri, r.IdKategoriMateri)', 'left', false);
 
         if (!empty($filters['IdTahunAjaran'])) {
             $builder->where('q.IdTahunAjaran', $filters['IdTahunAjaran']);

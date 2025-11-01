@@ -14,7 +14,7 @@ class MunaqosahBobotNilaiModel extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'IdTahunAjaran',
-        'KategoriMateriUjian',
+        'IdKategoriMateri',
         'NilaiBobot'
     ];
 
@@ -28,7 +28,7 @@ class MunaqosahBobotNilaiModel extends Model
     // Validation
     protected $validationRules = [
         'IdTahunAjaran' => 'required|max_length[50]',
-        'KategoriMateriUjian' => 'required|max_length[100]',
+        'IdKategoriMateri' => 'required|max_length[50]',
         'NilaiBobot' => 'required|decimal|greater_than_equal_to[0]|less_than_equal_to[100]'
     ];
 
@@ -37,9 +37,9 @@ class MunaqosahBobotNilaiModel extends Model
             'required' => 'Tahun Ajaran harus diisi',
             'max_length' => 'Tahun Ajaran maksimal 50 karakter'
         ],
-        'KategoriMateriUjian' => [
-            'required' => 'Kategori Materi Ujian harus diisi',
-            'max_length' => 'Kategori Materi Ujian maksimal 100 karakter'
+        'IdKategoriMateri' => [
+            'required' => 'Kategori materi harus diisi',
+            'max_length' => 'ID kategori materi maksimal 50 karakter'
         ],
         'NilaiBobot' => [
             'required' => 'Nilai Bobot harus diisi',
@@ -68,9 +68,7 @@ class MunaqosahBobotNilaiModel extends Model
      */
     public function getBobotByTahunAjaran($tahunAjaran)
     {
-        return $this->where('IdTahunAjaran', $tahunAjaran)
-                   ->orderBy('id', 'ASC')
-                   ->findAll();
+        return $this->getBobotWithKategori($tahunAjaran);
     }
 
     /**
@@ -78,9 +76,7 @@ class MunaqosahBobotNilaiModel extends Model
      */
     public function getDefaultBobot()
     {
-        return $this->where('IdTahunAjaran', 'Default')
-                   ->orderBy('id', 'ASC')
-                   ->findAll();
+        return $this->getBobotWithKategori('Default');
     }
 
     /**
@@ -97,5 +93,27 @@ class MunaqosahBobotNilaiModel extends Model
     public function deleteByTahunAjaran($tahunAjaran)
     {
         return $this->where('IdTahunAjaran', $tahunAjaran)->delete();
+    }
+
+    /**
+     * Ambil data bobot beserta nama kategori materi.
+     *
+     * @param string|null $tahunAjaran
+     * @return array
+     */
+    public function getBobotWithKategori(?string $tahunAjaran = null): array
+    {
+        $builder = $this->builder();
+        $builder->select($this->table . '.*, km.NamaKategoriMateri');
+        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = ' . $this->table . '.IdKategoriMateri', 'left');
+
+        if ($tahunAjaran !== null) {
+            $builder->where($this->table . '.IdTahunAjaran', $tahunAjaran);
+        }
+
+        $builder->orderBy($this->table . '.IdTahunAjaran', 'ASC');
+        $builder->orderBy($this->table . '.id', 'ASC');
+
+        return $builder->get()->getResultArray();
     }
 }

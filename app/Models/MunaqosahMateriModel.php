@@ -11,14 +11,14 @@ class MunaqosahMateriModel extends Model
     protected $useTimestamps = false;
     protected $allowedFields = [
         'IdMateri',
-        'KategoriMateri',
+        'IdKategoriMateri',
         'IdGrupMateriUjian',
         'Status'
     ];
 
     protected $validationRules = [
         'IdMateri' => 'required|max_length[50]',
-        'KategoriMateri' => 'required|max_length[100]',
+        'IdKategoriMateri' => 'required|max_length[50]',
         'IdGrupMateriUjian' => 'required|max_length[50]',
         'Status' => 'required|max_length[20]'
     ];
@@ -28,9 +28,9 @@ class MunaqosahMateriModel extends Model
             'required' => 'ID Materi harus diisi',
             'max_length' => 'ID Materi maksimal 50 karakter'
         ],
-        'KategoriMateri' => [
+        'IdKategoriMateri' => [
             'required' => 'Kategori materi harus diisi',
-            'max_length' => 'Kategori materi maksimal 100 karakter'
+            'max_length' => 'ID kategori materi maksimal 50 karakter'
         ],
         'IdGrupMateriUjian' => [
             'required' => 'ID Grup Materi Ujian harus diisi',
@@ -45,9 +45,10 @@ class MunaqosahMateriModel extends Model
     public function getMateriWithRelations($id = null)
     {
         $builder = $this->db->table($this->table . ' mm');
-        $builder->select('mm.*, m.NamaMateri, m.Kategori as KategoriAsli, g.NamaMateriGrup');
+        $builder->select('mm.*, m.NamaMateri, m.Kategori as KategoriAsli, g.NamaMateriGrup, km.NamaKategoriMateri');
         $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = mm.IdMateri', 'left');
         $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = mm.IdGrupMateriUjian', 'left');
+        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
 
         if ($id) {
             $builder->where('mm.id', $id);
@@ -60,8 +61,9 @@ class MunaqosahMateriModel extends Model
     public function getMateriByGrup($grup)
     {
         $builder = $this->db->table($this->table . ' mm');
-        $builder->select('mm.*, mp.NamaMateri, mp.Kategori as KategoriAsli');
+        $builder->select('mm.*, mp.NamaMateri, mp.Kategori as KategoriAsli, km.NamaKategoriMateri');
         $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = mm.IdMateri', 'left');
+        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
         $builder->where('mm.IdGrupMateriUjian', $grup);
         $builder->where('mm.Status', 'Aktif');
         
@@ -94,9 +96,11 @@ class MunaqosahMateriModel extends Model
             return [];
         }
 
-        $builder = $this->db->table('tbl_materi_pelajaran');
-        $builder->select('IdMateri, NamaMateri, Kategori');
-        $builder->whereIn('IdMateri', $idMateriArray);
+        $builder = $this->db->table($this->table . ' mm');
+        $builder->select('mm.IdMateri, mm.IdKategoriMateri, mp.NamaMateri, mp.Kategori as KategoriAsli, km.NamaKategoriMateri');
+        $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = mm.IdMateri', 'left');
+        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
+        $builder->whereIn('mm.IdMateri', $idMateriArray);
         
         return $builder->get()->getResult();
     }

@@ -67,6 +67,12 @@
                             <?php endif; ?>
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Informasi Umum</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Monitoring Munaqosah</p>
@@ -111,15 +117,9 @@
                             <?php endif; ?>
                             <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/munaqosah/list-konfigurasi-munaqosah') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Informasi Umum</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Daftar Peserta</p>
+                                        <p>Konfigurasi</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -129,9 +129,9 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah/list-konfigurasi-munaqosah') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Konfigurasi Munaqosah</p>
+                                        <p>Daftar Peserta</p>
                                     </a>
                                 </li>
                             <?php endif; ?>

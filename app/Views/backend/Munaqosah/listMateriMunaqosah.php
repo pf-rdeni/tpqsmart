@@ -32,8 +32,8 @@
                         <tr>
                             <td><?= $no++ ?></td>
                             <td><?= $row->IdMateri ?></td>
-                            <td><?= $row->NamaMateri ?? '-' ?></td>
-                            <td><?= $row->KategoriMateri ?? '-' ?></td>
+                            <td><?= esc($row->NamaMateri ?? '-') ?></td>
+                            <td><?= esc($row->NamaKategoriMateri ?? ($row->IdKategoriMateri ?? '-')) ?></td>
                             <td>
                                 <select class="form-control form-control-sm grup-materi-dropdown"
                                     data-id="<?= $row->id ?>"
@@ -106,13 +106,14 @@
                                 <tr>
                                     <td class="text-center">
                                         <input type="checkbox" class="form-check-input materi-checkbox"
-                                            value="<?= $mp['IdMateri'] ?>"
-                                            data-nama="<?= $mp['NamaMateri'] ?>"
-                                            data-kategori="<?= $mp['Kategori'] ?>">
+                                            value="<?= esc($mp['IdMateri']) ?>"
+                                            data-nama="<?= esc($mp['NamaMateri']) ?>"
+                                            data-id-kategori="<?= esc($mp['IdKategoriMateri'] ?? '') ?>"
+                                            data-kategori-nama="<?= esc($mp['NamaKategoriMateri'] ?? ($mp['Kategori'] ?? '-')) ?>">
                                     </td>
-                                    <td><?= $mp['IdMateri'] ?></td>
-                                    <td><?= $mp['NamaMateri'] ?></td>
-                                    <td><?= $mp['Kategori'] ?></td>
+                                    <td><?= esc($mp['IdMateri']) ?></td>
+                                    <td><?= esc($mp['NamaMateri']) ?></td>
+                                    <td><?= esc($mp['NamaKategoriMateri'] ?? ($mp['Kategori'] ?? '-')) ?></td>
                                     <td>
                                         <select class="form-control form-control-sm grup-materi-select"
                                             data-materi-id="<?= $mp['IdMateri'] ?>">
@@ -751,7 +752,8 @@
         // Update preview button state
         function updatePreviewButton() {
             var checkedCount = 0;
-            var allSelectedHaveGrup = true;
+            var selectionsValid = true;
+            var disableReason = '';
 
             // Cek semua halaman DataTable
             tableMateriPilihan.rows().every(function() {
@@ -761,16 +763,27 @@
 
                 if (checkbox.is(':checked')) {
                     checkedCount++;
+
                     if (!grupSelect.val()) {
-                        allSelectedHaveGrup = false;
+                        selectionsValid = false;
+                        disableReason = 'Pilih grup untuk setiap materi yang dipilih.';
+                    } else if (!checkbox.data('idKategori')) {
+                        selectionsValid = false;
+                        disableReason = 'Kategori materi belum dipetakan ke master.';
                     }
                 }
             });
 
-            if (checkedCount > 0 && allSelectedHaveGrup) {
-                $('#btnPreview').prop('disabled', false);
+            var previewButton = $('#btnPreview');
+            if (checkedCount > 0 && selectionsValid) {
+                previewButton.prop('disabled', false).removeAttr('title');
             } else {
-                $('#btnPreview').prop('disabled', true);
+                previewButton.prop('disabled', true);
+                if (checkedCount > 0 && disableReason) {
+                    previewButton.attr('title', disableReason);
+                } else {
+                    previewButton.removeAttr('title');
+                }
             }
         }
 
@@ -818,7 +831,8 @@
                     selectedMateri.push({
                         id: checkbox.val(),
                         nama: checkbox.data('nama'),
-                        kategori: checkbox.data('kategori'),
+                        idKategori: checkbox.data('idKategori') || '',
+                        kategoriNama: checkbox.data('kategoriNama') || '-',
                         grup: grupSelect.val()
                     });
                 }
@@ -833,7 +847,7 @@
                     '<tr>' +
                     '<td>' + materi.id + '</td>' +
                     '<td>' + materi.nama + '</td>' +
-                    '<td>' + materi.kategori + '</td>' +
+                    '<td>' + materi.kategoriNama + '</td>' +
                     '<td>' + materi.grup + '</td>' +
                     '</tr>'
                 );
@@ -845,6 +859,8 @@
         // Save materi button
         $('#btnSaveMateri').on('click', function() {
             var selectedMateri = [];
+            var missingKategori = [];
+            var missingGrup = [];
 
             // Ambil semua data dari semua halaman DataTable
             tableMateriPilihan.rows().every(function() {
@@ -853,13 +869,55 @@
                 var grupSelect = $(row).find('.grup-materi-select');
 
                 if (checkbox.is(':checked')) {
+                    var idKategori = checkbox.data('idKategori');
+                    var namaKategori = checkbox.data('kategoriNama');
+                    var grupVal = grupSelect.val();
+
+                    if (!idKategori) {
+                        missingKategori.push(checkbox.val());
+                        return;
+                    }
+
+                    if (!grupVal) {
+                        missingGrup.push(checkbox.val());
+                        return;
+                    }
+
                     selectedMateri.push({
                         IdMateri: checkbox.val(),
-                        KategoriMateri: checkbox.data('kategori'),
-                        IdGrupMateriUjian: grupSelect.val()
+                        IdKategoriMateri: idKategori,
+                        NamaKategoriMateri: namaKategori,
+                        IdGrupMateriUjian: grupVal
                     });
                 }
             });
+
+            if (selectedMateri.length === 0) {
+                Swal.fire({
+                    title: 'Peringatan',
+                    text: 'Pilih minimal satu materi dan pastikan grup serta kategori valid.',
+                    icon: 'warning'
+                });
+                return;
+            }
+
+            if (missingKategori.length > 0) {
+                Swal.fire({
+                    title: 'Kategori Tidak Ditemukan',
+                    text: 'Beberapa materi belum memiliki mapping kategori yang valid. Periksa materi: ' + missingKategori.join(', '),
+                    icon: 'warning'
+                });
+                return;
+            }
+
+            if (missingGrup.length > 0) {
+                Swal.fire({
+                    title: 'Grup Belum Dipilih',
+                    text: 'Pilih grup materi untuk semua materi yang dipilih. Materi tanpa grup: ' + missingGrup.join(', '),
+                    icon: 'warning'
+                });
+                return;
+            }
 
             var data = {
                 materi: selectedMateri
@@ -905,8 +963,9 @@
             var duplicateList = '';
             if (response.materi_info) {
                 response.materi_info.forEach(function(materi) {
+                    var kategoriLabel = materi.NamaKategoriMateri || materi.KategoriAsli || materi.Kategori || '-';
                     duplicateList += '<div style="margin: 8px 0; padding: 8px; background-color: #f8f9fa; border-left: 3px solid #ffc107; border-radius: 4px;">' +
-                        '<strong>' + materi.IdMateri + '</strong> - ' + materi.NamaMateri + ' (' + materi.Kategori + ')' +
+                        '<strong>' + materi.IdMateri + '</strong> - ' + materi.NamaMateri + ' (' + kategoriLabel + ')' +
                         '</div>';
                 });
             }

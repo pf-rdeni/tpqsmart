@@ -18,7 +18,7 @@ class MunaqosahNilaiModel extends Model
         'IdMateri',
         'IdGrupMateriUjian',
         'RoomId',
-        'KategoriMateriUjian',
+        'IdKategoriMateri',
         'TypeUjian',
         'Nilai',
         'Catatan',
@@ -36,7 +36,7 @@ class MunaqosahNilaiModel extends Model
         'IdJuri' => 'required|max_length[50]',
         'IdMateri' => 'required|max_length[50]',
         'IdGrupMateriUjian' => 'required|max_length[50]',
-        'KategoriMateriUjian' => 'required|max_length[100]',
+        'IdKategoriMateri' => 'required|max_length[50]',
         'TypeUjian' => 'required|in_list[munaqosah,pra-munaqosah]',
         'Nilai' => 'required|decimal',
         'Catatan' => 'permit_empty'
@@ -71,9 +71,9 @@ class MunaqosahNilaiModel extends Model
             'required' => 'ID Grup Materi Ujian harus diisi',
             'max_length' => 'ID Grup Materi Ujian maksimal 50 karakter'
         ],
-        'KategoriMateriUjian' => [
+        'IdKategoriMateri' => [
             'required' => 'Kategori materi ujian harus diisi',
-            'max_length' => 'Kategori materi ujian maksimal 100 karakter'
+            'max_length' => 'ID kategori materi maksimal 50 karakter'
         ],
         'TypeUjian' => [
             'required' => 'Tipe ujian harus diisi',
@@ -88,10 +88,11 @@ class MunaqosahNilaiModel extends Model
     public function getNilaiWithRelations($id = null)
     {
         $builder = $this->db->table($this->table . ' nm');
-        $builder->select('nm.*, s.NamaSantri, t.NamaTpq, mp.NamaMateri');
+        $builder->select('nm.*, s.NamaSantri, t.NamaTpq, mp.NamaMateri, km.NamaKategoriMateri');
         $builder->join('tbl_santri_baru s', 's.IdSantri = nm.IdSantri', 'left');
         $builder->join('tbl_tpq t', 't.IdTpq = nm.IdTpq', 'left');
         $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = nm.IdMateri', 'left');
+        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = nm.IdKategoriMateri', 'left');
 
         if ($id) {
             $builder->where('nm.id', $id);
