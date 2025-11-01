@@ -344,8 +344,8 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
         tableJuri = $('#tableJuri').DataTable({
             "responsive": true,
             "lengthChange": false,
-            "autoWidth": false,
-            "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
+            "autoWidth": false
+            // "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
         });
 
         // Generate Username
