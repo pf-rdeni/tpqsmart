@@ -662,6 +662,7 @@
         let currentPesertaData = null;
         let currentJuriData = null;
         let currentMateriData = null;
+        let errorCategoriesByKategori = {};
         let isEditMode = false;
 
         // Get current juri data from controller
@@ -789,6 +790,7 @@
                         currentPesertaData = response.data.peserta;
                         currentJuriData = response.data.juri;
                         currentMateriData = response.data.materi;
+                        errorCategoriesByKategori = (response.data.error_categories && typeof response.data.error_categories === 'object') ? response.data.error_categories : {};
 
                         // Show peserta info with room validation info
                         showPesertaInfo(response.data.peserta, response.data.roomValidation);
@@ -936,7 +938,7 @@
         }
 
         // Generate dynamic form for input nilai
-        async function generateNilaiForm() {
+        function generateNilaiForm() {
             if (!currentMateriData || currentMateriData.length === 0) {
                 Swal.fire({
                     icon: 'error',
@@ -949,7 +951,7 @@
             // Show loading while fetching error categories
             Swal.fire({
                 title: 'Memproses...',
-                text: 'Mengambil data kategori kesalahan',
+                text: 'Menyiapkan form input nilai',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -969,8 +971,8 @@
 
             // Generate form for each kategori
             for (const kategori of Object.keys(groupedMateri)) {
-                // Fetch error categories for this kategori
-                const errorCategories = await fetchErrorCategoriesFromDatabase(kategori);
+                // Ambil kategori kesalahan dari data yang sudah disiapkan controller
+                const errorCategories = getErrorCategoriesForKategori(kategori);
 
                 formHtml += `
                 <div class="col-md-12">
@@ -1055,33 +1057,14 @@
             setupNilaiInputListeners();
         }
 
-        // Function to get error categories from database based on kategori
-        function getErrorCategoriesForMateri(materiName, kategori) {
-            // This function will be replaced by AJAX call to get data from database
-            // Return empty array first, will be populated dynamically
-            return [];
-        }
-
-        // Function to fetch error categories from database
-        async function fetchErrorCategoriesFromDatabase(kategori) {
-            try {
-                const response = await $.ajax({
-                    url: '<?= base_url("backend/munaqosah/getErrorCategoriesByKategori") ?>',
-                    type: 'GET',
-                    data: {
-                        kategori: kategori
-                    },
-                    dataType: 'json'
-                });
-
-                if (response.success && response.data) {
-                    return response.data.map(item => item.NamaKategoriKesalahan);
-                }
-                return [];
-            } catch (error) {
-                console.error('Error fetching error categories:', error);
+        // Function to get error categories for a kategori from preloaded data
+        function getErrorCategoriesForKategori(kategori) {
+            if (!kategori) {
                 return [];
             }
+
+            const categories = errorCategoriesByKategori[kategori];
+            return Array.isArray(categories) ? categories : [];
         }
 
         // Setup event listeners for nilai inputs
@@ -1461,6 +1444,7 @@
             currentPesertaData = null;
             currentJuriData = null;
             currentMateriData = null;
+            errorCategoriesByKategori = {};
             isEditMode = false;
 
             stepper.to(1);

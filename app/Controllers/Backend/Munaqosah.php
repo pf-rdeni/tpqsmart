@@ -285,6 +285,44 @@ class Munaqosah extends BaseController
                 ];
             }
 
+            // Ambil kategori kesalahan untuk setiap kategori materi sekaligus
+            $kategoriNames = array_unique(array_filter(array_map(static function ($materi) {
+                return $materi['KategoriMateriUjian'] ?? $materi['NamaKategoriMateri'] ?? null;
+            }, $transformedMateriData)));
+
+            $errorCategoriesByKategori = [];
+            if (!empty($kategoriNames)) {
+                $errorCategoryRows = $this->munaqosahKategoriKesalahanModel
+                    ->select('tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_munaqosah_kategori_materi.NamaKategoriMateri')
+                    ->join('tbl_munaqosah_kategori_materi', 'tbl_munaqosah_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
+                    ->whereIn('tbl_munaqosah_kategori_materi.NamaKategoriMateri', $kategoriNames)
+                    ->where('tbl_munaqosah_kategori_kesalahan.Status', 'Aktif')
+                    ->orderBy('tbl_munaqosah_kategori_materi.NamaKategoriMateri', 'ASC')
+                    ->orderBy('tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan', 'ASC')
+                    ->findAll();
+
+                foreach ($errorCategoryRows as $row) {
+                    $kategoriName = $row['NamaKategoriMateri'] ?? null;
+                    $namaKesalahan = $row['NamaKategoriKesalahan'] ?? null;
+
+                    if (!$kategoriName || !$namaKesalahan) {
+                        continue;
+                    }
+
+                    if (!isset($errorCategoriesByKategori[$kategoriName])) {
+                        $errorCategoriesByKategori[$kategoriName] = [];
+                    }
+
+                    if (!in_array($namaKesalahan, $errorCategoriesByKategori[$kategoriName], true)) {
+                        $errorCategoriesByKategori[$kategoriName][] = $namaKesalahan;
+                    }
+                }
+
+                foreach ($errorCategoriesByKategori as $kategori => $daftarKesalahan) {
+                    $errorCategoriesByKategori[$kategori] = array_values($daftarKesalahan);
+                }
+            }
+
             // Cek apakah nilai sudah ada untuk peserta ini
             $existingNilai = $this->nilaiMunaqosahModel->where('NoPeserta', $noPeserta)
                 ->where('IdTahunAjaran', $IdTahunAjaran)
@@ -406,6 +444,7 @@ class Munaqosah extends BaseController
                     'NamaMateriGrup' => $grupMateri['NamaMateriGrup']
                 ],
                 'materi' => $transformedMateriData,
+                'error_categories' => $errorCategoriesByKategori,
                 'nilaiExists' => $nilaiExists,
                 'existingNilai' => $existingNilai,
                 'roomValidation' => $roomValidationInfo
