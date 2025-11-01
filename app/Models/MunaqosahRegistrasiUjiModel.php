@@ -171,6 +171,7 @@ class MunaqosahRegistrasiUjiModel extends Model
             $builder->where('r.TypeUjian', $typeUjian);
             $builder->where('r.IdTahunAjaran', $idTahunAjaran);
             $builder->groupBy('r.IdMateri');
+            $builder->orderBy('r.IdKategoriMateri', 'ASC');
         }
         $result = $builder->get()->getResultArray();
         return $result ? $result : [];
