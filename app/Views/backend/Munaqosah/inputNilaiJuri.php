@@ -301,38 +301,9 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
-                <h5 class="card-title mb-0 mr-3" id="ayatTitle">Lihat Ayat</h5>
-                <span class="badge badge-info" id="zoomIndicator">100%</span>
+                <h5 class="card-title mb-0" id="ayatTitle">Lihat Ayat</h5>
             </div>
             <div class="d-flex align-items-center">
-                <!-- Zoom Controls -->
-                <div class="btn-group mr-2" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-info" onclick="zoomOut()" title="Zoom Out">
-                        <i class="fas fa-search-minus"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-info" onclick="resetZoom()" title="Reset Zoom">
-                        <i class="fas fa-search"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-info" onclick="zoomIn()" title="Zoom In">
-                        <i class="fas fa-search-plus"></i>
-                    </button>
-                </div>
-                <!-- Pan Controls -->
-                <div class="btn-group mr-2" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="panUp()" title="Geser Ke Atas">
-                        <i class="fas fa-arrow-up"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="panLeft()" title="Geser Ke Kiri">
-                        <i class="fas fa-arrow-left"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="panRight()" title="Geser Ke Kanan">
-                        <i class="fas fa-arrow-right"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="panDown()" title="Geser Ke Bawah">
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-                </div>
-                <!-- Other Controls -->
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="openInNewTab()">
                         <i class="fas fa-external-link-alt"></i> Buka di Tab Baru
@@ -433,38 +404,6 @@
     }
 
     /* Zoom levels */
-    .zoom-50 {
-        transform: scale(0.5);
-    }
-
-    .zoom-75 {
-        transform: scale(0.75);
-    }
-
-    .zoom-100 {
-        transform: scale(1);
-    }
-
-    .zoom-125 {
-        transform: scale(1.25);
-    }
-
-    .zoom-150 {
-        transform: scale(1.5);
-    }
-
-    .zoom-200 {
-        transform: scale(2);
-    }
-
-    .zoom-250 {
-        transform: scale(2.5);
-    }
-
-    .zoom-300 {
-        transform: scale(3);
-    }
-
     /* Styling untuk button lihat ayat */
     .btn-outline-info {
         border-color: #17a2b8;
@@ -1680,20 +1619,8 @@
     // Global variable untuk menyimpan URL ayat saat ini
     let currentAyatUrl = '';
 
-    // Global variable untuk zoom level
-    let currentZoomLevel = 1;
-    const zoomLevels = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
-    const zoomClasses = ['zoom-50', 'zoom-75', 'zoom-100', 'zoom-125', 'zoom-150', 'zoom-200', 'zoom-250', 'zoom-300'];
-
-    // Global variable untuk pan position
-    let panX = 0;
-    let panY = 0;
-    const panStep = 50; // Pixels per pan step
-
     // Fungsi untuk menampilkan section ayat
     function showAyatModal(url, title) {
-        console.log('showAyatModal called with:', url, title);
-
         currentAyatUrl = url;
         $('#ayatTitle').text(title);
 
@@ -1705,7 +1632,6 @@
 
         // Set iframe source setelah section ditampilkan
         setTimeout(function() {
-            console.log('Setting iframe src to:', url);
             $('#iframeAyat').attr('src', url);
         }, 350);
 
@@ -1719,12 +1645,6 @@
     function hideAyatSection() {
         $('#ayatSection').slideUp(300, function() {
             $('#iframeAyat').attr('src', '');
-            // Reset zoom dan pan saat section ditutup
-            currentZoomLevel = 1;
-            panX = 0;
-            panY = 0;
-            $('#iframeAyat').removeClass(zoomClasses.join(' '));
-            $('#iframeAyat').css('transform', 'scale(1) translate(0px, 0px)');
         });
     }
 
@@ -1733,92 +1653,6 @@
         if (currentAyatUrl) {
             window.open(currentAyatUrl, '_blank');
         }
-    }
-
-    // Fungsi zoom in
-    function zoomIn() {
-        const currentIndex = zoomLevels.indexOf(currentZoomLevel);
-        if (currentIndex < zoomLevels.length - 1) {
-            currentZoomLevel = zoomLevels[currentIndex + 1];
-            // Auto scroll ke atas saat zoom untuk fokus membaca
-            if (currentZoomLevel > 1) {
-                panY = Math.max(panY - 30, -200); // Geser ke atas sedikit
-            }
-            applyZoom();
-        }
-    }
-
-    // Fungsi zoom out
-    function zoomOut() {
-        const currentIndex = zoomLevels.indexOf(currentZoomLevel);
-        if (currentIndex > 0) {
-            currentZoomLevel = zoomLevels[currentIndex - 1];
-            applyZoom();
-        }
-    }
-
-    // Fungsi reset zoom
-    function resetZoom() {
-        currentZoomLevel = 1;
-        panX = 0;
-        panY = 0;
-        applyZoom();
-    }
-
-    // Fungsi pan (geser) ke atas
-    function panUp() {
-        panY = Math.max(panY - panStep, -200);
-        applyPan();
-    }
-
-    // Fungsi pan (geser) ke bawah
-    function panDown() {
-        panY = Math.min(panY + panStep, 200);
-        applyPan();
-    }
-
-    // Fungsi pan (geser) ke kiri
-    function panLeft() {
-        panX = Math.max(panX - panStep, -200);
-        applyPan();
-    }
-
-    // Fungsi pan (geser) ke kanan
-    function panRight() {
-        panX = Math.min(panX + panStep, 200);
-        applyPan();
-    }
-
-    // Fungsi untuk menerapkan pan
-    function applyPan() {
-        const iframe = $('#iframeAyat');
-        const translateX = panX;
-        const translateY = panY;
-
-        // Hapus transform yang ada dan terapkan yang baru
-        iframe.css('transform', `scale(${currentZoomLevel}) translate(${translateX}px, ${translateY}px)`);
-
-        console.log('Pan applied:', panX, panY);
-    }
-
-    // Fungsi untuk menerapkan zoom
-    function applyZoom() {
-        const iframe = $('#iframeAyat');
-
-        // Hapus semua class zoom yang ada
-        zoomClasses.forEach(zoomClass => {
-            iframe.removeClass(zoomClass);
-        });
-
-        // Terapkan zoom dan pan dengan CSS transform
-        const translateX = panX;
-        const translateY = panY;
-        iframe.css('transform', `scale(${currentZoomLevel}) translate(${translateX}px, ${translateY}px)`);
-
-        // Update zoom indicator
-        $('#zoomIndicator').text(Math.round(currentZoomLevel * 100) + '%');
-
-        console.log('Zoom level set to:', currentZoomLevel, 'Pan:', panX, panY);
     }
 
     // Fungsi untuk set No Peserta dari tabel peserta terakhir
