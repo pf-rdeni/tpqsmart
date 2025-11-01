@@ -665,6 +665,8 @@
         let errorCategoriesByKategori = {};
         let isEditMode = false;
 
+        const ERROR_AUTO_SHOW_THRESHOLD = 67;
+
         // Get current juri data from controller
         function getCurrentJuriData() {
             return {
@@ -1002,10 +1004,11 @@
                          <div class="col-md-6">
                              <div class="form-group">
                                  <label for="nilai_${materi.IdMateri}">${materi.NamaMateri}</label>
-                                 <input type="number" 
-                                        class="form-control nilai-input" 
-                                        id="nilai_${materi.IdMateri}" 
-                                        name="nilai[${materi.IdMateri}]"
+                                <input type="number" 
+                                       class="form-control nilai-input" 
+                                       id="nilai_${materi.IdMateri}" 
+                                       name="nilai[${materi.IdMateri}]"
+                                       data-materi-id="${materi.IdMateri}"
                                         min="<?= $nilai_minimal ?>" 
                                         max="<?= $nilai_maximal ?>" 
                                         step="1"
@@ -1017,8 +1020,16 @@
                          </div>
                          <div class="col-md-6">
                              <div class="form-group">
-                                 <label>Kategori Kesalahan (Opsional)</label>
-                                 <div class="error-categories-container" data-materi-id="${materi.IdMateri}">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="mb-0">Kategori Kesalahan (Opsional)</label>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-secondary toggle-error-categories" 
+                                            data-materi-id="${materi.IdMateri}"
+                                            aria-label="Tampilkan atau sembunyikan kategori kesalahan">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="error-categories-container d-none" data-materi-id="${materi.IdMateri}" data-visible="false" data-manual-hidden="false">
                                      ${errorCategories.length > 0 ? errorCategories.map((category, index) => `
                                          <div class="form-check">
                                              <input class="form-check-input error-checkbox" 
@@ -1032,7 +1043,7 @@
                                          </div>
                                      `).join('') : '<p class="text-muted">Tidak ada kategori kesalahan tersedia</p>'}
                                  </div>
-                                 <small class="form-text text-muted">Pilih kategori kesalahan yang ditemukan (boleh dikosongkan)</small>
+                                <small class="form-text text-muted">Tampilkan kategori kesalahan (klik ikon mata) atau otomatis jika nilai < 67.</small>
                              </div>
                          </div>
                      </div>
@@ -1055,6 +1066,10 @@
 
             // Setup event listeners for nilai inputs
             setupNilaiInputListeners();
+            setupErrorCategoryToggles();
+            $('.nilai-input').each(function() {
+                handleAutoShowErrorCategories($(this));
+            });
         }
 
         // Function to get error categories for a kategori from preloaded data
@@ -1071,11 +1086,100 @@
         function setupNilaiInputListeners() {
             $('.nilai-input').on('input', function() {
                 validateAndShowKirimButton();
+                handleAutoShowErrorCategories($(this));
             });
 
             $('.nilai-input').on('blur', function() {
                 validateAndShowKirimButton();
+                handleAutoShowErrorCategories($(this));
             });
+        }
+
+        function setupErrorCategoryToggles() {
+            $('.toggle-error-categories').off('click').on('click', function() {
+                const materiId = $(this).data('materi-id');
+                toggleErrorCategories(materiId, true);
+            });
+        }
+
+        function handleAutoShowErrorCategories($input) {
+            const materiId = $input.data('materi-id');
+            if (!materiId) {
+                return;
+            }
+
+            const container = getErrorCategoryContainer(materiId);
+            if (!container.length) {
+                return;
+            }
+
+            const rawValue = ($input.val() || '').toString().trim();
+            const numericValue = parseFloat(rawValue);
+            const hasTwoDigits = rawValue.length >= 2;
+            const isValidNumber = !Number.isNaN(numericValue);
+            const isLowScore = hasTwoDigits && isValidNumber && numericValue < ERROR_AUTO_SHOW_THRESHOLD;
+            const shouldHide = hasTwoDigits && isValidNumber && numericValue >= ERROR_AUTO_SHOW_THRESHOLD;
+
+            if (isLowScore) {
+                showErrorCategories(materiId, false);
+                container.attr('data-manual-hidden', 'false');
+            } else if (shouldHide || rawValue === '') {
+                hideErrorCategories(materiId, false);
+                container.attr('data-manual-hidden', 'false');
+            }
+        }
+
+        function toggleErrorCategories(materiId, triggeredByManual = false) {
+            const container = getErrorCategoryContainer(materiId);
+            if (!container.length) {
+                return;
+            }
+
+            const isVisible = container.attr('data-visible') === 'true';
+            if (isVisible) {
+                hideErrorCategories(materiId, triggeredByManual);
+            } else {
+                showErrorCategories(materiId, triggeredByManual);
+            }
+        }
+
+        function showErrorCategories(materiId, triggeredByManual = false) {
+            const container = getErrorCategoryContainer(materiId);
+            if (!container.length) {
+                return;
+            }
+
+            container.removeClass('d-none').attr('data-visible', 'true');
+            container.attr('data-manual-hidden', 'false');
+            updateErrorToggleState(materiId, true);
+        }
+
+        function hideErrorCategories(materiId, triggeredByManual = false) {
+            const container = getErrorCategoryContainer(materiId);
+            if (!container.length) {
+                return;
+            }
+
+            container.addClass('d-none').attr('data-visible', 'false');
+            container.attr('data-manual-hidden', triggeredByManual ? 'true' : 'false');
+            updateErrorToggleState(materiId, false);
+        }
+
+        function updateErrorToggleState(materiId, isVisible) {
+            const toggleBtn = $(`.toggle-error-categories[data-materi-id="${materiId}"]`);
+            const icon = toggleBtn.find('i');
+
+            if (isVisible) {
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                toggleBtn.attr('aria-pressed', 'true');
+            } else {
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                toggleBtn.attr('aria-pressed', 'false');
+            }
+        }
+
+        function getErrorCategoryContainer(materiId) {
+            return $(`.error-categories-container[data-materi-id="${materiId}"]`);
         }
 
         // Get nilai range from PHP
