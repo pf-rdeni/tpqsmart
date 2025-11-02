@@ -157,6 +157,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
     function buildKelulusanHeader(categories) {
         const headerCategories = categories || [];
+        const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
         let th1 = '<tr>' +
             '<th class="dt-left">No Peserta</th>' +
             '<th class="dt-left">Nama Santri</th>' +
@@ -167,7 +168,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
         headerCategories.forEach(cat => {
             const weight = cat.weight ? parseFloat(cat.weight) : 0;
-            const weightLabel = weight > 0 ? ` (${weight}% )` : '';
+            const weightLabel = (isAdmin && weight > 0) ? ` (${weight}% )` : '';
             const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
             // Kolom: Juri (maxJuri kolom) + Jml + Bobot = maxJuri + 2
             th1 += `<th class="dt-center nowrap" colspan="${maxJuri + 2}">${cat.name}${weightLabel}</th>`;
