@@ -18,7 +18,8 @@
                                     <option value="0">Semua TPQ</option>
                                     <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
                                             <option value="<?= esc($tpq['IdTpq']) ?>"><?= esc($tpq['NamaTpq']) ?></option>
-                                        <?php endforeach; endif; ?>
+                                    <?php endforeach;
+                                    endif; ?>
                                 </select>
                             </div>
                             <div class="mr-2">
@@ -105,6 +106,10 @@
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
+<?php
+// Cek apakah user adalah admin
+$isAdmin = function_exists('in_groups') && in_groups('Admin');
+?>
 <style>
     .nilai-0 {
         background-color: #f8d7da !important;
@@ -163,7 +168,9 @@
         headerCategories.forEach(cat => {
             const weight = cat.weight ? parseFloat(cat.weight) : 0;
             const weightLabel = weight > 0 ? ` (${weight}% )` : '';
-            th1 += `<th class="dt-center nowrap" colspan="4">${cat.name}${weightLabel}</th>`;
+            const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
+            // Kolom: Juri (maxJuri kolom) + Jml + Bobot = maxJuri + 2
+            th1 += `<th class="dt-center nowrap" colspan="${maxJuri + 2}">${cat.name}${weightLabel}</th>`;
         });
 
         th1 += '<th class="dt-center">Total Bobot</th>' +
@@ -172,10 +179,12 @@
 
         let th2 = '<tr>' +
             '<th></th><th></th><th></th><th></th><th></th><th></th>';
-        headerCategories.forEach(() => {
-            th2 += '<th class="dt-center">Juri 1</th>' +
-                '<th class="dt-center">Juri 2</th>' +
-                '<th class="dt-center">Jml</th>' +
+        headerCategories.forEach(cat => {
+            const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
+            for (let i = 1; i <= maxJuri; i++) {
+                th2 += `<th class="dt-center">Juri ${i}</th>`;
+            }
+            th2 += '<th class="dt-center">Jml</th>' +
                 '<th class="dt-center">Bobot</th>';
         });
         th2 += '<th></th><th></th></tr>';
@@ -197,10 +206,13 @@
             const viewUrl = '<?= base_url('backend/munaqosah/kelulusan-peserta') ?>' + '?' + params;
             const pdfUrl = '<?= base_url('backend/munaqosah/printKelulusanPesertaUjian') ?>' + '?' + params;
 
+            const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
             let actionHtml = '<div class="btn-group btn-group-sm" role="group">' +
-                `<a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Pdf</a>` +
-                `<a class="btn btn-outline-secondary" href="${viewUrl}" target="_blank"><i class="fas fa-eye"></i> View</a>` +
-                '</div>';
+                `<a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Pdf</a>`;
+            if (isAdmin) {
+                actionHtml += `<a class="btn btn-outline-secondary" href="${viewUrl}" target="_blank"><i class="fas fa-eye"></i> View</a>`;
+            }
+            actionHtml += '</div>';
 
             const totalWeighted = parseFloat(row.total_weighted ?? 0).toFixed(2);
             const threshold = parseFloat(row.kelulusan_threshold ?? 0).toFixed(2);
@@ -219,13 +231,27 @@
 
             headerCategories.forEach(cat => {
                 const catId = cat.id || cat.IdKategoriMateri;
-                const scores = row.nilai && row.nilai[catId] ? row.nilai[catId] : [0, 0];
-                const avg = row.averages && row.averages[catId] !== undefined ? row.averages[catId] : 0;
+                const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
+                const scores = row.nilai && row.nilai[catId] ? row.nilai[catId] : [];
+
+                // Hitung nilai valid (nilai yang > 0)
+                const validScores = scores.filter(s => s > 0);
+                let avg = row.averages && row.averages[catId] !== undefined ? row.averages[catId] : 0;
+
+                // Jika hanya ada satu nilai valid dan average tidak sesuai, gunakan nilai tersebut
+                if (validScores.length === 1 && avg !== validScores[0]) {
+                    avg = validScores[0];
+                }
+
                 const weighted = row.weighted && row.weighted[catId] !== undefined ? row.weighted[catId] : 0;
 
-                tds += `<td class="dt-center">${fmtScore(scores[0])}</td>` +
-                    `<td class="dt-center">${fmtScore(scores[1])}</td>` +
-                    `<td class="dt-center">${fmtDecimal(avg)}</td>` +
+                // Generate kolom juri secara dinamis
+                for (let i = 0; i < maxJuri; i++) {
+                    const nilai = (scores[i] !== undefined && scores[i] !== null) ? scores[i] : 0;
+                    tds += `<td class="dt-center">${fmtScore(nilai)}</td>`;
+                }
+
+                tds += `<td class="dt-center">${fmtDecimal(avg)}</td>` +
                     `<td class="dt-center">${fmtDecimal(weighted)}</td>`;
             });
 
@@ -271,7 +297,11 @@
                 return;
             }
 
-            const data = resp.data || { categories: [], rows: [], meta: {} };
+            const data = resp.data || {
+                categories: [],
+                rows: [],
+                meta: {}
+            };
             const categories = data.categories || [];
             const rows = data.rows || [];
 
@@ -290,19 +320,30 @@
             buildKelulusanHeader(categories);
             buildKelulusanRows(categories, rows);
 
-            const baseCols = 6;
-            const totalIndex = baseCols + categories.length * 4;
-            const statusIndex = totalIndex + 1;
+            // Hitung total kolom berdasarkan maxJuri per kategori
+            let totalCols = 6; // No Peserta, Nama Santri, TPQ, Type, Thn, Aksi
+            categories.forEach(cat => {
+                const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
+                totalCols += maxJuri + 2; // Juri + Jml + Bobot
+            });
+            totalCols += 2; // Total Bobot + Status Kelulusan
+
+            const totalIndex = totalCols - 2; // Kolom Total Bobot
+            const statusIndex = totalCols - 1; // Kolom Status Kelulusan
 
             kelulusanTable = $('#tblKelulusan').DataTable({
                 scrollX: true,
-                order: [[totalIndex, 'desc']],
+                order: [
+                    [totalIndex, 'desc']
+                ],
                 pageLength: 25,
                 dom: 'Bfrtip',
                 buttons: ['colvis', 'excel', 'print'],
-                columnDefs: [
-                    { targets: [5], orderable: false, searchable: false }
-                ]
+                columnDefs: [{
+                    targets: [5],
+                    orderable: false,
+                    searchable: false
+                }]
             });
 
             const totalPeserta = rows.length;
@@ -357,4 +398,3 @@
     });
 </script>
 <?= $this->endSection(); ?>
-

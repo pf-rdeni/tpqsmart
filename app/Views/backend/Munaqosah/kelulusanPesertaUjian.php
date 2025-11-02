@@ -1,9 +1,9 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
 <?php
-    $peserta = $peserta ?? [];
-    $categoryDetails = $categoryDetails ?? [];
-    $meta = $meta ?? [];
+$peserta = $peserta ?? [];
+$categoryDetails = $categoryDetails ?? [];
+$meta = $meta ?? [];
 ?>
 <section class="content">
     <div class="container-fluid">
@@ -66,11 +66,10 @@
                                 <thead class="thead-light">
                                     <tr>
                                         <th class="align-middle" rowspan="2">Kategori</th>
-                                        <th class="align-middle text-center" rowspan="2">Bobot (%)</th>
+                                        <th class="align-middle text-center" rowspan="2">Materi Ujian</th>
                                         <th class="text-center" colspan="3">Penilaian Juri</th>
                                         <th class="align-middle text-center" rowspan="2">Rata</th>
                                         <th class="align-middle text-center" rowspan="2">Bobot Nilai</th>
-                                        <th class="align-middle text-center" rowspan="2">Materi Ujian</th>
                                     </tr>
                                     <tr>
                                         <th class="text-center">Juri</th>
@@ -79,12 +78,39 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <?php
+                                    $totalNilai = 0;
+                                    $totalBobot = 0;
+                                    ?>
                                     <?php foreach ($categoryDetails as $detail): ?>
                                         <?php
                                         $category = $detail['category'] ?? [];
                                         $juriScores = $detail['juri_scores'] ?? [];
                                         $materis = $detail['materi'] ?? [];
                                         $weight = $category['weight'] ?? 0;
+                                        $maxJuri = ($category['maxJuri'] ?? null);
+                                        if ($maxJuri === null) {
+                                            $maxJuri = max(count($juriScores), 1);
+                                        } else {
+                                            $maxJuri = (int)$maxJuri;
+                                        }
+
+                                        // Hitung nilai valid (nilai yang > 0)
+                                        $validScores = array_filter($juriScores, function ($score) {
+                                            return isset($score['Nilai']) && (float)$score['Nilai'] > 0;
+                                        });
+                                        $validScores = array_values($validScores);
+
+                                        // Pastikan average konsisten: jika hanya ada satu nilai valid, gunakan nilai tersebut
+                                        $average = (float)($detail['average'] ?? 0);
+                                        if (count($validScores) === 1 && $average !== (float)$validScores[0]['Nilai']) {
+                                            $average = (float)$validScores[0]['Nilai'];
+                                        }
+
+                                        $weighted = (float)($detail['weighted'] ?? 0);
+                                        $totalNilai += $average;
+                                        $totalBobot += $weighted;
+
                                         $materiList = [];
                                         foreach ($materis as $materi) {
                                             $materiName = $materi['NamaMateri'] ?? '-';
@@ -97,22 +123,22 @@
                                             $materiList[] = '-';
                                         }
 
-                                        $rowspan = max(count($juriScores), 1);
+                                        // Hitung rowspan berdasarkan jumlah juri yang ada
+                                        $rowspan = max($maxJuri, 1);
                                         ?>
                                         <tr>
                                             <td class="align-middle" rowspan="<?= $rowspan ?>"><?= esc($category['name'] ?? '-') ?></td>
-                                            <td class="align-middle text-center" rowspan="<?= $rowspan ?>"><?= number_format((float)$weight, 2) ?></td>
+                                            <td class="align-middle" rowspan="<?= $rowspan ?>"><?= implode('<br>', $materiList) ?></td>
                                             <?php if (!empty($juriScores)): ?>
                                                 <?php $first = array_shift($juriScores); ?>
-                                                <td><?= esc($first['label'] ?? 'Juri') ?></td>
+                                                <td><?= esc($first['label'] ?? 'Juri 1') ?></td>
                                                 <td class="text-center"><?= number_format((float)($first['Nilai'] ?? 0), 2) ?></td>
                                                 <td><?= nl2br(esc($first['Catatan'] ?? '-')) ?></td>
                                             <?php else: ?>
                                                 <td class="text-center" colspan="3">Belum ada penilaian</td>
                                             <?php endif; ?>
-                                            <td class="align-middle text-center" rowspan="<?= $rowspan ?>"><?= number_format((float)($detail['average'] ?? 0), 2) ?></td>
-                                            <td class="align-middle text-center" rowspan="<?= $rowspan ?>"><?= number_format((float)($detail['weighted'] ?? 0), 2) ?></td>
-                                            <td class="align-middle" rowspan="<?= $rowspan ?>"><?= implode('<br>', $materiList) ?></td>
+                                            <td class="align-middle text-center" rowspan="<?= $rowspan ?>"><?= number_format($average, 2) ?></td>
+                                            <td class="align-middle text-center" rowspan="<?= $rowspan ?>"><?= number_format($weighted, 2) ?></td>
                                         </tr>
                                         <?php if (!empty($juriScores)): ?>
                                             <?php foreach ($juriScores as $score): ?>
@@ -124,6 +150,12 @@
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     <?php endforeach; ?>
+                                    <tr class="bg-light font-weight-bold">
+                                        <td colspan="2" class="text-right"><strong>JUMLAH</strong></td>
+                                        <td colspan="3"></td>
+                                        <td class="text-center"><strong><?= number_format($totalNilai, 2) ?></strong></td>
+                                        <td class="text-center"><strong><?= number_format($totalBobot, 2) ?></strong></td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -143,4 +175,3 @@
     </div>
 </section>
 <?= $this->endSection(); ?>
-

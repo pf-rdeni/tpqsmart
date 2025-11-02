@@ -4857,7 +4857,7 @@ class Munaqosah extends BaseController
                 : (($idTpq !== 0) ? 'pra-munaqosah' : 'munaqosah');
 
             $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
-            $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.IdKategoriMateri,r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
+            $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.IdKategoriMateri,r.IdGrupMateriUjian,r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
             $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
             $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
@@ -4899,19 +4899,48 @@ class Munaqosah extends BaseController
             $bobotSource = $bobotData['source'];
 
             $categoriesMap = [];
+            $grupMateriMap = []; // Map untuk IdKategoriMateri -> IdGrupMateriUjian
+
             foreach ($registrasiRows as $row) {
                 $catId = $row['IdKategoriMateri'];
                 if (empty($catId)) {
                     continue;
                 }
                 if (!isset($categoriesMap[$catId])) {
+                    $idGrupMateriUjian = $row['IdGrupMateriUjian'] ?? null;
+                    $grupMateriMap[$catId] = $idGrupMateriUjian;
+
                     $categoriesMap[$catId] = [
                         'id' => $catId,
                         'name' => $row['NamaKategoriMateri'] ?? $catId,
                         'weight' => isset($bobotMap[$catId]) ? (float)$bobotMap[$catId] : 0.0,
+                        'IdGrupMateriUjian' => $idGrupMateriUjian,
                     ];
                 }
             }
+
+            // Ambil konfigurasi MaxJuriPerRoom untuk setiap kategori
+            foreach ($categoriesMap as $catId => $catData) {
+                $idGrupMateriUjian = $catData['IdGrupMateriUjian'] ?? null;
+                $maxJuri = 2; // Default 2 juri
+
+                if (!empty($idGrupMateriUjian)) {
+                    // Ambil konfigurasi MaxJuriPerRoom untuk grup materi ini
+                    // Jika IdTpq tidak ada (0 atau kosong), ambil default setting
+                    $configIdTpq = ($idTpq != 0 && !empty($idTpq)) ? (string)$idTpq : 'default';
+                    $settingKey = 'MaxJuriPerRoom_' . $idGrupMateriUjian;
+
+                    // Method getSetting sudah otomatis fallback ke default jika tidak ditemukan
+                    $maxJuriSetting = $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, $settingKey);
+
+                    if ($maxJuriSetting !== null && is_numeric($maxJuriSetting)) {
+                        $maxJuri = (int)$maxJuriSetting;
+                    }
+                }
+
+                $categoriesMap[$catId]['maxJuri'] = $maxJuri;
+            }
+
             ksort($categoriesMap);
             $categories = array_values($categoriesMap);
 
@@ -4934,11 +4963,22 @@ class Munaqosah extends BaseController
             $noPesertaList = array_keys($pesertaInfo);
 
             $nilaiBuilder = $this->db->table('tbl_munaqosah_nilai n');
-            $nilaiBuilder->select('n.NoPeserta,n.IdKategoriMateri,n.Nilai');
+            $nilaiBuilder->select('n.NoPeserta,n.IdKategoriMateri,n.Nilai,j.UsernameJuri');
+            $nilaiBuilder->join('tbl_munaqosah_juri j', 'j.IdJuri = n.IdJuri', 'left');
             $nilaiBuilder->where('n.IdTahunAjaran', $idTahunAjaran);
             $nilaiBuilder->where('n.TypeUjian', $typeUjian);
             $nilaiBuilder->whereIn('n.NoPeserta', $noPesertaList);
             $nilaiRows = $nilaiBuilder->get()->getResultArray();
+
+            // Helper function untuk ekstrak nomor juri dari username
+            // Format: juri.baca.al-quran.218.1 -> return 1
+            $extractJuriNumber = function ($username) {
+                if (empty($username)) return 0;
+                // Ambil angka terakhir setelah titik terakhir
+                $parts = explode('.', $username);
+                $lastPart = end($parts);
+                return is_numeric($lastPart) ? (int)$lastPart : 0;
+            };
 
             $nilaiIndex = [];
             foreach ($nilaiRows as $row) {
@@ -4947,13 +4987,28 @@ class Munaqosah extends BaseController
                 if ($catId === null) {
                     continue;
                 }
+
+                // Ekstrak nomor juri dari username
+                $juriNumber = $extractJuriNumber($row['UsernameJuri'] ?? '');
+
+                // Cek maxJuri untuk kategori ini
+                $maxJuri = isset($categoriesMap[$catId]['maxJuri']) ? (int)$categoriesMap[$catId]['maxJuri'] : 2;
+
+                // Hanya ambil nilai dari juri yang sesuai dengan maxJuri (juri 1 sampai maxJuri)
+                if ($juriNumber < 1 || $juriNumber > $maxJuri) {
+                    continue;
+                }
+
                 if (!isset($nilaiIndex[$np])) {
                     $nilaiIndex[$np] = [];
                 }
                 if (!isset($nilaiIndex[$np][$catId])) {
                     $nilaiIndex[$np][$catId] = [];
                 }
-                $nilaiIndex[$np][$catId][] = (float)$row['Nilai'];
+
+                // Simpan nilai dengan index sesuai nomor juri (index 0 = juri 1, index 1 = juri 2, dll)
+                $index = $juriNumber - 1;
+                $nilaiIndex[$np][$catId][$index] = (float)$row['Nilai'];
             }
 
             $rows = [];
@@ -4967,13 +5022,35 @@ class Munaqosah extends BaseController
 
                 foreach ($categories as $cat) {
                     $catId = $cat['id'];
-                    $rawScores = $nilaiIndex[$np][$catId] ?? [];
-                    $score1 = isset($rawScores[0]) ? (float)$rawScores[0] : 0.0;
-                    $score2 = isset($rawScores[1]) ? (float)$rawScores[1] : 0.0;
-                    $row['nilai'][$catId] = [$score1, $score2];
+                    $rawScoresUnordered = $nilaiIndex[$np][$catId] ?? [];
+                    $maxJuri = $cat['maxJuri'] ?? 2;
+
+                    // Urutkan array berdasarkan index (juri 1, juri 2, dll)
+                    ksort($rawScoresUnordered);
+                    $rawScores = array_values($rawScoresUnordered);
+
+                    // Buat array nilai dengan panjang sesuai maxJuri, isi dengan 0.0 jika tidak ada
+                    $scores = [];
+                    for ($i = 0; $i < $maxJuri; $i++) {
+                        $scores[$i] = isset($rawScores[$i]) ? (float)$rawScores[$i] : 0.0;
+                    }
+
+                    $row['nilai'][$catId] = $scores;
 
                     if ($includeBobot) {
-                        $average = $this->computeAverageScore($rawScores);
+                        // Untuk average, hanya gunakan nilai yang > 0 dan sesuai dengan maxJuri
+                        $validScores = array_filter($rawScores, function ($score) {
+                            return $score > 0;
+                        });
+                        $validScores = array_values($validScores);
+
+                        // Jika hanya ada satu nilai valid, gunakan nilai tersebut
+                        if (count($validScores) === 1) {
+                            $average = (float)$validScores[0];
+                        } else {
+                            $average = $this->computeAverageScore($validScores);
+                        }
+
                         $weight = isset($bobotMap[$catId]) ? (float)$bobotMap[$catId] : 0.0;
                         $weightedScore = round(($average * $weight) / 100, 2);
 
@@ -5099,11 +5176,20 @@ class Munaqosah extends BaseController
             if (!is_numeric($score)) {
                 continue;
             }
-            $valid[] = (float)$score;
+            $scoreValue = (float)$score;
+            // Hanya hitung nilai yang > 0 (bukan nilai 0 yang di-padding)
+            if ($scoreValue > 0) {
+                $valid[] = $scoreValue;
+            }
         }
 
         if (empty($valid)) {
             return 0.0;
+        }
+
+        // Jika hanya ada satu nilai valid, kembalikan nilai tersebut langsung
+        if (count($valid) === 1) {
+            return round($valid[0], 2);
         }
 
         return round(array_sum($valid) / count($valid), 2);
@@ -5303,12 +5389,45 @@ class Munaqosah extends BaseController
             ->orderBy('tbl_munaqosah_nilai.created_at', 'ASC')
             ->findAll();
 
+        // Helper function untuk ekstrak nomor juri dari username
+        // Format: juri.baca.al-quran.218.1 -> return 1
+        $extractJuriNumber = function ($username) {
+            if (empty($username)) return 0;
+            // Ambil angka terakhir setelah titik terakhir
+            $parts = explode('.', $username);
+            $lastPart = end($parts);
+            return is_numeric($lastPart) ? (int)$lastPart : 0;
+        };
+
         $nilaiMap = [];
         foreach ($nilaiDetails as $detail) {
             $catId = $detail['IdKategoriMateri'];
             if (empty($catId)) {
                 continue;
             }
+
+            // Cek maxJuri untuk kategori ini
+            $maxJuri = null;
+            foreach ($categories as $cat) {
+                if ($cat['id'] === $catId) {
+                    $maxJuri = $cat['maxJuri'] ?? null;
+                    break;
+                }
+            }
+            if ($maxJuri === null) {
+                $maxJuri = 2; // Default
+            } else {
+                $maxJuri = (int)$maxJuri;
+            }
+
+            // Ekstrak nomor juri dari username
+            $juriNumber = $extractJuriNumber($detail['UsernameJuri'] ?? '');
+
+            // Hanya ambil nilai dari juri yang sesuai dengan maxJuri (juri 1 sampai maxJuri)
+            if ($juriNumber < 1 || $juriNumber > $maxJuri) {
+                continue;
+            }
+
             if (!isset($nilaiMap[$catId])) {
                 $nilaiMap[$catId] = [];
             }
@@ -5322,7 +5441,15 @@ class Munaqosah extends BaseController
                 'MateriNama' => $detail['MateriPelajaran'] ?? $detail['MateriMunaqosah'] ?? $detail['NamaSurah'] ?? null,
                 'MateriLink' => $detail['AlquranLink'] ?? null,
                 'UpdatedAt' => $detail['updated_at'] ?? $detail['created_at'] ?? null,
+                'JuriNumber' => $juriNumber, // Simpan nomor juri untuk sorting
             ];
+        }
+
+        // Sort nilai berdasarkan nomor juri untuk setiap kategori
+        foreach ($nilaiMap as $catId => $scores) {
+            usort($nilaiMap[$catId], function ($a, $b) {
+                return ($a['JuriNumber'] ?? 0) <=> ($b['JuriNumber'] ?? 0);
+            });
         }
 
         $categoryDetails = [];
@@ -5330,8 +5457,10 @@ class Munaqosah extends BaseController
             $catId = $cat['id'];
             $scores = $nilaiMap[$catId] ?? [];
             $juriScores = [];
-            foreach ($scores as $index => $score) {
-                $score['label'] = 'Juri ' . ($index + 1);
+            foreach ($scores as $score) {
+                // Gunakan nomor juri dari username, bukan index array
+                $juriNumber = $score['JuriNumber'] ?? 1;
+                $score['label'] = 'Juri ' . $juriNumber;
                 $juriScores[] = $score;
             }
 

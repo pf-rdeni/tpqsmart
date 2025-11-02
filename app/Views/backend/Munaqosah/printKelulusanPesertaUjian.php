@@ -1,7 +1,7 @@
 <?php
-    $peserta = $peserta ?? [];
-    $categoryDetails = $categoryDetails ?? [];
-    $meta = $meta ?? [];
+$peserta = $peserta ?? [];
+$categoryDetails = $categoryDetails ?? [];
+$meta = $meta ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -16,7 +16,8 @@
             color: #333;
         }
 
-        h2, h3 {
+        h2,
+        h3 {
             margin: 0 0 8px;
         }
 
@@ -31,14 +32,27 @@
             margin-bottom: 16px;
         }
 
-        th, td {
+        th,
+        td {
             border: 1px solid #666;
             padding: 6px;
             vertical-align: top;
         }
 
         th {
-            background-color: #f0f0f0;
+            background-color: #4472C4;
+            color: #fff;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #D9E2F3;
+        }
+
+        .summary-row {
+            background-color: #D9E2F3 !important;
+            font-weight: bold;
         }
 
         .badge {
@@ -111,64 +125,66 @@
     <table>
         <thead>
             <tr>
-                <th rowspan="2">Kategori</th>
-                <th rowspan="2" style="text-align:center">Bobot (%)</th>
-                <th colspan="3" style="text-align:center">Penilaian Juri</th>
-                <th rowspan="2" style="text-align:center">Rata</th>
-                <th rowspan="2" style="text-align:center">Bobot Nilai</th>
-                <th rowspan="2">Materi</th>
-            </tr>
-            <tr>
-                <th style="text-align:center">Juri</th>
-                <th style="text-align:center">Nilai</th>
-                <th style="text-align:center">Catatan</th>
+                <th>KATEGORI</th>
+                <th>MATERI</th>
+                <th style="text-align:center">NILAI</th>
+                <th style="text-align:center">NILAI BOBOT</th>
             </tr>
         </thead>
         <tbody>
+            <?php
+            $totalNilai = 0;
+            $totalBobot = 0;
+            ?>
             <?php foreach ($categoryDetails as $detail): ?>
                 <?php
                 $category = $detail['category'] ?? [];
                 $juriScores = $detail['juri_scores'] ?? [];
                 $materis = $detail['materi'] ?? [];
-                $weight = $category['weight'] ?? 0;
-                $materiList = [];
-                foreach ($materis as $materi) {
-                    $materiName = esc($materi['NamaMateri'] ?? '-', 'html');
-                    if (!empty($materi['WebLinkAyat'])) {
-                        $materiName .= ' <small>(' . esc($materi['WebLinkAyat'], 'html') . ')</small>';
+
+                // Gunakan average yang sudah dihitung di controller (sudah memfilter berdasarkan maxJuri)
+                $average = (float)($detail['average'] ?? 0);
+
+                // Jika average masih 0, coba hitung dari juri_scores yang sudah difilter
+                if ($average == 0 && !empty($juriScores)) {
+                    $validScores = array_filter($juriScores, function ($score) {
+                        return isset($score['Nilai']) && (float)$score['Nilai'] > 0;
+                    });
+                    $validScores = array_values($validScores);
+
+                    if (count($validScores) === 1) {
+                        $average = (float)$validScores[0]['Nilai'];
+                    } elseif (count($validScores) > 1) {
+                        $sum = array_sum(array_column($validScores, 'Nilai'));
+                        $average = round($sum / count($validScores), 2);
                     }
-                    $materiList[] = $materiName;
                 }
-                if (empty($materiList)) {
-                    $materiList[] = '-';
+
+                $weighted = (float)($detail['weighted'] ?? 0);
+                $totalNilai += $average;
+                $totalBobot += $weighted;
+
+                // Ambil materi pertama, atau gabungkan jika ada beberapa
+                $materiName = '-';
+                if (!empty($materis)) {
+                    $materi = $materis[0];
+                    $materiName = esc($materi['NamaMateri'] ?? '-', 'html');
+                    // Hapus link ayat untuk kesederhanaan
                 }
-                $rowspan = max(count($juriScores), 1);
                 ?>
                 <tr>
-                    <td rowspan="<?= $rowspan ?>"><?= esc($category['name'] ?? '-') ?></td>
-                    <td rowspan="<?= $rowspan ?>" style="text-align:center"><?= number_format((float)$weight, 2) ?></td>
-                    <?php if (!empty($juriScores)): ?>
-                        <?php $first = array_shift($juriScores); ?>
-                        <td><?= esc($first['label'] ?? 'Juri') ?><?= !empty($first['UsernameJuri']) ? ' (' . esc($first['UsernameJuri']) . ')' : '' ?></td>
-                        <td style="text-align:center"><?= number_format((float)($first['Nilai'] ?? 0), 2) ?></td>
-                        <td><?= nl2br(esc($first['Catatan'] ?? '-')) ?></td>
-                    <?php else: ?>
-                        <td colspan="3" style="text-align:center">Belum ada penilaian</td>
-                    <?php endif; ?>
-                    <td rowspan="<?= $rowspan ?>" style="text-align:center"><?= number_format((float)($detail['average'] ?? 0), 2) ?></td>
-                    <td rowspan="<?= $rowspan ?>" style="text-align:center"><?= number_format((float)($detail['weighted'] ?? 0), 2) ?></td>
-                    <td rowspan="<?= $rowspan ?>"><?= implode('<br>', $materiList) ?></td>
+                    <td><?= esc($category['name'] ?? '-') ?></td>
+                    <td><?= $materiName ?></td>
+                    <td style="text-align:center"><?= number_format($average, 1) ?></td>
+                    <td style="text-align:center"><?= number_format($weighted, 1) ?></td>
                 </tr>
-                <?php if (!empty($juriScores)): ?>
-                    <?php foreach ($juriScores as $score): ?>
-                        <tr>
-                            <td><?= esc($score['label'] ?? 'Juri') ?><?= !empty($score['UsernameJuri']) ? ' (' . esc($score['UsernameJuri']) . ')' : '' ?></td>
-                            <td style="text-align:center"><?= number_format((float)($score['Nilai'] ?? 0), 2) ?></td>
-                            <td><?= nl2br(esc($score['Catatan'] ?? '-')) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
             <?php endforeach; ?>
+            <tr class="summary-row">
+                <td></td>
+                <td><strong>JUMLAH</strong></td>
+                <td style="text-align:center"><strong><?= number_format($totalNilai, 1) ?></strong></td>
+                <td style="text-align:center"><strong><?= number_format($totalBobot, 1) ?></strong></td>
+            </tr>
         </tbody>
     </table>
 
@@ -179,4 +195,3 @@
 </body>
 
 </html>
-

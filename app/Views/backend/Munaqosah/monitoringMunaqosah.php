@@ -163,14 +163,18 @@
             '<th class="dt-center">Thn</th>';
         headerCategories.forEach(k => {
             const label = (k && (k.name || k.NamaKategoriMateri)) ? (k.name || k.NamaKategoriMateri) : (k.id || k.IdKategoriMateri || '-');
-            th += `<th class="dt-center nowrap" colspan="2">${label}</th>`;
+            const maxJuri = (k && k.maxJuri) ? parseInt(k.maxJuri) : 2;
+            th += `<th class="dt-center nowrap" colspan="${maxJuri}">${label}</th>`;
         });
         th += '</tr>';
 
         let th2 = '<tr>' +
             '<th></th><th></th><th></th><th></th><th></th>';
-        headerCategories.forEach(() => {
-            th2 += '<th class="dt-center">Juri 1</th><th class="dt-center">Juri 2</th>';
+        headerCategories.forEach(k => {
+            const maxJuri = (k && k.maxJuri) ? parseInt(k.maxJuri) : 2;
+            for (let i = 1; i <= maxJuri; i++) {
+                th2 += `<th class="dt-center">Juri ${i}</th>`;
+            }
         });
         th2 += '</tr>';
 
@@ -186,11 +190,29 @@
             let allComplete = true; // setiap kategori sudah punya 2 nilai (dua juri)
             headerCategories.forEach(cat => {
                 const key = cat.id || cat.IdKategoriMateri || cat;
-                const sc = r.nilai[key] || [0, 0];
-                if ((sc[0] || 0) > 0 || (sc[1] || 0) > 0) {
-                    allZero = false;
+                const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
+                const sc = r.nilai[key] || [];
+
+                // Cek apakah ada minimal satu nilai > 0
+                let hasValue = false;
+                for (let i = 0; i < maxJuri; i++) {
+                    if ((sc[i] || 0) > 0) {
+                        hasValue = true;
+                        allZero = false;
+                        break;
+                    }
                 }
-                if (!((sc[0] || 0) > 0 && (sc[1] || 0) > 0)) {
+
+                // Cek apakah semua juri sudah memberi nilai
+                let allCompleteForCat = true;
+                for (let i = 0; i < maxJuri; i++) {
+                    if (!((sc[i] || 0) > 0)) {
+                        allCompleteForCat = false;
+                        break;
+                    }
+                }
+
+                if (!allCompleteForCat) {
                     allComplete = false;
                 }
             });
@@ -214,8 +236,14 @@
                 `<td class="dt-center">${r.IdTahunAjaran}</td>`;
             headerCategories.forEach(cat => {
                 const key = cat.id || cat.IdKategoriMateri || cat;
-                let sc = r.nilai[key] || [0, 0];
-                tds += `<td class="dt-center">${fmt(sc[0])}</td><td class="dt-center">${fmt(sc[1])}</td>`;
+                const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
+                let sc = r.nilai[key] || [];
+
+                // Generate kolom juri secara dinamis
+                for (let i = 0; i < maxJuri; i++) {
+                    const nilai = (sc[i] !== undefined && sc[i] !== null) ? sc[i] : 0;
+                    tds += `<td class="dt-center">${fmt(nilai)}</td>`;
+                }
             });
             tbody.push(`<tr>${tds}</tr>`);
         });
@@ -266,26 +294,28 @@
             buildRows(headerCategories, data.rows);
 
             // Tentukan kolom nilai (mulai index 5) untuk di-hide secara default
-            const nilaiColumnCount = headerCategories.length * 2;
-            const hiddenTargets = Array.from({
-                length: nilaiColumnCount
-            }, (_, i) => i + 5);
-            // Siapkan label ColVis: "KATEGORI-JURI 1/2"
+            // Hitung total kolom nilai berdasarkan maxJuri per kategori
+            let totalNilaiColumns = 0;
             const colMetaMap = {};
             let walker = 5;
+
             headerCategories.forEach(cat => {
+                const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
                 const label = (cat && (cat.name || cat.NamaKategoriMateri)) ? (cat.name || cat.NamaKategoriMateri) : (cat.id || cat.IdKategoriMateri || '-');
-                colMetaMap[walker] = {
-                    category: label,
-                    juri: 1
-                };
-                walker++;
-                colMetaMap[walker] = {
-                    category: label,
-                    juri: 2
-                };
-                walker++;
+
+                for (let i = 1; i <= maxJuri; i++) {
+                    colMetaMap[walker] = {
+                        category: label,
+                        juri: i
+                    };
+                    walker++;
+                    totalNilaiColumns++;
+                }
             });
+
+            const hiddenTargets = Array.from({
+                length: totalNilaiColumns
+            }, (_, i) => i + 5);
 
             // Inisialisasi ulang DataTables setelah table bersih
             dtInstance = $('#tblMonitoring').DataTable({
@@ -319,12 +349,23 @@
             const totalPeserta = data.rows.length;
             let sudah = 0;
             data.rows.forEach(r => {
-                // dianggap sudah dinilai jika semua kategori punya minimal 1 nilai > 0 (dua juri prinsipnya, tapi toleransi satu nilai)
+                // dianggap sudah dinilai jika semua kategori punya minimal 1 nilai > 0
                 let doneAll = true;
                 headerCategories.forEach(cat => {
                     const key = cat.id || cat.IdKategoriMateri || cat;
-                    const sc = r.nilai[key] || [0, 0];
-                    if ((sc[0] || 0) === 0 && (sc[1] || 0) === 0) {
+                    const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
+                    const sc = r.nilai[key] || [];
+
+                    // Cek apakah ada minimal satu nilai > 0 untuk kategori ini
+                    let hasValue = false;
+                    for (let i = 0; i < maxJuri; i++) {
+                        if ((sc[i] || 0) > 0) {
+                            hasValue = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasValue) {
                         doneAll = false;
                     }
                 });
