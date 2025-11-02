@@ -7,17 +7,7 @@
             <div class="col-12">
                 <div class="card card-outline card-primary">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-                        <h3 class="card-title mb-2 mb-md-0">Antrian Grup Materi Ujian</h3>
-                        <div class="btn-group mb-2 mb-md-0">
-                            <a href="<?= base_url('backend/munaqosah/monitoring-status-antrian') ?>?tahun=<?= $selected_tahun ?>&type=<?= $selected_type ?>&group=<?= $selected_group ?><?= !empty($selected_tpq) ? '&tpq=' . $selected_tpq : '' ?>"
-                                class="btn btn-info btn-sm" target="_blank">
-                                <i class="fas fa-desktop"></i> Monitoring
-                            </a>
-                            <a href="<?= base_url('backend/munaqosah/input-registrasi-antrian') ?>?tahun=<?= $selected_tahun ?>&type=<?= $selected_type ?>&group=<?= $selected_group ?><?= !empty($selected_tpq) ? '&tpq=' . $selected_tpq : '' ?>"
-                                class="btn btn-success btn-sm">
-                                <i class="fas fa-user-plus"></i> Input Registrasi
-                            </a>
-                        </div>
+                        <h3 class="card-title mb-2 mb-md-0">Input Registrasi Antrian</h3>
                     </div>
                     <div class="card-body">
                         <?php if (session()->getFlashdata('success')): ?>
@@ -38,189 +28,129 @@
                             </div>
                         <?php endif; ?>
 
-                        <?php if (session()->getFlashdata('errors')): ?>
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <ul class="mb-0">
-                                    <?php foreach (session()->getFlashdata('errors') as $error): ?>
-                                        <li><?= $error ?></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
+                        <!-- Hidden inputs untuk filter yang dibawa dari halaman sebelumnya -->
+                        <?php if (empty($session_id_tpq)): ?>
+                            <input type="hidden" id="tpq" value="<?= $selected_tpq ?>">
+                            <input type="hidden" id="type" value="<?= $selected_type ?>">
+                        <?php else: ?>
+                            <input type="hidden" id="tpq" value="<?= $session_id_tpq ?>">
+                            <input type="hidden" id="type" value="pra-munaqosah">
                         <?php endif; ?>
+                        <input type="hidden" id="group" value="<?= $selected_group ?>">
+                        <input type="hidden" id="tahun" value="<?= $selected_tahun ?>">
 
-                        <form method="get" action="<?= base_url('backend/munaqosah/antrian') ?>" class="mb-4">
-                            <div class="form-row align-items-end">
+                        <!-- Info Filter Aktif (untuk konfirmasi) -->
+                        <div class="alert alert-info mb-3 py-2">
+                            <small>
+                                <i class="fas fa-info-circle"></i> 
+                                <strong>Grup:</strong> <?php
+                                $selectedGroupName = '-';
+                                foreach ($groups as $group) {
+                                    if ($group['IdGrupMateriUjian'] === $selected_group) {
+                                        $selectedGroupName = $group['NamaMateriGrup'];
+                                        break;
+                                    }
+                                }
+                                echo $selectedGroupName;
+                                ?>
                                 <?php if (empty($session_id_tpq)): ?>
-                                    <!-- Jika admin super, tampilkan dropdown TPQ -->
-                                    <div class="form-group col-md-3">
-                                        <label for="tpq">TPQ</label>
-                                        <select name="tpq" id="tpq" class="form-control">
-                                            <option value="">Semua TPQ</option>
-                                            <?php foreach ($tpq_list as $tpq): ?>
-                                                <?php
-                                                $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
-                                                $tpqNama = is_array($tpq) ? ($tpq['NamaTpq'] ?? '') : ($tpq->NamaTpq ?? '');
-                                                ?>
-                                                <option value="<?= $tpqId ?>" <?= ($selected_tpq === $tpqId) ? 'selected' : '' ?>>
-                                                    <?= $tpqId ?> - <?= $tpqNama ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <label for="group">Grup Materi Ujian</label>
-                                        <select name="group" id="group" class="form-control">
-                                            <?php foreach ($groups as $group): ?>
-                                                <option value="<?= $group['IdGrupMateriUjian'] ?>"
-                                                    <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
-                                                    <?= $group['NamaMateriGrup'] ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                <?php else: ?>
-                                    <!-- Jika admin TPQ, sembunyikan dropdown TPQ dan TypeUjian -->
-                                    <input type="hidden" name="tpq" value="<?= $session_id_tpq ?>">
-                                    <input type="hidden" id="type" name="type" value="pra-munaqosah">
-                                    <div class="form-group col-md-9">
-                                        <label for="group">Grup Materi Ujian</label>
-                                        <select name="group" id="group" class="form-control">
-                                            <?php foreach ($groups as $group): ?>
-                                                <option value="<?= $group['IdGrupMateriUjian'] ?>"
-                                                    <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
-                                                    <?= $group['NamaMateriGrup'] ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
+                                    | <strong>Type:</strong> <?= $types[$selected_type] ?? $selected_type ?>
                                 <?php endif; ?>
-                                <?php if (empty($session_id_tpq)): ?>
-                                    <!-- Hanya tampilkan TypeUjian jika admin super, TahunAjaran disembunyikan untuk semua -->
-                                    <div class="form-group col-md-3">
-                                        <label for="type">Type Ujian</label>
-                                        <select name="type" id="type" class="form-control">
-                                            <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                <option value="<?= $typeValue ?>" <?= ($selected_type === $typeValue) ? 'selected' : '' ?>>
-                                                    <?= $typeLabel ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                <?php endif; ?>
-                                <!-- TahunAjaran disembunyikan untuk semua kondisi login -->
-                                <input type="hidden" id="tahun" name="tahun" value="<?= $selected_tahun ?>">
-                                <div class="form-group col-md-3 text-md-right">
-                                    <button type="submit" class="btn btn-primary btn-block">
-                                        <i class="fas fa-filter"></i> Terapkan
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+                            </small>
+                        </div>
+
                         <!-- Input Registrasi -->
-                        <div class="input-group my-4">
-                            <input type="text" id="queueSearch" class="form-control" placeholder="Ketik atau scan QR no peserta untuk registrasi">
-                            <div class="input-group-append">
-                                <button class="btn btn-warning" type="button" id="btnScanQR">
-                                    <i class="fas fa-qrcode"></i> Scan QR
-                                </button>
-                                <button class="btn btn-primary" type="button" id="btnQueueRegister">
-                                    <i class="fas fa-user-plus"></i> Registrasi
-                                </button>
-                                <button class="btn btn-danger" type="button" id="btnQueueReset">Reset</button>
+                        <div class="card card-warning mb-4">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-user-plus"></i> Registrasi Peserta</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="input-group">
+                                    <input type="text" id="queueSearch" class="form-control form-control-lg" placeholder="Ketikkan atau scan QR No Peserta untuk registrasi (3 digit)" inputmode="numeric" maxlength="3">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-warning" type="button" id="btnScanQR">
+                                            <i class="fas fa-qrcode"></i> Scan QR
+                                        </button>
+                                        <button class="btn btn-danger" type="button" id="btnQueueReset">Reset</button>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted mt-2">
+                                    <span class="text-info"><i class="fas fa-info-circle"></i> Auto registrasi akan aktif setelah 3 digit, atau tekan Enter</span>
+                                </small>
                             </div>
                         </div>
-                        <small class="form-text text-muted mb-3">
-                            <span class="text-info"><i class="fas fa-info-circle"></i> Auto registrasi akan aktif setelah 3 digit, atau tekan Enter</span>
-                        </small>
-                        <!-- Status Peserta -->
-                        <div class="row mb-3">
-                            <?php
-                            $total = $statistics['total'];
-                            $completed = $statistics['completed'];
-                            $queueing = $statistics['queueing'];
-                            $inProgress = $statistics['in_progress'] ?? 0;
-                            $progress = $statistics['progress'];
 
-                            $pctCompleted = $total > 0 ? round(($completed / max($total, 1)) * 100) : 0;
-                            $pctQueueing = $total > 0 ? round(($queueing / max($total, 1)) * 100) : 0;
-                            $pctInProgress = $total > 0 ? round(($inProgress / max($total, 1)) * 100) : 0;
-                            ?>
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-info">
-                                    <span class="info-box-icon"><i class="fas fa-users"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Total Peserta</span>
-                                        <span class="info-box-number"><?= $total ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: 100%"></div>
-                                        </div>
-                                        <span class="progress-description">Teregister</span>
-                                    </div>
+                        <!-- Status Peserta (Compact untuk Mobile) -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 p-2 bg-light rounded">
+                            <div class="d-flex align-items-center mr-2 mb-1 mb-sm-0">
+                                <span class="badge badge-info badge-lg mr-1">
+                                    <i class="fas fa-users"></i>
+                                </span>
+                                <div>
+                                    <small class="d-block text-muted">Total</small>
+                                    <strong class="text-info"><?= $statistics['total'] ?></strong>
                                 </div>
                             </div>
-
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-success">
-                                    <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Sudah diuji</span>
-                                        <span class="info-box-number"><?= $completed ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: <?= $pctCompleted ?>%"></div>
-                                        </div>
-                                        <span class="progress-description"><?= $pctCompleted ?>% selesai</span>
-                                    </div>
+                            <div class="d-flex align-items-center mr-2 mb-1 mb-sm-0">
+                                <span class="badge badge-warning badge-lg mr-1">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <div>
+                                    <small class="d-block text-muted">Antrian</small>
+                                    <strong class="text-warning"><?= $statistics['queueing'] ?></strong>
                                 </div>
                             </div>
-
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-warning">
-                                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Antrian ujian</span>
-                                        <span class="info-box-number"><?= $queueing ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: <?= $pctQueueing ?>%"></div>
-                                        </div>
-                                        <span class="progress-description"><?= $pctQueueing ?>% menunggu</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-primary">
-                                    <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Progress</span>
-                                        <span class="info-box-number"><?= $progress ?>%</span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: <?= $progress ?>%"></div>
-                                        </div>
-                                        <span class="progress-description">Tingkat penyelesaian</span>
-                                    </div>
+                            <div class="d-flex align-items-center mb-1 mb-sm-0">
+                                <span class="badge badge-success badge-lg mr-1">
+                                    <i class="fas fa-chart-line"></i>
+                                </span>
+                                <div>
+                                    <small class="d-block text-muted">Progress</small>
+                                    <strong class="text-success"><?= $statistics['progress'] ?>%</strong>
                                 </div>
                             </div>
                         </div>
+
                         <!-- Status Ruangan -->
-                        <h5 class="mt-4">Status Ruangan</h5>
+                        <h5 class="mt-3 mb-2">Status Ruangan</h5>
                         <?php if (!empty($rooms)): ?>
+                            <?php 
+                            $totalRooms = count($rooms);
+                            // Jika hanya 1 ruangan, gunakan full width, jika lebih gunakan grid responsif
+                            // Desktop: 1 ruangan = full, >1 = 3 kolom | Tablet: 2 kolom | Mobile: 1 kolom
+                            $colClass = $totalRooms === 1 
+                                ? 'col-12' 
+                                : 'col-12 col-sm-6 col-lg-4';
+                            ?>
                             <div class="row">
                                 <?php foreach ($rooms as $room): ?>
                                     <?php $isOccupied = $room['occupied']; ?>
-                                    <div class="col-lg-4 col-md-6 mb-3">
+                                    <div class="<?= $colClass ?> mb-3">
                                         <div class="p-3 rounded shadow-sm room-card <?= $isOccupied ? 'bg-danger text-white' : 'bg-success text-white' ?>">
-                                            <h5 class="mb-2">Ruangan <?= $room['RoomId'] ?></h5>
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?></h5>
+                                                <?php if ($isOccupied): ?>
+                                                    <span class="badge badge-light badge-pill">
+                                                        <i class="fas fa-user"></i> Digunakan
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-light badge-pill">
+                                                        <i class="fas fa-door-open"></i> Kosong
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
                                             <?php if ($isOccupied && $room['participant']): ?>
                                                 <div class="room-participant mb-3">
-                                                    <strong>No Peserta:</strong> <?= $room['participant']['NoPeserta'] ?><br>
-                                                    <span><?= $room['participant']['NamaSantri'] ?? '-' ?></span>
+                                                    <div class="mb-1">
+                                                        <strong>No Peserta:</strong> <?= $room['participant']['NoPeserta'] ?>
+                                                    </div>
+                                                    <div>
+                                                        <small><?= $room['participant']['NamaSantri'] ?? '-' ?></small>
+                                                    </div>
                                                 </div>
                                                 <div class="btn-group btn-group-sm w-100" role="group">
                                                     <button type="button"
-                                                        class="btn btn-light btn-finish-room"
+                                                        class="btn btn-light btn-finish-room text-dark"
                                                         data-id="<?= $room['participant']['id'] ?? '' ?>"
                                                         data-nopeserta="<?= $room['participant']['NoPeserta'] ?? '' ?>"
                                                         data-nama="<?= $room['participant']['NamaSantri'] ?? '-' ?>">
@@ -235,7 +165,9 @@
                                                     </button>
                                                 </div>
                                             <?php else: ?>
-                                                <p class="mb-0">Kosong</p>
+                                                <p class="mb-0">
+                                                    <i class="fas fa-door-open mr-1"></i>Ruangan tersedia
+                                                </p>
                                             <?php endif; ?>
                                         </div>
                                     </div>
@@ -246,18 +178,15 @@
                                 Belum ada ruangan terdaftar untuk grup materi dan tipe ujian ini. Tambahkan RoomId pada data juri.
                             </div>
                         <?php endif; ?>
+
                         <!-- Table Antrian -->
+                        <h5 class="mt-3 mb-2">Daftar Antrian</h5>
                         <div class="table-responsive">
                             <table id="tableAntrian" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
                                         <th>No</th>
-                                        <th>No Peserta</th>
-                                        <th>Nama Peserta</th>
-                                        <th>Room</th>
-                                        <th>Status</th>
-                                        <th>Type Ujian</th>
-                                        <th>Tanggal Dibuat</th>
+                                        <th>No Peserta - Nama Santri</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
@@ -279,52 +208,37 @@
                                         ?>
                                         <tr>
                                             <td><?= $no++ ?></td>
-                                            <td><?= $row['NoPeserta'] ?></td>
-                                            <td><?= $row['NamaSantri'] ?? '-' ?></td>
-                                            <td>
-                                                <?php if (!empty($row['RoomId'])): ?>
-                                                    <span class="badge badge-info"><?= $row['RoomId'] ?></span>
-                                                <?php else: ?>
-                                                    <span class="text-muted">-</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
-                                            </td>
-                                            <td><?= $typeResolved ?></td>
-                                            <td><?= !empty($row['created_at']) ? date('d/m/Y H:i', strtotime($row['created_at'])) : '-' ?></td>
+                                            <td><?= $row['NoPeserta'] ?> - <?= $row['NamaSantri'] ?? '-' ?></td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <?php if ($status === 0): ?>
-                                                        <button type="button" class="btn btn-sm btn-danger btn-open-room"
+                                                        <button type="button" class="btn btn-sm btn-warning btn-open-room"
                                                             data-id="<?= $row['id'] ?>"
                                                             data-nopeserta="<?= $row['NoPeserta'] ?>"
                                                             data-nama="<?= $row['NamaSantri'] ?? '-' ?>">
-                                                            In
+                                                            Masuk
                                                         </button>
                                                     <?php elseif ($status === 1): ?>
-                                                        <form action="<?= base_url('backend/munaqosah/update-status-antrian/' . $row['id']) ?>" method="post" class="mr-1 form-update-status" data-confirm="Tandai peserta selesai?">
-                                                            <?= csrf_field() ?>
-                                                            <input type="hidden" name="status" value="2">
-                                                            <button type="submit" class="btn btn-sm btn-success">Keluar</button>
-                                                        </form>
-                                                        <form action="<?= base_url('backend/munaqosah/update-status-antrian/' . $row['id']) ?>" method="post" class="form-update-status" data-confirm="Kembalikan peserta ke antrian menunggu?">
-                                                            <?= csrf_field() ?>
-                                                            <input type="hidden" name="status" value="0">
-                                                            <button type="submit" class="btn btn-sm btn-warning">Tunggu</button>
-                                                        </form>
+                                                        <button type="button" class="btn btn-sm btn-success btn-finish-row"
+                                                            data-id="<?= $row['id'] ?>"
+                                                            data-nopeserta="<?= $row['NoPeserta'] ?>"
+                                                            data-nama="<?= $row['NamaSantri'] ?? '-' ?>">
+                                                            Selesai
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-warning btn-exit-row"
+                                                            data-id="<?= $row['id'] ?>"
+                                                            data-nopeserta="<?= $row['NoPeserta'] ?>"
+                                                            data-nama="<?= $row['NamaSantri'] ?? '-' ?>">
+                                                            Keluar
+                                                        </button>
                                                     <?php elseif ($status === 2): ?>
-                                                        <form action="<?= base_url('backend/munaqosah/update-status-antrian/' . $row['id']) ?>" method="post" class="form-update-status" data-confirm="Kembalikan peserta ke antrian menunggu?">
-                                                            <?= csrf_field() ?>
-                                                            <input type="hidden" name="status" value="0">
-                                                            <button type="submit" class="btn btn-sm btn-secondary">Tunggu</button>
-                                                        </form>
+                                                        <button type="button" class="btn btn-sm btn-danger btn-wait-row"
+                                                            data-id="<?= $row['id'] ?>"
+                                                            data-nopeserta="<?= $row['NoPeserta'] ?>"
+                                                            data-nama="<?= $row['NamaSantri'] ?? '-' ?>">
+                                                            Selesai
+                                                        </button>
                                                     <?php endif; ?>
-                                                    <a href="<?= base_url('backend/munaqosah/delete-antrian/' . $row['id']) ?>"
-                                                        class="btn btn-sm btn-outline-danger btn-delete-antrian"
-                                                        data-confirm="Apakah Anda yakin ingin menghapus data ini?">
-                                                        Del
-                                                    </a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -338,43 +252,6 @@
         </div>
     </div>
 </section>
-
-<div class="modal fade" id="modalPilihRoom" tabindex="-1" role="dialog" aria-labelledby="modalPilihRoomLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form id="formPilihRoom" method="post">
-                <?= csrf_field() ?>
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalPilihRoomLabel">Pilih Ruangan</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="status" value="1">
-                    <div class="form-group">
-                        <label>No Peserta</label>
-                        <input type="text" id="modalNoPeserta" class="form-control" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Nama Peserta</label>
-                        <input type="text" id="modalNamaPeserta" class="form-control" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="modalRoomId">Pilih Room</label>
-                        <select name="room_id" id="modalRoomId" class="form-control" required>
-                        </select>
-                        <small class="form-text text-muted">Hanya menampilkan ruangan yang kosong.</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Masukkan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- QR Scanner Modal -->
 <div class="modal fade" id="modalQRScanner" tabindex="-1" role="dialog">
@@ -398,10 +275,39 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<style>
+    .badge-lg {
+        font-size: 1rem;
+        padding: 0.5rem 0.75rem;
+    }
+    .room-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .room-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    }
+    @media (max-width: 576px) {
+        .badge-lg {
+            font-size: 0.875rem;
+            padding: 0.4rem 0.6rem;
+        }
+        .bg-light {
+            font-size: 0.875rem;
+        }
+        .room-card {
+            margin-bottom: 0.75rem;
+        }
+        .room-card h5 {
+            font-size: 1rem;
+        }
+        .btn-group-sm {
+            font-size: 0.75rem;
+        }
+    }
+</style>
 <script>
-    const roomStatuses = <?= json_encode($rooms ?? []) ?>;
-
-    $(function() {
+        $(function() {
         const table = $('#tableAntrian').DataTable({
             responsive: true,
             lengthChange: false,
@@ -409,6 +315,104 @@
             order: [
                 [0, 'asc']
             ]
+        });
+
+        // Validasi input hanya angka 3 digit
+        let autoRegistrasiHandler = null;
+        
+        $('#queueSearch').on('input', function(e) {
+            let value = $(this).val();
+            // Hanya terima angka
+            value = value.replace(/[^0-9]/g, '');
+            // Batasi maksimal 3 digit
+            if (value.length > 3) {
+                value = value.substring(0, 3);
+            }
+            $(this).val(value);
+            
+            // Auto registrasi logic (mengganti handler lama)
+            const noPeserta = value.trim();
+            
+            // Clear any existing timeout and countdown
+            if (window.autoSearchTimeout) {
+                clearTimeout(window.autoSearchTimeout);
+            }
+            if (window.autoSearchCountdown) {
+                clearInterval(window.autoSearchCountdown);
+            }
+            
+            // Show auto search indicator - hanya jika sudah 3 digit angka
+            if (/^\d{3}$/.test(noPeserta)) {
+                // Add visual indicator
+                $(this).addClass('border-info');
+                
+                // Show countdown indicator in placeholder
+                const originalPlaceholder = $(this).attr('placeholder');
+                let countdown = 1;
+                
+                const updatePlaceholder = () => {
+                    $(this).attr('placeholder', `Auto registrasi dalam ${countdown} detik...`);
+                };
+                
+                updatePlaceholder();
+                
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        $(this).attr('placeholder', originalPlaceholder);
+                        $(this).removeClass('border-info');
+                        registerAntrian();
+                    } else {
+                        updatePlaceholder();
+                    }
+                }, 1000);
+                
+                // Store interval ID for cleanup
+                window.autoSearchCountdown = countdownInterval;
+                
+                const $input = $(this);
+                window.autoSearchTimeout = setTimeout(function() {
+                    clearInterval(window.autoSearchCountdown);
+                    $input.attr('placeholder', originalPlaceholder);
+                    $input.removeClass('border-info');
+                    registerAntrian();
+                }, 1000); // 1 second delay after user stops typing
+            } else {
+                // Remove visual indicator if less than 3 digits
+                $(this).removeClass('border-info');
+                $(this).attr('placeholder', 'Ketikkan atau scan QR No Peserta untuk registrasi (3 digit)');
+            }
+        });
+
+        // Prevent paste huruf
+        $('#queueSearch').on('paste', function(e) {
+            const paste = (e.originalEvent || e).clipboardData.getData('text');
+            const numbersOnly = paste.replace(/[^0-9]/g, '').substring(0, 3);
+            e.preventDefault();
+            $(this).val(numbersOnly);
+            // Trigger input event untuk auto registrasi
+            $(this).trigger('input');
+        });
+
+        // Validasi keypress - hanya terima angka
+        $('#queueSearch').on('keypress', function(e) {
+            // Hanya terima angka (0-9), backspace (8), delete (46), arrow keys
+            const charCode = e.which || e.keyCode;
+            // Allow: backspace (8), delete (46), arrow keys (37-40), tab (9)
+            if ([8, 9, 37, 38, 39, 40, 46].includes(charCode)) {
+                return true;
+            }
+            // Hanya terima angka (48-57)
+            if (charCode < 48 || charCode > 57) {
+                e.preventDefault();
+                return false;
+            }
+            // Batasi 3 digit (cek panjang saat ini)
+            if ($(this).val().length >= 3) {
+                e.preventDefault();
+                return false;
+            }
         });
 
         // Fungsi registrasi antrian
@@ -424,9 +428,9 @@
             $('#queueSearch').attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
 
             const noPeserta = $('#queueSearch').val().trim();
-            const idGrupMateri = $('#group').val();
-            const typeUjian = $('#type').val();
-            const tahunAjaran = $('#tahun').val();
+            const idGrupMateri = $('#group').val() || $('input#group').val();
+            const typeUjian = $('#type').val() || $('input#type').val();
+            const tahunAjaran = $('#tahun').val() || $('input#tahun').val();
 
             // Validasi input
             if (!noPeserta) {
@@ -435,6 +439,17 @@
                     title: 'Peringatan',
                     text: 'Masukkan nomor peserta terlebih dahulu'
                 });
+                return;
+            }
+
+            // Validasi harus 3 digit angka
+            if (!/^\d{3}$/.test(noPeserta)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan',
+                    text: 'Nomor peserta harus 3 digit angka'
+                });
+                $('#queueSearch').focus();
                 return;
             }
 
@@ -616,65 +631,9 @@
         }
 
         function onScanFailure(error) {
-            // Handle scan failure silently (don't show error for every scan attempt)
-            // console.log('QR Scan failed:', error);
+            // Handle scan failure silently
         }
 
-        // Auto search when typing 3+ digits
-        $('#queueSearch').on('input', function() {
-            const noPeserta = $(this).val().trim();
-
-            // Clear any existing timeout and countdown
-            if (window.autoSearchTimeout) {
-                clearTimeout(window.autoSearchTimeout);
-            }
-            if (window.autoSearchCountdown) {
-                clearInterval(window.autoSearchCountdown);
-            }
-
-            // Show auto search indicator
-            if (noPeserta.length >= 3) {
-                // Add visual indicator
-                $(this).addClass('border-info');
-
-                // Show countdown indicator in placeholder
-                const originalPlaceholder = $(this).attr('placeholder');
-                let countdown = 1;
-
-                const updatePlaceholder = () => {
-                    $(this).attr('placeholder', `Auto registrasi dalam ${countdown} detik...`);
-                };
-
-                updatePlaceholder();
-
-                const countdownInterval = setInterval(() => {
-                    countdown--;
-                    if (countdown <= 0) {
-                        clearInterval(countdownInterval);
-                        $(this).attr('placeholder', originalPlaceholder);
-                        $(this).removeClass('border-info');
-                        registerAntrian();
-                    } else {
-                        updatePlaceholder();
-                    }
-                }, 1000);
-
-                // Store interval ID for cleanup
-                window.autoSearchCountdown = countdownInterval;
-
-                const $input = $(this);
-                window.autoSearchTimeout = setTimeout(function() {
-                    clearInterval(window.autoSearchCountdown);
-                    $input.attr('placeholder', originalPlaceholder);
-                    $input.removeClass('border-info');
-                    registerAntrian();
-                }, 1000); // 1 second delay after user stops typing
-            } else {
-                // Remove visual indicator if less than 3 digits
-                $(this).removeClass('border-info');
-                $(this).attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
-            }
-        });
 
         // Clear auto search timeout and indicators when user focuses input
         $('#queueSearch').on('focus', function() {
@@ -700,30 +659,6 @@
             $(this).attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
         });
 
-        // Event handler untuk form update status dengan SweetAlert2
-        $('.form-update-status').on('submit', function(e) {
-            e.preventDefault();
-            const form = $(this);
-            const confirmMessage = form.data('confirm') || 'Apakah Anda yakin?';
-
-            Swal.fire({
-                title: 'Konfirmasi',
-                text: confirmMessage,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Submit form jika user confirm
-                    form.off('submit'); // Remove event handler to prevent loop
-                    form[0].submit(); // Submit form
-                }
-            });
-        });
-
         // Event handler untuk delete antrian dengan SweetAlert2
         $('.btn-delete-antrian').on('click', function(e) {
             e.preventDefault();
@@ -742,7 +677,6 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Redirect ke URL delete jika user confirm
                     window.location.href = url;
                 }
             });
@@ -783,7 +717,6 @@
                             timer: 1500,
                             timerProgressBar: true
                         }).then(() => {
-                            // Reload halaman untuk memperbarui data
                             location.reload();
                         });
                     } else {
@@ -835,7 +768,6 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Tampilkan loading
                     Swal.fire({
                         title: 'Memproses...',
                         text: 'Sedang mengupdate status',
@@ -845,7 +777,6 @@
                         }
                     });
 
-                    // Kirim request AJAX
                     $.ajax({
                         url: `<?= base_url('backend/munaqosah/update-status-antrian-ajax') ?>/${id}`,
                         type: 'POST',
@@ -918,7 +849,6 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Tampilkan loading
                     Swal.fire({
                         title: 'Memproses...',
                         text: 'Sedang mengupdate status',
@@ -928,7 +858,222 @@
                         }
                     });
 
-                    // Kirim request AJAX
+                    $.ajax({
+                        url: `<?= base_url('backend/munaqosah/update-status-antrian-ajax') ?>/${id}`,
+                        type: 'POST',
+                        data: {
+                            status: 0,
+                            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            Swal.close();
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message || 'Peserta dikembalikan ke antrian menunggu',
+                                    showConfirmButton: false,
+                                    timer: 1500,
+                                    timerProgressBar: true
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupdate status'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.close();
+                            let errorMessage = 'Terjadi kesalahan saat mengupdate status';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: errorMessage
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        // Event handler untuk button Selesai dari tabel
+        $('.btn-finish-row').on('click', function() {
+            const id = $(this).data('id');
+            const noPeserta = $(this).data('nopeserta');
+            const nama = $(this).data('nama');
+
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: `Tandai peserta ${noPeserta} - ${nama} selesai ujian?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Selesai',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Sedang mengupdate status',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: `<?= base_url('backend/munaqosah/update-status-antrian-ajax') ?>/${id}`,
+                        type: 'POST',
+                        data: {
+                            status: 2,
+                            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            Swal.close();
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message || 'Peserta ditandai selesai',
+                                    showConfirmButton: false,
+                                    timer: 1500,
+                                    timerProgressBar: true
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupdate status'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.close();
+                            let errorMessage = 'Terjadi kesalahan saat mengupdate status';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: errorMessage
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        // Event handler untuk button Keluar dari tabel
+        $('.btn-exit-row').on('click', function() {
+            const id = $(this).data('id');
+            const noPeserta = $(this).data('nopeserta');
+            const nama = $(this).data('nama');
+
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: `Keluarkan peserta ${noPeserta} - ${nama} dari ruangan?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ffc107',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Keluarkan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Sedang mengupdate status',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: `<?= base_url('backend/munaqosah/update-status-antrian-ajax') ?>/${id}`,
+                        type: 'POST',
+                        data: {
+                            status: 0,
+                            <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            Swal.close();
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message || 'Peserta dikembalikan ke antrian menunggu',
+                                    showConfirmButton: false,
+                                    timer: 1500,
+                                    timerProgressBar: true
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupdate status'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.close();
+                            let errorMessage = 'Terjadi kesalahan saat mengupdate status';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: errorMessage
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        // Event handler untuk button Tunggu dari tabel
+        $('.btn-wait-row').on('click', function() {
+            const id = $(this).data('id');
+            const noPeserta = $(this).data('nopeserta');
+            const nama = $(this).data('nama');
+
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: `Kembalikan peserta ${noPeserta} - ${nama} ke antrian menunggu?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#6c757d',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Kembalikan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Sedang mengupdate status',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
                     $.ajax({
                         url: `<?= base_url('backend/munaqosah/update-status-antrian-ajax') ?>/${id}`,
                         type: 'POST',
@@ -977,9 +1122,7 @@
 
         // Auto focus ke input registrasi setelah reload (jika ada flag)
         if (sessionStorage.getItem('autoFocusQueueSearch') === 'true') {
-            // Hapus flag
             sessionStorage.removeItem('autoFocusQueueSearch');
-            // Focus ke input setelah halaman selesai load
             setTimeout(function() {
                 $('#queueSearch').focus();
             }, 500);
@@ -987,3 +1130,4 @@
     });
 </script>
 <?= $this->endSection() ?>
+

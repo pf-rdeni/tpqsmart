@@ -889,6 +889,39 @@ class Munaqosah extends BaseController
         $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
         $selectedGroup = $this->request->getGet('group');
 
+        // Ambil IdTpq dari session (untuk admin TPQ)
+        $sessionIdTpq = session()->get('IdTpq');
+        $selectedTpq = $this->request->getGet('tpq');
+
+        // Jika user login sebagai admin TPQ
+        if (!empty($sessionIdTpq)) {
+            // Set IdTpq dari session jika belum ada filter
+            if (empty($selectedTpq)) {
+                $selectedTpq = $sessionIdTpq;
+            }
+            // Set TypeUjian ke 'pra-munaqosah' secara otomatis
+            $selectedType = 'pra-munaqosah';
+            // Set TahunAjaran ke tahun saat ini
+            $selectedTahun = $currentTahunAjaran;
+        } else {
+            // Admin super: ambil dari parameter GET
+            $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
+            $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        }
+
+        // Get list TPQ untuk dropdown (jika admin super)
+        $tpqList = [];
+        if (empty($sessionIdTpq)) {
+            // Jika admin super (tidak ada IdTpq di session), tampilkan semua TPQ
+            $tpqList = $this->tpqModel->GetData();
+        } else {
+            // Jika admin TPQ, hanya tampilkan TPQ yang sesuai
+            $tpqList = $this->tpqModel->GetData($sessionIdTpq);
+            if (!empty($tpqList) && !is_array($tpqList)) {
+                $tpqList = [$tpqList];
+            }
+        }
+
         $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
 
         if (!$selectedGroup && !empty($grupList)) {
@@ -906,6 +939,11 @@ class Munaqosah extends BaseController
             'TypeUjian' => $selectedType,
         ];
 
+        // Tambahkan filter IdTpq jika ada
+        if (!empty($selectedTpq)) {
+            $filters['IdTpq'] = $selectedTpq;
+        }
+
         $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
         $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
 
@@ -920,7 +958,7 @@ class Munaqosah extends BaseController
         $availableRooms = [];
 
         if ($selectedGroup) {
-            $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType);
+            $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
             $roomStatuses = [];
 
             foreach ($roomRows as $roomRow) {
@@ -965,6 +1003,9 @@ class Munaqosah extends BaseController
             'types' => $typeOptions,
             'selected_type' => $selectedType,
             'selected_tahun' => $selectedTahun,
+            'selected_tpq' => $selectedTpq ?? '',
+            'tpq_list' => $tpqList,
+            'session_id_tpq' => $sessionIdTpq ?? '',
             'current_tahun' => $currentTahunAjaran,
             'rooms' => $rooms,
             'available_rooms' => $availableRooms,
@@ -981,43 +1022,50 @@ class Munaqosah extends BaseController
         return view('backend/Munaqosah/listAntrian', $data);
     }
 
-    public function inputAntrian()
+    public function registerAntrianAjax()
     {
-        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
-        $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
-        $typeOptions = [
-            'pra-munaqosah' => 'Pra Munaqosah',
-            'munaqosah' => 'Munaqosah'
-        ];
-
-        $data = [
-            'page_title' => 'Input Antrian Munaqosah',
-            'groups' => $grupList,
-            'types' => $typeOptions,
-            'current_tahun' => $currentTahunAjaran,
-        ];
-        return view('backend/Munaqosah/inputAntrian', $data);
-    }
-
-    public function saveAntrian()
-    {
-        $rules = [
-            'NoPeserta' => 'required',
-            'IdTahunAjaran' => 'required',
-            'IdGrupMateriUjian' => 'required',
-            'TypeUjian' => 'required|in_list[pra-munaqosah,munaqosah]'
-        ];
-
-        if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
         }
 
         $noPeserta = trim($this->request->getPost('NoPeserta'));
         $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
         $idGrupMateri = $this->request->getPost('IdGrupMateriUjian');
         $typeUjian = $this->request->getPost('TypeUjian');
-        $keterangan = $this->request->getPost('Keterangan');
 
+        // Validasi input
+        if (empty($noPeserta)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Nomor peserta tidak boleh kosong'
+            ]);
+        }
+
+        if (empty($idTahunAjaran)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tahun ajaran tidak boleh kosong'
+            ]);
+        }
+
+        if (empty($idGrupMateri)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Grup materi ujian tidak boleh kosong'
+            ]);
+        }
+
+        if (empty($typeUjian)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Type ujian tidak boleh kosong'
+            ]);
+        }
+
+        // Cek apakah peserta terdaftar untuk grup materi dan tipe ujian yang dipilih
         $registrasi = $this->munaqosahRegistrasiUjiModel
             ->where('NoPeserta', $noPeserta)
             ->where('IdTahunAjaran', $idTahunAjaran)
@@ -1026,39 +1074,211 @@ class Munaqosah extends BaseController
             ->first();
 
         if (!$registrasi) {
-            return redirect()->back()->withInput()->with('error', 'Peserta tidak terdaftar untuk grup materi dan tipe ujian yang dipilih.');
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Peserta tidak terdaftar untuk grup materi dan tipe ujian yang dipilih.'
+            ]);
         }
 
+        // Ambil IdTpq dan IdSantri dari registrasi
+        $idTpq = $registrasi['IdTpq'] ?? null;
+        $idSantri = $registrasi['IdSantri'] ?? null;
+        $kategoriId = $registrasi['IdKategoriMateri'] ?? null;
+
+        // Cek apakah peserta sudah ada di antrian aktif dengan menggunakan IdTpq juga
         $existing = $this->antrianMunaqosahModel
             ->where('NoPeserta', $noPeserta)
             ->where('IdTahunAjaran', $idTahunAjaran)
             ->where('IdGrupMateriUjian', $idGrupMateri)
             ->where('TypeUjian', $typeUjian)
-            ->whereIn('Status', [0, 1])
-            ->first();
+            ->whereIn('Status', [0, 1]);
 
-        if ($existing) {
-            return redirect()->back()->withInput()->with('error', 'Peserta sudah berada di antrian aktif untuk grup dan tipe ujian tersebut.');
+        // Tambahkan filter IdTpq jika tersedia untuk check yang lebih akurat
+        if (!empty($idTpq)) {
+            $existing->where('IdTpq', $idTpq);
         }
 
-        $kategoriId = $registrasi['IdKategoriMateri'] ?? $this->request->getPost('IdKategoriMateri');
+        $existing = $existing->first();
 
+        if ($existing) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Peserta sudah berada di antrian aktif untuk grup dan tipe ujian tersebut.'
+            ]);
+        }
+
+        // Simpan data antrian
         $data = [
             'NoPeserta' => $noPeserta,
             'IdTahunAjaran' => $idTahunAjaran,
             'IdGrupMateriUjian' => $idGrupMateri,
             'TypeUjian' => $typeUjian,
             'IdKategoriMateri' => $kategoriId,
+            'IdTpq' => $idTpq,
+            'IdSantri' => $idSantri,
             'Status' => 0,
             'RoomId' => null,
-            'Keterangan' => $keterangan
+            'Keterangan' => null
         ];
 
         if ($this->antrianMunaqosahModel->save($data)) {
-            return redirect()->to('/backend/munaqosah/antrian')->with('success', 'Data antrian berhasil disimpan');
+            // Ambil data peserta untuk response
+            $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+            $builder->select('r.NoPeserta, s.NamaSantri');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
+            $builder->where('r.NoPeserta', $noPeserta);
+            $pesertaData = $builder->get()->getRowArray();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Peserta berhasil diregistrasi ke antrian',
+                'data' => [
+                    'NoPeserta' => $noPeserta,
+                    'NamaSantri' => $pesertaData['NamaSantri'] ?? '-'
+                ]
+            ]);
         }
 
-        return redirect()->back()->withInput()->with('errors', $this->antrianMunaqosahModel->errors());
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Gagal menyimpan data antrian: ' . implode(', ', $this->antrianMunaqosahModel->errors())
+        ]);
+    }
+
+    public function autoAssignRoomAjax($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $antrian = $this->antrianMunaqosahModel->find($id);
+
+        if (!$antrian) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data antrian tidak ditemukan'
+            ]);
+        }
+
+        // Ambil filter dari antrian
+        $idGrupMateri = $antrian['IdGrupMateriUjian'] ?? null;
+        $typeUjian = $antrian['TypeUjian'] ?? null;
+        $idTpq = $antrian['IdTpq'] ?? null;
+
+        // Cari ruangan yang tersedia berdasarkan filter
+        $availableRooms = $this->munaqosahJuriModel->getRoomsByGrupAndType($idGrupMateri, $typeUjian, $idTpq);
+
+        if (empty($availableRooms)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tidak ada ruangan tersedia untuk grup materi dan tipe ujian ini'
+            ]);
+        }
+
+        // Cari ruangan yang benar-benar kosong (belum digunakan)
+        $occupiedRooms = [];
+        $occupiedQuery = $this->antrianMunaqosahModel
+            ->where('Status', 1)
+            ->where('RoomId IS NOT NULL')
+            ->where('RoomId !=', '');
+
+        if (!empty($idGrupMateri)) {
+            $occupiedQuery->where('IdGrupMateriUjian', $idGrupMateri);
+        }
+
+        if (!empty($typeUjian)) {
+            $occupiedQuery->where('TypeUjian', $typeUjian);
+        }
+
+        if (!empty($idTpq)) {
+            $occupiedQuery->where('IdTpq', $idTpq);
+        }
+
+        $occupiedData = $occupiedQuery->findAll();
+        foreach ($occupiedData as $row) {
+            if (!empty($row['RoomId'])) {
+                $occupiedRooms[] = $row['RoomId'];
+            }
+        }
+
+        // Cari ruangan pertama yang tidak occupied
+        $selectedRoom = null;
+        foreach ($availableRooms as $room) {
+            $roomId = $room['RoomId'];
+            if (!in_array($roomId, $occupiedRooms)) {
+                $selectedRoom = $roomId;
+                break;
+            }
+        }
+
+        if (empty($selectedRoom)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Semua ruangan sedang digunakan saat ini'
+            ]);
+        }
+
+        // Assign ruangan ke antrian
+        if ($this->antrianMunaqosahModel->updateStatus($id, 1, $selectedRoom)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => "Peserta masuk ke ruangan {$selectedRoom}",
+                'data' => [
+                    'roomId' => $selectedRoom
+                ]
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Gagal mengassign ruangan'
+        ]);
+    }
+
+    public function updateStatusAntrianAjax($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $status = (int) $this->request->getPost('status');
+
+        $antrian = $this->antrianMunaqosahModel->find($id);
+
+        if (!$antrian) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data antrian tidak ditemukan'
+            ]);
+        }
+
+        // Update status tanpa room (untuk selesai atau keluar)
+        if (in_array($status, [0, 2], true)) {
+            $message = $status === 0 ? 'Peserta dikembalikan ke status menunggu.' : 'Peserta selesai mengikuti ujian.';
+
+            if ($this->antrianMunaqosahModel->updateStatus($id, $status, null)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => $message
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate status antrian'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Status tidak valid'
+        ]);
     }
 
     public function updateStatusAntrian($id)
@@ -1089,6 +1309,11 @@ class Munaqosah extends BaseController
 
             if (!empty($antrian['TypeUjian'])) {
                 $occupiedQuery->where('TypeUjian', $antrian['TypeUjian']);
+            }
+
+            // Gunakan IdTpq untuk check RoomId yang lebih akurat
+            if (!empty($antrian['IdTpq'])) {
+                $occupiedQuery->where('IdTpq', $antrian['IdTpq']);
             }
 
             $occupied = $occupiedQuery->first();
@@ -1124,6 +1349,278 @@ class Munaqosah extends BaseController
         } else {
             return redirect()->to('/backend/munaqosah/antrian')->with('error', 'Gagal menghapus data antrian');
         }
+    }
+
+    // ==================== MONITORING STATUS ANTRIAN ====================
+
+    public function monitoringStatusAntrian()
+    {
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
+        $selectedGroup = $this->request->getGet('group');
+        $refreshInterval = (int)($this->request->getGet('interval') ?? 5); // Default 5 detik
+
+        // Ambil IdTpq dari session (untuk admin TPQ)
+        $sessionIdTpq = session()->get('IdTpq');
+        $selectedTpq = $this->request->getGet('tpq');
+
+        // Jika user login sebagai admin TPQ
+        if (!empty($sessionIdTpq)) {
+            if (empty($selectedTpq)) {
+                $selectedTpq = $sessionIdTpq;
+            }
+            $selectedType = 'pra-munaqosah';
+            $selectedTahun = $currentTahunAjaran;
+        } else {
+            $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
+            $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        }
+
+        // Get list TPQ untuk dropdown (jika admin super)
+        $tpqList = [];
+        if (empty($sessionIdTpq)) {
+            $tpqList = $this->tpqModel->GetData();
+        } else {
+            $tpqList = $this->tpqModel->GetData($sessionIdTpq);
+            if (!empty($tpqList) && !is_array($tpqList)) {
+                $tpqList = [$tpqList];
+            }
+        }
+
+        $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+
+        if (!$selectedGroup && !empty($grupList)) {
+            $selectedGroup = $grupList[0]['IdGrupMateriUjian'];
+        }
+
+        $typeOptions = [
+            'pra-munaqosah' => 'Pra Munaqosah',
+            'munaqosah' => 'Munaqosah'
+        ];
+
+        $filters = [
+            'IdTahunAjaran' => $selectedTahun,
+            'IdGrupMateriUjian' => $selectedGroup,
+            'TypeUjian' => $selectedType,
+        ];
+
+        if (!empty($selectedTpq)) {
+            $filters['IdTpq'] = $selectedTpq;
+        }
+
+        $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+        $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
+
+        $totalPeserta = array_sum($statusCounts);
+        $totalSelesai = $statusCounts[2] ?? 0;
+        $totalProses = $statusCounts[1] ?? 0;
+        $totalMenunggu = $statusCounts[0] ?? 0;
+        $totalAntrianAktif = max($totalPeserta - $totalSelesai, 0);
+        $progressPersentase = $totalPeserta > 0 ? round(($totalSelesai / $totalPeserta) * 100) : 0;
+
+        $rooms = [];
+        $availableRooms = [];
+
+        if ($selectedGroup) {
+            $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
+            $roomStatuses = [];
+
+            foreach ($roomRows as $roomRow) {
+                $roomId = $roomRow['RoomId'];
+                $roomStatuses[$roomId] = [
+                    'RoomId' => $roomId,
+                    'occupied' => false,
+                    'participant' => null,
+                ];
+            }
+
+            foreach ($queue as $row) {
+                if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
+                    $roomId = $row['RoomId'];
+                    if (!isset($roomStatuses[$roomId])) {
+                        $roomStatuses[$roomId] = [
+                            'RoomId' => $roomId,
+                            'occupied' => false,
+                            'participant' => null,
+                        ];
+                    }
+
+                    $roomStatuses[$roomId]['occupied'] = true;
+                    $roomStatuses[$roomId]['participant'] = $row;
+                }
+            }
+
+            $rooms = array_values($roomStatuses);
+
+            foreach ($roomStatuses as $roomStatus) {
+                if (!$roomStatus['occupied']) {
+                    $availableRooms[] = $roomStatus['RoomId'];
+                }
+            }
+        }
+
+        $data = [
+            'page_title' => 'Monitoring Status Antrian',
+            'queue' => $queue,
+            'groups' => $grupList,
+            'selected_group' => $selectedGroup,
+            'types' => $typeOptions,
+            'selected_type' => $selectedType,
+            'selected_tahun' => $selectedTahun,
+            'selected_tpq' => $selectedTpq ?? '',
+            'tpq_list' => $tpqList,
+            'session_id_tpq' => $sessionIdTpq ?? '',
+            'current_tahun' => $currentTahunAjaran,
+            'rooms' => $rooms,
+            'available_rooms' => $availableRooms,
+            'refresh_interval' => $refreshInterval,
+            'statistics' => [
+                'total' => $totalPeserta,
+                'completed' => $totalSelesai,
+                'waiting' => $totalMenunggu,
+                'in_progress' => $totalProses,
+                'queueing' => $totalAntrianAktif,
+                'progress' => $progressPersentase,
+            ],
+        ];
+
+        return view('backend/Munaqosah/monitoringStatusAntrian', $data);
+    }
+
+    // ==================== INPUT REGISTRASI ANTRIAN ====================
+
+    public function inputRegistrasiAntrian()
+    {
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
+        $selectedGroup = $this->request->getGet('group');
+
+        // Ambil IdTpq dari session (untuk admin TPQ)
+        $sessionIdTpq = session()->get('IdTpq');
+        $selectedTpq = $this->request->getGet('tpq');
+
+        // Jika user login sebagai admin TPQ
+        if (!empty($sessionIdTpq)) {
+            if (empty($selectedTpq)) {
+                $selectedTpq = $sessionIdTpq;
+            }
+            $selectedType = 'pra-munaqosah';
+            $selectedTahun = $currentTahunAjaran;
+        } else {
+            $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
+            $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        }
+
+        // Get list TPQ untuk dropdown (jika admin super)
+        $tpqList = [];
+        if (empty($sessionIdTpq)) {
+            $tpqList = $this->tpqModel->GetData();
+        } else {
+            $tpqList = $this->tpqModel->GetData($sessionIdTpq);
+            if (!empty($tpqList) && !is_array($tpqList)) {
+                $tpqList = [$tpqList];
+            }
+        }
+
+        $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+
+        if (!$selectedGroup && !empty($grupList)) {
+            $selectedGroup = $grupList[0]['IdGrupMateriUjian'];
+        }
+
+        $typeOptions = [
+            'pra-munaqosah' => 'Pra Munaqosah',
+            'munaqosah' => 'Munaqosah'
+        ];
+
+        $filters = [
+            'IdTahunAjaran' => $selectedTahun,
+            'IdGrupMateriUjian' => $selectedGroup,
+            'TypeUjian' => $selectedType,
+        ];
+
+        if (!empty($selectedTpq)) {
+            $filters['IdTpq'] = $selectedTpq;
+        }
+
+        $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+        $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
+
+        $totalPeserta = array_sum($statusCounts);
+        $totalSelesai = $statusCounts[2] ?? 0;
+        $totalProses = $statusCounts[1] ?? 0;
+        $totalMenunggu = $statusCounts[0] ?? 0;
+        $totalAntrianAktif = max($totalPeserta - $totalSelesai, 0);
+        $progressPersentase = $totalPeserta > 0 ? round(($totalSelesai / $totalPeserta) * 100) : 0;
+
+        $rooms = [];
+        $availableRooms = [];
+
+        if ($selectedGroup) {
+            $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
+            $roomStatuses = [];
+
+            foreach ($roomRows as $roomRow) {
+                $roomId = $roomRow['RoomId'];
+                $roomStatuses[$roomId] = [
+                    'RoomId' => $roomId,
+                    'occupied' => false,
+                    'participant' => null,
+                ];
+            }
+
+            foreach ($queue as $row) {
+                if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
+                    $roomId = $row['RoomId'];
+                    if (!isset($roomStatuses[$roomId])) {
+                        $roomStatuses[$roomId] = [
+                            'RoomId' => $roomId,
+                            'occupied' => false,
+                            'participant' => null,
+                        ];
+                    }
+
+                    $roomStatuses[$roomId]['occupied'] = true;
+                    $roomStatuses[$roomId]['participant'] = $row;
+                }
+            }
+
+            $rooms = array_values($roomStatuses);
+
+            foreach ($roomStatuses as $roomStatus) {
+                if (!$roomStatus['occupied']) {
+                    $availableRooms[] = $roomStatus['RoomId'];
+                }
+            }
+        }
+
+        $data = [
+            'page_title' => 'Input Registrasi Antrian',
+            'queue' => $queue,
+            'groups' => $grupList,
+            'selected_group' => $selectedGroup,
+            'types' => $typeOptions,
+            'selected_type' => $selectedType,
+            'selected_tahun' => $selectedTahun,
+            'selected_tpq' => $selectedTpq ?? '',
+            'tpq_list' => $tpqList,
+            'session_id_tpq' => $sessionIdTpq ?? '',
+            'current_tahun' => $currentTahunAjaran,
+            'rooms' => $rooms,
+            'available_rooms' => $availableRooms,
+            'statistics' => [
+                'total' => $totalPeserta,
+                'completed' => $totalSelesai,
+                'waiting' => $totalMenunggu,
+                'in_progress' => $totalProses,
+                'queueing' => $totalAntrianAktif,
+                'progress' => $progressPersentase,
+            ],
+        ];
+
+        return view('backend/Munaqosah/inputRegistrasiAntrian', $data);
     }
 
     // ==================== BOBOT NILAI ====================

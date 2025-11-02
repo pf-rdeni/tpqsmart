@@ -133,8 +133,11 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/delete-nilai/(:num)', 'Munaqosah::deleteNilai/$1');
 
     $routes->get('munaqosah/antrian', 'Munaqosah::antrian');
-    $routes->get('munaqosah/input-antrian', 'Munaqosah::inputAntrian');
-    $routes->post('munaqosah/save-antrian', 'Munaqosah::saveAntrian');
+    $routes->get('munaqosah/monitoring-status-antrian', 'Munaqosah::monitoringStatusAntrian');
+    $routes->get('munaqosah/input-registrasi-antrian', 'Munaqosah::inputRegistrasiAntrian');
+    $routes->post('munaqosah/register-antrian-ajax', 'Munaqosah::registerAntrianAjax');
+    $routes->post('munaqosah/auto-assign-room-ajax/(:num)', 'Munaqosah::autoAssignRoomAjax/$1');
+    $routes->post('munaqosah/update-status-antrian-ajax/(:num)', 'Munaqosah::updateStatusAntrianAjax/$1');
     $routes->post('munaqosah/update-status-antrian/(:num)', 'Munaqosah::updateStatusAntrian/$1');
     $routes->get('munaqosah/delete-antrian/(:num)', 'Munaqosah::deleteAntrian/$1');
 

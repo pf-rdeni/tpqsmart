@@ -17,7 +17,9 @@ class MunaqosahAntrianModel extends Model
         'IdKategoriMateri',
         'Status',
         'RoomId',
-        'Keterangan'
+        'Keterangan',
+        'IdTpq',
+        'IdSantri'
     ];
 
     protected $validationRules = [
@@ -28,7 +30,9 @@ class MunaqosahAntrianModel extends Model
         'IdKategoriMateri' => 'permit_empty|max_length[50]',
         'Status' => 'permit_empty|in_list[0,1,2]',
         'RoomId' => 'permit_empty|max_length[20]',
-        'Keterangan' => 'permit_empty'
+        'Keterangan' => 'permit_empty',
+        'IdTpq' => 'permit_empty|max_length[50]',
+        'IdSantri' => 'permit_empty|max_length[50]'
     ];
 
     protected $validationMessages = [
@@ -91,10 +95,10 @@ class MunaqosahAntrianModel extends Model
     public function getQueueWithDetails(array $filters = [])
     {
         $builder = $this->db->table($this->table . ' q');
-        $builder->select('q.*, COALESCE(q.IdGrupMateriUjian, r.IdGrupMateriUjian) as IdGrupMateriResolved, COALESCE(q.TypeUjian, r.TypeUjian) as TypeUjianResolved, COALESCE(q.IdKategoriMateri, r.IdKategoriMateri) as IdKategoriMateriResolved, r.IdSantri, r.IdTpq, r.IdGrupMateriUjian, r.IdKategoriMateri, r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
+        $builder->select('q.*, COALESCE(q.IdGrupMateriUjian, r.IdGrupMateriUjian) as IdGrupMateriResolved, COALESCE(q.TypeUjian, r.TypeUjian) as TypeUjianResolved, COALESCE(q.IdKategoriMateri, r.IdKategoriMateri) as IdKategoriMateriResolved, COALESCE(q.IdTpq, r.IdTpq) as IdTpqResolved, COALESCE(q.IdSantri, r.IdSantri) as IdSantriResolved, r.IdSantri, r.IdTpq, r.IdGrupMateriUjian, r.IdKategoriMateri, r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
         $builder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = q.NoPeserta AND r.IdTahunAjaran = q.IdTahunAjaran', 'left');
-        $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
-        $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
+        $builder->join('tbl_santri_baru s', 's.IdSantri = COALESCE(q.IdSantri, r.IdSantri)', 'left');
+        $builder->join('tbl_tpq t', 't.IdTpq = COALESCE(q.IdTpq, r.IdTpq)', 'left');
         $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = COALESCE(q.IdKategoriMateri, r.IdKategoriMateri)', 'left', false);
 
         if (!empty($filters['IdTahunAjaran'])) {
@@ -117,6 +121,16 @@ class MunaqosahAntrianModel extends Model
                 ->orGroupStart()
                 ->where('(q.TypeUjian IS NULL OR q.TypeUjian = \'\')', null, false)
                 ->where('r.TypeUjian', $filters['TypeUjian'])
+                ->groupEnd()
+                ->groupEnd();
+        }
+
+        if (!empty($filters['IdTpq'])) {
+            $builder->groupStart()
+                ->where('q.IdTpq', $filters['IdTpq'])
+                ->orGroupStart()
+                ->where('q.IdTpq IS NULL')
+                ->where('r.IdTpq', $filters['IdTpq'])
                 ->groupEnd()
                 ->groupEnd();
         }
@@ -158,6 +172,16 @@ class MunaqosahAntrianModel extends Model
                 ->orGroupStart()
                 ->where('(q.TypeUjian IS NULL OR q.TypeUjian = \'\')', null, false)
                 ->where('r.TypeUjian', $filters['TypeUjian'])
+                ->groupEnd()
+                ->groupEnd();
+        }
+
+        if (!empty($filters['IdTpq'])) {
+            $builder->groupStart()
+                ->where('q.IdTpq', $filters['IdTpq'])
+                ->orGroupStart()
+                ->where('q.IdTpq IS NULL')
+                ->where('r.IdTpq', $filters['IdTpq'])
                 ->groupEnd()
                 ->groupEnd();
         }
