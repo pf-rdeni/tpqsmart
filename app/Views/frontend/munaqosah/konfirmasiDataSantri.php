@@ -3,6 +3,8 @@ $isPublic = isset($isPublic) ? $isPublic : false;
 $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/template/template';
 $peserta = $peserta ?? [];
 $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
+$availableTypeUjian = $availableTypeUjian ?? ['munaqosah'];
+$hasMultipleTypeUjian = count($availableTypeUjian) > 1;
 ?>
 
 <?= $this->extend($templatePath); ?>
@@ -12,30 +14,30 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
     body {
         background-color: #f5f5f5;
     }
-    
+
     .confirmation-card {
         max-width: 700px;
         margin: 40px auto;
         background: white;
         border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         padding: 40px;
     }
-    
+
     .title-container {
         position: relative;
         margin-bottom: 40px;
         padding-bottom: 20px;
         border-bottom: 3px solid #4caf50;
     }
-    
+
     .title-wrapper {
         position: relative;
         display: flex;
         align-items: center;
         gap: 15px;
     }
-    
+
     .green-line-vertical {
         width: 5px;
         height: 40px;
@@ -44,7 +46,7 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         flex-shrink: 0;
         box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
     }
-    
+
     .card-title {
         font-size: 28px;
         font-weight: 700;
@@ -55,18 +57,18 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         text-transform: none;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
-    
+
     @media (max-width: 768px) {
         .card-title {
             font-size: 24px;
         }
-        
+
         .green-line-vertical {
             height: 35px;
             width: 4px;
         }
     }
-    
+
     .data-section {
         margin-bottom: 25px;
         padding: 15px 15px 15px 20px;
@@ -75,7 +77,7 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         border-left: 5px solid #2196F3;
         position: relative;
     }
-    
+
     .data-section::before {
         content: '';
         position: absolute;
@@ -86,20 +88,20 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         background: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
         border-radius: 0 3px 3px 0;
     }
-    
+
     .data-label {
         font-weight: 600;
         color: #555;
         font-size: 14px;
         margin-bottom: 5px;
     }
-    
+
     .data-value {
         font-size: 16px;
         color: #000;
         font-weight: 500;
     }
-    
+
     .info-box {
         background-color: #fff3cd;
         border-left: 4px solid #ffc107;
@@ -107,13 +109,13 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         margin: 25px 0;
         border-radius: 4px;
     }
-    
+
     .info-box p {
         margin: 0;
         color: #856404;
         font-size: 14px;
     }
-    
+
     .checkbox-wrapper {
         display: flex;
         align-items: flex-start;
@@ -123,28 +125,28 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         background-color: #f9f9f9;
         border-radius: 6px;
     }
-    
+
     .checkbox-wrapper input[type="checkbox"] {
         margin-top: 3px;
         width: 18px;
         height: 18px;
         cursor: pointer;
     }
-    
+
     .checkbox-wrapper label {
         cursor: pointer;
         font-size: 14px;
         color: #333;
         line-height: 1.5;
     }
-    
+
     .button-group {
         display: flex;
         gap: 15px;
         justify-content: center;
         margin-top: 30px;
     }
-    
+
     .btn-action {
         padding: 12px 30px;
         border: none;
@@ -156,30 +158,30 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         text-decoration: none;
         display: inline-block;
     }
-    
+
     .btn-status {
         background-color: #2196F3;
         color: white;
     }
-    
+
     .btn-status:hover {
         background-color: #1976D2;
     }
-    
+
     .btn-kelulusan {
         background-color: #4caf50;
         color: white;
     }
-    
+
     .btn-kelulusan:hover {
         background-color: #45a049;
     }
-    
+
     .btn-action:disabled {
         opacity: 0.6;
         cursor: not-allowed;
     }
-    
+
     .btn-action.locked {
         opacity: 0.8;
         cursor: not-allowed;
@@ -187,12 +189,12 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         background-color: #dc3545 !important;
         border-color: #dc3545 !important;
     }
-    
+
     .btn-action.locked:hover {
         background-color: #c82333 !important;
         border-color: #bd2130 !important;
     }
-    
+
     .btn-action.locked::after {
         content: '\f023';
         font-family: 'Font Awesome 5 Free';
@@ -202,7 +204,7 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         top: 50%;
         transform: translateY(-50%);
     }
-    
+
     .info-disabled {
         margin-top: 15px;
         padding: 12px;
@@ -213,7 +215,7 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         color: #1565C0;
         text-align: center;
     }
-    
+
     .info-disabled i {
         font-size: 16px;
         margin-right: 5px;
@@ -227,37 +229,64 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
             <h2 class="card-title">Konfirmasi Data Santri</h2>
         </div>
     </div>
-    
+
     <div class="data-section">
         <div class="data-label">Nama Santri:</div>
         <div class="data-value"><?= esc($peserta['NamaSantri'] ?? '-') ?></div>
     </div>
-    
+
     <div class="data-section">
         <div class="data-label">Tempat, Tanggal Lahir:</div>
         <div class="data-value">
-            <?= esc($peserta['TempatLahirSantri'] ?? '-') ?>, 
+            <?= esc($peserta['TempatLahirSantri'] ?? '-') ?>,
             <?= !empty($peserta['TanggalLahirSantri']) ? formatTanggalIndonesia($peserta['TanggalLahirSantri'], 'd F Y') : '-' ?>
         </div>
     </div>
-    
+
     <div class="data-section">
         <div class="data-label">Nama Ayah:</div>
         <div class="data-value"><?= esc($peserta['NamaAyah'] ?? '-') ?></div>
     </div>
-    
+
     <div class="data-section">
         <div class="data-label">Nama TPQ:</div>
         <div class="data-value"><?= esc($peserta['NamaTpq'] ?? '-') ?></div>
     </div>
-    
+
     <div class="info-box">
         <p>
             <strong>Informasi Penting:</strong><br>
             Pastikan data di atas sudah benar. Data ini akan digunakan untuk menampilkan status munaqosah dan hasil kelulusan ujian Ananda. Jika data di atas tidak benar silahkan hubungi admin lembaga untuk melakukan perubahan data.
         </p>
     </div>
-    
+
+    <?php if ($hasMultipleTypeUjian): ?>
+        <div class="type-ujian-selection" style="margin: 20px 0; padding: 15px; background-color: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #2e7d32;">
+                <i class="fas fa-list-check"></i> Pilih Type Ujian:
+            </label>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <?php foreach ($availableTypeUjian as $type): ?>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background-color 0.2s;">
+                        <input type="radio" name="typeUjian" value="<?= esc($type) ?>" <?= $type === 'munaqosah' ? 'checked' : '' ?> class="type-ujian-radio" required>
+                        <span style="font-weight: 500;">
+                            <?php if ($type === 'pra-munaqosah'): ?>
+                                Pra-Munaqosah
+                            <?php else: ?>
+                                Munaqosah
+                            <?php endif; ?>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <p style="margin-top: 10px; font-size: 13px; color: #555; font-style: italic;">
+                <i class="fas fa-info-circle"></i> Ananda memiliki data untuk kedua type ujian. Silakan pilih salah satu untuk melihat status atau hasil kelulusan.
+            </p>
+        </div>
+    <?php else: ?>
+        <input type="hidden" name="typeUjian" value="<?= esc($availableTypeUjian[0] ?? 'munaqosah') ?>" id="typeUjianHidden">
+    <?php endif; ?>
+
     <form id="confirmationForm">
         <div class="checkbox-wrapper">
             <input type="checkbox" id="confirmed" name="confirmed" required>
@@ -265,26 +294,25 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
                 Saya menyetujui bahwa data di atas sudah benar dan saya berhak untuk melihat status munaqosah dan hasil kelulusan ujian, informasi tersebut hanya dapat dilihat oleh Ananda sendiri.
             </label>
         </div>
-        
+
         <div class="button-group">
             <button type="button" class="btn-action btn-status" onclick="processAction('status')" disabled id="btnStatus">
                 <i class="fas fa-tasks"></i> Lihat Status Munaqosah
             </button>
-            <button 
-                type="button" 
-                class="btn-action btn-kelulusan <?= !$aktiveTombolKelulusan ? 'locked' : '' ?>" 
-                onclick="<?= $aktiveTombolKelulusan ? "processAction('kelulusan')" : "return false;" ?>" 
-                disabled 
+            <button
+                type="button"
+                class="btn-action btn-kelulusan <?= !$aktiveTombolKelulusan ? 'locked' : '' ?>"
+                onclick="<?= $aktiveTombolKelulusan ? "processAction('kelulusan')" : "return false;" ?>"
+                disabled
                 id="btnKelulusan"
-                <?= !$aktiveTombolKelulusan ? 'style="pointer-events: none;"' : '' ?>
-            >
+                <?= !$aktiveTombolKelulusan ? 'style="pointer-events: none;"' : '' ?>>
                 <i class="fas fa-graduation-cap"></i> Lihat Kelulusan
                 <?php if (!$aktiveTombolKelulusan): ?>
                     <i class="fas fa-lock" style="margin-left: 8px;"></i>
                 <?php endif; ?>
             </button>
         </div>
-        
+
         <?php if (!$aktiveTombolKelulusan): ?>
             <div class="info-disabled">
                 <i class="fas fa-info-circle"></i>
@@ -302,7 +330,7 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
         $('#confirmed').on('change', function() {
             const isChecked = $(this).is(':checked');
             $('#btnStatus').prop('disabled', !isChecked);
-            
+
             <?php if ($aktiveTombolKelulusan): ?>
                 // Jika tombol kelulusan aktif, enable/disable berdasarkan checkbox
                 $('#btnKelulusan').prop('disabled', !isChecked);
@@ -311,16 +339,16 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
                 $('#btnKelulusan').prop('disabled', true);
             <?php endif; ?>
         });
-        
+
         // Pastikan tombol kelulusan tetap disabled jika tidak aktif
         <?php if (!$aktiveTombolKelulusan): ?>
             $('#btnKelulusan').prop('disabled', true);
         <?php endif; ?>
     });
-    
+
     function processAction(action) {
         const confirmed = $('#confirmed').is(':checked');
-        
+
         if (!confirmed) {
             Swal.fire({
                 icon: 'warning',
@@ -329,7 +357,7 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
             });
             return;
         }
-        
+
         Swal.fire({
             title: 'Memproses...',
             allowOutsideClick: false,
@@ -337,11 +365,29 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
                 Swal.showLoading();
             }
         });
-        
+
+        // Ambil TypeUjian yang dipilih
+        let typeUjian = '';
+        <?php if ($hasMultipleTypeUjian): ?>
+            const selectedTypeUjian = $('input[name="typeUjian"]:checked');
+            if (selectedTypeUjian.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Silakan pilih Type Ujian terlebih dahulu'
+                });
+                return;
+            }
+            typeUjian = selectedTypeUjian.val();
+        <?php else: ?>
+            typeUjian = $('#typeUjianHidden').val() || '<?= esc($availableTypeUjian[0] ?? 'munaqosah') ?>';
+        <?php endif; ?>
+
         $.ajax({
             url: '<?= base_url('munaqosah/process-konfirmasi') ?>',
             type: 'POST',
             data: {
+                typeUjian: typeUjian,
                 action: action,
                 confirmed: confirmed ? '1' : '0'
             },
@@ -368,4 +414,3 @@ $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
     }
 </script>
 <?= $this->endSection(); ?>
-

@@ -134,6 +134,45 @@ class StatusUjianMunaqosah extends BaseController
             return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
         }
 
+        // Ambil semua TypeUjian yang tersedia untuk IdSantri ini
+        $allRegistrasi = $this->munaqosahRegistrasiUjiModel
+            ->select('TypeUjian, NoPeserta')
+            ->where('IdSantri', $peserta['IdSantri'])
+            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+            ->groupBy('TypeUjian, NoPeserta')
+            ->findAll();
+
+        $availableTypeUjian = [];
+        foreach ($allRegistrasi as $reg) {
+            // Normalisasi TypeUjian (pramunaqsah -> pra-munaqosah)
+            $typeUjian = strtolower(trim($reg['TypeUjian'] ?? ''));
+            if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                $typeUjian = 'pra-munaqosah';
+            }
+            if (!empty($typeUjian) && !in_array($typeUjian, $availableTypeUjian)) {
+                $availableTypeUjian[] = $typeUjian;
+            }
+        }
+
+        // Jika tidak ada TypeUjian ditemukan, coba ambil dari registrasi pertama
+        if (empty($availableTypeUjian)) {
+            $firstRegistrasi = $this->munaqosahRegistrasiUjiModel
+                ->where('IdSantri', $peserta['IdSantri'])
+                ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+                ->first();
+
+            if (!empty($firstRegistrasi)) {
+                $typeUjian = strtolower(trim($firstRegistrasi['TypeUjian'] ?? 'munaqosah'));
+                if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                    $typeUjian = 'pra-munaqosah';
+                }
+                $availableTypeUjian[] = $typeUjian;
+            } else {
+                // Default ke munaqosah jika tidak ada data
+                $availableTypeUjian[] = 'munaqosah';
+            }
+        }
+
         // Ambil setting AktiveTombolKelulusan dari konfigurasi
         $idTpq = $peserta['IdTpq'] ?? 'default';
         $aktiveTombolKelulusan = $this->munaqosahKonfigurasiModel->getSetting((string)$idTpq, 'AktiveTombolKelulusan');
@@ -145,7 +184,8 @@ class StatusUjianMunaqosah extends BaseController
             'page_title' => 'Konfirmasi Data Santri',
             'isPublic' => true,
             'peserta' => $peserta,
-            'aktiveTombolKelulusan' => $aktiveTombolKelulusan
+            'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
+            'availableTypeUjian' => $availableTypeUjian
         ];
 
         return view('frontend/munaqosah/konfirmasiDataSantri', $data);
@@ -158,6 +198,7 @@ class StatusUjianMunaqosah extends BaseController
     {
         $action = $this->request->getPost('action');
         $confirmed = $this->request->getPost('confirmed');
+        $typeUjian = $this->request->getPost('typeUjian');
 
         if (empty($confirmed)) {
             return $this->response->setJSON([
@@ -175,10 +216,30 @@ class StatusUjianMunaqosah extends BaseController
             ]);
         }
 
+        // Normalisasi TypeUjian
+        if (!empty($typeUjian)) {
+            $typeUjian = strtolower(trim($typeUjian));
+            if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                $typeUjian = 'pra-munaqosah';
+            }
+            // Validasi TypeUjian
+            if (!in_array($typeUjian, ['munaqosah', 'pra-munaqosah'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Type Ujian tidak valid'
+                ]);
+            }
+        }
+
+        // Simpan TypeUjian yang dipilih ke session
+        if (!empty($typeUjian)) {
+            session()->set('munaqosah_type_ujian', $typeUjian);
+        }
+
         if ($action === 'status') {
-            $redirectUrl = base_url('munaqosah/status-proses');
+            $redirectUrl = base_url('munaqosah/status-proses') . (!empty($typeUjian) ? '?typeUjian=' . urlencode($typeUjian) : '');
         } elseif ($action === 'kelulusan') {
-            $redirectUrl = base_url('munaqosah/kelulusan');
+            $redirectUrl = base_url('munaqosah/kelulusan') . (!empty($typeUjian) ? '?typeUjian=' . urlencode($typeUjian) : '');
         } else {
             return $this->response->setJSON([
                 'success' => false,
@@ -203,17 +264,73 @@ class StatusUjianMunaqosah extends BaseController
             return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
         }
 
-        // Ambil data registrasi untuk mendapatkan NoPeserta
-        $registrasi = $this->munaqosahRegistrasiUjiModel
-            ->where('IdSantri', $peserta['IdSantri'])
-            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
-            ->first();
+        // Ambil TypeUjian dari query parameter atau session
+        $typeUjian = $this->request->getGet('typeUjian') ?? session()->get('munaqosah_type_ujian');
 
-        if (empty($registrasi)) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+        // Normalisasi TypeUjian
+        if (!empty($typeUjian)) {
+            $typeUjian = strtolower(trim($typeUjian));
+            if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                $typeUjian = 'pra-munaqosah';
+            }
         }
 
-        $noPeserta = $registrasi['NoPeserta'];
+        // Ambil semua TypeUjian yang tersedia untuk IdSantri ini
+        $allRegistrasi = $this->munaqosahRegistrasiUjiModel
+            ->select('TypeUjian, NoPeserta')
+            ->where('IdSantri', $peserta['IdSantri'])
+            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+            ->groupBy('TypeUjian, NoPeserta')
+            ->findAll();
+
+        $availableTypeUjian = [];
+        $registrasiMap = [];
+        foreach ($allRegistrasi as $reg) {
+            $regTypeUjian = strtolower(trim($reg['TypeUjian'] ?? ''));
+            if ($regTypeUjian === 'pramunaqsah' || $regTypeUjian === 'pra-munaqosah') {
+                $regTypeUjian = 'pra-munaqosah';
+            }
+            if (!empty($regTypeUjian) && !in_array($regTypeUjian, $availableTypeUjian)) {
+                $availableTypeUjian[] = $regTypeUjian;
+                $registrasiMap[$regTypeUjian] = $reg['NoPeserta'];
+            }
+        }
+
+        // Jika tidak ada TypeUjian yang dipilih dan ada lebih dari satu, ambil yang pertama
+        if (empty($typeUjian)) {
+            if (!empty($availableTypeUjian)) {
+                $typeUjian = $availableTypeUjian[0];
+            } else {
+                // Default ke munaqosah jika tidak ada data
+                $typeUjian = 'munaqosah';
+            }
+        }
+
+        // Validasi TypeUjian yang dipilih ada di available list
+        if (!in_array($typeUjian, $availableTypeUjian)) {
+            if (!empty($availableTypeUjian)) {
+                $typeUjian = $availableTypeUjian[0];
+            } else {
+                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+            }
+        }
+
+        // Ambil NoPeserta berdasarkan TypeUjian
+        $noPeserta = $registrasiMap[$typeUjian] ?? null;
+        if (empty($noPeserta)) {
+            // Fallback: ambil dari registrasi pertama yang cocok
+            $registrasi = $this->munaqosahRegistrasiUjiModel
+                ->where('IdSantri', $peserta['IdSantri'])
+                ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+                ->where('TypeUjian', $typeUjian)
+                ->first();
+
+            if (empty($registrasi)) {
+                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+            }
+            $noPeserta = $registrasi['NoPeserta'];
+        }
+
         $idTahunAjaran = $peserta['IdTahunAjaran'];
 
         // Ambil semua grup materi ujian yang aktif
@@ -222,11 +339,12 @@ class StatusUjianMunaqosah extends BaseController
             ->orderBy('NamaMateriGrup', 'ASC')
             ->findAll();
 
-        // Ambil data registrasi per grup materi
+        // Ambil data registrasi per grup materi dengan filter TypeUjian
         $registrasiByGrup = $this->munaqosahRegistrasiUjiModel
             ->select('IdGrupMateriUjian, COUNT(DISTINCT IdMateri) as jumlah_materi')
             ->where('NoPeserta', $noPeserta)
             ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
             ->groupBy('IdGrupMateriUjian')
             ->findAll();
 
@@ -235,11 +353,12 @@ class StatusUjianMunaqosah extends BaseController
             $registrasiMap[$reg['IdGrupMateriUjian']] = $reg['jumlah_materi'];
         }
 
-        // Ambil data nilai per grup materi
+        // Ambil data nilai per grup materi dengan filter TypeUjian
         $nilaiByGrup = $this->munaqosahNilaiModel
             ->select('IdGrupMateriUjian, COUNT(DISTINCT IdMateri) as jumlah_nilai')
             ->where('NoPeserta', $noPeserta)
             ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
             ->where('Nilai >', 0)
             ->groupBy('IdGrupMateriUjian')
             ->findAll();
@@ -268,7 +387,9 @@ class StatusUjianMunaqosah extends BaseController
             'page_title' => 'Status Proses Munaqosah',
             'isPublic' => true,
             'peserta' => $peserta,
-            'statusGrup' => $statusGrup
+            'statusGrup' => $statusGrup,
+            'typeUjian' => $typeUjian,
+            'availableTypeUjian' => $availableTypeUjian
         ];
 
         return view('frontend/munaqosah/statusProsesMunaqosah', $data);
@@ -285,19 +406,74 @@ class StatusUjianMunaqosah extends BaseController
             return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
         }
 
-        // Ambil data registrasi untuk mendapatkan NoPeserta dan TypeUjian
-        $registrasi = $this->munaqosahRegistrasiUjiModel
-            ->where('IdSantri', $peserta['IdSantri'])
-            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
-            ->first();
+        // Ambil TypeUjian dari query parameter atau session
+        $typeUjian = $this->request->getGet('typeUjian') ?? session()->get('munaqosah_type_ujian');
 
-        if (empty($registrasi)) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+        // Normalisasi TypeUjian
+        if (!empty($typeUjian)) {
+            $typeUjian = strtolower(trim($typeUjian));
+            if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                $typeUjian = 'pra-munaqosah';
+            }
         }
 
-        $noPeserta = $registrasi['NoPeserta'];
+        // Ambil semua TypeUjian yang tersedia untuk IdSantri ini
+        $allRegistrasi = $this->munaqosahRegistrasiUjiModel
+            ->select('TypeUjian, NoPeserta')
+            ->where('IdSantri', $peserta['IdSantri'])
+            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+            ->groupBy('TypeUjian, NoPeserta')
+            ->findAll();
+
+        $availableTypeUjian = [];
+        $registrasiMap = [];
+        foreach ($allRegistrasi as $reg) {
+            $regTypeUjian = strtolower(trim($reg['TypeUjian'] ?? ''));
+            if ($regTypeUjian === 'pramunaqsah' || $regTypeUjian === 'pra-munaqosah') {
+                $regTypeUjian = 'pra-munaqosah';
+            }
+            if (!empty($regTypeUjian) && !in_array($regTypeUjian, $availableTypeUjian)) {
+                $availableTypeUjian[] = $regTypeUjian;
+                $registrasiMap[$regTypeUjian] = $reg['NoPeserta'];
+            }
+        }
+
+        // Jika tidak ada TypeUjian yang dipilih dan ada lebih dari satu, ambil yang pertama
+        if (empty($typeUjian)) {
+            if (!empty($availableTypeUjian)) {
+                $typeUjian = $availableTypeUjian[0];
+            } else {
+                // Default ke munaqosah jika tidak ada data
+                $typeUjian = 'munaqosah';
+            }
+        }
+
+        // Validasi TypeUjian yang dipilih ada di available list
+        if (!in_array($typeUjian, $availableTypeUjian)) {
+            if (!empty($availableTypeUjian)) {
+                $typeUjian = $availableTypeUjian[0];
+            } else {
+                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+            }
+        }
+
+        // Ambil NoPeserta berdasarkan TypeUjian
+        $noPeserta = $registrasiMap[$typeUjian] ?? null;
+        if (empty($noPeserta)) {
+            // Fallback: ambil dari registrasi pertama yang cocok
+            $registrasi = $this->munaqosahRegistrasiUjiModel
+                ->where('IdSantri', $peserta['IdSantri'])
+                ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+                ->where('TypeUjian', $typeUjian)
+                ->first();
+
+            if (empty($registrasi)) {
+                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+            }
+            $noPeserta = $registrasi['NoPeserta'];
+        }
+
         $idTahunAjaran = $peserta['IdTahunAjaran'];
-        $typeUjian = $registrasi['TypeUjian'] ?? 'munaqosah';
         $idTpq = $peserta['IdTpq'] ?? null;
 
         // Gunakan fungsi prepareKelulusanPesertaData dari Munaqosah controller
@@ -321,7 +497,9 @@ class StatusUjianMunaqosah extends BaseController
             'threshold' => $threshold,
             'lulus' => $lulus,
             'status' => $status,
-            'noPeserta' => $noPeserta
+            'noPeserta' => $noPeserta,
+            'typeUjian' => $typeUjian,
+            'availableTypeUjian' => $availableTypeUjian
         ];
 
         return view('frontend/munaqosah/kelulusanMunaqosah', $data);
@@ -338,19 +516,63 @@ class StatusUjianMunaqosah extends BaseController
             return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired.');
         }
 
-        // Ambil data registrasi
-        $registrasi = $this->munaqosahRegistrasiUjiModel
-            ->where('IdSantri', $peserta['IdSantri'])
-            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
-            ->first();
+        // Ambil TypeUjian dari query parameter atau session
+        $typeUjian = $this->request->getGet('typeUjian') ?? session()->get('munaqosah_type_ujian');
 
-        if (empty($registrasi)) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+        // Normalisasi TypeUjian
+        if (!empty($typeUjian)) {
+            $typeUjian = strtolower(trim($typeUjian));
+            if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                $typeUjian = 'pra-munaqosah';
+            }
         }
 
-        $noPeserta = $registrasi['NoPeserta'];
+        // Ambil semua TypeUjian yang tersedia
+        $allRegistrasi = $this->munaqosahRegistrasiUjiModel
+            ->select('TypeUjian, NoPeserta')
+            ->where('IdSantri', $peserta['IdSantri'])
+            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+            ->groupBy('TypeUjian, NoPeserta')
+            ->findAll();
+
+        $availableTypeUjian = [];
+        $registrasiMap = [];
+        foreach ($allRegistrasi as $reg) {
+            $regTypeUjian = strtolower(trim($reg['TypeUjian'] ?? ''));
+            if ($regTypeUjian === 'pramunaqsah' || $regTypeUjian === 'pra-munaqosah') {
+                $regTypeUjian = 'pra-munaqosah';
+            }
+            if (!empty($regTypeUjian) && !in_array($regTypeUjian, $availableTypeUjian)) {
+                $availableTypeUjian[] = $regTypeUjian;
+                $registrasiMap[$regTypeUjian] = $reg['NoPeserta'];
+            }
+        }
+
+        // Jika tidak ada TypeUjian yang dipilih, ambil yang pertama
+        if (empty($typeUjian)) {
+            if (!empty($availableTypeUjian)) {
+                $typeUjian = $availableTypeUjian[0];
+            } else {
+                $typeUjian = 'munaqosah';
+            }
+        }
+
+        // Ambil NoPeserta berdasarkan TypeUjian
+        $noPeserta = $registrasiMap[$typeUjian] ?? null;
+        if (empty($noPeserta)) {
+            $registrasi = $this->munaqosahRegistrasiUjiModel
+                ->where('IdSantri', $peserta['IdSantri'])
+                ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+                ->where('TypeUjian', $typeUjian)
+                ->first();
+
+            if (empty($registrasi)) {
+                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+            }
+            $noPeserta = $registrasi['NoPeserta'];
+        }
+
         $idTahunAjaran = $peserta['IdTahunAjaran'];
-        $typeUjian = $registrasi['TypeUjian'] ?? 'munaqosah';
         $idTpq = $peserta['IdTpq'] ?? null;
 
         // Ambil data kelulusan
