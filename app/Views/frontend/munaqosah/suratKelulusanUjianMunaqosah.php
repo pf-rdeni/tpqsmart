@@ -3,7 +3,7 @@ $peserta = $peserta ?? [];
 $categoryDetails = $categoryDetails ?? [];
 $meta = $meta ?? [];
 $tpqData = $tpqData ?? [];
-$generated_at = $generated_at ?? date('d F Y H:i:s');
+$generated_at = $generated_at ?? date('Y-m-d');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -129,7 +129,7 @@ $generated_at = $generated_at ?? date('d F Y H:i:s');
         }
 
         .footer {
-            margin-top: 40px;
+            margin-top: 60px;
             display: table;
             width: 100%;
         }
@@ -215,45 +215,6 @@ $generated_at = $generated_at ?? date('d F Y H:i:s');
             </div>
         </div>
 
-        <p style="margin-top: 20px;">
-            Berdasarkan hasil evaluasi ujian munaqosah yang telah dilaksanakan, dengan rincian sebagai berikut:
-        </p>
-
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 50%;">KATEGORI</th>
-                    <th style="width: 25%; text-align:center">NILAI</th>
-                    <th style="width: 25%; text-align:center">NILAI BOBOT</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                $totalNilai = 0;
-                $totalBobot = 0;
-                ?>
-                <?php foreach ($categoryDetails as $detail): ?>
-                    <?php
-                    $category = $detail['category'] ?? [];
-                    $average = (float)($detail['average'] ?? 0);
-                    $weighted = (float)($detail['weighted'] ?? 0);
-                    $totalNilai += $average;
-                    $totalBobot += $weighted;
-                    ?>
-                    <tr>
-                        <td><?= esc($category['name'] ?? '-') ?></td>
-                        <td style="text-align:center"><?= number_format($average, 1) ?></td>
-                        <td style="text-align:center"><?= number_format($weighted, 1) ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                <tr class="summary-row">
-                    <td><strong>JUMLAH</strong></td>
-                    <td style="text-align:center"><strong><?= number_format($totalNilai, 1) ?></strong></td>
-                    <td style="text-align:center"><strong><?= number_format($totalBobot, 1) ?></strong></td>
-                </tr>
-            </tbody>
-        </table>
-
         <div class="data-section" style="margin-top: 20px;">
             <div class="data-row">
                 <span class="data-label">Total Nilai Bobot</span>
@@ -265,7 +226,7 @@ $generated_at = $generated_at ?? date('d F Y H:i:s');
             </div>
             <div class="data-row">
                 <span class="data-label">Status Kelulusan</span>
-                <span class="data-value">: 
+                <span class="data-value">:
                     <?php $passed = !empty($peserta['KelulusanMet']); ?>
                     <span class="status-badge <?= $passed ? 'status-lulus' : 'status-belum' ?>">
                         <?= esc($peserta['KelulusanStatus'] ?? 'Belum Lulus') ?>
@@ -274,53 +235,46 @@ $generated_at = $generated_at ?? date('d F Y H:i:s');
             </div>
         </div>
 
-        <p style="margin-top: 30px;">
-            <?php if (!empty($peserta['KelulusanMet'])): ?>
-                Dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> telah <strong>LULUS</strong> dalam ujian munaqosah dengan total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?> yang melebihi nilai minimal kelulusan <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?>.
+        <p style="margin-top: 30px; text-align: justify;">
+            Berdasarkan hasil evaluasi ujian munaqosah yang telah dilaksanakan pada tahun ajaran <?= esc($peserta['IdTahunAjaran'] ?? '-') ?>, oleh lembaga Formum Komunikasi Pendidikan Al-Quran (FKPQ) Kec. Seri Kuala Lobam Kab. Bintan Bintan, <?php if (!empty($peserta['KelulusanMet'])): ?>
+                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> telah <strong>LULUS</strong> dalam ujian munaqosah dengan memperoleh total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?>, yang telah memenuhi atau melebihi standar nilai minimal kelulusan sebesar <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?> sesuai dengan ketentuan yang berlaku.
             <?php else: ?>
-                Dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> <strong>BELUM LULUS</strong> dalam ujian munaqosah dengan total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?> yang belum mencapai nilai minimal kelulusan <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?>.
+                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> <strong>BELUM LULUS</strong> dalam ujian munaqosah dengan memperoleh total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?>, yang belum memenuhi standar nilai minimal kelulusan sebesar <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?> sesuai dengan ketentuan yang berlaku.
             <?php endif; ?>
         </p>
 
-        <p>
-            Surat keterangan ini dibuat dengan sebenarnya dan dapat digunakan untuk keperluan yang sesuai.
+        <p style="margin-top: 20px; text-align: justify;">
+            Surat keterangan ini dibuat dengan sebenarnya berdasarkan data yang ada dalam sistem dan dapat digunakan untuk keperluan administrasi serta dokumentasi resmi terkait hasil ujian munaqosah yang bersangkutan.
         </p>
     </div>
 
     <div class="footer">
         <div class="footer-left">
-            <div style="margin-top: 40px;">
-                Mengetahui,<br>
-                Kepala TPQ
+            <!-- Kosong, sesuai format formal -->
+        </div>
+        <div class="footer-right">
+            <div style="margin-top: 0; text-align: right;">
+                <?= esc($tpqData['NamaTpq'] ?? 'TPQ') ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
+            </div>
+            <div style="margin-top: 10px; text-align: right;">
+                Mengetahui Kepala TPQ
             </div>
             <?php if (!empty($tpqData['NamaKepalaTpq'])): ?>
-                <div class="signature-name">
+                <div class="signature-name" style="text-align: right; margin-top: 80px;">
                     <?= esc($tpqData['NamaKepalaTpq']) ?>
                 </div>
             <?php else: ?>
-                <div class="signature-name" style="margin-top: 60px;">
+                <div class="signature-name" style="text-align: right; margin-top: 80px;">
                     (_____________________)
                 </div>
             <?php endif; ?>
         </div>
-        <div class="footer-right">
-            <div style="margin-top: 40px;">
-                <?= esc($tpqData['NamaTpq'] ?? 'TPQ') ?>, <?= esc($generated_at) ?>
-            </div>
-            <div style="margin-top: 40px;">
-                Sistem TPQSMART
-            </div>
-            <div class="signature-name" style="margin-top: 60px;">
-                <br>
-            </div>
-        </div>
     </div>
-
+    <br><br>
     <div class="print-date">
-        Dicetak pada: <?= esc($generated_at) ?><br>
-        Dokumen ini dihasilkan otomatis dari sistem TPQSMART.
+        Dicetak pada: <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?> <?= esc(date('H:i:s')) ?><br>
+        Dokumen ini dihasilkan otomatis dari sistem http://tpqsmart.simpedis.com.
     </div>
 </body>
 
 </html>
-

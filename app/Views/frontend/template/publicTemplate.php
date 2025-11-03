@@ -7,7 +7,7 @@
         <?php if (isset($isPublic) && $isPublic): ?>
             <!-- Public Header - Tanpa Sidebar/Navbar Admin -->
             <div class="content-wrapper" style="margin-left: 0;">
-                <div class="content-header">
+                <!-- <div class="content-header">
                     <div class="container-fluid">
                         <div class="row mb-2">
                             <div class="col-sm-6">
@@ -21,22 +21,23 @@
                             </div>
                         </div>
                     </div>
+                </div> -->
+            <?php else: ?>
+                <!-- Admin Layout - Dengan Sidebar/Navbar -->
+                <?= $this->include('/backend/template/navbar'); ?>
+                <?= $this->include('/backend/template/sidebar'); ?>
+                <div class="content-wrapper">
+                    <?= $this->include('/backend/template/header'); ?>
+                <?php endif; ?>
+
+                <?= $this->renderSection('content'); ?>
+
                 </div>
-        <?php else: ?>
-            <!-- Admin Layout - Dengan Sidebar/Navbar -->
-            <?= $this->include('/backend/template/navbar'); ?>
-            <?= $this->include('/backend/template/sidebar'); ?>
-            <div class="content-wrapper">
-                <?= $this->include('/backend/template/header'); ?>
-        <?php endif; ?>
-        
-        <?= $this->renderSection('content'); ?>
-        
-        </div>
-        <?= $this->include('/backend/template/footer'); ?>
-    </div>
-    <?= $this->include('/backend/template/js'); ?>
-    <?= $this->include('/backend/template/scripts'); ?>
-    <?= $this->renderSection('scripts'); ?>
+                <?= $this->include('/backend/template/footer'); ?>
+            </div>
+            <?= $this->include('/backend/template/js'); ?>
+            <?= $this->include('/backend/template/scripts'); ?>
+            <?= $this->renderSection('scripts'); ?>
 </body>
+
 </html>

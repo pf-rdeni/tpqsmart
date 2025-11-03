@@ -137,9 +137,9 @@ class StatusUjianMunaqosah extends BaseController
         // Ambil setting AktiveTombolKelulusan dari konfigurasi
         $idTpq = $peserta['IdTpq'] ?? 'default';
         $aktiveTombolKelulusan = $this->munaqosahKonfigurasiModel->getSetting((string)$idTpq, 'AktiveTombolKelulusan');
-        
-        // Jika tidak ada setting, default true (aktif)
-        $aktiveTombolKelulusan = $aktiveTombolKelulusan !== null ? (bool)$aktiveTombolKelulusan : true;
+
+        // Jika tidak ada setting, default false (tidak aktif)
+        $aktiveTombolKelulusan = $aktiveTombolKelulusan !== null ? (bool)$aktiveTombolKelulusan : false;
 
         $data = [
             'page_title' => 'Konfirmasi Data Santri',
