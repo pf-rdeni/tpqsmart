@@ -59,7 +59,11 @@
                                                 </div>
                                             </div>
                                         </div>
-
+                                        <!-- Info Peserta -->
+                                        <div id="infoPeserta" class="alert alert-warning" style="display: none;">
+                                            <h5><i class="icon fas fa-exclamation-triangle"></i> Informasi Peserta Sudah Dinilai</h5>
+                                            <div id="pesertaInfo"></div>
+                                        </div>
                                         <!-- Statistik Peserta -->
                                         <div class="row mt-4">
                                             <div class="col-12">
@@ -193,12 +197,6 @@
                                                 </div>
                                             </div>
                                         <?php endif; ?>
-
-                                        <!-- Info Peserta -->
-                                        <div id="infoPeserta" class="alert alert-info" style="display: none;">
-                                            <h5><i class="icon fas fa-info"></i> Informasi Peserta</h5>
-                                            <div id="pesertaInfo"></div>
-                                        </div>
 
                                         <!-- Dialog Edit Nilai -->
                                         <div class="modal fade" id="modalEditNilai" tabindex="-1" role="dialog">

@@ -101,7 +101,7 @@
                     <input type="hidden" id="verifyNilaiId">
                     <input type="hidden" id="verifyTypeUjian">
                     <input type="hidden" id="verifyNoPeserta">
-                    
+
                     <div class="form-group">
                         <label>Username <span class="text-danger">*</span></label>
                         <input type="text" id="verifyUsername" class="form-control" required>
@@ -131,7 +131,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    Edit Nilai 
+                    Edit Nilai
                     <span id="modalTypeUjianBadge" class="badge badge-primary ml-2">-</span>
                 </h5>
                 <button type="button" class="close" data-dismiss="modal">
@@ -254,12 +254,12 @@
             '<th class="dt-left">Nama Santri</th>' +
             '<th class="dt-left">TPQ</th>' +
             '<th class="dt-center">Type</th>';
-        
+
         headerCategories.forEach(k => {
             const label = (k && (k.name || k.NamaKategoriMateri)) ? (k.name || k.NamaKategoriMateri) : (k.id || k.IdKategoriMateri || '-');
             th += `<th class="dt-center nowrap">${label}</th>`;
         });
-        
+
         th += '<th class="dt-center">Aksi</th></tr>';
 
         $('#theadDataNilaiJuri').html(th);
@@ -268,24 +268,24 @@
     function buildRows(categories, rows) {
         const headerCategories = categories || [];
         const tbody = [];
-        
+
         rows.forEach(r => {
             let tds = `<td class="dt-left">${r.NoPeserta}</td>` +
                 `<td class="dt-left">${r.NamaSantri}</td>` +
                 `<td class="dt-left">${r.NamaTpq}</td>` +
                 `<td class="dt-center">${r.TypeUjian}</td>`;
-            
+
             // Buat array untuk menyimpan ID nilai per kategori untuk aksi edit
             const nilaiIds = [];
-            
+
             headerCategories.forEach(cat => {
                 const key = cat.id || cat.IdKategoriMateri || cat;
                 let sc = r.nilai[key] || [];
                 let nilaiId = r.nilaiIds && r.nilaiIds[key] ? r.nilaiIds[key][0] : null;
-                
+
                 const nilai = (sc[0] !== undefined && sc[0] !== null) ? sc[0] : 0;
                 tds += `<td class="dt-center">${fmt(nilai)}</td>`;
-                
+
                 nilaiIds.push({
                     kategoriId: key,
                     kategoriName: cat.name || key,
@@ -293,28 +293,26 @@
                     nilai: nilai
                 });
             });
-            
-            // Kolom Aksi - tombol Edit untuk setiap kategori
+
+            // Kolom Aksi - satu tombol Edit untuk semua kategori (karena edit menampilkan semua materi dalam grup)
             let aksiButtons = '';
-            nilaiIds.forEach((item, idx) => {
-                if (item.nilaiId) {
-                    aksiButtons += `<button class="btn btn-sm btn-warning btn-edit-nilai" 
-                        data-nilai-id="${item.nilaiId}" 
-                        data-no-peserta="${r.NoPeserta}" 
-                        data-nama-santri="${r.NamaSantri}" 
-                        data-kategori-id="${item.kategoriId}" 
-                        data-kategori-name="${item.kategoriName}" 
-                        data-nilai="${item.nilai}" 
-                        title="Edit ${item.kategoriName}">
-                        <i class="fas fa-edit"></i> Edit ${item.kategoriName}
-                    </button> `;
-                }
-            });
-            
+            // Cari nilaiId pertama yang tersedia untuk trigger edit
+            const firstNilaiId = nilaiIds.find(item => item.nilaiId)?.nilaiId;
+
+            if (firstNilaiId) {
+                aksiButtons = `<button class="btn btn-sm btn-warning btn-edit-nilai" 
+                    data-nilai-id="${firstNilaiId}" 
+                    data-no-peserta="${r.NoPeserta}" 
+                    data-nama-santri="${r.NamaSantri}" 
+                    title="Edit Nilai">
+                    <i class="fas fa-edit"></i> Edit
+                </button>`;
+            }
+
             tds += `<td class="dt-center">${aksiButtons || '-'}</td>`;
             tbody.push(`<tr>${tds}</tr>`);
         });
-        
+
         $('#tbodyDataNilaiJuri').html(tbody.join(''));
     }
 
@@ -397,7 +395,9 @@
                 // Inisialisasi DataTables
                 dtInstance = $('#tblDataNilaiJuri').DataTable({
                     scrollX: true,
-                    order: [[0, 'asc']],
+                    order: [
+                        [0, 'asc']
+                    ],
                     pageLength: 25,
                     dom: 'Bfrtip',
                     buttons: ['excel', 'print']
@@ -408,20 +408,20 @@
                     const nilaiId = $(this).data('nilai-id');
                     const noPeserta = $(this).data('no-peserta');
                     const namaSantri = $(this).data('nama-santri');
-                    
+
                     // Ambil data lengkap untuk mengetahui TypeUjian
                     let typeUjian = currentData.meta ? currentData.meta.TypeUjian : 'munaqosah';
                     const typeUjianDisplay = typeUjian === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
-                    
+
                     // Set nilai untuk modal verifikasi
                     $('#verifyNilaiId').val(nilaiId);
                     $('#verifyNoPeserta').val(noPeserta);
                     $('#verifyTypeUjian').val(typeUjian);
-                    
+
                     // Set display Nama Santri dan No Peserta di modal verifikasi
                     $('#verifyNamaSantri').text(namaSantri || '-');
                     $('#verifyNoPesertaDisplay').text(noPeserta || '-');
-                    
+
                     // Set display Type Ujian di modal verifikasi
                     $('#verifyTypeUjianDisplay').text(typeUjianDisplay);
                     if (typeUjian === 'pra-munaqosah') {
@@ -429,7 +429,7 @@
                     } else {
                         $('#verifyTypeUjianDisplay').removeClass('badge-warning').addClass('badge-primary');
                     }
-                    
+
                     // Set label berdasarkan typeUjian
                     if (typeUjian === 'pra-munaqosah') {
                         $('#verifyTypeUjianLabel').text('Pra-Munaqosah:');
@@ -438,12 +438,13 @@
                         $('#verifyTypeUjianLabel').text('Munaqosah:');
                         $('#verifyRequiredRole').text('Admin');
                     }
-                    
-                    // Reset form verifikasi
+
+                    // Reset form verifikasi dan variabel tracking
                     $('#verifyUsername').val('');
                     $('#verifyPassword').val('');
                     $('#verifyAlasanEdit').val('');
-                    
+                    currentEditNilaiSebelum = {}; // Reset tracking nilai sebelum edit
+
                     // Tampilkan modal verifikasi
                     $('#modalVerifyEditNilai').modal('show');
                 });
@@ -465,6 +466,7 @@
     let currentEditAlasan = null;
     let currentEditData = null;
     let currentEditErrorCategories = {};
+    let currentEditNilaiSebelum = {}; // Menyimpan nilai sebelum edit untuk tracking
 
     const ERROR_AUTO_SHOW_THRESHOLD = 67;
 
@@ -524,10 +526,10 @@
                     // Simpan alasan edit
                     currentEditNilaiId = nilaiId;
                     currentEditAlasan = alasanEdit;
-                    
+
                     // Tutup modal verifikasi
                     $('#modalVerifyEditNilai').modal('hide');
-                    
+
                     // Ambil data peserta untuk edit
                     loadPesertaForEditNilai(nilaiId);
                 } else {
@@ -560,19 +562,33 @@
         $.ajax({
             url: '<?= base_url("backend/munaqosah/get-peserta-for-edit-nilai") ?>',
             method: 'POST',
-            data: { idNilai: idNilai },
+            data: {
+                idNilai: idNilai
+            },
             success: function(resp) {
                 Swal.close();
                 if (resp.success) {
                     currentEditData = resp.data;
                     currentEditErrorCategories = resp.data.error_categories || {};
-                    
+
+                    // Simpan nilai sebelum edit untuk tracking
+                    currentEditNilaiSebelum = {};
+                    if (resp.data.nilai_yang_ada) {
+                        Object.keys(resp.data.nilai_yang_ada).forEach(materiId => {
+                            const nilaiData = resp.data.nilai_yang_ada[materiId];
+                            currentEditNilaiSebelum[materiId] = {
+                                nilai: nilaiData.Nilai || null,
+                                catatan: nilaiData.Catatan || null
+                            };
+                        });
+                    }
+
                     // Tampilkan info peserta
                     showPesertaInfoEdit(resp.data.peserta, resp.data.juri);
-                    
+
                     // Generate form edit nilai
                     generateFormEditNilai(resp.data.materi, resp.data.nilai_yang_ada);
-                    
+
                     // Tampilkan modal form edit
                     $('#modalFormEditNilai').modal('show');
                 } else {
@@ -600,10 +616,10 @@
         const typeUjian = currentEditData ? (currentEditData.typeUjian || 'munaqosah') : 'munaqosah';
         const typeUjianDisplay = typeUjian === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
         const typeUjianBadge = typeUjian === 'pra-munaqosah' ? 'badge-warning' : 'badge-primary';
-        
+
         // Set Type Ujian di header modal
         $('#modalTypeUjianBadge').text(typeUjianDisplay).removeClass('badge-primary badge-warning').addClass(typeUjianBadge);
-        
+
         const infoHtml = `
             <div class="row">
                 <div class="col-md-6">
@@ -745,7 +761,7 @@
         // Setup event listeners
         setupNilaiInputListenersEdit();
         setupErrorCategoryTogglesEdit();
-        
+
         // Auto show error categories for low scores
         $('.nilai-input-edit').each(function() {
             handleAutoShowErrorCategoriesEdit($(this));
@@ -887,7 +903,7 @@
             return;
         }
 
-        // Collect form data
+        // Collect form data dan bandingkan nilai sebelum dan sesudah edit
         const formData = {
             idNilai: currentEditNilaiId,
             alasanEdit: currentEditAlasan,
@@ -895,11 +911,29 @@
             catatan: {}
         };
 
+        // Array untuk menyimpan perubahan nilai untuk tracking
+        const perubahanNilai = [];
+
         nilaiInputs.each(function() {
             const materiId = $(this).attr('name').replace('nilai[', '').replace(']', '');
-            const nilai = $(this).val().trim();
-            if (nilai !== '') {
-                formData.nilai[materiId] = parseFloat(nilai);
+            const nilaiBaru = $(this).val().trim();
+            const nilaiBaruNum = nilaiBaru !== '' ? parseFloat(nilaiBaru) : null;
+
+            // Ambil nilai sebelum edit
+            const nilaiSebelum = currentEditNilaiSebelum[materiId]?.nilai ?? null;
+
+            if (nilaiBaruNum !== null) {
+                formData.nilai[materiId] = nilaiBaruNum;
+
+                // Bandingkan nilai sebelum dan sesudah
+                if (nilaiSebelum !== nilaiBaruNum) {
+                    const materiName = $(this).closest('.form-group').find('label').text().trim();
+                    perubahanNilai.push({
+                        materi: materiName,
+                        sebelum: nilaiSebelum !== null ? nilaiSebelum : 'Kosong',
+                        sesudah: nilaiBaruNum
+                    });
+                }
             }
         });
 
@@ -912,10 +946,39 @@
                 selectedErrors.push($(this).val());
             });
 
-            if (selectedErrors.length > 0) {
-                formData.catatan[materiId] = selectedErrors.join('-');
+            const catatanBaru = selectedErrors.length > 0 ? selectedErrors.join('-') : null;
+            const catatanSebelum = currentEditNilaiSebelum[materiId]?.catatan ?? null;
+
+            // Kirim catatan jika ada (baru atau tetap sama)
+            if (catatanBaru !== null) {
+                formData.catatan[materiId] = catatanBaru;
+            } else if (catatanSebelum !== null && catatanBaru === null && selectedErrors.length === 0) {
+                // Jika catatan sebelumnya ada tapi sekarang dihapus (unchecked all), kirim string kosong
+                formData.catatan[materiId] = '';
+            }
+
+            // Bandingkan catatan sebelum dan sesudah
+            if (catatanSebelum !== catatanBaru) {
+                // Ambil nama materi dari label input nilai yang terkait
+                const materiName = $(`#edit_nilai_${materiId}`).closest('.form-group').find('label').text().trim();
+                if (materiName) {
+                    perubahanNilai.push({
+                        materi: materiName,
+                        sebelum: catatanSebelum !== null ? `Catatan: ${catatanSebelum}` : 'Catatan: Kosong',
+                        sesudah: catatanBaru !== null ? `Catatan: ${catatanBaru}` : 'Catatan: Kosong'
+                    });
+                }
             }
         });
+
+        // Gabungkan informasi perubahan ke alasan edit
+        if (perubahanNilai.length > 0) {
+            let trackingInfo = '\n\n=== TRACKING PERUBAHAN NILAI ===\n';
+            perubahanNilai.forEach(perubahan => {
+                trackingInfo += `${perubahan.materi}: ${perubahan.sebelum} → ${perubahan.sesudah}\n`;
+            });
+            formData.alasanEdit = currentEditAlasan + trackingInfo;
+        }
 
         Swal.fire({
             title: 'Menyimpan...',
@@ -964,13 +1027,13 @@
         currentAyatUrlEdit = url;
         $('#ayatTitleEdit').text(title);
         $('#iframeAyatEdit').attr('src', '');
-        
+
         // Tampilkan section ayat di dalam modal
         $('#ayatSectionEdit').slideDown(300);
-        
+
         setTimeout(function() {
             $('#iframeAyatEdit').attr('src', url);
-            
+
             // Scroll ke section ayat dalam modal setelah section muncul
             const modalBody = $('#modalFormEditNilai .modal-body');
             const ayatSection = $('#ayatSectionEdit');
@@ -979,7 +1042,7 @@
                 const modalBodyOffset = modalBody.offset().top;
                 const modalBodyScrollTop = modalBody.scrollTop();
                 const targetScroll = modalBodyScrollTop + (ayatOffset - modalBodyOffset) - 20;
-                
+
                 modalBody.animate({
                     scrollTop: targetScroll
                 }, 500);
@@ -1005,16 +1068,16 @@
             // Auto load data untuk juri
             loadDataNilaiJuri();
         <?php endif; ?>
-        
+
         $('#btnReload').on('click', loadDataNilaiJuri);
         $('#filterTypeUjian').on('change', loadDataNilaiJuri);
-        
+
         // Handler untuk verifikasi edit nilai
         $('#btnVerifyEdit').on('click', verifyEditNilai);
-        
+
         // Handler untuk save edit nilai
         $('#btnSaveEditNilai').on('click', saveEditNilaiWithReason);
-        
+
         // Jika admin, enable filter juri change
         <?php if (!$isJuri): ?>
             $('#filterJuri').on('change', function() {
@@ -1026,4 +1089,3 @@
     });
 </script>
 <?= $this->endSection(); ?>
-
