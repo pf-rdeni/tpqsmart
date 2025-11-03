@@ -109,7 +109,17 @@ class MunaqosahRegistrasiUjiModel extends Model
         $builder->where('r.NoPeserta', $noPeserta);
         $builder->where('r.TypeUjian', $typeUjian);
         $builder->where('r.IdTahunAjaran', $idTahunAjaran);
-        $builder->where('r.IdTpq', $idTpq !== null ? $idTpq : 0);
+
+        // Untuk munaqosah, jika idTpq null, tidak perlu filter berdasarkan IdTpq
+        // Untuk pra-munaqosah, selalu filter berdasarkan IdTpq
+        if ($typeUjian === 'munaqosah' && ($idTpq === null || $idTpq === 0 || $idTpq === '')) {
+            // Untuk munaqosah, juri tidak punya IdTpq, jadi tidak filter berdasarkan IdTpq
+            // Peserta bisa dari berbagai TPQ
+        } else {
+            // Untuk pra-munaqosah, atau munaqosah dengan IdTpq spesifik, filter berdasarkan IdTpq
+            $builder->where('r.IdTpq', $idTpq !== null ? $idTpq : 0);
+        }
+
         $builder->groupBy('r.NoPeserta');
         $result = $builder->get()->getRowArray();
         return $result ? $result : [];

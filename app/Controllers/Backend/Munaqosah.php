@@ -160,16 +160,39 @@ class Munaqosah extends BaseController
             $IdTahunAjaran = $this->request->getPost('IdTahunAjaran');
             $TypeUjian = $this->request->getPost('TypeUjian') ?? 'munaqosah';
 
-            // Ambil IdTpq dari data juri
-            $idTpq = $this->munaqosahJuriModel->getJuriByIdJuri($IdJuri)['IdTpq'];
-            if (empty($idTpq)) {
+            // Ambil data juri lengkap termasuk TypeUjian dan IdTpq
+            $juriDataForCheck = $this->munaqosahJuriModel->getJuriByIdJuri($IdJuri);
+            if (empty($juriDataForCheck)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'status' => 'DATA_NOT_FOUND',
-                    'code' => 'ID_TPQ_NOT_FOUND',
-                    'message' => 'ID TPQ tidak ditemukan',
-                    'details' => 'ID TPQ dengan ID Juri ' . $IdJuri . ' tidak ditemukan'
+                    'code' => 'JURI_NOT_FOUND',
+                    'message' => 'Data juri tidak ditemukan',
+                    'details' => 'Data juri dengan ID ' . $IdJuri . ' tidak ditemukan'
                 ]);
+            }
+
+            // Ambil TypeUjian dari data juri atau dari parameter
+            $juriTypeUjian = $juriDataForCheck['TypeUjian'] ?? $TypeUjian;
+            $idTpq = $juriDataForCheck['IdTpq'] ?? null;
+
+            // Validasi IdTpq berdasarkan TypeUjian
+            // Untuk pra-munaqosah, IdTpq harus ada
+            // Untuk munaqosah, IdTpq boleh null (ini normal)
+            if ($juriTypeUjian === 'pra-munaqosah' && empty($idTpq)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'ID_TPQ_REQUIRED_FOR_PRA_MUNAQOSAH',
+                    'message' => 'ID TPQ wajib untuk Pra-Munaqosah',
+                    'details' => 'Juri Pra-Munaqosah harus memiliki ID TPQ, namun ID TPQ tidak ditemukan untuk ID Juri ' . $IdJuri
+                ]);
+            }
+
+            // Pastikan TypeUjian konsisten
+            if (!empty($juriTypeUjian) && $juriTypeUjian !== $TypeUjian) {
+                // Jika TypeUjian dari juri berbeda dengan parameter, gunakan yang dari juri
+                $TypeUjian = $juriTypeUjian;
             }
 
             // Validasi parameter input
@@ -205,7 +228,10 @@ class Munaqosah extends BaseController
             }
 
             // Cek data registrasi peserta
-            $registrasi = $this->munaqosahRegistrasiUjiModel->getRegistrasiByNoPeserta($noPeserta, $TypeUjian, $IdTahunAjaran, $idTpq !== null ? $idTpq : 0);
+            // Untuk munaqosah dengan juri tanpa IdTpq, kirim null
+            // Untuk pra-munaqosah atau munaqosah dengan IdTpq, kirim IdTpq
+            $idTpqForQuery = ($TypeUjian === 'munaqosah' && empty($idTpq)) ? null : ($idTpq ?? 0);
+            $registrasi = $this->munaqosahRegistrasiUjiModel->getRegistrasiByNoPeserta($noPeserta, $TypeUjian, $IdTahunAjaran, $idTpqForQuery);
 
             if (empty($registrasi)) {
                 return $this->response->setJSON([
@@ -4252,6 +4278,791 @@ class Munaqosah extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal mengambil data grup materi: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Display data nilai juri page
+     */
+    public function dataNilaiJuri()
+    {
+        helper('munaqosah');
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $idTpq = session()->get('IdTpq');
+        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+
+        // Cek apakah user adalah Juri
+        $isJuri = in_groups('Juri');
+        $currentJuriData = null;
+        $currentJuriId = null;
+        $currentTypeUjian = null;
+
+        if ($isJuri) {
+            // Ambil data juri yang sedang login
+            $usernameJuri = user()->username;
+            $currentJuriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+
+            if ($currentJuriData) {
+                $currentJuriId = $currentJuriData->IdJuri;
+                $currentTypeUjian = $currentJuriData->TypeUjian ?? 'munaqosah';
+            }
+        }
+
+        // Ambil daftar juri untuk dropdown (hanya untuk admin)
+        $juriList = [];
+        if (!$isJuri) {
+            if ($idTpq && $idTpq != 0) {
+                $juriList = $this->munaqosahJuriModel->getJuriByTpq($idTpq);
+            } else {
+                // Jika admin, ambil semua juri aktif
+                $juriList = $this->munaqosahJuriModel->where('Status', 'Aktif')->findAll();
+            }
+        }
+
+        // Ambil nilai min dan max dari konfigurasi
+        $nilaiMinimal = 40;
+        $nilaiMaximal = 99;
+        if ($currentJuriData && !empty($currentJuriData->IdTpq)) {
+            $configIdTpq = (string)$currentJuriData->IdTpq;
+            $nilaiMinimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NilaiMinimal', 40);
+            $nilaiMaximal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NilaiMaximal', 99);
+        } else {
+            $nilaiMinimal = $this->munaqosahKonfigurasiModel->getSettingAsInt('default', 'NilaiMinimal', 40);
+            $nilaiMaximal = $this->munaqosahKonfigurasiModel->getSettingAsInt('default', 'NilaiMaximal', 99);
+        }
+
+        $data = [
+            'page_title' => 'Data Nilai Juri',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'tpqDropdown' => $dataTpq,
+            'juriList' => $juriList,
+            'isJuri' => $isJuri,
+            'currentJuriId' => $currentJuriId,
+            'currentJuriData' => $currentJuriData ? [
+                'IdJuri' => $currentJuriData->IdJuri,
+                'UsernameJuri' => $currentJuriData->UsernameJuri,
+                'TypeUjian' => $currentJuriData->TypeUjian ?? 'munaqosah',
+            ] : null,
+            'currentTypeUjian' => $currentTypeUjian,
+            'nilai_minimal' => $nilaiMinimal,
+            'nilai_maximal' => $nilaiMaximal,
+        ];
+
+        return view('backend/Munaqosah/dataNilaiJuri', $data);
+    }
+
+    /**
+     * Get data nilai juri untuk ditampilkan
+     */
+    public function getDataNilaiJuri()
+    {
+        $idJuri = $this->request->getPost('IdJuri');
+        $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
+        $typeUjian = $this->request->getPost('TypeUjian') ?? 'munaqosah';
+
+        if (empty($idJuri)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'IdJuri harus diisi'
+            ]);
+        }
+
+        if (empty($idTahunAjaran)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'IdTahunAjaran harus diisi'
+            ]);
+        }
+
+        try {
+            // Ambil data juri
+            $juriData = $this->munaqosahJuriModel->getJuriByIdJuri($idJuri);
+            if (empty($juriData)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data juri tidak ditemukan'
+                ]);
+            }
+
+            $idGrupMateriUjian = $juriData['IdGrupMateriUjian'] ?? null;
+            if (empty($idGrupMateriUjian)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Juri tidak memiliki grup materi ujian'
+                ]);
+            }
+
+            // Ambil data nilai yang sudah diinput oleh juri ini
+            $nilaiBuilder = $this->db->table('tbl_munaqosah_nilai n');
+            $nilaiBuilder->select('n.*, r.NoPeserta, r.IdSantri, r.IdTpq, r.TypeUjian as RegTypeUjian, 
+                s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
+            $nilaiBuilder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = n.NoPeserta AND r.IdKategoriMateri = n.IdKategoriMateri AND r.IdTahunAjaran = n.IdTahunAjaran AND r.TypeUjian = n.TypeUjian', 'left');
+            $nilaiBuilder->join('tbl_santri_baru s', 's.IdSantri = n.IdSantri', 'left');
+            $nilaiBuilder->join('tbl_tpq t', 't.IdTpq = n.IdTpq', 'left');
+            $nilaiBuilder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = n.IdKategoriMateri', 'left');
+            $nilaiBuilder->where('n.IdJuri', $idJuri);
+            $nilaiBuilder->where('n.IdTahunAjaran', $idTahunAjaran);
+            $nilaiBuilder->where('n.TypeUjian', $typeUjian);
+            $nilaiBuilder->where('n.IdGrupMateriUjian', $idGrupMateriUjian);
+            $nilaiBuilder->orderBy('n.NoPeserta', 'ASC');
+            $nilaiBuilder->orderBy('n.IdKategoriMateri', 'ASC');
+
+            $nilaiRows = $nilaiBuilder->get()->getResultArray();
+
+            if (empty($nilaiRows)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'data' => [
+                        'categories' => [],
+                        'rows' => [],
+                        'meta' => [
+                            'IdJuri' => $idJuri,
+                            'UsernameJuri' => $juriData['UsernameJuri'] ?? '',
+                            'IdGrupMateriUjian' => $idGrupMateriUjian,
+                            'IdTahunAjaran' => $idTahunAjaran,
+                            'TypeUjian' => $typeUjian,
+                        ]
+                    ]
+                ]);
+            }
+
+            // Buat map kategori materi
+            $categoriesMap = [];
+            foreach ($nilaiRows as $row) {
+                $catId = $row['IdKategoriMateri'];
+                if (empty($catId)) continue;
+
+                if (!isset($categoriesMap[$catId])) {
+                    $categoriesMap[$catId] = [
+                        'id' => $catId,
+                        'name' => $row['NamaKategoriMateri'] ?? $catId,
+                        'IdGrupMateriUjian' => $idGrupMateriUjian,
+                    ];
+                }
+            }
+
+            // Ambil konfigurasi MaxJuriPerRoom untuk grup materi
+            $configIdTpq = (!empty($juriData['IdTpq'])) ? (string)$juriData['IdTpq'] : 'default';
+            $settingKey = 'MaxJuriPerRoom_' . $idGrupMateriUjian;
+            $maxJuriSetting = $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, $settingKey);
+            $maxJuri = ($maxJuriSetting !== null && is_numeric($maxJuriSetting)) ? (int)$maxJuriSetting : 2;
+
+            // Set maxJuri untuk setiap kategori
+            foreach ($categoriesMap as $catId => $catData) {
+                $categoriesMap[$catId]['maxJuri'] = $maxJuri;
+            }
+
+            ksort($categoriesMap);
+            $categories = array_values($categoriesMap);
+
+            // Buat map peserta dengan nilai
+            $pesertaMap = [];
+            foreach ($nilaiRows as $row) {
+                $np = $row['NoPeserta'];
+                $catId = $row['IdKategoriMateri'];
+
+                if (!isset($pesertaMap[$np])) {
+                    $pesertaMap[$np] = [
+                        'NoPeserta' => $np,
+                        'IdSantri' => $row['IdSantri'],
+                        'IdTpq' => $row['IdTpq'],
+                        'NamaSantri' => $row['NamaSantri'] ?? '-',
+                        'NamaTpq' => $row['NamaTpq'] ?? '-',
+                        'TypeUjian' => $row['RegTypeUjian'] ?? $typeUjian,
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'nilai' => [],
+                        'nilaiIds' => [], // Untuk menyimpan ID nilai untuk edit
+                    ];
+                }
+
+                // Simpan nilai dengan ID
+                if (!isset($pesertaMap[$np]['nilai'][$catId])) {
+                    $pesertaMap[$np]['nilai'][$catId] = [];
+                    $pesertaMap[$np]['nilaiIds'][$catId] = [];
+                }
+
+                // Simpan nilai dan ID
+                $pesertaMap[$np]['nilai'][$catId][0] = (float)$row['Nilai'];
+                $pesertaMap[$np]['nilaiIds'][$catId][0] = $row['id']; // ID dari tabel nilai untuk edit
+            }
+
+            // Convert pesertaMap ke array
+            $rows = array_values($pesertaMap);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [
+                    'categories' => $categories,
+                    'rows' => $rows,
+                    'meta' => [
+                        'IdJuri' => $idJuri,
+                        'UsernameJuri' => $juriData['UsernameJuri'] ?? '',
+                        'IdGrupMateriUjian' => $idGrupMateriUjian,
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'TypeUjian' => $typeUjian,
+                        'maxJuri' => $maxJuri,
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getDataNilaiJuri: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get detail nilai untuk edit
+     */
+    public function getDetailNilai()
+    {
+        $id = $this->request->getPost('id');
+
+        if (empty($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ID nilai harus diisi'
+            ]);
+        }
+
+        try {
+            $nilai = $this->nilaiMunaqosahModel->find($id);
+            if (empty($nilai)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data nilai tidak ditemukan'
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $nilai
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getDetailNilai: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update nilai
+     */
+    public function updateNilai()
+    {
+        $id = $this->request->getPost('id');
+        $nilai = $this->request->getPost('Nilai');
+        $catatan = $this->request->getPost('Catatan');
+
+        if (empty($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ID nilai harus diisi'
+            ]);
+        }
+
+        if ($nilai === null || $nilai === '') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Nilai harus diisi'
+            ]);
+        }
+
+        $nilai = (float)$nilai;
+        if ($nilai < 0 || $nilai > 100) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Nilai harus antara 0-100'
+            ]);
+        }
+
+        try {
+            // Ambil data nilai yang akan diupdate
+            $nilaiData = $this->nilaiMunaqosahModel->find($id);
+            if (empty($nilaiData)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data nilai tidak ditemukan'
+                ]);
+            }
+
+            // Update data
+            $updateData = [
+                'Nilai' => $nilai,
+                'Catatan' => $catatan ?? $nilaiData['Catatan'],
+                'IsModified' => 1,
+                'ModifiedBy' => session()->get('username') ?? 'System',
+                'ModifiedAt' => date('Y-m-d H:i:s'),
+                'ModificationReason' => 'Edit dari halaman Data Nilai Juri'
+            ];
+
+            if ($this->nilaiMunaqosahModel->update($id, $updateData)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Nilai berhasil diperbarui'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui nilai',
+                    'errors' => $this->nilaiMunaqosahModel->errors()
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in updateNilai: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Verify Admin/Operator credentials for editing nilai
+     */
+    public function verifyEditNilaiCredentials()
+    {
+        try {
+            $username = $this->request->getPost('username');
+            $password = $this->request->getPost('password');
+            $typeUjian = $this->request->getPost('typeUjian') ?? 'munaqosah';
+            $idNilai = $this->request->getPost('idNilai'); // ID nilai yang akan diedit
+
+            if (empty($username)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'message' => 'Username tidak boleh kosong'
+                ]);
+            }
+
+            if (empty($password)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'message' => 'Password tidak boleh kosong'
+                ]);
+            }
+
+            // Verify user
+            $userModel = new \App\Models\UserModel();
+            $user = $userModel->where('username', $username)->first();
+
+            if (!$user) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'AUTHENTICATION_ERROR',
+                    'message' => 'Username tidak ditemukan'
+                ]);
+            }
+
+            if (!$user['active']) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'AUTHENTICATION_ERROR',
+                    'message' => 'User tidak aktif'
+                ]);
+            }
+
+            // Verify password using Myth\Auth\Password
+            $passwordLib = new \Myth\Auth\Password();
+            if (!$passwordLib->verify($password, $user['password_hash'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'AUTHENTICATION_ERROR',
+                    'message' => 'Password tidak valid'
+                ]);
+            }
+
+            // Check authorization based on typeUjian - query groups dari database
+            $builder = $this->db->table('auth_groups_users agu');
+            $builder->select('ag.name');
+            $builder->join('auth_groups ag', 'ag.id = agu.group_id', 'inner');
+            $builder->where('agu.user_id', $user['id']);
+
+            $userGroups = $builder->get()->getResultArray();
+
+            $isAdmin = false;
+            $isOperator = false;
+
+            foreach ($userGroups as $group) {
+                if ($group['name'] === 'Admin') {
+                    $isAdmin = true;
+                }
+                if ($group['name'] === 'Operator') {
+                    $isOperator = true;
+                }
+            }
+
+            if ($typeUjian === 'munaqosah') {
+                // Untuk munaqosah, harus Admin
+                if (!$isAdmin) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'status' => 'AUTHORIZATION_ERROR',
+                        'message' => 'Hanya Admin yang dapat mengedit nilai Munaqosah'
+                    ]);
+                }
+            } else if ($typeUjian === 'pra-munaqosah') {
+                // Untuk pra-munaqosah, harus Operator
+                if (!$isOperator) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'status' => 'AUTHORIZATION_ERROR',
+                        'message' => 'Hanya Operator yang dapat mengedit nilai Pra-Munaqosah'
+                    ]);
+                }
+
+                // Validasi IdTpq: Operator hanya bisa edit nilai dari juri yang berasal dari TPQ yang sama
+                if (!empty($idNilai)) {
+                    // Ambil data nilai untuk mendapatkan IdTpq dari juri
+                    $nilaiData = $this->nilaiMunaqosahModel->find($idNilai);
+                    if (!empty($nilaiData)) {
+                        // Ambil IdJuri dari nilai
+                        $idJuri = $nilaiData['IdJuri'] ?? null;
+                        if (!empty($idJuri)) {
+                            // Ambil data juri untuk mendapatkan IdTpq
+                            $juriData = $this->munaqosahJuriModel->getJuriByIdJuri($idJuri);
+                            $idTpqJuri = $juriData['IdTpq'] ?? null;
+
+                            // Ambil IdTpq dari Operator (user)
+                            // Operator biasanya terkait dengan TPQ melalui tabel tbl_guru atau langsung dari user
+                            $operatorIdTpq = null;
+
+                            // Coba ambil dari tabel guru jika user terkait dengan guru
+                            $guruData = $this->db->table('tbl_guru')
+                                ->where('IdGuru', $user['nik'])
+                                ->get()
+                                ->getRowArray();
+
+                            if ($guruData && !empty($guruData)) {
+                                $operatorIdTpq = $guruData['IdTpq'] ?? null;
+                            } else {
+                                // Jika tidak ada di guru, coba ambil dari user langsung (jika ada field IdTpq di users)
+                                $operatorIdTpq = $user['IdTpq'] ?? null;
+                            }
+
+                            // Validasi: IdTpq Operator harus sama dengan IdTpq Juri
+                            if (!empty($idTpqJuri) && !empty($operatorIdTpq)) {
+                                // Konversi ke string untuk perbandingan yang konsisten
+                                $idTpqJuriStr = (string)$idTpqJuri;
+                                $operatorIdTpqStr = (string)$operatorIdTpq;
+
+                                if ($idTpqJuriStr !== $operatorIdTpqStr) {
+                                    return $this->response->setJSON([
+                                        'success' => false,
+                                        'status' => 'AUTHORIZATION_ERROR',
+                                        'message' => 'Operator hanya dapat mengedit nilai dari juri yang berasal dari TPQ yang sama. IdTpq Operator: ' . $operatorIdTpqStr . ', IdTpq Juri: ' . $idTpqJuriStr
+                                    ]);
+                                }
+                            } else if (empty($operatorIdTpq)) {
+                                return $this->response->setJSON([
+                                    'success' => false,
+                                    'status' => 'AUTHORIZATION_ERROR',
+                                    'message' => 'Operator tidak memiliki IdTpq yang valid'
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Kredensial valid'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in verifyEditNilaiCredentials: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'status' => 'SYSTEM_ERROR',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get data peserta untuk edit nilai (mirip cekPeserta)
+     */
+    public function getPesertaForEditNilai()
+    {
+        try {
+            $noPeserta = $this->request->getPost('noPeserta');
+            $idNilai = $this->request->getPost('idNilai');
+
+            if (empty($noPeserta) && empty($idNilai)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No Peserta atau ID Nilai harus diisi'
+                ]);
+            }
+
+            // Ambil data nilai
+            $nilaiPertama = null;
+            if (!empty($idNilai)) {
+                $nilaiPertama = $this->nilaiMunaqosahModel->find($idNilai);
+                if (empty($nilaiPertama)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Data nilai tidak ditemukan'
+                    ]);
+                }
+                $noPeserta = $nilaiPertama['NoPeserta'];
+            }
+
+            // Ambil data registrasi peserta
+            $registrasi = $this->munaqosahRegistrasiUjiModel
+                ->where('NoPeserta', $noPeserta)
+                ->where('IdTahunAjaran', $nilaiPertama['IdTahunAjaran'] ?? session()->get('IdTahunAjaran'))
+                ->where('TypeUjian', $nilaiPertama['TypeUjian'] ?? 'munaqosah')
+                ->first();
+
+            if (empty($registrasi)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data registrasi peserta tidak ditemukan'
+                ]);
+            }
+
+            // Ambil data santri
+            $santriData = $this->santriBaruModel->getDetailSantri($registrasi['IdSantri']);
+            if (empty($santriData)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data santri tidak ditemukan'
+                ]);
+            }
+
+            // Ambil data juri dari nilai
+            $juriData = $this->munaqosahJuriModel->getJuriByIdJuri($nilaiPertama['IdJuri'] ?? '');
+
+            // Ambil grup materi
+            $grupMateri = $this->grupMateriUjiMunaqosahModel
+                ->where('IdGrupMateriUjian', $nilaiPertama['IdGrupMateriUjian'] ?? '')
+                ->first();
+
+            // Ambil materi berdasarkan registrasi
+            $materiData = $this->munaqosahRegistrasiUjiModel->getMateriByNoPesertaAndGrup(
+                $noPeserta,
+                $nilaiPertama['IdGrupMateriUjian'] ?? '',
+                $nilaiPertama['TypeUjian'] ?? 'munaqosah',
+                $nilaiPertama['IdTahunAjaran'] ?? session()->get('IdTahunAjaran')
+            );
+
+            // Transform data materi untuk konsistensi
+            $transformedMateriData = [];
+            foreach ($materiData as $materi) {
+                $namaKategori = $materi['NamaKategoriMateri'] ?? ($materi['KategoriMateriUjian'] ?? null);
+
+                $transformedMateriData[] = [
+                    'IdMateri' => $materi['IdMateri'],
+                    'NamaMateri' => $materi['NamaMateri'],
+                    'IdKategoriMateri' => $materi['IdKategoriMateri'] ?? null,
+                    'NamaKategoriMateri' => $namaKategori,
+                    'KategoriMateriUjian' => $namaKategori,
+                    'IdGrupMateriUjian' => $materi['IdGrupMateriUjian'],
+                    'WebLinkAyat' => isset($materi['WebLinkAyat']) ? $materi['WebLinkAyat'] : null,
+                    'KategoriAsli' => isset($materi['KategoriAsli']) ? $materi['KategoriAsli'] : null
+                ];
+            }
+
+            // Ambil semua nilai yang sudah ada untuk peserta ini (dari juri yang sama)
+            $nilaiYangAda = $this->nilaiMunaqosahModel
+                ->where('NoPeserta', $noPeserta)
+                ->where('IdJuri', $nilaiPertama['IdJuri'] ?? '')
+                ->where('IdTahunAjaran', $nilaiPertama['IdTahunAjaran'] ?? '')
+                ->where('TypeUjian', $nilaiPertama['TypeUjian'] ?? '')
+                ->findAll();
+
+            // Buat map nilai yang sudah ada berdasarkan IdMateri
+            $nilaiMap = [];
+            foreach ($nilaiYangAda as $nilai) {
+                $nilaiMap[$nilai['IdMateri']] = [
+                    'id' => $nilai['id'],
+                    'Nilai' => $nilai['Nilai'],
+                    'Catatan' => $nilai['Catatan']
+                ];
+            }
+
+            // Ambil kategori kesalahan per kategori materi (mirip cekPeserta)
+            $kategoriNames = array_unique(array_filter(array_map(function ($materi) {
+                return $materi['KategoriMateriUjian'] ?? $materi['NamaKategoriMateri'] ?? null;
+            }, $transformedMateriData)));
+
+            $errorCategoriesByKategori = [];
+            if (!empty($kategoriNames)) {
+                $errorCategoryRows = $this->munaqosahKategoriKesalahanModel
+                    ->select('tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_munaqosah_kategori_materi.NamaKategoriMateri')
+                    ->join('tbl_munaqosah_kategori_materi', 'tbl_munaqosah_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
+                    ->whereIn('tbl_munaqosah_kategori_materi.NamaKategoriMateri', $kategoriNames)
+                    ->where('tbl_munaqosah_kategori_kesalahan.Status', 'Aktif')
+                    ->orderBy('tbl_munaqosah_kategori_materi.NamaKategoriMateri', 'ASC')
+                    ->orderBy('tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan', 'ASC')
+                    ->findAll();
+
+                foreach ($errorCategoryRows as $row) {
+                    $kategoriName = $row['NamaKategoriMateri'];
+                    if (!isset($errorCategoriesByKategori[$kategoriName])) {
+                        $errorCategoriesByKategori[$kategoriName] = [];
+                    }
+                    $errorCategoriesByKategori[$kategoriName][] = $row['NamaKategoriKesalahan'];
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [
+                    'peserta' => [
+                        'NoPeserta' => $noPeserta,
+                        'IdSantri' => $santriData['IdSantri'],
+                        'NamaSantri' => $santriData['NamaSantri'],
+                        'IdTpq' => $registrasi['IdTpq'],
+                    ],
+                    'juri' => [
+                        'IdJuri' => $juriData['IdJuri'] ?? '',
+                        'UsernameJuri' => $juriData['UsernameJuri'] ?? '',
+                        'NamaMateriGrup' => $grupMateri['NamaMateriGrup'] ?? '',
+                        'RoomId' => $juriData['RoomId'] ?? '',
+                    ],
+                    'materi' => $transformedMateriData,
+                    'nilai_yang_ada' => $nilaiMap,
+                    'error_categories' => $errorCategoriesByKategori,
+                    'typeUjian' => $nilaiPertama['TypeUjian'] ?? 'munaqosah',
+                    'idTahunAjaran' => $nilaiPertama['IdTahunAjaran'] ?? session()->get('IdTahunAjaran'),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getPesertaForEditNilai: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update nilai dengan alasan edit (versi baru)
+     */
+    public function updateNilaiWithReason()
+    {
+        $idNilai = $this->request->getPost('idNilai');
+        $alasanEdit = $this->request->getPost('alasanEdit');
+        $nilaiData = $this->request->getPost('nilai');
+        $catatanData = $this->request->getPost('catatan') ?? [];
+
+        if (empty($idNilai)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ID nilai harus diisi'
+            ]);
+        }
+
+        if (empty($alasanEdit)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Alasan edit harus diisi'
+            ]);
+        }
+
+        if (empty($nilaiData) || !is_array($nilaiData)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data nilai harus diisi'
+            ]);
+        }
+
+        try {
+            // Ambil data nilai pertama untuk mendapatkan info dasar
+            $nilaiPertama = $this->nilaiMunaqosahModel->find($idNilai);
+            if (empty($nilaiPertama)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data nilai tidak ditemukan'
+                ]);
+            }
+
+            $noPeserta = $nilaiPertama['NoPeserta'];
+            $idJuri = $nilaiPertama['IdJuri'];
+            $typeUjian = $nilaiPertama['TypeUjian'];
+            $idTahunAjaran = $nilaiPertama['IdTahunAjaran'];
+
+            // Validasi nilai
+            foreach ($nilaiData as $idMateri => $nilai) {
+                if (!is_numeric($nilai)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Format nilai tidak valid untuk materi ' . $idMateri
+                    ]);
+                }
+
+                $nilai = floatval($nilai);
+                // Ambil nilai min/max dari konfigurasi
+                $configIdTpq = $nilaiPertama['IdTpq'] ?? 'default';
+                $nilaiMinimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NilaiMinimal', 40);
+                $nilaiMaximal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NilaiMaximal', 99);
+
+                if ($nilai < $nilaiMinimal || $nilai > $nilaiMaximal) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Nilai untuk materi ' . $idMateri . ' harus dalam range ' . $nilaiMinimal . '-' . $nilaiMaximal
+                    ]);
+                }
+            }
+
+            // Update semua nilai untuk peserta ini dari juri yang sama
+            $updateCount = 0;
+            foreach ($nilaiData as $idMateri => $nilai) {
+                // Cari nilai berdasarkan IdMateri, NoPeserta, dan IdJuri
+                $nilaiRecord = $this->nilaiMunaqosahModel
+                    ->where('IdMateri', $idMateri)
+                    ->where('NoPeserta', $noPeserta)
+                    ->where('IdJuri', $idJuri)
+                    ->where('IdTahunAjaran', $idTahunAjaran)
+                    ->where('TypeUjian', $typeUjian)
+                    ->first();
+
+                if ($nilaiRecord) {
+                    $catatan = isset($catatanData[$idMateri]) ? $catatanData[$idMateri] : $nilaiRecord['Catatan'];
+
+                    $updateData = [
+                        'Nilai' => (float)$nilai,
+                        'Catatan' => $catatan,
+                        'IsModified' => 1,
+                        'ModifiedBy' => session()->get('username') ?? 'System',
+                        'ModifiedAt' => date('Y-m-d H:i:s'),
+                        'ModificationReason' => $alasanEdit
+                    ];
+
+                    if ($this->nilaiMunaqosahModel->update($nilaiRecord['id'], $updateData)) {
+                        $updateCount++;
+                    }
+                }
+            }
+
+            if ($updateCount > 0) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Nilai berhasil diperbarui (' . $updateCount . ' nilai)'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada nilai yang berhasil diperbarui'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in updateNilaiWithReason: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ]);
         }
     }

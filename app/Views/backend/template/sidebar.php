@@ -63,9 +63,9 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah/nilai') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/munaqosah/data-nilai-juri') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Daftar Nilai Juri</p>
+                                        <p>Data Nilai Juri</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
@@ -130,6 +130,12 @@
                                     <a href=<?php echo base_url('backend/munaqosah/juri') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Data Juri</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/data-nilai-juri') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Data Nilai Juri</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">

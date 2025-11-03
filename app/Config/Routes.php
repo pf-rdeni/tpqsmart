@@ -175,6 +175,13 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
 
     // Routes untuk input nilai juri
     $routes->get('munaqosah/input-nilai-juri', 'Munaqosah::inputNilaiJuri');
+    $routes->get('munaqosah/data-nilai-juri', 'Munaqosah::dataNilaiJuri');
+    $routes->post('munaqosah/get-data-nilai-juri', 'Munaqosah::getDataNilaiJuri');
+    $routes->post('munaqosah/get-detail-nilai', 'Munaqosah::getDetailNilai');
+    $routes->post('munaqosah/update-nilai', 'Munaqosah::updateNilai');
+    $routes->post('munaqosah/verify-edit-nilai-credentials', 'Munaqosah::verifyEditNilaiCredentials');
+    $routes->post('munaqosah/get-peserta-for-edit-nilai', 'Munaqosah::getPesertaForEditNilai');
+    $routes->post('munaqosah/update-nilai-with-reason', 'Munaqosah::updateNilaiWithReason');
     $routes->get('munaqosah/get-current-tahun-ajaran', 'Munaqosah::getCurrentTahunAjaran');
     $routes->post('munaqosah/cek-peserta', 'Munaqosah::cekPeserta');
     $routes->post('munaqosah/simpan-nilai-juri', 'Munaqosah::simpanNilaiJuri');
