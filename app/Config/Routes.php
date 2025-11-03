@@ -41,6 +41,16 @@ $routes->get('pendaftaran/success/(:segment)', 'SantriPendaftaran::showSuccessEm
 $routes->get('pendaftaran/getNikSantri/(:segment)', 'SantriPendaftaran::getNikSantri/$1');
 $routes->get('pendaftaran/generatePDFSantriBaru/(:segment)', 'SantriPendaftaran::generatePDFSantriBaru/$1');
 
+// Routes untuk cek status munaqosah (public access)
+$routes->get('munaqosah/cek-status', 'Frontend\StatusUjianMunaqosah::index');
+$routes->get('munaqosah/cek-status/(:segment)', 'Frontend\StatusUjianMunaqosah::index/$1');
+$routes->post('munaqosah/verify-hashkey', 'Frontend\StatusUjianMunaqosah::verifyHashKey');
+$routes->get('munaqosah/konfirmasi-data', 'Frontend\StatusUjianMunaqosah::konfirmasiData');
+$routes->post('munaqosah/process-konfirmasi', 'Frontend\StatusUjianMunaqosah::processKonfirmasi');
+$routes->get('munaqosah/status-proses', 'Frontend\StatusUjianMunaqosah::statusProses');
+$routes->get('munaqosah/kelulusan', 'Frontend\StatusUjianMunaqosah::kelulusan');
+$routes->get('munaqosah/generate-surat-kelulusan', 'Frontend\StatusUjianMunaqosah::generateSuratKelulusan');
+
 // Admin routes (dengan login)
 $routes->get('backend/santri', 'SantriPendaftaran::createEmisStep/admin');
 $routes->post('backend/santri/save', 'SantriPendaftaran::save/admin');

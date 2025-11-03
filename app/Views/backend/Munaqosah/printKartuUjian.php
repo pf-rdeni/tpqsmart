@@ -198,7 +198,7 @@
                     <div class="footer-qr">
                         <?= $p['footerQrCode'] ?? '<div style="font-size: 6px; text-align: center; border: 1px solid #000; padding: 1px; background: #f0f0f0;">QR</div>' ?>
                     </div>
-                    <div class="footer-text"> <br> Scan QR untuk hasil ujian:<br>Website: https://tpqsmart.simpedis.com/nilai-ujian<br> HasKey: <b><?= $p['HasKey'] ?></b> </div>
+                    <div class="footer-text"> <br> Scan QR untuk hasil ujian:<br>Website: https://tpqsmart.simpedis.com/munaqosah/cek-status<br> HasKey: <b><?= $p['HasKey'] ?></b> </div>
                 </div>
             </div>
         </div>
