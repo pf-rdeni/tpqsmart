@@ -1547,7 +1547,7 @@
             $('#kkSantriInfo').html(`
                 <div class="d-flex align-items-center">
                     <i class="fas fa-file-pdf text-danger mr-2"></i>
-                    <a href="<?= base_url('uploads/') ?>${data.FileKkSantri}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <a href="<?= base_url('uploads/santri/') ?>${data.FileKkSantri}" target="_blank" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-download"></i> Lihat File
                     </a>
                 </div>
@@ -1561,7 +1561,7 @@
             $('#kkAyahInfo').html(`
                 <div class="d-flex align-items-center">
                     <i class="fas fa-file-pdf text-danger mr-2"></i>
-                    <a href="<?= base_url('uploads/') ?>${data.FileKkAyah}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <a href="<?= base_url('uploads/santri/') ?>${data.FileKkAyah}" target="_blank" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-download"></i> Lihat File
                     </a>
                 </div>
@@ -1575,7 +1575,7 @@
             $('#kkIbuInfo').html(`
                 <div class="d-flex align-items-center">
                     <i class="fas fa-file-pdf text-danger mr-2"></i>
-                    <a href="<?= base_url('uploads/') ?>${data.FileKkIbu}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <a href="<?= base_url('uploads/santri/') ?>${data.FileKkIbu}" target="_blank" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-download"></i> Lihat File
                     </a>
                 </div>
@@ -1589,7 +1589,7 @@
             $('#kkWaliInfo').html(`
                 <div class="d-flex align-items-center">
                     <i class="fas fa-file-pdf text-danger mr-2"></i>
-                    <a href="<?= base_url('uploads/') ?>${data.FileKkWali}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <a href="<?= base_url('uploads/santri/') ?>${data.FileKkWali}" target="_blank" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-download"></i> Lihat File
                     </a>
                 </div>
