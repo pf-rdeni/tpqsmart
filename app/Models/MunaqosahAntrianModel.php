@@ -19,7 +19,8 @@ class MunaqosahAntrianModel extends Model
         'RoomId',
         'Keterangan',
         'IdTpq',
-        'IdSantri'
+        'IdSantri',
+        'GroupPeserta'
     ];
 
     protected $validationRules = [
@@ -32,7 +33,8 @@ class MunaqosahAntrianModel extends Model
         'RoomId' => 'permit_empty|max_length[20]',
         'Keterangan' => 'permit_empty',
         'IdTpq' => 'permit_empty|max_length[50]',
-        'IdSantri' => 'permit_empty|max_length[50]'
+        'IdSantri' => 'permit_empty|max_length[50]',
+        'GroupPeserta' => 'permit_empty|max_length[50]'
     ];
 
     protected $validationMessages = [
@@ -140,6 +142,9 @@ class MunaqosahAntrianModel extends Model
         }
 
         $builder->orderBy('q.Status', 'ASC');
+        // Sorting berdasarkan GroupPeserta (ASC), jika NULL maka default ke 'Group 1'
+        //Jika diperlukan kondisi memprioritaskan GroupPeserta, gunakan kondisi ini
+        //$builder->orderBy('COALESCE(q.GroupPeserta, \'Group 1\')', 'ASC', false);
         $builder->orderBy('q.created_at', 'ASC');
         $builder->groupBy('q.id');
 

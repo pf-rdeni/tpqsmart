@@ -197,9 +197,11 @@
         // Load TPQ dari peserta saat filter berubah
         function loadTpqFromPeserta() {
             const tahunAjaran = $('#filterTahunAjaran').val() || currentTahunAjaran;
+            const typeUjian = $('#inputTypeUjian').val() || $('#filterTypeUjian').val();
 
             $.get('<?= base_url("backend/munaqosah/get-tpq-from-peserta") ?>', {
-                tahunAjaran: tahunAjaran
+                tahunAjaran: tahunAjaran,
+                typeUjian: typeUjian
             }, function(response) {
                 if (response.success) {
                     const select = $('#inputIdTpq');
@@ -866,6 +868,12 @@
             loadJadwal();
         });
 
+        // Event handler untuk input TypeUjian - update TPQ dropdown saat type ujian berubah
+        $('#inputTypeUjian').change(function() {
+            loadTpqFromPeserta();
+            loadAvailableGroups();
+        });
+
         // Update TPQ dropdown saat tahun ajaran berubah
         $('#filterTahunAjaran').change(function() {
             loadTpqFromPeserta();
@@ -879,11 +887,6 @@
 
         // Event handler untuk input Tanggal - update grup saat tanggal berubah
         $('#inputTanggal').change(function() {
-            loadAvailableGroups();
-        });
-
-        // Event handler untuk TypeUjian - update grup saat type ujian berubah
-        $('#inputTypeUjian').change(function() {
             loadAvailableGroups();
         });
 

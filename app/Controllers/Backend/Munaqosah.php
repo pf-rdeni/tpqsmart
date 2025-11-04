@@ -987,6 +987,14 @@ class Munaqosah extends BaseController
         $availableRooms = [];
 
         if ($selectedGroup) {
+            // Ambil kapasitas maksimal ruangan dari konfigurasi berdasarkan grup materi
+            $configIdTpq = $selectedTpq ?? '0';
+            $settingKey = 'KapasitasRuanganMaksimal_' . $selectedGroup;
+            $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+            if ($kapasitasMaksimal <= 0) {
+                $kapasitasMaksimal = 1;
+            }
+
             $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
             $roomStatuses = [];
 
@@ -995,10 +1003,14 @@ class Munaqosah extends BaseController
                 $roomStatuses[$roomId] = [
                     'RoomId' => $roomId,
                     'occupied' => false,
-                    'participant' => null,
+                    'participant_count' => 0,
+                    'participants' => [],
+                    'max_capacity' => $kapasitasMaksimal,
+                    'is_full' => false,
                 ];
             }
 
+            // Hitung jumlah peserta per ruangan
             foreach ($queue as $row) {
                 if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
                     $roomId = $row['RoomId'];
@@ -1006,19 +1018,29 @@ class Munaqosah extends BaseController
                         $roomStatuses[$roomId] = [
                             'RoomId' => $roomId,
                             'occupied' => false,
-                            'participant' => null,
+                            'participant_count' => 0,
+                            'participants' => [],
+                            'max_capacity' => $kapasitasMaksimal,
+                            'is_full' => false,
                         ];
                     }
 
+                    $roomStatuses[$roomId]['participant_count']++;
+                    $roomStatuses[$roomId]['participants'][] = $row;
                     $roomStatuses[$roomId]['occupied'] = true;
-                    $roomStatuses[$roomId]['participant'] = $row;
+
+                    // Tandai ruangan penuh jika mencapai kapasitas maksimal
+                    if ($roomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
+                        $roomStatuses[$roomId]['is_full'] = true;
+                    }
                 }
             }
 
             $rooms = array_values($roomStatuses);
 
             foreach ($roomStatuses as $roomStatus) {
-                if (!$roomStatus['occupied']) {
+                // Ruangan tersedia jika belum penuh
+                if (!$roomStatus['is_full']) {
                     $availableRooms[] = $roomStatus['RoomId'];
                 }
             }
@@ -1114,6 +1136,13 @@ class Munaqosah extends BaseController
         $idSantri = $registrasi['IdSantri'] ?? null;
         $kategoriId = $registrasi['IdKategoriMateri'] ?? null;
 
+        // Ambil GroupPeserta dari jadwal ujian berdasarkan IdTpq, IdTahunAjaran, dan TypeUjian
+        // Jika tidak ditemukan, default ke 'Group 1'
+        $groupPeserta = 'Group 1'; // Default
+        if (!empty($idTpq)) {
+            $groupPeserta = $this->munaqosahJadwalUjianModel->getGroupPesertaByTpq($idTpq, $idTahunAjaran, $typeUjian);
+        }
+
         // Cek apakah peserta sudah ada di antrian aktif dengan menggunakan IdTpq juga
         $existing = $this->antrianMunaqosahModel
             ->where('NoPeserta', $noPeserta)
@@ -1147,7 +1176,8 @@ class Munaqosah extends BaseController
             'IdSantri' => $idSantri,
             'Status' => 0,
             'RoomId' => null,
-            'Keterangan' => null
+            'Keterangan' => null,
+            'GroupPeserta' => $groupPeserta
         ];
 
         if ($this->antrianMunaqosahModel->save($data)) {
@@ -1207,8 +1237,17 @@ class Munaqosah extends BaseController
             ]);
         }
 
-        // Cari ruangan yang benar-benar kosong (belum digunakan)
-        $occupiedRooms = [];
+        // Ambil kapasitas maksimal ruangan dari konfigurasi berdasarkan grup materi
+        $configIdTpq = $idTpq ?? '0';
+        $settingKey = !empty($idGrupMateri) ? 'KapasitasRuanganMaksimal_' . $idGrupMateri : 'KapasitasRuanganMaksimal';
+        $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+
+        // Jika kapasitas tidak di-set atau 0, default ke 1 (satu peserta per ruangan)
+        if ($kapasitasMaksimal <= 0) {
+            $kapasitasMaksimal = 1;
+        }
+
+        // Hitung jumlah peserta per ruangan yang sedang digunakan (Status = 1)
         $occupiedQuery = $this->antrianMunaqosahModel
             ->where('Status', 1)
             ->where('RoomId IS NOT NULL')
@@ -1227,17 +1266,27 @@ class Munaqosah extends BaseController
         }
 
         $occupiedData = $occupiedQuery->findAll();
+
+        // Hitung jumlah peserta per ruangan
+        $roomOccupancy = [];
         foreach ($occupiedData as $row) {
             if (!empty($row['RoomId'])) {
-                $occupiedRooms[] = $row['RoomId'];
+                $roomId = $row['RoomId'];
+                if (!isset($roomOccupancy[$roomId])) {
+                    $roomOccupancy[$roomId] = 0;
+                }
+                $roomOccupancy[$roomId]++;
             }
         }
 
-        // Cari ruangan pertama yang tidak occupied
+        // Cari ruangan pertama yang masih memiliki kapasitas
         $selectedRoom = null;
         foreach ($availableRooms as $room) {
             $roomId = $room['RoomId'];
-            if (!in_array($roomId, $occupiedRooms)) {
+            $currentOccupancy = $roomOccupancy[$roomId] ?? 0;
+
+            // Jika ruangan masih memiliki kapasitas (belum penuh)
+            if ($currentOccupancy < $kapasitasMaksimal) {
                 $selectedRoom = $roomId;
                 break;
             }
@@ -1246,7 +1295,7 @@ class Munaqosah extends BaseController
         if (empty($selectedRoom)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Semua ruangan sedang digunakan saat ini'
+                'message' => 'Semua ruangan sudah mencapai kapasitas maksimal'
             ]);
         }
 
@@ -1452,6 +1501,14 @@ class Munaqosah extends BaseController
         $availableRooms = [];
 
         if ($selectedGroup) {
+            // Ambil kapasitas maksimal ruangan dari konfigurasi berdasarkan grup materi
+            $configIdTpq = $selectedTpq ?? '0';
+            $settingKey = 'KapasitasRuanganMaksimal_' . $selectedGroup;
+            $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+            if ($kapasitasMaksimal <= 0) {
+                $kapasitasMaksimal = 1;
+            }
+
             $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
             $roomStatuses = [];
 
@@ -1460,10 +1517,14 @@ class Munaqosah extends BaseController
                 $roomStatuses[$roomId] = [
                     'RoomId' => $roomId,
                     'occupied' => false,
-                    'participant' => null,
+                    'participant_count' => 0,
+                    'participants' => [],
+                    'max_capacity' => $kapasitasMaksimal,
+                    'is_full' => false,
                 ];
             }
 
+            // Hitung jumlah peserta per ruangan
             foreach ($queue as $row) {
                 if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
                     $roomId = $row['RoomId'];
@@ -1471,19 +1532,29 @@ class Munaqosah extends BaseController
                         $roomStatuses[$roomId] = [
                             'RoomId' => $roomId,
                             'occupied' => false,
-                            'participant' => null,
+                            'participant_count' => 0,
+                            'participants' => [],
+                            'max_capacity' => $kapasitasMaksimal,
+                            'is_full' => false,
                         ];
                     }
 
+                    $roomStatuses[$roomId]['participant_count']++;
+                    $roomStatuses[$roomId]['participants'][] = $row;
                     $roomStatuses[$roomId]['occupied'] = true;
-                    $roomStatuses[$roomId]['participant'] = $row;
+
+                    // Tandai ruangan penuh jika mencapai kapasitas maksimal
+                    if ($roomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
+                        $roomStatuses[$roomId]['is_full'] = true;
+                    }
                 }
             }
 
             $rooms = array_values($roomStatuses);
 
             foreach ($roomStatuses as $roomStatus) {
-                if (!$roomStatus['occupied']) {
+                // Ruangan tersedia jika belum penuh
+                if (!$roomStatus['is_full']) {
                     $availableRooms[] = $roomStatus['RoomId'];
                 }
             }
@@ -1588,6 +1659,14 @@ class Munaqosah extends BaseController
         $availableRooms = [];
 
         if ($selectedGroup) {
+            // Ambil kapasitas maksimal ruangan dari konfigurasi berdasarkan grup materi
+            $configIdTpq = $selectedTpq ?? '0';
+            $settingKey = 'KapasitasRuanganMaksimal_' . $selectedGroup;
+            $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+            if ($kapasitasMaksimal <= 0) {
+                $kapasitasMaksimal = 1;
+            }
+
             $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
             $roomStatuses = [];
 
@@ -1596,10 +1675,14 @@ class Munaqosah extends BaseController
                 $roomStatuses[$roomId] = [
                     'RoomId' => $roomId,
                     'occupied' => false,
-                    'participant' => null,
+                    'participant_count' => 0,
+                    'participants' => [],
+                    'max_capacity' => $kapasitasMaksimal,
+                    'is_full' => false,
                 ];
             }
 
+            // Hitung jumlah peserta per ruangan
             foreach ($queue as $row) {
                 if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
                     $roomId = $row['RoomId'];
@@ -1607,19 +1690,29 @@ class Munaqosah extends BaseController
                         $roomStatuses[$roomId] = [
                             'RoomId' => $roomId,
                             'occupied' => false,
-                            'participant' => null,
+                            'participant_count' => 0,
+                            'participants' => [],
+                            'max_capacity' => $kapasitasMaksimal,
+                            'is_full' => false,
                         ];
                     }
 
+                    $roomStatuses[$roomId]['participant_count']++;
+                    $roomStatuses[$roomId]['participants'][] = $row;
                     $roomStatuses[$roomId]['occupied'] = true;
-                    $roomStatuses[$roomId]['participant'] = $row;
+
+                    // Tandai ruangan penuh jika mencapai kapasitas maksimal
+                    if ($roomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
+                        $roomStatuses[$roomId]['is_full'] = true;
+                    }
                 }
             }
 
             $rooms = array_values($roomStatuses);
 
             foreach ($roomStatuses as $roomStatus) {
-                if (!$roomStatus['occupied']) {
+                // Ruangan tersedia jika belum penuh
+                if (!$roomStatus['is_full']) {
                     $availableRooms[] = $roomStatus['RoomId'];
                 }
             }
@@ -5630,6 +5723,152 @@ class Munaqosah extends BaseController
         return view('backend/Munaqosah/monitoringMunaqosah', $data);
     }
 
+    public function dashboardMonitoring()
+    {
+        helper('munaqosah');
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $idTpq = session()->get('IdTpq');
+        $sessionIdTpq = session()->get('IdTpq');
+        $selectedTpq = $this->request->getGet('tpq');
+        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah'; // Default untuk dashboard
+
+        // Jika user login sebagai admin TPQ
+        if (!empty($sessionIdTpq)) {
+            $selectedTpq = $sessionIdTpq;
+        }
+
+        $typeOptions = [
+            'pra-munaqosah' => 'Pra Munaqosah',
+            'munaqosah' => 'Munaqosah'
+        ];
+
+        // Ambil data TPQ dari query grouped tabel tbl_munaqosah_registrasi_uji
+        $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+        $builder->select('r.IdTpq, t.NamaTpq');
+        $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
+        $builder->where('r.IdTahunAjaran', $currentTahunAjaran);
+        $builder->where('r.TypeUjian', $selectedType);
+        $builder->groupBy('r.IdTpq');
+        $builder->orderBy('t.NamaTpq', 'ASC');
+        $dataTpq = $builder->get()->getResultArray();
+
+        $statistik = getStatistikMunaqosah();
+
+        // Ambil semua grup materi aktif
+        $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+
+        // Data antrian untuk semua grup
+        $antrianData = [];
+
+        // Ambil statistik antrian untuk setiap grup
+        foreach ($grupList as $grup) {
+            $filters = [
+                'IdTahunAjaran' => $currentTahunAjaran,
+                'IdGrupMateriUjian' => $grup['IdGrupMateriUjian'],
+                'TypeUjian' => $selectedType,
+            ];
+
+            if (!empty($selectedTpq)) {
+                $filters['IdTpq'] = $selectedTpq;
+            }
+
+            $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
+            $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+
+            $totalPeserta = array_sum($statusCounts);
+            $totalSelesai = $statusCounts[2] ?? 0;
+            $totalProses = $statusCounts[1] ?? 0;
+            $totalMenunggu = $statusCounts[0] ?? 0;
+            $progressPersentase = $totalPeserta > 0 ? round(($totalSelesai / $totalPeserta) * 100) : 0;
+
+            // Ambil status ruangan untuk grup ini
+            $rooms = [];
+            if ($grup['IdGrupMateriUjian']) {
+                // Ambil kapasitas maksimal ruangan dari konfigurasi berdasarkan grup materi
+                $configIdTpq = $selectedTpq ?? '0';
+                $settingKey = 'KapasitasRuanganMaksimal_' . $grup['IdGrupMateriUjian'];
+                $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+                if ($kapasitasMaksimal <= 0) {
+                    $kapasitasMaksimal = 1;
+                }
+
+                $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($grup['IdGrupMateriUjian'], $selectedType, $selectedTpq ?? null);
+                $roomStatuses = [];
+
+                foreach ($roomRows as $roomRow) {
+                    $roomId = $roomRow['RoomId'];
+                    $roomStatuses[$roomId] = [
+                        'RoomId' => $roomId,
+                        'occupied' => false,
+                        'participant_count' => 0,
+                        'participants' => [],
+                        'max_capacity' => $kapasitasMaksimal,
+                        'is_full' => false,
+                    ];
+                }
+
+                // Hitung jumlah peserta per ruangan
+                foreach ($queue as $row) {
+                    if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
+                        $roomId = $row['RoomId'];
+                        if (!isset($roomStatuses[$roomId])) {
+                            $roomStatuses[$roomId] = [
+                                'RoomId' => $roomId,
+                                'occupied' => false,
+                                'participant_count' => 0,
+                                'participants' => [],
+                                'max_capacity' => $kapasitasMaksimal,
+                                'is_full' => false,
+                            ];
+                        }
+
+                        $roomStatuses[$roomId]['participant_count']++;
+                        $roomStatuses[$roomId]['participants'][] = $row;
+                        $roomStatuses[$roomId]['occupied'] = true;
+
+                        // Tandai ruangan penuh jika mencapai kapasitas maksimal
+                        if ($roomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
+                            $roomStatuses[$roomId]['is_full'] = true;
+                        }
+                    }
+                }
+
+                $rooms = array_values($roomStatuses);
+            }
+
+            $antrianData[] = [
+                'grup' => $grup,
+                'statistics' => [
+                    'total' => $totalPeserta,
+                    'completed' => $totalSelesai,
+                    'waiting' => $totalMenunggu,
+                    'in_progress' => $totalProses,
+                    'progress' => $progressPersentase,
+                ],
+                'rooms' => $rooms,
+                'queue' => array_slice($queue, 0, 10), // Ambil 10 teratas saja untuk preview
+            ];
+        }
+
+        $data = [
+            'page_title' => 'Dashboard Monitoring Munaqosah',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'tpqDropdown' => $dataTpq,
+            'statistik' => $statistik,
+            'antrianData' => $antrianData,
+            'grupList' => $grupList,
+            'types' => $typeOptions,
+            'selected_tpq' => $selectedTpq ?? '',
+            'selected_type' => $selectedType,
+            'session_id_tpq' => $sessionIdTpq ?? '',
+        ];
+
+        return view('backend/Munaqosah/dashboardMonitoring', $data);
+    }
+
     public function kelulusanUjian()
     {
         helper('munaqosah');
@@ -7421,17 +7660,22 @@ class Munaqosah extends BaseController
         $isAdmin = empty($idTpq) || $idTpq == 0;
         $idTpqInput = $this->request->getPost('IdTpq');
         $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
+        $typeUjian = $isAdmin ? $this->request->getPost('TypeUjian') : 'pra-munaqosah';
 
-        // Validasi: Cek apakah IdTpq sudah ada di tabel untuk IdTahunAjaran yang sama
+        // Validasi: Cek apakah IdTpq sudah ada di tabel untuk IdTahunAjaran dan TypeUjian yang sama
+        // Satu TPQ bisa memiliki jadwal untuk "Munaqosah" dan "Pra-Munaqosah" (type ujian berbeda)
+        // Tapi satu TPQ tidak bisa memiliki dua jadwal untuk type ujian yang sama dalam tahun ajaran yang sama
         $existingJadwal = $this->munaqosahJadwalUjianModel->where('IdTpq', $idTpqInput)
             ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
             ->where('Status', 'aktif')
             ->first();
 
         if ($existingJadwal) {
+            $typeUjianLabel = ($typeUjian === 'munaqosah') ? 'Munaqosah' : 'Pra-Munaqosah';
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'TPQ ini sudah memiliki jadwal untuk tahun ajaran ' . $idTahunAjaran . '. Setiap TPQ hanya bisa memiliki satu jadwal per tahun ajaran.'
+                'message' => 'TPQ ini sudah memiliki jadwal untuk tahun ajaran ' . $idTahunAjaran . ' dengan type ujian ' . $typeUjianLabel . '. Setiap TPQ hanya bisa memiliki satu jadwal per tahun ajaran per type ujian.'
             ]);
         }
 
@@ -7441,7 +7685,7 @@ class Munaqosah extends BaseController
             'Jam' => $this->request->getPost('Jam'),
             'IdTpq' => $idTpqInput,
             'IdTahunAjaran' => $idTahunAjaran,
-            'TypeUjian' => $isAdmin ? $this->request->getPost('TypeUjian') : 'pra-munaqosah',
+            'TypeUjian' => $typeUjian,
             'Status' => 'aktif',
         ];
 
@@ -7478,16 +7722,46 @@ class Munaqosah extends BaseController
 
         $idTpq = session()->get('IdTpq');
         $isAdmin = empty($idTpq) || $idTpq == 0;
+        $idTpqInput = $this->request->getPost('IdTpq');
+
+        // Ambil data jadwal yang sedang di-update untuk mendapatkan IdTahunAjaran
+        $currentJadwal = $this->munaqosahJadwalUjianModel->find($id);
+        if (!$currentJadwal) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Jadwal tidak ditemukan'
+            ]);
+        }
+
+        $idTahunAjaran = $currentJadwal['IdTahunAjaran'];
+        $typeUjian = $isAdmin ? $this->request->getPost('TypeUjian') : ($currentJadwal['TypeUjian'] ?? 'pra-munaqosah');
+
+        // Validasi: Cek apakah IdTpq sudah ada di tabel untuk IdTahunAjaran dan TypeUjian yang sama
+        // Exclude ID yang sedang di-update
+        $existingJadwal = $this->munaqosahJadwalUjianModel->where('IdTpq', $idTpqInput)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', $typeUjian)
+            ->where('Status', 'aktif')
+            ->where('id !=', $id)
+            ->first();
+
+        if ($existingJadwal) {
+            $typeUjianLabel = ($typeUjian === 'munaqosah') ? 'Munaqosah' : 'Pra-Munaqosah';
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'TPQ ini sudah memiliki jadwal untuk tahun ajaran ' . $idTahunAjaran . ' dengan type ujian ' . $typeUjianLabel . '. Setiap TPQ hanya bisa memiliki satu jadwal per tahun ajaran per type ujian.'
+            ]);
+        }
 
         $data = [
             'GroupPeserta' => $this->request->getPost('GroupPeserta'),
             'Tanggal' => $this->request->getPost('Tanggal'),
             'Jam' => $this->request->getPost('Jam'),
-            'IdTpq' => $this->request->getPost('IdTpq'),
+            'IdTpq' => $idTpqInput,
         ];
 
         if ($isAdmin) {
-            $data['TypeUjian'] = $this->request->getPost('TypeUjian');
+            $data['TypeUjian'] = $typeUjian;
         }
 
         if ($this->munaqosahJadwalUjianModel->update($id, $data)) {
@@ -7537,17 +7811,26 @@ class Munaqosah extends BaseController
             $isAdmin ? null : $idTpq
         );
 
-        // Get IdTpq yang sudah ada di jadwal untuk tahun ajaran ini
-        $existingJadwal = $this->munaqosahJadwalUjianModel->where('IdTahunAjaran', $idTahunAjaran)
-            ->where('Status', 'aktif')
-            ->findAll();
+        // Get IdTpq yang sudah ada di jadwal untuk tahun ajaran ini dan type ujian yang dipilih
+        // Logika: TPQ yang sudah digunakan untuk type ujian tertentu tidak akan muncul lagi untuk type ujian yang sama
+        // Tapi TPQ yang sudah digunakan untuk "Munaqosah" bisa muncul lagi untuk "Pra-Munaqosah" dan sebaliknya
+        $existingJadwalBuilder = $this->munaqosahJadwalUjianModel->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('Status', 'aktif');
+
+        // Filter berdasarkan typeUjian jika ada - hanya exclude TPQ yang sudah digunakan untuk type ujian yang sama
+        if (!empty($typeUjian)) {
+            $existingJadwalBuilder->where('TypeUjian', $typeUjian);
+        }
+
+        $existingJadwal = $existingJadwalBuilder->findAll();
 
         $existingIdTpq = [];
         foreach ($existingJadwal as $jadwal) {
             $existingIdTpq[] = $jadwal['IdTpq'];
         }
 
-        // Filter TPQ yang sudah ada di jadwal
+        // Filter TPQ: exclude TPQ yang sudah ada di jadwal untuk type ujian yang sama
+        // TPQ yang sudah digunakan untuk type ujian lain tetap muncul
         $filteredTpq = array_filter($tpqFromPeserta, function ($tpq) use ($existingIdTpq) {
             return !in_array($tpq['IdTpq'], $existingIdTpq);
         });

@@ -115,6 +115,12 @@
                             <?php endif; ?>
                             <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/dashboard-monitoring') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard Monitoring</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Monitoring Munaqosah</p>

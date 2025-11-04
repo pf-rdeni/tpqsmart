@@ -42,17 +42,17 @@
                         <!-- Info Filter Aktif (untuk konfirmasi) -->
                         <div class="alert alert-info mb-3 py-2">
                             <small>
-                                <i class="fas fa-info-circle"></i> 
+                                <i class="fas fa-info-circle"></i>
                                 <strong>Grup:</strong> <?php
-                                $selectedGroupName = '-';
-                                foreach ($groups as $group) {
-                                    if ($group['IdGrupMateriUjian'] === $selected_group) {
-                                        $selectedGroupName = $group['NamaMateriGrup'];
-                                        break;
-                                    }
-                                }
-                                echo $selectedGroupName;
-                                ?>
+                                                        $selectedGroupName = '-';
+                                                        foreach ($groups as $group) {
+                                                            if ($group['IdGrupMateriUjian'] === $selected_group) {
+                                                                $selectedGroupName = $group['NamaMateriGrup'];
+                                                                break;
+                                                            }
+                                                        }
+                                                        echo $selectedGroupName;
+                                                        ?>
                                 <?php if (empty($session_id_tpq)): ?>
                                     | <strong>Type:</strong> <?= $types[$selected_type] ?? $selected_type ?>
                                 <?php endif; ?>
@@ -114,65 +114,169 @@
                         <!-- Status Ruangan -->
                         <h5 class="mt-3 mb-2">Status Ruangan</h5>
                         <?php if (!empty($rooms)): ?>
-                            <?php 
+                            <?php
                             $totalRooms = count($rooms);
+                            // Jika hanya 1 ruangan dengan banyak peserta, gunakan format tabel kompak
+                            $singleRoom = $totalRooms === 1;
+                            $firstRoom = $rooms[0] ?? null;
+                            $singleRoomWithParticipants = $singleRoom &&
+                                !empty($firstRoom['participants']) &&
+                                count($firstRoom['participants']) > 1;
+
                             // Jika hanya 1 ruangan, gunakan full width, jika lebih gunakan grid responsif
-                            // Desktop: 1 ruangan = full, >1 = 3 kolom | Tablet: 2 kolom | Mobile: 1 kolom
-                            $colClass = $totalRooms === 1 
-                                ? 'col-12' 
+                            $colClass = $totalRooms === 1
+                                ? 'col-12'
                                 : 'col-12 col-sm-6 col-lg-4';
                             ?>
-                            <div class="row">
-                                <?php foreach ($rooms as $room): ?>
-                                    <?php $isOccupied = $room['occupied']; ?>
-                                    <div class="<?= $colClass ?> mb-3">
-                                        <div class="p-3 rounded shadow-sm room-card <?= $isOccupied ? 'bg-danger text-white' : 'bg-success text-white' ?>">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?></h5>
-                                                <?php if ($isOccupied): ?>
-                                                    <span class="badge badge-light badge-pill">
-                                                        <i class="fas fa-user"></i> Digunakan
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="badge badge-light badge-pill">
-                                                        <i class="fas fa-door-open"></i> Kosong
-                                                    </span>
-                                                <?php endif; ?>
-                                            </div>
-                                            <?php if ($isOccupied && $room['participant']): ?>
-                                                <div class="room-participant mb-3">
-                                                    <div class="mb-1">
-                                                        <strong>No Peserta:</strong> <?= $room['participant']['NoPeserta'] ?>
-                                                    </div>
-                                                    <div>
-                                                        <small><?= $room['participant']['NamaSantri'] ?? '-' ?></small>
-                                                    </div>
-                                                </div>
-                                                <div class="btn-group btn-group-sm w-100" role="group">
-                                                    <button type="button"
-                                                        class="btn btn-light btn-finish-room text-dark"
-                                                        data-id="<?= $room['participant']['id'] ?? '' ?>"
-                                                        data-nopeserta="<?= $room['participant']['NoPeserta'] ?? '' ?>"
-                                                        data-nama="<?= $room['participant']['NamaSantri'] ?? '-' ?>">
-                                                        <i class="fas fa-check"></i> Selesai
-                                                    </button>
-                                                    <button type="button"
-                                                        class="btn btn-warning btn-exit-room"
-                                                        data-id="<?= $room['participant']['id'] ?? '' ?>"
-                                                        data-nopeserta="<?= $room['participant']['NoPeserta'] ?? '' ?>"
-                                                        data-nama="<?= $room['participant']['NamaSantri'] ?? '-' ?>">
-                                                        <i class="fas fa-sign-out-alt"></i> Keluar
-                                                    </button>
-                                                </div>
-                                            <?php else: ?>
-                                                <p class="mb-0">
-                                                    <i class="fas fa-door-open mr-1"></i>Ruangan tersedia
-                                                </p>
-                                            <?php endif; ?>
+
+                            <?php if ($singleRoomWithParticipants): ?>
+                                <!-- Format Tabel Kompak untuk 1 Ruangan dengan Multiple Peserta -->
+                                <?php
+                                $room = $firstRoom;
+                                $isOccupied = $room['occupied'] ?? false;
+                                $participantCount = $room['participant_count'] ?? 0;
+                                $maxCapacity = $room['max_capacity'] ?? 1;
+                                $isFull = $room['is_full'] ?? false;
+                                $participants = $room['participants'] ?? [];
+                                ?>
+                                <div class="card border-<?= $isFull ? 'danger' : ($isOccupied ? 'warning' : 'success') ?> mb-3">
+                                    <div class="card-header bg-<?= $isFull ? 'danger' : ($isOccupied ? 'warning' : 'success') ?> text-<?= $isFull || !$isOccupied ? 'white' : 'dark' ?> d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mb-0"><i class="fas fa-door-open"></i> Ruangan <?= $room['RoomId'] ?></h5>
+                                            <small>Kapasitas: <?= $participantCount ?> / <?= $maxCapacity ?></small>
+                                        </div>
+                                        <?php if ($isFull): ?>
+                                            <span class="badge badge-light badge-pill">
+                                                <i class="fas fa-users"></i> Penuh
+                                            </span>
+                                        <?php elseif ($isOccupied): ?>
+                                            <span class="badge badge-light badge-pill">
+                                                <i class="fas fa-user"></i> Digunakan
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge badge-light badge-pill">
+                                                <i class="fas fa-door-open"></i> Kosong
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover mb-0">
+                                                <thead class="thead-light">
+                                                    <tr>
+                                                        <th style="width: 5%;">No</th>
+                                                        <th style="width: 15%;">No Peserta</th>
+                                                        <th style="width: 35%;">Nama Santri</th>
+                                                        <th style="width: 40%;" class="text-center">Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php $no = 1; ?>
+                                                    <?php foreach ($participants as $participant): ?>
+                                                        <tr>
+                                                            <td><?= $no++ ?></td>
+                                                            <td><strong><?= $participant['NoPeserta'] ?></strong></td>
+                                                            <td><?= $participant['NamaSantri'] ?? '-' ?></td>
+                                                            <td>
+                                                                <div class="btn-group btn-group-sm" role="group">
+                                                                    <button type="button"
+                                                                        class="btn btn-success btn-finish-room"
+                                                                        data-id="<?= $participant['id'] ?? '' ?>"
+                                                                        data-nopeserta="<?= $participant['NoPeserta'] ?? '' ?>"
+                                                                        data-nama="<?= $participant['NamaSantri'] ?? '-' ?>"
+                                                                        title="Selesai">
+                                                                        <i class="fas fa-check"></i> Selesai
+                                                                    </button>
+                                                                    <button type="button"
+                                                                        class="btn btn-warning btn-exit-room"
+                                                                        data-id="<?= $participant['id'] ?? '' ?>"
+                                                                        data-nopeserta="<?= $participant['NoPeserta'] ?? '' ?>"
+                                                                        data-nama="<?= $participant['NamaSantri'] ?? '-' ?>"
+                                                                        title="Keluar">
+                                                                        <i class="fas fa-sign-out-alt"></i> Keluar
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
+                                </div>
+                            <?php else: ?>
+                                <!-- Format Card untuk Multiple Ruangan atau 1 Ruangan dengan 1 Peserta -->
+                                <div class="row">
+                                    <?php foreach ($rooms as $room): ?>
+                                        <?php
+                                        $isOccupied = $room['occupied'] ?? false;
+                                        $participantCount = $room['participant_count'] ?? 0;
+                                        $maxCapacity = $room['max_capacity'] ?? 1;
+                                        $isFull = $room['is_full'] ?? false;
+                                        $participants = $room['participants'] ?? [];
+                                        ?>
+                                        <div class="<?= $colClass ?> mb-3">
+                                            <div class="p-3 rounded shadow-sm room-card <?= $isFull ? 'bg-danger text-white' : ($isOccupied ? 'bg-warning text-dark' : 'bg-success text-white') ?>">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?></h5>
+                                                    <?php if ($isFull): ?>
+                                                        <span class="badge badge-light badge-pill">
+                                                            <i class="fas fa-users"></i> Penuh
+                                                        </span>
+                                                    <?php elseif ($isOccupied): ?>
+                                                        <span class="badge badge-light badge-pill">
+                                                            <i class="fas fa-user"></i> Digunakan
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span class="badge badge-light badge-pill">
+                                                            <i class="fas fa-door-open"></i> Kosong
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small>
+                                                        <strong>Kapasitas:</strong> <?= $participantCount ?> / <?= $maxCapacity ?>
+                                                    </small>
+                                                </div>
+                                                <?php if ($isOccupied && !empty($participants)): ?>
+                                                    <div class="room-participant mb-3">
+                                                        <?php foreach ($participants as $participant): ?>
+                                                            <div class="mb-2 border-bottom pb-2">
+                                                                <div class="mb-1">
+                                                                    <strong>No Peserta:</strong> <?= $participant['NoPeserta'] ?>
+                                                                </div>
+                                                                <div class="mb-1">
+                                                                    <small><?= $participant['NamaSantri'] ?? '-' ?></small>
+                                                                </div>
+                                                                <div class="btn-group btn-group-sm w-100" role="group">
+                                                                    <button type="button"
+                                                                        class="btn btn-light btn-finish-room text-dark"
+                                                                        data-id="<?= $participant['id'] ?? '' ?>"
+                                                                        data-nopeserta="<?= $participant['NoPeserta'] ?? '' ?>"
+                                                                        data-nama="<?= $participant['NamaSantri'] ?? '-' ?>">
+                                                                        <i class="fas fa-check"></i> Selesai
+                                                                    </button>
+                                                                    <button type="button"
+                                                                        class="btn btn-warning btn-exit-room"
+                                                                        data-id="<?= $participant['id'] ?? '' ?>"
+                                                                        data-nopeserta="<?= $participant['NoPeserta'] ?? '' ?>"
+                                                                        data-nama="<?= $participant['NamaSantri'] ?? '-' ?>">
+                                                                        <i class="fas fa-sign-out-alt"></i> Keluar
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <p class="mb-0">
+                                                        <i class="fas fa-door-open mr-1"></i>Ruangan tersedia
+                                                    </p>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         <?php else: ?>
                             <div class="alert alert-info">
                                 Belum ada ruangan terdaftar untuk grup materi dan tipe ujian ini. Tambahkan RoomId pada data juri.
@@ -187,11 +291,36 @@
                                     <tr>
                                         <th>No</th>
                                         <th>No Peserta - Nama Santri</th>
+                                        <th>Group Peserta</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php $no = 1; ?>
+                                    <?php
+                                    // Kumpulkan semua unique GroupPeserta dari data queue
+                                    $uniqueGroups = [];
+                                    foreach ($queue as $q) {
+                                        $group = $q['GroupPeserta'] ?? 'Group 1';
+                                        if (!in_array($group, $uniqueGroups)) {
+                                            $uniqueGroups[] = $group;
+                                        }
+                                    }
+
+                                    // Sort unique groups untuk konsistensi
+                                    sort($uniqueGroups);
+
+                                    // Array warna Bootstrap yang bisa diulang
+                                    $baseColors = ['badge-primary', 'badge-success', 'badge-warning', 'badge-danger', 'badge-info', 'badge-dark', 'badge-secondary'];
+
+                                    // Buat mapping warna dinamis untuk setiap group
+                                    $groupColorMap = [];
+                                    foreach ($uniqueGroups as $index => $group) {
+                                        $colorIndex = $index % count($baseColors);
+                                        $groupColorMap[$group] = $baseColors[$colorIndex];
+                                    }
+
+                                    $no = 1;
+                                    ?>
                                     <?php foreach ($queue as $row): ?>
                                         <?php
                                         $status = (int) ($row['Status'] ?? 0);
@@ -209,6 +338,14 @@
                                         <tr>
                                             <td><?= $no++ ?></td>
                                             <td><?= $row['NoPeserta'] ?> - <?= $row['NamaSantri'] ?? '-' ?></td>
+                                            <td>
+                                                <?php
+                                                $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
+                                                // Ambil warna dari mapping dinamis, fallback ke secondary
+                                                $badgeColor = $groupColorMap[$groupPeserta] ?? 'badge-secondary';
+                                                ?>
+                                                <span class="badge <?= $badgeColor ?>"><?= $groupPeserta ?></span>
+                                            </td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <?php if ($status === 0): ?>
@@ -280,34 +417,87 @@
         font-size: 1rem;
         padding: 0.5rem 0.75rem;
     }
+
     .room-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+
     .room-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
     }
+
+    /* Styling untuk tabel kompak Status Ruangan */
+    .table-sm thead th {
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.5rem;
+        white-space: nowrap;
+    }
+
+    .table-sm tbody td {
+        padding: 0.5rem;
+        vertical-align: middle;
+        font-size: 0.875rem;
+    }
+
+    .table-sm tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Kompak tombol aksi di tabel */
+    .table-sm .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        line-height: 1.3;
+    }
+
+    /* Responsif untuk mobile */
     @media (max-width: 576px) {
         .badge-lg {
             font-size: 0.875rem;
             padding: 0.4rem 0.6rem;
         }
+
         .bg-light {
             font-size: 0.875rem;
         }
+
         .room-card {
             margin-bottom: 0.75rem;
         }
+
         .room-card h5 {
             font-size: 1rem;
         }
+
         .btn-group-sm {
             font-size: 0.75rem;
+        }
+
+        /* Tabel kompak di mobile */
+        .table-sm thead th {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.25rem;
+        }
+
+        .table-sm tbody td {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.25rem;
+        }
+
+        .table-sm .btn-group-sm .btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+        }
+
+        .table-sm .btn-group-sm .btn i {
+            font-size: 0.7rem;
         }
     }
 </style>
 <script>
-        $(function() {
+    $(function() {
         const table = $('#tableAntrian').DataTable({
             responsive: true,
             lengthChange: false,
@@ -319,7 +509,7 @@
 
         // Validasi input hanya angka 3 digit
         let autoRegistrasiHandler = null;
-        
+
         $('#queueSearch').on('input', function(e) {
             let value = $(this).val();
             // Hanya terima angka
@@ -329,10 +519,10 @@
                 value = value.substring(0, 3);
             }
             $(this).val(value);
-            
+
             // Auto registrasi logic (mengganti handler lama)
             const noPeserta = value.trim();
-            
+
             // Clear any existing timeout and countdown
             if (window.autoSearchTimeout) {
                 clearTimeout(window.autoSearchTimeout);
@@ -340,22 +530,22 @@
             if (window.autoSearchCountdown) {
                 clearInterval(window.autoSearchCountdown);
             }
-            
+
             // Show auto search indicator - hanya jika sudah 3 digit angka
             if (/^\d{3}$/.test(noPeserta)) {
                 // Add visual indicator
                 $(this).addClass('border-info');
-                
+
                 // Show countdown indicator in placeholder
                 const originalPlaceholder = $(this).attr('placeholder');
                 let countdown = 1;
-                
+
                 const updatePlaceholder = () => {
                     $(this).attr('placeholder', `Auto registrasi dalam ${countdown} detik...`);
                 };
-                
+
                 updatePlaceholder();
-                
+
                 const countdownInterval = setInterval(() => {
                     countdown--;
                     if (countdown <= 0) {
@@ -367,10 +557,10 @@
                         updatePlaceholder();
                     }
                 }, 1000);
-                
+
                 // Store interval ID for cleanup
                 window.autoSearchCountdown = countdownInterval;
-                
+
                 const $input = $(this);
                 window.autoSearchTimeout = setTimeout(function() {
                     clearInterval(window.autoSearchCountdown);
@@ -1130,4 +1320,3 @@
     });
 </script>
 <?= $this->endSection() ?>
-

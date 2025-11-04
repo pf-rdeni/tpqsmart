@@ -112,5 +112,33 @@ class MunaqosahJadwalUjianModel extends Model
         $pesertaModel = new \App\Models\MunaqosahPesertaModel();
         return $pesertaModel->getCountPesertaByTpq($idTpq, $idTahunAjaran);
     }
+
+    /**
+     * Get GroupPeserta berdasarkan IdTpq, IdTahunAjaran, dan TypeUjian
+     * Mengembalikan GroupPeserta pertama yang ditemukan atau 'Group 1' sebagai default
+     */
+    public function getGroupPesertaByTpq($idTpq, $idTahunAjaran, $typeUjian = null)
+    {
+        if (empty($idTpq)) {
+            return 'Group 1'; // Default jika IdTpq tidak ada
+        }
+
+        $builder = $this->db->table($this->table);
+        $builder->select('GroupPeserta');
+        $builder->where('IdTpq', $idTpq);
+        $builder->where('IdTahunAjaran', $idTahunAjaran);
+
+        if (!empty($typeUjian)) {
+            $builder->where('TypeUjian', $typeUjian);
+        }
+
+        $builder->where('Status', 'aktif');
+        $builder->orderBy('GroupPeserta', 'ASC');
+        $builder->limit(1);
+
+        $result = $builder->get()->getRowArray();
+
+        return !empty($result['GroupPeserta']) ? $result['GroupPeserta'] : 'Group 1';
+    }
 }
 

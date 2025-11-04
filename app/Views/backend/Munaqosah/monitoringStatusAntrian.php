@@ -29,7 +29,7 @@
                     <div class="card-body">
                         <!-- Filter (Read Only untuk display) -->
                         <div class="alert alert-info mb-3">
-                            <strong>Grup Materi Ujian:</strong> 
+                            <strong>Grup Materi Ujian:</strong>
                             <?php
                             $selectedGroupName = '-';
                             foreach ($groups as $group) {
@@ -41,7 +41,7 @@
                             echo $selectedGroupName;
                             ?>
                             <?php if (empty($session_id_tpq)): ?>
-                                | <strong>TPQ:</strong> 
+                                | <strong>TPQ:</strong>
                                 <?php
                                 $selectedTpqName = 'Semua TPQ';
                                 foreach ($tpq_list as $tpq) {
@@ -135,21 +135,31 @@
                         <h5 class="mt-4 mb-3">Status Ruangan</h5>
                         <div id="roomsContainer" class="row">
                             <?php if (!empty($rooms)): ?>
-                                <?php 
+                                <?php
                                 $totalRooms = count($rooms);
                                 // Jika hanya 1 ruangan, gunakan full width, jika lebih gunakan grid responsif
                                 // Desktop: 1 ruangan = full, >1 = 3 kolom | Tablet: 2 kolom | Mobile: 1 kolom
-                                $colClass = $totalRooms === 1 
-                                    ? 'col-12' 
+                                $colClass = $totalRooms === 1
+                                    ? 'col-12'
                                     : 'col-12 col-sm-6 col-lg-4';
                                 ?>
                                 <?php foreach ($rooms as $room): ?>
-                                    <?php $isOccupied = $room['occupied']; ?>
+                                    <?php
+                                    $isOccupied = $room['occupied'] ?? false;
+                                    $participantCount = $room['participant_count'] ?? 0;
+                                    $maxCapacity = $room['max_capacity'] ?? 1;
+                                    $isFull = $room['is_full'] ?? false;
+                                    $participants = $room['participants'] ?? [];
+                                    ?>
                                     <div class="<?= $colClass ?> mb-3">
-                                        <div class="p-3 rounded shadow-sm room-card <?= $isOccupied ? 'bg-danger text-white' : 'bg-success text-white' ?>">
+                                        <div class="p-3 rounded shadow-sm room-card <?= $isFull ? 'bg-danger text-white' : ($isOccupied ? 'bg-warning text-dark' : 'bg-success text-white') ?>">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?></h5>
-                                                <?php if ($isOccupied): ?>
+                                                <?php if ($isFull): ?>
+                                                    <span class="badge badge-light badge-pill">
+                                                        <i class="fas fa-users"></i> Penuh
+                                                    </span>
+                                                <?php elseif ($isOccupied): ?>
                                                     <span class="badge badge-light badge-pill">
                                                         <i class="fas fa-user"></i> Digunakan
                                                     </span>
@@ -159,14 +169,21 @@
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
-                                            <?php if ($isOccupied && $room['participant']): ?>
-                                                <div class="room-participant mb-3">
-                                                    <div class="mb-1">
-                                                        <strong>No Peserta:</strong> <?= $room['participant']['NoPeserta'] ?>
-                                                    </div>
-                                                    <div>
-                                                        <small><?= $room['participant']['NamaSantri'] ?? '-' ?></small>
-                                                    </div>
+                                            <div class="mb-2">
+                                                <small>
+                                                    <strong>Kapasitas:</strong> <?= $participantCount ?> / <?= $maxCapacity ?>
+                                                </small>
+                                            </div>
+                                            <?php if ($isOccupied && !empty($participants)): ?>
+                                                <div class="room-participant mb-2">
+                                                    <?php foreach ($participants as $participant): ?>
+                                                        <div class="mb-1">
+                                                            <small>
+                                                                <strong>No Peserta:</strong> <?= $participant['NoPeserta'] ?> -
+                                                                <?= $participant['NamaSantri'] ?? '-' ?>
+                                                            </small>
+                                                        </div>
+                                                    <?php endforeach; ?>
                                                 </div>
                                             <?php else: ?>
                                                 <p class="mb-0">
@@ -252,7 +269,7 @@
         margin-top: 0 !important;
         padding-top: 0 !important;
     }
-    
+
     /* Full height untuk body */
     body {
         overflow-x: hidden;
@@ -261,14 +278,17 @@
     .room-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+
     .room-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
     }
+
     @media (max-width: 576px) {
         .room-card {
             margin-bottom: 0.75rem;
         }
+
         .room-card h5 {
             font-size: 1rem;
         }
@@ -298,7 +318,7 @@
         function refreshData() {
             const params = new URLSearchParams(window.location.search);
             params.set('interval', refreshInterval);
-            
+
             // Reload halaman dengan parameter yang sama
             window.location.reload();
         }
@@ -308,7 +328,7 @@
             refreshInterval = parseInt($(this).val());
             const params = new URLSearchParams(window.location.search);
             params.set('interval', refreshInterval);
-            
+
             // Update URL dan reload
             window.location.href = window.location.pathname + '?' + params.toString();
         });
@@ -348,4 +368,3 @@
     });
 </script>
 <?= $this->endSection() ?>
-
