@@ -140,5 +140,62 @@ class MunaqosahJadwalUjianModel extends Model
 
         return !empty($result['GroupPeserta']) ? $result['GroupPeserta'] : 'Group 1';
     }
+
+    /**
+     * Get statistik per GroupPeserta dan IdTpq
+     * Menghitung total peserta yang terdaftar berdasarkan GroupPeserta dari jadwal ujian
+     * 
+     * @param string $idTahunAjaran
+     * @param string|null $typeUjian
+     * @param int|null $idTpq
+     * @return array
+     */
+    public function getStatistikGroupPeserta($idTahunAjaran, $typeUjian = null, $idTpq = null)
+    {
+        $builder = $this->db->table($this->table . ' j');
+        $builder->select('j.GroupPeserta, j.IdTpq, t.NamaTpq');
+        $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
+
+        $builder->where('j.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('j.Status', 'aktif');
+
+        if (!empty($typeUjian)) {
+            $builder->where('j.TypeUjian', $typeUjian);
+        }
+
+        if (!empty($idTpq)) {
+            $builder->where('j.IdTpq', $idTpq);
+        }
+
+        $builder->groupBy('j.GroupPeserta, j.IdTpq, t.NamaTpq');
+        $builder->orderBy('j.IdTpq', 'ASC');
+        $builder->orderBy('j.GroupPeserta', 'ASC');
+
+        $jadwalGroups = $builder->get()->getResultArray();
+
+        // Hitung total peserta dari tabel registrasi untuk setiap GroupPeserta
+        $result = [];
+        foreach ($jadwalGroups as $jadwalGroup) {
+            $registrasiBuilder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+            $registrasiBuilder->select('COUNT(DISTINCT r.NoPeserta) as total_peserta');
+            $registrasiBuilder->where('r.IdTahunAjaran', $idTahunAjaran);
+            $registrasiBuilder->where('r.IdTpq', $jadwalGroup['IdTpq']);
+
+            if (!empty($typeUjian)) {
+                $registrasiBuilder->where('r.TypeUjian', $typeUjian);
+            }
+
+            $totalPeserta = $registrasiBuilder->get()->getRowArray();
+
+            $result[] = [
+                'GroupPeserta' => $jadwalGroup['GroupPeserta'],
+                'IdTpq' => $jadwalGroup['IdTpq'],
+                'NamaTpq' => $jadwalGroup['NamaTpq'],
+                'total_peserta' => (int)($totalPeserta['total_peserta'] ?? 0),
+            ];
+        }
+
+        return $result;
+    }
 }
 

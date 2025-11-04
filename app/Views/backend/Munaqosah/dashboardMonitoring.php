@@ -13,16 +13,16 @@
                                 <input type="text" id="filterTahunAjaran" class="form-control form-control-sm" value="<?= esc($current_tahun_ajaran) ?>" readonly>
                             </div>
                             <?php if (empty($session_id_tpq)): ?>
-                            <div class="mr-2 mb-1">
-                                <label class="mb-0 small">TPQ</label>
-                                <select id="filterTpq" class="form-control form-control-sm">
-                                    <option value="0">Semua TPQ</option>
-                                    <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
-                                            <option value="<?= esc($tpq['IdTpq']) ?>" <?= ($selected_tpq == $tpq['IdTpq']) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
-                                    <?php endforeach;
-                                    endif; ?>
-                                </select>
-                            </div>
+                                <div class="mr-2 mb-1">
+                                    <label class="mb-0 small">TPQ</label>
+                                    <select id="filterTpq" class="form-control form-control-sm">
+                                        <option value="0">Semua TPQ</option>
+                                        <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
+                                                <option value="<?= esc($tpq['IdTpq']) ?>" <?= ($selected_tpq == $tpq['IdTpq']) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
+                                        <?php endforeach;
+                                        endif; ?>
+                                    </select>
+                                </div>
                             <?php endif; ?>
                             <div class="mr-2 mb-1">
                                 <label class="mb-0 small">Type</label>
@@ -60,7 +60,7 @@
                         <!-- Statistik Monitoring Munaqosah -->
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h4 class="mb-0"><i class="fas fa-chart-line"></i> Statistik Monitoring Munaqosah</h4>
-                            <?php 
+                            <?php
                             $monitoringLengkapUrl = 'backend/munaqosah/monitoring';
                             $monitoringParams = [];
                             if (!empty($selected_type)) {
@@ -132,10 +132,117 @@
                             </div>
                         </div>
 
+                        <!-- Progress Input Nilai per Group Materi -->
+                        <div class="mb-4">
+                            <h5 class="mb-3"><i class="fas fa-chart-pie"></i> Progress Input Nilai per Group Materi</h5>
+                            <div id="groupMateriProgressContainer">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Statistik Monitoring per Group Peserta (Hanya untuk Admin) -->
+                        <?php if (in_groups('Admin')): ?>
+                            <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                                <h4 class="mb-0"><i class="fas fa-users-cog"></i> Statistik Monitoring per Group Peserta</h4>
+                            </div>
+                            <div id="groupPesertaContainer">
+                                <?php if (!empty($statistikGroupPeserta)): ?>
+                                    <div class="row">
+                                        <?php foreach ($statistikGroupPeserta as $stat): ?>
+                                            <?php
+                                            $progressPct = $stat['total_peserta'] > 0 ? round(($stat['total_dinilai'] / $stat['total_peserta']) * 100) : 0;
+                                            $selesaiPct = $stat['total_peserta'] > 0 ? round(($stat['total_selesai'] / $stat['total_peserta']) * 100) : 0;
+                                            ?>
+                                            <div class="col-md-6 col-lg-4 mb-3">
+                                                <div class="card">
+                                                    <div class="card-header bg-secondary">
+                                                        <h5 class="card-title mb-0">
+                                                            <i class="fas fa-building"></i> <?= esc($stat['NamaTpq']) ?>
+                                                            <small class="text-muted d-block">
+                                                                <i class="fas fa-layer-group"></i> <?= esc($stat['GroupPeserta']) ?>
+                                                            </small>
+                                                        </h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row mb-2">
+                                                            <div class="col-6">
+                                                                <div class="info-box bg-info mb-2">
+                                                                    <span class="info-box-icon"><i class="fas fa-users"></i></span>
+                                                                    <div class="info-box-content">
+                                                                        <span class="info-box-text">Total Peserta</span>
+                                                                        <span class="info-box-number"><?= $stat['total_peserta'] ?></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <div class="info-box bg-success mb-2">
+                                                                    <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
+                                                                    <div class="info-box-content">
+                                                                        <span class="info-box-text">Sudah Dinilai</span>
+                                                                        <span class="info-box-number"><?= $stat['total_dinilai'] ?></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mb-2">
+                                                            <div class="col-6">
+                                                                <div class="info-box bg-warning mb-2">
+                                                                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                                                                    <div class="info-box-content">
+                                                                        <span class="info-box-text">Belum Dinilai</span>
+                                                                        <span class="info-box-number"><?= $stat['total_belum'] ?></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <div class="info-box bg-primary mb-2">
+                                                                    <span class="info-box-icon"><i class="fas fa-check-double"></i></span>
+                                                                    <div class="info-box-content">
+                                                                        <span class="info-box-text">Selesai Semua</span>
+                                                                        <span class="info-box-number"><?= $stat['total_selesai'] ?></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mt-2">
+                                                            <strong>Progress Penilaian: </strong>
+                                                            <div class="progress mb-1">
+                                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?= $progressPct ?>%">
+                                                                    <?= $progressPct ?>%
+                                                                </div>
+                                                            </div>
+                                                            <small class="text-muted"><?= $stat['total_dinilai'] ?> dari <?= $stat['total_peserta'] ?> peserta sudah dinilai</small>
+                                                        </div>
+                                                        <?php if ($stat['total_selesai'] > 0): ?>
+                                                            <div class="mt-2">
+                                                                <strong>Progress Selesai Semua Grup: </strong>
+                                                                <div class="progress mb-1">
+                                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: <?= $selesaiPct ?>%">
+                                                                        <?= $selesaiPct ?>%
+                                                                    </div>
+                                                                </div>
+                                                                <small class="text-muted"><?= $stat['total_selesai'] ?> peserta sudah selesai dinilai untuk semua grup materi</small>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> Belum ada data statistik untuk Group Peserta.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+
                         <!-- Monitoring Antrian per Grup -->
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
                             <h4 class="mb-0"><i class="fas fa-tasks"></i> Monitoring Antrian per Grup Materi</h4>
-                            <?php 
+                            <?php
                             $antrianLengkapUrl = 'backend/munaqosah/antrian';
                             $antrianParams = [];
                             if (!empty($selected_type)) {
@@ -159,7 +266,7 @@
                                                 <small class="text-muted">(<?= esc($antrian['grup']['IdGrupMateriUjian']) ?>)</small>
                                             </h5>
                                             <div class="d-flex align-items-center">
-                                                <?php 
+                                                <?php
                                                 $inputAntrianUrl = 'backend/munaqosah/input-registrasi-antrian';
                                                 $inputAntrianParams = [];
                                                 $inputAntrianParams[] = 'tahun=' . urlencode($current_tahun_ajaran);
@@ -172,12 +279,12 @@
                                                 }
                                                 $inputAntrianUrl .= '?' . implode('&', $inputAntrianParams);
                                                 ?>
-                                                <a href="<?= base_url($inputAntrianUrl) ?>" 
-                                                   class="btn btn-sm btn-success mr-2 flex-shrink-0">
+                                                <a href="<?= base_url($inputAntrianUrl) ?>"
+                                                    class="btn btn-sm btn-success mr-2 flex-shrink-0">
                                                     <i class="fas fa-plus"></i> Input Antrian
                                                 </a>
-                                                <a href="<?= base_url('backend/munaqosah/monitoring-status-antrian?group=' . urlencode($antrian['grup']['IdGrupMateriUjian']) . ($selected_type ? '&type=' . urlencode($selected_type) : '') . ($selected_tpq ? '&tpq=' . urlencode($selected_tpq) : '')) ?>" 
-                                                   class="btn btn-sm btn-warning flex-shrink-0">
+                                                <a href="<?= base_url('backend/munaqosah/monitoring-status-antrian?group=' . urlencode($antrian['grup']['IdGrupMateriUjian']) . ($selected_type ? '&type=' . urlencode($selected_type) : '') . ($selected_tpq ? '&tpq=' . urlencode($selected_tpq) : '')) ?>"
+                                                    class="btn btn-sm btn-warning flex-shrink-0">
                                                     <i class="fas fa-eye"></i> Lihat Detail Antrian
                                                 </a>
                                             </div>
@@ -239,7 +346,7 @@
                                                     <strong>Status Ruangan:</strong>
                                                     <div class="mt-2">
                                                         <?php if (!empty($antrian['rooms'])): ?>
-                                                            <?php 
+                                                            <?php
                                                             $occupiedCount = 0;
                                                             $fullCount = 0;
                                                             $totalParticipants = 0;
@@ -251,14 +358,14 @@
                                                             ?>
                                                             <div class="d-flex flex-wrap">
                                                                 <?php foreach ($antrian['rooms'] as $room): ?>
-                                                                    <?php 
+                                                                    <?php
                                                                     $isFull = $room['is_full'] ?? false;
                                                                     $isOccupied = $room['occupied'] ?? false;
                                                                     $participantCount = $room['participant_count'] ?? 0;
                                                                     $maxCapacity = $room['max_capacity'] ?? 1;
                                                                     ?>
                                                                     <span class="badge <?= $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success') ?> mr-1 mb-1" title="Kapasitas: <?= $participantCount ?>/<?= $maxCapacity ?>">
-                                                                        <i class="fas fa-<?= $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open') ?>"></i> 
+                                                                        <i class="fas fa-<?= $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open') ?>"></i>
                                                                         R<?= $room['RoomId'] ?> (<?= $participantCount ?>/<?= $maxCapacity ?>)
                                                                     </span>
                                                                 <?php endforeach; ?>
@@ -294,6 +401,7 @@
     .info-box {
         min-height: 80px;
     }
+
     .info-box-icon {
         width: 60px;
         height: 60px;
@@ -302,13 +410,16 @@
         justify-content: center;
         font-size: 1.5rem;
     }
+
     .info-box-content {
         padding: 10px;
     }
+
     .info-box-number {
         font-size: 1.2rem;
         font-weight: bold;
     }
+
     .info-box-text {
         font-size: 0.9rem;
     }
@@ -364,8 +475,17 @@
 
     function loadMonitoring() {
         const th = $('#filterTahunAjaran').val().trim();
-        const tpq = $('#filterTpq').val() || '0';
         const ty = $('#filterType').val() || 'pra-munaqosah';
+        const sessionIdTpq = '<?= $session_id_tpq ?? '' ?>';
+
+        // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
+        let tpq = '0';
+        if (sessionIdTpq && sessionIdTpq !== '') {
+            tpq = sessionIdTpq;
+        } else {
+            tpq = $('#filterTpq').val() || '0';
+        }
+
         const url = '<?= base_url("backend/munaqosah/monitoring-data") ?>' + `?IdTahunAjaran=${encodeURIComponent(th)}&IdTpq=${encodeURIComponent(tpq)}&TypeUjian=${encodeURIComponent(ty)}`;
 
         $.getJSON(url, function(resp) {
@@ -381,7 +501,7 @@
             const totalPeserta = data.rows.length;
             let sudah = 0;
             const headerCategories = data.categories || [];
-            
+
             data.rows.forEach(r => {
                 let doneAll = true;
                 headerCategories.forEach(cat => {
@@ -403,11 +523,11 @@
                 });
                 if (doneAll) sudah++;
             });
-            
+
             const belum = totalPeserta - sudah;
             const pct = totalPeserta > 0 ? Math.round((sudah / totalPeserta) * 100) : 0;
             const pctBelum = totalPeserta > 0 ? Math.round((belum / totalPeserta) * 100) : 0;
-            
+
             $('#statTotalPeserta').text(totalPeserta);
             $('#statSudah').text(sudah);
             $('#barSudah').css('width', pct + '%');
@@ -418,6 +538,15 @@
             $('#statProgress').text(pct + '%');
             $('#barProgress').css('width', pct + '%');
 
+            // Load statistik Group Peserta (hanya untuk Admin)
+            const isAdmin = '<?= in_groups("Admin") ? "true" : "false" ?>' === 'true';
+            if (isAdmin) {
+                loadStatistikGroupPeserta();
+            }
+
+            // Load statistik per Group Materi
+            loadStatistikGroupMateri();
+
             // Reset countdown setelah data selesai dimuat
             if (autoRefreshInterval) {
                 const intervalSeconds = getRefreshInterval();
@@ -425,6 +554,204 @@
             }
         }).fail(function() {
             console.error('Error koneksi saat memuat data monitoring');
+        });
+    }
+
+    function loadStatistikGroupMateri() {
+        const th = $('#filterTahunAjaran').val().trim();
+        const ty = $('#filterType').val() || 'pra-munaqosah';
+        const sessionIdTpq = '<?= $session_id_tpq ?? '' ?>';
+
+        // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
+        let tpq = '0';
+        if (sessionIdTpq && sessionIdTpq !== '') {
+            tpq = sessionIdTpq;
+        } else {
+            tpq = $('#filterTpq').val() || '0';
+        }
+
+        const url = '<?= base_url("backend/munaqosah/get-statistik-per-group-materi") ?>' + `?IdTahunAjaran=${encodeURIComponent(th)}&IdTpq=${encodeURIComponent(tpq)}&TypeUjian=${encodeURIComponent(ty)}`;
+
+        $.getJSON(url, function(resp) {
+            if (!resp.success) {
+                console.error('Gagal memuat statistik Group Materi:', resp.message);
+                $('#groupMateriProgressContainer').html('<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Gagal memuat data statistik Group Materi.</div>');
+                return;
+            }
+
+            const data = resp.data || [];
+            const container = $('#groupMateriProgressContainer');
+
+            if (data.length === 0) {
+                container.html('<div class="alert alert-info"><i class="fas fa-info-circle"></i> Belum ada data statistik untuk Group Materi.</div>');
+                return;
+            }
+
+            let html = '<div class="row">';
+            data.forEach(function(stat) {
+                const progressColor = stat.persentase >= 80 ? 'bg-success' : (stat.persentase >= 50 ? 'bg-warning' : 'bg-danger');
+
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title mb-2">
+                                    <i class="fas fa-layer-group"></i> ${stat.NamaMateriGrup}
+                                    <small class="text-muted d-block">${stat.IdGrupMateriUjian}</small>
+                                </h6>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="small">Progress Input Nilai</span>
+                                        <span class="small font-weight-bold">${stat.persentase}%</span>
+                                    </div>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar ${progressColor}" role="progressbar" style="width: ${stat.persentase}%">
+                                            ${stat.persentase}%
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row text-center mt-2">
+                                    <div class="col-4">
+                                        <small class="text-muted d-block">Total</small>
+                                        <strong>${stat.total_peserta}</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted d-block">Sudah</small>
+                                        <strong class="text-success">${stat.total_dinilai}</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted d-block">Belum</small>
+                                        <strong class="text-warning">${stat.total_belum}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.html(html);
+        }).fail(function() {
+            console.error('Error koneksi saat memuat statistik Group Materi');
+            $('#groupMateriProgressContainer').html('<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error koneksi saat memuat data statistik Group Materi.</div>');
+        });
+    }
+
+    function loadStatistikGroupPeserta() {
+        const th = $('#filterTahunAjaran').val().trim();
+        const ty = $('#filterType').val() || 'pra-munaqosah';
+        const sessionIdTpq = '<?= $session_id_tpq ?? '' ?>';
+
+        // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
+        let tpq = '0';
+        if (sessionIdTpq && sessionIdTpq !== '') {
+            tpq = sessionIdTpq;
+        } else {
+            tpq = $('#filterTpq').val() || '0';
+        }
+
+        const url = '<?= base_url("backend/munaqosah/get-statistik-group-peserta") ?>' + `?IdTahunAjaran=${encodeURIComponent(th)}&IdTpq=${encodeURIComponent(tpq)}&TypeUjian=${encodeURIComponent(ty)}`;
+
+        $.getJSON(url, function(resp) {
+            if (!resp.success) {
+                console.error('Gagal memuat statistik Group Peserta:', resp.message);
+                return;
+            }
+
+            const data = resp.data || [];
+            const container = $('#groupPesertaContainer');
+
+            if (data.length === 0) {
+                container.html('<div class="alert alert-info"><i class="fas fa-info-circle"></i> Belum ada data statistik untuk Group Peserta.</div>');
+                return;
+            }
+
+            let html = '<div class="row">';
+            data.forEach(function(stat) {
+                const progressPct = stat.total_peserta > 0 ? Math.round((stat.total_dinilai / stat.total_peserta) * 100) : 0;
+                const selesaiPct = stat.total_peserta > 0 ? Math.round((stat.total_selesai / stat.total_peserta) * 100) : 0;
+
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card">
+                            <div class="card-header bg-secondary">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-building"></i> ${stat.NamaTpq}
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-layer-group"></i> ${stat.GroupPeserta}
+                                    </small>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col-6">
+                                        <div class="info-box bg-info mb-2">
+                                            <span class="info-box-icon"><i class="fas fa-users"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Total Peserta</span>
+                                                <span class="info-box-number">${stat.total_peserta}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="info-box bg-success mb-2">
+                                            <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Sudah Dinilai</span>
+                                                <span class="info-box-number">${stat.total_dinilai}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-6">
+                                        <div class="info-box bg-warning mb-2">
+                                            <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Belum Dinilai</span>
+                                                <span class="info-box-number">${stat.total_belum}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="info-box bg-primary mb-2">
+                                            <span class="info-box-icon"><i class="fas fa-check-double"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Selesai Semua</span>
+                                                <span class="info-box-number">${stat.total_selesai}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <strong>Progress Penilaian: </strong>
+                                    <div class="progress mb-1">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: ${progressPct}%">
+                                            ${progressPct}%
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">${stat.total_dinilai} dari ${stat.total_peserta} peserta sudah dinilai</small>
+                                </div>
+                                ${stat.total_selesai > 0 ? `
+                                <div class="mt-2">
+                                    <strong>Progress Selesai Semua Grup: </strong>
+                                    <div class="progress mb-1">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: ${selesaiPct}%">
+                                            ${selesaiPct}%
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">${stat.total_selesai} peserta sudah selesai dinilai untuk semua grup materi</small>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.html(html);
+        }).fail(function() {
+            console.error('Error koneksi saat memuat statistik Group Peserta');
         });
     }
 
@@ -482,6 +809,15 @@
 
         // Load monitoring pertama kali (countdown akan di-reset setelah load selesai)
         loadMonitoring();
+
+        // Load statistik Group Peserta pertama kali (hanya untuk Admin)
+        const isAdmin = '<?= in_groups("Admin") ? "true" : "false" ?>' === 'true';
+        if (isAdmin) {
+            loadStatistikGroupPeserta();
+        }
+
+        // Load statistik Group Materi pertama kali
+        loadStatistikGroupMateri();
 
         // Bersihkan interval saat halaman ditutup
         $(window).on('beforeunload', function() {

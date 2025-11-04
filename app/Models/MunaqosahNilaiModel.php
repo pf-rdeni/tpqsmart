@@ -221,6 +221,156 @@ class MunaqosahNilaiModel extends Model
     }
 
     /**
+     * Get statistik peserta yang sudah dinilai per GroupPeserta dan IdTpq
+     * Menghitung peserta yang sudah selesai dinilai untuk semua grup materi
+     * 
+     * @param string $idTahunAjaran
+     * @param string|null $typeUjian
+     * @param int|null $idTpq
+     * @return array
+     */
+    public function getStatistikPesertaDinilai($idTahunAjaran, $typeUjian = null, $idTpq = null)
+    {
+        // Ambil semua grup materi aktif
+        $grupMateriModel = new \App\Models\MunaqosahGrupMateriUjiModel();
+        $grupList = $grupMateriModel->getGrupMateriAktif();
+        $totalGrupMateri = count($grupList);
+
+        // Ambil data jadwal untuk mendapatkan GroupPeserta
+        $jadwalModel = new \App\Models\MunaqosahJadwalUjianModel();
+        $jadwalGroups = $jadwalModel->getStatistikGroupPeserta($idTahunAjaran, $typeUjian, $idTpq);
+
+        $result = [];
+
+        foreach ($jadwalGroups as $jadwalGroup) {
+            $groupPeserta = $jadwalGroup['GroupPeserta'];
+            $idTpqGroup = $jadwalGroup['IdTpq'];
+
+            // Hitung total peserta yang sudah dinilai untuk semua grup materi
+            // Query untuk mendapatkan peserta yang sudah dinilai di semua grup materi
+            $sql = "SELECT mn.IdTpq, mn.NoPeserta, COUNT(DISTINCT mn.IdGrupMateriUjian) as grup_materi_count
+                    FROM {$this->table} mn
+                    WHERE mn.IdTahunAjaran = ? AND mn.IdTpq = ?";
+            $params = [$idTahunAjaran, $idTpqGroup];
+
+            if (!empty($typeUjian)) {
+                $sql .= " AND mn.TypeUjian = ?";
+                $params[] = $typeUjian;
+            }
+
+            $sql .= " GROUP BY mn.IdTpq, mn.NoPeserta
+                      HAVING grup_materi_count = ?";
+            $params[] = $totalGrupMateri;
+
+            $pesertaSelesai = $this->db->query($sql, $params)->getResultArray();
+            $totalSelesai = count($pesertaSelesai);
+
+            // Hitung total peserta yang sudah dinilai untuk minimal 1 grup materi
+            $builder2 = $this->db->table($this->table . ' mn');
+            $builder2->select('COUNT(DISTINCT mn.NoPeserta) as total_dinilai');
+            $builder2->where('mn.IdTahunAjaran', $idTahunAjaran);
+            $builder2->where('mn.IdTpq', $idTpqGroup);
+
+            if (!empty($typeUjian)) {
+                $builder2->where('mn.TypeUjian', $typeUjian);
+            }
+
+            $totalDinilai = $builder2->get()->getRowArray();
+            $totalDinilai = $totalDinilai ? (int)$totalDinilai['total_dinilai'] : 0;
+
+            $result[] = [
+                'GroupPeserta' => $groupPeserta,
+                'IdTpq' => $idTpqGroup,
+                'NamaTpq' => $jadwalGroup['NamaTpq'],
+                'total_peserta' => (int)$jadwalGroup['total_peserta'],
+                'total_dinilai' => $totalDinilai,
+                'total_selesai' => $totalSelesai,
+                'total_belum' => max(0, (int)$jadwalGroup['total_peserta'] - $totalDinilai),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get statistik persentase input nilai per Group Materi
+     * 
+     * @param string $idTahunAjaran
+     * @param string|null $typeUjian
+     * @param int|null $idTpq
+     * @return array
+     */
+    public function getStatistikPerGroupMateri($idTahunAjaran, $typeUjian = null, $idTpq = null)
+    {
+        // Ambil semua grup materi aktif
+        $grupMateriModel = new \App\Models\MunaqosahGrupMateriUjiModel();
+        $grupList = $grupMateriModel->getGrupMateriAktif();
+
+        $result = [];
+
+        foreach ($grupList as $grup) {
+            $idGrupMateriUjian = $grup['IdGrupMateriUjian'];
+            $namaGrupMateri = $grup['NamaMateriGrup'];
+
+            // Hitung total peserta yang terdaftar untuk grup materi ini
+            $builderRegistrasi = $this->db->table('tbl_munaqosah_registrasi_uji r');
+            $builderRegistrasi->select('COUNT(DISTINCT r.NoPeserta) as total_peserta');
+            $builderRegistrasi->where('r.IdTahunAjaran', $idTahunAjaran);
+            $builderRegistrasi->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
+
+            if (!empty($typeUjian)) {
+                $builderRegistrasi->where('r.TypeUjian', $typeUjian);
+            }
+
+            if (!empty($idTpq)) {
+                $builderRegistrasi->where('r.IdTpq', $idTpq);
+            }
+
+            $totalPeserta = $builderRegistrasi->get()->getRowArray();
+            $totalPeserta = $totalPeserta ? (int)$totalPeserta['total_peserta'] : 0;
+
+            // Hitung total peserta yang sudah dinilai untuk grup materi ini
+            // Gunakan subquery untuk mendapatkan peserta yang sudah dinilai di grup materi ini
+            $sql = "SELECT COUNT(DISTINCT n.NoPeserta) as total_dinilai
+                    FROM {$this->table} n
+                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.NoPeserta = n.NoPeserta 
+                        AND r.IdTahunAjaran = n.IdTahunAjaran 
+                        AND r.TypeUjian = n.TypeUjian
+                        AND r.IdGrupMateriUjian = ?
+                    WHERE n.IdTahunAjaran = ?";
+
+            $params = [$idGrupMateriUjian, $idTahunAjaran];
+
+            if (!empty($typeUjian)) {
+                $sql .= " AND n.TypeUjian = ?";
+                $params[] = $typeUjian;
+            }
+
+            if (!empty($idTpq)) {
+                $sql .= " AND n.IdTpq = ?";
+                $params[] = $idTpq;
+            }
+
+            $totalDinilai = $this->db->query($sql, $params)->getRowArray();
+            $totalDinilai = $totalDinilai ? (int)$totalDinilai['total_dinilai'] : 0;
+
+            // Hitung persentase
+            $persentase = $totalPeserta > 0 ? round(($totalDinilai / $totalPeserta) * 100) : 0;
+
+            $result[] = [
+                'IdGrupMateriUjian' => $idGrupMateriUjian,
+                'NamaMateriGrup' => $namaGrupMateri,
+                'total_peserta' => $totalPeserta,
+                'total_dinilai' => $totalDinilai,
+                'total_belum' => max(0, $totalPeserta - $totalDinilai),
+                'persentase' => $persentase,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
      * Cek berapa juri yang sudah menilai peserta di grup materi tertentu
      * 
      * @param string $noPeserta

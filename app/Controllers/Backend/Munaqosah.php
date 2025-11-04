@@ -5751,6 +5751,12 @@ class Munaqosah extends BaseController
         $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
         $builder->where('r.IdTahunAjaran', $currentTahunAjaran);
         $builder->where('r.TypeUjian', $selectedType);
+
+        // Jika user login sebagai operator TPQ, filter berdasarkan IdTpq dari session
+        if (!empty($sessionIdTpq)) {
+            $builder->where('r.IdTpq', $sessionIdTpq);
+        }
+
         $builder->groupBy('r.IdTpq');
         $builder->orderBy('t.NamaTpq', 'ASC');
         $dataTpq = $builder->get()->getResultArray();
@@ -5853,6 +5859,13 @@ class Munaqosah extends BaseController
             ];
         }
 
+        // Ambil statistik per Group Peserta
+        $statistikGroupPeserta = $this->nilaiMunaqosahModel->getStatistikPesertaDinilai(
+            $currentTahunAjaran,
+            $selectedType,
+            $selectedTpq ?? null
+        );
+
         $data = [
             'page_title' => 'Dashboard Monitoring Munaqosah',
             'current_tahun_ajaran' => $currentTahunAjaran,
@@ -5864,6 +5877,7 @@ class Munaqosah extends BaseController
             'selected_tpq' => $selectedTpq ?? '',
             'selected_type' => $selectedType,
             'session_id_tpq' => $sessionIdTpq ?? '',
+            'statistikGroupPeserta' => $statistikGroupPeserta,
         ];
 
         return view('backend/Munaqosah/dashboardMonitoring', $data);
@@ -6283,6 +6297,92 @@ class Munaqosah extends BaseController
             return $this->response->setJSON($result);
         } catch (\Throwable $e) {
             log_message('error', 'Error in getMonitoringData: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getStatistikGroupPeserta()
+    {
+        try {
+            $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
+            if (empty($idTahunAjaran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTahunAjaran harus diisi'
+                ]);
+            }
+
+            $sessionIdTpq = session()->get('IdTpq');
+
+            // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
+            if (!empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+            } else {
+                $idTpqParam = $this->request->getGet('IdTpq');
+                $idTpq = ($idTpqParam === null || $idTpqParam === '' || $idTpqParam === '0') ? null : (int)$idTpqParam;
+            }
+
+            $typeParam = $this->request->getGet('TypeUjian');
+
+            $statistikGroupPeserta = $this->nilaiMunaqosahModel->getStatistikPesertaDinilai(
+                $idTahunAjaran,
+                $typeParam,
+                $idTpq
+            );
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $statistikGroupPeserta
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getStatistikGroupPeserta: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getStatistikPerGroupMateri()
+    {
+        try {
+            $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
+            if (empty($idTahunAjaran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTahunAjaran harus diisi'
+                ]);
+            }
+
+            $sessionIdTpq = session()->get('IdTpq');
+
+            // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
+            if (!empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+            } else {
+                $idTpqParam = $this->request->getGet('IdTpq');
+                $idTpq = ($idTpqParam === null || $idTpqParam === '' || $idTpqParam === '0') ? null : (int)$idTpqParam;
+            }
+
+            $typeParam = $this->request->getGet('TypeUjian');
+
+            $statistikGroupMateri = $this->nilaiMunaqosahModel->getStatistikPerGroupMateri(
+                $idTahunAjaran,
+                $typeParam,
+                $idTpq
+            );
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $statistikGroupMateri
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getStatistikPerGroupMateri: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Terjadi kesalahan sistem',

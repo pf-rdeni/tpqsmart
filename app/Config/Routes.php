@@ -191,6 +191,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/monitoring', 'Munaqosah::monitoringMunaqosah');
     $routes->get('munaqosah/monitoring-data', 'Munaqosah::getMonitoringData');
     $routes->get('munaqosah/dashboard-monitoring', 'Munaqosah::dashboardMonitoring');
+    $routes->get('munaqosah/get-statistik-group-peserta', 'Munaqosah::getStatistikGroupPeserta');
+    $routes->get('munaqosah/get-statistik-per-group-materi', 'Munaqosah::getStatistikPerGroupMateri');
     $routes->get('munaqosah/kelulusan', 'Munaqosah::kelulusanUjian');
     $routes->get('munaqosah/kelulusan-data', 'Munaqosah::getKelulusanData');
     $routes->get('munaqosah/kelulusan-peserta', 'Munaqosah::kelulusanPesertaUjian');
