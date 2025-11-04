@@ -150,5 +150,42 @@ class MunaqosahKonfigurasiModel extends Model
         $value = $this->getSetting($idTpq, $settingKey);
         return $value !== null ? (int)$value : $default;
     }
+
+    /**
+     * Get setting as boolean
+     * 
+     * @param string $idTpq ID TPQ spesifik atau 'default'
+     * @param string $settingKey Kunci pengaturan
+     * @param bool $default Default value if not found (default: false)
+     * @return bool Setting value as boolean
+     */
+    public function getSettingAsBool(string $idTpq, string $settingKey, bool $default = false): bool
+    {
+        $value = $this->getSetting($idTpq, $settingKey);
+
+        // Jika value null, return default (false)
+        if ($value === null) {
+            return $default;
+        }
+
+        // Jika sudah boolean, return langsung
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        // Convert ke boolean berdasarkan type atau value
+        if (is_string($value)) {
+            $lowerValue = strtolower(trim($value));
+            return in_array($lowerValue, ['true', '1', 'yes', 'on', 'enabled', 'active']);
+        }
+
+        // Jika numeric, convert 1 = true, 0 = false
+        if (is_numeric($value)) {
+            return (int)$value !== 0;
+        }
+
+        // Default: return false jika tidak bisa dikonversi
+        return false;
+    }
 }
 

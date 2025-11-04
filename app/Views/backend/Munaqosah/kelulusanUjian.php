@@ -25,7 +25,9 @@
                             <div class="mr-2">
                                 <label class="mb-0 small">Type Ujian</label>
                                 <select id="filterTypeUjian" class="form-control form-control-sm">
-                                    <option value="munaqosah">Munaqosah</option>
+                                    <?php if ($isAdmin || $aktiveTombolKelulusan): ?>
+                                        <option value="munaqosah">Munaqosah</option>
+                                    <?php endif; ?>
                                     <option value="pra-munaqosah">Pra-Munaqosah</option>
                                 </select>
                             </div>
@@ -35,6 +37,9 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Hidden input untuk role user -->
+                        <input type="hidden" id="userRole" value="<?= (in_groups('Operator') || (!in_groups('Admin') && session()->get('IdTpq'))) ? 'operator' : 'admin' ?>">
+
                         <div class="row">
                             <div class="col-md-3 col-sm-6 mb-3">
                                 <div class="info-box bg-info">
@@ -158,6 +163,13 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
     function buildKelulusanHeader(categories) {
         const headerCategories = categories || [];
         const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
+        const userRole = $('#userRole').val() || 'admin';
+        const isOperator = userRole === 'operator';
+        const typeUjian = $('#filterTypeUjian').val() || 'munaqosah';
+
+        // Operator/TPQ dan Type Ujian = munaqosah: sembunyikan kolom juri individual
+        const hideJuriColumns = isOperator && typeUjian === 'munaqosah';
+
         let th1 = '<tr>' +
             '<th class="dt-left">No Peserta</th>' +
             '<th class="dt-left">Nama Santri</th>' +
@@ -170,8 +182,9 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const weight = cat.weight ? parseFloat(cat.weight) : 0;
             const weightLabel = (isAdmin && weight > 0) ? ` (${weight}% )` : '';
             const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
-            // Kolom: Juri (maxJuri kolom) + Jml + Bobot = maxJuri + 2
-            th1 += `<th class="dt-center nowrap" colspan="${maxJuri + 2}">${cat.name}${weightLabel}</th>`;
+            // Kolom: Juri (maxJuri kolom jika tidak disembunyikan) + Jml + Bobot
+            const colspan = hideJuriColumns ? 2 : (maxJuri + 2);
+            th1 += `<th class="dt-center nowrap" colspan="${colspan}">${cat.name}${weightLabel}</th>`;
         });
 
         th1 += '<th class="dt-center">Total Bobot</th>' +
@@ -182,8 +195,10 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             '<th></th><th></th><th></th><th></th><th></th><th></th>';
         headerCategories.forEach(cat => {
             const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
-            for (let i = 1; i <= maxJuri; i++) {
-                th2 += `<th class="dt-center">Juri ${i}</th>`;
+            if (!hideJuriColumns) {
+                for (let i = 1; i <= maxJuri; i++) {
+                    th2 += `<th class="dt-center">Juri ${i}</th>`;
+                }
             }
             th2 += '<th class="dt-center">Jml</th>' +
                 '<th class="dt-center">Bobot</th>';
@@ -195,6 +210,13 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
     function buildKelulusanRows(categories, rows) {
         const headerCategories = categories || [];
+        const userRole = $('#userRole').val() || 'admin';
+        const isOperator = userRole === 'operator';
+        const typeUjian = $('#filterTypeUjian').val() || 'munaqosah';
+
+        // Operator/TPQ dan Type Ujian = munaqosah: sembunyikan kolom juri individual
+        const hideJuriColumns = isOperator && typeUjian === 'munaqosah';
+
         const body = [];
         rows.forEach(row => {
             const params = new URLSearchParams({
@@ -206,10 +228,12 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
             const viewUrl = '<?= base_url('backend/munaqosah/kelulusan-peserta') ?>' + '?' + params;
             const pdfUrl = '<?= base_url('backend/munaqosah/printKelulusanPesertaUjian') ?>' + '?' + params;
+            const suratUrl = '<?= base_url('backend/munaqosah/printSuratKelulusanPesertaUjian') ?>' + '?' + params;
 
             const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
             let actionHtml = '<div class="btn-group btn-group-sm" role="group">' +
-                `<a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Pdf</a>`;
+                `<a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Pdf</a>` +
+                `<a class="btn btn-outline-success" href="${suratUrl}" target="_blank"><i class="fas fa-file-alt"></i> Surat</a>`;
             if (isAdmin) {
                 actionHtml += `<a class="btn btn-outline-secondary" href="${viewUrl}" target="_blank"><i class="fas fa-eye"></i> View</a>`;
             }
@@ -246,10 +270,12 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
                 const weighted = row.weighted && row.weighted[catId] !== undefined ? row.weighted[catId] : 0;
 
-                // Generate kolom juri secara dinamis
-                for (let i = 0; i < maxJuri; i++) {
-                    const nilai = (scores[i] !== undefined && scores[i] !== null) ? scores[i] : 0;
-                    tds += `<td class="dt-center">${fmtScore(nilai)}</td>`;
+                // Generate kolom juri secara dinamis (hanya jika tidak disembunyikan)
+                if (!hideJuriColumns) {
+                    for (let i = 0; i < maxJuri; i++) {
+                        const nilai = (scores[i] !== undefined && scores[i] !== null) ? scores[i] : 0;
+                        tds += `<td class="dt-center">${fmtScore(nilai)}</td>`;
+                    }
                 }
 
                 tds += `<td class="dt-center">${fmtDecimal(avg)}</td>` +
@@ -321,11 +347,20 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             buildKelulusanHeader(categories);
             buildKelulusanRows(categories, rows);
 
-            // Hitung total kolom berdasarkan maxJuri per kategori
+            // Hitung total kolom berdasarkan maxJuri per kategori dan kondisi hideJuriColumns
+            const userRole = $('#userRole').val() || 'admin';
+            const isOperator = userRole === 'operator';
+            const typeUjian = $('#filterTypeUjian').val() || 'munaqosah';
+            const hideJuriColumns = isOperator && typeUjian === 'munaqosah';
+
             let totalCols = 6; // No Peserta, Nama Santri, TPQ, Type, Thn, Aksi
             categories.forEach(cat => {
                 const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
-                totalCols += maxJuri + 2; // Juri + Jml + Bobot
+                if (hideJuriColumns) {
+                    totalCols += 2; // Hanya Jml + Bobot
+                } else {
+                    totalCols += maxJuri + 2; // Juri + Jml + Bobot
+                }
             });
             totalCols += 2; // Total Bobot + Status Kelulusan
 
@@ -381,14 +416,42 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
     }
 
     $(function() {
+        const userRole = $('#userRole').val() || 'admin';
+        const isOperator = userRole === 'operator';
+        const aktiveTombolKelulusan = <?= ($aktiveTombolKelulusan ?? false) ? 'true' : 'false' ?>;
+        const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
+
         const $tpqSelect = $('#filterTpq');
+        const $typeUjianSelect = $('#filterTypeUjian');
+
+        // Cek apakah opsi munaqosah ada di dropdown
+        const hasMunaqosahOption = $typeUjianSelect.find('option[value="munaqosah"]').length > 0;
+
         const nonZeroOptions = $tpqSelect.find('option').filter(function() {
             return $(this).val() !== '0';
         });
+
         if (nonZeroOptions.length === 1) {
             const onlyId = $(nonZeroOptions[0]).val();
             $tpqSelect.val(onlyId).prop('disabled', true);
-            $('#filterTypeUjian').val('pra-munaqosah').prop('disabled', true);
+
+            // Untuk Operator/TPQ, Type Ujian bisa diubah (tidak disabled)
+            // Hanya Admin yang Type Ujian-nya dikunci jika TPQ hanya satu
+            if (!isOperator && isAdmin) {
+                // Admin: set default dan lock jika TPQ hanya satu
+                $typeUjianSelect.val('pra-munaqosah').prop('disabled', true);
+            } else if (isOperator) {
+                // Operator/TPQ: set default berdasarkan ketersediaan opsi
+                // Jika setting tidak aktif, pastikan menggunakan pra-munaqosah
+                if (!hasMunaqosahOption || !aktiveTombolKelulusan) {
+                    $typeUjianSelect.val('pra-munaqosah');
+                }
+            }
+        } else {
+            // Jika ada multiple TPQ, pastikan default sesuai dengan setting
+            if (isOperator && (!hasMunaqosahOption || !aktiveTombolKelulusan)) {
+                $typeUjianSelect.val('pra-munaqosah');
+            }
         }
 
         $('#btnReloadKelulusan').on('click', loadKelulusan);

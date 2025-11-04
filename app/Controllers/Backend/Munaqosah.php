@@ -5639,11 +5639,26 @@ class Munaqosah extends BaseController
 
         $statistik = getStatistikMunaqosah();
 
+        // Cek setting AktiveTombolKelulusan dengan IdTpq == 0 (setting global/admin)
+        // Operator/TPQ hanya bisa memilih munaqosah jika setting ini aktif
+        $aktiveTombolKelulusan = false;
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+
+        if (!$isAdmin) {
+            // Cek setting dengan IdTpq == 0 terlebih dahulu (setting global)
+            $aktiveTombolKelulusan = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+        } else {
+            // Admin selalu bisa melihat semua Type Ujian
+            $aktiveTombolKelulusan = true;
+        }
+
         $data = [
             'page_title' => 'Kelulusan Ujian',
             'current_tahun_ajaran' => $currentTahunAjaran,
             'tpqDropdown' => $dataTpq,
             'statistik' => $statistik,
+            'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
+            'isAdmin' => $isAdmin,
         ];
 
         return view('backend/Munaqosah/kelulusanUjian', $data);
@@ -6394,6 +6409,91 @@ class Munaqosah extends BaseController
             log_message('error', 'Error in printKelulusanPesertaUjian: ' . $e->getMessage());
             return redirect()->to(base_url('backend/munaqosah/kelulusan'))
                 ->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Print surat keterangan kelulusan menggunakan template suratKelulusanUjianMunaqosah
+     */
+    public function printSuratKelulusanPesertaUjian()
+    {
+        try {
+            $noPeserta = $this->request->getGet('NoPeserta');
+            $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
+            $typeUjian = $this->request->getGet('TypeUjian');
+            $idTpqParam = $this->request->getGet('IdTpq');
+            $idTpq = ($idTpqParam === null || $idTpqParam === '') ? null : (int)$idTpqParam;
+
+            $result = $this->prepareKelulusanPesertaData($noPeserta ?? '', $idTahunAjaran, $typeUjian, $idTpq);
+
+            if (!$result['success']) {
+                return redirect()->to(base_url('backend/munaqosah/kelulusan'))
+                    ->with('error', $result['message'] ?? 'Data peserta tidak ditemukan');
+            }
+
+            $detail = $result['data'];
+            $pesertaData = $detail['peserta'];
+            $categoryDetails = $detail['categoryDetails'] ?? [];
+            $meta = $detail['meta'] ?? [];
+
+            // Ambil data TPQ untuk logo/kop
+            $tpqRaw = $this->helpFunction->getNamaTpqById($pesertaData['IdTpq'] ?? null);
+
+            // Map data TPQ sesuai dengan format yang digunakan template
+            $tpqData = [];
+            if ($tpqRaw) {
+                $tpqData = [
+                    'NamaTpq' => $tpqRaw['NamaTpq'] ?? '',
+                    'AlamatTpq' => $tpqRaw['Alamat'] ?? '',
+                    'NoTelp' => $tpqRaw['NoHp'] ?? '',
+                    'Logo' => $tpqRaw['LogoLembaga'] ?? null,
+                ];
+
+                // Ambil nama kepala TPQ dari struktur lembaga
+                $kepalaTpq = $this->helpFunction->getDataKepalaTpqStrukturLembaga(null, $pesertaData['IdTpq'] ?? null, null);
+                if (!empty($kepalaTpq) && isset($kepalaTpq[0]->Nama)) {
+                    $tpqData['NamaKepalaTpq'] = $kepalaTpq[0]->Nama;
+                }
+            }
+
+            $data = [
+                'peserta' => $pesertaData,
+                'categoryDetails' => $categoryDetails,
+                'meta' => $meta,
+                'tpqData' => $tpqData,
+                'generated_at' => date('Y-m-d')
+            ];
+
+            // Generate PDF
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('isPhpEnabled', true);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $html = view('frontend/munaqosah/suratKelulusanUjianMunaqosah', $data);
+
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            $filename = 'Surat_Kelulusan_' . str_replace(' ', '_', $pesertaData['NamaSantri'] ?? 'peserta') . '_' . date('Ymd_His') . '.pdf';
+
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $dompdf->output();
+            exit();
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in printSuratKelulusanPesertaUjian: ' . $e->getMessage());
+            return redirect()->to(base_url('backend/munaqosah/kelulusan'))
+                ->with('error', 'Gagal membuat surat keterangan kelulusan: ' . $e->getMessage());
         }
     }
 

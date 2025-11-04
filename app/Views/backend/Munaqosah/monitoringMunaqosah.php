@@ -29,12 +29,30 @@
                                     <option value="pra-munaqosah">Pra-Munaqosah</option>
                                 </select>
                             </div>
+                            <div class="mr-2">
+                                <label class="mb-0 small">Refresh Interval</label>
+                                <select id="filterRefreshInterval" class="form-control form-control-sm">
+                                    <option value="1">1 Menit</option>
+                                    <option value="5">5 Menit</option>
+                                    <option value="10" selected>10 Menit</option>
+                                    <option value="15">15 Menit</option>
+                                    <option value="30">30 Menit</option>
+                                </select>
+                            </div>
                             <div class="align-self-end">
                                 <button id="btnReload" class="btn btn-sm btn-primary"><i class="fas fa-sync-alt"></i> Muat</button>
+                            </div>
+                            <div class="align-self-end ml-2 d-flex align-items-center">
+                                <span class="text-muted mr-1"><i class="fas fa-clock"></i></span>
+                                <span class="text-muted mr-1">Refresh:</span>
+                                <span id="countdownTimer" class="font-weight-bold text-primary" style="font-size: 1rem; min-width: 55px; display: inline-block;">--:--</span>
                             </div>
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Hidden input untuk role user -->
+                        <input type="hidden" id="userRole" value="<?= (in_groups('Operator') || (!in_groups('Admin') && session()->get('IdTpq'))) ? 'operator' : 'admin' ?>">
+
                         <!-- Statistik ringkas (re-use style dari inputNilaiJuri step 1) -->
                         <div class="row">
                             <div class="col-md-3 col-sm-6 mb-3">
@@ -239,10 +257,17 @@
                 const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
                 let sc = r.nilai[key] || [];
 
-                // Generate kolom juri secara dinamis
+                // Generate kolom juri secara dinamis dengan icon status
                 for (let i = 0; i < maxJuri; i++) {
                     const nilai = (sc[i] !== undefined && sc[i] !== null) ? sc[i] : 0;
-                    tds += `<td class="dt-center">${fmt(nilai)}</td>`;
+                    // Icon kuning (progress) jika <= 0, icon hijau (checklist) jika > 0
+                    let iconHtml = '';
+                    if (nilai > 0) {
+                        iconHtml = '<i class="fas fa-check-circle text-success" title="Sudah dinilai"></i>';
+                    } else {
+                        iconHtml = '<i class="fas fa-hourglass-half text-warning" title="Belum dinilai"></i>';
+                    }
+                    tds += `<td class="dt-center">${iconHtml}</td>`;
                 }
             });
             tbody.push(`<tr>${tds}</tr>`);
@@ -341,7 +366,7 @@
                 ],
                 columnDefs: [{
                     targets: hiddenTargets,
-                    visible: false
+                    visible: true
                 }]
             });
 
@@ -388,6 +413,12 @@
             $('#monTotalJuri').text('≈2 per kategori');
             $('#monTotalTpq').text($('#filterTpq option').length - 1);
             $('#monLastUpdate').text(new Date().toLocaleString());
+
+            // Reset countdown setelah data selesai dimuat (jika auto-refresh sedang berjalan)
+            if (autoRefreshInterval) {
+                const intervalMinutes = getRefreshInterval();
+                startCountdown(intervalMinutes);
+            }
         }).fail(function() {
             Swal.close();
             Swal.fire({
@@ -398,8 +429,66 @@
         });
     }
 
+    let autoRefreshInterval = null;
+    let countdownInterval = null;
+    let remainingSeconds = 0;
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    }
+
+    function startCountdown(intervalMinutes) {
+        // Hentikan countdown sebelumnya jika ada
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+
+        // Set waktu countdown
+        remainingSeconds = intervalMinutes * 60;
+
+        // Update countdown setiap detik
+        countdownInterval = setInterval(function() {
+            remainingSeconds--;
+
+            if (remainingSeconds <= 0) {
+                remainingSeconds = 0;
+                $('#countdownTimer').text('00:00');
+                clearInterval(countdownInterval);
+            } else {
+                $('#countdownTimer').text(formatTime(remainingSeconds));
+            }
+        }, 1000);
+    }
+
+    function startAutoRefresh(intervalMinutes) {
+        // Hentikan interval sebelumnya jika ada
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+
+        const intervalMs = intervalMinutes * 60 * 1000; // Convert menit ke milliseconds
+
+        // Set interval untuk auto-refresh
+        // Countdown akan di-reset setelah loadMonitoring selesai (di dalam loadMonitoring)
+        autoRefreshInterval = setInterval(function() {
+            loadMonitoring();
+        }, intervalMs);
+
+        // Start countdown setelah interval di-set (akan di-reset setelah loadMonitoring selesai)
+        startCountdown(intervalMinutes);
+    }
+
+    function getRefreshInterval() {
+        return parseInt($('#filterRefreshInterval').val()) || 10;
+    }
+
     $(function() {
-        // Jika TPQ hanya satu, set otomatis dan kunci sebagai pra-munaqosah
+        const userRole = $('#userRole').val() || 'admin';
+        const isOperator = userRole === 'operator';
+
+        // Jika TPQ hanya satu, set otomatis
         const $tpqSel = $('#filterTpq');
         const realTpqOptions = $tpqSel.find('option').filter(function() {
             return $(this).val() !== '0';
@@ -407,13 +496,47 @@
         if (realTpqOptions.length === 1) {
             const onlyId = $(realTpqOptions[0]).val();
             $tpqSel.val(onlyId).prop('disabled', true);
-            $('#filterTypeUjian').val('pra-munaqosah').prop('disabled', true);
+
+            // Untuk Operator/TPQ, Type Ujian bisa diubah (tidak disabled)
+            // Hanya Admin yang Type Ujian-nya dikunci jika TPQ hanya satu
+            if (!isOperator) {
+                $('#filterTypeUjian').val('pra-munaqosah').prop('disabled', true);
+            } else {
+                // Untuk Operator, set default tapi tetap bisa diubah
+                $('#filterTypeUjian').val('pra-munaqosah');
+            }
         }
 
-        $('#btnReload').on('click', loadMonitoring);
+        $('#btnReload').on('click', function() {
+            loadMonitoring();
+            // Reset countdown setelah manual reload
+            startCountdown(getRefreshInterval());
+        });
         $('#filterTypeUjian').on('change', loadMonitoring);
         $('#filterTpq').on('change', loadMonitoring);
+
+        // Handler untuk perubahan interval refresh
+        $('#filterRefreshInterval').on('change', function() {
+            const intervalMinutes = getRefreshInterval();
+            startAutoRefresh(intervalMinutes);
+        });
+
+        // Mulai auto-refresh dengan interval default
+        const defaultInterval = getRefreshInterval();
+        startAutoRefresh(defaultInterval);
+
+        // Load monitoring pertama kali (countdown akan di-reset setelah load selesai)
         loadMonitoring();
+
+        // Bersihkan interval saat halaman ditutup
+        $(window).on('beforeunload', function() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+        });
     });
 </script>
 <?= $this->endSection(); ?>
