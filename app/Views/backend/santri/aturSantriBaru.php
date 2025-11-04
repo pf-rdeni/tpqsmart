@@ -97,7 +97,7 @@
                                 </script>
                             </td>
                             <td class="text-center">
-                                <a href="javascript:void(0)" onclick="showEditOptions('<?= $santri['IdSantri']; ?>', '<?= $santri['NamaSantri']; ?>')" class="btn btn-warning btn-sm">
+                                <a href="javascript:void(0)" onclick="showEditOptions('<?= $santri['IdSantri']; ?>', '<?= addslashes($santri['NamaSantri']); ?>')" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i><span class="d-none d-md-inline">&nbsp;Edit</span>
                                 </a>
                             </td>
@@ -667,9 +667,11 @@
 
         console.log('Final namaSantri:', namaSantri);
 
+        // Escape HTML untuk mencegah XSS dan menangani tanda petik
+        const escapedNamaSantri = $('<div>').text(namaSantri).html();
         Swal.fire({
             title: 'Apakah Anda yakin?',
-            html: `Data santri ID: <strong>${IdSantri}</strong> Nama: <strong>${namaSantri}</strong> akan dihapus permanen!`,
+            html: `Data santri ID: <strong>${IdSantri}</strong> Nama: <strong>${escapedNamaSantri}</strong> akan dihapus permanen!`,
             icon: 'question',
             iconColor: '#d33',
             showCancelButton: true,
@@ -1166,8 +1168,9 @@
         console.log('selectedSantriId set to:', selectedSantriId);
         console.log('selectedSantriName set to:', selectedSantriName);
 
-        // Update modal title dengan nama santri
-        document.getElementById('editOptionsModalLabel').textContent = `Pilih Aksi - ${NamaSantri}`;
+        // Update modal title dengan nama santri (menggunakan textContent untuk aman dari XSS dan tanda petik)
+        const modalLabel = document.getElementById('editOptionsModalLabel');
+        modalLabel.textContent = 'Pilih Aksi - ' + NamaSantri;
 
         // Tampilkan modal
         $('#editOptionsModal').modal('show');
@@ -1191,9 +1194,11 @@
     function ubahTpqSantri() {
         if (selectedSantriId) {
             // Tampilkan konfirmasi sebelum pindah ke halaman ubah TPQ
+            // Escape HTML untuk mencegah XSS dan menangani tanda petik
+            const escapedName = $('<div>').text(selectedSantriName).html();
             Swal.fire({
                 title: 'Konfirmasi Pindah TPQ',
-                html: `Apakah Anda yakin ingin memindahkan santri <strong>${selectedSantriName}</strong> ke TPQ lain?<br><br>
+                html: `Apakah Anda yakin ingin memindahkan santri <strong>${escapedName}</strong> ke TPQ lain?<br><br>
                        <small class="text-muted">Aksi ini akan mengubah status Active menjadi 0 pada TPQ saat ini.</small>`,
                 icon: 'warning',
                 showCancelButton: true,
@@ -1229,9 +1234,11 @@
             $('#editOptionsModal').modal('hide');
 
             // Konfirmasi sebelum pindah ke halaman konfirmasi delete
+            // Escape HTML untuk mencegah XSS dan menangani tanda petik
+            const escapedName = $('<div>').text(selectedSantriName).html();
             Swal.fire({
                 title: 'Konfirmasi Hapus Santri',
-                html: `Apakah Anda yakin ingin menghapus santri <strong>${selectedSantriName}</strong>?<br><br>
+                html: `Apakah Anda yakin ingin menghapus santri <strong>${escapedName}</strong>?<br><br>
                        <small class="text-muted">Anda akan diarahkan ke halaman konfirmasi untuk melihat detail data yang akan dihapus.</small>`,
                 icon: 'warning',
                 showCancelButton: true,
