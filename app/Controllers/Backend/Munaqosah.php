@@ -7288,12 +7288,19 @@ class Munaqosah extends BaseController
             $isAdmin ? null : $idTpq
         );
 
+        // Get konfigurasi grup jadwal peserta (default: start=1, end=8)
+        $configIdTpq = $isAdmin ? '0' : $idTpq;
+        $groupStart = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NoGroupJadwalPesertaStart', 1);
+        $groupEnd = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NoGroupJadwalPesertaEnd', 8);
+
         $data = [
             'page_title' => 'Jadwal Peserta Ujian',
             'current_tahun_ajaran' => $currentTahunAjaran,
             'tpqDropdown' => $dataTpq,
             'tpqFromPeserta' => $tpqFromPeserta,
             'isAdmin' => $isAdmin,
+            'groupStart' => $groupStart,
+            'groupEnd' => $groupEnd,
         ];
 
         return view('backend/Munaqosah/jadwalPesertaUjian', $data);
