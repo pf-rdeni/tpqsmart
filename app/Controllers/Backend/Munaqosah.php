@@ -5735,8 +5735,28 @@ class Munaqosah extends BaseController
         $selectedTpq = $this->request->getGet('tpq');
         $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah'; // Default untuk dashboard
 
-        // Jika user login sebagai admin TPQ
-        if (!empty($sessionIdTpq)) {
+        // Jika user login sebagai Juri, ambil IdTpq dari data juri
+        $isJuri = in_groups('Juri');
+        if ($isJuri) {
+            $usernameJuri = user()->username;
+            $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+            if ($juriData) {
+                // Set IdTpq jika ada
+                if (!empty($juriData->IdTpq)) {
+                    $selectedTpq = $juriData->IdTpq;
+                    $sessionIdTpq = $juriData->IdTpq;
+                }
+
+                // Set TypeUjian berdasarkan IdTpq: jika ada IdTpq -> pra-munaqosah, jika tidak -> munaqosah
+                if (!empty($juriData->IdTpq)) {
+                    $selectedType = 'pra-munaqosah';
+                } else {
+                    $selectedType = 'munaqosah';
+                }
+            }
+        }
+        // Jika user login sebagai admin TPQ/Operator
+        elseif (!empty($sessionIdTpq)) {
             $selectedTpq = $sessionIdTpq;
         }
 
@@ -5752,7 +5772,7 @@ class Munaqosah extends BaseController
         $builder->where('r.IdTahunAjaran', $currentTahunAjaran);
         $builder->where('r.TypeUjian', $selectedType);
 
-        // Jika user login sebagai operator TPQ, filter berdasarkan IdTpq dari session
+        // Jika user login sebagai Juri, operator TPQ, atau admin TPQ, filter berdasarkan IdTpq
         if (!empty($sessionIdTpq)) {
             $builder->where('r.IdTpq', $sessionIdTpq);
         }
@@ -5878,6 +5898,8 @@ class Munaqosah extends BaseController
             'selected_type' => $selectedType,
             'session_id_tpq' => $sessionIdTpq ?? '',
             'statistikGroupPeserta' => $statistikGroupPeserta,
+            'is_juri' => $isJuri,
+            'juri_id_tpq' => $isJuri && isset($juriData) ? ($juriData->IdTpq ?? null) : null,
         ];
 
         return view('backend/Munaqosah/dashboardMonitoring', $data);
@@ -6318,8 +6340,18 @@ class Munaqosah extends BaseController
 
             $sessionIdTpq = session()->get('IdTpq');
 
+            // Jika user login sebagai Juri, ambil IdTpq dari data juri
+            if (in_groups('Juri')) {
+                $usernameJuri = user()->username;
+                $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+                if ($juriData && !empty($juriData->IdTpq)) {
+                    $idTpq = (int)$juriData->IdTpq;
+                } else {
+                    $idTpq = null;
+                }
+            }
             // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
-            if (!empty($sessionIdTpq)) {
+            elseif (!empty($sessionIdTpq)) {
                 $idTpq = (int)$sessionIdTpq;
             } else {
                 $idTpqParam = $this->request->getGet('IdTpq');
@@ -6361,8 +6393,18 @@ class Munaqosah extends BaseController
 
             $sessionIdTpq = session()->get('IdTpq');
 
+            // Jika user login sebagai Juri, ambil IdTpq dari data juri
+            if (in_groups('Juri')) {
+                $usernameJuri = user()->username;
+                $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+                if ($juriData && !empty($juriData->IdTpq)) {
+                    $idTpq = (int)$juriData->IdTpq;
+                } else {
+                    $idTpq = null;
+                }
+            }
             // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
-            if (!empty($sessionIdTpq)) {
+            elseif (!empty($sessionIdTpq)) {
                 $idTpq = (int)$sessionIdTpq;
             } else {
                 $idTpqParam = $this->request->getGet('IdTpq');
