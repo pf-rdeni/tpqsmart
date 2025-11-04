@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Jadwal Peserta Ujian Munaqosah</title>
@@ -40,7 +41,8 @@
             color: white;
         }
 
-        th, td {
+        th,
+        td {
             border: 1px solid #000;
             padding: 5px;
             text-align: center;
@@ -83,6 +85,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h2>JADWAL PESERTA UJIAN MUNAQOSAH</h2>
@@ -118,37 +121,37 @@
                 $currentTanggal = $group['Tanggal'];
                 $currentJam = $group['Jam'];
                 $currentJamTime = $currentJam ? (int)explode(':', $currentJam)[0] : 0;
-                
+
                 // Jika tanggal berubah, hitung Sub Total untuk tanggal sebelumnya
                 if ($prevTanggal !== null && $prevTanggal !== $currentTanggal):
                     // Tambahkan Sub untuk jam < 13:00 jika ada
                     if ($subtotalPagi > 0):
             ?>
-            <tr class="subtotal-row">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Sub <?= $subtotalPagi ?></td>
-                <td></td>
-            </tr>
-            <?php
+                        <tr class="subtotal-row">
+                            <td colspan="5" class="text-right" style="font-weight: bold;">Sub</td>
+                            <td class="text-center" style="font-weight: bold;"><?= $subtotalPagi ?></td>
+                        </tr>
+                    <?php
                         $subtotalPerTanggal += $subtotalPagi;
                     endif;
                     // Tambahkan Sub untuk jam >= 13:00 jika ada
                     if ($subtotalSiang > 0):
-            ?>
-            <tr class="subtotal-row">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Sub <?= $subtotalSiang ?></td>
-                <td></td>
-            </tr>
-            <?php
+                    ?>
+                        <tr class="subtotal-row">
+                            <td colspan="5" class="text-right" style="font-weight: bold;">Sub</td>
+                            <td class="text-center" style="font-weight: bold;"><?= $subtotalSiang ?></td>
+                        </tr>
+                    <?php
                         $subtotalPerTanggal += $subtotalSiang;
                     endif;
                     // Tambahkan Sub Total untuk tanggal sebelumnya
                     if ($subtotalPerTanggal > 0):
-            ?>
-            <tr class="total-row" style="background-color: #90EE90;">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Sub Total <?= $subtotalPerTanggal ?></td>
-                <td></td>
-            </tr>
-            <?php
+                    ?>
+                        <tr class="total-row" style="background-color: #90EE90;">
+                            <td colspan="5" class="text-right" style="font-weight: bold;">Sub Total</td>
+                            <td class="text-center" style="font-weight: bold;"><?= $subtotalPerTanggal ?></td>
+                        </tr>
+                        <?php
                         $allSubTotal[] = $subtotalPerTanggal;
                         $grandTotalCalc += $subtotalPerTanggal;
                     endif;
@@ -157,30 +160,30 @@
                     $subtotalSiang = 0;
                     $subtotalPerTanggal = 0;
                 endif;
-                
+
                 // Jika jam berubah dalam tanggal yang sama
                 if ($prevTanggal === $currentTanggal && $prevJam !== $currentJam && $prevJamTime !== null):
                     if ($prevJamTime < 13 && $currentJamTime >= 13):
                         // Akhiri Sub untuk pagi
                         if ($subtotalPagi > 0):
-            ?>
-            <tr class="subtotal-row">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Sub <?= $subtotalPagi ?></td>
-                <td></td>
-            </tr>
-            <?php
+                        ?>
+                            <tr class="subtotal-row">
+                                <td colspan="5" class="text-right" style="font-weight: bold;">Sub</td>
+                                <td class="text-center" style="font-weight: bold;"><?= $subtotalPagi ?></td>
+                            </tr>
+                        <?php
                             $subtotalPerTanggal += $subtotalPagi;
                             $subtotalPagi = 0;
                         endif;
                     elseif ($prevJamTime >= 13 && $currentJamTime < 13):
                         // Akhiri Sub untuk siang
                         if ($subtotalSiang > 0):
-            ?>
-            <tr class="subtotal-row">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Sub <?= $subtotalSiang ?></td>
-                <td></td>
-            </tr>
-            <?php
+                        ?>
+                            <tr class="subtotal-row">
+                                <td colspan="5" class="text-right" style="font-weight: bold;">Sub</td>
+                                <td class="text-center" style="font-weight: bold;"><?= $subtotalSiang ?></td>
+                            </tr>
+                        <?php
                             $subtotalPerTanggal += $subtotalSiang;
                             $subtotalSiang = 0;
                         endif;
@@ -191,41 +194,58 @@
                 $tanggalObj = new \DateTime($currentTanggal);
                 $tanggalFormatted = $tanggalObj->format('l d F Y');
                 // Convert to Indonesian day names
-                $days = ['Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu', 
-                        'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu', 'Sunday' => 'Minggu'];
-                $months = ['January' => 'Januari', 'February' => 'Februari', 'March' => 'Maret',
-                          'April' => 'April', 'May' => 'Mei', 'June' => 'Juni',
-                          'July' => 'Juli', 'August' => 'Agustus', 'September' => 'September',
-                          'October' => 'Oktober', 'November' => 'November', 'December' => 'Desember'];
-                
+                $days = [
+                    'Monday' => 'Senin',
+                    'Tuesday' => 'Selasa',
+                    'Wednesday' => 'Rabu',
+                    'Thursday' => 'Kamis',
+                    'Friday' => 'Jumat',
+                    'Saturday' => 'Sabtu',
+                    'Sunday' => 'Minggu'
+                ];
+                $months = [
+                    'January' => 'Januari',
+                    'February' => 'Februari',
+                    'March' => 'Maret',
+                    'April' => 'April',
+                    'May' => 'Mei',
+                    'June' => 'Juni',
+                    'July' => 'Juli',
+                    'August' => 'Agustus',
+                    'September' => 'September',
+                    'October' => 'Oktober',
+                    'November' => 'November',
+                    'December' => 'Desember'
+                ];
+
                 $dayName = $days[$tanggalObj->format('l')] ?? $tanggalObj->format('l');
                 $monthName = $months[$tanggalObj->format('F')] ?? $tanggalObj->format('F');
                 $tanggalFormatted = $dayName . ' ' . $tanggalObj->format('d') . ' ' . $monthName . ' ' . $tanggalObj->format('Y');
-                
+
                 // Format jam
                 $jamFormatted = $currentJam ? 'Jam ' . $currentJam . ' s/d Selesai' : '-';
 
                 // Render rows untuk group ini
                 foreach ($group['rows'] as $rowIndex => $row):
                     if ($rowIndex === 0):
-            ?>
-            <tr>
-                <td rowspan="<?= count($group['rows']) ?>" class="text-center" style="vertical-align: middle;"><?= esc($row['GroupPeserta']) ?></td>
-                <td rowspan="<?= count($group['rows']) ?>" class="text-center" style="vertical-align: middle;"><?= esc($tanggalFormatted) ?></td>
-                <td rowspan="<?= count($group['rows']) ?>" class="text-center" style="vertical-align: middle;"><?= esc($jamFormatted) ?></td>
-                <td class="text-left"><?= esc($row['NamaTpq']) ?></td>
-                <td class="text-left"><?= esc($row['KelurahanDesa']) ?></td>
-                <td class="text-center"><?= esc($row['Jumlah']) ?></td>
-            </tr>
-            <?php
+                        ?>
+                        <tr>
+                            <td rowspan="<?= count($group['rows']) ?>" class="text-center" style="vertical-align: middle;"><?= esc($row['GroupPeserta']) ?></td>
+                            <td rowspan="<?= count($group['rows']) ?>" class="text-center" style="vertical-align: middle;"><?= esc($tanggalFormatted) ?></td>
+                            <td rowspan="<?= count($group['rows']) ?>" class="text-center" style="vertical-align: middle;"><?= esc($jamFormatted) ?></td>
+                            <td class="text-left"><?= esc($row['NamaTpq']) ?></td>
+                            <td class="text-left"><?= esc($row['KelurahanDesa']) ?></td>
+                            <td class="text-center"><?= esc($row['Jumlah']) ?></td>
+                        </tr>
+                    <?php
                     else:
-            ?>
-            <tr>
-                <td class="text-left"><?= esc($row['NamaTpq']) ?></td>
-                <td class="text-left"><?= esc($row['KelurahanDesa']) ?></td>
-                <td class="text-center"><?= esc($row['Jumlah']) ?></td>
-            </tr>
-            <?php
+                    ?>
+                        <tr>
+                            <td class="text-left"><?= esc($row['NamaTpq']) ?></td>
+                            <td class="text-left"><?= esc($row['KelurahanDesa']) ?></td>
+                            <td class="text-center"><?= esc($row['Jumlah']) ?></td>
+                        </tr>
+                    <?php
                     endif;
                     // Tambahkan ke subtotal berdasarkan jam
                     $jumlah = (int)$row['Jumlah'];
@@ -245,31 +265,31 @@
             if (!empty($jadwal)):
                 // Tambahkan Sub untuk jam < 13:00 jika ada
                 if ($subtotalPagi > 0):
-            ?>
-            <tr class="subtotal-row">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Sub <?= $subtotalPagi ?></td>
-                <td></td>
-            </tr>
-            <?php
+                    ?>
+                    <tr class="subtotal-row">
+                        <td colspan="5" class="text-right" style="font-weight: bold;">Sub</td>
+                        <td class="text-center" style="font-weight: bold;"><?= $subtotalPagi ?></td>
+                    </tr>
+                <?php
                     $subtotalPerTanggal += $subtotalPagi;
                 endif;
                 // Tambahkan Sub untuk jam >= 13:00 jika ada
                 if ($subtotalSiang > 0):
-            ?>
-            <tr class="subtotal-row">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Sub <?= $subtotalSiang ?></td>
-                <td></td>
-            </tr>
-            <?php
+                ?>
+                    <tr class="subtotal-row">
+                        <td colspan="5" class="text-right" style="font-weight: bold;">Sub</td>
+                        <td class="text-center" style="font-weight: bold;"><?= $subtotalSiang ?></td>
+                    </tr>
+                <?php
                     $subtotalPerTanggal += $subtotalSiang;
                 endif;
                 // Tambahkan Sub Total untuk tanggal terakhir
                 if ($subtotalPerTanggal > 0):
-            ?>
-            <tr class="total-row" style="background-color: #90EE90;">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Sub Total <?= $subtotalPerTanggal ?></td>
-                <td></td>
-            </tr>
+                ?>
+                    <tr class="total-row" style="background-color: #90EE90;">
+                        <td colspan="5" class="text-right" style="font-weight: bold;">Sub Total</td>
+                        <td class="text-center" style="font-weight: bold;"><?= $subtotalPerTanggal ?></td>
+                    </tr>
             <?php
                     $allSubTotal[] = $subtotalPerTanggal;
                     $grandTotalCalc += $subtotalPerTanggal;
@@ -279,11 +299,11 @@
 
             <!-- Grand Total -->
             <tr class="total-row" style="background-color: #90EE90;">
-                <td colspan="5" class="text-right" style="font-weight: bold;">Grand Total <?= $grandTotalCalc ?></td>
-                <td></td>
+                <td colspan="5" class="text-right" style="font-weight: bold;">Grand Total</td>
+                <td class="text-center" style="font-weight: bold;"><?= $grandTotalCalc ?></td>
             </tr>
         </tbody>
     </table>
 </body>
-</html>
 
+</html>

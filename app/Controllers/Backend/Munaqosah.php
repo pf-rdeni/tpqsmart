@@ -7288,12 +7288,19 @@ class Munaqosah extends BaseController
             $isAdmin ? null : $idTpq
         );
 
+        // Get konfigurasi grup jadwal peserta (default: start=1, end=8)
+        $configIdTpq = $isAdmin ? '0' : $idTpq;
+        $groupStart = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NoGroupJadwalPesertaStart', 1);
+        $groupEnd = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, 'NoGroupJadwalPesertaEnd', 8);
+
         $data = [
             'page_title' => 'Jadwal Peserta Ujian',
             'current_tahun_ajaran' => $currentTahunAjaran,
             'tpqDropdown' => $dataTpq,
             'tpqFromPeserta' => $tpqFromPeserta,
             'isAdmin' => $isAdmin,
+            'groupStart' => $groupStart,
+            'groupEnd' => $groupEnd,
         ];
 
         return view('backend/Munaqosah/jadwalPesertaUjian', $data);
@@ -7372,15 +7379,23 @@ class Munaqosah extends BaseController
         // Hitung grand total
         $grandTotal = 0;
         foreach ($formattedData as $group) {
-            foreach ($group['rows'] as $row) {
-                $grandTotal += $row['Jumlah'];
+            if (isset($group['rows']) && is_array($group['rows'])) {
+                foreach ($group['rows'] as $row) {
+                    $grandTotal += isset($row['Jumlah']) ? (int)$row['Jumlah'] : 0;
+                }
             }
+        }
+
+        // Pastikan data selalu berupa array, meskipun kosong
+        if (empty($formattedData)) {
+            $formattedData = [];
         }
 
         return $this->response->setJSON([
             'success' => true,
             'data' => $formattedData,
-            'grandTotal' => $grandTotal
+            'grandTotal' => $grandTotal,
+            'message' => empty($formattedData) ? 'Tidak ada data jadwal' : 'Data berhasil dimuat'
         ]);
     }
 
