@@ -891,6 +891,7 @@
         loadTpqFromPeserta();
         // Hanya load jadwal sekali di awal, jangan panggil loadAvailableGroups() karena akan dipanggil di loadJadwal()
         loadJadwal();
+        loadAvailableGroups(); // Load grup saat pertama kali
     });
 </script>
 <?= $this->endSection(); ?>
