@@ -265,6 +265,15 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/duplicate-konfigurasi', 'Munaqosah::duplicateKonfigurasi');
     $routes->post('munaqosah/delete-konfigurasi/(:num)', 'Munaqosah::deleteKonfigurasi/$1');
 
+    // Jadwal Peserta Ujian Routes
+    $routes->get('munaqosah/jadwal-peserta-ujian', 'Munaqosah::jadwalPesertaUjian');
+    $routes->get('munaqosah/get-jadwal-peserta-ujian', 'Munaqosah::getJadwalPesertaUjian');
+    $routes->post('munaqosah/save-jadwal-peserta-ujian', 'Munaqosah::saveJadwalPesertaUjian');
+    $routes->post('munaqosah/update-jadwal-peserta-ujian/(:num)', 'Munaqosah::updateJadwalPesertaUjian/$1');
+    $routes->get('munaqosah/delete-jadwal-peserta-ujian/(:num)', 'Munaqosah::deleteJadwalPesertaUjian/$1');
+    $routes->get('munaqosah/get-tpq-from-peserta', 'Munaqosah::getTpqFromPeserta');
+    $routes->get('munaqosah/print-jadwal-peserta', 'Munaqosah::printJadwalPeserta');
+
     // API Routes untuk data master
     $routes->get('backend/tpq/get-all', 'Tpq::getAll');
 });

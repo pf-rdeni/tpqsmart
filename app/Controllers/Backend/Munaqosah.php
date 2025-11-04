@@ -21,6 +21,7 @@ use App\Models\MunaqosahJuriModel;
 use App\Models\MunaqosahKategoriModel;
 use App\Models\MunaqosahKategoriKesalahanModel;
 use App\Models\MunaqosahKonfigurasiModel;
+use App\Models\MunaqosahJadwalUjianModel;
 use Myth\Auth\Password;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -44,6 +45,7 @@ class Munaqosah extends BaseController
     protected $munaqosahKategoriModel;
     protected $munaqosahKategoriKesalahanModel;
     protected $munaqosahKonfigurasiModel;
+    protected $munaqosahJadwalUjianModel;
     protected $db;
     private array $bobotWeightCache = [];
     private array $kelulusanThresholdCache = [];
@@ -68,6 +70,7 @@ class Munaqosah extends BaseController
         $this->munaqosahKategoriModel = new MunaqosahKategoriModel();
         $this->munaqosahKategoriKesalahanModel = new MunaqosahKategoriKesalahanModel();
         $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
+        $this->munaqosahJadwalUjianModel = new MunaqosahJadwalUjianModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -7264,6 +7267,403 @@ class Munaqosah extends BaseController
             'min' => $roomIdMin,
             'max' => $roomIdMax,
         ];
+    }
+
+    // ==================== JADWAL PESERTA UJIAN ====================
+
+    public function jadwalPesertaUjian()
+    {
+        helper('munaqosah');
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $idTpq = session()->get('IdTpq');
+        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+
+        // Get TPQ data dari peserta yang terdaftar, grouped by IdTpq
+        $tpqFromPeserta = $this->pesertaMunaqosahModel->getTpqFromPeserta(
+            $currentTahunAjaran,
+            $isAdmin ? null : $idTpq
+        );
+
+        $data = [
+            'page_title' => 'Jadwal Peserta Ujian',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'tpqDropdown' => $dataTpq,
+            'tpqFromPeserta' => $tpqFromPeserta,
+            'isAdmin' => $isAdmin,
+        ];
+
+        return view('backend/Munaqosah/jadwalPesertaUjian', $data);
+    }
+
+    public function getJadwalPesertaUjian()
+    {
+        $idTahunAjaran = $this->request->getGet('tahunAjaran');
+        $typeUjian = $this->request->getGet('typeUjian');
+        $idTpq = session()->get('IdTpq');
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+
+        if (empty($idTahunAjaran)) {
+            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+            $idTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+        }
+
+        $jadwal = $this->munaqosahJadwalUjianModel->getJadwalGrouped($idTahunAjaran, $typeUjian);
+
+        if (!$isAdmin) {
+            $jadwal = array_filter($jadwal, function ($item) use ($idTpq) {
+                return $item['IdTpq'] == $idTpq;
+            });
+            $jadwal = array_values($jadwal);
+        }
+
+        // Format data untuk tabel dengan grouping berdasarkan Group, Tanggal, Jam
+        $formattedData = [];
+        $groupedData = [];
+
+        // Group data berdasarkan GroupPeserta, Tanggal, dan Jam
+        foreach ($jadwal as $row) {
+            $jumlahPeserta = $this->munaqosahJadwalUjianModel->getCountPesertaByTpq(
+                $row['IdTpq'],
+                $idTahunAjaran,
+                $row['TypeUjian']
+            );
+
+            $key = $row['GroupPeserta'] . '_' . $row['Tanggal'] . '_' . $row['Jam'];
+
+            if (!isset($groupedData[$key])) {
+                $groupedData[$key] = [
+                    'GroupPeserta' => $row['GroupPeserta'],
+                    'Tanggal' => $row['Tanggal'],
+                    'Jam' => $row['Jam'],
+                    'rows' => []
+                ];
+            }
+
+            $groupedData[$key]['rows'][] = [
+                'id' => $row['id'],
+                'GroupPeserta' => $row['GroupPeserta'],
+                'Tanggal' => $row['Tanggal'],
+                'Jam' => $row['Jam'],
+                'IdTpq' => $row['IdTpq'],
+                'NamaTpq' => $row['NamaTpq'] ?? '-',
+                'KelurahanDesa' => $row['KelurahanDesa'] ?? ($row['DesaKelurahan'] ?? '-'),
+                'Jumlah' => $jumlahPeserta,
+                'TypeUjian' => $row['TypeUjian'],
+            ];
+        }
+
+        // Convert ke array dan sort
+        $formattedData = array_values($groupedData);
+        usort($formattedData, function ($a, $b) {
+            // Sort by Tanggal, then Jam, then GroupPeserta
+            if ($a['Tanggal'] != $b['Tanggal']) {
+                return strcmp($a['Tanggal'], $b['Tanggal']);
+            }
+            if ($a['Jam'] != $b['Jam']) {
+                return strcmp($a['Jam'], $b['Jam']);
+            }
+            return strcmp($a['GroupPeserta'], $b['GroupPeserta']);
+        });
+
+        // Hitung grand total
+        $grandTotal = 0;
+        foreach ($formattedData as $group) {
+            foreach ($group['rows'] as $row) {
+                $grandTotal += $row['Jumlah'];
+            }
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $formattedData,
+            'grandTotal' => $grandTotal
+        ]);
+    }
+
+    public function saveJadwalPesertaUjian()
+    {
+        $rules = [
+            'GroupPeserta' => 'required',
+            'Tanggal' => 'required',
+            'Jam' => 'required',
+            'IdTpq' => 'required',
+            'IdTahunAjaran' => 'required',
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        $idTpq = session()->get('IdTpq');
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+        $idTpqInput = $this->request->getPost('IdTpq');
+        $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
+
+        // Validasi: Cek apakah IdTpq sudah ada di tabel untuk IdTahunAjaran yang sama
+        $existingJadwal = $this->munaqosahJadwalUjianModel->where('IdTpq', $idTpqInput)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('Status', 'aktif')
+            ->first();
+
+        if ($existingJadwal) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'TPQ ini sudah memiliki jadwal untuk tahun ajaran ' . $idTahunAjaran . '. Setiap TPQ hanya bisa memiliki satu jadwal per tahun ajaran.'
+            ]);
+        }
+
+        $data = [
+            'GroupPeserta' => $this->request->getPost('GroupPeserta'),
+            'Tanggal' => $this->request->getPost('Tanggal'),
+            'Jam' => $this->request->getPost('Jam'),
+            'IdTpq' => $idTpqInput,
+            'IdTahunAjaran' => $idTahunAjaran,
+            'TypeUjian' => $isAdmin ? $this->request->getPost('TypeUjian') : 'pra-munaqosah',
+            'Status' => 'aktif',
+        ];
+
+        if ($this->munaqosahJadwalUjianModel->save($data)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Jadwal berhasil disimpan'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan jadwal',
+                'errors' => $this->munaqosahJadwalUjianModel->errors()
+            ]);
+        }
+    }
+
+    public function updateJadwalPesertaUjian($id)
+    {
+        $rules = [
+            'GroupPeserta' => 'required',
+            'Tanggal' => 'required',
+            'Jam' => 'required',
+            'IdTpq' => 'required',
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        $idTpq = session()->get('IdTpq');
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+
+        $data = [
+            'GroupPeserta' => $this->request->getPost('GroupPeserta'),
+            'Tanggal' => $this->request->getPost('Tanggal'),
+            'Jam' => $this->request->getPost('Jam'),
+            'IdTpq' => $this->request->getPost('IdTpq'),
+        ];
+
+        if ($isAdmin) {
+            $data['TypeUjian'] = $this->request->getPost('TypeUjian');
+        }
+
+        if ($this->munaqosahJadwalUjianModel->update($id, $data)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Jadwal berhasil diupdate'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate jadwal',
+                'errors' => $this->munaqosahJadwalUjianModel->errors()
+            ]);
+        }
+    }
+
+    public function deleteJadwalPesertaUjian($id)
+    {
+        if ($this->munaqosahJadwalUjianModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Jadwal berhasil dihapus'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus jadwal'
+            ]);
+        }
+    }
+
+    public function getTpqFromPeserta()
+    {
+        $idTahunAjaran = $this->request->getGet('tahunAjaran');
+        $typeUjian = $this->request->getGet('typeUjian');
+        $idTpq = session()->get('IdTpq');
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+
+        if (empty($idTahunAjaran)) {
+            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+            $idTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+        }
+
+        // Get TPQ dari peserta menggunakan model
+        $tpqFromPeserta = $this->pesertaMunaqosahModel->getTpqFromPeserta(
+            $idTahunAjaran,
+            $isAdmin ? null : $idTpq
+        );
+
+        // Get IdTpq yang sudah ada di jadwal untuk tahun ajaran ini
+        $existingJadwal = $this->munaqosahJadwalUjianModel->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('Status', 'aktif')
+            ->findAll();
+
+        $existingIdTpq = [];
+        foreach ($existingJadwal as $jadwal) {
+            $existingIdTpq[] = $jadwal['IdTpq'];
+        }
+
+        // Filter TPQ yang sudah ada di jadwal
+        $filteredTpq = array_filter($tpqFromPeserta, function ($tpq) use ($existingIdTpq) {
+            return !in_array($tpq['IdTpq'], $existingIdTpq);
+        });
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => array_values($filteredTpq)
+        ]);
+    }
+
+    public function printJadwalPeserta()
+    {
+        try {
+            $idTahunAjaran = $this->request->getGet('tahunAjaran');
+            $typeUjian = $this->request->getGet('typeUjian');
+            $idTpq = session()->get('IdTpq');
+            $isAdmin = empty($idTpq) || $idTpq == 0;
+
+            if (empty($idTahunAjaran)) {
+                $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                $idTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+            }
+
+            // Get jadwal data
+            $jadwal = $this->munaqosahJadwalUjianModel->getJadwalGrouped($idTahunAjaran, $typeUjian);
+
+            if (!$isAdmin) {
+                $jadwal = array_filter($jadwal, function ($item) use ($idTpq) {
+                    return $item['IdTpq'] == $idTpq;
+                });
+                $jadwal = array_values($jadwal);
+            }
+
+            // Format data untuk tabel dengan grouping
+            $formattedData = [];
+            $groupedData = [];
+
+            foreach ($jadwal as $row) {
+                $jumlahPeserta = $this->munaqosahJadwalUjianModel->getCountPesertaByTpq(
+                    $row['IdTpq'],
+                    $idTahunAjaran,
+                    $row['TypeUjian']
+                );
+
+                $key = $row['GroupPeserta'] . '_' . $row['Tanggal'] . '_' . $row['Jam'];
+
+                if (!isset($groupedData[$key])) {
+                    $groupedData[$key] = [
+                        'GroupPeserta' => $row['GroupPeserta'],
+                        'Tanggal' => $row['Tanggal'],
+                        'Jam' => $row['Jam'],
+                        'rows' => []
+                    ];
+                }
+
+                $groupedData[$key]['rows'][] = [
+                    'id' => $row['id'],
+                    'GroupPeserta' => $row['GroupPeserta'],
+                    'Tanggal' => $row['Tanggal'],
+                    'Jam' => $row['Jam'],
+                    'IdTpq' => $row['IdTpq'],
+                    'NamaTpq' => $row['NamaTpq'] ?? '-',
+                    'KelurahanDesa' => $row['KelurahanDesa'] ?? '-',
+                    'Jumlah' => $jumlahPeserta,
+                    'TypeUjian' => $row['TypeUjian'],
+                ];
+            }
+
+            // Convert ke array dan sort
+            $formattedData = array_values($groupedData);
+            usort($formattedData, function ($a, $b) {
+                if ($a['Tanggal'] != $b['Tanggal']) {
+                    return strcmp($a['Tanggal'], $b['Tanggal']);
+                }
+                if ($a['Jam'] != $b['Jam']) {
+                    return strcmp($a['Jam'], $b['Jam']);
+                }
+                return strcmp($a['GroupPeserta'], $b['GroupPeserta']);
+            });
+
+            // Hitung grand total
+            $grandTotal = 0;
+            foreach ($formattedData as $group) {
+                foreach ($group['rows'] as $row) {
+                    $grandTotal += $row['Jumlah'];
+                }
+            }
+
+            // Prepare data for view
+            $data = [
+                'jadwal' => $formattedData,
+                'grandTotal' => $grandTotal,
+                'tahunAjaran' => $idTahunAjaran,
+                'typeUjian' => $typeUjian ?? 'munaqosah',
+                'generated_at' => date('Y-m-d H:i:s')
+            ];
+
+            // Load view untuk PDF
+            $html = view('backend/Munaqosah/printJadwalPeserta', $data);
+
+            // Setup Dompdf
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', false);
+            $options->set('defaultFont', 'Arial');
+            $options->set('isFontSubsettingEnabled', true);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'landscape');
+            $dompdf->render();
+
+            $filename = 'Jadwal_Peserta_Ujian_' . str_replace('/', '_', $idTahunAjaran) . '_' . ($typeUjian ?? 'munaqosah') . '.pdf';
+
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $dompdf->output();
+            exit();
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in printJadwalPeserta: ' . $e->getMessage());
+            return redirect()->to(base_url('backend/munaqosah/jadwal-peserta-ujian'))
+                ->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
     }
 }
 

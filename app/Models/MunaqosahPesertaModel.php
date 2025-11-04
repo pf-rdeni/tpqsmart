@@ -74,4 +74,47 @@ class MunaqosahPesertaModel extends Model
                    ->where('IdTahunAjaran', $idTahunAjaran)
                    ->countAllResults() > 0;
     }
+
+    /**
+     * Get TPQ yang memiliki peserta, grouped by IdTpq
+     * 
+     * @param string|null $idTahunAjaran
+     * @param int|null $idTpq Filter by IdTpq (optional)
+     * @return array
+     */
+    public function getTpqFromPeserta($idTahunAjaran = null, $idTpq = null)
+    {
+        $builder = $this->db->table($this->table . ' p');
+        $builder->select('p.IdTpq, t.NamaTpq, t.KelurahanDesa, COUNT(DISTINCT p.IdSantri) as jumlah_peserta');
+        $builder->join('tbl_tpq t', 't.IdTpq = p.IdTpq', 'left');
+
+        if ($idTahunAjaran) {
+            $builder->where('p.IdTahunAjaran', $idTahunAjaran);
+        }
+
+        if ($idTpq) {
+            $builder->where('p.IdTpq', $idTpq);
+        }
+
+        $builder->groupBy('p.IdTpq');
+        $builder->orderBy('t.NamaTpq', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Get count peserta per TPQ
+     * 
+     * @param int $idTpq
+     * @param string $idTahunAjaran
+     * @return int
+     */
+    public function getCountPesertaByTpq($idTpq, $idTahunAjaran)
+    {
+        $result = $this->where('IdTpq', $idTpq)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->countAllResults();
+
+        return (int)$result;
+    }
 }
