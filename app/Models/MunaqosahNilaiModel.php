@@ -92,7 +92,7 @@ class MunaqosahNilaiModel extends Model
         $builder->join('tbl_santri_baru s', 's.IdSantri = nm.IdSantri', 'left');
         $builder->join('tbl_tpq t', 't.IdTpq = nm.IdTpq', 'left');
         $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = nm.IdMateri', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = nm.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = nm.IdKategoriMateri', 'left');
 
         if ($id) {
             $builder->where('nm.id', $id);

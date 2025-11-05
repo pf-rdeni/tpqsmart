@@ -4,9 +4,9 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class MunaqosahKategoriModel extends Model
+class KategoriMateriModel extends Model
 {
-    protected $table = 'tbl_munaqosah_kategori_materi';
+    protected $table = 'tbl_kategori_materi';
     protected $primaryKey = 'id';
     protected $allowedFields = [
         'IdKategoriMateri',
@@ -18,3 +18,4 @@ class MunaqosahKategoriModel extends Model
     protected $useTimestamps = true;
     protected $returnType = 'array';
 }
+

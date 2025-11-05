@@ -105,7 +105,7 @@ class MunaqosahRegistrasiUjiModel extends Model
     {
         $builder = $this->db->table($this->table . ' r');
         $builder->select('r.*, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $builder->where('r.NoPeserta', $noPeserta);
         $builder->where('r.TypeUjian', $typeUjian);
         $builder->where('r.IdTahunAjaran', $idTahunAjaran);
@@ -134,7 +134,7 @@ class MunaqosahRegistrasiUjiModel extends Model
         $builder = $this->db->table($this->table . ' r');
         $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli');
         $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $builder->where('r.NoPeserta', $noPeserta);
         $builder->where('r.IdGrupMateriUjian !=', 'GM001'); // Exclude Quran grup for now
 
@@ -144,7 +144,7 @@ class MunaqosahRegistrasiUjiModel extends Model
         $quranBuilder = $this->db->table($this->table . ' r');
         $quranBuilder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, a.NamaSurah as NamaMateri, a.WebLinkAyat');
         $quranBuilder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri', 'left');
-        $quranBuilder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+        $quranBuilder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $quranBuilder->where('r.NoPeserta', $noPeserta);
         $quranBuilder->where('r.IdGrupMateriUjian', 'GM001');
 
@@ -164,7 +164,7 @@ class MunaqosahRegistrasiUjiModel extends Model
             $builder = $this->db->table($this->table . ' r');
             $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, a.NamaSurah as NamaMateri, a.WebLinkAyat');
             $builder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri', 'left');
-            $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+            $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->where('r.NoPeserta', $noPeserta);
             $builder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
             $builder->where('r.TypeUjian', $typeUjian);
@@ -175,7 +175,7 @@ class MunaqosahRegistrasiUjiModel extends Model
             $builder = $this->db->table($this->table . ' r');
             $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli');
             $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
-            $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+            $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->where('r.NoPeserta', $noPeserta);
             $builder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
             $builder->where('r.TypeUjian', $typeUjian);
@@ -193,7 +193,7 @@ class MunaqosahRegistrasiUjiModel extends Model
         $builder->join('tbl_santri_baru s', 'r.IdSantri = s.IdSantri', 'left');
         $builder->join('tbl_kelas k', 's.IdKelas = k.IdKelas', 'left');
         $builder->join('tbl_tpq t', 'r.IdTpq = t.IdTpq', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $builder->where('r.TypeUjian', $typeUjian);
 
         if ($filterTpq > 0) {
@@ -227,7 +227,7 @@ class MunaqosahRegistrasiUjiModel extends Model
         $builder->join('tbl_santri_baru s', 'r.IdSantri = s.IdSantri', 'left');
         $builder->join('tbl_kelas k', 's.IdKelas = k.IdKelas', 'left');
         $builder->join('tbl_tpq t', 'r.IdTpq = t.IdTpq', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $builder->where('r.TypeUjian', $typeUjian);
         $builder->whereIn('r.IdSantri', $santriIds);
         $builder->orderBy('r.NoPeserta', 'ASC');
@@ -266,7 +266,7 @@ class MunaqosahRegistrasiUjiModel extends Model
         $builder->join('tbl_santri_baru s', 'r.IdSantri = s.IdSantri', 'left');
         $builder->join('tbl_kelas k', 's.IdKelas = k.IdKelas', 'left');
         $builder->join('tbl_tpq t', 'r.IdTpq = t.IdTpq', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $builder->where('r.TypeUjian', $typeUjian);
         $builder->whereIn('r.IdSantri', $santriIds);
         $builder->orderBy('r.NoPeserta', 'ASC');
@@ -300,7 +300,7 @@ class MunaqosahRegistrasiUjiModel extends Model
         $builder->join('tbl_santri_baru s', 'r.IdSantri = s.IdSantri', 'left');
         $builder->join('tbl_kelas k', 's.IdKelas = k.IdKelas', 'left');
         $builder->join('tbl_tpq t', 'r.IdTpq = t.IdTpq', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $builder->where('r.TypeUjian', $typeUjian);
 
         if ($filterTpq > 0) {

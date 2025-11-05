@@ -741,7 +741,7 @@ class StatusUjianMunaqosah extends BaseController
             $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.IdKategoriMateri,r.IdGrupMateriUjian,r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
             $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
-            $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+            $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->where('r.IdTahunAjaran', $idTahunAjaran);
             $builder->where('r.TypeUjian', $typeUjian);
             if (!empty($idTpq)) {

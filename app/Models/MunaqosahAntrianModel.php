@@ -101,7 +101,7 @@ class MunaqosahAntrianModel extends Model
         $builder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = q.NoPeserta AND r.IdTahunAjaran = q.IdTahunAjaran', 'left');
         $builder->join('tbl_santri_baru s', 's.IdSantri = COALESCE(q.IdSantri, r.IdSantri)', 'left');
         $builder->join('tbl_tpq t', 't.IdTpq = COALESCE(q.IdTpq, r.IdTpq)', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = COALESCE(q.IdKategoriMateri, r.IdKategoriMateri)', 'left', false);
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = COALESCE(q.IdKategoriMateri, r.IdKategoriMateri)', 'left', false);
 
         if (!empty($filters['IdTahunAjaran'])) {
             $builder->where('q.IdTahunAjaran', $filters['IdTahunAjaran']);

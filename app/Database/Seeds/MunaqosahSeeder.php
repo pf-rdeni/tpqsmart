@@ -20,7 +20,7 @@ class MunaqosahSeeder extends Seeder
 
         // Pastikan kategori utama tersedia
         $kategoriNames = ['SHOLAT', 'AYAT PILIHAN', 'SURAH PENDEK', 'DOA', 'IMLA', 'UMUM', 'Iqra', "Qur'an"];
-        $kategoriTable = $this->db->table('tbl_munaqosah_kategori_materi');
+        $kategoriTable = $this->db->table('tbl_kategori_materi');
         foreach ($kategoriNames as $name) {
             $kategoriId = $this->buildKategoriId($name);
             $exists = $kategoriTable->where('IdKategoriMateri', $kategoriId)->countAllResults();

@@ -18,7 +18,6 @@ use App\Models\MunaqosahAlquranModel;
 use App\Models\MunaqosahRegistrasiUjiModel;
 use App\Models\SantriBaruModel;
 use App\Models\MunaqosahJuriModel;
-use App\Models\MunaqosahKategoriModel;
 use App\Models\MunaqosahKategoriKesalahanModel;
 use App\Models\MunaqosahKonfigurasiModel;
 use App\Models\MunaqosahJadwalUjianModel;
@@ -67,7 +66,6 @@ class Munaqosah extends BaseController
         $this->munaqosahRegistrasiUjiModel = new MunaqosahRegistrasiUjiModel();
         $this->santriBaruModel = new SantriBaruModel();
         $this->munaqosahJuriModel = new MunaqosahJuriModel();
-        $this->munaqosahKategoriModel = new MunaqosahKategoriModel();
         $this->munaqosahKategoriKesalahanModel = new MunaqosahKategoriKesalahanModel();
         $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
         $this->munaqosahJadwalUjianModel = new MunaqosahJadwalUjianModel();
@@ -322,11 +320,11 @@ class Munaqosah extends BaseController
             $errorCategoriesByKategori = [];
             if (!empty($kategoriNames)) {
                 $errorCategoryRows = $this->munaqosahKategoriKesalahanModel
-                    ->select('tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_munaqosah_kategori_materi.NamaKategoriMateri')
-                    ->join('tbl_munaqosah_kategori_materi', 'tbl_munaqosah_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
-                    ->whereIn('tbl_munaqosah_kategori_materi.NamaKategoriMateri', $kategoriNames)
+                    ->select('tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_kategori_materi.NamaKategoriMateri')
+                    ->join('tbl_kategori_materi', 'tbl_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
+                    ->whereIn('tbl_kategori_materi.NamaKategoriMateri', $kategoriNames)
                     ->where('tbl_munaqosah_kategori_kesalahan.Status', 'Aktif')
-                    ->orderBy('tbl_munaqosah_kategori_materi.NamaKategoriMateri', 'ASC')
+                    ->orderBy('tbl_kategori_materi.NamaKategoriMateri', 'ASC')
                     ->orderBy('tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan', 'ASC')
                     ->findAll();
 
@@ -4499,7 +4497,7 @@ class Munaqosah extends BaseController
             $nilaiBuilder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = n.NoPeserta AND r.IdKategoriMateri = n.IdKategoriMateri AND r.IdTahunAjaran = n.IdTahunAjaran AND r.TypeUjian = n.TypeUjian', 'left');
             $nilaiBuilder->join('tbl_santri_baru s', 's.IdSantri = n.IdSantri', 'left');
             $nilaiBuilder->join('tbl_tpq t', 't.IdTpq = n.IdTpq', 'left');
-            $nilaiBuilder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = n.IdKategoriMateri', 'left');
+            $nilaiBuilder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = n.IdKategoriMateri', 'left');
             $nilaiBuilder->where('n.IdJuri', $idJuri);
             $nilaiBuilder->where('n.IdTahunAjaran', $idTahunAjaran);
             $nilaiBuilder->where('n.TypeUjian', $typeUjian);
@@ -4996,11 +4994,11 @@ class Munaqosah extends BaseController
             $errorCategoriesByKategori = [];
             if (!empty($kategoriNames)) {
                 $errorCategoryRows = $this->munaqosahKategoriKesalahanModel
-                    ->select('tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_munaqosah_kategori_materi.NamaKategoriMateri')
-                    ->join('tbl_munaqosah_kategori_materi', 'tbl_munaqosah_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
-                    ->whereIn('tbl_munaqosah_kategori_materi.NamaKategoriMateri', $kategoriNames)
+                    ->select('tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_kategori_materi.NamaKategoriMateri')
+                    ->join('tbl_kategori_materi', 'tbl_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
+                    ->whereIn('tbl_kategori_materi.NamaKategoriMateri', $kategoriNames)
                     ->where('tbl_munaqosah_kategori_kesalahan.Status', 'Aktif')
-                    ->orderBy('tbl_munaqosah_kategori_materi.NamaKategoriMateri', 'ASC')
+                    ->orderBy('tbl_kategori_materi.NamaKategoriMateri', 'ASC')
                     ->orderBy('tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan', 'ASC')
                     ->findAll();
 
@@ -5964,7 +5962,7 @@ class Munaqosah extends BaseController
             $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.IdKategoriMateri,r.IdGrupMateriUjian,r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
             $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
-            $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+            $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->where('r.IdTahunAjaran', $idTahunAjaran);
             $builder->where('r.TypeUjian', $typeUjian);
             if (!empty($idTpq)) {
@@ -6650,7 +6648,7 @@ class Munaqosah extends BaseController
                 ' al.NamaSurah,' .
                 ' al.WebLinkAyat AS AlquranLink'
         );
-        $materiBuilder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+        $materiBuilder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $materiBuilder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
         $materiBuilder->join('tbl_munaqosah_materi mm', 'mm.IdMateri = r.IdMateri', 'left');
         $materiBuilder->join('tbl_munaqosah_alquran al', 'al.IdMateri = r.IdMateri', 'left');
@@ -6693,7 +6691,7 @@ class Munaqosah extends BaseController
                     ' al.WebLinkAyat AS AlquranLink'
             )
             ->join('tbl_munaqosah_juri j', 'j.IdJuri = tbl_munaqosah_nilai.IdJuri', 'left')
-            ->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = tbl_munaqosah_nilai.IdKategoriMateri', 'left')
+            ->join('tbl_kategori_materi km', 'km.IdKategoriMateri = tbl_munaqosah_nilai.IdKategoriMateri', 'left')
             ->join('tbl_materi_pelajaran mp', 'mp.IdMateri = tbl_munaqosah_nilai.IdMateri', 'left')
             ->join('tbl_munaqosah_materi mm', 'mm.IdMateri = tbl_munaqosah_nilai.IdMateri', 'left')
             ->join('tbl_munaqosah_alquran al', 'al.IdMateri = tbl_munaqosah_nilai.IdMateri', 'left')
@@ -6987,171 +6985,6 @@ class Munaqosah extends BaseController
         }
     }
 
-    // ==================== KATEGORI MATERI ====================
-
-    /**
-     * Display list kategori materi
-     */
-    public function listKategoriMateri()
-    {
-        $data = [
-            'page_title' => 'Data Kategori Materi Munaqosah'
-        ];
-        return view('backend/Munaqosah/listKategoriMateri', $data);
-    }
-
-    /**
-     * Get all kategori materi
-     */
-    public function getKategoriMateri()
-    {
-        try {
-            $kategori = $this->munaqosahKategoriModel->orderBy('IdKategoriMateri', 'ASC')->findAll();
-            return $this->response->setJSON([
-                'success' => true,
-                'data' => $kategori
-            ]);
-        } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Gagal mengambil data: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * Save kategori materi
-     */
-    public function saveKategoriMateri()
-    {
-        try {
-            $rules = [
-                'IdKategoriMateri' => 'required|max_length[50]|is_unique[tbl_munaqosah_kategori_materi.IdKategoriMateri]',
-                'NamaKategoriMateri' => 'required|max_length[255]',
-                'Status' => 'required|in_list[Aktif,Tidak Aktif]'
-            ];
-
-            if (!$this->validate($rules)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Validasi gagal',
-                    'errors' => $this->validator->getErrors()
-                ]);
-            }
-
-            $data = [
-                'IdKategoriMateri' => strtoupper($this->request->getPost('IdKategoriMateri')),
-                'NamaKategoriMateri' => $this->request->getPost('NamaKategoriMateri'),
-                'Status' => $this->request->getPost('Status')
-            ];
-
-            if ($this->munaqosahKategoriModel->save($data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Data kategori materi berhasil disimpan'
-                ]);
-            } else {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Gagal menyimpan data',
-                    'errors' => $this->munaqosahKategoriModel->errors()
-                ]);
-            }
-        } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * Update kategori materi
-     */
-    public function updateKategoriMateri($id)
-    {
-        try {
-            $rules = [
-                'NamaKategoriMateri' => 'required|max_length[255]',
-                'Status' => 'required|in_list[Aktif,Tidak Aktif]'
-            ];
-
-            if (!$this->validate($rules)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Validasi gagal',
-                    'errors' => $this->validator->getErrors()
-                ]);
-            }
-
-            $data = [
-                'NamaKategoriMateri' => $this->request->getPost('NamaKategoriMateri'),
-                'Status' => $this->request->getPost('Status')
-            ];
-
-            if ($this->munaqosahKategoriModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Data kategori materi berhasil diupdate'
-                ]);
-            } else {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Gagal mengupdate data',
-                    'errors' => $this->munaqosahKategoriModel->errors()
-                ]);
-            }
-        } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * Delete kategori materi
-     */
-    public function deleteKategoriMateri($id)
-    {
-        try {
-            $kategori = $this->munaqosahKategoriModel->find($id);
-            if (!$kategori) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Data tidak ditemukan'
-                ]);
-            }
-
-            // Check if kategori is used in kategori kesalahan
-            $isUsed = $this->munaqosahKategoriKesalahanModel->where('IdKategoriMateri', $kategori['IdKategoriMateri'])->first();
-
-            if ($isUsed) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Kategori materi tidak dapat dihapus karena sudah digunakan'
-                ]);
-            }
-
-            if ($this->munaqosahKategoriModel->delete($id)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Data kategori materi berhasil dihapus'
-                ]);
-            } else {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Gagal menghapus data'
-                ]);
-            }
-        } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ]);
-        }
-    }
-
     // ==================== KATEGORI KESALAHAN ====================
 
     /**
@@ -7172,37 +7005,14 @@ class Munaqosah extends BaseController
     {
         try {
             $kesalahan = $this->munaqosahKategoriKesalahanModel
-                ->select('tbl_munaqosah_kategori_kesalahan.*, tbl_munaqosah_kategori_materi.NamaKategoriMateri')
-                ->join('tbl_munaqosah_kategori_materi', 'tbl_munaqosah_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
+                ->select('tbl_munaqosah_kategori_kesalahan.*, tbl_kategori_materi.NamaKategoriMateri')
+                ->join('tbl_kategori_materi', 'tbl_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
                 ->orderBy('tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan', 'ASC')
                 ->findAll();
 
             return $this->response->setJSON([
                 'success' => true,
                 'data' => $kesalahan
-            ]);
-        } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Gagal mengambil data: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * Get kategori materi for dropdown
-     */
-    public function getKategoriMateriForDropdown()
-    {
-        try {
-            $kategori = $this->munaqosahKategoriModel
-                ->where('Status', 'Aktif')
-                ->orderBy('NamaKategoriMateri', 'ASC')
-                ->findAll();
-
-            return $this->response->setJSON([
-                'success' => true,
-                'data' => $kategori
             ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
@@ -7348,8 +7158,8 @@ class Munaqosah extends BaseController
 
             $kesalahan = $this->munaqosahKategoriKesalahanModel
                 ->select('tbl_munaqosah_kategori_kesalahan.*')
-                ->join('tbl_munaqosah_kategori_materi', 'tbl_munaqosah_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
-                ->where('tbl_munaqosah_kategori_materi.NamaKategoriMateri', $kategori)
+                ->join('tbl_kategori_materi', 'tbl_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
+                ->where('tbl_kategori_materi.NamaKategoriMateri', $kategori)
                 ->where('tbl_munaqosah_kategori_kesalahan.Status', 'Aktif')
                 ->orderBy('tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan', 'ASC')
                 ->findAll();

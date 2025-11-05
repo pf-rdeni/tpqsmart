@@ -23,7 +23,7 @@ class BobotNilaiSeeder extends Seeder
         $kategoriNames = ['SHOLAT', 'AYAT PILIHAN', 'SURAH PENDEK', 'DOA', 'IMLA', 'UMUM'];
 
         // Pastikan master kategori tersedia
-        $kategoriTable = $this->db->table('tbl_munaqosah_kategori_materi');
+        $kategoriTable = $this->db->table('tbl_kategori_materi');
         foreach ($kategoriNames as $name) {
             $kategoriId = $this->buildKategoriId($name);
             $exists = $kategoriTable->where('IdKategoriMateri', $kategoriId)->countAllResults();

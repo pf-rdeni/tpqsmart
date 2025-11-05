@@ -105,7 +105,7 @@ class MunaqosahBobotNilaiModel extends Model
     {
         $builder = $this->builder();
         $builder->select($this->table . '.*, km.NamaKategoriMateri');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = ' . $this->table . '.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = ' . $this->table . '.IdKategoriMateri', 'left');
 
         if ($tahunAjaran !== null) {
             $builder->where($this->table . '.IdTahunAjaran', $tahunAjaran);

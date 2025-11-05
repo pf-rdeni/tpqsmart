@@ -48,7 +48,7 @@ class MunaqosahMateriModel extends Model
         $builder->select('mm.*, m.NamaMateri, m.Kategori as KategoriAsli, g.NamaMateriGrup, km.NamaKategoriMateri');
         $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = mm.IdMateri', 'left');
         $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = mm.IdGrupMateriUjian', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
 
         if ($id) {
             $builder->where('mm.id', $id);
@@ -63,7 +63,7 @@ class MunaqosahMateriModel extends Model
         $builder = $this->db->table($this->table . ' mm');
         $builder->select('mm.*, mp.NamaMateri, mp.Kategori as KategoriAsli, km.NamaKategoriMateri');
         $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = mm.IdMateri', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
         $builder->where('mm.IdGrupMateriUjian', $grup);
         $builder->where('mm.Status', 'Aktif');
         
@@ -99,7 +99,7 @@ class MunaqosahMateriModel extends Model
         $builder = $this->db->table($this->table . ' mm');
         $builder->select('mm.IdMateri, mm.IdKategoriMateri, mp.NamaMateri, mp.Kategori as KategoriAsli, km.NamaKategoriMateri');
         $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = mm.IdMateri', 'left');
-        $builder->join('tbl_munaqosah_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
+        $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = mm.IdKategoriMateri', 'left');
         $builder->whereIn('mm.IdMateri', $idMateriArray);
         
         return $builder->get()->getResult();

@@ -248,16 +248,17 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/update-password-juri/(:num)', 'Munaqosah::updatePasswordJuri/$1');
 
     // Kategori Materi Routes
-    $routes->get('munaqosah/list-kategori-materi', 'Munaqosah::listKategoriMateri');
-    $routes->get('munaqosah/get-kategori-materi', 'Munaqosah::getKategoriMateri');
-    $routes->post('munaqosah/save-kategori-materi', 'Munaqosah::saveKategoriMateri');
-    $routes->post('munaqosah/update-kategori-materi/(:num)', 'Munaqosah::updateKategoriMateri/$1');
-    $routes->delete('munaqosah/delete-kategori-materi/(:num)', 'Munaqosah::deleteKategoriMateri/$1');
+    $routes->get('kategori-materi', 'KategoriMateri::index');
+    $routes->get('kategori-materi/get-kategori-materi', 'KategoriMateri::getKategoriMateri');
+    $routes->post('kategori-materi/saveKategoriMateri', 'KategoriMateri::saveKategoriMateri');
+    $routes->post('kategori-materi/updateKategoriMateri/(:num)', 'KategoriMateri::updateKategoriMateri/$1');
+    $routes->delete('kategori-materi/deleteKategoriMateri/(:num)', 'KategoriMateri::deleteKategoriMateri/$1');
+    $routes->get('kategori-materi/get-kategori-materi-dropdown', 'KategoriMateri::getKategoriMateriForDropdown');
 
     // Kategori Kesalahan Routes
     $routes->get('munaqosah/list-kategori-kesalahan', 'Munaqosah::listKategoriKesalahan');
     $routes->get('munaqosah/get-kategori-kesalahan', 'Munaqosah::getKategoriKesalahan');
-    $routes->get('munaqosah/get-kategori-materi-dropdown', 'Munaqosah::getKategoriMateriForDropdown');
+    $routes->get('munaqosah/get-kategori-materi-dropdown', 'KategoriMateri::getKategoriMateriForDropdown');
     $routes->post('munaqosah/save-kategori-kesalahan', 'Munaqosah::saveKategoriKesalahan');
     $routes->post('munaqosah/update-kategori-kesalahan/(:num)', 'Munaqosah::updateKategoriKesalahan/$1');
     $routes->delete('munaqosah/delete-kategori-kesalahan/(:num)', 'Munaqosah::deleteKategoriKesalahan/$1');
