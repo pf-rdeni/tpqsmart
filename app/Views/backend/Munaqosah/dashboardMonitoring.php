@@ -4,10 +4,18 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
-                <div class="card">
+                <div class="card" id="cardMainDashboard">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                         <h3 class="card-title">Dashboard Monitoring Munaqosah</h3>
-                        <div class="d-flex flex-wrap align-items-center">
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center ml-auto">
                             <div class="mr-2 mb-1">
                                 <label class="mb-0 small">Tahun Ajaran</label>
                                 <input type="text" id="filterTahunAjaran" class="form-control form-control-sm" value="<?= esc($current_tahun_ajaran) ?>" readonly>
@@ -135,226 +143,311 @@
                                 </div>
                             </div>
                         </div>
-
+                        <!-- Statistik Penilaian per Grup Materi Ruangan -->
+                        <div class="mb-4 mt-4" id="sectionGrupMateriRuangan">
+                            <div class="card" id="cardGrupMateriRuangan">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Statistik Penilaian per Grup Materi (Ruangan)</h5>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="grupMateriRuanganChart" style="max-height: 400px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Statistik Penilaian per Juri -->
+                        <div class="mb-4 mt-4" id="sectionJuri">
+                            <div class="card" id="cardJuri">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Statistik Penilaian per Juri</h5>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="juriStatistikChart" style="max-height: 400px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
                         <!-- Progress Input Nilai per Group Materi -->
-                        <div class="mb-4">
-                            <h5 class="mb-3"><i class="fas fa-chart-pie"></i> Progress Input Nilai per Group Materi</h5>
-                            <div id="groupMateriProgressContainer">
-                                <div class="text-center text-muted">
-                                    <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                        <div class="mb-4" id="sectionGroupMateriProgress">
+                            <div class="card" id="cardGroupMateriProgress">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0"><i class="fas fa-chart-pie"></i> Progress Input Nilai per Group Materi</h5>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="groupMateriProgressContainer">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <!-- Monitoring Antrian per Grup -->
-                        <div class="mb-4 mt-4">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0"><i class="fas fa-tasks"></i> Monitoring Antrian per Grup Materi</h5>
-                                <?php
-                                $antrianLengkapUrl = 'backend/munaqosah/antrian';
-                                $antrianParams = [];
-                                if (!empty($selected_type)) {
-                                    $antrianParams[] = 'type=' . urlencode($selected_type);
-                                }
-                                if (!empty($antrianParams)) {
-                                    $antrianLengkapUrl .= '?' . implode('&', $antrianParams);
-                                }
-                                ?>
-                                <a href="<?= base_url($antrianLengkapUrl) ?>" class="btn btn-sm btn-warning" title="Antrian Lengkap">
-                                    <i class="fas fa-list"></i>
-                                </a>
-                            </div>
-                            <div id="antrianContainer">
-                                <?php if (!empty($antrianData)): ?>
-                                    <div class="row">
-                                        <?php foreach ($antrianData as $index => $antrian): ?>
-                                            <?php
-                                            $inputAntrianUrl = 'backend/munaqosah/input-registrasi-antrian';
-                                            $inputAntrianParams = [];
-                                            $inputAntrianParams[] = 'tahun=' . urlencode($current_tahun_ajaran);
-                                            if (!empty($selected_type)) {
-                                                $inputAntrianParams[] = 'type=' . urlencode($selected_type);
-                                            }
-                                            $inputAntrianParams[] = 'group=' . urlencode($antrian['grup']['IdGrupMateriUjian']);
-                                            if (!empty($selected_tpq)) {
-                                                $inputAntrianParams[] = 'tpq=' . urlencode($selected_tpq);
-                                            }
-                                            $inputAntrianUrl .= '?' . implode('&', $inputAntrianParams);
+                        <div class="mb-4 mt-4" id="sectionAntrian">
+                            <div class="card" id="cardAntrian">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0"><i class="fas fa-tasks"></i> Monitoring Antrian per Grup Materi</h5>
+                                    <div class="card-tools">
+                                        <a href="<?= base_url('backend/munaqosah/antrian' . (!empty($selected_type) ? '?type=' . urlencode($selected_type) : '')) ?>" class="btn btn-sm btn-warning mr-2" title="Antrian Lengkap">
+                                            <i class="fas fa-list"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="antrianContainer">
+                                        <?php if (!empty($antrianData)): ?>
+                                            <div class="row">
+                                                <?php foreach ($antrianData as $index => $antrian): ?>
+                                                    <?php
+                                                    $inputAntrianUrl = 'backend/munaqosah/input-registrasi-antrian';
+                                                    $inputAntrianParams = [];
+                                                    $inputAntrianParams[] = 'tahun=' . urlencode($current_tahun_ajaran);
+                                                    if (!empty($selected_type)) {
+                                                        $inputAntrianParams[] = 'type=' . urlencode($selected_type);
+                                                    }
+                                                    $inputAntrianParams[] = 'group=' . urlencode($antrian['grup']['IdGrupMateriUjian']);
+                                                    if (!empty($selected_tpq)) {
+                                                        $inputAntrianParams[] = 'tpq=' . urlencode($selected_tpq);
+                                                    }
+                                                    $inputAntrianUrl .= '?' . implode('&', $inputAntrianParams);
 
-                                            $detailAntrianUrl = 'backend/munaqosah/monitoring-status-antrian?group=' . urlencode($antrian['grup']['IdGrupMateriUjian']) . ($selected_type ? '&type=' . urlencode($selected_type) : '') . ($selected_tpq ? '&tpq=' . urlencode($selected_tpq) : '');
+                                                    $detailAntrianUrl = 'backend/munaqosah/monitoring-status-antrian?group=' . urlencode($antrian['grup']['IdGrupMateriUjian']) . ($selected_type ? '&type=' . urlencode($selected_type) : '') . ($selected_tpq ? '&tpq=' . urlencode($selected_tpq) : '');
 
-                                            $progressColor = $antrian['statistics']['progress'] >= 80 ? 'bg-success' : ($antrian['statistics']['progress'] >= 50 ? 'bg-warning' : 'bg-danger');
+                                                    $progressColor = $antrian['statistics']['progress'] >= 80 ? 'bg-success' : ($antrian['statistics']['progress'] >= 50 ? 'bg-warning' : 'bg-danger');
 
-                                            // Tentukan background color berdasarkan index (rotasi 8 warna)
-                                            $bgClass = 'card-group-bg-' . (($index % 8) + 1);
-                                            ?>
-                                            <div class="col-md-6 col-lg-4 mb-3">
-                                                <div class="card <?= $bgClass ?>">
-                                                    <div class="card-body">
-                                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                                            <h6 class="card-title mb-0">
-                                                                <i class="fas fa-layer-group"></i> <?= esc($antrian['grup']['NamaMateriGrup']) ?>
-                                                                <small class="text-muted d-block"><?= esc($antrian['grup']['IdGrupMateriUjian']) ?></small>
-                                                            </h6>
-                                                            <div class="btn-group btn-group-sm">
-                                                                <a href="<?= base_url($inputAntrianUrl) ?>" class="btn btn-success" title="Input Antrian">
-                                                                    <i class="fas fa-plus"></i>
-                                                                </a>
-                                                                <a href="<?= base_url($detailAntrianUrl) ?>" class="btn btn-warning" title="Lihat Detail Antrian">
-                                                                    <i class="fas fa-eye"></i>
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <div class="mb-2">
-                                                            <div class="d-flex justify-content-between mb-1">
-                                                                <span class="small">Progress Antrian</span>
-                                                                <span class="small font-weight-bold"><?= $antrian['statistics']['progress'] ?>%</span>
-                                                            </div>
-                                                            <div class="progress" style="height: 20px;">
-                                                                <div class="progress-bar <?= $progressColor ?>" role="progressbar" style="width: <?= $antrian['statistics']['progress'] ?>%">
-                                                                    <?= $antrian['statistics']['progress'] ?>%
+                                                    // Tentukan background color berdasarkan index (rotasi 8 warna)
+                                                    $bgClass = 'card-group-bg-' . (($index % 8) + 1);
+                                                    ?>
+                                                    <div class="col-md-6 col-lg-4 mb-3">
+                                                        <div class="card <?= $bgClass ?>">
+                                                            <div class="card-header">
+                                                                <h6 class="card-title mb-0">
+                                                                    <i class="fas fa-layer-group"></i> <?= esc($antrian['grup']['NamaMateriGrup']) ?>
+                                                                    <small class="text-muted d-block"><i class="fas fa-tag"></i> <?= esc($antrian['grup']['IdGrupMateriUjian']) ?></small>
+                                                                </h6>
+                                                                <div class="card-tools">
+                                                                    <div class="btn-group btn-group-sm">
+                                                                        <a href="<?= base_url($inputAntrianUrl) ?>" class="btn btn-success" title="Input Antrian">
+                                                                            <i class="fas fa-plus"></i>
+                                                                        </a>
+                                                                        <a href="<?= base_url($detailAntrianUrl) ?>" class="btn btn-warning" title="Lihat Detail Antrian">
+                                                                            <i class="fas fa-eye"></i>
+                                                                        </a>
+                                                                    </div>
+                                                                    <button type="button" class="btn btn-tool ml-1" data-card-widget="collapse" title="Collapse">
+                                                                        <i class="fas fa-minus"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </button>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <div class="row text-center mt-2 mb-2">
-                                                            <div class="col-3">
-                                                                <small class="text-muted d-block">Total</small>
-                                                                <strong><?= $antrian['statistics']['total'] ?></strong>
-                                                            </div>
-                                                            <div class="col-3">
-                                                                <small class="text-muted d-block">Selesai</small>
-                                                                <strong class="text-success"><?= $antrian['statistics']['completed'] ?></strong>
-                                                            </div>
-                                                            <div class="col-3">
-                                                                <small class="text-muted d-block">Menunggu</small>
-                                                                <strong class="text-warning"><?= $antrian['statistics']['waiting'] ?></strong>
-                                                            </div>
-                                                            <div class="col-3">
-                                                                <small class="text-muted d-block">Ujian</small>
-                                                                <strong class="text-danger"><?= $antrian['statistics']['in_progress'] ?></strong>
-                                                            </div>
-                                                        </div>
-                                                        <?php if (!empty($antrian['rooms'])): ?>
-                                                            <?php
-                                                            $occupiedCount = 0;
-                                                            $fullCount = 0;
-                                                            $totalParticipants = 0;
-                                                            foreach ($antrian['rooms'] as $room) {
-                                                                if ($room['occupied'] ?? false) $occupiedCount++;
-                                                                if ($room['is_full'] ?? false) $fullCount++;
-                                                                $totalParticipants += ($room['participant_count'] ?? 0);
-                                                            }
-                                                            ?>
-                                                            <div class="mt-2 pt-2 border-top">
-                                                                <small class="text-muted d-block mb-1">Status Ruangan:</small>
-                                                                <div class="d-flex flex-wrap">
-                                                                    <?php foreach ($antrian['rooms'] as $room): ?>
-                                                                        <?php
-                                                                        $isFull = $room['is_full'] ?? false;
-                                                                        $isOccupied = $room['occupied'] ?? false;
-                                                                        $participantCount = $room['participant_count'] ?? 0;
-                                                                        $maxCapacity = $room['max_capacity'] ?? 1;
-                                                                        ?>
-                                                                        <span class="badge <?= $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success') ?> mr-1 mb-1" title="Kapasitas: <?= $participantCount ?>/<?= $maxCapacity ?>">
-                                                                            <i class="fas fa-<?= $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open') ?>"></i>
-                                                                            R<?= $room['RoomId'] ?> (<?= $participantCount ?>/<?= $maxCapacity ?>)
-                                                                        </span>
-                                                                    <?php endforeach; ?>
+                                                            <div class="card-body">
+                                                                <div class="mb-2">
+                                                                    <div class="d-flex justify-content-between mb-1">
+                                                                        <span class="small">Progress Antrian</span>
+                                                                        <span class="small font-weight-bold"><?= $antrian['statistics']['progress'] ?>%</span>
+                                                                    </div>
+                                                                    <div class="progress" style="height: 20px;">
+                                                                        <div class="progress-bar <?= $progressColor ?>" role="progressbar" style="width: <?= $antrian['statistics']['progress'] ?>%">
+                                                                            <?= $antrian['statistics']['progress'] ?>%
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                                <small class="text-muted">
-                                                                    <?= $totalParticipants ?> peserta di <?= $occupiedCount ?> ruangan (<?= $fullCount ?> penuh)
-                                                                </small>
+                                                                <div class="row text-center mt-2 mb-2">
+                                                                    <div class="col-3">
+                                                                        <small class="text-muted d-block">Total</small>
+                                                                        <strong><?= $antrian['statistics']['total'] ?></strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <small class="text-muted d-block">Selesai</small>
+                                                                        <strong class="text-success"><?= $antrian['statistics']['completed'] ?></strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <small class="text-muted d-block">Menunggu</small>
+                                                                        <strong class="text-warning"><?= $antrian['statistics']['waiting'] ?></strong>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <small class="text-muted d-block">Ujian</small>
+                                                                        <strong class="text-danger"><?= $antrian['statistics']['in_progress'] ?></strong>
+                                                                    </div>
+                                                                </div>
+                                                                <?php if (!empty($antrian['rooms'])): ?>
+                                                                    <?php
+                                                                    $occupiedCount = 0;
+                                                                    $fullCount = 0;
+                                                                    $totalParticipants = 0;
+                                                                    foreach ($antrian['rooms'] as $room) {
+                                                                        if ($room['occupied'] ?? false) $occupiedCount++;
+                                                                        if ($room['is_full'] ?? false) $fullCount++;
+                                                                        $totalParticipants += ($room['participant_count'] ?? 0);
+                                                                    }
+                                                                    ?>
+                                                                    <div class="mt-2 pt-2 border-top">
+                                                                        <small class="text-muted d-block mb-1">Status Ruangan:</small>
+                                                                        <div class="d-flex flex-wrap">
+                                                                            <?php foreach ($antrian['rooms'] as $room): ?>
+                                                                                <?php
+                                                                                $isFull = $room['is_full'] ?? false;
+                                                                                $isOccupied = $room['occupied'] ?? false;
+                                                                                $participantCount = $room['participant_count'] ?? 0;
+                                                                                $maxCapacity = $room['max_capacity'] ?? 1;
+                                                                                ?>
+                                                                                <span class="badge <?= $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success') ?> mr-1 mb-1" title="Kapasitas: <?= $participantCount ?>/<?= $maxCapacity ?>">
+                                                                                    <i class="fas fa-<?= $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open') ?>"></i>
+                                                                                    R<?= $room['RoomId'] ?> (<?= $participantCount ?>/<?= $maxCapacity ?>)
+                                                                                </span>
+                                                                            <?php endforeach; ?>
+                                                                        </div>
+                                                                        <small class="text-muted">
+                                                                            <?= $totalParticipants ?> peserta di <?= $occupiedCount ?> ruangan (<?= $fullCount ?> penuh)
+                                                                        </small>
+                                                                    </div>
+                                                                <?php endif; ?>
                                                             </div>
-                                                        <?php endif; ?>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                <?php endforeach; ?>
                                             </div>
-                                        <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle"></i> Belum ada data antrian untuk grup materi aktif.
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
-                                <?php else: ?>
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle"></i> Belum ada data antrian untuk grup materi aktif.
-                                    </div>
-                                <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         <!-- Statistik Monitoring per Group Peserta (Hanya untuk Admin) -->
                         <?php if (in_groups('Admin')): ?>
-                            <div class="mb-4 mt-4">
-                                <h5 class="mb-3"><i class="fas fa-users-cog"></i> Statistik Monitoring per Group Peserta</h5>
-                                <div id="groupPesertaContainer">
-                                    <?php if (!empty($statistikGroupPeserta)): ?>
-                                        <div class="row">
-                                            <?php foreach ($statistikGroupPeserta as $index => $stat): ?>
-                                                <?php
-                                                $progressPct = $stat['total_peserta'] > 0 ? round(($stat['total_dinilai'] / $stat['total_peserta']) * 100) : 0;
-                                                $selesaiPct = $stat['total_peserta'] > 0 ? round(($stat['total_selesai'] / $stat['total_peserta']) * 100) : 0;
-                                                $progressColor = $progressPct >= 80 ? 'bg-success' : ($progressPct >= 50 ? 'bg-warning' : 'bg-danger');
+                            <div class="mb-4 mt-4" id="sectionGroupPeserta">
+                                <div class="card" id="cardGroupPeserta">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0"><i class="fas fa-users-cog"></i> Statistik Monitoring per Group Peserta</h5>
+                                        <div class="card-tools">
+                                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="groupPesertaContainer">
+                                            <?php if (!empty($statistikGroupPeserta)): ?>
+                                                <div class="row">
+                                                    <?php foreach ($statistikGroupPeserta as $index => $stat): ?>
+                                                        <?php
+                                                        $progressPct = $stat['total_peserta'] > 0 ? round(($stat['total_dinilai'] / $stat['total_peserta']) * 100) : 0;
+                                                        $selesaiPct = $stat['total_peserta'] > 0 ? round(($stat['total_selesai'] / $stat['total_peserta']) * 100) : 0;
+                                                        $progressColor = $progressPct >= 80 ? 'bg-success' : ($progressPct >= 50 ? 'bg-warning' : 'bg-danger');
 
-                                                // Tentukan background color berdasarkan index (rotasi 8 warna)
-                                                $bgClass = 'card-group-bg-' . (($index % 8) + 1);
-                                                ?>
-                                                <div class="col-md-6 col-lg-4 mb-3">
-                                                    <div class="card <?= $bgClass ?>">
-                                                        <div class="card-body">
-                                                            <h6 class="card-title mb-2">
-                                                                <i class="fas fa-building"></i> <?= esc($stat['NamaTpq']) ?>
-                                                                <small class="text-muted d-block">
-                                                                    <i class="fas fa-layer-group"></i> <?= esc($stat['GroupPeserta']) ?>
-                                                                </small>
-                                                            </h6>
-                                                            <div class="mb-2">
-                                                                <div class="d-flex justify-content-between mb-1">
-                                                                    <span class="small">Progress Penilaian</span>
-                                                                    <span class="small font-weight-bold"><?= $progressPct ?>%</span>
-                                                                </div>
-                                                                <div class="progress" style="height: 20px;">
-                                                                    <div class="progress-bar <?= $progressColor ?>" role="progressbar" style="width: <?= $progressPct ?>%">
-                                                                        <?= $progressPct ?>%
+                                                        // Tentukan background color berdasarkan index (rotasi 8 warna)
+                                                        $bgClass = 'card-group-bg-' . (($index % 8) + 1);
+                                                        ?>
+                                                        <div class="col-md-6 col-lg-4 mb-3">
+                                                            <div class="card <?= $bgClass ?>">
+                                                                <div class="card-header">
+                                                                    <h6 class="card-title mb-0">
+                                                                        <i class="fas fa-building"></i> <?= esc($stat['NamaTpq']) ?>
+                                                                        <small class="text-muted d-block">
+                                                                            <i class="fas fa-layer-group"></i> <?= esc($stat['GroupPeserta']) ?>
+                                                                        </small>
+                                                                    </h6>
+                                                                    <div class="card-tools">
+                                                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                                                            <i class="fas fa-minus"></i>
+                                                                        </button>
+                                                                        <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                                                            <i class="fas fa-times"></i>
+                                                                        </button>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                            <div class="row text-center mt-2 mb-2">
-                                                                <div class="col-3">
-                                                                    <small class="text-muted d-block">Total</small>
-                                                                    <strong><?= $stat['total_peserta'] ?></strong>
-                                                                </div>
-                                                                <div class="col-3">
-                                                                    <small class="text-muted d-block">Sudah</small>
-                                                                    <strong class="text-success"><?= $stat['total_dinilai'] ?></strong>
-                                                                </div>
-                                                                <div class="col-3">
-                                                                    <small class="text-muted d-block">Belum</small>
-                                                                    <strong class="text-warning"><?= $stat['total_belum'] ?></strong>
-                                                                </div>
-                                                                <div class="col-3">
-                                                                    <small class="text-muted d-block">Selesai</small>
-                                                                    <strong class="text-primary"><?= $stat['total_selesai'] ?></strong>
-                                                                </div>
-                                                            </div>
-                                                            <?php if ($stat['total_selesai'] > 0): ?>
-                                                                <div class="mt-2 pt-2 border-top">
-                                                                    <div class="d-flex justify-content-between mb-1">
-                                                                        <span class="small">Progress Selesai Semua Grup</span>
-                                                                        <span class="small font-weight-bold"><?= $selesaiPct ?>%</span>
-                                                                    </div>
-                                                                    <div class="progress" style="height: 20px;">
-                                                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?= $selesaiPct ?>%">
-                                                                            <?= $selesaiPct ?>%
+                                                                <div class="card-body">
+                                                                    <div class="mb-2">
+                                                                        <div class="d-flex justify-content-between mb-1">
+                                                                            <span class="small">Progress Penilaian</span>
+                                                                            <span class="small font-weight-bold"><?= $progressPct ?>%</span>
+                                                                        </div>
+                                                                        <div class="progress" style="height: 20px;">
+                                                                            <div class="progress-bar <?= $progressColor ?>" role="progressbar" style="width: <?= $progressPct ?>%">
+                                                                                <?= $progressPct ?>%
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-                                                                    <small class="text-muted"><?= $stat['total_selesai'] ?> peserta sudah selesai dinilai untuk semua grup materi</small>
+                                                                    <div class="row text-center mt-2 mb-2">
+                                                                        <div class="col-3">
+                                                                            <small class="text-muted d-block">Total</small>
+                                                                            <strong><?= $stat['total_peserta'] ?></strong>
+                                                                        </div>
+                                                                        <div class="col-3">
+                                                                            <small class="text-muted d-block">Sudah</small>
+                                                                            <strong class="text-success"><?= $stat['total_dinilai'] ?></strong>
+                                                                        </div>
+                                                                        <div class="col-3">
+                                                                            <small class="text-muted d-block">Belum</small>
+                                                                            <strong class="text-warning"><?= $stat['total_belum'] ?></strong>
+                                                                        </div>
+                                                                        <div class="col-3">
+                                                                            <small class="text-muted d-block">Selesai</small>
+                                                                            <strong class="text-primary"><?= $stat['total_selesai'] ?></strong>
+                                                                        </div>
+                                                                    </div>
+                                                                    <?php if ($stat['total_selesai'] > 0): ?>
+                                                                        <div class="mt-2 pt-2 border-top">
+                                                                            <div class="d-flex justify-content-between mb-1">
+                                                                                <span class="small">Progress Selesai Semua Grup</span>
+                                                                                <span class="small font-weight-bold"><?= $selesaiPct ?>%</span>
+                                                                            </div>
+                                                                            <div class="progress" style="height: 20px;">
+                                                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?= $selesaiPct ?>%">
+                                                                                    <?= $selesaiPct ?>%
+                                                                                </div>
+                                                                            </div>
+                                                                            <small class="text-muted"><?= $stat['total_selesai'] ?> peserta sudah selesai dinilai untuk semua grup materi</small>
+                                                                        </div>
+                                                                    <?php endif; ?>
                                                                 </div>
-                                                            <?php endif; ?>
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    <?php endforeach; ?>
                                                 </div>
-                                            <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <div class="alert alert-info">
+                                                    <i class="fas fa-info-circle"></i> Belum ada data statistik untuk Group Peserta.
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
-                                    <?php else: ?>
-                                        <div class="alert alert-info">
-                                            <i class="fas fa-info-circle"></i> Belum ada data statistik untuk Group Peserta.
-                                        </div>
-                                    <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -452,6 +545,7 @@
         }
 
         remainingSeconds = intervalSeconds;
+        $('#countdownTimer').text(formatTime(remainingSeconds));
 
         countdownInterval = setInterval(function() {
             remainingSeconds--;
@@ -470,14 +564,21 @@
         if (autoRefreshInterval) {
             clearInterval(autoRefreshInterval);
         }
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
 
         const intervalMs = intervalSeconds * 1000;
 
+        // Mulai countdown
+        startCountdown(intervalSeconds);
+
         autoRefreshInterval = setInterval(function() {
+            // Reset countdown setiap kali refresh dimulai
+            startCountdown(intervalSeconds);
+            // Load data monitoring
             loadMonitoring();
         }, intervalMs);
-
-        startCountdown(intervalSeconds);
     }
 
     function getRefreshInterval() {
@@ -560,11 +661,11 @@
             // Load statistik per Group Materi
             loadStatistikGroupMateri();
 
-            // Reset countdown setelah data selesai dimuat
-            if (autoRefreshInterval) {
-                const intervalSeconds = getRefreshInterval();
-                startCountdown(intervalSeconds);
-            }
+            // Load statistik Penilaian per Juri
+            loadStatistikPenilaianPerJuri();
+
+            // Load statistik Penilaian per Grup Materi Ruangan
+            loadStatistikPenilaianPerGrupMateriRuangan();
         }).fail(function() {
             console.error('Error koneksi saat memuat data monitoring');
         });
@@ -611,11 +712,21 @@
                 html += `
                     <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card ${bgClass}">
-                            <div class="card-body">
-                                <h6 class="card-title mb-2">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
                                     <i class="fas fa-layer-group"></i> ${stat.NamaMateriGrup}
-                                    <small class="text-muted d-block">${stat.IdGrupMateriUjian}</small>
+                                    <small class="text-muted d-block"><i class="fas fa-tag"></i> ${stat.IdGrupMateriUjian}</small>
                                 </h6>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between mb-1">
                                         <span class="small">Progress Input Nilai</span>
@@ -696,13 +807,23 @@
                 html += `
                     <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card ${bgClass}">
-                            <div class="card-body">
-                                <h6 class="card-title mb-2">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
                                     <i class="fas fa-building"></i> ${stat.NamaTpq}
                                     <small class="text-muted d-block">
                                         <i class="fas fa-layer-group"></i> ${stat.GroupPeserta}
                                     </small>
                                 </h6>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between mb-1">
                                         <span class="small">Progress Penilaian</span>
@@ -758,7 +879,338 @@
         });
     }
 
+    let grupMateriRuanganChart = null;
+    let juriChart = null;
+
+    function loadStatistikPenilaianPerGrupMateriRuangan() {
+        const th = $('#filterTahunAjaran').val().trim();
+        const isJuri = $('#isJuri').val() === 'true';
+        // Jika Juri, gunakan nilai dari hidden input
+        const ty = isJuri ? ($('#filterTypeHidden').val() || 'pra-munaqosah') : ($('#filterType').val() || 'pra-munaqosah');
+        const sessionIdTpq = '<?= $session_id_tpq ?? '' ?>';
+
+        // Jika user login sebagai Juri, operator TPQ, atau admin TPQ, gunakan IdTpq dari session
+        let tpq = '0';
+        if ((sessionIdTpq && sessionIdTpq !== '') || isJuri) {
+            tpq = sessionIdTpq || '0';
+        } else {
+            tpq = $('#filterTpq').val() || '0';
+        }
+
+        const url = '<?= base_url("backend/munaqosah/get-statistik-penilaian-per-grup-materi-ruangan") ?>' + `?IdTahunAjaran=${encodeURIComponent(th)}&IdTpq=${encodeURIComponent(tpq)}&TypeUjian=${encodeURIComponent(ty)}`;
+
+        $.getJSON(url, function(resp) {
+            if (!resp.success) {
+                console.error('Gagal memuat statistik Penilaian per Grup Materi Ruangan:', resp.message);
+                return;
+            }
+
+            const data = resp.data || [];
+
+            if (data.length === 0) {
+                if (grupMateriRuanganChart) {
+                    grupMateriRuanganChart.destroy();
+                    grupMateriRuanganChart = null;
+                }
+                $('#grupMateriRuanganChart').parent().html('<div class="alert alert-info"><i class="fas fa-info-circle"></i> Belum ada data statistik penilaian untuk Grup Materi berdasarkan Ruangan.</div>');
+                return;
+            }
+
+            // Prepare data untuk chart
+            const labels = [];
+            const values = [];
+            const backgroundColors = [];
+            const borderColors = [];
+
+            // Generate colors untuk setiap bar
+            const colorPalette = [
+                'rgba(54, 162, 235, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(75, 192, 192, 0.8)',
+                'rgba(255, 206, 86, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
+                'rgba(199, 199, 199, 0.8)', 'rgba(83, 102, 255, 0.8)', 'rgba(255, 99, 255, 0.8)',
+                'rgba(99, 255, 132, 0.8)', 'rgba(255, 132, 99, 0.8)', 'rgba(132, 99, 255, 0.8)'
+            ];
+
+            data.forEach(function(stat, index) {
+                // Format label: ROOM-1 (baris pertama) dan BACA QURAN (baris kedua)
+                const roomId = stat.RoomId || 'N/A';
+                const namaGrup = stat.NamaMateriGrup || stat.IdGrupMateriUjian || 'N/A';
+                const label = `${roomId}\n${namaGrup}`;
+                labels.push(label);
+                values.push(parseInt(stat.total_input) || 0);
+
+                const colorIndex = index % colorPalette.length;
+                backgroundColors.push(colorPalette[colorIndex]);
+                borderColors.push(colorPalette[colorIndex].replace('0.8', '1'));
+            });
+
+            // Destroy chart sebelumnya jika ada
+            if (grupMateriRuanganChart) {
+                grupMateriRuanganChart.destroy();
+            }
+
+            // Create chart
+            const ctx = document.getElementById('grupMateriRuanganChart').getContext('2d');
+            grupMateriRuanganChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Nilai Input',
+                        data: values,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Jumlah Nilai Input'
+                            },
+                            ticks: {
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Grup Materi (Ruangan)'
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const stat = data[dataIndex];
+                                    return `Ruangan: ${stat.RoomId || 'N/A'}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }).fail(function() {
+            console.error('Error koneksi saat memuat statistik Penilaian per Grup Materi Ruangan');
+            if (grupMateriRuanganChart) {
+                grupMateriRuanganChart.destroy();
+                grupMateriRuanganChart = null;
+            }
+        });
+    }
+
+    function loadStatistikPenilaianPerJuri() {
+        const th = $('#filterTahunAjaran').val().trim();
+        const isJuri = $('#isJuri').val() === 'true';
+        // Jika Juri, gunakan nilai dari hidden input
+        const ty = isJuri ? ($('#filterTypeHidden').val() || 'pra-munaqosah') : ($('#filterType').val() || 'pra-munaqosah');
+        const sessionIdTpq = '<?= $session_id_tpq ?? '' ?>';
+
+        // Jika user login sebagai Juri, operator TPQ, atau admin TPQ, gunakan IdTpq dari session
+        let tpq = '0';
+        if ((sessionIdTpq && sessionIdTpq !== '') || isJuri) {
+            tpq = sessionIdTpq || '0';
+        } else {
+            tpq = $('#filterTpq').val() || '0';
+        }
+
+        const url = '<?= base_url("backend/munaqosah/get-statistik-penilaian-per-juri") ?>' + `?IdTahunAjaran=${encodeURIComponent(th)}&IdTpq=${encodeURIComponent(tpq)}&TypeUjian=${encodeURIComponent(ty)}`;
+
+        $.getJSON(url, function(resp) {
+            if (!resp.success) {
+                console.error('Gagal memuat statistik Penilaian per Juri:', resp.message);
+                return;
+            }
+
+            const data = resp.data || [];
+
+            if (data.length === 0) {
+                if (juriChart) {
+                    juriChart.destroy();
+                    juriChart = null;
+                }
+                $('#juriStatistikChart').parent().html('<div class="alert alert-info"><i class="fas fa-info-circle"></i> Belum ada data statistik penilaian untuk Juri.</div>');
+                return;
+            }
+
+            // Prepare data untuk chart
+            const labels = [];
+            const values = [];
+            const backgroundColors = [];
+            const borderColors = [];
+
+            // Generate colors untuk setiap bar
+            const colorPalette = [
+                'rgba(54, 162, 235, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(75, 192, 192, 0.8)',
+                'rgba(255, 206, 86, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
+                'rgba(199, 199, 199, 0.8)', 'rgba(83, 102, 255, 0.8)', 'rgba(255, 99, 255, 0.8)',
+                'rgba(99, 255, 132, 0.8)', 'rgba(255, 132, 99, 0.8)', 'rgba(132, 99, 255, 0.8)'
+            ];
+
+            data.forEach(function(stat, index) {
+                // Format label: UsernameJuri saja (nama grup sudah diketahui dari username)
+                const label = stat.UsernameJuri;
+                labels.push(label);
+                values.push(parseInt(stat.total_input) || 0);
+
+                const colorIndex = index % colorPalette.length;
+                backgroundColors.push(colorPalette[colorIndex]);
+                borderColors.push(colorPalette[colorIndex].replace('0.8', '1'));
+            });
+
+            // Destroy chart sebelumnya jika ada
+            if (juriChart) {
+                juriChart.destroy();
+            }
+
+            // Create chart
+            const ctx = document.getElementById('juriStatistikChart').getContext('2d');
+            juriChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Input Nilai',
+                        data: values,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Jumlah Input Nilai'
+                            },
+                            ticks: {
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Username Juri'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const stat = data[dataIndex];
+                                    return `Grup: ${stat.NamaMateriGrup || stat.IdGrupMateriUjian}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }).fail(function() {
+            console.error('Error koneksi saat memuat statistik Penilaian per Juri');
+            if (juriChart) {
+                juriChart.destroy();
+                juriChart = null;
+            }
+        });
+    }
+
     $(function() {
+        // Reset tampilan card saat load pertama kali
+        const isFirstLoad = !localStorage.getItem('dashboardCardsInitialized');
+        if (isFirstLoad) {
+            // Clear semua state card dari localStorage
+            localStorage.removeItem('cardMainDashboard');
+            localStorage.removeItem('cardGrupMateriRuangan');
+            localStorage.removeItem('cardJuri');
+            localStorage.removeItem('cardGroupMateriProgress');
+            localStorage.removeItem('cardAntrian');
+            localStorage.removeItem('cardGroupPeserta');
+
+            // Restore semua card yang collapsed
+            $('.card.collapsed-card').each(function() {
+                $(this).removeClass('collapsed-card');
+                $(this).find('.card-body, .card-footer').slideDown(0).show();
+                $(this).find('[data-card-widget="collapse"] i').removeClass('fa-plus').addClass('fa-minus');
+            });
+
+            // Show semua section yang mungkin sudah di-hide (jika ada card yang di-remove)
+            $('#sectionGrupMateriRuangan, #sectionJuri, #sectionGroupMateriProgress, #sectionAntrian, #sectionGroupPeserta').show();
+
+            // Restore semua card yang mungkin sudah di-remove
+            $('#cardMainDashboard, #cardGrupMateriRuangan, #cardJuri, #cardGroupMateriProgress, #cardAntrian, #cardGroupPeserta').show();
+
+            localStorage.setItem('dashboardCardsInitialized', 'true');
+        } else {
+            // Restore state dari localStorage jika bukan load pertama
+            const cardIds = ['cardMainDashboard', 'cardGrupMateriRuangan', 'cardJuri', 'cardGroupMateriProgress', 'cardAntrian', 'cardGroupPeserta'];
+            cardIds.forEach(function(cardId) {
+                const state = localStorage.getItem(cardId);
+                if (state === 'removed') {
+                    const section = $('#' + cardId).closest('[id^="section"]');
+                    if (section.length) {
+                        section.hide();
+                    }
+                }
+            });
+        }
+
+        // Handle card collapse/expand events untuk menyimpan state
+        $('[data-card-widget="collapse"]').on('click', function() {
+            const card = $(this).closest('.card');
+            const cardId = card.attr('id');
+            setTimeout(function() {
+                if (card.hasClass('collapsed-card')) {
+                    localStorage.setItem(cardId, 'collapsed');
+                } else {
+                    localStorage.removeItem(cardId);
+                }
+            }, 300);
+        });
+
+        // Handle card remove events - prevent default dan handle secara custom
+        $('[data-card-widget="remove"]').on('click', function(e) {
+            e.preventDefault();
+            const card = $(this).closest('.card');
+            const section = card.closest('[id^="section"]');
+            const cardId = card.attr('id');
+
+            // Simpan state removed
+            localStorage.setItem(cardId, 'removed');
+
+            // Hide section dengan animasi
+            if (section.length) {
+                section.slideUp(300, function() {
+                    $(this).hide();
+                });
+            }
+        });
+
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
 
@@ -808,12 +1260,14 @@
             startAutoRefresh(intervalSeconds);
         });
 
-        // Mulai auto-refresh dengan interval default
-        const defaultInterval = getRefreshInterval();
-        startAutoRefresh(defaultInterval);
-
-        // Load monitoring pertama kali (countdown akan di-reset setelah load selesai)
+        // Load monitoring pertama kali
         loadMonitoring();
+
+        // Mulai auto-refresh dengan interval default setelah load pertama selesai
+        const defaultInterval = getRefreshInterval();
+        setTimeout(function() {
+            startAutoRefresh(defaultInterval);
+        }, 1000);
 
         // Load statistik Group Peserta pertama kali (hanya untuk Admin)
         const isAdmin = '<?= in_groups("Admin") ? "true" : "false" ?>' === 'true';
@@ -823,6 +1277,12 @@
 
         // Load statistik Group Materi pertama kali
         loadStatistikGroupMateri();
+
+        // Load statistik Penilaian per Grup Materi Ruangan pertama kali
+        loadStatistikPenilaianPerGrupMateriRuangan();
+
+        // Load statistik Penilaian per Juri pertama kali
+        loadStatistikPenilaianPerJuri();
 
         // Bersihkan interval saat halaman ditutup
         $(window).on('beforeunload', function() {

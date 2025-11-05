@@ -433,4 +433,75 @@ class MunaqosahNilaiModel extends Model
             ->where('TypeUjian', $typeUjian)
             ->first();
     }
+
+    /**
+     * Get statistik penilaian per Juri
+     * Menghitung jumlah nilai yang sudah diinput per juri
+     * 
+     * @param string $idTahunAjaran
+     * @param string|null $typeUjian
+     * @param int|null $idTpq
+     * @return array
+     */
+    public function getStatistikPenilaianPerJuri($idTahunAjaran, $typeUjian = null, $idTpq = null)
+    {
+        $builder = $this->db->table($this->table . ' n');
+        $builder->select('j.UsernameJuri, j.IdGrupMateriUjian, g.NamaMateriGrup, COUNT(DISTINCT n.id) as total_input');
+        $builder->join('tbl_munaqosah_juri j', 'j.IdJuri = n.IdJuri', 'left');
+        $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+
+        $builder->where('n.IdTahunAjaran', $idTahunAjaran);
+
+        if (!empty($typeUjian)) {
+            $builder->where('n.TypeUjian', $typeUjian);
+        }
+
+        if (!empty($idTpq)) {
+            $builder->where('n.IdTpq', $idTpq);
+        }
+
+        $builder->groupBy('j.UsernameJuri, j.IdGrupMateriUjian, g.NamaMateriGrup');
+        $builder->orderBy('g.NamaMateriGrup', 'ASC');
+        $builder->orderBy('j.UsernameJuri', 'ASC');
+
+        $result = $builder->get()->getResultArray();
+
+        return $result;
+    }
+
+    /**
+     * Get statistik penilaian per Grup Materi berdasarkan Ruangan
+     * Menghitung jumlah nilai yang sudah diinput per grup materi per ruangan
+     * 
+     * @param string $idTahunAjaran
+     * @param string|null $typeUjian
+     * @param int|null $idTpq
+     * @return array
+     */
+    public function getStatistikPenilaianPerGrupMateriRuangan($idTahunAjaran, $typeUjian = null, $idTpq = null)
+    {
+        $builder = $this->db->table($this->table . ' n');
+        $builder->select('g.NamaMateriGrup, n.RoomId, COUNT(DISTINCT n.id) as total_input');
+        $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = n.IdGrupMateriUjian', 'left');
+
+        $builder->where('n.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('n.RoomId IS NOT NULL');
+        $builder->where('n.RoomId !=', '');
+
+        if (!empty($typeUjian)) {
+            $builder->where('n.TypeUjian', $typeUjian);
+        }
+
+        if (!empty($idTpq)) {
+            $builder->where('n.IdTpq', $idTpq);
+        }
+
+        $builder->groupBy('g.NamaMateriGrup, n.RoomId');
+        $builder->orderBy('g.NamaMateriGrup', 'ASC');
+        $builder->orderBy('n.RoomId', 'ASC');
+
+        $result = $builder->get()->getResultArray();
+
+        return $result;
+    }
 }

@@ -168,8 +168,8 @@ class MunaqosahJadwalUjianModel extends Model
         }
 
         $builder->groupBy('j.GroupPeserta, j.IdTpq, t.NamaTpq');
-        $builder->orderBy('j.IdTpq', 'ASC');
         $builder->orderBy('j.GroupPeserta', 'ASC');
+        $builder->orderBy('j.IdTpq', 'ASC');
 
         $jadwalGroups = $builder->get()->getResultArray();
 

@@ -6433,6 +6433,112 @@ class Munaqosah extends BaseController
         }
     }
 
+    public function getStatistikPenilaianPerJuri()
+    {
+        try {
+            $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
+            if (empty($idTahunAjaran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTahunAjaran harus diisi'
+                ]);
+            }
+
+            $sessionIdTpq = session()->get('IdTpq');
+
+            // Jika user login sebagai Juri, ambil IdTpq dari data juri
+            if (in_groups('Juri')) {
+                $usernameJuri = user()->username;
+                $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+                if ($juriData && !empty($juriData->IdTpq)) {
+                    $idTpq = (int)$juriData->IdTpq;
+                } else {
+                    $idTpq = null;
+                }
+            }
+            // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
+            elseif (!empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+            } else {
+                $idTpqParam = $this->request->getGet('IdTpq');
+                $idTpq = ($idTpqParam === null || $idTpqParam === '' || $idTpqParam === '0') ? null : (int)$idTpqParam;
+            }
+
+            $typeParam = $this->request->getGet('TypeUjian');
+
+            $statistikJuri = $this->nilaiMunaqosahModel->getStatistikPenilaianPerJuri(
+                $idTahunAjaran,
+                $typeParam,
+                $idTpq
+            );
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $statistikJuri
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getStatistikPenilaianPerJuri: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getStatistikPenilaianPerGrupMateriRuangan()
+    {
+        try {
+            $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
+            if (empty($idTahunAjaran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTahunAjaran harus diisi'
+                ]);
+            }
+
+            $sessionIdTpq = session()->get('IdTpq');
+
+            // Jika user login sebagai Juri, ambil IdTpq dari data juri
+            if (in_groups('Juri')) {
+                $usernameJuri = user()->username;
+                $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+                if ($juriData && !empty($juriData->IdTpq)) {
+                    $idTpq = (int)$juriData->IdTpq;
+                } else {
+                    $idTpq = null;
+                }
+            }
+            // Jika user login sebagai operator TPQ, gunakan IdTpq dari session
+            elseif (!empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+            } else {
+                $idTpqParam = $this->request->getGet('IdTpq');
+                $idTpq = ($idTpqParam === null || $idTpqParam === '' || $idTpqParam === '0') ? null : (int)$idTpqParam;
+            }
+
+            $typeParam = $this->request->getGet('TypeUjian');
+
+            $statistikGrupMateri = $this->nilaiMunaqosahModel->getStatistikPenilaianPerGrupMateriRuangan(
+                $idTahunAjaran,
+                $typeParam,
+                $idTpq
+            );
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $statistikGrupMateri
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getStatistikPenilaianPerGrupMateriRuangan: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
     public function getKelulusanData()
     {
         try {
