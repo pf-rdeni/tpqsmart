@@ -8,11 +8,8 @@
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                         <h3 class="card-title">Dashboard Monitoring Munaqosah</h3>
                         <div class="card-tools">
-                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
-                                <i class="fas fa-times"></i>
+                            <button type="button" class="btn btn-tool" id="btnRestoreCards" title="Restore Semua Card" style="display: none;"> Refresh Semua Card
+                                <i class="fas fa-undo"></i>
                             </button>
                         </div>
                         <div class="d-flex flex-wrap align-items-center ml-auto">
@@ -68,6 +65,7 @@
                         <!-- Hidden input untuk role user -->
                         <input type="hidden" id="userRole" value="<?= (in_groups('Operator') || (!in_groups('Admin') && session()->get('IdTpq'))) ? 'operator' : 'admin' ?>">
                         <input type="hidden" id="isJuri" value="<?= (isset($is_juri) && $is_juri) ? 'true' : 'false' ?>">
+                        <input type="hidden" id="isAdmin" value="<?= in_groups('Admin') ? 'true' : 'false' ?>">
 
                         <!-- Statistik Monitoring Munaqosah -->
                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -143,44 +141,48 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Statistik Penilaian per Grup Materi Ruangan -->
-                        <div class="mb-4 mt-4" id="sectionGrupMateriRuangan">
-                            <div class="card" id="cardGrupMateriRuangan">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Statistik Penilaian per Grup Materi (Ruangan)</h5>
-                                    <div class="card-tools">
-                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                            <i class="fas fa-minus"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
-                                            <i class="fas fa-times"></i>
-                                        </button>
+                        <!-- Statistik Penilaian per Grup Materi Ruangan (Hanya untuk Admin) -->
+                        <?php if (in_groups('Admin')): ?>
+                            <div class="mb-4 mt-4" id="sectionGrupMateriRuangan">
+                                <div class="card" id="cardGrupMateriRuangan">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Statistik Penilaian per Grup Materi (Ruangan)</h5>
+                                        <div class="card-tools">
+                                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="grupMateriRuanganChart" style="max-height: 400px;"></canvas>
                                     </div>
                                 </div>
-                                <div class="card-body">
-                                    <canvas id="grupMateriRuanganChart" style="max-height: 400px;"></canvas>
-                                </div>
                             </div>
-                        </div>
-                        <!-- Statistik Penilaian per Juri -->
-                        <div class="mb-4 mt-4" id="sectionJuri">
-                            <div class="card" id="cardJuri">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Statistik Penilaian per Juri</h5>
-                                    <div class="card-tools">
-                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                            <i class="fas fa-minus"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
-                                            <i class="fas fa-times"></i>
-                                        </button>
+                        <?php endif; ?>
+                        <!-- Statistik Penilaian per Juri (Hanya untuk Admin) -->
+                        <?php if (in_groups('Admin')): ?>
+                            <div class="mb-4 mt-4" id="sectionJuri">
+                                <div class="card" id="cardJuri">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Statistik Penilaian per Juri</h5>
+                                        <div class="card-tools">
+                                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="juriStatistikChart" style="max-height: 400px;"></canvas>
                                     </div>
                                 </div>
-                                <div class="card-body">
-                                    <canvas id="juriStatistikChart" style="max-height: 400px;"></canvas>
-                                </div>
                             </div>
-                        </div>
+                        <?php endif; ?>
                         <!-- Progress Input Nilai per Group Materi -->
                         <div class="mb-4" id="sectionGroupMateriProgress">
                             <div class="card" id="cardGroupMateriProgress">
@@ -248,12 +250,12 @@
                                                     ?>
                                                     <div class="col-md-6 col-lg-4 mb-3">
                                                         <div class="card <?= $bgClass ?>">
-                                                            <div class="card-header">
-                                                                <h6 class="card-title mb-0">
-                                                                    <i class="fas fa-layer-group"></i> <?= esc($antrian['grup']['NamaMateriGrup']) ?>
-                                                                    <small class="text-muted d-block"><i class="fas fa-tag"></i> <?= esc($antrian['grup']['IdGrupMateriUjian']) ?></small>
-                                                                </h6>
-                                                                <div class="card-tools">
+                                                            <div class="card-body">
+                                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                    <h6 class="card-title mb-0">
+                                                                        <i class="fas fa-layer-group"></i> <?= esc($antrian['grup']['NamaMateriGrup']) ?>
+                                                                        <small class="text-muted d-block"><i class="fas fa-tag"></i> <?= esc($antrian['grup']['IdGrupMateriUjian']) ?></small>
+                                                                    </h6>
                                                                     <div class="btn-group btn-group-sm">
                                                                         <a href="<?= base_url($inputAntrianUrl) ?>" class="btn btn-success" title="Input Antrian">
                                                                             <i class="fas fa-plus"></i>
@@ -262,15 +264,7 @@
                                                                             <i class="fas fa-eye"></i>
                                                                         </a>
                                                                     </div>
-                                                                    <button type="button" class="btn btn-tool ml-1" data-card-widget="collapse" title="Collapse">
-                                                                        <i class="fas fa-minus"></i>
-                                                                    </button>
-                                                                    <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
-                                                                        <i class="fas fa-times"></i>
-                                                                    </button>
                                                                 </div>
-                                                            </div>
-                                                            <div class="card-body">
                                                                 <div class="mb-2">
                                                                     <div class="d-flex justify-content-between mb-1">
                                                                         <span class="small">Progress Antrian</span>
@@ -376,23 +370,15 @@
                                                         ?>
                                                         <div class="col-md-6 col-lg-4 mb-3">
                                                             <div class="card <?= $bgClass ?>">
-                                                                <div class="card-header">
-                                                                    <h6 class="card-title mb-0">
-                                                                        <i class="fas fa-building"></i> <?= esc($stat['NamaTpq']) ?>
-                                                                        <small class="text-muted d-block">
-                                                                            <i class="fas fa-layer-group"></i> <?= esc($stat['GroupPeserta']) ?>
-                                                                        </small>
-                                                                    </h6>
-                                                                    <div class="card-tools">
-                                                                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                                                            <i class="fas fa-minus"></i>
-                                                                        </button>
-                                                                        <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
-                                                                            <i class="fas fa-times"></i>
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
                                                                 <div class="card-body">
+                                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                        <h6 class="card-title mb-0">
+                                                                            <i class="fas fa-building"></i> <?= esc($stat['NamaTpq']) ?>
+                                                                            <small class="text-muted d-block">
+                                                                                <i class="fas fa-layer-group"></i> <?= esc($stat['GroupPeserta']) ?>
+                                                                            </small>
+                                                                        </h6>
+                                                                    </div>
                                                                     <div class="mb-2">
                                                                         <div class="d-flex justify-content-between mb-1">
                                                                             <span class="small">Progress Penilaian</span>
@@ -661,11 +647,12 @@
             // Load statistik per Group Materi
             loadStatistikGroupMateri();
 
-            // Load statistik Penilaian per Juri
-            loadStatistikPenilaianPerJuri();
-
-            // Load statistik Penilaian per Grup Materi Ruangan
-            loadStatistikPenilaianPerGrupMateriRuangan();
+            // Load statistik Penilaian hanya untuk Admin
+            const isAdminChart = $('#isAdmin').val() === 'true';
+            if (isAdminChart) {
+                loadStatistikPenilaianPerJuri();
+                loadStatistikPenilaianPerGrupMateriRuangan();
+            }
         }).fail(function() {
             console.error('Error koneksi saat memuat data monitoring');
         });
@@ -712,21 +699,13 @@
                 html += `
                     <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card ${bgClass}">
-                            <div class="card-header">
-                                <h6 class="card-title mb-0">
-                                    <i class="fas fa-layer-group"></i> ${stat.NamaMateriGrup}
-                                    <small class="text-muted d-block"><i class="fas fa-tag"></i> ${stat.IdGrupMateriUjian}</small>
-                                </h6>
-                                <div class="card-tools">
-                                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                        <i class="fas fa-minus"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
                             <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-layer-group"></i> ${stat.NamaMateriGrup}
+                                        <small class="text-muted d-block"><i class="fas fa-tag"></i> ${stat.IdGrupMateriUjian}</small>
+                                    </h6>
+                                </div>
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between mb-1">
                                         <span class="small">Progress Input Nilai</span>
@@ -807,23 +786,15 @@
                 html += `
                     <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card ${bgClass}">
-                            <div class="card-header">
-                                <h6 class="card-title mb-0">
-                                    <i class="fas fa-building"></i> ${stat.NamaTpq}
-                                    <small class="text-muted d-block">
-                                        <i class="fas fa-layer-group"></i> ${stat.GroupPeserta}
-                                    </small>
-                                </h6>
-                                <div class="card-tools">
-                                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                        <i class="fas fa-minus"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
                             <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-building"></i> ${stat.NamaTpq}
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-layer-group"></i> ${stat.GroupPeserta}
+                                        </small>
+                                    </h6>
+                                </div>
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between mb-1">
                                         <span class="small">Progress Penilaian</span>
@@ -1143,14 +1114,20 @@
     $(function() {
         // Reset tampilan card saat load pertama kali
         const isFirstLoad = !localStorage.getItem('dashboardCardsInitialized');
+        const isAdminUser = $('#isAdmin').val() === 'true';
+
         if (isFirstLoad) {
             // Clear semua state card dari localStorage
             localStorage.removeItem('cardMainDashboard');
-            localStorage.removeItem('cardGrupMateriRuangan');
-            localStorage.removeItem('cardJuri');
             localStorage.removeItem('cardGroupMateriProgress');
             localStorage.removeItem('cardAntrian');
-            localStorage.removeItem('cardGroupPeserta');
+
+            // Hanya clear card Admin jika user adalah Admin
+            if (isAdminUser) {
+                localStorage.removeItem('cardGrupMateriRuangan');
+                localStorage.removeItem('cardJuri');
+                localStorage.removeItem('cardGroupPeserta');
+            }
 
             // Restore semua card yang collapsed
             $('.card.collapsed-card').each(function() {
@@ -1160,15 +1137,31 @@
             });
 
             // Show semua section yang mungkin sudah di-hide (jika ada card yang di-remove)
-            $('#sectionGrupMateriRuangan, #sectionJuri, #sectionGroupMateriProgress, #sectionAntrian, #sectionGroupPeserta').show();
+            $('#sectionGroupMateriProgress, #sectionAntrian').show();
+
+            // Hanya show section Admin jika user adalah Admin
+            if (isAdminUser) {
+                $('#sectionGrupMateriRuangan, #sectionJuri, #sectionGroupPeserta').show();
+            }
 
             // Restore semua card yang mungkin sudah di-remove
-            $('#cardMainDashboard, #cardGrupMateriRuangan, #cardJuri, #cardGroupMateriProgress, #cardAntrian, #cardGroupPeserta').show();
+            $('#cardMainDashboard, #cardGroupMateriProgress, #cardAntrian').show();
+
+            // Hanya restore card Admin jika user adalah Admin
+            if (isAdminUser) {
+                $('#cardGrupMateriRuangan, #cardJuri, #cardGroupPeserta').show();
+            }
 
             localStorage.setItem('dashboardCardsInitialized', 'true');
         } else {
             // Restore state dari localStorage jika bukan load pertama
-            const cardIds = ['cardMainDashboard', 'cardGrupMateriRuangan', 'cardJuri', 'cardGroupMateriProgress', 'cardAntrian', 'cardGroupPeserta'];
+            let cardIds = ['cardMainDashboard', 'cardGroupMateriProgress', 'cardAntrian'];
+
+            // Tambahkan card Admin jika user adalah Admin
+            if (isAdminUser) {
+                cardIds.push('cardGrupMateriRuangan', 'cardJuri', 'cardGroupPeserta');
+            }
+
             cardIds.forEach(function(cardId) {
                 const state = localStorage.getItem(cardId);
                 if (state === 'removed') {
@@ -1209,7 +1202,121 @@
                     $(this).hide();
                 });
             }
+
+            // Tampilkan tombol restore jika ada card yang di-remove
+            checkAndShowRestoreButton();
         });
+
+        // Fungsi untuk check apakah ada card yang di-remove dan tampilkan tombol restore
+        function checkAndShowRestoreButton() {
+            const isAdminUser = $('#isAdmin').val() === 'true';
+            let cardIds = ['cardMainDashboard', 'cardGroupMateriProgress', 'cardAntrian'];
+
+            // Tambahkan card Admin jika user adalah Admin
+            if (isAdminUser) {
+                cardIds.push('cardGrupMateriRuangan', 'cardJuri', 'cardGroupPeserta');
+            }
+
+            let hasRemovedCard = false;
+
+            cardIds.forEach(function(cardId) {
+                const state = localStorage.getItem(cardId);
+                if (state === 'removed') {
+                    hasRemovedCard = true;
+                }
+            });
+
+            if (hasRemovedCard) {
+                $('#btnRestoreCards').fadeIn();
+            } else {
+                $('#btnRestoreCards').fadeOut();
+            }
+        }
+
+        // Fungsi untuk restore semua card yang di-remove
+        function restoreAllCards() {
+            const isAdminUser = $('#isAdmin').val() === 'true';
+            let cardIds = ['cardMainDashboard', 'cardGroupMateriProgress', 'cardAntrian'];
+
+            // Tambahkan card Admin jika user adalah Admin
+            if (isAdminUser) {
+                cardIds.push('cardGrupMateriRuangan', 'cardJuri', 'cardGroupPeserta');
+            }
+
+            cardIds.forEach(function(cardId) {
+                const state = localStorage.getItem(cardId);
+                if (state === 'removed') {
+                    // Clear state removed
+                    localStorage.removeItem(cardId);
+
+                    // Show section dengan animasi
+                    const section = $('#' + cardId).closest('[id^="section"]');
+                    if (section.length && section.is(':hidden')) {
+                        section.slideDown(300);
+                    }
+
+                    // Pastikan card visible dan expanded
+                    const card = $('#' + cardId);
+                    if (card.length) {
+                        card.removeClass('collapsed-card');
+                        card.find('.card-body, .card-footer').slideDown(0).show();
+                        card.find('[data-card-widget="collapse"] i').removeClass('fa-plus').addClass('fa-minus');
+                    }
+                } else if (state === 'collapsed') {
+                    // Expand card yang collapsed
+                    const card = $('#' + cardId);
+                    if (card.length && card.hasClass('collapsed-card')) {
+                        card.removeClass('collapsed-card');
+                        card.find('.card-body, .card-footer').slideDown(300);
+                        card.find('[data-card-widget="collapse"] i').removeClass('fa-plus').addClass('fa-minus');
+                        localStorage.removeItem(cardId);
+                    }
+                }
+            });
+
+            // Hide tombol restore
+            $('#btnRestoreCards').fadeOut();
+
+            // Tampilkan notifikasi
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: 'Semua card telah dikembalikan',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                alert('Semua card telah dikembalikan');
+            }
+        }
+
+        // Event handler untuk tombol restore
+        $('#btnRestoreCards').on('click', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Restore Semua Card?',
+                    text: 'Apakah Anda yakin ingin mengembalikan semua card yang sudah di-remove?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Restore',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        restoreAllCards();
+                    }
+                });
+            } else {
+                if (confirm('Apakah Anda yakin ingin mengembalikan semua card yang sudah di-remove?')) {
+                    restoreAllCards();
+                }
+            }
+        });
+
+        // Check dan tampilkan tombol restore saat load
+        checkAndShowRestoreButton();
 
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
@@ -1278,11 +1385,12 @@
         // Load statistik Group Materi pertama kali
         loadStatistikGroupMateri();
 
-        // Load statistik Penilaian per Grup Materi Ruangan pertama kali
-        loadStatistikPenilaianPerGrupMateriRuangan();
-
-        // Load statistik Penilaian per Juri pertama kali
-        loadStatistikPenilaianPerJuri();
+        // Load statistik Penilaian hanya untuk Admin
+        const isAdminChart = $('#isAdmin').val() === 'true';
+        if (isAdminChart) {
+            loadStatistikPenilaianPerGrupMateriRuangan();
+            loadStatistikPenilaianPerJuri();
+        }
 
         // Bersihkan interval saat halaman ditutup
         $(window).on('beforeunload', function() {
