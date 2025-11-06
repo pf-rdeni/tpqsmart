@@ -21,6 +21,7 @@ use App\Models\MunaqosahJuriModel;
 use App\Models\MunaqosahKategoriKesalahanModel;
 use App\Models\MunaqosahKonfigurasiModel;
 use App\Models\MunaqosahJadwalUjianModel;
+use App\Models\KategoriMateriModel;
 use Myth\Auth\Password;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -69,6 +70,7 @@ class Munaqosah extends BaseController
         $this->munaqosahKategoriKesalahanModel = new MunaqosahKategoriKesalahanModel();
         $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
         $this->munaqosahJadwalUjianModel = new MunaqosahJadwalUjianModel();
+        $this->munaqosahKategoriModel = new KategoriMateriModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -1584,6 +1586,427 @@ class Munaqosah extends BaseController
         ];
 
         return view('backend/Munaqosah/monitoringStatusAntrian', $data);
+    }
+
+    /**
+     * Monitoring Antrian Peserta Ruangan untuk Juri
+     * Menampilkan peserta yang masuk ke ruangan juri yang sedang login
+     */
+    public function monitoringAntrianPesertaRuanganJuri()
+    {
+        // Cek apakah user adalah Juri
+        if (!in_groups('Juri')) {
+            return redirect()->to('/auth/index')->with('error', 'Akses ditolak. Halaman ini khusus untuk Juri.');
+        }
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+        $refreshInterval = (int)($this->request->getGet('interval') ?? 10); // Default 10 detik
+
+        // Ambil data juri yang sedang login
+        $usernameJuri = user()->username;
+        $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+
+        if (empty($juriData)) {
+            return redirect()->to('/auth/index')->with('error', 'Data juri tidak ditemukan.');
+        }
+
+        $roomId = $juriData->RoomId ?? null;
+        $idGrupMateriUjian = $juriData->IdGrupMateriUjian ?? null;
+        $typeUjian = $juriData->TypeUjian ?? 'munaqosah';
+
+        if (empty($roomId)) {
+            return redirect()->to('/auth/index')->with('error', 'Juri belum memiliki Room ID. Silakan hubungi administrator.');
+        }
+
+        // Ambil peserta yang masuk ke ruangan ini (Status = 1: sedang ujian)
+        // Filter: Status = 1 (sedang ujian) dan RoomId sesuai dengan RoomId Juri
+        // Menggunakan DISTINCT untuk menghindari duplikasi karena join
+        $builder = $this->db->table('tbl_munaqosah_antrian a');
+        $builder->distinct();
+        $builder->select('a.id, a.NoPeserta, a.IdTahunAjaran, a.RoomId, a.Status, a.IdGrupMateriUjian, a.TypeUjian, a.IdSantri, a.created_at, a.updated_at');
+
+        // Filter utama: Status = 1 (sedang ujian) dan RoomId sesuai dengan RoomId Juri
+        $builder->where('a.Status', 1); // Status 1 = sedang ujian
+        $builder->where('a.RoomId', $roomId); // RoomId sesuai dengan RoomId Juri yang sedang login
+        $builder->where('a.IdTahunAjaran', $currentTahunAjaran);
+
+        // Filter berdasarkan grup materi juri - hanya tampilkan peserta yang sesuai dengan grup materi juri
+        if ($idGrupMateriUjian) {
+            $builder->where('a.IdGrupMateriUjian', $idGrupMateriUjian);
+        }
+
+        // Filter berdasarkan type ujian jika ada
+        if ($typeUjian) {
+            $builder->groupStart()
+                ->where('a.TypeUjian', $typeUjian)
+                ->orWhere('(a.TypeUjian IS NULL OR a.TypeUjian = \'\')', null, false)
+                ->groupEnd();
+        }
+
+        $builder->orderBy('a.updated_at', 'DESC');
+        $pesertaAntrian = $builder->get()->getResultArray();
+
+        // Ambil data santri untuk setiap peserta dengan join yang tepat
+        // Gunakan subquery atau join untuk mendapatkan nama santri tanpa duplikasi
+        $pesertaAntrianWithDetails = [];
+        foreach ($pesertaAntrian as $peserta) {
+            $noPeserta = $peserta['NoPeserta'];
+            $idSantri = $peserta['IdSantri'] ?? null;
+
+            // Ambil nama santri dengan join yang tepat
+            $namaSantri = '-';
+
+            // Coba ambil dari IdSantri di antrian terlebih dahulu
+            if ($idSantri) {
+                $santriData = $this->santriBaruModel->where('IdSantri', $idSantri)->first();
+                if ($santriData && !empty($santriData['NamaSantri'])) {
+                    $namaSantri = $santriData['NamaSantri'];
+                }
+            }
+
+            // Jika masih tidak ada, ambil dari registrasi dengan join ke santri
+            if ($namaSantri === '-') {
+                $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+                $builder->select('s.NamaSantri');
+                $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
+                $builder->where('r.NoPeserta', $noPeserta);
+                $builder->where('r.IdTahunAjaran', $currentTahunAjaran);
+                $builder->limit(1);
+                $result = $builder->get()->getRowArray();
+
+                if ($result && !empty($result['NamaSantri'])) {
+                    $namaSantri = $result['NamaSantri'];
+                    // Update IdSantri jika ditemukan
+                    if (!$idSantri) {
+                        $registrasiData = $this->munaqosahRegistrasiUjiModel
+                            ->where('NoPeserta', $noPeserta)
+                            ->where('IdTahunAjaran', $currentTahunAjaran)
+                            ->first();
+                        if ($registrasiData) {
+                            $idSantri = $registrasiData['IdSantri'] ?? null;
+                        }
+                    }
+                }
+            }
+
+            $pesertaAntrianWithDetails[] = [
+                'id' => $peserta['id'],
+                'NoPeserta' => $noPeserta,
+                'IdTahunAjaran' => $peserta['IdTahunAjaran'],
+                'RoomId' => $peserta['RoomId'],
+                'Status' => $peserta['Status'],
+                'IdGrupMateriUjian' => $peserta['IdGrupMateriUjian'],
+                'TypeUjian' => $peserta['TypeUjian'],
+                'IdSantri' => $idSantri,
+                'IdSantriResolved' => $idSantri,
+                'NamaSantri' => $namaSantri,
+                'IdGrupMateriResolved' => $peserta['IdGrupMateriUjian'] ?? null,
+                'TypeUjianResolved' => $peserta['TypeUjian'] ?? null,
+                'created_at' => $peserta['created_at'],
+                'updated_at' => $peserta['updated_at']
+            ];
+        }
+
+        $pesertaAntrian = $pesertaAntrianWithDetails;
+
+        // Ambil materi untuk setiap peserta berdasarkan kategori yang diminta
+        $kategoriYangDitampilkan = ['BACA AL-QURAN', 'AYAT PILIHAN', 'SURAH PENDEK', 'DOA'];
+
+        // Ambil ID kategori dari nama kategori
+        $kategoriMaster = $this->munaqosahKategoriModel
+            ->select('IdKategoriMateri, NamaKategoriMateri')
+            ->whereIn('NamaKategoriMateri', $kategoriYangDitampilkan)
+            ->findAll();
+
+        $kategoriIdList = array_column($kategoriMaster, 'IdKategoriMateri');
+
+        // Ambil daftar grup materi untuk mapping IdGrupMateriUjian ke NamaMateriGrup
+        $grupMateriList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+        $grupMateriMap = [];
+        foreach ($grupMateriList as $grup) {
+            $grupMateriMap[$grup['IdGrupMateriUjian']] = $grup['NamaMateriGrup'];
+        }
+
+        $pesertaDenganMateri = [];
+        foreach ($pesertaAntrian as $peserta) {
+            $noPeserta = $peserta['NoPeserta'];
+            $typeUjianResolved = $peserta['TypeUjianResolved'] ?? $typeUjian;
+
+            // Ambil materi untuk peserta ini berdasarkan IdGrupMateriUjian dari juri
+            // Filter hanya materi yang sesuai dengan grup materi juri yang sedang login
+            $materiBuilder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+            $materiBuilder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, 
+                                   km.NamaKategoriMateri as NamaKategoriMateri, 
+                                   mp.NamaMateri, mp.Kategori as KategoriAsli, 
+                                   a.NamaSurah, a.WebLinkAyat');
+            $materiBuilder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri AND r.IdGrupMateriUjian != "GM001"', 'left');
+            $materiBuilder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri AND a.IdKategoriMateri = r.IdKategoriMateri AND a.Status = "Aktif"', 'left');
+            $materiBuilder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+            $materiBuilder->where('r.NoPeserta', $noPeserta);
+            $materiBuilder->where('r.IdTahunAjaran', $currentTahunAjaran);
+            $materiBuilder->where('r.TypeUjian', $typeUjianResolved);
+
+            // Filter berdasarkan IdGrupMateriUjian dari juri
+            if ($idGrupMateriUjian) {
+                $materiBuilder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
+            }
+
+            if (!empty($kategoriIdList)) {
+                $materiBuilder->whereIn('r.IdKategoriMateri', $kategoriIdList);
+            }
+
+            // Untuk grup Quran (GM001), pastikan ada data di alquran
+            if ($idGrupMateriUjian === 'GM001') {
+                $materiBuilder->where('a.IdMateri IS NOT NULL');
+            }
+
+            $materiBuilder->groupBy('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri, mp.NamaMateri, mp.Kategori, a.NamaSurah, a.WebLinkAyat');
+            $materiBuilder->orderBy('r.IdGrupMateriUjian', 'ASC');
+            $materiBuilder->orderBy('r.IdKategoriMateri', 'ASC');
+            $materiData = $materiBuilder->get()->getResultArray();
+
+            // Group materi by Grup Materi, lalu by kategori
+            $materiByGrup = [];
+            foreach ($materiData as $materi) {
+                $idGrup = $materi['IdGrupMateriUjian'] ?? 'Lainnya';
+                $kategori = $materi['NamaKategoriMateri'] ?? 'Lainnya';
+
+                if (!isset($materiByGrup[$idGrup])) {
+                    $materiByGrup[$idGrup] = [];
+                }
+
+                if (!isset($materiByGrup[$idGrup][$kategori])) {
+                    $materiByGrup[$idGrup][$kategori] = [];
+                }
+
+                // Tentukan NamaMateri: dari alquran jika ada (untuk grup Quran atau kategori yang punya alquran), jika tidak dari materi pelajaran
+                $namaMateri = $materi['NamaSurah'] ?? $materi['NamaMateri'] ?? '-';
+                $webLinkAyat = $materi['WebLinkAyat'] ?? null;
+
+                $materiByGrup[$idGrup][$kategori][] = [
+                    'IdMateri' => $materi['IdMateri'],
+                    'NamaMateri' => $namaMateri,
+                    'WebLinkAyat' => $webLinkAyat,
+                    'KategoriAsli' => $materi['KategoriAsli'] ?? null
+                ];
+            }
+
+            // Tambahkan nama grup materi ke setiap grup
+            $materiByGrupWithNames = [];
+            foreach ($materiByGrup as $idGrup => $kategoriData) {
+                $materiByGrupWithNames[$idGrup] = [
+                    'IdGrupMateriUjian' => $idGrup,
+                    'NamaMateriGrup' => $grupMateriMap[$idGrup] ?? $idGrup,
+                    'kategori' => $kategoriData
+                ];
+            }
+
+            $pesertaDenganMateri[] = [
+                'NoPeserta' => $noPeserta,
+                'NamaSantri' => $peserta['NamaSantri'] ?? '-',
+                'IdSantri' => $peserta['IdSantriResolved'] ?? null,
+                'materi' => $materiByGrupWithNames
+            ];
+        }
+
+        $data = [
+            'page_title' => 'Monitoring Antrian Peserta Ruangan',
+            'juri_data' => $juriData,
+            'room_id' => $roomId,
+            'peserta' => $pesertaDenganMateri,
+            'refresh_interval' => $refreshInterval,
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'kategori_ditampilkan' => $kategoriYangDitampilkan
+        ];
+
+        return view('backend/Munaqosah/monitoringAntrianPesertaRuanganJuri', $data);
+    }
+
+    /**
+     * API endpoint untuk check status antrian (untuk auto-refresh)
+     * Return hash dari status antrian untuk detect perubahan
+     */
+    public function checkStatusAntrianJuri()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        // Cek apakah user adalah Juri
+        if (!in_groups('Juri')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Akses ditolak'
+            ]);
+        }
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $usernameJuri = user()->username;
+        $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+
+        if (empty($juriData)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data juri tidak ditemukan'
+            ]);
+        }
+
+        $roomId = $juriData->RoomId ?? null;
+        $idGrupMateriUjian = $juriData->IdGrupMateriUjian ?? null;
+        $typeUjian = $juriData->TypeUjian ?? 'munaqosah';
+
+        if (empty($roomId)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Juri belum memiliki Room ID'
+            ]);
+        }
+
+        // Query untuk mendapatkan data antrian yang relevan
+        $builder = $this->db->table('tbl_munaqosah_antrian a');
+        $builder->select('a.NoPeserta, a.Status, a.updated_at');
+        $builder->where('a.Status', 1); // Status 1 = sedang ujian
+        $builder->where('a.RoomId', $roomId);
+        $builder->where('a.IdTahunAjaran', $currentTahunAjaran);
+
+        if ($idGrupMateriUjian) {
+            $builder->where('a.IdGrupMateriUjian', $idGrupMateriUjian);
+        }
+
+        if ($typeUjian) {
+            $builder->groupStart()
+                ->where('a.TypeUjian', $typeUjian)
+                ->orWhere('(a.TypeUjian IS NULL OR a.TypeUjian = \'\')', null, false)
+                ->groupEnd();
+        }
+
+        $builder->orderBy('a.updated_at', 'DESC');
+        $pesertaAntrian = $builder->get()->getResultArray();
+
+        // Buat hash dari data antrian (NoPeserta + Status + updated_at)
+        // Hash ini akan berubah jika ada peserta baru, status berubah, atau data diupdate
+        $statusData = [];
+        foreach ($pesertaAntrian as $peserta) {
+            $statusData[] = [
+                'NoPeserta' => $peserta['NoPeserta'],
+                'Status' => $peserta['Status'],
+                'updated_at' => $peserta['updated_at']
+            ];
+        }
+
+        // Generate hash dari status data
+        $statusHash = md5(json_encode($statusData));
+        $countPeserta = count($statusData);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'hash' => $statusHash,
+            'count' => $countPeserta,
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
+    }
+
+    /**
+     * API endpoint untuk get next peserta dari antrian (status 1) untuk juri
+     * Return NoPeserta yang siap untuk dinilai
+     */
+    public function getNextPesertaFromAntrian()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        // Cek apakah user adalah Juri
+        if (!in_groups('Juri')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Akses ditolak'
+            ]);
+        }
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $usernameJuri = user()->username;
+        $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+
+        if (empty($juriData)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data juri tidak ditemukan'
+            ]);
+        }
+
+        $roomId = $juriData->RoomId ?? null;
+        $idGrupMateriUjian = $juriData->IdGrupMateriUjian ?? null;
+        $typeUjian = $juriData->TypeUjian ?? 'munaqosah';
+
+        if (empty($roomId)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Juri belum memiliki Room ID'
+            ]);
+        }
+
+        // Query untuk mendapatkan peserta pertama dengan status 1 di ruangan ini
+        // Exclude peserta yang sudah dinilai oleh juri ini
+        $builder = $this->db->table('tbl_munaqosah_antrian a');
+        $builder->select('a.NoPeserta, a.updated_at');
+        $builder->where('a.Status', 1); // Status 1 = sedang ujian
+        $builder->where('a.RoomId', $roomId);
+        $builder->where('a.IdTahunAjaran', $currentTahunAjaran);
+
+        if ($idGrupMateriUjian) {
+            $builder->where('a.IdGrupMateriUjian', $idGrupMateriUjian);
+        }
+
+        if ($typeUjian) {
+            $builder->groupStart()
+                ->where('a.TypeUjian', $typeUjian)
+                ->orWhere('(a.TypeUjian IS NULL OR a.TypeUjian = \'\')', null, false)
+                ->groupEnd();
+        }
+
+        // Exclude peserta yang sudah dinilai oleh juri ini
+        // Gunakan subquery untuk exclude peserta yang sudah ada di tabel nilai
+        $builder->whereNotIn('a.NoPeserta', function ($query) use ($currentTahunAjaran, $juriData, $typeUjian) {
+            return $query->select('NoPeserta')
+                ->from('tbl_munaqosah_nilai')
+                ->where('IdTahunAjaran', $currentTahunAjaran)
+                ->where('IdJuri', $juriData->IdJuri)
+                ->where('TypeUjian', $typeUjian)
+                ->groupBy('NoPeserta');
+        });
+
+        $builder->orderBy('a.updated_at', 'DESC');
+        $builder->limit(1);
+        $result = $builder->get()->getRowArray();
+
+        if ($result && !empty($result['NoPeserta'])) {
+            return $this->response->setJSON([
+                'success' => true,
+                'hasPeserta' => true,
+                'NoPeserta' => $result['NoPeserta'],
+                'updated_at' => $result['updated_at'],
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => true,
+                'hasPeserta' => false,
+                'NoPeserta' => null,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+        }
     }
 
     // ==================== INPUT REGISTRASI ANTRIAN ====================

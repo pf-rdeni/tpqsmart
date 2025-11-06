@@ -39,7 +39,7 @@
                                     <!-- Step 1: Input No Peserta -->
                                     <div id="step1" class="content" role="tabpanel" aria-labelledby="stepper1-trigger">
                                         <div class="row">
-                                            <div class="col-md-8">
+                                            <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="noPeserta">No Peserta <span class="text-danger">*</span></label>
                                                     <div class="input-group">
@@ -48,15 +48,19 @@
                                                             <button class="btn btn-outline-secondary" type="button" id="btnScanQR">
                                                                 <i class="fas fa-qrcode"></i> Scan QR
                                                             </button>
+                                                            <button class="btn btn-outline-success" type="button" id="btnPesertaAntrian" style="display: none;">
+                                                                <i class="fas fa-user-check"></i> <span id="btnPesertaAntrianText">Peserta Antrian</span>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                     <small class="form-text text-muted">
                                                         Ketikkan nomor peserta atau gunakan tombol scan untuk membaca QR code pada kartu peserta<br>
-                                                        <span class="text-info"><i class="fas fa-info-circle"></i> Auto search akan aktif setelah 3 digit, atau tekan Enter</span>
+                                                        <span class="text-info"><i class="fas fa-info-circle"></i> Auto search akan aktif setelah 3 digit, atau tekan Enter</span><br>
+                                                        <span class="text-success"><i class="fas fa-bell"></i> Sistem akan mengecek antrian setiap 15 detik dan menampilkan rekomendasi No Peserta jika tersedia</span><br>
                                                     </small>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label>&nbsp;</label>
                                                     <div>
@@ -424,6 +428,46 @@
         color: white;
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Styling untuk button peserta antrian */
+    #btnPesertaAntrian {
+        border-color: #28a745;
+        color: white;
+        background-color: #90EE90;
+        min-width: 180px;
+        padding: 8px 20px;
+        font-weight: bold;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        animation: blinkingBackground 1.5s infinite;
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    }
+
+    #btnPesertaAntrian:hover {
+        background-color: #28a745;
+        border-color: #28a745;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+        animation: none;
+    }
+
+    @keyframes blinkingBackground {
+        0% {
+            background-color: #90EE90;
+            color: #155724;
+        }
+
+        50% {
+            background-color: #ffffff;
+            color: #28a745;
+        }
+
+        100% {
+            background-color: #90EE90;
+            color: #155724;
+        }
     }
 
     /* Styling untuk kategori kesalahan */
@@ -938,6 +982,9 @@
             // Tampilkan tombol kembali ke step 1
             $('#btnKembaliStep1').show();
 
+            // Stop check antrian saat pindah ke step 2
+            stopCheckAntrian();
+
             generateNilaiForm();
             stepper.next();
         }
@@ -968,6 +1015,9 @@
 
                     // Kembali ke step 1
                     stepper.to(1);
+
+                    // Mulai check antrian lagi saat kembali ke step 1
+                    startCheckAntrian();
 
                     // Cek ulang nilai existing untuk update status background
                     if (currentPesertaData && currentPesertaData.NoPeserta) {
@@ -1686,6 +1736,9 @@
             errorCategoriesByKategori = {};
             isEditMode = false;
 
+            // Mulai check antrian lagi saat reset form
+            startCheckAntrian();
+
             stepper.to(1);
         }
 
@@ -1813,6 +1866,123 @@
         $('#btnKembaliStep1').on('click', function() {
             kembaliKeStep1();
         });
+
+        // ==================== CHECK ANTRIAN PESERTA ====================
+        let checkAntrianTimer = null;
+        let currentRecommendedNoPeserta = null;
+        let isCheckingAntrian = false;
+
+        // Fungsi untuk check antrian peserta
+        function checkAntrianPeserta() {
+            // Hanya check jika di step 1 dan tidak sedang checking
+            if (isCheckingAntrian) {
+                return;
+            }
+
+            // Cek apakah masih di step 1
+            const step1Active = $('#step1').hasClass('active') || stepper._currentIndex === 0;
+            if (!step1Active) {
+                return;
+            }
+
+            isCheckingAntrian = true;
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/get-next-peserta-from-antrian') ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    isCheckingAntrian = false;
+
+                    if (response.success && response.hasPeserta && response.NoPeserta) {
+                        // Ada peserta baru di antrian
+                        if (currentRecommendedNoPeserta !== response.NoPeserta) {
+                            currentRecommendedNoPeserta = response.NoPeserta;
+                            showPesertaAntrianButton(response.NoPeserta);
+                        }
+                    } else {
+                        // Tidak ada peserta di antrian
+                        if (currentRecommendedNoPeserta !== null) {
+                            currentRecommendedNoPeserta = null;
+                            hidePesertaAntrianButton();
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    isCheckingAntrian = false;
+                    console.error('Error checking antrian:', error);
+                    // Tidak tampilkan error ke user, hanya log
+                }
+            });
+        }
+
+        // Fungsi untuk menampilkan button peserta antrian
+        function showPesertaAntrianButton(noPeserta) {
+            $('#btnPesertaAntrianText').text(noPeserta);
+            $('#btnPesertaAntrian').fadeIn(300);
+        }
+
+        // Fungsi untuk menyembunyikan button peserta antrian
+        function hidePesertaAntrianButton() {
+            $('#btnPesertaAntrian').fadeOut(300);
+            $('#btnPesertaAntrianText').text('Peserta Antrian');
+        }
+
+        // Event listener untuk button peserta antrian
+        $('#btnPesertaAntrian').on('click', function() {
+            if (currentRecommendedNoPeserta) {
+                // Set No Peserta dan trigger check peserta
+                $('#noPeserta').val(currentRecommendedNoPeserta);
+                // Trigger cek peserta otomatis
+                $('#btnCekPeserta').click();
+            }
+        });
+
+        // Start checking antrian setiap 15 detik (hanya jika di step 1)
+        function startCheckAntrian() {
+            if (checkAntrianTimer) {
+                clearInterval(checkAntrianTimer);
+            }
+
+            // Check pertama kali setelah 2 detik
+            setTimeout(function() {
+                checkAntrianPeserta();
+            }, 2000);
+
+            // Check setiap 15 detik
+            checkAntrianTimer = setInterval(function() {
+                // Hanya check jika masih di step 1
+                const step1Active = $('#step1').hasClass('active') || stepper._currentIndex === 0;
+                if (step1Active) {
+                    checkAntrianPeserta();
+                }
+            }, 15000); // 15 detik
+        }
+
+        // Stop checking antrian
+        function stopCheckAntrian() {
+            if (checkAntrianTimer) {
+                clearInterval(checkAntrianTimer);
+                checkAntrianTimer = null;
+            }
+            hidePesertaAntrianButton();
+            currentRecommendedNoPeserta = null;
+        }
+
+        // Mulai check antrian saat halaman dimuat (jika di step 1)
+        startCheckAntrian();
+
+        // Stop check antrian saat pindah ke step 2
+        // (akan dihandle oleh fungsi proceedToStep2)
+
+        // Cleanup saat halaman ditutup
+        $(window).on('beforeunload', function() {
+            if (checkAntrianTimer) {
+                clearInterval(checkAntrianTimer);
+            }
+        });
+
+        // ==================== END CHECK ANTRIAN PESERTA ====================
 
         // Initialize
     });

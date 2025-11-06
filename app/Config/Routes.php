@@ -144,6 +144,9 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
 
     $routes->get('munaqosah/antrian', 'Munaqosah::antrian');
     $routes->get('munaqosah/monitoring-status-antrian', 'Munaqosah::monitoringStatusAntrian');
+    $routes->get('munaqosah/monitoring-antrian-peserta-ruangan-juri', 'Munaqosah::monitoringAntrianPesertaRuanganJuri');
+    $routes->get('munaqosah/check-status-antrian-juri', 'Munaqosah::checkStatusAntrianJuri');
+    $routes->get('munaqosah/get-next-peserta-from-antrian', 'Munaqosah::getNextPesertaFromAntrian');
     $routes->get('munaqosah/input-registrasi-antrian', 'Munaqosah::inputRegistrasiAntrian');
     $routes->post('munaqosah/register-antrian-ajax', 'Munaqosah::registerAntrianAjax');
     $routes->post('munaqosah/auto-assign-room-ajax/(:num)', 'Munaqosah::autoAssignRoomAjax/$1');

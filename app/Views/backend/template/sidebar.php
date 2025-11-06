@@ -69,6 +69,12 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/monitoring-antrian-peserta-ruangan-juri') ?> class="nav-link" target="_blank">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Antrian Peserta</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-monitoring') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Dashboard Monitoring</p>
