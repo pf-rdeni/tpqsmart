@@ -132,21 +132,26 @@ class MunaqosahRegistrasiUjiModel extends Model
     public function getMateriByNoPeserta($noPeserta)
     {
         $builder = $this->db->table($this->table . ' r');
-        $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli');
+        $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli, a.WebLinkAyat');
         $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
+        // Join ke tbl_munaqosah_alquran untuk mendapatkan WebLinkAyat jika IdMateri ada di tabel tersebut
+        $builder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri AND a.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $builder->where('r.NoPeserta', $noPeserta);
         $builder->where('r.IdGrupMateriUjian !=', 'GM001'); // Exclude Quran grup for now
 
         $materiData = $builder->get()->getResultArray();
 
-        // Ambil data Quran secara terpisah jika ada
+        // Ambil data Quran secara terpisah jika ada dengan filter IdKategoriMateri
         $quranBuilder = $this->db->table($this->table . ' r');
         $quranBuilder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, a.NamaSurah as NamaMateri, a.WebLinkAyat');
-        $quranBuilder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri', 'left');
+        // Join dengan filter IdKategoriMateri agar lebih presisi
+        $quranBuilder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri AND a.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $quranBuilder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
         $quranBuilder->where('r.NoPeserta', $noPeserta);
         $quranBuilder->where('r.IdGrupMateriUjian', 'GM001');
+        // Filter tambahan untuk memastikan IdKategoriMateri di alquran sesuai
+        $quranBuilder->where('a.IdKategoriMateri IS NOT NULL');
 
         $quranData = $quranBuilder->get()->getResultArray();
 
@@ -160,27 +165,35 @@ class MunaqosahRegistrasiUjiModel extends Model
     public function getMateriByNoPesertaAndGrup($noPeserta, $idGrupMateriUjian, $typeUjian, $idTahunAjaran)
     {
         if ($idGrupMateriUjian === 'GM001') {
-            // Untuk grup Quran, ambil dari tbl_munaqosah_alquran
+            // Untuk grup Quran, ambil dari tbl_munaqosah_alquran dengan filter IdKategoriMateri
             $builder = $this->db->table($this->table . ' r');
             $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, a.NamaSurah as NamaMateri, a.WebLinkAyat');
-            $builder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri', 'left');
+            // Join dengan filter IdKategoriMateri agar lebih presisi
+            $builder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri AND a.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->where('r.NoPeserta', $noPeserta);
             $builder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
             $builder->where('r.TypeUjian', $typeUjian);
             $builder->where('r.IdTahunAjaran', $idTahunAjaran);
+            // Filter tambahan untuk memastikan IdKategoriMateri di alquran sesuai
+            $builder->where('a.IdKategoriMateri IS NOT NULL');
             $builder->groupBy('r.IdMateri');
         } else {
             // Untuk grup lain, ambil dari tbl_materi_pelajaran
+            // Juga join ke tbl_munaqosah_alquran untuk mendapatkan WebLinkAyat jika ada (untuk kategori seperti Ayat Pilihan, Surah pendek)
             $builder = $this->db->table($this->table . ' r');
-            $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli');
+            $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli, a.WebLinkAyat');
             $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
+            // Join ke tbl_munaqosah_alquran untuk mendapatkan WebLinkAyat jika IdMateri ada di tabel tersebut
+            // Join dengan kondisi yang tepat untuk mendapatkan WebLinkAyat yang sesuai
+            $builder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri AND a.IdKategoriMateri = r.IdKategoriMateri AND a.Status = "Aktif"', 'left');
             $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->where('r.NoPeserta', $noPeserta);
             $builder->where('r.IdGrupMateriUjian', $idGrupMateriUjian);
             $builder->where('r.TypeUjian', $typeUjian);
             $builder->where('r.IdTahunAjaran', $idTahunAjaran);
-            $builder->groupBy('r.IdMateri');
+            // Group by dengan semua field yang dipilih untuk menghindari masalah dengan multiple records
+            $builder->groupBy('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri, mp.NamaMateri, mp.Kategori, a.WebLinkAyat');
             $builder->orderBy('r.IdKategoriMateri', 'ASC');
         }
         $result = $builder->get()->getResultArray();

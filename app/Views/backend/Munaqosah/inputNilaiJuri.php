@@ -6,7 +6,15 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Form Input Nilai Munaqosah</h3>
+                        <h3 class="card-title">
+                            Form Input Nilai Munaqosah
+                            <span id="noPesertaHeader" class="ml-2 badge badge-info" style="display: none;"></span>
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-sm btn-secondary" id="btnKembaliStep1" style="display: none;">
+                                <i class="fas fa-arrow-left"></i> Kembali ke Step 1
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <!-- Stepper -->
@@ -60,8 +68,8 @@
                                             </div>
                                         </div>
                                         <!-- Info Peserta -->
-                                        <div id="infoPeserta" class="alert alert-warning" style="display: none;">
-                                            <h5><i class="icon fas fa-exclamation-triangle"></i> Informasi Peserta Sudah Dinilai</h5>
+                                        <div id="infoPeserta" class="alert" style="display: none;">
+                                            <h5 id="infoPesertaTitle"><i class="icon fas fa-info-circle"></i> Informasi Peserta</h5>
                                             <div id="pesertaInfo"></div>
                                         </div>
                                         <!-- Statistik Peserta -->
@@ -254,6 +262,32 @@
                                             <!-- Form nilai akan di-generate secara dinamis -->
                                         </div>
 
+                                        <!-- Section untuk menampilkan Ayat (di bawah form) -->
+                                        <div id="ayatSection" class="mt-4" style="display: none;">
+                                            <div class="card">
+                                                <div class="card-header d-flex justify-content-between align-items-center">
+                                                    <div class="d-flex align-items-center">
+                                                        <h5 class="card-title mb-0" id="ayatTitle">Lihat Ayat</h5>
+                                                    </div>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="btn-group" role="group">
+                                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="openInNewTab()">
+                                                                <i class="fas fa-external-link-alt"></i> Buka di Tab Baru
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideAyatSection()">
+                                                                <i class="fas fa-times"></i> Tutup
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body p-0">
+                                                    <div id="iframeContainer">
+                                                        <iframe id="iframeAyat" src="" style="width: 100%; height: 500px; border: none;"></iframe>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <!-- Button untuk mengirim nilai -->
                                         <div id="btnKirimNilaiContainer" class="text-center mt-4" style="display: none;">
                                             <button type="button" class="btn btn-success btn-lg" id="btnKirimNilai">
@@ -294,31 +328,6 @@
     </div>
 </div>
 
-<!-- Section untuk menampilkan Ayat -->
-<div id="ayatSection" class="mt-4" style="display: none;">
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-                <h5 class="card-title mb-0" id="ayatTitle">Lihat Ayat</h5>
-            </div>
-            <div class="d-flex align-items-center">
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openInNewTab()">
-                        <i class="fas fa-external-link-alt"></i> Buka di Tab Baru
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideAyatSection()">
-                        <i class="fas fa-times"></i> Tutup
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div id="iframeContainer">
-                <iframe id="iframeAyat" src="" style="width: 100%; height: 500px; border: none;"></iframe>
-            </div>
-        </div>
-    </div>
-</div>
 
 <?= $this->endSection(); ?>
 
@@ -731,8 +740,8 @@
                         currentMateriData = response.data.materi;
                         errorCategoriesByKategori = (response.data.error_categories && typeof response.data.error_categories === 'object') ? response.data.error_categories : {};
 
-                        // Show peserta info with room validation info
-                        showPesertaInfo(response.data.peserta, response.data.roomValidation);
+                        // Show peserta info with room validation info dan status nilai
+                        showPesertaInfo(response.data.peserta, response.data.roomValidation, response.data.nilaiExists || false);
 
                         // Check if nilai already exists
                         if (response.data.nilaiExists) {
@@ -754,6 +763,10 @@
                                 break;
                             case 'DATA_NOT_FOUND':
                                 errorTitle = 'Data Tidak Ditemukan';
+                                // Tampilkan info peserta dengan background putih jika peserta tidak ditemukan
+                                if (response.code === 'PESERTA_NOT_FOUND' || response.code === 'REGISTRASI_NOT_FOUND') {
+                                    showPesertaNotFoundInfo(noPeserta, errorMessage);
+                                }
                                 break;
                             case 'AUTHENTICATION_ERROR':
                                 errorTitle = 'Error Autentikasi';
@@ -768,27 +781,30 @@
                                 errorTitle = 'Error';
                         }
 
-                        // Show detailed error message
-                        Swal.fire({
-                            icon: 'error',
-                            title: errorTitle,
-                            html: `
-                            <div style="text-align: left;">
-                                <p><strong>${errorMessage}</strong></p>
-                                ${errorDetails ? `<p><small>Detail: ${errorDetails}</small></p>` : ''}
-                                ${response.code ? `<p><small>Kode Error: ${response.code}</small></p>` : ''}
-                            </div>
-                        `
-                        });
+                        // Show detailed error message (kecuali untuk peserta tidak ditemukan yang sudah ditampilkan di info)
+                        if (!(response.status === 'DATA_NOT_FOUND' && (response.code === 'PESERTA_NOT_FOUND' || response.code === 'REGISTRASI_NOT_FOUND'))) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: errorTitle,
+                                html: `
+                                <div style="text-align: left;">
+                                    <p><strong>${errorMessage}</strong></p>
+                                    ${errorDetails ? `<p><small>Detail: ${errorDetails}</small></p>` : ''}
+                                    ${response.code ? `<p><small>Kode Error: ${response.code}</small></p>` : ''}
+                                </div>
+                            `
+                            });
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
                     Swal.close();
                     let errorMessage = 'Terjadi kesalahan koneksi';
+                    let errorResponse = null;
 
                     // Try to parse error response
                     try {
-                        const errorResponse = JSON.parse(xhr.responseText);
+                        errorResponse = JSON.parse(xhr.responseText);
                         if (errorResponse.message) {
                             errorMessage = errorResponse.message;
                         }
@@ -796,18 +812,38 @@
                         // Use default error message
                     }
 
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error Koneksi',
-                        text: errorMessage + ' (' + error + ')'
-                    });
+                    // Jika error karena peserta tidak ditemukan, tampilkan di info peserta
+                    if (errorResponse && errorResponse.status === 'DATA_NOT_FOUND' &&
+                        (errorResponse.code === 'PESERTA_NOT_FOUND' || errorResponse.code === 'REGISTRASI_NOT_FOUND')) {
+                        const noPeserta = $('#noPeserta').val().trim();
+                        if (noPeserta) {
+                            showPesertaNotFoundInfo(noPeserta, errorMessage);
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error Koneksi',
+                            text: errorMessage + ' (' + error + ')'
+                        });
+                    }
                 }
             });
         });
 
         // Show peserta info
-        function showPesertaInfo(peserta, roomValidation = null) {
+        function showPesertaInfo(peserta, roomValidation = null, nilaiExists = false) {
             let roomInfoHtml = '';
+
+            // Set background color berdasarkan status nilai
+            if (nilaiExists) {
+                // Sudah dinilai - background merah
+                $('#infoPeserta').removeClass('alert-success alert-warning alert-secondary').addClass('alert-danger');
+                $('#infoPesertaTitle').html('<i class="icon fas fa-check-circle"></i> Informasi Peserta - <strong>Sudah Dinilai</strong>');
+            } else {
+                // Belum dinilai - background hijau
+                $('#infoPeserta').removeClass('alert-danger alert-warning alert-secondary').addClass('alert-success');
+                $('#infoPesertaTitle').html('<i class="icon fas fa-info-circle"></i> Informasi Peserta - <strong>Belum Dinilai</strong>');
+            }
 
             // Tampilkan info room jika ada
             if (currentJuriData.RoomId) {
@@ -870,10 +906,116 @@
             $('#infoPeserta').show();
         }
 
+        // Show peserta not found info dengan background putih
+        function showPesertaNotFoundInfo(noPeserta, errorMessage) {
+            // Set background putih (alert-light untuk background putih bersih)
+            $('#infoPeserta').removeClass('alert-success alert-danger alert-warning alert-secondary').addClass('alert-light');
+            $('#infoPesertaTitle').html('<i class="icon fas fa-exclamation-triangle"></i> Informasi Peserta - <strong>Tidak Ditemukan</strong>');
+
+            const infoHtml = `
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="mb-0">
+                        <strong>No Peserta:</strong> <span class="badge badge-secondary">${noPeserta}</span><br>
+                        <strong>Status:</strong> <span class="badge badge-danger">Tidak Ditemukan</span><br>
+                        <strong>Pesan:</strong> ${errorMessage || 'Data peserta tidak ditemukan di database'}
+                    </div>
+                </div>
+            </div>
+        `;
+
+            $('#pesertaInfo').html(infoHtml);
+            $('#infoPeserta').show();
+        }
+
         // Proceed to step 2
         function proceedToStep2() {
+            // Update header dengan No Peserta
+            if (currentPesertaData && currentPesertaData.NoPeserta) {
+                $('#noPesertaHeader').text('No Peserta: ' + currentPesertaData.NoPeserta).show();
+            }
+
+            // Tampilkan tombol kembali ke step 1
+            $('#btnKembaliStep1').show();
+
             generateNilaiForm();
             stepper.next();
+        }
+
+        // Fungsi untuk kembali ke step 1
+        function kembaliKeStep1() {
+            // Konfirmasi sebelum kembali
+            Swal.fire({
+                title: 'Kembali ke Step 1?',
+                text: 'Data nilai yang sudah diinput akan hilang. Apakah Anda yakin?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Kembali',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Sembunyikan tombol kembali
+                    $('#btnKembaliStep1').hide();
+                    // Sembunyikan No Peserta di header
+                    $('#noPesertaHeader').hide();
+                    // Sembunyikan container form nilai dan tombol kirim
+                    $('#formNilaiContainer').html('');
+                    $('#btnKirimNilaiContainer').hide();
+                    // Sembunyikan section ayat jika terbuka
+                    $('#ayatSection').hide();
+
+                    // Kembali ke step 1
+                    stepper.to(1);
+
+                    // Cek ulang nilai existing untuk update status background
+                    if (currentPesertaData && currentPesertaData.NoPeserta) {
+                        cekNilaiExisting(currentPesertaData.NoPeserta);
+                    }
+                }
+            });
+        }
+
+        // Fungsi untuk cek nilai existing setelah kembali ke step 1
+        function cekNilaiExisting(noPeserta) {
+            let tahunAjaran = getCurrentTahunAjaran();
+
+            // Jika tahun ajaran tidak tersedia, coba ambil dari server
+            if (!tahunAjaran) {
+                fetchTahunAjaranFromServer().then(function(tahun) {
+                    tahunAjaran = tahun;
+                    performCekNilai(noPeserta, tahunAjaran);
+                }).catch(function(error) {
+                    console.error('Error fetching tahun ajaran:', error);
+                });
+            } else {
+                performCekNilai(noPeserta, tahunAjaran);
+            }
+        }
+
+        // Fungsi untuk melakukan cek nilai
+        function performCekNilai(noPeserta, tahunAjaran) {
+            $.ajax({
+                url: '<?= base_url("backend/munaqosah/cekPeserta") ?>',
+                type: 'POST',
+                data: {
+                    noPeserta: noPeserta,
+                    IdJuri: getCurrentJuriData().IdJuri || 'J001',
+                    IdTahunAjaran: tahunAjaran,
+                    TypeUjian: getTypeUjian()
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Update info peserta dengan status nilai yang baru
+                        showPesertaInfo(response.data.peserta, response.data.roomValidation, response.data.nilaiExists || false);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error checking nilai existing:', error);
+                }
+            });
         }
 
         // Generate dynamic form for input nilai
@@ -908,6 +1050,9 @@
                 groupedMateri[materi.KategoriMateriUjian].push(materi);
             });
 
+            // Kumpulkan semua materi yang memiliki WebLinkAyat untuk ditampilkan di bawah card
+            const materiDenganAyat = [];
+
             // Generate form for each kategori
             for (const kategori of Object.keys(groupedMateri)) {
                 // Ambil kategori kesalahan dari data yang sudah disiapkan controller
@@ -923,19 +1068,15 @@
             `;
 
                 groupedMateri[kategori].forEach(materi => {
-                    // Tambahkan info tambahan untuk materi Quran
-                    let additionalInfo = '';
+                    // Kumpulkan materi yang memiliki WebLinkAyat
                     if (materi.WebLinkAyat) {
-                        additionalInfo = `
-                         <br>
-                         <div class="mt-2">
-                             <button type="button" class="btn btn-sm btn-outline-info" onclick="showAyatModal('${materi.WebLinkAyat}', '${materi.NamaMateri}')">
-                                 <i class="fas fa-eye"></i> Lihat Ayat
-                             </button>
-                         </div>
-                     `;
+                        materiDenganAyat.push({
+                            namaMateri: materi.NamaMateri,
+                            url: materi.WebLinkAyat,
+                            kategori: kategori,
+                            idMateri: materi.IdMateri // Simpan IdMateri untuk fokus input
+                        });
                     }
-
                     formHtml += `
                      <div class="row mb-4">
                          <div class="col-md-6">
@@ -952,7 +1093,6 @@
                                         oninput="if(this.value.length > 2) this.value = this.value.slice(0, 2);"
                                         required>
                                  <small class="form-text text-muted">Range nilai: <?= $nilai_minimal ?> - <?= $nilai_maximal ?></small>
-                                 ${additionalInfo}
                              </div>
                          </div>
                          <div class="col-md-6">
@@ -994,6 +1134,52 @@
             `;
             }
 
+            // Tambahkan section daftar ayat di bawah semua card jika ada materi dengan ayat
+            if (materiDenganAyat.length > 0) {
+                formHtml += `
+                <div class="col-md-12 mt-3">
+                    <div class="card">
+                        <div class="card-header bg-gradient-info">
+                            <h5 class="card-title mb-0 text-white">
+                                <i class="fas fa-book-quran"></i> Daftar Ayat Al-Quran
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                `;
+
+                materiDenganAyat.forEach((materi, index) => {
+                    const escapedUrl = $('<div>').text(materi.url).html();
+                    const escapedTitle = $('<div>').text(materi.namaMateri || 'Lihat Ayat').html();
+                    const escapedKategori = $('<div>').text(materi.kategori || '').html();
+                    const escapedMateriId = $('<div>').text(materi.idMateri || '').html();
+
+                    formHtml += `
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title">${escapedTitle}</h6>
+                                    <p class="card-text text-muted small mb-2">${escapedKategori}</p>
+                                    <button type="button" class="btn btn-sm btn-outline-info btn-lihat-ayat-card" 
+                                            data-url="${escapedUrl}" 
+                                            data-title="${escapedTitle}"
+                                            data-materi-id="${escapedMateriId}">
+                                        <i class="fas fa-eye"></i> Lihat Ayat
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                formHtml += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
+
             formHtml += '</div>';
 
             // Close loading
@@ -1006,6 +1192,16 @@
             setupErrorCategoryToggles();
             $('.nilai-input').each(function() {
                 handleAutoShowErrorCategories($(this));
+            });
+
+            // Setup event listeners for "Lihat Ayat" buttons dari card
+            $(document).off('click', '.btn-lihat-ayat-card').on('click', '.btn-lihat-ayat-card', function() {
+                const url = $(this).data('url');
+                const title = $(this).data('title');
+                const materiId = $(this).data('materi-id');
+                if (url) {
+                    showAyatModal(url, title || 'Lihat Ayat', materiId);
+                }
             });
         }
 
@@ -1482,6 +1678,8 @@
             $('#infoPeserta').hide();
             $('#btnKirimNilaiContainer').hide();
             $('#ayatSection').hide();
+            $('#noPesertaHeader').hide(); // Sembunyikan No Peserta di header
+            $('#btnKembaliStep1').hide(); // Sembunyikan tombol kembali
             currentPesertaData = null;
             currentJuriData = null;
             currentMateriData = null;
@@ -1611,15 +1809,22 @@
             $(this).attr('placeholder', 'Masukkan atau scan QR No Peserta');
         });
 
+        // Event listener untuk tombol kembali ke step 1
+        $('#btnKembaliStep1').on('click', function() {
+            kembaliKeStep1();
+        });
+
         // Initialize
     });
 
-    // Global variable untuk menyimpan URL ayat saat ini
+    // Global variable untuk menyimpan URL ayat saat ini dan IdMateri yang sedang dilihat
     let currentAyatUrl = '';
+    let currentMateriIdForAyat = null;
 
     // Fungsi untuk menampilkan section ayat
-    function showAyatModal(url, title) {
+    function showAyatModal(url, title, materiId = null) {
         currentAyatUrl = url;
+        currentMateriIdForAyat = materiId; // Simpan IdMateri yang sedang dilihat
         $('#ayatTitle').text(title);
 
         // Reset iframe terlebih dahulu
@@ -1643,6 +1848,25 @@
     function hideAyatSection() {
         $('#ayatSection').slideUp(300, function() {
             $('#iframeAyat').attr('src', '');
+
+            // Fokuskan ke input field yang sesuai dengan IdMateri yang sedang dilihat
+            if (currentMateriIdForAyat) {
+                const inputField = $('#nilai_' + currentMateriIdForAyat);
+                if (inputField.length > 0) {
+                    // Scroll ke input field
+                    $('html, body').animate({
+                        scrollTop: inputField.offset().top - 100
+                    }, 300);
+
+                    // Fokuskan kursor ke input field setelah animasi selesai
+                    setTimeout(function() {
+                        inputField.focus();
+                    }, 350);
+                }
+            }
+
+            // Reset variabel
+            currentMateriIdForAyat = null;
         });
     }
 

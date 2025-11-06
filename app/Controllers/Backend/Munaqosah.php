@@ -3542,13 +3542,17 @@ class Munaqosah extends BaseController
                 }
             }
 
-            // Ambil data surah alquran untuk kategori QURAN
-            $alquranMateri = $this->munaqosahAlquranModel->getSurahForMunaqosah();
-            if (!empty($alquranMateri)) {
-                $quranKategoriId = $kategoriIdByName['BACA AL-QURAN'] ?? ($kategoriIdByName["QUR'AN"] ?? null);
-                if ($quranKategoriId) {
+            // Ambil data surah alquran untuk kategori QURAN dengan filter IdKategoriMateri
+            $quranKategoriId = $kategoriIdByName['BACA AL-QURAN'] ?? ($kategoriIdByName["QUR'AN"] ?? null);
+            if ($quranKategoriId) {
+                // Ambil surah alquran dengan filter IdKategoriMateri untuk presisi
+                $alquranMateri = $this->munaqosahAlquranModel->getSurahForMunaqosah($quranKategoriId);
+                if (!empty($alquranMateri)) {
                     foreach ($alquranMateri as &$alquran) {
-                        $alquran['IdKategoriMateri'] = $quranKategoriId;
+                        // Set IdKategoriMateri jika belum ada
+                        if (empty($alquran['IdKategoriMateri'])) {
+                            $alquran['IdKategoriMateri'] = $quranKategoriId;
+                        }
                         if (empty($alquran['IdGrupMateriUjian'])) {
                             $alquran['IdGrupMateriUjian'] = 'GM001';
                         }

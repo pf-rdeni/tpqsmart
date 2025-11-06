@@ -14,6 +14,7 @@ class MunaqosahAlquranModel extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'IdMateri',
+        'IdKategoriMateri',
         'NamaSurah',
         'WebLinkAyat',
         'Status',
@@ -31,6 +32,7 @@ class MunaqosahAlquranModel extends Model
     // Validation
     protected $validationRules = [
         'IdMateri' => 'required|max_length[50]',
+        'IdKategoriMateri' => 'required|max_length[50]',
         'NamaSurah' => 'required|max_length[255]',
         'WebLinkAyat' => 'permit_empty|max_length[500]',
         'Status' => 'required|in_list[Aktif,Tidak Aktif]'
@@ -40,6 +42,10 @@ class MunaqosahAlquranModel extends Model
         'IdMateri' => [
             'required' => 'Id Materi harus diisi',
             'max_length' => 'Id Materi maksimal 50 karakter'
+        ],
+        'IdKategoriMateri' => [
+            'required' => 'Id Kategori Materi harus diisi',
+            'max_length' => 'Id Kategori Materi maksimal 50 karakter'
         ],
         'NamaSurah' => [
             'required' => 'Nama Surah harus diisi',
@@ -87,10 +93,18 @@ class MunaqosahAlquranModel extends Model
     /**
      * Ambil data surah alquran untuk registrasi munaqosah
      * Format khusus untuk kompatibilitas dengan sistem materi munaqosah
+     * @param string|null $IdKategoriMateri Filter berdasarkan IdKategoriMateri (opsional)
      */
-    public function getSurahForMunaqosah()
+    public function getSurahForMunaqosah($IdKategoriMateri = null)
     {
-        $surahData = $this->getSurahAktif();
+        $builder = $this->where('Status', 'Aktif');
+
+        // Filter berdasarkan IdKategoriMateri jika diberikan
+        if (!empty($IdKategoriMateri)) {
+            $builder->where('IdKategoriMateri', $IdKategoriMateri);
+        }
+
+        $surahData = $builder->orderBy('NamaSurah', 'ASC')->findAll();
         $formattedData = [];
         
         foreach ($surahData as $surah) {
@@ -98,6 +112,7 @@ class MunaqosahAlquranModel extends Model
                 'IdMateri' => $surah['IdMateri'], 
                 'NamaMateri' => $surah['NamaSurah'],
                 'IdGrupMateriUjian' => 'GM001', // Grup khusus untuk alquran
+                'IdKategoriMateri' => $surah['IdKategoriMateri'] ?? null,
                 'KategoriMateri' => 'QURAN',
                 'WebLinkAyat' => $surah['WebLinkAyat'],
                 'Status' => $surah['Status']
