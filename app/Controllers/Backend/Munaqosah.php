@@ -660,9 +660,7 @@ class Munaqosah extends BaseController
                 $currentJuriRoom = $juriData['RoomId'] ?? null;
 
                 // === VALIDASI ROOM SEBELUM INSERT ===
-                // Ambil grup materi dari data pertama di materiMap
-                $firstMateri = reset($materiMap);
-                $idGrupMateriUjian = $firstMateri['IdGrupMateriUjian'] ?? null;
+                $idGrupMateriUjian = $juriData['IdGrupMateriUjian'];
 
                 if ($idGrupMateriUjian) {
                     // Cek apakah room validation aktif untuk grup materi ini
