@@ -75,7 +75,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                                             <span class="badge <?= $statusBadgeClass ?>"><?= $j['Status'] ?></span>
                                         </td>
                                         <td>
-                                            <button class="btn btn-sm btn-info btn-edit-password" data-id="<?= $j['id'] ?>" title="Ubah Password">
+                                            <button class="btn btn-sm btn-info btn-edit-password" data-id="<?= $j['id'] ?>" data-username="<?= htmlspecialchars($j['UsernameJuri'], ENT_QUOTES, 'UTF-8') ?>" title="Ubah Password">
                                                 <i class="fas fa-key"></i>
                                             </button>
                                             <button class="btn btn-sm btn-warning btn-edit-room" data-id="<?= $j['id'] ?>" data-room="<?= $j['RoomId'] ?>" title="Ubah Room">
@@ -149,7 +149,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                             <div class="form-group">
                                 <label for="UsernameJuri">Username Juri <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="UsernameJuri" name="UsernameJuri" required readonly>
+                                    <input type="text" class="form-control" id="UsernameJuri" name="UsernameJuri" autocomplete="username" required readonly>
                                     <div class="input-group-append">
                                         <button class="btn btn-outline-secondary" type="button" id="btnGenerateUsername">
                                             <i class="fas fa-sync"></i> Generate
@@ -202,7 +202,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                             <div class="form-group">
                                 <label for="PasswordJuri">Password <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="PasswordJuri" name="PasswordJuri" required>
+                                    <input type="password" class="form-control" id="PasswordJuri" name="PasswordJuri" autocomplete="new-password" required>
                                     <div class="input-group-append">
                                         <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn">
                                             <i class="fas fa-eye"></i>
@@ -221,7 +221,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="ConfirmPasswordJuri">Konfirmasi Password <span class="text-danger">*</span></label>
-                                <input type="password" class="form-control" id="ConfirmPasswordJuri" name="ConfirmPasswordJuri" required>
+                                <input type="password" class="form-control" id="ConfirmPasswordJuri" name="ConfirmPasswordJuri" autocomplete="new-password" required>
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -262,10 +262,12 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
             </div>
             <form id="formEditPassword">
                 <div class="modal-body">
+                    <!-- Hidden username field for accessibility -->
+                    <input type="text" id="editUsernameJuri" name="editUsernameJuri" autocomplete="username" style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;" tabindex="-1" aria-hidden="true">
                     <div class="form-group">
                         <label for="editPasswordJuri">Password Baru <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="password" class="form-control" id="editPasswordJuri" name="editPasswordJuri" required>
+                            <input type="password" class="form-control" id="editPasswordJuri" name="editPasswordJuri" autocomplete="new-password" required>
                             <div class="input-group-append">
                                 <button class="btn btn-outline-secondary" type="button" id="toggleEditPasswordBtn">
                                     <i class="fas fa-eye"></i>
@@ -282,7 +284,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                     </div>
                     <div class="form-group">
                         <label for="editConfirmPasswordJuri">Konfirmasi Password Baru <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="editConfirmPasswordJuri" name="editConfirmPasswordJuri" required>
+                        <input type="password" class="form-control" id="editConfirmPasswordJuri" name="editConfirmPasswordJuri" autocomplete="new-password" required>
                         <div class="invalid-feedback"></div>
                     </div>
                 </div>
@@ -340,14 +342,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
     $(document).ready(function() {
         let tableJuri;
         let currentJuriId = null;
-        // DataTabe
-        // tableJuri = $('#tableJuri').DataTable({
-        //     "responsive": true,
-        //     "lengthChange": false,
-        //     "autoWidth": false
-        //     // "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
-        // });
-
+        initializeDataTableUmum('#tableJuri', true, true, ['excel', 'pdf']);
         // Generate Username
         function generateUsername() {
             let idGrupMateriUjian = $('#IdGrupMateriUjian').val();
@@ -593,9 +588,14 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
         // Edit Password Button
         $(document).on('click', '.btn-edit-password', function() {
             currentJuriId = $(this).data('id');
+            const username = $(this).data('username') || '';
+            // Set username for accessibility (hidden field)
+            $('#editUsernameJuri').val(username);
             $('#modalEditPassword').modal('show');
             // Reset form
             $('#formEditPassword')[0].reset();
+            // Restore username after reset
+            $('#editUsernameJuri').val(username);
             $('#useDefaultPasswordEdit').prop('checked', false);
         });
 
