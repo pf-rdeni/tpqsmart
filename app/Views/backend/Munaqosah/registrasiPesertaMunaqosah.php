@@ -123,12 +123,11 @@
                                                             <th width="5%" class="text-center">
                                                                 <input type="checkbox" id="selectAll" class="form-check-input">
                                                             </th>
+                                                            <th width="15%">Status Registrasi</th>
                                                             <th width="8%">No Peserta</th>
-                                                            <th width="8%">ID Santri</th>
-                                                            <th width="22%">Nama Santri</th>
-                                                            <th width="12%">Kelas</th>
-                                                            <th width="18%">TPQ</th>
-                                                            <th width="12%">Status Registrasi</th>
+                                                            <th width="17%">Nama Santri</th>
+                                                            <th width="10%">Kelas</th>
+                                                            <th width="10%">TPQ</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody id="santriTableBody">
@@ -208,6 +207,8 @@
     /* Status icon styling */
     .badge i {
         margin-right: 5px;
+        font-size: 1.2rem;
+        /* Perbesar icon di badge */
     }
 
     .badge.badge-light.border-success {
@@ -228,8 +229,13 @@
         margin-left: 8px;
         border: none;
         background: none;
-        font-size: 0.875rem;
+        font-size: 1.1rem;
+        /* Perbesar icon print */
         transition: all 0.2s ease;
+    }
+
+    .print-single-btn i {
+        font-size: 1.1rem;
     }
 
     .print-single-btn:hover:not(:disabled) {
@@ -256,9 +262,14 @@
         margin-left: 8px;
         border: none;
         background: none;
-        font-size: 0.875rem;
+        font-size: 1.1rem;
+        /* Perbesar icon copy */
         transition: all 0.2s ease;
         color: #17a2b8;
+    }
+
+    .copy-link-btn i {
+        font-size: 1.1rem;
     }
 
     .copy-link-btn:hover:not(:disabled) {
@@ -274,6 +285,64 @@
 
     .copy-link-btn.text-info:hover:not(:disabled) {
         color: #138496 !important;
+    }
+
+    /* Responsive untuk mobile/handphone */
+    @media (max-width: 768px) {
+
+        /* Perbesar icon di badge untuk mobile */
+        .badge i {
+            font-size: 1.5rem !important;
+            margin-right: 8px;
+        }
+
+        /* Perbesar button dan icon untuk mobile */
+        .print-single-btn,
+        .copy-link-btn {
+            font-size: 1.4rem !important;
+            padding: 0.4rem 0.6rem;
+            margin-left: 10px;
+        }
+
+        .print-single-btn i,
+        .copy-link-btn i {
+            font-size: 1.4rem !important;
+        }
+
+        /* Perbesar kolom status untuk mobile */
+        #santriTable td:nth-child(2) {
+            min-width: 120px;
+            padding: 0.75rem 0.5rem;
+        }
+
+        /* Perbesar checkbox untuk mobile */
+        #selectAll,
+        .santri-checkbox {
+            transform: scale(1.3);
+        }
+    }
+
+    /* Extra small devices (phones, less than 576px) */
+    @media (max-width: 575.98px) {
+        .badge i {
+            font-size: 1.6rem !important;
+        }
+
+        .print-single-btn,
+        .copy-link-btn {
+            font-size: 1.5rem !important;
+            padding: 0.5rem 0.7rem;
+        }
+
+        .print-single-btn i,
+        .copy-link-btn i {
+            font-size: 1.5rem !important;
+        }
+
+        #selectAll,
+        .santri-checkbox {
+            transform: scale(1.4);
+        }
     }
 </style>
 <script>
@@ -358,7 +427,7 @@
             destroyDataTable();
 
             // Show loading in table immediately
-            $('#santriTableBody').html('<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data berdasarkan filter baru...</td></tr>');
+            $('#santriTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data berdasarkan filter baru...</td></tr>');
 
             // Load data with loading indicator
             loadSantriData();
@@ -593,7 +662,7 @@ ${text}
             });
 
             // Show table loading state
-            $('#santriTableBody').html('<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+            $('#santriTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
 
             $.ajax({
                 url: '<?= base_url('backend/munaqosah/getSantriForRegistrasi') ?>',
@@ -1041,7 +1110,7 @@ ${text}
                             "searchable": false
                         },
                         {
-                            "targets": [6], // Kolom status
+                            "targets": [1], // Kolom status
                             "orderable": false
                         }
                     ],
@@ -1082,7 +1151,7 @@ ${text}
             // Cek apakah data adalah array
             if (!Array.isArray(santriData)) {
                 console.error('Invalid data format:', santriData);
-                tbody.html('<tr><td colspan="7" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Format data tidak valid</td></tr>');
+                tbody.html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Format data tidak valid</td></tr>');
                 // Inisialisasi DataTable meskipun ada error untuk tetap menampilkan pesan error dengan fitur DataTable
                 setTimeout(() => {
                     initializeSantriDataTable();
@@ -1094,7 +1163,7 @@ ${text}
             const typeUjianText = typeUjian === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
 
             if (santriData.length === 0) {
-                tbody.html('<tr><td colspan="7" class="text-center text-muted"><i class="fas fa-info-circle"></i> Tidak ada data santri untuk filter yang dipilih</td></tr>');
+                tbody.html('<tr><td colspan="6" class="text-center text-muted"><i class="fas fa-info-circle"></i> Tidak ada data santri untuk filter yang dipilih</td></tr>');
 
                 // Show info toast
                 Swal.fire({
@@ -1126,13 +1195,13 @@ ${text}
                 const checkedAttr = isChecked ? 'checked' : '';
 
                 if (typeUjian === 'pra-munaqosah') {
-                    isPeserta = santri.isPesertaPraMunaqosah ? `<i class="fas fa-check-circle text-success"></i> Sudah Register` : `<i class="fas fa-times-circle text-danger"></i> Belum Register`;
+                    isPeserta = santri.isPesertaPraMunaqosah ? `<i class="fas fa-check-circle text-success"></i>` : `<i class="fas fa-times-circle text-danger"></i> Not Registered`;
                     statusClass = santri.isPesertaPraMunaqosah ? 'badge-light border border-success' : 'badge-light border border-danger';
                     disabledAttr = santri.isPesertaPraMunaqosah ? 'disabled' : '';
                     printIconColor = santri.isPesertaPraMunaqosah ? 'text-success' : 'text-danger';
                     printDisabled = santri.isPesertaPraMunaqosah ? '' : 'disabled';
                 } else {
-                    isPeserta = santri.isPeserta ? `<i class="fas fa-check-circle text-success"></i> Sudah Register` : `<i class="fas fa-times-circle text-danger"></i> Belum Register`;
+                    isPeserta = santri.isPeserta ? `<i class="fas fa-check-circle text-success"></i>` : `<i class="fas fa-times-circle text-danger"></i> Not Registered`;
                     statusClass = santri.isPeserta ? 'badge-light border border-success' : 'badge-light border border-danger';
                     disabledAttr = santri.isPeserta ? 'disabled' : '';
                     printIconColor = santri.isPeserta ? 'text-success' : 'text-danger';
@@ -1161,11 +1230,6 @@ ${text}
                         <input type="checkbox" class="form-check-input santri-checkbox" 
                                value="${santri.IdSantri}" ${disabledAttr} ${checkedAttr}>
                     </td>
-                    <td class="text-center">${noPeserta}</td>
-                    <td>${santri.IdSantri}</td>
-                    <td>${santri.NamaSantri}</td>
-                    <td>${santri.NamaKelas}</td>
-                    <td>${santri.NamaTpq}</td>
                     <td class="text-center">
                         <span class="badge ${statusClass}">${isPeserta}</span>
                         <button type="button" class="btn btn-sm btn-link print-single-btn ${printIconColor}" 
@@ -1177,6 +1241,10 @@ ${text}
                         </button>
                         ${copyButton}
                     </td>
+                    <td class="text-center">${noPeserta}</td>
+                    <td>${santri.NamaSantri}</td>
+                    <td>${santri.NamaKelas}</td>
+                    <td>${santri.NamaTpq}</td>
                 </tr>
             `;
                 tbody.append(row);
@@ -1231,16 +1299,16 @@ ${text}
             console.log('Total rows in table:', $('#santriTableBody tr').length);
 
             $('#santriTableBody tr').each(function() {
-                // Cari badge di kolom terakhir
-                const statusBadge = $(this).find('td:last-child .badge');
-                const statusText = statusBadge.text().trim();
+                // Cari badge di kolom status (kolom ke-2, index 1)
+                const statusBadge = $(this).find('td:nth-child(2) .badge');
+                // Cek apakah ada icon check-circle dengan class text-success (menandakan sudah terdaftar)
+                const hasCheckIcon = statusBadge.find('.fa-check-circle.text-success').length > 0;
 
-                console.log('Row status text:', statusText);
-                console.log('Badge element:', statusBadge);
-                console.log('Badge length:', statusBadge.length);
+                console.log('Row status badge:', statusBadge);
+                console.log('Has check icon:', hasCheckIcon);
 
-                // Cek apakah status menunjukkan "Sudah Register" (untuk Munaqosah atau Pra-Munaqosah)
-                if (statusText.includes('Sudah Register')) {
+                // Cek apakah status menunjukkan sudah terdaftar (ada icon check-circle success)
+                if (hasCheckIcon) {
                     hasValidData = true;
                     validCount++;
                     console.log('Found valid data row');
@@ -1294,12 +1362,12 @@ ${text}
 
         // Print Kartu Ujian button click
         $('#printKartuBtn').click(function() {
-            // Validasi bahwa ada santri dengan status "Sudah Register"
+            // Validasi bahwa ada santri yang sudah terdaftar
             if (!checkValidPrintData()) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Peringatan!',
-                    text: 'Tidak ada santri dengan status "Sudah Register" untuk dicetak kartu ujiannya',
+                    text: 'Tidak ada santri yang sudah terdaftar untuk dicetak kartu ujiannya',
                     confirmButtonText: 'OK'
                 });
                 return;
@@ -1309,15 +1377,16 @@ ${text}
             const typeUjian = $('#typeUjian').val();
             const typeUjianText = typeUjian === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
 
-            // Hitung jumlah santri yang valid untuk print (semua santri dengan status "Sudah Register")
+            // Hitung jumlah santri yang valid untuk print (semua santri dengan status sudah terdaftar)
             let validCount = 0;
             let validSantriNames = [];
             $('#santriTableBody tr').each(function() {
-                const statusBadge = $(this).find('td:last-child .badge');
-                const statusText = statusBadge.text().trim();
+                const statusBadge = $(this).find('td:nth-child(2) .badge');
+                // Cek apakah ada icon check-circle dengan class text-success (menandakan sudah terdaftar)
+                const hasCheckIcon = statusBadge.find('.fa-check-circle.text-success').length > 0;
                 const santriName = $(this).find('td:nth-child(4)').text().trim();
 
-                if (statusText.includes('Sudah Register')) {
+                if (hasCheckIcon) {
                     validCount++;
                     validSantriNames.push(santriName);
                 }
@@ -1328,8 +1397,8 @@ ${text}
                 html: `
                     <div class="text-left">
                         <p><strong>Type Ujian:</strong> ${typeUjianText}</p>
-                        <p><strong>Jumlah Santri:</strong> ${validCount} santri dengan status "Sudah Register"</p>
-                        <p><strong>Keterangan:</strong> Semua santri dengan status "Sudah Register" akan dicetak kartu ujiannya</p>
+                        <p><strong>Jumlah Santri:</strong> ${validCount} santri yang sudah terdaftar</p>
+                        <p><strong>Keterangan:</strong> Semua santri yang sudah terdaftar akan dicetak kartu ujiannya</p>
                         ${validCount <= 5 ? `<p><strong>Daftar Santri:</strong><br>${validSantriNames.join('<br>')}</p>` : ''}
                     </div>
                 `,
@@ -1359,14 +1428,16 @@ ${text}
                 }
             });
 
-            // Ambil semua santri yang memiliki status "Sudah Register"
+            // Ambil semua santri yang memiliki status sudah terdaftar
             const validSantriIds = [];
             $('#santriTableBody tr').each(function() {
-                const statusBadge = $(this).find('td:last-child .badge');
-                const statusText = statusBadge.text().trim();
-                const santriId = $(this).find('td:nth-child(3)').text().trim();
+                const statusBadge = $(this).find('td:nth-child(2) .badge');
+                // Cek apakah ada icon check-circle dengan class text-success (menandakan sudah terdaftar)
+                const hasCheckIcon = statusBadge.find('.fa-check-circle.text-success').length > 0;
+                // Ambil ID Santri dari checkbox value
+                const santriId = $(this).find('.santri-checkbox').val();
 
-                if (statusText.includes('Sudah Register')) {
+                if (hasCheckIcon) {
                     validSantriIds.push(santriId);
                 }
             });
@@ -1567,7 +1638,7 @@ ${text}
 
             // Destroy DataTable dan reload data
             destroyDataTable();
-            $('#santriTableBody').html('<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+            $('#santriTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
             loadSantriData();
 
             updateProcessButton();
