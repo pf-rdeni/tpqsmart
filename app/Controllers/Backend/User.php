@@ -45,11 +45,15 @@ class User extends BaseController
             });
         }
 
+        // Cek apakah user yang login adalah Admin
+        $isAdmin = in_groups('Admin');
+
         $data = [
             'page_title' => 'Data User',
             'userData' => $userData,
             'dataGuru' => $dataGuru,
-            'dataAuthGroups' => $dataAutGroups
+            'dataAuthGroups' => $dataAutGroups,
+            'isAdmin' => $isAdmin
         ];
         return view('backend/user/index', $data);
     }
@@ -68,17 +72,63 @@ class User extends BaseController
 
     public function create()
     {
-
         $groupsId = $this->request->getPost('IdAuthGroup');
         $idNik = $this->request->getPost('IdNikGuru');
-        $fullName = $this->helpFunction->getNamaGuruByIdNik($idNik);
+
+        // Cek apakah user yang login adalah Admin
+        $isAdmin = in_groups('Admin');
+
+        // Jika Admin, fullname bisa dari input manual atau dari guru
+        // Jika bukan Admin, wajib pilih guru
+        if ($isAdmin) {
+            // Admin bisa input fullname manual atau pilih dari guru
+            $fullNameManual = $this->request->getPost('fullname_manual');
+            if (!empty($idNik)) {
+                // Jika pilih guru, ambil nama dari guru
+                $fullName = $this->helpFunction->getNamaGuruByIdNik($idNik);
+            } elseif (!empty($fullNameManual)) {
+                // Jika input manual, gunakan input manual
+                $fullName = $fullNameManual;
+            } else {
+                // Jika kosong semua, gunakan username sebagai fallback
+                $fullName = $this->request->getPost('username');
+            }
+        } else {
+            // Bukan Admin, wajib pilih guru
+            if (empty($idNik)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Nama Guru harus dipilih'
+                ]);
+            }
+            $fullName = $this->helpFunction->getNamaGuruByIdNik($idNik);
+        }
+
+        // Validasi dan pastikan group_id sesuai untuk Panitia
+        if (empty($groupsId)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Group harus dipilih'
+            ]);
+        }
+
+        // Ambil informasi group yang dipilih untuk validasi
+        $selectedGroup = $this->helpFunction->getDataAuthGoups($groupsId);
+        if (!empty($selectedGroup)) {
+            $groupName = $selectedGroup[0]['name'] ?? '';
+
+            // Pastikan group Panitia menggunakan group_id = 6
+            if ($groupName === 'Panitia') {
+                $groupsId = 6;
+            }
+        }
 
         $data = [
             'username' => $this->request->getPost('username'),
             'fullname' => $fullName,
             'email' => $this->request->getPost('username') . '@tpqsmart.simpedis.com',
             'password_hash' => Password::hash($this->request->getPost('password')),
-            'nik' => $idNik,
+            'nik' => $idNik ?: null, // Bisa null jika Admin tidak pilih guru
             'active' => 1
         ];
 
@@ -86,7 +136,7 @@ class User extends BaseController
             $returnUserId = $this->userModel->store($data);
 
             $groupData = [
-                'group_id' => $groupsId,
+                'group_id' => (int)$groupsId, // Pastikan integer
                 'user_id' => $returnUserId
             ];
 

@@ -84,6 +84,7 @@ class Munaqosah extends BaseController
     public function dashboardMunaqosah()
     {
         helper('munaqosah');
+        helper('nilai');
 
         $helpFunctionModel = new \App\Models\HelpFunctionModel();
         $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
@@ -93,6 +94,7 @@ class Munaqosah extends BaseController
         $isJuri = in_groups('Juri');
         $isAdmin = in_groups('Admin');
         $isOperator = in_groups('Operator');
+        $isPanitia = in_groups('Panitia');
 
         // Dashboard untuk Juri
         if ($isJuri) {
@@ -346,6 +348,167 @@ class Munaqosah extends BaseController
             ];
 
             return view('backend/Munaqosah/dashboardOperator', $data);
+        }
+
+        // Dashboard untuk Panitia (Hanya Munaqosah Umum - IdTpq = 0)
+        if ($isPanitia) {
+            $typeUjian = 'munaqosah';
+            $idTpqPanitia = 0; // Panitia hanya mengakses data umum (IdTpq = 0)
+
+            // Statistik umum untuk Munaqosah
+            $statistik = getStatistikMunaqosah();
+
+            // Total peserta group by NoPeserta (hanya Munaqosah, IdTpq = 0 atau NULL)
+            $query = $this->db->query("
+                SELECT COUNT(*) as total 
+                FROM (
+                    SELECT NoPeserta 
+                    FROM tbl_munaqosah_registrasi_uji 
+                    WHERE IdTahunAjaran = ? 
+                    AND TypeUjian = ? 
+                    GROUP BY NoPeserta
+                ) as grouped_peserta
+            ", [$currentTahunAjaran, $typeUjian]);
+            $result = $query->getRow();
+            $totalPeserta = $result ? (int)$result->total : 0;
+
+            // Total juri aktif (hanya Munaqosah, IdTpq = 0 atau NULL)
+            $totalJuri = $this->munaqosahJuriModel->where('Status', 'Aktif')
+                ->where('TypeUjian', $typeUjian)
+                ->groupStart()
+                ->where('IdTpq IS NULL')
+                ->orWhere('IdTpq', 0)
+                ->groupEnd()
+                ->countAllResults();
+
+            // Total grup materi aktif
+            $totalGrupMateri = $this->grupMateriUjiMunaqosahModel->where('Status', 'Aktif')
+                ->countAllResults();
+
+            // Total peserta sudah dinilai (hitung distinct NoPeserta, hanya Munaqosah, IdTpq = 0 atau NULL)
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT NoPeserta) as total 
+                FROM tbl_munaqosah_nilai 
+                WHERE IdTahunAjaran = ? 
+                AND TypeUjian = ? 
+            ", [$currentTahunAjaran, $typeUjian]);
+            $result = $query->getRow();
+            $totalSudahDinilai = $result ? (int)$result->total : 0;
+
+            // Statistik antrian untuk semua grup materi
+            $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+            $antrianData = [];
+            $totalAntrian = 0;
+            $antrianSelesai = 0;
+            $antrianMenunggu = 0;
+            $antrianProses = 0;
+
+            foreach ($grupList as $grup) {
+                $antrianFilters = [
+                    'IdTahunAjaran' => $currentTahunAjaran,
+                    'IdGrupMateriUjian' => $grup['IdGrupMateriUjian'],
+                    'TypeUjian' => $typeUjian,
+                ];
+
+                // Filter IdTpq = 0 atau NULL untuk Panitia
+                // Gunakan method getStatusCounts dengan filter khusus untuk Panitia
+                $antrianFilters = [
+                    'IdTahunAjaran' => $currentTahunAjaran,
+                    'IdGrupMateriUjian' => $grup['IdGrupMateriUjian'],
+                    'TypeUjian' => $typeUjian,
+                ];
+
+                // Query manual untuk filter IdTpq = 0 atau NULL
+                $builder = $this->db->table('tbl_munaqosah_antrian q');
+                $builder->select('q.Status, COUNT(DISTINCT q.id) as total');
+                $builder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = q.NoPeserta AND r.IdTahunAjaran = q.IdTahunAjaran', 'left');
+                $builder->where('q.IdTahunAjaran', $currentTahunAjaran);
+
+                // Filter TypeUjian
+                $builder->groupStart()
+                    ->where('q.TypeUjian', $typeUjian)
+                    ->orGroupStart()
+                    ->where('(q.TypeUjian IS NULL OR q.TypeUjian = \'\')', null, false)
+                    ->where('r.TypeUjian', $typeUjian)
+                    ->groupEnd()
+                    ->groupEnd();
+
+                // Filter IdGrupMateriUjian
+                $builder->groupStart()
+                    ->where('q.IdGrupMateriUjian', $grup['IdGrupMateriUjian'])
+                    ->orGroupStart()
+                    ->where('q.IdGrupMateriUjian IS NULL')
+                    ->where('r.IdGrupMateriUjian', $grup['IdGrupMateriUjian'])
+                    ->groupEnd()
+                    ->groupEnd();
+
+                // Filter IdTpq = 0 atau NULL (Panitia hanya melihat data umum)
+                // Jika q.IdTpq NULL, gunakan r.IdTpq, jika keduanya NULL atau 0, maka include
+                $builder->groupStart()
+                    ->groupStart()
+                    ->where('q.IdTpq IS NULL')
+                    ->where('r.IdTpq IS NULL')
+                    ->groupEnd()
+                    ->orGroupStart()
+                    ->where('q.IdTpq IS NULL')
+                    ->where('r.IdTpq', 0)
+                    ->groupEnd()
+                    ->orWhere('q.IdTpq', 0)
+                    ->groupEnd();
+
+                $builder->groupBy('q.Status');
+                $results = $builder->get()->getResultArray();
+
+                $statusCounts = [0 => 0, 1 => 0, 2 => 0];
+                foreach ($results as $row) {
+                    $status = (int) $row['Status'];
+                    $statusCounts[$status] = (int) $row['total'];
+                }
+
+                $antrianData[$grup['IdGrupMateriUjian']] = [
+                    'nama' => $grup['NamaMateriGrup'] ?? '-',
+                    'total' => array_sum($statusCounts),
+                    'selesai' => $statusCounts[2] ?? 0,
+                    'menunggu' => $statusCounts[0] ?? 0,
+                    'proses' => $statusCounts[1] ?? 0,
+                ];
+
+                $totalAntrian += array_sum($statusCounts);
+                $antrianSelesai += $statusCounts[2] ?? 0;
+                $antrianMenunggu += $statusCounts[0] ?? 0;
+                $antrianProses += $statusCounts[1] ?? 0;
+            }
+
+            // Menu yang bisa diakses Panitia
+            $menuItems = [
+                'daftar_peserta' => base_url('backend/munaqosah/peserta?type=munaqosah&tpq=0'),
+                'registrasi_peserta' => base_url('backend/munaqosah/registrasi-peserta?type=munaqosah&tpq=0'),
+                'jadwal_peserta_ujian' => base_url('backend/munaqosah/jadwal-peserta-ujian?type=munaqosah&tpq=0'),
+                'antrian' => base_url('backend/munaqosah/antrian?type=munaqosah&tpq=0'),
+                'dashboard_monitoring' => base_url('backend/munaqosah/dashboard-monitoring?type=munaqosah&tpq=0'),
+                'monitoring' => base_url('backend/munaqosah/monitoring?type=munaqosah&tpq=0'),
+            ];
+
+            $data = [
+                'page_title' => 'Dashboard Munaqosah - Panitia',
+                'current_tahun_ajaran' => $currentTahunAjaran,
+                'type_ujian' => $typeUjian,
+                'id_tpq' => $idTpqPanitia,
+                'total_peserta' => $totalPeserta,
+                'total_juri' => $totalJuri,
+                'total_grup_materi' => $totalGrupMateri,
+                'total_sudah_dinilai' => $totalSudahDinilai,
+                'total_belum_dinilai' => max(0, $totalPeserta - $totalSudahDinilai),
+                'total_antrian' => $totalAntrian,
+                'antrian_selesai' => $antrianSelesai,
+                'antrian_menunggu' => $antrianMenunggu,
+                'antrian_proses' => $antrianProses,
+                'antrian_data' => $antrianData,
+                'menu_items' => $menuItems,
+                'statistik' => $statistik,
+            ];
+
+            return view('backend/Munaqosah/dashboardPanitia', $data);
         }
 
         // Jika tidak ada grup yang sesuai, redirect ke dashboard utama

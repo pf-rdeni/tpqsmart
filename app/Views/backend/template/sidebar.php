@@ -171,6 +171,50 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
+                            <?php if (in_groups('Panitia')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard Munaqosah</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/peserta?type=munaqosah&tpq=0') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Daftar Peserta</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/registrasi-peserta?type=munaqosah&tpq=0') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Registrasi Peserta</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/jadwal-peserta-ujian?type=munaqosah&tpq=0') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Jadwal Peserta Ujian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/antrian?type=munaqosah&tpq=0') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Antrian Ujian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/dashboard-monitoring?type=munaqosah&tpq=0') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard Monitoring</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/monitoring?type=munaqosah&tpq=0') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Monitoring Munaqosah</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                             <?php if (in_groups('Panitia') || in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/registrasi-peserta') ?> class="nav-link">

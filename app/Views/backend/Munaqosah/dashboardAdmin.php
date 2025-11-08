@@ -13,7 +13,7 @@
                         <div class="row mb-4">
                             <div class="col-12">
                                 <div class="alert alert-info">
-                                    <h5><i class="icon fas fa-calendar"></i> Tahun Ajaran: <?= esc($current_tahun_ajaran) ?></h5>
+                                    <h5><i class="icon fas fa-calendar"></i> Tahun Ajaran: <?= esc(convertTahunAjaran($current_tahun_ajaran)) ?></h5>
                                 </div>
                             </div>
                         </div>
@@ -86,18 +86,18 @@
                                         <h3 class="card-title"><i class="fas fa-chart-pie"></i> Progress Penilaian</h3>
                                     </div>
                                     <div class="card-body">
-                                        <?php 
-                                        $progressPercent = $total_peserta > 0 
-                                            ? round(($total_sudah_dinilai / $total_peserta) * 100) 
-                                            : 0; 
+                                        <?php
+                                        $progressPercent = $total_peserta > 0
+                                            ? round(($total_sudah_dinilai / $total_peserta) * 100)
+                                            : 0;
                                         ?>
                                         <div class="progress mb-3" style="height: 30px;">
-                                            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
-                                                 role="progressbar" 
-                                                 style="width: <?= $progressPercent ?>%"
-                                                 aria-valuenow="<?= $progressPercent ?>" 
-                                                 aria-valuemin="0" 
-                                                 aria-valuemax="100">
+                                            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+                                                role="progressbar"
+                                                style="width: <?= $progressPercent ?>%"
+                                                aria-valuenow="<?= $progressPercent ?>"
+                                                aria-valuemin="0"
+                                                aria-valuemax="100">
                                                 <?= $progressPercent ?>%
                                             </div>
                                         </div>
@@ -185,4 +185,3 @@
     </div>
 </section>
 <?= $this->endSection(); ?>
-

@@ -86,17 +86,40 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <label for="IdNikGuru" class="col-sm-3 col-form-label">Nama Guru</label>
-                        <div class="col-sm-9">
-                            <select class="form-control" id="IdNikGuru" name="IdNikGuru" required>
-                                <option value="">Pilih Nama</option>
-                                <?php foreach ($dataGuru as $guru): ?>
-                                    <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                    <?php if ($isAdmin): ?>
+                        <!-- Admin bisa input nama manual atau pilih dari guru -->
+                        <div class="form-group row">
+                            <label for="fullname_manual" class="col-sm-3 col-form-label">Nama Lengkap</label>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" id="fullname_manual" name="fullname_manual" placeholder="Masukkan nama lengkap (opsional)">
+                                <small class="form-text text-muted">Atau pilih dari daftar guru di bawah</small>
+                            </div>
                         </div>
-                    </div>
+                        <div class="form-group row">
+                            <label for="IdNikGuru" class="col-sm-3 col-form-label">Nama Guru (Opsional)</label>
+                            <div class="col-sm-9">
+                                <select class="form-control" id="IdNikGuru" name="IdNikGuru">
+                                    <option value="">Pilih Nama Guru (opsional)</option>
+                                    <?php foreach ($dataGuru as $guru): ?>
+                                        <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <!-- Bukan Admin, wajib pilih guru -->
+                        <div class="form-group row">
+                            <label for="IdNikGuru" class="col-sm-3 col-form-label">Nama Guru</label>
+                            <div class="col-sm-9">
+                                <select class="form-control" id="IdNikGuru" name="IdNikGuru" required>
+                                    <option value="">Pilih Nama</option>
+                                    <?php foreach ($dataGuru as $guru): ?>
+                                        <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                     <div class="form-group row">
                         <label for="username" class="col-sm-3 col-form-label">Username</label>
                         <div class="col-sm-9">
@@ -274,12 +297,17 @@
 
     // rekomendasi username dari selected nama guru
     $('#IdNikGuru').change(function() {
+        const IdNik = $(this).val();
+
+        // Jika kosong (Admin tidak pilih guru), skip
+        if (!IdNik || IdNik === '') {
+            return;
+        }
+
         const namaGuru = $(this).find(':selected').text();
         const namaParts = namaGuru.split(' ');
         let username = '';
 
-        // get const dari value IdNikGuru
-        const IdNik = $(this).val();
         //check idNikGuru sudah ada atau belum di user show swal popup 
         fetch(`<?= site_url('backend/user/checkUserIdNikGuru/'); ?>${IdNik}`)
             .then(response => response.json())
@@ -336,16 +364,32 @@
         const form = document.getElementById('formTambahUser');
         const formData = new FormData(form);
         const IdNikGuru = formData.get('IdNikGuru');
+        const fullnameManual = formData.get('fullname_manual');
         const username = formData.get('username');
         const password = formData.get('password');
         const confirmPassword = formData.get('confirm-password');
-        const nama = $('#IdNikGuru option:selected').text();
+
+        // Cek apakah Admin (ada field fullname_manual)
+        const isAdmin = document.getElementById('fullname_manual') !== null;
 
         // validasi data
-        if (IdNikGuru === '' || username === '' || password === '') {
+        // Jika Admin, IdNikGuru bisa kosong (bisa pakai fullname_manual atau username)
+        // Jika bukan Admin, IdNikGuru wajib diisi
+        if (!isAdmin && (IdNikGuru === '' || username === '' || password === '')) {
             Swal.fire({
                 title: 'Peringatan!',
                 text: 'Semua data harus diisi!',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        // Jika Admin, minimal username dan password harus diisi
+        if (isAdmin && (username === '' || password === '')) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Username dan Password harus diisi!',
                 icon: 'warning',
                 confirmButtonText: 'OK'
             });

@@ -290,7 +290,7 @@ class Auth extends BaseController
         // Cek jika user adalah Juri, redirect ke dashboard munaqosah
         // Hanya Juri yang diarahkan ke dashboard munaqosah secara default setelah login
         // Admin dan Operator tetap ke dashboard biasa, bisa akses dashboard munaqosah dari menu
-        if (in_groups('Juri')) {
+        if (in_groups('Juri') || in_groups('Panitia')) {
             // Redirect ke dashboard munaqosah untuk Juri
             return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah'));
         }
