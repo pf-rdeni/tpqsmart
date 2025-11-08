@@ -6490,7 +6490,7 @@ class Munaqosah extends BaseController
             $noPesertaList = array_keys($pesertaInfo);
 
             $nilaiBuilder = $this->db->table('tbl_munaqosah_nilai n');
-            $nilaiBuilder->select('n.NoPeserta,n.IdKategoriMateri,n.Nilai,j.UsernameJuri');
+            $nilaiBuilder->select('n.NoPeserta,n.IdKategoriMateri,n.Nilai,n.RoomId,j.UsernameJuri');
             $nilaiBuilder->join('tbl_munaqosah_juri j', 'j.IdJuri = n.IdJuri', 'left');
             $nilaiBuilder->where('n.IdTahunAjaran', $idTahunAjaran);
             $nilaiBuilder->where('n.TypeUjian', $typeUjian);
@@ -6507,7 +6507,21 @@ class Munaqosah extends BaseController
                 return is_numeric($lastPart) ? (int)$lastPart : 0;
             };
 
+            // Helper function untuk normalisasi nomor juri
+            // Normalisasi berdasarkan maxJuri dari konfigurasi
+            // Contoh: jika maxJuri=2, maka juri .1, .2, .3, .4, .5, .6 akan dinormalisasi menjadi 1, 2, 1, 2, 1, 2
+            // Formula: ((juriNumber - 1) % maxJuri) + 1
+            $normalizeJuriNumber = function ($juriNumber, $maxJuri) {
+                if ($juriNumber < 1 || $maxJuri < 1) {
+                    return 0;
+                }
+                // Normalisasi: juri 1,2 -> 1,2; juri 3,4 -> 1,2; juri 5,6 -> 1,2; dst
+                return (($juriNumber - 1) % $maxJuri) + 1;
+            };
+
+            // Kumpulkan semua nilai dan normalisasi nomor juri berdasarkan konfigurasi maxJuri
             $nilaiIndex = [];
+
             foreach ($nilaiRows as $row) {
                 $np = $row['NoPeserta'];
                 $catId = $row['IdKategoriMateri'];
@@ -6515,14 +6529,24 @@ class Munaqosah extends BaseController
                     continue;
                 }
 
-                // Ekstrak nomor juri dari username
-                $juriNumber = $extractJuriNumber($row['UsernameJuri'] ?? '');
+                // Dapatkan maxJuri dari konfigurasi untuk kategori ini
+                $configuredMaxJuri = isset($categoriesMap[$catId]['maxJuri']) ? (int)$categoriesMap[$catId]['maxJuri'] : 2;
 
-                // Cek maxJuri untuk kategori ini
-                $maxJuri = isset($categoriesMap[$catId]['maxJuri']) ? (int)$categoriesMap[$catId]['maxJuri'] : 2;
+                // Ekstrak nomor juri absolut dari username
+                $juriNumberAbsolute = $extractJuriNumber($row['UsernameJuri'] ?? '');
 
-                // Hanya ambil nilai dari juri yang sesuai dengan maxJuri (juri 1 sampai maxJuri)
-                if ($juriNumber < 1 || $juriNumber > $maxJuri) {
+                // Skip jika nomor juri tidak valid
+                if ($juriNumberAbsolute < 1) {
+                    continue;
+                }
+
+                // Normalisasi nomor juri berdasarkan maxJuri dari konfigurasi
+                // Contoh: jika maxJuri=2 dan juriNumberAbsolute=3, maka normalizedJuriNumber=1
+                // Jika maxJuri=2 dan juriNumberAbsolute=4, maka normalizedJuriNumber=2
+                $normalizedJuriNumber = $normalizeJuriNumber($juriNumberAbsolute, $configuredMaxJuri);
+
+                // Skip jika normalisasi gagal
+                if ($normalizedJuriNumber < 1 || $normalizedJuriNumber > $configuredMaxJuri) {
                     continue;
                 }
 
@@ -6533,9 +6557,32 @@ class Munaqosah extends BaseController
                     $nilaiIndex[$np][$catId] = [];
                 }
 
-                // Simpan nilai dengan index sesuai nomor juri (index 0 = juri 1, index 1 = juri 2, dll)
-                $index = $juriNumber - 1;
+                // Simpan nilai dengan index sesuai nomor juri yang sudah dinormalisasi
+                // Index 0 = juri 1, index 1 = juri 2, dst
+                $index = $normalizedJuriNumber - 1;
+
+                // Simpan nilai ke index yang sudah dinormalisasi
+                // Jika sudah ada nilai di index yang sama, kita akan overwrite dengan nilai yang baru
+                // Dalam praktiknya, satu peserta hanya dinilai oleh 2 juri di satu ruangan,
+                // jadi seharusnya tidak ada konflik. Tapi jika ada (misal dari ruangan berbeda),
+                // kita ambil nilai yang terakhir diproses
                 $nilaiIndex[$np][$catId][$index] = (float)$row['Nilai'];
+            }
+
+            // Pastikan maxJuri selalu mengikuti konfigurasi, TIDAK diubah berdasarkan data aktual
+            // Konfigurasi adalah sumber kebenaran untuk jumlah kolom juri yang harus ditampilkan
+            foreach ($categoriesMap as $catId => $catData) {
+                // maxJuri sudah di-set dari konfigurasi di bagian sebelumnya
+                // Jangan diubah lagi berdasarkan data aktual
+                // Tetap gunakan nilai dari konfigurasi
+            }
+
+            // Update categories array dengan maxJuri dari konfigurasi
+            foreach ($categories as $idx => $cat) {
+                $catId = $cat['id'];
+                if (isset($categoriesMap[$catId])) {
+                    $categories[$idx]['maxJuri'] = $categoriesMap[$catId]['maxJuri'];
+                }
             }
 
             $rows = [];
@@ -6554,19 +6601,24 @@ class Munaqosah extends BaseController
 
                     // Urutkan array berdasarkan index (juri 1, juri 2, dll)
                     ksort($rawScoresUnordered);
-                    $rawScores = array_values($rawScoresUnordered);
 
-                    // Buat array nilai dengan panjang sesuai maxJuri, isi dengan 0.0 jika tidak ada
+                    // Buat array nilai dengan panjang sesuai maxJuri
+                    // Pastikan nilai ditempatkan di index yang benar (index 0 = juri 1, index 1 = juri 2, dst)
+                    // Jangan gunakan array_values karena akan kehilangan informasi index asli
                     $scores = [];
                     for ($i = 0; $i < $maxJuri; $i++) {
-                        $scores[$i] = isset($rawScores[$i]) ? (float)$rawScores[$i] : 0.0;
+                        // Gunakan index langsung dari rawScoresUnordered (sudah di-sort)
+                        // Index i dalam loop = juri (i+1), jadi nilai harus di index i
+                        $scores[$i] = isset($rawScoresUnordered[$i]) ? (float)$rawScoresUnordered[$i] : 0.0;
                     }
 
                     $row['nilai'][$catId] = $scores;
 
                     if ($includeBobot) {
-                        // Untuk average, hanya gunakan nilai yang > 0 dan sesuai dengan maxJuri
-                        $validScores = array_filter($rawScores, function ($score) {
+                        // Untuk average, gunakan array scores yang sudah di-construct dengan benar
+                        // (yang panjangnya sesuai maxJuri dan nilai sudah dinormalisasi)
+                        // Hanya gunakan nilai yang > 0
+                        $validScores = array_filter($scores, function ($score) {
                             return $score > 0;
                         });
                         $validScores = array_values($validScores);
@@ -6574,8 +6626,12 @@ class Munaqosah extends BaseController
                         // Jika hanya ada satu nilai valid, gunakan nilai tersebut
                         if (count($validScores) === 1) {
                             $average = (float)$validScores[0];
-                        } else {
+                        } else if (count($validScores) > 1) {
+                            // Hitung rata-rata dari semua nilai valid
                             $average = $this->computeAverageScore($validScores);
+                        } else {
+                            // Tidak ada nilai valid
+                            $average = 0.0;
                         }
 
                         $weight = isset($bobotMap[$catId]) ? (float)$bobotMap[$catId] : 0.0;
