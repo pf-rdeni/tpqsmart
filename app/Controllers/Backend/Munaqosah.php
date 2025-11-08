@@ -75,20 +75,281 @@ class Munaqosah extends BaseController
     }
 
     // ==================== NILAI MUNAQOSAH ====================
-    
-    public function index()
+
+
+    /**
+     * Dashboard Munaqosah berdasarkan grup user
+     * Dibedakan untuk Juri, Admin, dan Operator
+     */
+    public function dashboardMunaqosah()
     {
-        // Load helper
         helper('munaqosah');
-        
-        // Get statistik
-        $statistik = getStatistikMunaqosah();
-        
-        $data = [
-            'page_title' => 'Sistem Penilaian Munaqosah',
-            'statistik' => $statistik
-        ];
-        return view('backend/Munaqosah/index', $data);
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+        $idTpq = session()->get('IdTpq');
+
+        // Tentukan grup user
+        $isJuri = in_groups('Juri');
+        $isAdmin = in_groups('Admin');
+        $isOperator = in_groups('Operator');
+
+        // Dashboard untuk Juri
+        if ($isJuri) {
+            $usernameJuri = user()->username;
+            $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+
+            if (!$juriData) {
+                return redirect()->to(base_url('auth/index'))->with('error', 'Data juri tidak ditemukan');
+            }
+
+            $juriIdTpq = $juriData->IdTpq;
+            $typeUjian = $juriData->TypeUjian;
+            $idJuri = $juriData->IdJuri;
+
+            // Statistik untuk Juri
+            $totalPesertaTerdaftar = $this->munaqosahRegistrasiUjiModel->getTotalRegisteredParticipants(
+                $currentTahunAjaran,
+                $typeUjian,
+                $juriIdTpq ?? 0
+            );
+
+            // Query untuk total peserta sudah dinilai (handle null IdTpq)
+            if ($juriIdTpq) {
+                $totalPesertaSudahDinilai = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
+                    $juriIdTpq,
+                    $idJuri,
+                    $currentTahunAjaran,
+                    $typeUjian
+                );
+            } else {
+                // Jika IdTpq null, hitung tanpa filter IdTpq
+                $builder = $this->db->table('tbl_munaqosah_nilai');
+                $totalPesertaSudahDinilai = $builder->where('IdJuri', $idJuri)
+                    ->where('IdTahunAjaran', $currentTahunAjaran)
+                    ->where('TypeUjian', $typeUjian)
+                    ->where('IdTpq IS NULL')
+                    ->distinct()
+                    ->countAllResults('NoPeserta');
+            }
+
+            // Check total semua peserta yang sudah dinilai untuk semua juri dari tpq ini jika ada id tpq
+            if ($juriIdTpq) {
+                // Hitung total peserta yang sudah dinilai oleh semua juri di TPQ ini
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT NoPeserta) as total 
+                    FROM tbl_munaqosah_nilai 
+                    WHERE IdTpq = ? AND IdTahunAjaran = ? AND TypeUjian = ?
+                ", [$juriIdTpq, $currentTahunAjaran, $typeUjian]);
+                $result = $query->getRow();
+                $totalPesertaSudahDinilaiSemuaJuri = $result ? (int)$result->total : 0;
+            } else {
+                // Jika tidak ada id tpq (munaqosah umum), hitung semua peserta yang sudah dinilai
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT NoPeserta) as total 
+                    FROM tbl_munaqosah_nilai 
+                    WHERE IdTpq IS NULL AND IdTahunAjaran = ? AND TypeUjian = ?
+                ", [$currentTahunAjaran, $typeUjian]);
+                $result = $query->getRow();
+                $totalPesertaSudahDinilaiSemuaJuri = $result ? (int)$result->total : 0;
+            }
+
+
+            $totalPesertaBelumDinilai = $totalPesertaTerdaftar - $totalPesertaSudahDinilaiSemuaJuri;
+
+            // Peserta terakhir yang dinilai
+            $pesertaTerakhir = $this->nilaiMunaqosahModel->getPesertaTerakhirByJuri(
+                $idJuri,
+                $currentTahunAjaran,
+                $typeUjian
+            );
+
+            // Data antrian untuk grup materi juri ini
+            $grupMateriJuri = $juriData->IdGrupMateriUjian;
+            $antrianFilters = [
+                'IdTahunAjaran' => $currentTahunAjaran,
+                'IdGrupMateriUjian' => $grupMateriJuri,
+                'TypeUjian' => $typeUjian,
+            ];
+            if ($juriIdTpq) {
+                $antrianFilters['IdTpq'] = $juriIdTpq;
+            }
+
+            $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($antrianFilters);
+            $totalAntrian = array_sum($statusCounts);
+            $antrianSelesai = $statusCounts[2] ?? 0;
+            $antrianMenunggu = $statusCounts[0] ?? 0;
+            $antrianProses = $statusCounts[1] ?? 0;
+
+            $data = [
+                'page_title' => 'Dashboard Munaqosah - Juri',
+                'current_tahun_ajaran' => $currentTahunAjaran,
+                'juri_data' => $juriData,
+                'total_peserta_terdaftar' => $totalPesertaTerdaftar,
+                'total_peserta_sudah_dinilai' => $totalPesertaSudahDinilaiSemuaJuri,
+                'total_peserta_sudah_dinilai_juri_ini' => $totalPesertaSudahDinilai,
+                'total_peserta_belum_dinilai' => $totalPesertaBelumDinilai,
+                'peserta_terakhir' => $pesertaTerakhir,
+                'total_antrian' => $totalAntrian,
+                'antrian_selesai' => $antrianSelesai,
+                'antrian_menunggu' => $antrianMenunggu,
+                'antrian_proses' => $antrianProses,
+                'type_ujian' => $typeUjian,
+            ];
+
+            return view('backend/Munaqosah/dashboardJuri', $data);
+        }
+
+        // Dashboard untuk Admin (Fokus ke Munaqosah)
+        if ($isAdmin) {
+            // Statistik umum
+            $statistik = getStatistikMunaqosah();
+
+            // Total peserta group by NoPeserta (hanya Munaqosah)
+            $query = $this->db->query("
+                SELECT COUNT(*) as total 
+                FROM (
+                    SELECT NoPeserta 
+                    FROM tbl_munaqosah_registrasi_uji 
+                    WHERE IdTahunAjaran = ? AND TypeUjian = 'munaqosah'
+                    GROUP BY NoPeserta
+                ) as grouped_peserta
+            ", [$currentTahunAjaran]);
+            $result = $query->getRow();
+            $totalPeserta = $result ? (int)$result->total : 0;
+
+            // Total juri aktif (hanya Munaqosah)
+            $totalJuri = $this->munaqosahJuriModel->where('Status', 'Aktif')
+                ->where('TypeUjian', 'munaqosah')
+                ->countAllResults();
+
+            // Total grup materi aktif (hanya Munaqosah)
+            $totalGrupMateri = $this->grupMateriUjiMunaqosahModel->where('Status', 'Aktif')
+                ->countAllResults();
+
+            // Total peserta sudah dinilai (hitung distinct NoPeserta, hanya Munaqosah)
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT NoPeserta) as total 
+                FROM tbl_munaqosah_nilai 
+                WHERE IdTahunAjaran = ? AND TypeUjian = 'munaqosah'
+            ", [$currentTahunAjaran]);
+            $result = $query->getRow();
+            $totalSudahDinilai = $result ? (int)$result->total : 0;
+
+            // Menu yang bisa diakses Admin
+            $menuItems = [
+                'kategori_materi' => base_url('backend/kategori-materi'),
+                'kategori_kesalahan' => base_url('backend/munaqosah/list-kategori-kesalahan'),
+                'grup_materi_ujian' => base_url('backend/munaqosah/grup-materi-ujian'),
+                'materi_ujian' => base_url('backend/munaqosah/materi'),
+                'bobot_nilai' => base_url('backend/munaqosah/bobot'),
+                'jadwal_peserta_ujian' => base_url('backend/munaqosah/jadwal-peserta-ujian'),
+                'dashboard_monitoring' => base_url('backend/munaqosah/dashboard-monitoring'),
+                'monitoring' => base_url('backend/munaqosah/monitoring'),
+                'kelulusan' => base_url('backend/munaqosah/kelulusan'),
+                'konfigurasi' => base_url('backend/munaqosah/list-konfigurasi-munaqosah'),
+                'data_juri' => base_url('backend/munaqosah/juri'),
+                'daftar_peserta' => base_url('backend/munaqosah/peserta'),
+                'registrasi_peserta' => base_url('backend/munaqosah/registrasi-peserta'),
+                'antrian' => base_url('backend/munaqosah/antrian'),
+            ];
+
+            $data = [
+                'page_title' => 'Dashboard Munaqosah - Admin',
+                'current_tahun_ajaran' => $currentTahunAjaran,
+                'total_peserta' => $totalPeserta,
+                'total_juri' => $totalJuri,
+                'total_grup_materi' => $totalGrupMateri,
+                'total_sudah_dinilai' => $totalSudahDinilai,
+                'total_belum_dinilai' => max(0, $totalPeserta - $totalSudahDinilai),
+                'menu_items' => $menuItems,
+                'statistik' => $statistik,
+            ];
+
+            return view('backend/Munaqosah/dashboardAdmin', $data);
+        }
+
+        // Dashboard untuk Operator (Fokus ke Pra-Munaqosah)
+        if ($isOperator) {
+            // Statistik untuk Operator (terbatas pada TPQ mereka, hanya Pra-Munaqosah)
+            $statistik = getStatistikMunaqosah();
+
+            // Total peserta di TPQ operator (hitung distinct NoPeserta, hanya Pra-Munaqosah)
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT NoPeserta) as total 
+                FROM tbl_munaqosah_registrasi_uji 
+                WHERE IdTahunAjaran = ? AND IdTpq = ? AND TypeUjian = 'pra-munaqosah'
+            ", [$currentTahunAjaran, $idTpq]);
+            $result = $query->getRow();
+            $totalPeserta = $result ? (int)$result->total : 0;
+
+            // Total peserta sudah dinilai untuk TPQ ini (hanya Pra-Munaqosah)
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT NoPeserta) as total 
+                FROM tbl_munaqosah_nilai 
+                WHERE IdTahunAjaran = ? AND IdTpq = ? AND TypeUjian = 'pra-munaqosah'
+            ", [$currentTahunAjaran, $idTpq]);
+            $result = $query->getRow();
+            $totalSudahDinilai = $result ? (int)$result->total : 0;
+
+            // Statistik per type ujian untuk TPQ ini (hitung distinct NoPeserta)
+            $queryMunaqosah = $this->db->query("
+                SELECT COUNT(DISTINCT NoPeserta) as total 
+                FROM tbl_munaqosah_registrasi_uji 
+                WHERE IdTahunAjaran = ? AND IdTpq = ? AND TypeUjian = 'munaqosah'
+            ", [$currentTahunAjaran, $idTpq]);
+            $resultMunaqosah = $queryMunaqosah->getRow();
+            $statistikMunaqosah = $resultMunaqosah ? (int)$resultMunaqosah->total : 0;
+
+            $queryPraMunaqosah = $this->db->query("
+                SELECT COUNT(DISTINCT NoPeserta) as total 
+                FROM tbl_munaqosah_registrasi_uji 
+                WHERE IdTahunAjaran = ? AND IdTpq = ? AND TypeUjian = 'pra-munaqosah'
+            ", [$currentTahunAjaran, $idTpq]);
+            $resultPraMunaqosah = $queryPraMunaqosah->getRow();
+            $statistikPraMunaqosah = $resultPraMunaqosah ? (int)$resultPraMunaqosah->total : 0;
+
+            // Juri di TPQ ini (hanya Pra-Munaqosah)
+            $totalJuri = $this->munaqosahJuriModel->where('IdTpq', $idTpq)
+                ->where('Status', 'Aktif')
+                ->where('TypeUjian', 'pra-munaqosah')
+                ->countAllResults();
+
+            // Menu yang bisa diakses Operator
+            $menuItems = [
+                'dashboard_monitoring' => base_url('backend/munaqosah/dashboard-monitoring'),
+                'monitoring' => base_url('backend/munaqosah/monitoring'),
+                'kelulusan' => base_url('backend/munaqosah/kelulusan'),
+                'konfigurasi' => base_url('backend/munaqosah/list-konfigurasi-munaqosah'),
+                'data_juri' => base_url('backend/munaqosah/juri'),
+                'daftar_peserta' => base_url('backend/munaqosah/peserta'),
+                'registrasi_peserta' => base_url('backend/munaqosah/registrasi-peserta'),
+                'antrian' => base_url('backend/munaqosah/antrian'),
+            ];
+
+            // Data TPQ
+            $dataTpq = $this->tpqModel->find($idTpq);
+
+            $data = [
+                'page_title' => 'Dashboard Munaqosah - Operator',
+                'current_tahun_ajaran' => $currentTahunAjaran,
+                'id_tpq' => $idTpq,
+                'data_tpq' => $dataTpq,
+                'total_peserta' => $totalPeserta,
+                'total_juri' => $totalJuri,
+                'total_sudah_dinilai' => $totalSudahDinilai,
+                'total_belum_dinilai' => max(0, $totalPeserta - $totalSudahDinilai),
+                'statistik_munaqosah' => $statistikMunaqosah,
+                'statistik_pra_munaqosah' => $statistikPraMunaqosah,
+                'menu_items' => $menuItems,
+                'statistik' => $statistik,
+            ];
+
+            return view('backend/Munaqosah/dashboardOperator', $data);
+        }
+
+        // Jika tidak ada grup yang sesuai, redirect ke dashboard utama
+        return redirect()->to(base_url('auth/index'));
     }
 
     /**
@@ -123,14 +384,32 @@ class Munaqosah extends BaseController
             $idTpq
         );
         // Ambil total peserta yang sudah dinilai oleh juri
-        $totalPesertaSudahDinilai = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
+        $totalPesertaSudahDinilaiJuriIni = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
             $idTpq,
             $juriData->IdJuri,
             $currentTahunAjaran,
             $typeUjian
         );
 
-        $totalPesertaBelumDinilai = $totalPesertaYangTerregister - $totalPesertaSudahDinilai;
+        // Ambil total peserta yang sudah dinilai oleh semua juri
+        if ($idTpq) {
+            $totalPesertaSudahDinilaiSemuaJuri = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
+                $idTpq,
+                0,
+                $currentTahunAjaran,
+                $typeUjian
+            );
+        } else {
+            // Jika tidak ada id tpq, hitung tanpa filter IdTpq
+            $totalPesertaSudahDinilaiSemuaJuri = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
+                0,
+                0,
+                $currentTahunAjaran,
+                $typeUjian
+            );
+        }
+
+        $totalPesertaBelumDinilai = $totalPesertaYangTerregister - $totalPesertaSudahDinilaiSemuaJuri;
 
         // Get nilai min dan max from configuration
         // Use IdTpq from juri, fallback to 'default' if not found
@@ -143,7 +422,8 @@ class Munaqosah extends BaseController
             'current_tahun_ajaran' => $currentTahunAjaran,
             'juri_data' => $juriData,
             'peserta_terakhir' => $pesertaTerakhir,
-            'total_peserta_sudah_dinilai' => $totalPesertaSudahDinilai,
+            'total_peserta_sudah_dinilai' => $totalPesertaSudahDinilaiSemuaJuri,
+            'total_peserta_sudah_dinilai_juri_ini' => $totalPesertaSudahDinilaiJuriIni,
             'total_peserta_belum_dinilai' => $totalPesertaBelumDinilai,
             'total_peserta_terdaftar' => $totalPesertaYangTerregister,
             'nilai_minimal' => $nilaiMinimal,

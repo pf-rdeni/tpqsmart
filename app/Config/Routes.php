@@ -134,7 +134,6 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('santri/generatePDFprofilSantriRaport/(:segment)', 'Santri::generatePDFprofilSantriRaport/$1');
 
     // Munaqosah Routes
-    $routes->get('munaqosah', 'Munaqosah::index');
     $routes->get('munaqosah/nilai', 'Munaqosah::nilai');
     $routes->get('munaqosah/input-nilai', 'Munaqosah::inputNilai');
     $routes->post('munaqosah/save-nilai', 'Munaqosah::saveNilai');
@@ -191,6 +190,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/verify-admin-credentials', 'Munaqosah::verifyAdminCredentials');
 
     // Monitoring Munaqosah
+    $routes->get('munaqosah/dashboard-munaqosah', 'Munaqosah::dashboardMunaqosah');
     $routes->get('munaqosah/monitoring', 'Munaqosah::monitoringMunaqosah');
     $routes->get('munaqosah/monitoring-data', 'Munaqosah::getMonitoringData');
     $routes->get('munaqosah/dashboard-monitoring', 'Munaqosah::dashboardMonitoring');

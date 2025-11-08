@@ -111,7 +111,7 @@
                                                                     <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
                                                                     <div class="info-box-content">
                                                                         <span class="info-box-text">Sudah Dinilai</span>
-                                                                        <span class="info-box-number"><?= $total_peserta_sudah_dinilai ?></span>
+                                                                        <span class="info-box-number"><?= $total_peserta_sudah_dinilai_juri_ini ?> / <?= $total_peserta_sudah_dinilai ?></span>
                                                                         <div class="progress">
                                                                             <div class="progress-bar" style="width: <?= $pctSelesai ?>%"></div>
                                                                         </div>
@@ -163,38 +163,30 @@
                                                                 <i class="fas fa-history"></i> 5 Peserta Terakhir yang Sudah Dinilai
                                                             </h5>
                                                         </div>
-                                                        <div class="card-body p-0">
+                                                        <div class="card-body">
                                                             <div class="table-responsive">
-                                                                <table class="table table-hover mb-0" id="tabelPesertaTerakhir">
-                                                                    <thead class="thead-light">
+                                                                <table class="table table-sm table-striped table-bordered table-hover" id="tabelPesertaTerakhir">
+                                                                    <thead>
                                                                         <tr>
-                                                                            <th width="15%">No Peserta</th>
-                                                                            <th width="20%">Tanggal</th>
-                                                                            <th width="12%">Waktu</th>
-                                                                            <th width="15%">Durasi</th>
-                                                                            <th width="18%">Juri</th>
-                                                                            <th width="20%">Aksi</th>
+                                                                            <th>No Peserta</th>
+                                                                            <th>Tanggal</th>
+                                                                            <th>Waktu</th>
+                                                                            <th>Durasi</th>
+                                                                            <th>Juri</th>
+                                                                            <th>Aksi</th>
                                                                         </tr>
                                                                     </thead>
-                                                                    <tbody id="tbodyPesertaTerakhir">
+                                                                    <tbody>
                                                                         <?php foreach ($peserta_terakhir as $index => $peserta): ?>
                                                                             <tr>
-                                                                                <td>
-                                                                                    <strong><?= $peserta['NoPeserta'] ?></strong>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <?= date('d/m/Y', strtotime($peserta['updated_at'])) ?>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <?= date('H:i:s', strtotime($peserta['updated_at'])) ?>
-                                                                                </td>
-                                                                                <td class="duration-cell">
+                                                                                <td><strong><?= $peserta['NoPeserta'] ?></strong></td>
+                                                                                <td><?= date('d/m/Y', strtotime($peserta['updated_at'])) ?></td>
+                                                                                <td><?= date('H:i:s', strtotime($peserta['updated_at'])) ?></td>
+                                                                                <td class="duration-cell text-center">
                                                                                     <span class="<?= $peserta['duration_class'] ?>"><?= $peserta['duration'] ?></span>
                                                                                 </td>
-                                                                                <td>
-                                                                                    <?= $peserta['UsernameJuri'] ?>
-                                                                                </td>
-                                                                                <td>
+                                                                                <td><?= $peserta['UsernameJuri'] ?></td>
+                                                                                <td class="text-center">
                                                                                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="setNoPeserta('<?= $peserta['NoPeserta'] ?>')">
                                                                                         <i class="fas fa-edit"></i> Ubah Nilai
                                                                                     </button>
@@ -529,17 +521,6 @@
     .duration-cell {
         font-family: 'Courier New', monospace;
         font-weight: bold;
-        text-align: center;
-        vertical-align: middle;
-    }
-
-    /* Center header dan isi kolom durasi */
-    #tabelPesertaTerakhir th:nth-child(4) {
-        text-align: center;
-    }
-
-    #tabelPesertaTerakhir td:nth-child(4) {
-        text-align: center;
     }
 
     .duration-fast {
@@ -566,80 +547,6 @@
     .duration-none {
         color: #6c757d;
         font-style: italic;
-    }
-
-    /* Styling untuk tabel peserta terakhir */
-    #tabelPesertaTerakhir {
-        font-size: 0.9rem;
-    }
-
-    #tabelPesertaTerakhir th {
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 12px 8px;
-        border-bottom: 2px solid #dee2e6;
-        text-align: center;
-    }
-
-    /* Override untuk kolom No Peserta (left align) */
-    #tabelPesertaTerakhir th:first-child {
-        text-align: left;
-    }
-
-    #tabelPesertaTerakhir td {
-        padding: 10px 8px;
-        vertical-align: middle;
-        border-bottom: 1px solid #f1f3f4;
-        text-align: center;
-    }
-
-    /* Override untuk kolom No Peserta (left align) */
-    #tabelPesertaTerakhir td:first-child {
-        text-align: left;
-    }
-
-    #tabelPesertaTerakhir tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    /* Styling untuk kolom spesifik */
-    #tabelPesertaTerakhir td:first-child {
-        font-weight: 600;
-        color: #495057;
-    }
-
-    #tabelPesertaTerakhir td:nth-child(2),
-    #tabelPesertaTerakhir td:nth-child(3) {
-        font-family: 'Courier New', monospace;
-        font-size: 0.85rem;
-        color: #495057;
-    }
-
-    #tabelPesertaTerakhir td:nth-child(5) {
-        font-size: 0.8rem;
-        color: #6c757d;
-        font-family: 'Courier New', monospace;
-    }
-
-    /* Styling untuk button aksi */
-    #tabelPesertaTerakhir .btn {
-        font-size: 0.75rem;
-        padding: 4px 8px;
-        border-radius: 4px;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        #tabelPesertaTerakhir {
-            font-size: 0.8rem;
-        }
-
-        #tabelPesertaTerakhir th,
-        #tabelPesertaTerakhir td {
-            padding: 8px 4px;
-        }
     }
 </style>
 
@@ -1983,6 +1890,51 @@
         });
 
         // ==================== END CHECK ANTRIAN PESERTA ====================
+
+        // Initialize DataTables untuk tabel peserta terakhir
+        if ($.fn.DataTable && $('#tabelPesertaTerakhir').length) {
+            $('#tabelPesertaTerakhir').DataTable({
+                pageLength: 5,
+                lengthMenu: [
+                    [5, 10, 25, 50, -1],
+                    [5, 10, 25, 50, "Semua"]
+                ],
+                order: [
+                    [1, "desc"],
+                    [2, "desc"]
+                ],
+                responsive: true,
+                columnDefs: [{
+                        targets: [3, 5], // Durasi, Aksi
+                        orderable: false
+                    },
+                    {
+                        targets: [5], // Aksi
+                        searchable: false
+                    }
+                ],
+                language: {
+                    decimal: ",",
+                    emptyTable: "Tidak ada data yang tersedia",
+                    info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                    infoEmpty: "Menampilkan 0 sampai 0 dari 0 data",
+                    infoFiltered: "(disaring dari _MAX_ total data)",
+                    infoPostFix: "",
+                    thousands: ".",
+                    lengthMenu: "Tampilkan _MENU_ data",
+                    loadingRecords: "Memuat...",
+                    processing: "Memproses...",
+                    search: "Cari:",
+                    zeroRecords: "Tidak ada data yang cocok",
+                    paginate: {
+                        first: "Pertama",
+                        last: "Terakhir",
+                        next: "Selanjutnya",
+                        previous: "Sebelumnya"
+                    }
+                }
+            });
+        }
 
         // Initialize
     });

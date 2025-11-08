@@ -57,6 +57,12 @@
                         <ul class="nav nav-treeview" style="display: none;">
                             <?php if (in_groups('Juri')): ?>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard Munaqosah</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/input-nilai-juri') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Input Nilai Juri</p>
@@ -83,9 +89,9 @@
                             <?php endif; ?>
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Informasi Umum</p>
+                                        <p>Dashboard Munaqosah</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -125,13 +131,15 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                            <?php if (in_groups('Operator')): ?>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah/dashboard-monitoring') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Dashboard Monitoring</p>
+                                        <p>Dashboard Munaqosah</p>
                                     </a>
                                 </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>

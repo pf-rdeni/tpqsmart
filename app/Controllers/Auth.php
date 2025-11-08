@@ -287,6 +287,14 @@ class Auth extends BaseController
 
     public function index()
     {
+        // Cek jika user adalah Juri, redirect ke dashboard munaqosah
+        // Hanya Juri yang diarahkan ke dashboard munaqosah secara default setelah login
+        // Admin dan Operator tetap ke dashboard biasa, bisa akses dashboard munaqosah dari menu
+        if (in_groups('Juri')) {
+            // Redirect ke dashboard munaqosah untuk Juri
+            return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah'));
+        }
+
         $idTpq = session()->get('IdTpq');
         $idTahunAjaran = session()->get('IdTahunAjaran');
         $idKelas = session()->get('IdKelas');

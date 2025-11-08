@@ -182,6 +182,7 @@ class MunaqosahNilaiModel extends Model
             ->where('IdJuri', $idJuri)
             ->where('IdTahunAjaran', $idTahunAjaran)
             ->where('TypeUjian', $typeUjian)
+            ->groupBy('NoPeserta')
             ->distinct()
             ->countAllResults('NoPeserta');
     }

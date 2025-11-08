@@ -12,7 +12,7 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="<?= base_url('backend/dashboard') ?>">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="<?= base_url('backend/munaqosah') ?>">Munaqosah</a></li>
+                        <li class="breadcrumb-item"><a href="<?= base_url('backend/munaqosah/dashboard-munaqosah') ?>">Munaqosah</a></li>
                         <li class="breadcrumb-item"><a href="<?= base_url('backend/munaqosah/nilai') ?>">Data Nilai</a></li>
                         <li class="breadcrumb-item active">Edit Nilai</li>
                     </ol>
@@ -50,8 +50,8 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="NoPeserta">Nomor Peserta <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="NoPeserta" name="NoPeserta" 
-                                                   value="<?= old('NoPeserta', $nilai->NoPeserta) ?>" required>
+                                            <input type="text" class="form-control" id="NoPeserta" name="NoPeserta"
+                                                value="<?= old('NoPeserta', $nilai->NoPeserta) ?>" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -60,8 +60,8 @@
                                             <select class="form-control select2" id="IdSantri" name="IdSantri" required>
                                                 <option value="">Pilih Santri</option>
                                                 <?php foreach ($santri as $s): ?>
-                                                    <option value="<?= $s->IdSantri ?>" 
-                                                            <?= old('IdSantri', $nilai->IdSantri) == $s->IdSantri ? 'selected' : '' ?>>
+                                                    <option value="<?= $s->IdSantri ?>"
+                                                        <?= old('IdSantri', $nilai->IdSantri) == $s->IdSantri ? 'selected' : '' ?>>
                                                         <?= $s->NamaSantri ?> (<?= $s->NoInduk ?>)
                                                     </option>
                                                 <?php endforeach; ?>
@@ -77,8 +77,8 @@
                                             <select class="form-control select2" id="IdTpq" name="IdTpq" required>
                                                 <option value="">Pilih TPQ</option>
                                                 <?php foreach ($tpq as $t): ?>
-                                                    <option value="<?= $t->IdTpq ?>" 
-                                                            <?= old('IdTpq', $nilai->IdTpq) == $t->IdTpq ? 'selected' : '' ?>>
+                                                    <option value="<?= $t->IdTpq ?>"
+                                                        <?= old('IdTpq', $nilai->IdTpq) == $t->IdTpq ? 'selected' : '' ?>>
                                                         <?= $t->NamaTpq ?>
                                                     </option>
                                                 <?php endforeach; ?>
@@ -91,8 +91,8 @@
                                             <select class="form-control select2" id="IdJuri" name="IdJuri" required>
                                                 <option value="">Pilih Juri</option>
                                                 <?php foreach ($guru as $g): ?>
-                                                    <option value="<?= $g->IdGuru ?>" 
-                                                            <?= old('IdJuri', $nilai->IdJuri) == $g->IdGuru ? 'selected' : '' ?>>
+                                                    <option value="<?= $g->IdGuru ?>"
+                                                        <?= old('IdJuri', $nilai->IdJuri) == $g->IdGuru ? 'selected' : '' ?>>
                                                         <?= $g->NamaGuru ?>
                                                     </option>
                                                 <?php endforeach; ?>
@@ -105,8 +105,8 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="IdTahunAjaran">Tahun Ajaran <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="IdTahunAjaran" name="IdTahunAjaran" 
-                                                   value="<?= old('IdTahunAjaran', $nilai->IdTahunAjaran) ?>" required>
+                                            <input type="text" class="form-control" id="IdTahunAjaran" name="IdTahunAjaran"
+                                                value="<?= old('IdTahunAjaran', $nilai->IdTahunAjaran) ?>" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -115,8 +115,8 @@
                                             <select class="form-control select2" id="IdMateri" name="IdMateri" required>
                                                 <option value="">Pilih Materi</option>
                                                 <?php foreach ($materi as $m): ?>
-                                                    <option value="<?= $m->id ?>" 
-                                                            <?= old('IdMateri', $nilai->IdMateri) == $m->id ? 'selected' : '' ?>>
+                                                    <option value="<?= $m->id ?>"
+                                                        <?= old('IdMateri', $nilai->IdMateri) == $m->id ? 'selected' : '' ?>>
                                                         <?= $m->KategoriMateriUjian ?>
                                                     </option>
                                                 <?php endforeach; ?>
@@ -155,9 +155,9 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="Nilai">Nilai <span class="text-danger">*</span></label>
-                                            <input type="number" class="form-control" id="Nilai" name="Nilai" 
-                                                   step="0.01" min="0" max="100" 
-                                                   value="<?= old('Nilai', $nilai->Nilai) ?>" required>
+                                            <input type="number" class="form-control" id="Nilai" name="Nilai"
+                                                step="0.01" min="0" max="100"
+                                                value="<?= old('Nilai', $nilai->Nilai) ?>" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -188,10 +188,10 @@
 
 <?= $this->section('scripts') ?>
 <script>
-$(document).ready(function() {
-    $('.select2').select2({
-        theme: 'bootstrap4'
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap4'
+        });
     });
-});
 </script>
 <?= $this->endSection() ?>
