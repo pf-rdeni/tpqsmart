@@ -3767,6 +3767,7 @@ class Munaqosah extends BaseController
             $builder->select('mp.*, s.*, t.NamaTpq, k.NamaKelas, 
                             mn_munaqosah.NoPeserta as NoPesertaMunaqosah,
                             mn_pra.NoPeserta as NoPesertaPraMunaqosah');
+            // Note: HasKey diambil dari tbl_munaqosah_peserta (mp) melalui mp.*
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
             $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
@@ -3787,7 +3788,7 @@ class Munaqosah extends BaseController
             }
 
             // Group by untuk menghindari duplikasi
-            $builder->groupBy('mp.IdSantri, mp.IdTpq, mp.IdTahunAjaran, mn_munaqosah.NoPeserta, mn_pra.NoPeserta');
+            $builder->groupBy('mp.IdSantri, mp.IdTpq, mp.IdTahunAjaran, mp.HasKey, mn_munaqosah.NoPeserta, mn_pra.NoPeserta');
 
             $builder->orderBy('mp.IdTpq', 'ASC');
             $builder->orderBy('s.NamaSantri', 'ASC');
@@ -3799,14 +3800,19 @@ class Munaqosah extends BaseController
             $result = [];
             foreach ($santriData as $santri) {
                 // Cek status berdasarkan type ujian yang dipilih
+                // HasKey diambil langsung dari tabel tbl_munaqosah_peserta (mp)
                 if ($typeUjian === 'pra-munaqosah') {
                     $hasNilai = !empty($santri['NoPesertaPraMunaqosah']);
                     $santri['isPesertaPraMunaqosah'] = $hasNilai;
                     $santri['NoPesertaMunaqosah'] = $santri['NoPesertaPraMunaqosah'] ?? '-';
+                    // HasKey sudah diambil dari mp.HasKey di select statement
+                    $santri['HasKey'] = $santri['HasKey'] ?? null;
                 } else {
                     $hasNilai = !empty($santri['NoPesertaMunaqosah']);
                     $santri['isPeserta'] = $hasNilai;
                     $santri['NoPesertaMunaqosah'] = $santri['NoPesertaMunaqosah'] ?? '-';
+                    // HasKey sudah diambil dari mp.HasKey di select statement
+                    $santri['HasKey'] = $santri['HasKey'] ?? null;
                 }
 
                 $result[] = $santri;

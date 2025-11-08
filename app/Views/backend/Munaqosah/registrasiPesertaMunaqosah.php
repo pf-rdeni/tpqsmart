@@ -249,10 +249,37 @@
     .print-single-btn.text-danger:hover:not(:disabled) {
         color: #dc3545 !important;
     }
+
+    /* Copy button styling */
+    .copy-link-btn {
+        padding: 0.25rem 0.5rem;
+        margin-left: 8px;
+        border: none;
+        background: none;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        color: #17a2b8;
+    }
+
+    .copy-link-btn:hover:not(:disabled) {
+        transform: scale(1.1);
+        text-decoration: none;
+        color: #138496 !important;
+    }
+
+    .copy-link-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .copy-link-btn.text-info:hover:not(:disabled) {
+        color: #138496 !important;
+    }
 </style>
 <script>
     $(document).ready(function() {
         let selectedSantri = [];
+        let santriDataTable = null; // Variable untuk menyimpan instance DataTable
 
         // Check if user is admin
         const isAdmin = <?= json_encode($isAdmin ?? true) ?>;
@@ -326,6 +353,9 @@
             } else {
                 console.log('Non-admin user - skipping preference save');
             }
+
+            // Destroy DataTable sebelum mengosongkan tbody
+            destroyDataTable();
 
             // Show loading in table immediately
             $('#santriTableBody').html('<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data berdasarkan filter baru...</td></tr>');
@@ -403,11 +433,138 @@
             });
         });
 
+        // Copy link button click
+        $(document).on('click', '.copy-link-btn:not(:disabled)', function() {
+            const santriId = $(this).data('santri-id');
+            const santriName = $(this).data('santri-name');
+            const noPeserta = $(this).data('no-peserta');
+            const hasKey = $(this).data('haskey');
+
+            if (!hasKey) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'HasKey tidak ditemukan untuk santri ini',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Format teks yang akan dicopy
+            // URL menggunakan base_url untuk fleksibilitas, format: /munaqosah/cek-status/#haskey
+            const baseUrl = '<?= base_url('munaqosah/cek-status/') ?>';
+            const statusUrl = baseUrl + hasKey;
+            const copyText = `${noPeserta}-${santriName}\nCheck Status:\n${statusUrl}`;
+
+            // Tampilkan popup dengan informasi yang akan dicopy
+            Swal.fire({
+                title: 'Copy Link Status Ujian',
+                html: `
+                    <div class="text-left">
+                        <p><strong>Nama Santri:</strong> ${santriName}</p>
+                        <p><strong>No Peserta:</strong> ${noPeserta}</p>
+                        <p><strong>Konten yang akan dicopy:</strong></p>
+                        <div class="border p-3 bg-light rounded mt-2" style="font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; word-break: break-all;">
+${copyText}
+                        </div>
+                    </div>
+                `,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#17a2b8',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-copy"></i> Copy ke Clipboard',
+                cancelButtonText: 'Batal',
+                footer: 'Klik "Copy ke Clipboard" untuk menyalin konten'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Copy ke clipboard
+                    copyToClipboard(copyText, santriName);
+                }
+            });
+        });
+
+        // Fungsi untuk copy ke clipboard
+        function copyToClipboard(text, santriName) {
+            // Coba menggunakan Clipboard API modern
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: `Link untuk ${santriName} telah disalin ke clipboard`,
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                }).catch(function(err) {
+                    console.error('Error copying to clipboard:', err);
+                    // Fallback ke method lama
+                    fallbackCopyToClipboard(text, santriName);
+                });
+            } else {
+                // Fallback untuk browser yang tidak support Clipboard API
+                fallbackCopyToClipboard(text, santriName);
+            }
+        }
+
+        // Fallback method untuk copy ke clipboard
+        function fallbackCopyToClipboard(text, santriName) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: `Link untuk ${santriName} telah disalin ke clipboard`,
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                } else {
+                    throw new Error('Copy command failed');
+                }
+            } catch (err) {
+                console.error('Error copying to clipboard:', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    html: `
+                        <div class="text-left">
+                            <p>Gagal menyalin ke clipboard. Silakan copy manual:</p>
+                            <div class="border p-2 bg-light rounded mt-2" style="font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;">
+${text}
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'OK'
+                });
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
 
         function loadSantriData() {
             const filterTpq = $('#filterTpq').val();
             const filterKelas = $('#filterKelas').val();
             const typeUjian = $('#typeUjian').val();
+
+            // Destroy DataTable sebelum memuat data baru
+            destroyDataTable();
 
             // Get filter values for display
             const filterTpqText = $('#filterTpq option:selected').text();
@@ -832,14 +989,104 @@
             });
         }
 
+        // Fungsi untuk destroy DataTable jika sudah ada instance
+        function destroyDataTable() {
+            if (santriDataTable !== null) {
+                try {
+                    santriDataTable.destroy();
+                    santriDataTable = null;
+                    console.log('DataTable destroyed');
+                } catch (error) {
+                    console.warn('Error destroying DataTable:', error);
+                    santriDataTable = null;
+                }
+            }
+        }
+
+        // Fungsi untuk inisialisasi DataTable
+        function initializeSantriDataTable() {
+            // Destroy DataTable lama jika ada
+            destroyDataTable();
+
+            // Inisialisasi DataTable baru
+            try {
+                santriDataTable = $('#santriTable').DataTable({
+                    "lengthChange": true,
+                    "responsive": true,
+                    "autoWidth": false,
+                    "paging": true,
+                    "pageLength": 20,
+                    "lengthMenu": [
+                        [10, 20, 30, 50, 100, -1],
+                        [10, 20, 30, 50, 100, "Semua"]
+                    ],
+                    "language": {
+                        "search": "Pencarian:",
+                        "paginate": {
+                            "next": "Selanjutnya",
+                            "previous": "Sebelumnya"
+                        },
+                        "lengthMenu": "Tampilkan _MENU_ entri",
+                        "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                        "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                        "infoFiltered": "(disaring dari _MAX_ total entri)",
+                        "zeroRecords": "Tidak ada data yang ditemukan"
+                    },
+                    "order": [
+                        [3, 'asc']
+                    ], // Urutkan berdasarkan nama santri (kolom ke-4, index 3)
+                    "columnDefs": [{
+                            "targets": [0], // Kolom checkbox
+                            "orderable": false,
+                            "searchable": false
+                        },
+                        {
+                            "targets": [6], // Kolom status
+                            "orderable": false
+                        }
+                    ],
+                    "drawCallback": function(settings) {
+                        // Setelah DataTable di-redraw, pastikan checkbox yang sudah dipilih tetap ter-check
+                        $('.santri-checkbox').each(function() {
+                            const santriId = $(this).val().toString();
+                            if (selectedSantri.includes(santriId)) {
+                                $(this).prop('checked', true);
+                            }
+                        });
+
+                        // Update checkbox select all sesuai dengan state
+                        const visibleCheckboxes = $('.santri-checkbox:not(:disabled):visible');
+                        const visibleCheckedCheckboxes = $('.santri-checkbox:checked:not(:disabled):visible');
+
+                        if (visibleCheckboxes.length > 0 && visibleCheckedCheckboxes.length === visibleCheckboxes.length) {
+                            $('#selectAll').prop('checked', true);
+                        } else {
+                            $('#selectAll').prop('checked', false);
+                        }
+                    }
+                });
+                console.log('DataTable initialized successfully');
+            } catch (error) {
+                console.error('Error initializing DataTable:', error);
+            }
+        }
+
         function populateSantriTable(santriData) {
             const tbody = $('#santriTableBody');
+
+            // Destroy DataTable sebelum mengosongkan tbody
+            destroyDataTable();
+
             tbody.empty();
 
             // Cek apakah data adalah array
             if (!Array.isArray(santriData)) {
                 console.error('Invalid data format:', santriData);
                 tbody.html('<tr><td colspan="7" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Format data tidak valid</td></tr>');
+                // Inisialisasi DataTable meskipun ada error untuk tetap menampilkan pesan error dengan fitur DataTable
+                setTimeout(() => {
+                    initializeSantriDataTable();
+                }, 100);
                 return;
             }
 
@@ -860,12 +1107,23 @@
                     timer: 3000,
                     timerProgressBar: true
                 });
+
+                // Inisialisasi DataTable meskipun tidak ada data
+                setTimeout(() => {
+                    initializeSantriDataTable();
+                }, 100);
                 return;
             }
 
             santriData.forEach(function(santri) {
                 // Cek status berdasarkan type ujian yang dipilih
                 let isPeserta, statusClass, disabledAttr, printIconColor, printDisabled;
+                let hasKey = santri.HasKey || null;
+                let noPeserta = santri.NoPesertaMunaqosah || '-';
+
+                // Cek apakah santri ini sudah dipilih sebelumnya
+                const isChecked = selectedSantri.includes(santri.IdSantri.toString());
+                const checkedAttr = isChecked ? 'checked' : '';
 
                 if (typeUjian === 'pra-munaqosah') {
                     isPeserta = santri.isPesertaPraMunaqosah ? `<i class="fas fa-check-circle text-success"></i> Sudah Register` : `<i class="fas fa-times-circle text-danger"></i> Belum Register`;
@@ -881,13 +1139,29 @@
                     printDisabled = santri.isPeserta ? '' : 'disabled';
                 }
 
+                // Button copy hanya muncul jika sudah register dan memiliki HasKey
+                let copyButton = '';
+                if ((typeUjian === 'pra-munaqosah' && santri.isPesertaPraMunaqosah && hasKey) ||
+                    (typeUjian === 'munaqosah' && santri.isPeserta && hasKey)) {
+                    copyButton = `
+                        <button type="button" class="btn btn-sm btn-link copy-link-btn text-info" 
+                                data-santri-id="${santri.IdSantri}" 
+                                data-santri-name="${santri.NamaSantri}"
+                                data-no-peserta="${noPeserta}"
+                                data-haskey="${hasKey}"
+                                title="Copy link WhatsApp untuk ${santri.NamaSantri}">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    `;
+                }
+
                 const row = `
                 <tr>
                     <td class="text-center">
                         <input type="checkbox" class="form-check-input santri-checkbox" 
-                               value="${santri.IdSantri}" ${disabledAttr}>
+                               value="${santri.IdSantri}" ${disabledAttr} ${checkedAttr}>
                     </td>
-                    <td class="text-center">${santri.NoPesertaMunaqosah || '-'}</td>
+                    <td class="text-center">${noPeserta}</td>
                     <td>${santri.IdSantri}</td>
                     <td>${santri.NamaSantri}</td>
                     <td>${santri.NamaKelas}</td>
@@ -901,14 +1175,18 @@
                                 title="Print kartu ujian untuk ${santri.NamaSantri}">
                             <i class="fas fa-print"></i>
                         </button>
+                        ${copyButton}
                     </td>
                 </tr>
             `;
                 tbody.append(row);
             });
 
-            // Update button status setelah data dimuat dengan delay kecil
+            // Inisialisasi DataTable setelah data dimuat
             setTimeout(() => {
+                initializeSantriDataTable();
+
+                // Update button status setelah DataTable diinisialisasi
                 updateProcessButton();
             }, 100);
         }
@@ -1279,6 +1557,19 @@
             previewData = [];
             $('#selectAll').prop('checked', false);
             $('.santri-checkbox').prop('checked', false);
+
+            // Reset filter ke default
+            $('#filterTpq').val('0');
+            $('#filterKelas').val('0');
+            if (isAdmin) {
+                $('#typeUjian').val('munaqosah');
+            }
+
+            // Destroy DataTable dan reload data
+            destroyDataTable();
+            $('#santriTableBody').html('<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+            loadSantriData();
+
             updateProcessButton();
         }
     });
