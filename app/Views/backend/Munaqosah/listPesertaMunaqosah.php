@@ -3,6 +3,75 @@
 <?php helper('nilai'); ?>
 
 <?= $this->section('content') ?>
+<!-- Card untuk Peserta yang Perlu Perbaikan -->
+<?php if (!empty($pesertaPerluPerbaikan) && count($pesertaPerluPerbaikan) > 0): ?>
+    <div class="col-12 mt-4">
+        <div class="card card-warning">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-exclamation-triangle"></i> Peserta yang Perlu Perbaikan Data
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>ID Santri</th>
+                                <th>Nama Santri</th>
+                                <th>TPQ</th>
+                                <th>Keterangan</th>
+                                <th>Tanggal Verifikasi</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $no = 1; ?>
+                            <?php foreach ($pesertaPerluPerbaikan as $row): ?>
+                                <tr>
+                                    <td><?= $no++ ?></td>
+                                    <td><?= $row['IdSantri'] ?? '-' ?></td>
+                                    <td><?= $row['NamaSantri'] ?? '-' ?></td>
+                                    <td><?= $row['NamaTpq'] ?? '-' ?></td>
+                                    <td>
+                                        <?php if (!empty($row['keterangan'])): ?>
+                                            <span class="text-muted" title="<?= esc($row['keterangan']) ?>">
+                                                <?= esc(strlen($row['keterangan']) > 50 ? substr($row['keterangan'], 0, 50) . '...' : $row['keterangan']) ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($row['verified_at'])): ?>
+                                            <?= formatTanggalIndonesia($row['verified_at'], 'd F Y H:i') ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        // Gunakan fungsi editPeserta yang sama seperti di tabel utama
+                                        $idSantri = $row['IdSantri'] ?? '';
+                                        $namaSantri = $row['NamaSantri'] ?? 'Tidak Diketahui';
+                                        $statusVerifikasi = 'perlu_perbaikan'; // Status selalu perlu_perbaikan di tabel ini
+                                        ?>
+                                        <button type="button" class="btn btn-info btn-sm"
+                                            onclick="editPeserta(<?= $idSantri ?>, '<?= addslashes($namaSantri) ?>', '<?= $statusVerifikasi ?>')"
+                                            title="Review & Konfirmasi Perbaikan">
+                                            <i class="fas fa-check-double"></i> Review
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
 
 <div class="col-12">
     <div class="card">
@@ -15,6 +84,7 @@
                 </div><!-- /.col -->
             </div><!-- /.row -->
         </div>
+
         <!-- /.card-header -->
         <div class="card-body">
             <table id="tabelPesertaMunaqosah" class="table table-bordered table-striped">
@@ -30,6 +100,7 @@
                         <th>TPQ</th>
                         <th>Alamat</th>
                         <th>Tahun Ajaran</th>
+                        <th>Status Verifikasi</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -37,6 +108,21 @@
                     <?php if (!empty($peserta) && count($peserta) > 0): ?>
                         <?php $no = 1; ?>
                         <?php foreach ($peserta as $row): ?>
+                            <?php
+                            $statusVerifikasi = $row->status_verifikasi ?? null;
+                            $statusBadge = '';
+                            if ($statusVerifikasi === 'valid') {
+                                $statusBadge = '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span>';
+                            } elseif ($statusVerifikasi === 'perlu_perbaikan') {
+                                $statusBadge = '<span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span>';
+                            } elseif ($statusVerifikasi === 'dikonfirmasi') {
+                                // Status "dikonfirmasi" tidak lagi digunakan, langsung menjadi "valid"
+                                // Tetap tampilkan untuk backward compatibility dengan data lama
+                                $statusBadge = '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span>';
+                            } else {
+                                $statusBadge = '<span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span>';
+                            }
+                            ?>
                             <tr>
                                 <td><?= $no++ ?></td>
                                 <td><?= $row->IdSantri ?? '-' ?></td>
@@ -48,10 +134,24 @@
                                 <td><?= $row->NamaTpq ?? '-' ?></td>
                                 <td><?= $row->KelurahanDesa ?? '-' ?></td>
                                 <td><?= $row->IdTahunAjaran ?? '-' ?></td>
+                                <td><?= $statusBadge ?></td>
                                 <td>
-                                    <button type="button" class="btn btn-warning btn-sm mr-1"
-                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')">
-                                        <i class="fas fa-edit"></i>
+                                    <?php
+                                    $statusVerifikasi = $row->status_verifikasi ?? null;
+                                    $btnClass = 'btn-warning';
+                                    $btnIcon = 'fas fa-edit';
+                                    $btnTitle = 'Edit';
+
+                                    if ($statusVerifikasi === 'perlu_perbaikan') {
+                                        $btnClass = 'btn-info';
+                                        $btnIcon = 'fas fa-check-double';
+                                        $btnTitle = 'Review & Konfirmasi Perbaikan';
+                                    }
+                                    ?>
+                                    <button type="button" class="btn <?= $btnClass ?> btn-sm mr-1"
+                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $statusVerifikasi ?? '' ?>')"
+                                        title="<?= $btnTitle ?>">
+                                        <i class="<?= $btnIcon ?>"></i> <?= $statusVerifikasi === 'perlu_perbaikan' ? 'Review' : 'Edit' ?>
                                     </button>
                                     <button type="button" class="btn btn-danger btn-sm"
                                         onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')">
@@ -62,7 +162,7 @@
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" class="text-center">Tidak ada data peserta</td>
+                            <td colspan="12" class="text-center">Tidak ada data peserta</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -70,6 +170,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- Modal Add Peserta -->
 <div class="modal fade" id="modalAddPeserta" tabindex="-1" role="dialog" aria-labelledby="modalAddPesertaLabel" aria-hidden="true">
@@ -212,6 +313,22 @@
                 <div class="modal-body">
                     <input type="hidden" id="editIdSantri" name="IdSantri">
 
+                    <!-- Alert untuk Status Perlu Perbaikan -->
+                    <div id="alertPerluPerbaikan" class="alert alert-warning" style="display: none;">
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Status: Perlu Perbaikan</h5>
+                        <p class="mb-2">
+                            <strong>Peserta mengajukan permintaan perbaikan data.</strong>
+                            Silakan review perubahan yang diusulkan di bawah ini.
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Catatan:</strong> Hanya field yang diminta perbaikan yang dapat diubah.
+                            Field lainnya telah dinonaktifkan untuk menghindari perubahan tidak sengaja.
+                        </p>
+                        <div id="keteranganUser" class="mt-2"></div>
+                        <div id="fieldsToFixList" class="mt-3"></div>
+                    </div>
+
                     <!-- Data Santri Card -->
                     <div class="card card-primary">
                         <div class="card-header">
@@ -220,6 +337,32 @@
                             </h3>
                         </div>
                         <div class="card-body">
+                            <input type="hidden" id="editIdPeserta" name="IdPeserta">
+                            <input type="hidden" id="editStatusVerifikasi" name="StatusVerifikasi">
+
+                            <!-- Tabel Perbaikan Data (hanya muncul jika status perlu_perbaikan) -->
+                            <div id="tablePerbaikanData" style="display: none;">
+                                <h5 class="mb-3"><i class="fas fa-table"></i> Tabel Perbaikan Data</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover table-sm" id="tabelPerbaikan">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th style="width: 20%;">Field</th>
+                                                <th style="width: 20%;">Saat Ini (Sebelum)</th>
+                                                <th style="width: 20%;">Usulan</th>
+                                                <th style="width: 15%;">Aksi</th>
+                                                <th style="width: 25%;">Perbaikan (Sesudah)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyPerbaikanData">
+                                            <!-- Rows will be generated dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <hr class="my-4">
+                            </div>
+
+                            <!-- Form Fields (normal edit atau setelah menggunakan tabel) -->
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -270,10 +413,10 @@
                             </div>
                         </div>
                         <div class="card-footer">
-                            <p class="text-muted"><i class="fas fa-info-circle"></i> Perubahan data ini akan disimpan di data utama santri.</p>
+                            <p class="text-muted" id="editInfoMessage"><i class="fas fa-info-circle"></i> Perubahan data ini akan disimpan di data utama santri.</p>
                             <div class="form-group form-check">
                                 <input type="checkbox" class="form-check-input" id="editConfirmSave" required>
-                                <label class="form-check-label" for="editConfirmSave">Saya mengerti dan menyetujui perubahan ini.</label>
+                                <label class="form-check-label" for="editConfirmSave" id="editConfirmLabel">Saya mengerti dan menyetujui perubahan ini.</label>
                             </div>
                         </div>
                     </div>
@@ -343,6 +486,324 @@
 
 <?= $this->section('scripts') ?>
 <style>
+    /* Styling untuk field comparison */
+    .field-comparison {
+        position: relative;
+    }
+
+    .comparison-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 12px;
+        padding: 12px;
+        background: linear-gradient(to right, #fff3cd 0%, #fff3cd 48%, #d4edda 52%, #d4edda 100%);
+        border-radius: 6px;
+        border: 2px solid #dee2e6;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .current-value,
+    .suggested-value {
+        flex: 1;
+        min-width: 220px;
+    }
+
+    .current-value {
+        border-right: 3px solid #ffc107;
+        padding-right: 15px;
+        margin-right: 10px;
+    }
+
+    .current-value input {
+        background-color: #fff3cd;
+        border: 2px solid #ffc107;
+        font-weight: 600;
+        color: #856404;
+    }
+
+    .suggested-value input {
+        background-color: #d4edda;
+        border: 2px solid #28a745;
+        font-weight: 600;
+        color: #155724;
+    }
+
+    .suggested-value {
+        padding-left: 15px;
+    }
+
+    .current-value small,
+    .suggested-value small {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    /* Toggle Switch Styling */
+    .switch-toggle {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+        margin-top: 5px;
+    }
+
+    .switch-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked+.slider {
+        background-color: #28a745;
+    }
+
+    input:checked+.slider:before {
+        transform: translateX(26px);
+    }
+
+    .suggested-value small.text-success {
+        font-weight: 600;
+    }
+
+    /* Alert styling */
+    .alert-warning {
+        border-left: 4px solid #ffc107;
+    }
+
+    /* Improvement untuk comparison row visibility */
+    .comparison-row small {
+        font-size: 0.85rem;
+    }
+
+    .field-comparison .form-control {
+        margin-top: 8px;
+    }
+
+    /* Styling untuk field yang perlu diperbaiki */
+    .field-to-fix {
+        position: relative;
+    }
+
+    .field-to-fix::before {
+        content: '';
+        position: absolute;
+        left: -10px;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background-color: #ffc107;
+        border-radius: 2px;
+    }
+
+    .field-to-fix label {
+        font-weight: 600;
+        color: #856404;
+    }
+
+    .field-to-fix label::after {
+        content: ' *';
+        color: #ffc107;
+    }
+
+    .field-fix-indicator {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        margin-left: 5px;
+    }
+
+    .badge-sm {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+    }
+
+    /* Styling untuk field yang disabled */
+    .form-control:disabled,
+    .form-control[readonly][disabled] {
+        background-color: #e9ecef !important;
+        cursor: not-allowed !important;
+        opacity: 0.7 !important;
+    }
+
+    .field-disabled-badge {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.85rem;
+        padding: 4px 8px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #6c757d;
+    }
+
+    .field-disabled-badge i {
+        margin-right: 5px;
+        color: #6c757d;
+    }
+
+    /* Highlight untuk field yang fokus */
+    .form-control:focus:not(:disabled) {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    /* Styling untuk label field yang disabled */
+    .form-group:has(.form-control:disabled) label {
+        opacity: 0.6;
+        color: #6c757d;
+    }
+
+    /* Pastikan field yang disabled tidak bisa di-focus */
+    .form-control:disabled:focus {
+        outline: none;
+        box-shadow: none;
+    }
+
+    /* Styling untuk tabel perbaikan data */
+    #tabelPerbaikan {
+        font-size: 0.9rem;
+    }
+
+    #tabelPerbaikan thead th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    #tabelPerbaikan tbody td {
+        vertical-align: middle;
+    }
+
+    #tabelPerbaikan .field-name {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    #tabelPerbaikan .current-value-cell {
+        background-color: #fff3cd;
+        color: #856404;
+        padding: 8px;
+        border-radius: 4px;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    #tabelPerbaikan .usulan-value-cell {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        padding: 8px;
+        border-radius: 4px;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    #tabelPerbaikan .perbaikan-input {
+        width: 100%;
+        padding: 6px 10px;
+        border: 2px solid #28a745;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    #tabelPerbaikan .perbaikan-input:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        outline: none;
+    }
+
+    .btn-action-group {
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .btn-yes,
+    .btn-no {
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        white-space: nowrap;
+        min-width: 60px;
+    }
+
+    .btn-yes {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+
+    .btn-yes:hover {
+        background: linear-gradient(135deg, #218838 0%, #1ea883 100%);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .btn-yes:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-yes.active {
+        background: linear-gradient(135deg, #218838 0%, #1ea883 100%);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-no {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+    }
+
+    .btn-no:hover {
+        background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .btn-no:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-no.active {
+        background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-yes i,
+    .btn-no i {
+        margin-right: 4px;
+    }
+
     /* Custom styling untuk Select2 agar konsisten dengan form-control */
     .select2-container--bootstrap4 .select2-selection--single {
         height: calc(2.25rem + 2px) !important;
@@ -644,7 +1105,7 @@
                             className: 'btn btn-danger btn-sm',
                             title: 'Data Peserta Munaqosah',
                             exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] // Exclude action column
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
                             }
                         },
                         {
@@ -653,7 +1114,7 @@
                             className: 'btn btn-success btn-sm',
                             title: 'Data Peserta Munaqosah',
                             exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] // Exclude action column
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
                             }
                         },
                         {
@@ -662,7 +1123,7 @@
                             className: 'btn btn-info btn-sm',
                             title: 'Data Peserta Munaqosah',
                             exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] // Exclude action column
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
                             }
                         }
                     ]
@@ -1408,7 +1869,7 @@
     }
 
     // Fungsi untuk edit peserta
-    function editPeserta(IdSantri, NamaSantri) {
+    function editPeserta(IdSantri, NamaSantri, statusVerifikasi) {
         // Tampilkan loading
         Swal.fire({
             title: 'Memuat Data...',
@@ -1433,21 +1894,195 @@
                 Swal.close();
 
                 if (response.success) {
+                    const data = response.data;
+                    const verifikasi = response.verifikasi;
+
                     // Isi form dengan data yang diterima
-                    $('#editIdSantri').val(response.data.IdSantri);
-                    $('#editIdSantriDisplay').val(response.data.IdSantri);
-                    $('#editNamaSantri').val(response.data.NamaSantri);
-                    $('#editTempatLahirSantri').val(response.data.TempatLahirSantri);
-                    $('#editTanggalLahirSantri').val(response.data.TanggalLahirSantri);
-                    $('#editJenisKelamin').val(response.data.JenisKelamin);
-                    $('#editNamaAyah').val(response.data.NamaAyah);
+                    $('#editIdSantri').val(data.IdSantri);
+                    $('#editIdSantriDisplay').val(data.IdSantri);
+                    $('#editStatusVerifikasi').val(statusVerifikasi || '');
+
+                    // Jika ada data verifikasi dengan status "perlu_perbaikan"
+                    if (verifikasi && verifikasi.status_verifikasi === 'perlu_perbaikan') {
+                        // Tampilkan alert
+                        $('#alertPerluPerbaikan').show();
+                        if (verifikasi.keterangan_text) {
+                            $('#keteranganUser').html('<strong>Keterangan dari User:</strong><br>' + verifikasi.keterangan_text.replace(/\n/g, '<br>'));
+                        } else {
+                            $('#keteranganUser').html('<strong>Keterangan:</strong> Tidak ada keterangan tambahan');
+                        }
+
+                        // Set ID peserta untuk update status verifikasi
+                        if (verifikasi.id_peserta) {
+                            $('#editIdPeserta').val(verifikasi.id_peserta);
+                        }
+
+                        // Setup tabel perbaikan data
+                        if (verifikasi.perbaikan_data) {
+                            const perbaikanData = verifikasi.perbaikan_data;
+
+                            // Mapping nama field ke label dan field ID
+                            const fieldMap = {
+                                'nama': {
+                                    label: 'Nama Santri',
+                                    fieldId: 'editNamaSantri',
+                                    type: 'text'
+                                },
+                                'tempatLahir': {
+                                    label: 'Tempat Lahir',
+                                    fieldId: 'editTempatLahirSantri',
+                                    type: 'text'
+                                },
+                                'tanggalLahir': {
+                                    label: 'Tanggal Lahir',
+                                    fieldId: 'editTanggalLahirSantri',
+                                    type: 'date'
+                                },
+                                'jenisKelamin': {
+                                    label: 'Jenis Kelamin',
+                                    fieldId: 'editJenisKelamin',
+                                    type: 'select'
+                                },
+                                'namaAyah': {
+                                    label: 'Nama Ayah',
+                                    fieldId: 'editNamaAyah',
+                                    type: 'text'
+                                }
+                            };
+
+                            // Generate tabel perbaikan data
+                            generateTablePerbaikanData(data, perbaikanData, fieldMap);
+
+                            // Tampilkan tabel
+                            $('#tablePerbaikanData').show();
+
+                            // Set nilai data asli ke form fields sebelum di-hide (untuk digunakan saat submit)
+                            // Form fields akan di-hide, tapi nilai tetap tersimpan untuk submit
+                            $('#editNamaSantri').val(data.NamaSantri || '');
+                            $('#editTempatLahirSantri').val(data.TempatLahirSantri || '');
+                            $('#editTanggalLahirSantri').val(data.TanggalLahirSantri || '');
+                            $('#editJenisKelamin').val(data.JenisKelamin || '');
+                            $('#editNamaAyah').val(data.NamaAyah || '');
+
+                            // Hide form fields - fokus hanya pada tabel
+                            // Form fields di bawah tabel tidak diperlukan karena semua input dilakukan melalui tabel
+                            // Tapi nilai tetap disimpan untuk digunakan saat submit
+                            $('#editNamaSantri').closest('.form-group').parent().hide();
+                            $('#editTempatLahirSantri').closest('.form-group').parent().hide();
+                            $('#editTanggalLahirSantri').closest('.form-group').parent().hide();
+                            $('#editJenisKelamin').closest('.form-group').parent().hide();
+                            $('#editNamaAyah').closest('.form-group').parent().hide();
+
+                            // Update modal title
+                            $('#modalEditPesertaLabel').html('<i class="fas fa-check-double"></i> Review & Konfirmasi Perbaikan Data');
+
+                            // Update info message
+                            const fieldsToFixCount = Object.keys(perbaikanData).filter(key =>
+                                perbaikanData[key] && String(perbaikanData[key]).trim() !== ''
+                            ).length;
+
+                            $('#editInfoMessage').html(`
+                                <i class="fas fa-info-circle"></i> 
+                                <strong>Review perubahan yang diusulkan.</strong><br>
+                                Gunakan tombol <strong>"Ya"</strong> untuk menggunakan nilai usulan, atau tombol <strong>"Tidak"</strong> untuk mengosongkan kolom perbaikan.
+                                Anda juga dapat mengedit manual di kolom "Perbaikan (Sesudah)" jika diperlukan.
+                                Hanya <strong>${fieldsToFixCount} field</strong> yang diminta perbaikan yang dapat diubah.
+                            `);
+                            $('#editConfirmLabel').text('Saya telah mereview dan menyetujui perbaikan data ini.');
+                        } else {
+                            // Jika tidak ada perbaikan data, sembunyikan tabel
+                            $('#tablePerbaikanData').hide();
+
+                            // Set nilai normal dan disable semua
+                            $('#editNamaSantri').val(data.NamaSantri || '').prop('disabled', true);
+                            $('#editTempatLahirSantri').val(data.TempatLahirSantri || '').prop('disabled', true);
+                            $('#editTanggalLahirSantri').val(data.TanggalLahirSantri || '').prop('disabled', true);
+                            $('#editJenisKelamin').val(data.JenisKelamin || '').prop('disabled', true);
+                            $('#editNamaAyah').val(data.NamaAyah || '').prop('disabled', true);
+
+                            // Update modal title
+                            $('#modalEditPesertaLabel').html('<i class="fas fa-user-edit"></i> Edit Data Peserta Munaqosah');
+
+                            // Update info message
+                            $('#editInfoMessage').html('<i class="fas fa-info-circle"></i> Perubahan data ini akan disimpan di data utama santri.');
+                            $('#editConfirmLabel').text('Saya mengerti dan menyetujui perubahan ini.');
+                        }
+                    } else {
+                        // Tidak ada status perlu perbaikan - edit normal
+                        // Hide alert dan tabel perbaikan
+                        $('#alertPerluPerbaikan').hide();
+                        $('#fieldsToFixList').html('');
+                        $('#tablePerbaikanData').hide();
+                        $('.comparison-row').hide();
+                        $('.suggested-value').hide();
+                        $('.field-disabled-badge').remove();
+
+                        // Show form fields untuk edit normal
+                        $('#editNamaSantri').closest('.form-group').parent().show();
+                        $('#editTempatLahirSantri').closest('.form-group').parent().show();
+                        $('#editTanggalLahirSantri').closest('.form-group').parent().show();
+                        $('#editJenisKelamin').closest('.form-group').parent().show();
+                        $('#editNamaAyah').closest('.form-group').parent().show();
+
+                        // Enable semua field untuk edit normal (bukan review perbaikan)
+                        $('#editNamaSantri').prop('disabled', false);
+                        $('#editTempatLahirSantri').prop('disabled', false);
+                        $('#editTanggalLahirSantri').prop('disabled', false);
+                        $('#editJenisKelamin').prop('disabled', false);
+                        $('#editNamaAyah').prop('disabled', false);
+
+                        // Set nilai normal
+                        $('#editNamaSantri').val(data.NamaSantri);
+                        $('#editTempatLahirSantri').val(data.TempatLahirSantri);
+                        $('#editTanggalLahirSantri').val(data.TanggalLahirSantri);
+                        $('#editJenisKelamin').val(data.JenisKelamin);
+                        $('#editNamaAyah').val(data.NamaAyah);
+
+                        // Clear ID peserta jika tidak ada status perlu perbaikan
+                        $('#editIdPeserta').val('');
+
+                        // Update modal title
+                        $('#modalEditPesertaLabel').html('<i class="fas fa-user-edit"></i> Edit Data Peserta Munaqosah');
+
+                        // Update info message
+                        $('#editInfoMessage').html('<i class="fas fa-info-circle"></i> Perubahan data ini akan disimpan di data utama santri.');
+                        $('#editConfirmLabel').text('Saya mengerti dan menyetujui perubahan ini.');
+                    }
 
                     // Tampilkan informasi kartu keluarga
-                    displayKartuKeluargaInfo(response.data);
+                    displayKartuKeluargaInfo(data);
 
                     // Reset checkbox dan button
                     $('#editConfirmSave').prop('checked', false);
-                    $('#formEditPeserta button[type="submit"]').prop('disabled', true).removeClass('btn-primary').addClass('btn-secondary');
+                    const submitButton = $('#formEditPeserta button[type="submit"]');
+                    submitButton.prop('disabled', true).removeClass('btn-primary').addClass('btn-secondary');
+                    console.log('Modal opened - checkbox and button reset. Submit button disabled:', submitButton.prop('disabled'));
+
+                    // Hapus semua styling field-to-fix yang mungkin tersisa
+                    $('.form-group').removeClass('field-to-fix');
+                    $('.field-disabled-badge').remove();
+
+                    // Remove event handler untuk shown.bs.modal jika ada (untuk menghindari multiple handlers)
+                    $('#modalEditPeserta').off('shown.bs.modal');
+
+                    // Cleanup saat modal ditutup
+                    $('#modalEditPeserta').on('hidden.bs.modal', function() {
+                        // Reset tabel perbaikan
+                        $('#tbodyPerbaikanData').empty();
+                        $('#tablePerbaikanData').hide();
+
+                        // Show form fields kembali (untuk edit normal)
+                        $('#editNamaSantri').closest('.form-group').parent().show();
+                        $('#editTempatLahirSantri').closest('.form-group').parent().show();
+                        $('#editTanggalLahirSantri').closest('.form-group').parent().show();
+                        $('#editJenisKelamin').closest('.form-group').parent().show();
+                        $('#editNamaAyah').closest('.form-group').parent().show();
+
+                        // Remove event handlers untuk menghindari memory leaks
+                        $('.btn-yes').off('click');
+                        $('.btn-no').off('click');
+                        $('.perbaikan-input').off('change input');
+                    });
 
                     // Tampilkan modal
                     $('#modalEditPeserta').modal('show');
@@ -1500,6 +2135,714 @@
         });
     }
 
+    // Fungsi untuk generate tabel perbaikan data
+    function generateTablePerbaikanData(data, perbaikanData, fieldMap) {
+        const tbody = $('#tbodyPerbaikanData');
+        tbody.empty(); // Clear existing rows
+
+        // Mapping data saat ini
+        const currentDataMap = {
+            'nama': data.NamaSantri || '',
+            'tempatLahir': data.TempatLahirSantri || '',
+            'tanggalLahir': data.TanggalLahirSantri || '',
+            'jenisKelamin': data.JenisKelamin || '',
+            'namaAyah': data.NamaAyah || ''
+        };
+
+        // Format tanggal untuk display
+        const formatDateForDisplay = (dateStr) => {
+            if (!dateStr) return '';
+            try {
+                const date = new Date(dateStr + 'T00:00:00');
+                if (!isNaN(date.getTime())) {
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    return `${day}-${month}-${year}`;
+                }
+            } catch (e) {
+                // Ignore error
+            }
+            return dateStr;
+        };
+
+        // Format tanggal untuk input date
+        const formatDateForInput = (dateStr) => {
+            if (!dateStr) return '';
+            try {
+                const date = new Date(dateStr + 'T00:00:00');
+                if (!isNaN(date.getTime())) {
+                    return dateStr; // Return as is if valid date
+                }
+            } catch (e) {
+                // Ignore error
+            }
+            return dateStr;
+        };
+
+        // Iterate through fields that have perbaikan data
+        Object.keys(perbaikanData).forEach(key => {
+            const usulanValue = perbaikanData[key];
+            if (!usulanValue || String(usulanValue).trim() === '') {
+                return; // Skip empty values
+            }
+
+            const fieldInfo = fieldMap[key];
+            if (!fieldInfo) {
+                return; // Skip unknown fields
+            }
+
+            const currentValue = currentDataMap[key] || '';
+            const fieldId = fieldInfo.fieldId;
+            const rowId = 'row_' + key;
+
+            // Determine display values
+            let currentDisplay = currentValue;
+            let usulanDisplay = usulanValue;
+            let perbaikanValue = ''; // Default to empty - waiting for user action
+
+            if (key === 'tanggalLahir') {
+                currentDisplay = formatDateForDisplay(currentValue);
+                usulanDisplay = formatDateForDisplay(usulanValue);
+                // perbaikanValue tetap kosong
+            } else if (key === 'jenisKelamin') {
+                currentDisplay = currentValue || '-';
+                usulanDisplay = usulanValue || '-';
+                // perbaikanValue tetap kosong
+            }
+
+            // Format usulan value for input (for date field)
+            let usulanValueForInput = usulanValue;
+            if (key === 'tanggalLahir') {
+                usulanValueForInput = formatDateForInput(usulanValue);
+            }
+
+            // Create table row
+            let perbaikanInput = '';
+            if (fieldInfo.type === 'select') {
+                // For select field, create select dropdown
+                perbaikanInput = `
+                    <select class="form-control perbaikan-input" id="perbaikan_${key}" data-field="${key}" data-field-id="${fieldId}" data-usulan="${usulanValue}">
+                        <option value="">Pilih Jenis Kelamin</option>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                    </select>
+                `;
+            } else if (fieldInfo.type === 'date') {
+                // For date field, create date input
+                perbaikanInput = `
+                    <input type="date" class="form-control perbaikan-input" id="perbaikan_${key}" 
+                           data-field="${key}" data-field-id="${fieldId}" data-usulan="${usulanValueForInput}" value="" placeholder="Pilih tanggal">
+                `;
+            } else {
+                // For text field, create text input
+                perbaikanInput = `
+                    <input type="text" class="form-control perbaikan-input" id="perbaikan_${key}" 
+                           data-field="${key}" data-field-id="${fieldId}" data-usulan="${usulanValue}" value="" placeholder="Kosong">
+                `;
+            }
+
+            const row = `
+                <tr id="${rowId}">
+                    <td class="field-name">${fieldInfo.label}</td>
+                    <td class="current-value-cell">${currentDisplay || '-'}</td>
+                    <td class="usulan-value-cell">${usulanDisplay || '-'}</td>
+                    <td class="text-center">
+                        <div class="btn-action-group">
+                            <button type="button" class="btn-yes" data-field="${key}" data-usulan="${usulanValueForInput || usulanValue}" title="Setujui gunakan usulan">
+                                <i class="fas fa-check"></i> Ya
+                            </button>
+                            <button type="button" class="btn-no" data-field="${key}" title="Tidak setuju, kosongkan">
+                                <i class="fas fa-times"></i> Tidak
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        ${perbaikanInput}
+                    </td>
+                </tr>
+            `;
+
+            tbody.append(row);
+
+            // Set initial button state - tidak ada yang active karena input kosong
+            // Default: Tidak button active (karena input kosong)
+            const rowElement = $(`#${rowId}`);
+            const btnNo = rowElement.find('.btn-no');
+            btnNo.addClass('active');
+        });
+
+        // Attach event handlers for Yes button
+        $('.btn-yes').off('click').on('click', function() {
+            const field = $(this).data('field');
+            const usulanValue = $(this).data('usulan');
+            const perbaikanInput = $('#perbaikan_' + field);
+            const fieldInfo = fieldMap[field];
+            const row = $(this).closest('tr');
+            const btnYes = row.find('.btn-yes');
+            const btnNo = row.find('.btn-no');
+
+            // Set value to usulan (hanya di tabel, tidak perlu sync dengan form fields)
+            if (fieldInfo.type === 'date') {
+                // Format date for input
+                const formattedDate = formatDateForInput(usulanValue);
+                perbaikanInput.val(formattedDate);
+            } else if (fieldInfo.type === 'select') {
+                perbaikanInput.val(usulanValue);
+            } else {
+                perbaikanInput.val(usulanValue);
+            }
+
+            // Update button states
+            btnYes.addClass('active');
+            btnNo.removeClass('active');
+
+            // Add visual feedback
+            perbaikanInput.css({
+                'background-color': '#d4edda',
+                'border-color': '#28a745'
+            });
+
+            setTimeout(() => {
+                perbaikanInput.css({
+                    'background-color': '',
+                    'border-color': '#28a745'
+                });
+            }, 500);
+
+            // Focus on the input
+            perbaikanInput.focus();
+        });
+
+        // Attach event handlers for No button
+        $('.btn-no').off('click').on('click', function() {
+            const field = $(this).data('field');
+            const perbaikanInput = $('#perbaikan_' + field);
+            const row = $(this).closest('tr');
+            const btnYes = row.find('.btn-yes');
+            const btnNo = row.find('.btn-no');
+
+            // Clear value (hanya di tabel, tidak perlu sync dengan form fields)
+            perbaikanInput.val('');
+
+            // Update button states
+            btnNo.addClass('active');
+            btnYes.removeClass('active');
+
+            // Add visual feedback
+            perbaikanInput.css({
+                'background-color': '#f8d7da',
+                'border-color': '#dc3545'
+            });
+
+            setTimeout(() => {
+                perbaikanInput.css({
+                    'background-color': '',
+                    'border-color': '#28a745'
+                });
+            }, 500);
+
+            // Focus on the input
+            perbaikanInput.focus();
+        });
+
+        // Attach event handlers for perbaikan inputs
+        // TIDAK perlu sync dengan form fields karena form fields di-hide
+        // Data akan diambil langsung dari tabel saat submit
+        $(document).off('change input', '.perbaikan-input').on('change input', '.perbaikan-input', function() {
+            const value = $(this).val();
+            const field = $(this).data('field');
+            const usulanValue = $(this).data('usulan');
+            const row = $(this).closest('tr');
+            const btnYes = row.find('.btn-yes');
+            const btnNo = row.find('.btn-no');
+
+            // Update button states based on input value
+            // Normalize values for comparison
+            const normalizeValue = (val) => {
+                if (!val) return '';
+                return String(val).trim();
+            };
+
+            const normalizedValue = normalizeValue(value);
+            const normalizedUsulan = normalizeValue(usulanValue);
+
+            if (normalizedValue === '') {
+                // Input kosong - Tidak active
+                btnNo.addClass('active');
+                btnYes.removeClass('active');
+            } else if (normalizedValue === normalizedUsulan) {
+                // Input sama dengan usulan - Ya active
+                btnYes.addClass('active');
+                btnNo.removeClass('active');
+            } else {
+                // Input berbeda dari usulan - tidak ada yang active (user edit manual)
+                btnYes.removeClass('active');
+                btnNo.removeClass('active');
+            }
+        });
+
+        // Tidak perlu sync dari form fields ke tabel karena form fields di-hide
+        // Data hanya diambil dari tabel saat submit
+    }
+
+    // Fungsi untuk setup field comparison
+    function setupFieldComparison(fieldName, currentValue, suggestedValue) {
+        // Normalize values untuk perbandingan
+        const normalizeValue = (val) => {
+            if (!val) return '';
+            return val.toString().trim().toLowerCase();
+        };
+
+        const normalizedCurrent = normalizeValue(currentValue);
+        const normalizedSuggested = normalizeValue(suggestedValue);
+
+        // Jika tidak ada perbaikan atau sama dengan nilai saat ini, sembunyikan comparison
+        if (!suggestedValue || normalizedSuggested === normalizedCurrent || normalizedSuggested === '') {
+            hideFieldComparison(fieldName);
+            setFieldValue(fieldName, currentValue || '');
+            // Field ini tidak perlu diperbaiki, jadi disable
+            disableField(fieldName);
+            return;
+        }
+
+        // Ada perbaikan data untuk field ini
+        // Enable field dan tampilkan comparison
+        enableField(fieldName);
+        showFieldComparison(fieldName, currentValue, suggestedValue);
+    }
+
+    // Fungsi untuk menampilkan field comparison
+    function showFieldComparison(fieldName, currentValue, suggestedValue) {
+        // Define field mapping dengan mainField untuk akses ke input utama
+        const fieldMapDefinition = {
+            'nama': {
+                current: '#editNamaSantriCurrent',
+                suggested: '#editNamaSantriSuggested',
+                toggle: '#toggleNama',
+                container: '#fieldNama .suggested-value',
+                comparisonRow: '#fieldNama .comparison-row',
+                mainField: '#editNamaSantri'
+            },
+            'tempatLahir': {
+                current: '#editTempatLahirSantriCurrent',
+                suggested: '#editTempatLahirSantriSuggested',
+                toggle: '#toggleTempatLahir',
+                container: '#fieldTempatLahir .suggested-value',
+                comparisonRow: '#fieldTempatLahir .comparison-row',
+                mainField: '#editTempatLahirSantri'
+            },
+            'tanggalLahir': {
+                current: '#editTanggalLahirSantriCurrent',
+                suggested: '#editTanggalLahirSantriSuggested',
+                toggle: '#toggleTanggalLahir',
+                container: '#fieldTanggalLahir .suggested-value',
+                comparisonRow: '#fieldTanggalLahir .comparison-row',
+                mainField: '#editTanggalLahirSantri'
+            },
+            'jenisKelamin': {
+                current: '#editJenisKelaminCurrent',
+                suggested: '#editJenisKelaminSuggested',
+                toggle: '#toggleJenisKelamin',
+                container: '#fieldJenisKelamin .suggested-value',
+                comparisonRow: '#fieldJenisKelamin .comparison-row',
+                mainField: '#editJenisKelamin'
+            },
+            'namaAyah': {
+                current: '#editNamaAyahCurrent',
+                suggested: '#editNamaAyahSuggested',
+                toggle: '#toggleNamaAyah',
+                container: '#fieldNamaAyah .suggested-value',
+                comparisonRow: '#fieldNamaAyah .comparison-row',
+                mainField: '#editNamaAyah'
+            }
+        };
+
+        const field = fieldMapDefinition[fieldName];
+        if (!field) return;
+
+        // Format tanggal jika field tanggalLahir
+        let displayCurrent = currentValue || '';
+        let displaySuggested = suggestedValue || '';
+
+        if (fieldName === 'tanggalLahir') {
+            if (currentValue) {
+                try {
+                    const currentDate = new Date(currentValue + 'T00:00:00');
+                    if (!isNaN(currentDate.getTime())) {
+                        const day = String(currentDate.getDate()).padStart(2, '0');
+                        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                        const year = currentDate.getFullYear();
+                        displayCurrent = `${day}-${month}-${year}`;
+                    }
+                } catch (e) {
+                    displayCurrent = currentValue;
+                }
+            }
+            if (suggestedValue) {
+                try {
+                    const suggestedDate = new Date(suggestedValue + 'T00:00:00');
+                    if (!isNaN(suggestedDate.getTime())) {
+                        const day = String(suggestedDate.getDate()).padStart(2, '0');
+                        const month = String(suggestedDate.getMonth() + 1).padStart(2, '0');
+                        const year = suggestedDate.getFullYear();
+                        displaySuggested = `${day}-${month}-${year}`;
+                    }
+                } catch (e) {
+                    displaySuggested = suggestedValue;
+                }
+            }
+        }
+
+        // Set nilai untuk display
+        $(field.current).val(displayCurrent || '-');
+        $(field.suggested).val(displaySuggested || '-');
+
+        // Tampilkan comparison row (yang berisi current dan suggested value)
+        $(field.comparisonRow).show();
+        // Tampilkan current value container
+        $(field.current).closest('.current-value').show();
+        // Tampilkan suggested value container
+        $(field.container).show();
+
+        // Enable field karena ini field yang perlu diperbaiki
+        enableField(fieldName);
+
+        // Reset toggle ke false (default: tidak menggunakan usulan)
+        $(field.toggle).prop('checked', false);
+
+        // Set nilai default ke current value
+        setFieldValue(fieldName, currentValue);
+
+        // Tambahkan visual indicator bahwa field ini fokus untuk perbaikan
+        const mainField = $(fieldMapDefinition[fieldName].mainField);
+        if (mainField.length > 0 && !mainField.prop('disabled')) {
+            const fieldContainer = mainField.closest('.form-group');
+            fieldContainer.addClass('field-to-fix');
+
+            // Apply styling untuk field yang perlu diperbaiki
+            mainField.css({
+                'border-left': '4px solid #ffc107',
+                'background-color': '#fff9e6',
+                'border-color': '#ffc107'
+            });
+
+            // Update label untuk menunjukkan field ini perlu diperbaiki
+            const label = fieldContainer.find('label');
+            if (label.length > 0) {
+                label.css({
+                    'font-weight': '600',
+                    'color': '#856404'
+                });
+
+                // Tambahkan indicator di label jika belum ada
+                if (label.find('.field-fix-indicator').length === 0) {
+                    label.append(' <span class="badge badge-warning badge-sm field-fix-indicator"><i class="fas fa-exclamation-circle"></i> Perlu Perbaikan</span>');
+                }
+            }
+        }
+
+        // Event handler untuk toggle (hapus handler lama jika ada)
+        // Simpan nilai currentValue dan suggestedValue dalam closure untuk digunakan di event handler
+        $(field.toggle).off('change').on('change', function() {
+            const isChecked = $(this).is(':checked');
+            const mainField = $(fieldMapDefinition[fieldName].mainField);
+
+            if (isChecked) {
+                // Gunakan nilai usulan
+                setFieldValue(fieldName, suggestedValue);
+                // Update visual indicator
+                mainField.css({
+                    'border-left': '4px solid #28a745',
+                    'background-color': '#e8f5e9'
+                });
+            } else {
+                // Gunakan nilai saat ini
+                setFieldValue(fieldName, currentValue);
+                // Update visual indicator
+                mainField.css({
+                    'border-left': '4px solid #ffc107',
+                    'background-color': '#fff9e6'
+                });
+            }
+        });
+    }
+
+    // Fungsi untuk menyembunyikan field comparison
+    function hideFieldComparison(fieldName) {
+        const fieldMap = {
+            'nama': {
+                container: '#fieldNama .suggested-value',
+                row: '#fieldNama .comparison-row',
+                mainField: '#editNamaSantri'
+            },
+            'tempatLahir': {
+                container: '#fieldTempatLahir .suggested-value',
+                row: '#fieldTempatLahir .comparison-row',
+                mainField: '#editTempatLahirSantri'
+            },
+            'tanggalLahir': {
+                container: '#fieldTanggalLahir .suggested-value',
+                row: '#fieldTanggalLahir .comparison-row',
+                mainField: '#editTanggalLahirSantri'
+            },
+            'jenisKelamin': {
+                container: '#fieldJenisKelamin .suggested-value',
+                row: '#fieldJenisKelamin .comparison-row',
+                mainField: '#editJenisKelamin'
+            },
+            'namaAyah': {
+                container: '#fieldNamaAyah .suggested-value',
+                row: '#fieldNamaAyah .comparison-row',
+                mainField: '#editNamaAyah'
+            }
+        };
+
+        if (fieldMap[fieldName]) {
+            $(fieldMap[fieldName].container).hide();
+            $(fieldMap[fieldName].row).hide();
+
+            // Hapus styling field-to-fix jika ada
+            const mainField = $(fieldMap[fieldName].mainField);
+            if (mainField.length > 0) {
+                const fieldContainer = mainField.closest('.form-group');
+                fieldContainer.removeClass('field-to-fix');
+                mainField.css({
+                    'border-left': '',
+                    'background-color': '',
+                    'border-color': ''
+                });
+
+                // Hapus indicator dari label
+                const label = fieldContainer.find('label');
+                if (label.length > 0) {
+                    label.find('.field-fix-indicator').remove();
+                    label.css({
+                        'font-weight': '',
+                        'color': ''
+                    });
+                }
+            }
+        }
+    }
+
+    // Fungsi untuk menyembunyikan semua field comparison
+    function hideAllFieldComparisons() {
+        $('.suggested-value').hide();
+        $('.comparison-row').hide();
+    }
+
+    // Fungsi untuk set nilai field
+    function setFieldValue(fieldName, value) {
+        const fieldMap = {
+            'nama': '#editNamaSantri',
+            'tempatLahir': '#editTempatLahirSantri',
+            'tanggalLahir': '#editTanggalLahirSantri',
+            'jenisKelamin': '#editJenisKelamin',
+            'namaAyah': '#editNamaAyah'
+        };
+
+        if (fieldMap[fieldName]) {
+            const field = $(fieldMap[fieldName]);
+            if (field.length > 0) {
+                // Jika field adalah select, pastikan option ada
+                if (field.is('select')) {
+                    const optionValue = value || '';
+                    if (optionValue && field.find('option[value="' + optionValue + '"]').length > 0) {
+                        field.val(optionValue);
+                    } else {
+                        field.val('');
+                    }
+                } else {
+                    field.val(value || '');
+                }
+            }
+        }
+    }
+
+    // Fungsi untuk disable field
+    function disableField(fieldName) {
+        const fieldMap = {
+            'nama': '#editNamaSantri',
+            'tempatLahir': '#editTempatLahirSantri',
+            'tanggalLahir': '#editTanggalLahirSantri',
+            'jenisKelamin': '#editJenisKelamin',
+            'namaAyah': '#editNamaAyah'
+        };
+
+        if (fieldMap[fieldName]) {
+            const field = $(fieldMap[fieldName]);
+            if (field.length > 0) {
+                // Disable field
+                field.prop('disabled', true);
+                field.attr('readonly', true);
+
+                // Apply styling untuk disabled field
+                // Hapus class yang mungkin mengganggu
+                field.removeClass('field-to-fix-active');
+
+                // Apply styling dengan !important untuk override
+                field.attr('style',
+                    field.attr('style') +
+                    '; background-color: #e9ecef !important;' +
+                    'cursor: not-allowed !important;' +
+                    'opacity: 0.7 !important;' +
+                    'border-left: 4px solid #6c757d !important;' +
+                    'color: #6c757d !important;'
+                );
+
+                // Tambahkan badge/label untuk menunjukkan field ini tidak bisa diubah
+                const fieldContainer = field.closest('.form-group');
+                const label = fieldContainer.find('label');
+
+                // Update label styling
+                if (label.length > 0) {
+                    label.css({
+                        'opacity': '0.6',
+                        'color': '#6c757d'
+                    });
+                }
+
+                // Tambahkan badge jika belum ada
+                if (fieldContainer.find('.field-disabled-badge').length === 0) {
+                    fieldContainer.append('<small class="text-muted field-disabled-badge d-block mt-1"><i class="fas fa-lock"></i> Field ini tidak diminta perbaikan</small>');
+                }
+
+                // Hapus styling field-to-fix jika ada
+                fieldContainer.removeClass('field-to-fix');
+            }
+        }
+    }
+
+    // Fungsi untuk enable field
+    function enableField(fieldName) {
+        const fieldMap = {
+            'nama': '#editNamaSantri',
+            'tempatLahir': '#editTempatLahirSantri',
+            'tanggalLahir': '#editTanggalLahirSantri',
+            'jenisKelamin': '#editJenisKelamin',
+            'namaAyah': '#editNamaAyah'
+        };
+
+        if (fieldMap[fieldName]) {
+            const field = $(fieldMap[fieldName]);
+            if (field.length > 0) {
+                // Enable field
+                field.prop('disabled', false);
+                field.removeAttr('readonly');
+
+                // Hapus semua inline styling yang terkait dengan disabled state
+                // Kita akan reset dengan menghapus style attribute dan mengembalikan ke default
+                const currentStyle = field.attr('style') || '';
+                // Hapus style yang terkait dengan disabled
+                const newStyle = currentStyle
+                    .replace(/background-color[^;]*;?/gi, '')
+                    .replace(/cursor[^;]*;?/gi, '')
+                    .replace(/opacity[^;]*;?/gi, '')
+                    .replace(/border-left[^;]*;?/gi, '')
+                    .replace(/color[^;]*;?/gi, '')
+                    .replace(/border-color[^;]*;?/gi, '')
+                    .replace(/;{2,}/g, ';')
+                    .replace(/^;|;$/g, '')
+                    .trim();
+
+                if (newStyle) {
+                    field.attr('style', newStyle);
+                } else {
+                    field.removeAttr('style');
+                }
+
+                // Reset kelas yang mungkin mengganggu
+                field.removeClass('field-to-fix-active');
+
+                // Hapus badge/label disabled
+                const fieldContainer = field.closest('.form-group');
+                fieldContainer.find('.field-disabled-badge').remove();
+
+                // Reset label styling (kecuali jika field-to-fix, akan di-set oleh showFieldComparison)
+                const label = fieldContainer.find('label');
+                if (label.length > 0 && !fieldContainer.hasClass('field-to-fix')) {
+                    label.css({
+                        'opacity': '',
+                        'color': '',
+                        'font-weight': ''
+                    });
+                    // Hapus indicator field-fix jika ada (akan ditambahkan lagi oleh showFieldComparison jika perlu)
+                    label.find('.field-fix-indicator').remove();
+                }
+            }
+        }
+    }
+
+    // Fungsi untuk fokus ke field
+    function focusField(fieldName) {
+        const fieldMap = {
+            'nama': '#editNamaSantri',
+            'tempatLahir': '#editTempatLahirSantri',
+            'tanggalLahir': '#editTanggalLahirSantri',
+            'jenisKelamin': '#editJenisKelamin',
+            'namaAyah': '#editNamaAyah'
+        };
+
+        if (fieldMap[fieldName]) {
+            const field = $(fieldMap[fieldName]);
+            if (field.length > 0 && !field.prop('disabled')) {
+                // Scroll ke field (scroll ke comparison row jika ada)
+                const comparisonRow = field.closest('.field-comparison').find('.comparison-row');
+                if (comparisonRow.length > 0 && comparisonRow.is(':visible')) {
+                    $('html, body').animate({
+                        scrollTop: comparisonRow.offset().top - 150
+                    }, 600);
+                } else {
+                    $('html, body').animate({
+                        scrollTop: field.offset().top - 150
+                    }, 600);
+                }
+
+                // Fokus ke field setelah animasi
+                setTimeout(() => {
+                    // Fokus ke comparison row jika ada, atau langsung ke field
+                    if (comparisonRow.length > 0 && comparisonRow.is(':visible')) {
+                        // Highlight comparison row
+                        comparisonRow.css({
+                            'border': '3px solid #007bff',
+                            'box-shadow': '0 0 15px rgba(0, 123, 255, 0.6)',
+                            'background': 'linear-gradient(to right, #fff3cd 0%, #fff3cd 48%, #d1ecf1 52%, #d1ecf1 100%)'
+                        });
+
+                        // Hapus highlight setelah 3 detik
+                        setTimeout(() => {
+                            comparisonRow.css({
+                                'border': '2px solid #dee2e6',
+                                'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
+                                'background': 'linear-gradient(to right, #fff3cd 0%, #fff3cd 48%, #d4edda 52%, #d4edda 100%)'
+                            });
+                        }, 3000);
+                    }
+
+                    // Fokus ke field input
+                    field.focus();
+
+                    // Highlight field dengan border (jika belum di-highlight oleh comparison row)
+                    if (comparisonRow.length === 0 || !comparisonRow.is(':visible')) {
+                        field.css({
+                            'border': '3px solid #007bff',
+                            'box-shadow': '0 0 10px rgba(0, 123, 255, 0.5)'
+                        });
+
+                        // Hapus highlight setelah 2 detik
+                        setTimeout(() => {
+                            field.css({
+                                'border': '',
+                                'box-shadow': ''
+                            });
+                        }, 2000);
+                    }
+                }, 600);
+            }
+        }
+    }
+
     // Format tempat lahir saat mengetik
     $('#editTempatLahirSantri').on('input', function() {
         let value = $(this).val();
@@ -1531,13 +2874,23 @@
     });
 
     // Event handler untuk checkbox konfirmasi
-    $('#editConfirmSave').on('change', function() {
+    // Gunakan event delegation untuk memastikan event handler selalu terikat
+    $(document).off('change', '#editConfirmSave').on('change', '#editConfirmSave', function() {
         const submitButton = $('#formEditPeserta button[type="submit"]');
-        if ($(this).is(':checked')) {
+        const isChecked = $(this).is(':checked');
+
+        console.log('Checkbox changed:', isChecked);
+        console.log('Submit button before:', submitButton.prop('disabled'));
+
+        if (isChecked) {
             submitButton.prop('disabled', false).removeClass('btn-secondary').addClass('btn-primary');
+            console.log('Submit button enabled');
         } else {
             submitButton.prop('disabled', true).removeClass('btn-primary').addClass('btn-secondary');
+            console.log('Submit button disabled');
         }
+
+        console.log('Submit button after:', submitButton.prop('disabled'));
     });
 
     // Fungsi untuk menampilkan informasi kartu keluarga
@@ -1625,13 +2978,143 @@
             }
         });
 
+        // Siapkan data untuk dikirim (termasuk IdPeserta dan StatusVerifikasi jika ada)
+        let dataToSend = {};
+
+        // Cek apakah tabel perbaikan visible
+        const tablePerbaikanVisible = $('#tablePerbaikanData').is(':visible');
+
+        // Map field name dari tabel perbaikan ke form field name
+        const fieldNameMap = {
+            'nama': 'NamaSantri',
+            'tempatLahir': 'TempatLahirSantri',
+            'tanggalLahir': 'TanggalLahirSantri',
+            'jenisKelamin': 'JenisKelamin',
+            'namaAyah': 'NamaAyah'
+        };
+
+        if (tablePerbaikanVisible) {
+            // Jika tabel perbaikan visible, kita perlu mengirim SEMUA field yang diperlukan
+            // Gunakan nilai dari kolom "Perbaikan (Sesudah)" jika diisi, atau nilai asli jika kosong
+
+            // Ambil data asli dari hidden fields atau dari data yang sudah di-load sebelumnya
+            // Kita akan gunakan nilai dari form fields yang di-hide sebagai fallback
+            const originalData = {
+                'NamaSantri': $('#editNamaSantri').val() || '',
+                'TempatLahirSantri': $('#editTempatLahirSantri').val() || '',
+                'TanggalLahirSantri': $('#editTanggalLahirSantri').val() || '',
+                'JenisKelamin': $('#editJenisKelamin').val() || '',
+                'NamaAyah': $('#editNamaAyah').val() || ''
+            };
+
+            // Inisialisasi dengan data asli menggunakan Object.assign
+            dataToSend = Object.assign({}, originalData);
+
+            // Override dengan nilai dari kolom "Perbaikan (Sesudah)" jika diisi
+            $('.perbaikan-input').each(function() {
+                const field = $(this).data('field');
+                const value = $(this).val();
+
+                // Jika ada value di kolom perbaikan, gunakan nilai tersebut
+                if (fieldNameMap[field] && value && value.trim() !== '') {
+                    dataToSend[fieldNameMap[field]] = value.trim();
+                }
+                // Jika tidak ada value, tetap gunakan nilai asli (sudah di-set di atas)
+            });
+        } else {
+            // Jika tabel perbaikan tidak visible, ambil dari form fields (edit normal)
+            const fieldsToCheck = [{
+                    name: 'NamaSantri',
+                    selector: '#editNamaSantri'
+                },
+                {
+                    name: 'TempatLahirSantri',
+                    selector: '#editTempatLahirSantri'
+                },
+                {
+                    name: 'TanggalLahirSantri',
+                    selector: '#editTanggalLahirSantri'
+                },
+                {
+                    name: 'JenisKelamin',
+                    selector: '#editJenisKelamin'
+                },
+                {
+                    name: 'NamaAyah',
+                    selector: '#editNamaAyah'
+                }
+            ];
+
+            fieldsToCheck.forEach(function(fieldInfo) {
+                const field = $(fieldInfo.selector);
+                if (field.length > 0 && !field.prop('disabled')) {
+                    const value = field.val();
+                    if (value !== null && value !== undefined && value !== '') {
+                        dataToSend[fieldInfo.name] = value;
+                    }
+                }
+            });
+        }
+
+        // Selalu kirim IdSantri, IdPeserta, dan StatusVerifikasi jika ada
+        const idSantri = $('#editIdSantri').val();
+        if (idSantri) {
+            dataToSend['IdSantri'] = idSantri;
+        }
+
+        const idPeserta = $('#editIdPeserta').val();
+        if (idPeserta) {
+            dataToSend['IdPeserta'] = idPeserta;
+        }
+
+        const statusVerifikasi = $('#editStatusVerifikasi').val();
+        if (statusVerifikasi) {
+            dataToSend['StatusVerifikasi'] = statusVerifikasi;
+        }
+
         // AJAX untuk update data
         $.ajax({
             url: '<?= base_url('backend/munaqosah/update-santri') ?>',
             type: 'POST',
-            data: $(this).serialize(),
+            data: dataToSend,
             dataType: 'json',
             timeout: 30000, // 30 detik timeout
+            beforeSend: function(xhr) {
+                // Debug: Tampilkan data yang akan dikirim
+                console.log('Data yang akan dikirim:', dataToSend);
+                console.log('Tabel perbaikan visible:', tablePerbaikanVisible);
+                console.log('IdSantri:', $('#editIdSantri').val());
+                console.log('IdPeserta:', $('#editIdPeserta').val());
+                console.log('StatusVerifikasi:', $('#editStatusVerifikasi').val());
+
+                // Validasi: Pastikan semua field required ada
+                const requiredFields = ['IdSantri', 'NamaSantri', 'TempatLahirSantri', 'TanggalLahirSantri', 'JenisKelamin', 'NamaAyah'];
+                const missingFields = requiredFields.filter(field => !dataToSend[field] || dataToSend[field].toString().trim() === '');
+
+                if (missingFields.length > 0) {
+                    console.error('Field yang belum diisi:', missingFields);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Data Tidak Lengkap',
+                        html: `Field berikut belum diisi atau kosong:<br><strong>${missingFields.join(', ')}</strong><br><br>Silakan lengkapi semua field yang diperlukan.`,
+                        confirmButtonText: 'OK'
+                    });
+                    return false; // Stop AJAX request
+                }
+
+                if (tablePerbaikanVisible) {
+                    console.log('Data diambil dari tabel perbaikan dan form fields (data asli)');
+                    console.log('Data asli dari form fields:', {
+                        'NamaSantri': $('#editNamaSantri').val(),
+                        'TempatLahirSantri': $('#editTempatLahirSantri').val(),
+                        'TanggalLahirSantri': $('#editTanggalLahirSantri').val(),
+                        'JenisKelamin': $('#editJenisKelamin').val(),
+                        'NamaAyah': $('#editNamaAyah').val()
+                    });
+                } else {
+                    console.log('Data diambil dari form fields (edit normal)');
+                }
+            },
             success: function(response) {
                 Swal.close();
 
@@ -1684,10 +3167,15 @@
                             changeTable += '<div class="alert alert-info mt-2"><i class="fas fa-info-circle"></i> Total <strong>' + response.change_count + '</strong> field yang diperbarui</div>';
                         }
 
+                        let successMessage = changeMessage + changeTable;
+                        if (response.verifikasi_confirmed) {
+                            successMessage += '<br><div class="alert alert-success mt-3"><i class="fas fa-check-circle"></i> <strong>Status verifikasi telah dikonfirmasi dan diubah menjadi Valid!</strong></div>';
+                        }
+
                         Swal.fire({
                             icon: 'success',
                             title: 'Berhasil!',
-                            html: changeMessage + changeTable,
+                            html: successMessage,
                             width: '700px',
                             confirmButtonText: 'OK'
                         }).then(() => {
@@ -1773,6 +3261,206 @@
             }
         });
     });
+
+    // Fungsi untuk konfirmasi perbaikan data
+    function konfirmasiPerbaikan(id, namaSantri, keterangan, perbaikanData, dataSaatIni) {
+        // Parse data perbaikan dari keterangan jika tidak ada parameter perbaikanData
+        let perbaikanDataParsed = perbaikanData;
+        let keteranganText = keterangan || '';
+
+        // Jika perbaikanData null, coba parse dari keterangan
+        if (!perbaikanDataParsed && keterangan && keterangan.includes('[Data Perbaikan JSON]')) {
+            const jsonMatch = keterangan.match(/\[Data Perbaikan JSON\]\s*\n([\s\S]*)/);
+            if (jsonMatch) {
+                try {
+                    perbaikanDataParsed = JSON.parse(jsonMatch[1].trim());
+                    // Ambil hanya bagian text sebelum JSON
+                    keteranganText = keterangan.split('[Data Perbaikan JSON]')[0].trim();
+                } catch (e) {
+                    // Jika gagal parse, gunakan keterangan asli
+                }
+            }
+        }
+
+        // Format HTML untuk menampilkan data perbaikan
+        let perbaikanHTML = '';
+        if (perbaikanDataParsed && dataSaatIni) {
+            // Format tanggal untuk display
+            const formatTanggal = (tanggalStr) => {
+                if (!tanggalStr) return '-';
+                try {
+                    const dateObj = new Date(tanggalStr + 'T00:00:00');
+                    if (!isNaN(dateObj.getTime())) {
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const year = dateObj.getFullYear();
+                        return `${day}-${month}-${year}`;
+                    }
+                } catch (e) {}
+                return tanggalStr;
+            };
+
+            // Jika ada data perbaikan terstruktur, tampilkan dalam tabel
+            const rows = [];
+
+            if (perbaikanDataParsed.nama) {
+                rows.push(`
+                    <tr>
+                        <td style="padding: 8px; font-weight: 600;">Nama</td>
+                        <td style="padding: 8px; background-color: #fff3cd;">${dataSaatIni.nama || '-'}</td>
+                        <td style="padding: 8px; background-color: #d4edda;">${perbaikanDataParsed.nama}</td>
+                    </tr>
+                `);
+            }
+
+            if (perbaikanDataParsed.jenisKelamin) {
+                rows.push(`
+                    <tr>
+                        <td style="padding: 8px; font-weight: 600;">Jenis Kelamin</td>
+                        <td style="padding: 8px; background-color: #fff3cd;">${dataSaatIni.jenisKelamin || '-'}</td>
+                        <td style="padding: 8px; background-color: #d4edda;">${perbaikanDataParsed.jenisKelamin}</td>
+                    </tr>
+                `);
+            }
+
+            if (perbaikanDataParsed.tempatLahir) {
+                rows.push(`
+                    <tr>
+                        <td style="padding: 8px; font-weight: 600;">Tempat Lahir</td>
+                        <td style="padding: 8px; background-color: #fff3cd;">${dataSaatIni.tempatLahir || '-'}</td>
+                        <td style="padding: 8px; background-color: #d4edda;">${perbaikanDataParsed.tempatLahir}</td>
+                    </tr>
+                `);
+            }
+
+            if (perbaikanDataParsed.tanggalLahir) {
+                const tanggalSebelum = dataSaatIni.tanggalLahirDisplay || dataSaatIni.tanggalLahir || '-';
+                const tanggalSesudah = formatTanggal(perbaikanDataParsed.tanggalLahir);
+                rows.push(`
+                    <tr>
+                        <td style="padding: 8px; font-weight: 600;">Tanggal Lahir</td>
+                        <td style="padding: 8px; background-color: #fff3cd;">${tanggalSebelum}</td>
+                        <td style="padding: 8px; background-color: #d4edda;">${tanggalSesudah}</td>
+                    </tr>
+                `);
+            }
+
+            if (perbaikanDataParsed.namaAyah) {
+                rows.push(`
+                    <tr>
+                        <td style="padding: 8px; font-weight: 600;">Nama Ayah</td>
+                        <td style="padding: 8px; background-color: #fff3cd;">${dataSaatIni.namaAyah || '-'}</td>
+                        <td style="padding: 8px; background-color: #d4edda;">${perbaikanDataParsed.namaAyah}</td>
+                    </tr>
+                `);
+            }
+
+            if (rows.length > 0) {
+                perbaikanHTML = `
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                        <table class="table table-bordered table-sm" style="font-size: 13px; margin-bottom: 0;">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="padding: 8px; width: 25%;">Field</th>
+                                    <th style="padding: 8px; background-color: #fff3cd; width: 37.5%;">Data Sebelum</th>
+                                    <th style="padding: 8px; background-color: #d4edda; width: 37.5%;">Data Sesudah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows.join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+        }
+
+        Swal.fire({
+            title: 'Konfirmasi Perbaikan Data',
+            html: `
+                <div class="text-left">
+                    <p class="mb-3">Apakah Anda yakin ingin mengkonfirmasi perbaikan data untuk peserta <strong>${namaSantri}</strong>?</p>
+                    ${perbaikanHTML}
+                    ${keteranganText ? `
+                        <div class="alert alert-info" style="margin-top: 15px;">
+                            <strong>Keterangan dari User:</strong><br>
+                            ${keteranganText.replace(/\n/g, '<br>')}
+                        </div>
+                    ` : ''}
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label for="keteranganKonfirmasi">Keterangan Konfirmasi (Opsional):</label>
+                        <textarea id="keteranganKonfirmasi" class="form-control" rows="3" 
+                            placeholder="Tambahkan keterangan konfirmasi jika diperlukan"></textarea>
+                    </div>
+                    <div class="alert alert-success" style="margin-top: 15px;">
+                        <i class="fas fa-info-circle"></i> Status akan diubah menjadi "Valid" setelah konfirmasi.
+                    </div>
+                </div>
+            `,
+            icon: 'question',
+            width: '700px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-check"></i> Ya, Konfirmasi',
+            cancelButtonText: '<i class="fas fa-times"></i> Batal',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            preConfirm: () => {
+                return document.getElementById('keteranganKonfirmasi').value.trim();
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Tampilkan loading
+                Swal.fire({
+                    title: 'Memproses...',
+                    text: 'Sedang mengkonfirmasi perbaikan data',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Kirim request AJAX
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/konfirmasi-perbaikan-peserta') ?>',
+                    type: 'POST',
+                    data: {
+                        id: id,
+                        keterangan: result.value || ''
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: response.message,
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: response.message || 'Terjadi kesalahan saat mengkonfirmasi perbaikan'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan saat mengkonfirmasi perbaikan. Silakan coba lagi.'
+                        });
+                    }
+                });
+            }
+        });
+    }
 </script>
 
 

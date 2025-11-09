@@ -87,6 +87,7 @@ class Filters extends BaseFilters
                     'munaqosah/verify-hashkey',
                     'munaqosah/konfirmasi-data',
                     'munaqosah/process-konfirmasi',
+                    'munaqosah/verifikasi-data',
                     'munaqosah/status-proses',
                     'munaqosah/kelulusan',
                     'munaqosah/generate-surat-kelulusan',

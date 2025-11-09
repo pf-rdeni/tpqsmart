@@ -3101,14 +3101,123 @@ class Munaqosah extends BaseController
         $dataKelas = $this->helpFunction->getDataKelas();
         $dataTpq = $this->helpFunction->getDataTpq($idTpq);
         $peserta = $this->pesertaMunaqosahModel->getPesertaWithRelations($idTpq);
+
+        // Filter untuk peserta yang perlu perbaikan dengan data santri lengkap
+        $pesertaPerluPerbaikan = $this->pesertaMunaqosahModel
+            ->select('tbl_munaqosah_peserta.*, tbl_santri_baru.NamaSantri, tbl_santri_baru.JenisKelamin, tbl_santri_baru.TempatLahirSantri, 
+                     tbl_santri_baru.TanggalLahirSantri, tbl_santri_baru.NamaAyah, tbl_tpq.NamaTpq')
+            ->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_munaqosah_peserta.IdSantri', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_munaqosah_peserta.IdTpq', 'left')
+            ->where('tbl_munaqosah_peserta.status_verifikasi', 'perlu_perbaikan');
+
+        if ($idTpq) {
+            $pesertaPerluPerbaikan->where('tbl_munaqosah_peserta.IdTpq', $idTpq);
+        }
+
+        $pesertaPerluPerbaikan = $pesertaPerluPerbaikan->findAll();
+
+        // Parse data perbaikan dari keterangan untuk setiap peserta
+        foreach ($pesertaPerluPerbaikan as &$pesertaItem) {
+            $keterangan = $pesertaItem['keterangan'] ?? '';
+            if (!empty($keterangan) && strpos($keterangan, '[Data Perbaikan JSON]') !== false) {
+                $jsonMatch = preg_match('/\[Data Perbaikan JSON\]\s*\n([\s\S]*)/', $keterangan, $matches);
+                if ($jsonMatch && !empty($matches[1])) {
+                    try {
+                        $perbaikanData = json_decode(trim($matches[1]), true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $pesertaItem['perbaikan_data'] = $perbaikanData;
+                            // Ambil hanya bagian text sebelum JSON
+                            $pesertaItem['keterangan_text'] = trim(explode('[Data Perbaikan JSON]', $keterangan)[0]);
+                        }
+                    } catch (\Exception $e) {
+                        // Jika gagal parse, gunakan keterangan asli
+                        $pesertaItem['keterangan_text'] = $keterangan;
+                    }
+                } else {
+                    $pesertaItem['keterangan_text'] = $keterangan;
+                }
+            } else {
+                $pesertaItem['keterangan_text'] = $keterangan;
+            }
+        }
+        unset($pesertaItem); // Hapus reference
+
         $data = [
             'page_title' => 'Data Peserta Munaqosah',
             'peserta' => $peserta,
+            'pesertaPerluPerbaikan' => $pesertaPerluPerbaikan,
             'dataKelas' => $dataKelas,
             'dataTpq' => $dataTpq,
             'tahunAjaran' => $tahunAjaran
         ];
         return view('backend/Munaqosah/listPesertaMunaqosah', $data);
+    }
+
+    /**
+     * Konfirmasi perbaikan data oleh operator/admin/panitia
+     */
+    public function konfirmasiPerbaikanPeserta()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $id = $this->request->getPost('id');
+        $keterangan = $this->request->getPost('keterangan');
+
+        if (empty($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ID peserta tidak boleh kosong'
+            ]);
+        }
+
+        // Cek apakah peserta ada
+        $peserta = $this->pesertaMunaqosahModel->find($id);
+        if (empty($peserta)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data peserta tidak ditemukan'
+            ]);
+        }
+
+        // Cek apakah status verifikasi adalah 'perlu_perbaikan'
+        if ($peserta['status_verifikasi'] !== 'perlu_perbaikan') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Status verifikasi harus "perlu_perbaikan" untuk dapat dikonfirmasi'
+            ]);
+        }
+
+        // Ambil user yang mengkonfirmasi
+        $user = user();
+        $confirmedBy = $user->username ?? $user->email ?? session()->get('username') ?? 'Unknown';
+
+        // Update status menjadi 'valid'
+        $updateData = [
+            'status_verifikasi' => 'valid',
+            'confirmed_at' => date('Y-m-d H:i:s'),
+            'confirmed_by' => $confirmedBy
+        ];
+
+        if (!empty($keterangan)) {
+            $updateData['keterangan'] = $keterangan;
+        }
+
+        if ($this->pesertaMunaqosahModel->update($id, $updateData)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Perbaikan data telah dikonfirmasi dan status diubah menjadi Valid'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengkonfirmasi perbaikan. Silakan coba lagi.'
+            ]);
+        }
     }
 
     public function savePesertaMunaqosah()
@@ -5325,10 +5434,65 @@ class Munaqosah extends BaseController
                 ]);
             }
 
+            // Ambil data verifikasi peserta munaqosah jika ada
+            $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+            $pesertaData = $this->pesertaMunaqosahModel
+                ->where('IdSantri', $idSantri)
+                ->where('IdTahunAjaran', $tahunAjaran)
+                ->first();
+
+            $verifikasiData = null;
+            if ($pesertaData) {
+                $keterangan = $pesertaData['keterangan'] ?? '';
+                $statusVerifikasi = $pesertaData['status_verifikasi'] ?? null;
+
+                // Parse data perbaikan dari keterangan jika status "perlu_perbaikan"
+                if ($statusVerifikasi === 'perlu_perbaikan' && !empty($keterangan) && strpos($keterangan, '[Data Perbaikan JSON]') !== false) {
+                    $jsonMatch = preg_match('/\[Data Perbaikan JSON\]\s*\n([\s\S]*)/', $keterangan, $matches);
+                    if ($jsonMatch && !empty($matches[1])) {
+                        try {
+                            $perbaikanData = json_decode(trim($matches[1]), true);
+                            if (json_last_error() === JSON_ERROR_NONE) {
+                                $verifikasiData = [
+                                    'status_verifikasi' => $statusVerifikasi,
+                                    'perbaikan_data' => $perbaikanData,
+                                    'keterangan_text' => trim(explode('[Data Perbaikan JSON]', $keterangan)[0]),
+                                    'verified_at' => $pesertaData['verified_at'] ?? null,
+                                    'id_peserta' => $pesertaData['id'] ?? null
+                                ];
+                            }
+                        } catch (\Exception $e) {
+                            // Jika gagal parse, gunakan keterangan asli
+                            $verifikasiData = [
+                                'status_verifikasi' => $statusVerifikasi,
+                                'keterangan_text' => $keterangan,
+                                'verified_at' => $pesertaData['verified_at'] ?? null,
+                                'id_peserta' => $pesertaData['id'] ?? null
+                            ];
+                        }
+                    } else {
+                        $verifikasiData = [
+                            'status_verifikasi' => $statusVerifikasi,
+                            'keterangan_text' => $keterangan,
+                            'verified_at' => $pesertaData['verified_at'] ?? null,
+                            'id_peserta' => $pesertaData['id'] ?? null
+                        ];
+                    }
+                } else if ($statusVerifikasi === 'perlu_perbaikan') {
+                    $verifikasiData = [
+                        'status_verifikasi' => $statusVerifikasi,
+                        'keterangan_text' => $keterangan,
+                        'verified_at' => $pesertaData['verified_at'] ?? null,
+                        'id_peserta' => $pesertaData['id'] ?? null
+                    ];
+                }
+            }
+
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Data santri berhasil diambil',
-                'data' => $santriData
+                'data' => $santriData,
+                'verifikasi' => $verifikasiData
             ]);
             
         } catch (\Exception $e) {
@@ -6845,6 +7009,26 @@ class Munaqosah extends BaseController
             $result = $this->santriBaruModel->update($existingSantri['id'], $changes);
             
             if ($result) {
+                // Jika ada IdPeserta dan status verifikasi adalah "perlu_perbaikan", update status menjadi "valid"
+                $idPeserta = $this->request->getPost('IdPeserta');
+                $statusVerifikasi = $this->request->getPost('StatusVerifikasi');
+
+                if (!empty($idPeserta) && $statusVerifikasi === 'perlu_perbaikan') {
+                    $user = user();
+                    $confirmedBy = $user->username ?? $user->email ?? session()->get('username') ?? 'Unknown';
+
+                    $updateVerifikasiData = [
+                        'status_verifikasi' => 'valid',
+                        'confirmed_at' => date('Y-m-d H:i:s'),
+                        'confirmed_by' => $confirmedBy
+                    ];
+
+                    // Update status verifikasi di tabel peserta munaqosah
+                    $this->pesertaMunaqosahModel->update($idPeserta, $updateVerifikasiData);
+
+                    log_message('info', 'Status verifikasi updated to valid for peserta ID: ' . $idPeserta);
+                }
+
                 // Ambil data terbaru untuk response
                 $updatedData = $this->santriBaruModel->getDetailSantri($idSantri);
                 
@@ -6854,10 +7038,11 @@ class Munaqosah extends BaseController
                 
                 return $this->response->setJSON([
                     'success' => true,
-                    'message' => 'Data santri berhasil diperbarui',
+                    'message' => 'Data santri berhasil diperbarui' . (!empty($idPeserta) && $statusVerifikasi === 'perlu_perbaikan' ? ' dan status verifikasi telah dikonfirmasi menjadi valid' : ''),
                     'changes' => $changeSummary,
                     'change_count' => count($changes) - 1, // -1 untuk updated_at
-                    'data' => $updatedData
+                    'data' => $updatedData,
+                    'verifikasi_confirmed' => (!empty($idPeserta) && $statusVerifikasi === 'perlu_perbaikan')
                 ]);
             } else {
                 return $this->response->setJSON([

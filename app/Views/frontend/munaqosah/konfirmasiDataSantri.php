@@ -5,6 +5,9 @@ $peserta = $peserta ?? [];
 $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
 $availableTypeUjian = $availableTypeUjian ?? ['munaqosah'];
 $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
+$statusVerifikasi = $statusVerifikasi ?? null;
+$isVerified = ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi');
+$isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
 ?>
 
 <?= $this->extend($templatePath); ?>
@@ -133,11 +136,22 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
         cursor: pointer;
     }
 
+    .checkbox-wrapper input[type="checkbox"]:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        background-color: #e9ecef;
+    }
+
     .checkbox-wrapper label {
         cursor: pointer;
         font-size: 14px;
         color: #333;
         line-height: 1.5;
+    }
+
+    .checkbox-wrapper label.disabled-label {
+        opacity: 0.7;
+        cursor: not-allowed;
     }
 
     .button-group {
@@ -220,6 +234,43 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
         font-size: 16px;
         margin-right: 5px;
     }
+
+    .status-box {
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 4px solid;
+    }
+
+    .status-box.warning {
+        background-color: #fff3cd;
+        border-left-color: #ffc107;
+        color: #856404;
+    }
+
+    .status-box.info {
+        background-color: #d1ecf1;
+        border-left-color: #17a2b8;
+        color: #0c5460;
+    }
+
+    .status-box.success {
+        background-color: #d4edda;
+        border-left-color: #28a745;
+        color: #155724;
+    }
+
+    .status-box strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 15px;
+    }
+
+    .status-box p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
 </style>
 
 <div class="confirmation-card">
@@ -233,6 +284,11 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
     <div class="data-section">
         <div class="data-label">Nama Santri:</div>
         <div class="data-value"><?= esc($peserta['NamaSantri'] ?? '-') ?></div>
+    </div>
+
+    <div class="data-section">
+        <div class="data-label">Jenis Kelamin:</div>
+        <div class="data-value"><?= esc($peserta['JenisKelamin'] ?? '-') ?></div>
     </div>
 
     <div class="data-section">
@@ -253,14 +309,33 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
         <div class="data-value"><?= esc($peserta['NamaTpq'] ?? '-') ?></div>
     </div>
 
-    <div class="info-box">
-        <p>
-            <strong>Informasi Penting:</strong><br>
-            Pastikan data di atas sudah benar. Data ini akan digunakan untuk menampilkan status munaqosah dan hasil kelulusan ujian Ananda. Jika data di atas tidak benar silahkan hubungi admin lembaga untuk melakukan perubahan data.
-        </p>
-    </div>
+    <?php if ($isPerluPerbaikan): ?>
+        <div class="status-box warning">
+            <strong><i class="fas fa-exclamation-triangle"></i> Status Verifikasi: Perlu Perbaikan</strong>
+            <p>
+                Data Ananda sedang dalam proses verifikasi perbaikan. Admin/Operator sedang meninjau permintaan perbaikan data yang telah Ananda ajukan.
+                Tombol "Lihat Status Munaqosah" dan "Lihat Kelulusan" akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.
+            </p>
+        </div>
+    <?php elseif ($isVerified): ?>
+        <div class="status-box success">
+            <strong><i class="fas fa-check-circle"></i> Status Verifikasi: Data Valid</strong>
+            <p>
+                Data Ananda telah diverifikasi dan dikonfirmasi. Ananda dapat melihat status munaqosah dan hasil kelulusan ujian.
+            </p>
+        </div>
+    <?php else: ?>
+        <div class="info-box">
+            <p>
+                <strong>Informasi Penting:</strong><br>
+                Pastikan data di atas sudah benar. Data ini akan digunakan untuk menampilkan status munaqosah dan hasil kelulusan ujian Ananda.
+                Jika data di atas tidak benar, silakan centang checkbox di bawah dan pilih "Tidak, Perlu Perbaikan" untuk mengajukan permintaan perbaikan data.
+            </p>
+        </div>
+    <?php endif; ?>
 
-    <?php if ($hasMultipleTypeUjian): ?>
+    <?php if ($isVerified && $hasMultipleTypeUjian): ?>
+        <!-- Pilihan Type Ujian hanya ditampilkan ketika status sudah valid -->
         <div class="type-ujian-selection" style="margin: 20px 0; padding: 15px; background-color: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
             <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #2e7d32;">
                 <i class="fas fa-list-check"></i> Pilih Type Ujian:
@@ -284,26 +359,32 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
             </p>
         </div>
     <?php else: ?>
+        <!-- Jika status belum valid atau hanya satu type ujian, gunakan hidden input -->
         <input type="hidden" name="typeUjian" value="<?= esc($availableTypeUjian[0] ?? 'munaqosah') ?>" id="typeUjianHidden">
     <?php endif; ?>
 
     <form id="confirmationForm">
-        <div class="checkbox-wrapper">
-            <input type="checkbox" id="confirmed" name="confirmed" required>
-            <label for="confirmed">
-                Saya menyetujui bahwa data di atas sudah benar dan saya berhak untuk melihat status munaqosah dan hasil kelulusan ujian, informasi tersebut hanya dapat dilihat oleh Ananda sendiri.
-            </label>
-        </div>
+        <?php if (!$isVerified && !$isPerluPerbaikan): ?>
+            <!-- Checkbox hanya ditampilkan jika belum ada status verifikasi (belum verified dan tidak perlu perbaikan) -->
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="confirmed" name="confirmed" required>
+                <label for="confirmed">
+                    Saya menyetujui bahwa data di atas sudah benar. Dengan menyetujui, saya akan dapat melihat status munaqosah dan hasil kelulusan ujian setelah data diverifikasi. Informasi tersebut hanya dapat dilihat oleh Ananda sendiri.
+                </label>
+            </div>
+        <?php endif; ?>
+        <!-- Jika status sudah ada (valid atau perlu_perbaikan), checkbox tidak ditampilkan karena status sudah ditampilkan di status-box di atas -->
 
         <div class="button-group">
-            <button type="button" class="btn-action btn-status" onclick="processAction('status')" disabled id="btnStatus">
+            <button type="button" class="btn-action btn-status" onclick="processAction('status')"
+                <?= $isVerified ? '' : 'disabled' ?> id="btnStatus">
                 <i class="fas fa-tasks"></i> Lihat Status Munaqosah
             </button>
             <button
                 type="button"
                 class="btn-action btn-kelulusan <?= !$aktiveTombolKelulusan ? 'locked' : '' ?>"
                 onclick="<?= $aktiveTombolKelulusan ? "processAction('kelulusan')" : "return false;" ?>"
-                disabled
+                <?= $isVerified && $aktiveTombolKelulusan ? '' : 'disabled' ?>
                 id="btnKelulusan"
                 <?= !$aktiveTombolKelulusan ? 'style="pointer-events: none;"' : '' ?>>
                 <i class="fas fa-graduation-cap"></i> Lihat Kelulusan
@@ -327,18 +408,44 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
 <?= $this->section('scripts'); ?>
 <script>
     $(document).ready(function() {
-        $('#confirmed').on('change', function() {
-            const isChecked = $(this).is(':checked');
-            $('#btnStatus').prop('disabled', !isChecked);
+        const isVerified = <?= $isVerified ? 'true' : 'false' ?>;
+        const isPerluPerbaikan = <?= $isPerluPerbaikan ? 'true' : 'false' ?>;
 
+        // Button hanya aktif jika status valid (verified)
+        if (isVerified) {
+            $('#btnStatus').prop('disabled', false);
             <?php if ($aktiveTombolKelulusan): ?>
-                // Jika tombol kelulusan aktif, enable/disable berdasarkan checkbox
-                $('#btnKelulusan').prop('disabled', !isChecked);
-            <?php else: ?>
-                // Jika tombol kelulusan tidak aktif, tetap disabled
+                $('#btnKelulusan').prop('disabled', false);
+            <?php endif; ?>
+        } else {
+            // Jika belum verified atau perlu perbaikan, disable tombol
+            $('#btnStatus').prop('disabled', true);
+            <?php if ($aktiveTombolKelulusan): ?>
                 $('#btnKelulusan').prop('disabled', true);
             <?php endif; ?>
-        });
+        }
+
+        // Event handler hanya jika checkbox ada (belum verified dan tidak perlu perbaikan)
+        // Jika status sudah valid, checkbox tidak ditampilkan, jadi tidak perlu event handler
+        if (!isVerified && !isPerluPerbaikan) {
+            // Pastikan checkbox ada sebelum menambahkan event handler
+            if ($('#confirmed').length > 0) {
+                $('#confirmed').on('change', function() {
+                    const isChecked = $(this).is(':checked');
+
+                    if (isChecked) {
+                        // Tampilkan popup konfirmasi
+                        showVerifikasiPopup();
+                    } else {
+                        // Jika unchecked, disable tombol
+                        $('#btnStatus').prop('disabled', true);
+                        <?php if ($aktiveTombolKelulusan): ?>
+                            $('#btnKelulusan').prop('disabled', true);
+                        <?php endif; ?>
+                    }
+                });
+            }
+        }
 
         // Pastikan tombol kelulusan tetap disabled jika tidak aktif
         <?php if (!$aktiveTombolKelulusan): ?>
@@ -346,14 +453,591 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
         <?php endif; ?>
     });
 
-    function processAction(action) {
-        const confirmed = $('#confirmed').is(':checked');
+    function showVerifikasiPopup() {
+        // Data santri untuk ditampilkan (format sama dengan yang ditampilkan di halaman)
+        const dataSantri = {
+            nama: '<?= esc($peserta['NamaSantri'] ?? '-', 'js') ?>',
+            jenisKelamin: '<?= esc($peserta['JenisKelamin'] ?? '-', 'js') ?>',
+            tempatLahir: '<?= esc($peserta['TempatLahirSantri'] ?? '-', 'js') ?>',
+            tanggalLahir: '<?php
+                            if (!empty($peserta['TanggalLahirSantri'])) {
+                                if (function_exists('formatTanggalIndonesia')) {
+                                    echo esc(formatTanggalIndonesia($peserta['TanggalLahirSantri'], 'd F Y'), 'js');
+                                } else {
+                                    echo esc(date('d F Y', strtotime($peserta['TanggalLahirSantri'])), 'js');
+                                }
+                            } else {
+                                echo '-';
+                            }
+                            ?>',
+            namaAyah: '<?= esc($peserta['NamaAyah'] ?? '-', 'js') ?>',
+            namaTpq: '<?= esc($peserta['NamaTpq'] ?? '-', 'js') ?>'
+        };
 
-        if (!confirmed) {
+        Swal.fire({
+            title: 'Verifikasi Data',
+            html: `
+                <div class="text-left">
+                    <p class="mb-3"><strong>Apakah data santri berikut sudah benar?</strong></p>
+                    
+                    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                        <table style="width: 100%; font-size: 14px;">
+                            <tr>
+                                <td style="padding: 8px 0; font-weight: 600; width: 35%; color: #495057;">Nama Santri:</td>
+                                <td style="padding: 8px 0; color: #212529;">${dataSantri.nama}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Jenis Kelamin:</td>
+                                <td style="padding: 8px 0; color: #212529;">${dataSantri.jenisKelamin}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Tempat Lahir:</td>
+                                <td style="padding: 8px 0; color: #212529;">${dataSantri.tempatLahir}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Tanggal Lahir:</td>
+                                <td style="padding: 8px 0; color: #212529;">${dataSantri.tanggalLahir}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Nama Ayah:</td>
+                                <td style="padding: 8px 0; color: #212529;">${dataSantri.namaAyah}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; font-weight: 600; color: #495057;">Nama TPQ:</td>
+                                <td style="padding: 8px 0; color: #212529;">${dataSantri.namaTpq}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-info" style="margin-bottom: 0;">
+                        <i class="fas fa-info-circle"></i> Pastikan semua data sudah sesuai sebelum melanjutkan.
+                    </div>
+                </div>
+            `,
+            icon: 'question',
+            width: '600px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-check"></i> Ya, Data Benar',
+            cancelButtonText: '<i class="fas fa-times"></i> Tidak, Perlu Perbaikan',
+            confirmButtonColor: '#4caf50',
+            cancelButtonColor: '#dc3545',
+            reverseButtons: true,
+            allowOutsideClick: false,
+            allowEscapeKey: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Data benar - update status menjadi 'valid'
+                verifikasiData('valid', null);
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                // Data perlu perbaikan - tampilkan form
+                showFormPerbaikan();
+            } else {
+                // User menutup popup, uncheck checkbox
+                $('#confirmed').prop('checked', false);
+            }
+        });
+    }
+
+    function showFormPerbaikan() {
+        // Data santri saat ini
+        const dataSaatIni = {
+            nama: '<?= esc($peserta['NamaSantri'] ?? '', 'js') ?>',
+            jenisKelamin: '<?= esc($peserta['JenisKelamin'] ?? '', 'js') ?>',
+            tempatLahir: '<?= esc($peserta['TempatLahirSantri'] ?? '', 'js') ?>',
+            tanggalLahir: '<?= !empty($peserta['TanggalLahirSantri']) ? date('Y-m-d', strtotime($peserta['TanggalLahirSantri'])) : '' ?>',
+            tanggalLahirDisplay: '<?= !empty($peserta['TanggalLahirSantri']) ? date('d-m-Y', strtotime($peserta['TanggalLahirSantri'])) : '' ?>',
+            namaAyah: '<?= esc($peserta['NamaAyah'] ?? '', 'js') ?>'
+        };
+
+        Swal.fire({
+            title: 'Form Perbaikan Data',
+            html: `
+                <div class="text-left" style="max-width: 100%;">
+                    <p class="mb-3">Silakan isi data yang perlu diperbaiki pada kolom "Perbaikan Data":</p>
+                    <style>
+                        .table-perbaikan {
+                            width: 100%;
+                            margin-bottom: 0;
+                            font-size: 14px;
+                            border-collapse: collapse;
+                        }
+                        .table-perbaikan thead th {
+                            background-color: #f8f9fa;
+                            font-weight: 600;
+                            text-align: left;
+                            padding: 10px;
+                            border: 1px solid #dee2e6;
+                        }
+                        .table-perbaikan tbody td {
+                            padding: 10px;
+                            border: 1px solid #dee2e6;
+                            vertical-align: middle;
+                        }
+                        .table-perbaikan tbody td:first-child {
+                            font-weight: 600;
+                            background-color: #f8f9fa;
+                            width: 25%;
+                        }
+                        .table-perbaikan tbody td:nth-child(2) {
+                            background-color: #fff3cd;
+                            width: 35%;
+                            color: #856404;
+                        }
+                        .table-perbaikan tbody td:nth-child(3) {
+                            background-color: #ffffff;
+                            width: 40%;
+                        }
+                        .table-perbaikan input[type="text"],
+                        .table-perbaikan input[type="date"],
+                        .table-perbaikan select {
+                            width: 100%;
+                            padding: 6px 10px;
+                            font-size: 14px;
+                            border: 1px solid #ced4da;
+                            border-radius: 4px;
+                            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+                        }
+                        .table-perbaikan input[type="text"]:focus,
+                        .table-perbaikan input[type="date"]:focus,
+                        .table-perbaikan select:focus {
+                            border-color: #80bdff;
+                            outline: 0;
+                            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+                        }
+                    </style>
+                    <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                        <table class="table-perbaikan">
+                            <thead>
+                                <tr>
+                                    <th>Data Santri</th>
+                                    <th>Saat ini (Sebelum)</th>
+                                    <th>Perbaikan Data (Sesudah)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Nama</td>
+                                    <td>${dataSaatIni.nama || '-'}</td>
+                                    <td>
+                                        <input type="text" id="perbaikanNama" 
+                                            placeholder="Masukkan nama yang benar (kosongkan jika tidak diubah)">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Jenis Kelamin</td>
+                                    <td>${dataSaatIni.jenisKelamin || '-'}</td>
+                                    <td>
+                                        <select id="perbaikanJenisKelamin" style="width: 100%; padding: 6px 10px;">
+                                            <option value="">-- Pilih Jenis Kelamin (kosongkan jika tidak diubah) --</option>
+                                            <option value="Laki-laki">Laki-laki</option>
+                                            <option value="Perempuan">Perempuan</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Tempat Lahir</td>
+                                    <td>${dataSaatIni.tempatLahir || '-'}</td>
+                                    <td>
+                                        <input type="text" id="perbaikanTempatLahir" 
+                                            placeholder="Masukkan tempat lahir yang benar (kosongkan jika tidak diubah)">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Tanggal Lahir</td>
+                                    <td>${dataSaatIni.tanggalLahirDisplay || '-'}</td>
+                                    <td>
+                                        <input type="date" id="perbaikanTanggalLahir" 
+                                            placeholder="Pilih tanggal lahir yang benar">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Nama Ayah</td>
+                                    <td>${dataSaatIni.namaAyah || '-'}</td>
+                                    <td>
+                                        <input type="text" id="perbaikanNamaAyah" 
+                                            placeholder="Masukkan nama ayah yang benar (kosongkan jika tidak diubah)">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-warning mt-3" style="margin-bottom: 0;">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Catatan:</strong> Hanya isi field yang perlu diperbaiki. Field yang kosong akan diabaikan.
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            width: '800px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-paper-plane"></i> Kirim Permintaan',
+            cancelButtonText: '<i class="fas fa-times"></i> Batal',
+            confirmButtonColor: '#ffc107',
+            cancelButtonColor: '#6c757d',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                // Focus pada input pertama yang kosong
+                setTimeout(() => {
+                    $('#perbaikanNama').focus();
+                }, 300);
+
+                // Fungsi untuk mengubah text menjadi title case (huruf pertama setiap kata besar)
+                const toTitleCase = (str) => {
+                    if (!str) return '';
+                    // Ubah ke lowercase dulu, lalu capitalize setiap kata
+                    return str.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+                };
+
+                // Event listener untuk auto title case pada input text
+                // Menggunakan event 'input' untuk real-time conversion
+                $('#perbaikanNama, #perbaikanTempatLahir, #perbaikanNamaAyah').on('input', function() {
+                    const input = this;
+                    const cursorPosition = input.selectionStart;
+                    const originalValue = input.value;
+
+                    // Hanya proses jika ada nilai
+                    if (originalValue && originalValue.length > 0) {
+                        // Konversi ke title case
+                        const titleCaseValue = toTitleCase(originalValue);
+
+                        // Update value jika berbeda
+                        if (originalValue !== titleCaseValue) {
+                            // Simpan panjang sebelum cursor
+                            const beforeCursor = originalValue.substring(0, cursorPosition);
+                            const beforeCursorTitleCase = toTitleCase(beforeCursor);
+
+                            // Update value
+                            input.value = titleCaseValue;
+
+                            // Kembalikan posisi cursor berdasarkan panjang string sebelum cursor
+                            const newCursorPosition = beforeCursorTitleCase.length;
+
+                            // Set cursor position dengan setTimeout untuk memastikan DOM sudah update
+                            setTimeout(() => {
+                                if (newCursorPosition <= titleCaseValue.length) {
+                                    input.setSelectionRange(newCursorPosition, newCursorPosition);
+                                } else {
+                                    input.setSelectionRange(titleCaseValue.length, titleCaseValue.length);
+                                }
+                            }, 0);
+                        }
+                    }
+                });
+            },
+            preConfirm: () => {
+                try {
+                    // Ambil nilai dari semua input menggunakan document.getElementById untuk memastikan elemen ditemukan
+                    const perbaikanData = {
+                        nama: (document.getElementById('perbaikanNama')?.value || '').trim(),
+                        jenisKelamin: (document.getElementById('perbaikanJenisKelamin')?.value || '').trim(),
+                        tempatLahir: (document.getElementById('perbaikanTempatLahir')?.value || '').trim(),
+                        tanggalLahir: (document.getElementById('perbaikanTanggalLahir')?.value || '').trim(),
+                        namaAyah: (document.getElementById('perbaikanNamaAyah')?.value || '').trim()
+                    };
+
+                    console.log('Data yang diambil dari form:', perbaikanData);
+
+                    // Format data perbaikan untuk dikirim
+                    const keteranganParts = [];
+                    const perbaikanDataFiltered = {};
+
+                    // Helper function untuk normalize string
+                    const normalize = (str) => {
+                        if (!str) return '';
+                        return str.toString().trim();
+                    };
+
+                    // Cek dan filter hanya data yang berbeda (hanya yang diisi dan berbeda)
+                    if (perbaikanData.nama && perbaikanData.nama.trim()) {
+                        const namaBaru = normalize(perbaikanData.nama);
+                        const namaLama = normalize(dataSaatIni.nama);
+                        if (namaBaru && namaBaru !== namaLama) {
+                            keteranganParts.push(`Nama: "${namaLama || '-'}" → "${namaBaru}"`);
+                            perbaikanDataFiltered.nama = namaBaru;
+                        }
+                    }
+
+                    if (perbaikanData.jenisKelamin && perbaikanData.jenisKelamin.trim()) {
+                        const jenisKelaminBaru = normalize(perbaikanData.jenisKelamin);
+                        const jenisKelaminLama = normalize(dataSaatIni.jenisKelamin);
+                        if (jenisKelaminBaru && jenisKelaminBaru !== jenisKelaminLama) {
+                            keteranganParts.push(`Jenis Kelamin: "${jenisKelaminLama || '-'}" → "${jenisKelaminBaru}"`);
+                            perbaikanDataFiltered.jenisKelamin = jenisKelaminBaru;
+                        }
+                    }
+
+                    if (perbaikanData.tempatLahir && perbaikanData.tempatLahir.trim()) {
+                        const tempatLahirBaru = normalize(perbaikanData.tempatLahir);
+                        const tempatLahirLama = normalize(dataSaatIni.tempatLahir);
+                        if (tempatLahirBaru && tempatLahirBaru !== tempatLahirLama) {
+                            keteranganParts.push(`Tempat Lahir: "${tempatLahirLama || '-'}" → "${tempatLahirBaru}"`);
+                            perbaikanDataFiltered.tempatLahir = tempatLahirBaru;
+                        }
+                    }
+
+                    if (perbaikanData.tanggalLahir && perbaikanData.tanggalLahir.trim()) {
+                        // Bandingkan dengan format Y-m-d
+                        const tanggalLahirBaru = perbaikanData.tanggalLahir.trim();
+                        const tanggalLahirLama = normalize(dataSaatIni.tanggalLahir);
+                        if (tanggalLahirBaru && tanggalLahirBaru !== tanggalLahirLama) {
+                            // Format tanggal untuk display
+                            try {
+                                const dateObj = new Date(tanggalLahirBaru + 'T00:00:00');
+                                if (!isNaN(dateObj.getTime())) {
+                                    const day = String(dateObj.getDate()).padStart(2, '0');
+                                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                                    const year = dateObj.getFullYear();
+                                    const formattedTanggal = `${day}-${month}-${year}`;
+
+                                    keteranganParts.push(`Tanggal Lahir: "${dataSaatIni.tanggalLahirDisplay || '-'}" → "${formattedTanggal}"`);
+                                    perbaikanDataFiltered.tanggalLahir = tanggalLahirBaru;
+                                }
+                            } catch (e) {
+                                // Skip jika format tanggal tidak valid
+                            }
+                        }
+                    }
+
+                    if (perbaikanData.namaAyah && perbaikanData.namaAyah.trim()) {
+                        const namaAyahBaru = normalize(perbaikanData.namaAyah);
+                        const namaAyahLama = normalize(dataSaatIni.namaAyah);
+                        if (namaAyahBaru && namaAyahBaru !== namaAyahLama) {
+                            keteranganParts.push(`Nama Ayah: "${namaAyahLama || '-'}" → "${namaAyahBaru}"`);
+                            perbaikanDataFiltered.namaAyah = namaAyahBaru;
+                        }
+                    }
+
+                    if (keteranganParts.length === 0) {
+                        Swal.showValidationMessage('Tidak ada perubahan data. Silakan isi data yang berbeda dari data saat ini.');
+                        return false;
+                    }
+
+                    // Return data yang sudah difilter
+                    return {
+                        keterangan: keteranganParts.join('; '),
+                        perbaikanData: perbaikanDataFiltered,
+                        dataSaatIni: dataSaatIni
+                    };
+                } catch (error) {
+                    console.error('Error di preConfirm:', error);
+                    Swal.showValidationMessage('Terjadi kesalahan saat memvalidasi data. Silakan coba lagi.');
+                    return false;
+                }
+            }
+        }).then((result) => {
+            console.log('Form perbaikan result:', result);
+
+            if (result && result.isConfirmed && result.value) {
+                try {
+                    // Pastikan popup form sudah ditutup sebelum memanggil verifikasiData
+                    Swal.close();
+
+                    // Tunggu sebentar agar popup benar-benar tertutup
+                    setTimeout(() => {
+                        // Kirim permintaan perbaikan dengan data terstruktur
+                        verifikasiData('perlu_perbaikan', result.value.keterangan, result.value.perbaikanData);
+                    }, 100);
+                } catch (error) {
+                    console.error('Error saat memproses verifikasi data:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Terjadi kesalahan saat memproses data. Silakan coba lagi.',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        $('#confirmed').prop('checked', false);
+                    });
+                }
+            } else if (result && result.dismiss) {
+                // User membatalkan atau menutup popup
+                console.log('User membatalkan atau menutup popup');
+                $('#confirmed').prop('checked', false);
+            } else {
+                // Fallback: uncheck checkbox
+                $('#confirmed').prop('checked', false);
+            }
+        }).catch((error) => {
+            console.error('Error di form perbaikan:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Terjadi kesalahan saat memproses form. Silakan coba lagi.',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                $('#confirmed').prop('checked', false);
+            });
+        });
+    }
+
+    function verifikasiData(statusVerifikasi, keterangan, perbaikanData = null) {
+        console.log('verifikasiData called:', {
+            statusVerifikasi: statusVerifikasi,
+            keterangan: keterangan,
+            perbaikanData: perbaikanData
+        });
+
+        try {
+            // Siapkan data untuk dikirim
+            const dataToSend = {
+                status_verifikasi: statusVerifikasi,
+                keterangan: keterangan || ''
+            };
+
+            // Jika ada data perbaikan, tambahkan ke data yang dikirim
+            if (perbaikanData && Object.keys(perbaikanData).length > 0) {
+                try {
+                    dataToSend.perbaikan_data = JSON.stringify(perbaikanData);
+                } catch (e) {
+                    console.error('Error stringifying perbaikanData:', e);
+                }
+            }
+
+            console.log('Mengirim data verifikasi:', {
+                statusVerifikasi: statusVerifikasi,
+                keterangan: keterangan,
+                perbaikanData: perbaikanData,
+                dataToSend: dataToSend
+            });
+
+            // Tampilkan loading popup
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Sedang menyimpan verifikasi data',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+                willClose: () => {
+                    // Pastikan loading ditutup
+                }
+            });
+
+            // Jalankan AJAX request
+            $.ajax({
+                url: '<?= base_url('munaqosah/verifikasi-data') ?>',
+                type: 'POST',
+                data: dataToSend,
+                dataType: 'json',
+                timeout: 30000, // 30 detik timeout
+                beforeSend: function(xhr) {
+                    console.log('AJAX request dimulai...');
+                },
+                success: function(response) {
+                    console.log('AJAX response received:', response);
+
+                    // Tutup loading popup terlebih dahulu
+                    Swal.close();
+
+                    if (response && response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: response.message || 'Data berhasil disimpan',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Reload halaman untuk menampilkan status terbaru
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: (response && response.message) ? response.message : 'Terjadi kesalahan saat memproses verifikasi',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Uncheck checkbox jika gagal
+                            $('#confirmed').prop('checked', false);
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', {
+                        status: status,
+                        error: error,
+                        responseText: xhr.responseText,
+                        statusCode: xhr.status,
+                        readyState: xhr.readyState
+                    });
+
+                    // Tutup loading popup
+                    Swal.close();
+
+                    let errorMessage = 'Terjadi kesalahan saat memproses verifikasi. Silakan coba lagi.';
+
+                    // Coba parse error response jika ada
+                    try {
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else if (xhr.responseText) {
+                            // Coba parse response text sebagai JSON
+                            const responseText = xhr.responseText;
+                            if (responseText.startsWith('{') || responseText.startsWith('[')) {
+                                const parsedResponse = JSON.parse(responseText);
+                                if (parsedResponse.message) {
+                                    errorMessage = parsedResponse.message;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error parsing error response:', e);
+                    }
+
+                    // Handle berbagai jenis error
+                    if (xhr.status === 0) {
+                        errorMessage = 'Tidak dapat terhubung ke server. Pastikan koneksi internet Anda stabil.';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'Terjadi kesalahan di server. Silakan hubungi administrator.';
+                    } else if (xhr.status === 404) {
+                        errorMessage = 'URL tidak ditemukan. Silakan refresh halaman dan coba lagi.';
+                    } else if (xhr.status === 403) {
+                        errorMessage = 'Akses ditolak. Silakan refresh halaman dan coba lagi.';
+                    } else if (status === 'timeout') {
+                        errorMessage = 'Request timeout. Silakan coba lagi.';
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: errorMessage,
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Uncheck checkbox jika error
+                        $('#confirmed').prop('checked', false);
+                    });
+                },
+                complete: function() {
+                    console.log('AJAX request selesai');
+                }
+            });
+        } catch (error) {
+            console.error('Error di fungsi verifikasiData:', error);
+            // Tutup loading jika masih terbuka
+            if (Swal.isVisible()) {
+                Swal.close();
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Terjadi kesalahan saat memproses verifikasi. Silakan coba lagi.',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                // Uncheck checkbox jika error
+                $('#confirmed').prop('checked', false);
+            });
+        }
+    }
+
+    function processAction(action) {
+        const isVerified = <?= $isVerified ? 'true' : 'false' ?>;
+
+        // Button hanya bisa digunakan jika status verified
+        if (!isVerified) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Perhatian',
-                text: 'Ananda harus menyetujui informasi penting terlebih dahulu'
+                text: 'Data Ananda belum diverifikasi. Tombol ini akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.'
             });
             return;
         }
@@ -368,7 +1052,8 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
 
         // Ambil TypeUjian yang dipilih
         let typeUjian = '';
-        <?php if ($hasMultipleTypeUjian): ?>
+        <?php if ($isVerified && $hasMultipleTypeUjian): ?>
+            // Jika status valid dan ada multiple type ujian, ambil dari radio button
             const selectedTypeUjian = $('input[name="typeUjian"]:checked');
             if (selectedTypeUjian.length === 0) {
                 Swal.fire({
@@ -380,7 +1065,23 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
             }
             typeUjian = selectedTypeUjian.val();
         <?php else: ?>
+            // Jika status belum valid atau hanya satu type ujian, ambil dari hidden input
             typeUjian = $('#typeUjianHidden').val() || '<?= esc($availableTypeUjian[0] ?? 'munaqosah') ?>';
+        <?php endif; ?>
+
+        // Ambil status confirmed
+        // Jika status sudah valid, confirmed selalu true (karena status valid berarti sudah dikonfirmasi)
+        // Jika checkbox ada (belum verified), ambil dari checkbox
+        let confirmed = false;
+        <?php if ($isVerified): ?>
+            // Jika status valid, confirmed selalu true
+            confirmed = true;
+        <?php else: ?>
+            // Jika checkbox ada, ambil dari checkbox
+            const confirmedCheckbox = $('#confirmed');
+            if (confirmedCheckbox.length > 0) {
+                confirmed = confirmedCheckbox.is(':checked');
+            }
         <?php endif; ?>
 
         $.ajax({

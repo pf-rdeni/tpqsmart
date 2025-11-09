@@ -53,10 +53,11 @@ class StatusUjianMunaqosah extends BaseController
                 return redirect()->to(base_url('munaqosah/cek-status'))
                     ->with('error', 'HashKey tidak valid atau tidak ditemukan. Silakan masukkan HashKey yang benar.');
             }
-            
+
+            // Pastikan data peserta lengkap dengan semua field termasuk JenisKelamin
             // Simpan data peserta di session
             session()->set('munaqosah_peserta', $peserta);
-            
+
             // Redirect ke halaman konfirmasi
             return redirect()->to(base_url('munaqosah/konfirmasi-data'));
         }
@@ -80,7 +81,7 @@ class StatusUjianMunaqosah extends BaseController
         }
         
         $peserta = $this->munaqosahPesertaModel
-            ->select('tbl_munaqosah_peserta.*, tbl_santri_baru.NamaSantri, tbl_santri_baru.TempatLahirSantri, tbl_santri_baru.TanggalLahirSantri, tbl_santri_baru.NamaAyah, tbl_tpq.NamaTpq')
+            ->select('tbl_munaqosah_peserta.*, tbl_santri_baru.NamaSantri, tbl_santri_baru.JenisKelamin, tbl_santri_baru.TempatLahirSantri, tbl_santri_baru.TanggalLahirSantri, tbl_santri_baru.NamaAyah, tbl_tpq.NamaTpq')
             ->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_munaqosah_peserta.IdSantri', 'left')
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_munaqosah_peserta.IdTpq', 'left')
             ->where('tbl_munaqosah_peserta.HasKey', $hasKey)
@@ -114,6 +115,7 @@ class StatusUjianMunaqosah extends BaseController
             ]);
         }
 
+        // Pastikan data peserta lengkap dengan semua field termasuk JenisKelamin
         // Simpan data peserta di session untuk digunakan di halaman berikutnya
         session()->set('munaqosah_peserta', $peserta);
 
@@ -128,10 +130,25 @@ class StatusUjianMunaqosah extends BaseController
      */
     public function konfirmasiData()
     {
-        $peserta = session()->get('munaqosah_peserta');
-        
-        if (empty($peserta)) {
+        $pesertaSession = session()->get('munaqosah_peserta');
+
+        if (empty($pesertaSession)) {
             return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
+        }
+
+        // Ambil data lengkap peserta dari database termasuk JenisKelamin
+        // untuk memastikan semua field tersedia, terutama jika session dibuat sebelum perubahan
+        $peserta = $this->munaqosahPesertaModel
+            ->select('tbl_munaqosah_peserta.*, tbl_santri_baru.NamaSantri, tbl_santri_baru.JenisKelamin, tbl_santri_baru.TempatLahirSantri, tbl_santri_baru.TanggalLahirSantri, tbl_santri_baru.NamaAyah, tbl_tpq.NamaTpq')
+            ->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_munaqosah_peserta.IdSantri', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_munaqosah_peserta.IdTpq', 'left')
+            ->where('tbl_munaqosah_peserta.IdSantri', $pesertaSession['IdSantri'])
+            ->where('tbl_munaqosah_peserta.IdTahunAjaran', $pesertaSession['IdTahunAjaran'])
+            ->first();
+
+        // Jika data tidak ditemukan, gunakan data dari session sebagai fallback
+        if (empty($peserta)) {
+            $peserta = $pesertaSession;
         }
 
         // Ambil semua TypeUjian yang tersedia untuk IdSantri ini
@@ -180,15 +197,128 @@ class StatusUjianMunaqosah extends BaseController
         // Jika tidak ada setting, default false (tidak aktif)
         $aktiveTombolKelulusan = $aktiveTombolKelulusan !== null ? (bool)$aktiveTombolKelulusan : false;
 
+        // Ambil status verifikasi dari database
+        $pesertaData = $this->munaqosahPesertaModel
+            ->where('IdSantri', $peserta['IdSantri'])
+            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+            ->first();
+
+        $statusVerifikasi = $pesertaData['status_verifikasi'] ?? null;
+        $isVerified = ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi');
+
         $data = [
             'page_title' => 'Konfirmasi Data Santri',
             'isPublic' => true,
             'peserta' => $peserta,
             'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
-            'availableTypeUjian' => $availableTypeUjian
+            'availableTypeUjian' => $availableTypeUjian,
+            'statusVerifikasi' => $statusVerifikasi,
+            'isVerified' => $isVerified
         ];
 
         return view('frontend/munaqosah/konfirmasiDataSantri', $data);
+    }
+
+    /**
+     * Proses verifikasi data (saat checkbox confirmed diklik)
+     */
+    public function verifikasiData()
+    {
+        $peserta = session()->get('munaqosah_peserta');
+
+        if (empty($peserta)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Session expired. Silakan masukkan HashKey lagi.'
+            ]);
+        }
+
+        // Cari data peserta di database
+        $pesertaData = $this->munaqosahPesertaModel
+            ->where('IdSantri', $peserta['IdSantri'])
+            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+            ->first();
+
+        if (empty($pesertaData)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data peserta tidak ditemukan'
+            ]);
+        }
+
+        $statusVerifikasi = $this->request->getPost('status_verifikasi'); // 'valid' atau 'perlu_perbaikan'
+        $keterangan = $this->request->getPost('keterangan');
+        $perbaikanDataJson = $this->request->getPost('perbaikan_data');
+
+        if (empty($statusVerifikasi) || !in_array($statusVerifikasi, ['valid', 'perlu_perbaikan'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Status verifikasi tidak valid'
+            ]);
+        }
+
+        // Jika perlu perbaikan, keterangan wajib (untuk valid, keterangan akan diisi otomatis)
+        if ($statusVerifikasi === 'perlu_perbaikan' && empty($keterangan)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Keterangan perbaikan harus diisi'
+            ]);
+        }
+
+        // Parse data perbaikan jika ada
+        $perbaikanData = null;
+        if (!empty($perbaikanDataJson)) {
+            $perbaikanData = json_decode($perbaikanDataJson, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $perbaikanData = null;
+            }
+        }
+
+        // Update status verifikasi
+        $now = date('Y-m-d H:i:s');
+        $updateData = [
+            'status_verifikasi' => $statusVerifikasi,
+            'verified_at' => $now
+        ];
+
+        // Jika status valid (user klik "Ya, Data Benar")
+        if ($statusVerifikasi === 'valid') {
+            $updateData['confirmed_at'] = $now;
+            $updateData['verified_at'] = $now;
+            $updateData['confirmed_by'] = 'wali-santri';
+            $updateData['keterangan'] = 'Sudah di verifikasi oleh wali santri';
+        } else if ($statusVerifikasi === 'perlu_perbaikan') {
+            // Jika perlu perbaikan, simpan keterangan dari user
+            if (!empty($keterangan)) {
+                $updateData['keterangan'] = $keterangan;
+            }
+
+            // Simpan data perbaikan sebagai JSON di kolom keterangan (jika ada data perbaikan terstruktur)
+            // Format: keterangan akan berisi text summary, dan data JSON bisa disimpan di kolom terpisah jika diperlukan
+            // Untuk saat ini, kita simpan keduanya: keterangan (text) dan data perbaikan (JSON dalam keterangan)
+            if (!empty($perbaikanData)) {
+                // Gabungkan keterangan dengan data perbaikan JSON
+                $keteranganWithData = $keterangan ?? '';
+                if (!empty($perbaikanData)) {
+                    $keteranganWithData .= "\n\n[Data Perbaikan JSON]\n" . json_encode($perbaikanData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                }
+                $updateData['keterangan'] = $keteranganWithData;
+            }
+        }
+
+        if ($this->munaqosahPesertaModel->update($pesertaData['id'], $updateData)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $statusVerifikasi === 'valid'
+                    ? 'Data telah diverifikasi dan dinyatakan benar'
+                    : 'Permintaan perbaikan telah dikirim. Silakan tunggu konfirmasi dari operator.'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan verifikasi. Silakan coba lagi.'
+            ]);
+        }
     }
 
     /**

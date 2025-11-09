@@ -12,13 +12,24 @@ class MunaqosahPesertaModel extends Model
     protected $allowedFields = [
         'IdSantri',
         'IdTpq',
-        'IdTahunAjaran'
+        'IdTahunAjaran',
+        'HasKey',
+        'status_verifikasi',
+        'keterangan',
+        'verified_at',
+        'confirmed_at',
+        'confirmed_by'
     ];
 
     protected $validationRules = [
         'IdSantri' => 'required|max_length[50]',
         'IdTpq' => 'required|max_length[50]',
-        'IdTahunAjaran' => 'required|max_length[50]'
+        'IdTahunAjaran' => 'required|max_length[50]',
+        'status_verifikasi' => 'permit_empty|in_list[valid,perlu_perbaikan,dikonfirmasi]',
+        'keterangan' => 'permit_empty',
+        'verified_at' => 'permit_empty|valid_date',
+        'confirmed_at' => 'permit_empty|valid_date',
+        'confirmed_by' => 'permit_empty|max_length[100]'
     ];
 
     protected $validationMessages = [
@@ -116,5 +127,68 @@ class MunaqosahPesertaModel extends Model
             ->countAllResults();
 
         return (int)$result;
+    }
+
+    /**
+     * Get peserta by status verifikasi
+     * 
+     * @param string $statusVerifikasi
+     * @param string|null $idTahunAjaran
+     * @return array
+     */
+    public function getPesertaByStatusVerifikasi($statusVerifikasi, $idTahunAjaran = null)
+    {
+        $builder = $this->where('status_verifikasi', $statusVerifikasi);
+
+        if ($idTahunAjaran) {
+            $builder->where('IdTahunAjaran', $idTahunAjaran);
+        }
+
+        return $builder->findAll();
+    }
+
+    /**
+     * Update status verifikasi
+     * 
+     * @param int $id
+     * @param string $statusVerifikasi
+     * @param string|null $keterangan
+     * @return bool
+     */
+    public function updateStatusVerifikasi($id, $statusVerifikasi, $keterangan = null)
+    {
+        $data = [
+            'status_verifikasi' => $statusVerifikasi,
+            'verified_at' => date('Y-m-d H:i:s')
+        ];
+
+        if (!empty($keterangan)) {
+            $data['keterangan'] = $keterangan;
+        }
+
+        return $this->update($id, $data);
+    }
+
+    /**
+     * Konfirmasi perbaikan oleh operator/panitia
+     * 
+     * @param int $id
+     * @param string $confirmedBy
+     * @param string|null $keterangan
+     * @return bool
+     */
+    public function konfirmasiPerbaikan($id, $confirmedBy, $keterangan = null)
+    {
+        $data = [
+            'status_verifikasi' => 'valid',
+            'confirmed_at' => date('Y-m-d H:i:s'),
+            'confirmed_by' => $confirmedBy
+        ];
+
+        if (!empty($keterangan)) {
+            $data['keterangan'] = $keterangan;
+        }
+
+        return $this->update($id, $data);
     }
 }

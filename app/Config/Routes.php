@@ -47,6 +47,7 @@ $routes->get('munaqosah/cek-status/(:segment)', 'Frontend\StatusUjianMunaqosah::
 $routes->post('munaqosah/verify-hashkey', 'Frontend\StatusUjianMunaqosah::verifyHashKey');
 $routes->get('munaqosah/konfirmasi-data', 'Frontend\StatusUjianMunaqosah::konfirmasiData');
 $routes->post('munaqosah/process-konfirmasi', 'Frontend\StatusUjianMunaqosah::processKonfirmasi');
+$routes->post('munaqosah/verifikasi-data', 'Frontend\StatusUjianMunaqosah::verifikasiData');
 $routes->get('munaqosah/status-proses', 'Frontend\StatusUjianMunaqosah::statusProses');
 $routes->get('munaqosah/kelulusan', 'Frontend\StatusUjianMunaqosah::kelulusan');
 $routes->get('munaqosah/generate-surat-kelulusan', 'Frontend\StatusUjianMunaqosah::generateSuratKelulusan');
@@ -161,6 +162,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/peserta', 'Munaqosah::pesertaMunaqosah');
     $routes->post('munaqosah/save-peserta', 'Munaqosah::savePesertaMunaqosah');
     $routes->post('munaqosah/save-peserta-multiple', 'Munaqosah::savePesertaMunaqosahMultiple');
+    $routes->post('munaqosah/konfirmasi-perbaikan-peserta', 'Munaqosah::konfirmasiPerbaikanPeserta');
     $routes->get('munaqosah/check-data-terkait/(:num)', 'Munaqosah::checkDataTerkait/$1');
     $routes->delete('munaqosah/delete-peserta/(:num)', 'Munaqosah::deletePesertaMunaqosah/$1');
     $routes->delete('munaqosah/delete-peserta-by-santri/(:num)', 'Munaqosah::deletePesertaBySantri/$1');
