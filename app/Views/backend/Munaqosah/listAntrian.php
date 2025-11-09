@@ -8,15 +8,33 @@
                 <div class="card card-outline card-primary">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                         <h3 class="card-title mb-2 mb-md-0">Antrian Grup Materi Ujian</h3>
-                        <div class="btn-group mb-2 mb-md-0">
-                            <a href="<?= base_url('backend/munaqosah/monitoring-status-antrian') ?>?tahun=<?= $selected_tahun ?>&type=<?= $selected_type ?>&group=<?= $selected_group ?><?= !empty($selected_tpq) ? '&tpq=' . $selected_tpq : '' ?>"
-                                class="btn btn-info btn-sm" target="_blank">
-                                <i class="fas fa-desktop"></i> Monitoring
-                            </a>
-                            <a href="<?= base_url('backend/munaqosah/input-registrasi-antrian') ?>?tahun=<?= $selected_tahun ?>&type=<?= $selected_type ?>&group=<?= $selected_group ?><?= !empty($selected_tpq) ? '&tpq=' . $selected_tpq : '' ?>"
-                                class="btn btn-success btn-sm">
-                                <i class="fas fa-user-plus"></i> Input Registrasi
-                            </a>
+                        <div class="d-flex align-items-center flex-wrap">
+                            <div class="d-flex align-items-center mr-2 mb-2 mb-md-0">
+                                <select id="autoRefreshInterval" class="form-control form-control-sm mr-2" style="width: auto; min-width: 80px;" title="Pilih Interval Auto Refresh">
+                                    <option value="10">10 detik</option>
+                                    <option value="15">15 detik</option>
+                                    <option value="30" selected>30 detik</option>
+                                    <option value="60">1 menit</option>
+                                    <option value="120">2 menit</option>
+                                    <option value="300">5 menit</option>
+                                </select>
+                                <span id="autoRefreshStatus" class="badge badge-info mr-2" style="display: none;">
+                                    <i class="fas fa-sync-alt fa-spin"></i> Auto Refresh: <span id="autoRefreshCountdown">30</span>s
+                                </span>
+                                <button type="button" id="btnToggleAutoRefresh" class="btn btn-sm btn-outline-primary" title="Toggle Auto Refresh">
+                                    <i class="fas fa-sync-alt"></i> <span id="autoRefreshText">Aktifkan Auto Refresh</span>
+                                </button>
+                            </div>
+                            <div class="btn-group mb-2 mb-md-0">
+                                <a href="<?= base_url('backend/munaqosah/monitoring-status-antrian') ?>?tahun=<?= $selected_tahun ?>&type=<?= $selected_type ?>&group=<?= $selected_group ?><?= !empty($selected_tpq) ? '&tpq=' . $selected_tpq : '' ?>"
+                                    class="btn btn-info btn-sm" target="_blank">
+                                    <i class="fas fa-desktop"></i> Monitoring
+                                </a>
+                                <a href="<?= base_url('backend/munaqosah/input-registrasi-antrian') ?>?tahun=<?= $selected_tahun ?>&type=<?= $selected_type ?>&group=<?= $selected_group ?><?= !empty($selected_tpq) ? '&tpq=' . $selected_tpq : '' ?>"
+                                    class="btn btn-success btn-sm">
+                                    <i class="fas fa-user-plus"></i> Input Registrasi
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
@@ -81,11 +99,63 @@
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="type">Type Ujian</label>
+                                        <?php
+                                        // Tentukan apakah select TypeUjian harus disabled berdasarkan role
+                                        $isOperator = in_groups('Operator');
+                                        $isPanitia = in_groups('Panitia');
+                                        $isAdmin = in_groups('Admin');
+
+                                        // Jika Operator, disable dan set ke pra-munaqosah
+                                        // Jika Panitia, disable dan set ke munaqosah
+                                        // Jika Admin, biarkan bisa memilih
+                                        $typeDisabled = ($isOperator || $isPanitia) && !$isAdmin;
+                                        $typeRequiredValue = $isOperator ? 'pra-munaqosah' : ($isPanitia ? 'munaqosah' : null);
+                                        $typeDisabledStyle = $typeDisabled ? 'background-color: #e9ecef; cursor: not-allowed;' : '';
+                                        ?>
+                                        <?php if ($typeDisabled): ?>
+                                            <!-- Hidden input untuk mengirim nilai TypeUjian saat disabled -->
+                                            <input type="hidden" name="type" id="type" value="<?= $typeRequiredValue ?>">
+                                            <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
+                                                <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                    <?php
+                                                    // Hanya tampilkan option yang sesuai dengan role
+                                                    $showOption = false;
+                                                    if ($isOperator && $typeValue === 'pra-munaqosah') {
+                                                        $showOption = true;
+                                                    } elseif ($isPanitia && $typeValue === 'munaqosah') {
+                                                        $showOption = true;
+                                                    }
+
+                                                    if ($showOption):
+                                                    ?>
+                                                        <option value="<?= $typeValue ?>" selected>
+                                                            <?= $typeLabel ?>
+                                                        </option>
+                                                    <?php endif; ?>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        <?php else: ?>
+                                            <!-- Select normal untuk Admin -->
+                                            <select name="type" id="type" class="form-control">
+                                                <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                    <option value="<?= $typeValue ?>" <?= ($selected_type === $typeValue) ? 'selected' : '' ?>>
+                                                        <?= $typeLabel ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="tahun">Tahun Ajaran</label>
+                                        <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                                    </div>
                                 <?php else: ?>
                                     <!-- Jika admin TPQ, sembunyikan dropdown TPQ dan TypeUjian -->
                                     <input type="hidden" name="tpq" value="<?= $session_id_tpq ?>">
                                     <input type="hidden" id="type" name="type" value="pra-munaqosah">
-                                    <div class="form-group col-md-9">
+                                    <div class="form-group col-md-8">
                                         <label for="group">Grup Materi Ujian</label>
                                         <select name="group" id="group" class="form-control">
                                             <?php foreach ($groups as $group): ?>
@@ -96,27 +166,11 @@
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                <?php endif; ?>
-                                <?php if (empty($session_id_tpq)): ?>
-                                    <!-- Hanya tampilkan TypeUjian jika admin super, TahunAjaran disembunyikan untuk semua -->
-                                    <div class="form-group col-md-3">
-                                        <label for="type">Type Ujian</label>
-                                        <select name="type" id="type" class="form-control">
-                                            <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                <option value="<?= $typeValue ?>" <?= ($selected_type === $typeValue) ? 'selected' : '' ?>>
-                                                    <?= $typeLabel ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
+                                    <div class="form-group col-md-4">
+                                        <label for="tahun">Tahun Ajaran</label>
+                                        <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
                                     </div>
                                 <?php endif; ?>
-                                <!-- TahunAjaran disembunyikan untuk semua kondisi login -->
-                                <input type="hidden" id="tahun" name="tahun" value="<?= $selected_tahun ?>">
-                                <div class="form-group col-md-3 text-md-right">
-                                    <button type="submit" class="btn btn-primary btn-block">
-                                        <i class="fas fa-filter"></i> Terapkan
-                                    </button>
-                                </div>
                             </div>
                         </form>
                         <!-- Input Registrasi -->
@@ -379,12 +433,12 @@
                                 <thead>
                                     <tr>
                                         <th>No</th>
+                                        <th>Group Peserta</th>
                                         <th>No Peserta</th>
                                         <th>Nama Peserta</th>
                                         <th>Room</th>
                                         <th>Status</th>
                                         <th>Type Ujian</th>
-                                        <th>Group Peserta</th>
                                         <th>Tanggal Dibuat</th>
                                         <th>Aksi</th>
                                     </tr>
@@ -431,6 +485,14 @@
                                         ?>
                                         <tr>
                                             <td><?= $no++ ?></td>
+                                            <td>
+                                                <?php
+                                                $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
+                                                // Ambil warna dari mapping dinamis, fallback ke secondary
+                                                $badgeColor = $groupColorMap[$groupPeserta] ?? 'badge-secondary';
+                                                ?>
+                                                <span class="badge <?= $badgeColor ?>"><?= $groupPeserta ?></span>
+                                            </td>
                                             <td><?= $row['NoPeserta'] ?></td>
                                             <td><?= $row['NamaSantri'] ?? '-' ?></td>
                                             <td>
@@ -444,14 +506,6 @@
                                                 <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
                                             </td>
                                             <td><?= $typeResolved ?></td>
-                                            <td>
-                                                <?php
-                                                $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
-                                                // Ambil warna dari mapping dinamis, fallback ke secondary
-                                                $badgeColor = $groupColorMap[$groupPeserta] ?? 'badge-secondary';
-                                                ?>
-                                                <span class="badge <?= $badgeColor ?>"><?= $groupPeserta ?></span>
-                                            </td>
                                             <td><?= !empty($row['created_at']) ? date('d/m/Y H:i', strtotime($row['created_at'])) : '-' ?></td>
                                             <td>
                                                 <div class="btn-group" role="group">
@@ -632,6 +686,85 @@
     const roomStatuses = <?= json_encode($rooms ?? []) ?>;
 
     $(function() {
+        // Auto Apply Filter dengan localStorage
+        const filterStorageKey = 'listAntrian_filter';
+        let isInitializing = true; // Flag untuk mencegah auto submit saat inisialisasi
+        let isUserChange = false; // Flag untuk mengetahui apakah perubahan dari user
+
+        // Fungsi untuk menyimpan filter ke localStorage
+        function saveFilterToStorage() {
+            const filterData = {
+                tpq: $('#tpq').length ? ($('#tpq').val() || '') : '',
+                group: $('#group').val() || '',
+                type: $('#type').length ? ($('#type').val() || '') : '',
+                tahun: $('#tahun').val() || ''
+            };
+            localStorage.setItem(filterStorageKey, JSON.stringify(filterData));
+        }
+
+        // Fungsi untuk mendapatkan nilai filter saat ini dari URL atau form
+        function getCurrentFilterValues() {
+            return {
+                tpq: $('#tpq').length ? ($('#tpq').val() || '') : '',
+                group: $('#group').val() || '',
+                type: $('#type').length ? ($('#type').val() || '') : '',
+                tahun: $('#tahun').val() || ''
+            };
+        }
+
+        // Fungsi untuk apply filter (submit form)
+        function applyFilter() {
+            if (isInitializing) {
+                return; // Jangan submit saat masih inisialisasi
+            }
+            saveFilterToStorage();
+            $('form[method="get"]').submit();
+        }
+
+        // Simpan nilai awal dari URL/form ke localStorage (jika belum ada atau berbeda)
+        const currentValues = getCurrentFilterValues();
+        const savedFilterStr = localStorage.getItem(filterStorageKey);
+        let savedFilter = null;
+
+        if (savedFilterStr) {
+            try {
+                savedFilter = JSON.parse(savedFilterStr);
+            } catch (e) {
+                console.error('Error parsing filter from localStorage:', e);
+            }
+        }
+
+        // Jika belum ada filter yang disimpan, simpan nilai saat ini
+        if (!savedFilter) {
+            saveFilterToStorage();
+        } else {
+            // Bandingkan dengan nilai saat ini, jika berbeda update localStorage
+            const hasChanges = (
+                (savedFilter.tpq !== currentValues.tpq) ||
+                (savedFilter.group !== currentValues.group) ||
+                (savedFilter.type !== currentValues.type) ||
+                (savedFilter.tahun !== currentValues.tahun)
+            );
+
+            if (hasChanges) {
+                // Update localStorage dengan nilai saat ini
+                saveFilterToStorage();
+            }
+        }
+
+        // Set flag inisialisasi selesai setelah delay
+        setTimeout(function() {
+            isInitializing = false;
+        }, 300);
+
+        // Event handler untuk perubahan filter - Auto Apply
+        $('#tpq, #group, #type').on('change', function() {
+            if (!isInitializing) {
+                isUserChange = true;
+                applyFilter();
+            }
+        });
+
         const table = $('#tableAntrian').DataTable({
             responsive: true,
             lengthChange: false,
@@ -706,16 +839,43 @@
             });
 
             // Kirim request AJAX
+            registerAntrianAjax(noPeserta, idGrupMateri, typeUjian, tahunAjaran);
+        }
+
+        // Fungsi untuk melakukan request AJAX registrasi
+        function registerAntrianAjax(noPeserta, idGrupMateri, typeUjian, tahunAjaran, action = null, antrianGrupLainId = null) {
+            // Tampilkan loading
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Sedang mendaftarkan peserta ke antrian',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Siapkan data request
+            const requestData = {
+                NoPeserta: noPeserta,
+                IdGrupMateriUjian: idGrupMateri,
+                TypeUjian: typeUjian,
+                IdTahunAjaran: tahunAjaran,
+                <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+            };
+
+            // Tambahkan action dan antrian_grup_lain_id jika ada
+            if (action) {
+                requestData.action = action;
+            }
+            if (antrianGrupLainId) {
+                requestData.antrian_grup_lain_id = antrianGrupLainId;
+            }
+
+            // Kirim request AJAX
             $.ajax({
                 url: '<?= base_url('backend/munaqosah/register-antrian-ajax') ?>',
                 type: 'POST',
-                data: {
-                    NoPeserta: noPeserta,
-                    IdGrupMateriUjian: idGrupMateri,
-                    TypeUjian: typeUjian,
-                    IdTahunAjaran: tahunAjaran,
-                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-                },
+                data: requestData,
                 dataType: 'json',
                 success: function(response) {
                     Swal.close();
@@ -738,11 +898,207 @@
                             location.reload();
                         });
                     } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Gagal',
-                            text: response.message || 'Terjadi kesalahan saat registrasi'
-                        });
+                        // Cek apakah peserta sudah ada di antrian aktif (sama grup dan type)
+                        if (response.already_in_queue && response.queue_data) {
+                            const queueData = response.queue_data;
+                            const statusBadge = queueData.status == 1 ?
+                                '<span class="badge badge-danger">Sedang Ujian</span>' :
+                                '<span class="badge badge-warning">Menunggu</span>';
+
+                            // Badge TypeUjian
+                            const typeUjianLabel = queueData.type_ujian === 'pra-munaqosah' ?
+                                'Pra-Munaqosah' :
+                                queueData.type_ujian === 'munaqosah' ?
+                                'Munaqosah' :
+                                queueData.type_ujian || '-';
+                            const typeUjianBadge = queueData.type_ujian === 'pra-munaqosah' ?
+                                '<span class="badge badge-info">' + typeUjianLabel + '</span>' :
+                                queueData.type_ujian === 'munaqosah' ?
+                                '<span class="badge badge-primary">' + typeUjianLabel + '</span>' :
+                                '<span class="badge badge-secondary">' + typeUjianLabel + '</span>';
+
+                            // Badge Status Nilai
+                            const nilaiBadge = queueData.has_nilai === true ?
+                                '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Sudah Ada Nilai</span>' :
+                                '<span class="badge badge-warning"><i class="fas fa-exclamation-circle"></i> Belum Ada Nilai</span>';
+
+                            // Badge Room ID
+                            const roomBadge = queueData.room_id ?
+                                '<span class="badge badge-info"><i class="fas fa-door-open"></i> ' + queueData.room_id + '</span>' :
+                                '<span class="badge badge-secondary">Belum ada ruangan</span>';
+
+                            // Format tanggal
+                            let tanggalDibuat = '-';
+                            if (queueData.created_at) {
+                                const date = new Date(queueData.created_at);
+                                tanggalDibuat = date.toLocaleDateString('id-ID', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+                            }
+
+                            // Tampilkan popup informasi
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Peserta Sudah di Antrian',
+                                html: `
+                                    <div class="text-left">
+                                        <p><strong>Peserta sudah terdaftar di antrian aktif untuk grup dan tipe ujian ini:</strong></p>
+                                        <ul class="list-unstyled mt-3">
+                                            <li><strong>No Peserta:</strong> ${queueData.no_peserta}</li>
+                                            <li><strong>Nama:</strong> ${queueData.nama_santri}</li>
+                                            <li><strong>Grup Materi:</strong> ${queueData.grup_materi}</li>
+                                            <li><strong>Type Ujian:</strong> ${typeUjianBadge}</li>
+                                            <li><strong>Status Antrian:</strong> ${statusBadge}</li>
+                                            <li><strong>Ruangan:</strong> ${roomBadge}</li>
+                                            <li><strong>Status Nilai:</strong> ${nilaiBadge}</li>
+                                            <li><strong>Tanggal Registrasi:</strong> ${tanggalDibuat}</li>
+                                        </ul>
+                                        <div class="alert alert-info mt-3 mb-2">
+                                            <small>
+                                                <i class="fas fa-info-circle"></i> 
+                                                <strong>Informasi:</strong> 
+                                                Peserta sudah terdaftar di antrian untuk grup materi dan tipe ujian ini. 
+                                                Tidak perlu melakukan registrasi ulang.
+                                            </small>
+                                        </div>
+                                        ${queueData.is_tulis_al_quran === true && queueData.has_nilai === false ? 
+                                            '<div class="alert alert-warning mt-2 mb-0">' +
+                                                '<small>' +
+                                                    '<i class="fas fa-exclamation-triangle"></i> ' +
+                                                    '<strong>Catatan Khusus Tulis Al-Quran:</strong> ' +
+                                                    'Untuk ujian Tulis Al-Quran, juri membutuhkan waktu yang cukup lama untuk memasukkan nilai. ' +
+                                                    'Oleh karena itu, nilai mungkin belum ada meskipun peserta sudah menyelesaikan ujian tertulis.' +
+                                                '</small>' +
+                                            '</div>' : ''}
+                                    </div>
+                                `,
+                                confirmButtonText: '<i class="fas fa-check"></i> Mengerti',
+                                confirmButtonColor: '#3085d6'
+                            });
+                        }
+                        // Cek apakah perlu konfirmasi (antrian di grup lain)
+                        else if (response.needs_confirmation && response.conflict_data) {
+                            const conflictData = response.conflict_data;
+                            const statusBadge = conflictData.status == 1 ?
+                                '<span class="badge badge-danger">Sedang Ujian</span>' :
+                                '<span class="badge badge-warning">Menunggu</span>';
+
+                            // Badge TypeUjian
+                            const typeUjianLabel = conflictData.type_ujian === 'pra-munaqosah' ?
+                                'Pra-Munaqosah' :
+                                conflictData.type_ujian === 'munaqosah' ?
+                                'Munaqosah' :
+                                conflictData.type_ujian || '-';
+                            const typeUjianBadge = conflictData.type_ujian === 'pra-munaqosah' ?
+                                '<span class="badge badge-info">' + typeUjianLabel + '</span>' :
+                                conflictData.type_ujian === 'munaqosah' ?
+                                '<span class="badge badge-primary">' + typeUjianLabel + '</span>' :
+                                '<span class="badge badge-secondary">' + typeUjianLabel + '</span>';
+
+                            // Badge Status Nilai
+                            const nilaiBadge = conflictData.has_nilai === true ?
+                                '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Sudah Ada Nilai</span>' :
+                                '<span class="badge badge-warning"><i class="fas fa-exclamation-circle"></i> Belum Ada Nilai</span>';
+
+                            // Tampilkan popup konfirmasi
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Konflik Antrian Ditemukan',
+                                html: `
+                                    <div class="text-left">
+                                        <p><strong>Peserta terdeteksi sedang antri di grup materi lain:</strong></p>
+                                        <ul class="list-unstyled mt-3">
+                                            <li><strong>No Peserta:</strong> ${conflictData.no_peserta}</li>
+                                            <li><strong>Nama:</strong> ${conflictData.nama_santri}</li>
+                                            <li><strong>Grup Materi:</strong> ${conflictData.grup_materi_lain}</li>
+                                            <li><strong>Type Ujian:</strong> ${typeUjianBadge}</li>
+                                            <li><strong>Status Antrian:</strong> ${statusBadge}</li>
+                                            <li><strong>Status Nilai:</strong> ${nilaiBadge}</li>
+                                        </ul>
+                                        <div class="alert alert-info mt-3 mb-2">
+                                            <small>
+                                                <i class="fas fa-info-circle"></i> 
+                                                <strong>Catatan:</strong> 
+                                                ${conflictData.has_nilai === true 
+                                                    ? 'Peserta sudah memiliki nilai di grup materi ini. Jika peserta sudah selesai, pilih "Ya, Sudah Selesai" untuk mengubah status antrian menjadi selesai.' 
+                                                    : 'Peserta belum memiliki nilai di grup materi ini. Jika peserta belum selesai, pilih "Belum Selesai" untuk menghapus antrian.'}
+                                            </small>
+                                        </div>
+                                        ${conflictData.is_tulis_al_quran === true && conflictData.has_nilai === false ? 
+                                            '<div class="alert alert-warning mt-2 mb-0">' +
+                                                '<small>' +
+                                                    '<i class="fas fa-exclamation-triangle"></i> ' +
+                                                    '<strong>Catatan Khusus Tulis Al-Quran:</strong> ' +
+                                                    'Untuk ujian Tulis Al-Quran, juri membutuhkan waktu yang cukup lama untuk memasukkan nilai. ' +
+                                                    'Oleh karena itu, nilai mungkin belum ada meskipun peserta sudah menyelesaikan ujian tertulis. ' +
+                                                    'Silakan konfirmasi langsung ke peserta apakah sudah selesai mengerjakan ujian tertulis. ' +
+                                                    'Jika peserta sudah selesai, pilih "Ya, Sudah Selesai" meskipun nilai belum ada.' +
+                                                '</small>' +
+                                            '</div>' : ''}
+                                        <p class="mt-3"><strong>Silakan konfirmasi ke peserta:</strong></p>
+                                        <p class="text-muted">Apakah peserta sudah selesai ujian di grup materi tersebut?</p>
+                                    </div>
+                                `,
+                                showCancelButton: true,
+                                showDenyButton: true,
+                                confirmButtonText: '<i class="fas fa-check"></i> Ya, Sudah Selesai',
+                                denyButtonText: '<i class="fas fa-times"></i> Belum Selesai',
+                                cancelButtonText: '<i class="fas fa-arrow-left"></i> Batal',
+                                confirmButtonColor: '#28a745',
+                                denyButtonColor: '#dc3545',
+                                cancelButtonColor: '#6c757d',
+                                reverseButtons: true,
+                                focusConfirm: false,
+                                focusDeny: false
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    // Peserta sudah selesai, update status menjadi 2
+                                    registerAntrianAjax(noPeserta, idGrupMateri, typeUjian, tahunAjaran, 'update', conflictData.antrian_id);
+                                } else if (result.isDenied) {
+                                    // Peserta belum selesai, hapus antrian di grup lain
+                                    Swal.fire({
+                                        title: 'Konfirmasi Hapus',
+                                        text: 'Apakah Anda yakin ingin menghapus antrian di grup lain?',
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#dc3545',
+                                        cancelButtonColor: '#6c757d',
+                                        confirmButtonText: 'Ya, Hapus',
+                                        cancelButtonText: 'Batal'
+                                    }).then((deleteResult) => {
+                                        if (deleteResult.isConfirmed) {
+                                            registerAntrianAjax(noPeserta, idGrupMateri, typeUjian, tahunAjaran, 'delete', conflictData.antrian_id);
+                                        }
+                                    });
+                                }
+                                // Jika cancel, tidak ada yang dilakukan
+                            });
+                        } else {
+                            // Error biasa - format standard
+                            const errorMessage = response.message || 'Terjadi kesalahan saat registrasi';
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal Registrasi',
+                                html: `
+                                    <div class="text-left">
+                                        <p>${errorMessage}</p>
+                                        <div class="alert alert-warning mt-3 mb-0">
+                                            <small>
+                                                <i class="fas fa-exclamation-triangle"></i> 
+                                                <strong>Tips:</strong> 
+                                                Pastikan semua data sudah benar dan peserta belum terdaftar di antrian sebelumnya.
+                                            </small>
+                                        </div>
+                                    </div>
+                                `,
+                                confirmButtonText: '<i class="fas fa-check"></i> Mengerti',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
@@ -750,11 +1106,29 @@
                     let errorMessage = 'Terjadi kesalahan saat registrasi';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.status === 0) {
+                        errorMessage = 'Tidak dapat terhubung ke server. Pastikan koneksi internet Anda stabil.';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.';
                     }
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: errorMessage
+                        title: 'Gagal Registrasi',
+                        html: `
+                            <div class="text-left">
+                                <p>${errorMessage}</p>
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    <small>
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        <strong>Tips:</strong> 
+                                        Pastikan semua data sudah benar dan koneksi internet stabil. 
+                                        Jika masalah berlanjut, hubungi administrator sistem.
+                                    </small>
+                                </div>
+                            </div>
+                        `,
+                        confirmButtonText: '<i class="fas fa-check"></i> Mengerti',
+                        confirmButtonColor: '#dc3545'
                     });
                 }
             });
@@ -1214,6 +1588,165 @@
                 $('#queueSearch').focus();
             }, 500);
         }
+
+        // Auto Refresh Functionality
+        let autoRefreshInterval = null;
+        let autoRefreshCountdownInterval = null;
+        let autoRefreshEnabled = localStorage.getItem('autoRefreshEnabled') === 'true';
+        let autoRefreshSeconds = parseInt(localStorage.getItem('autoRefreshSeconds')) || 30; // Default 30 detik
+        let countdownSeconds = autoRefreshSeconds;
+        let pausedCountdown = null; // Untuk menyimpan countdown yang di-pause
+
+        // Set interval dropdown ke nilai yang tersimpan
+        $('#autoRefreshInterval').val(autoRefreshSeconds);
+
+        // Fungsi untuk format countdown
+        function formatCountdown(seconds) {
+            if (seconds >= 60) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                if (secs > 0) {
+                    return `${minutes}m ${secs}s`;
+                }
+                return `${minutes}m`;
+            }
+            return `${seconds}s`;
+        }
+
+        // Fungsi untuk update UI auto refresh
+        function updateAutoRefreshUI() {
+            const $btn = $('#btnToggleAutoRefresh');
+            const $status = $('#autoRefreshStatus');
+            const $text = $('#autoRefreshText');
+            const $icon = $btn.find('i');
+
+            // Update countdown display
+            $('#autoRefreshCountdown').text(formatCountdown(autoRefreshSeconds));
+
+            if (autoRefreshEnabled) {
+                $btn.removeClass('btn-outline-primary').addClass('btn-primary');
+                $text.text('Nonaktifkan Auto Refresh');
+                $icon.removeClass('fa-sync-alt').addClass('fa-pause');
+                $status.show();
+                startAutoRefresh();
+            } else {
+                $btn.removeClass('btn-primary').addClass('btn-outline-primary');
+                $text.text('Aktifkan Auto Refresh');
+                $icon.removeClass('fa-pause').addClass('fa-sync-alt');
+                $status.hide();
+                stopAutoRefresh();
+            }
+        }
+
+        // Fungsi untuk memulai auto refresh
+        function startAutoRefresh() {
+            stopAutoRefresh(); // Hentikan yang lama jika ada
+
+            // Reset countdown atau gunakan paused countdown jika ada
+            if (pausedCountdown !== null) {
+                countdownSeconds = pausedCountdown;
+                pausedCountdown = null;
+            } else {
+                countdownSeconds = autoRefreshSeconds;
+            }
+
+            // Update countdown display
+            $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
+
+            // Mulai countdown
+            autoRefreshCountdownInterval = setInterval(function() {
+                countdownSeconds--;
+                $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
+
+                if (countdownSeconds <= 0) {
+                    // Cek apakah ada modal atau popup yang terbuka
+                    const hasOpenModal = $('.modal.show').length > 0;
+                    const hasSwalOpen = $('.swal2-container').length > 0;
+                    const isInputFocused = $('#queueSearch').is(':focus');
+
+                    // Jangan refresh jika ada modal/popup terbuka atau input sedang focused
+                    if (!hasOpenModal && !hasSwalOpen && !isInputFocused) {
+                        location.reload();
+                    } else {
+                        // Reset countdown jika tidak bisa refresh
+                        countdownSeconds = autoRefreshSeconds;
+                        $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
+                    }
+                }
+            }, 1000);
+
+            // Backup refresh interval (jika countdown terlewat)
+            autoRefreshInterval = setInterval(function() {
+                const hasOpenModal = $('.modal.show').length > 0;
+                const hasSwalOpen = $('.swal2-container').length > 0;
+                const isInputFocused = $('#queueSearch').is(':focus');
+
+                if (!hasOpenModal && !hasSwalOpen && !isInputFocused) {
+                    location.reload();
+                }
+            }, autoRefreshSeconds * 1000);
+        }
+
+        // Fungsi untuk menghentikan auto refresh
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+            if (autoRefreshCountdownInterval) {
+                clearInterval(autoRefreshCountdownInterval);
+                autoRefreshCountdownInterval = null;
+            }
+        }
+
+        // Toggle auto refresh
+        $('#btnToggleAutoRefresh').on('click', function() {
+            autoRefreshEnabled = !autoRefreshEnabled;
+            localStorage.setItem('autoRefreshEnabled', autoRefreshEnabled);
+            updateAutoRefreshUI();
+        });
+
+        // Change interval auto refresh
+        $('#autoRefreshInterval').on('change', function() {
+            const newInterval = parseInt($(this).val());
+            autoRefreshSeconds = newInterval;
+            localStorage.setItem('autoRefreshSeconds', newInterval);
+
+            // Jika auto refresh sedang aktif, restart dengan interval baru
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+            } else {
+                // Update countdown display meskipun tidak aktif
+                countdownSeconds = newInterval;
+                $('#autoRefreshCountdown').text(formatCountdown(newInterval));
+            }
+        });
+
+        // Inisialisasi auto refresh UI
+        updateAutoRefreshUI();
+
+        // Pause auto refresh saat input focused
+        $('#queueSearch').on('focus', function() {
+            if (autoRefreshEnabled && autoRefreshCountdownInterval) {
+                // Pause countdown saat input focused, simpan nilai countdown saat ini
+                pausedCountdown = countdownSeconds;
+                clearInterval(autoRefreshCountdownInterval);
+                autoRefreshCountdownInterval = null;
+                // Juga pause backup interval
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+            }
+        });
+
+        // Resume auto refresh saat input blur (jika auto refresh enabled)
+        $('#queueSearch').on('blur', function() {
+            if (autoRefreshEnabled) {
+                // Resume countdown
+                startAutoRefresh();
+            }
+        });
     });
 </script>
 <?= $this->endSection() ?>

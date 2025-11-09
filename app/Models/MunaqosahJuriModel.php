@@ -125,7 +125,9 @@ class MunaqosahJuriModel extends Model
             $builder->where('TypeUjian', $typeUjian);
         }
 
-        if ($idTpq !== null) {
+        if ($idTpq == null || $idTpq == '0' || $idTpq == '') {
+            $builder->where('IdTpq IS NULL');
+        } else {
             $builder->where('IdTpq', $idTpq);
         }
 

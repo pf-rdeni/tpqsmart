@@ -8,21 +8,22 @@
                 <div class="card card-outline card-primary">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                         <h3 class="card-title mb-2 mb-md-0">Monitoring Status Antrian</h3>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="form-group mb-0">
-                                <label class="mb-0 small">Auto Refresh (detik)</label>
-                                <select id="refreshInterval" class="form-control form-control-sm">
-                                    <option value="3" <?= $refresh_interval == 3 ? 'selected' : '' ?>>3 detik</option>
-                                    <option value="5" <?= $refresh_interval == 5 ? 'selected' : '' ?>>5 detik</option>
-                                    <option value="10" <?= $refresh_interval == 10 ? 'selected' : '' ?>>10 detik</option>
-                                    <option value="15" <?= $refresh_interval == 15 ? 'selected' : '' ?>>15 detik</option>
-                                    <option value="30" <?= $refresh_interval == 30 ? 'selected' : '' ?>>30 detik</option>
+                        <div class="d-flex align-items-center flex-wrap">
+                            <div class="d-flex align-items-center mr-2 mb-2 mb-md-0">
+                                <select id="autoRefreshInterval" class="form-control form-control-sm mr-2" style="width: auto; min-width: 80px;" title="Pilih Interval Auto Refresh">
+                                    <option value="3">3 detik</option>
+                                    <option value="5">5 detik</option>
+                                    <option value="10">10 detik</option>
+                                    <option value="15">15 detik</option>
+                                    <option value="30" selected>30 detik</option>
+                                    <option value="60">1 menit</option>
                                 </select>
-                            </div>
-                            <div class="mt-3">
-                                <span id="refreshStatus" class="badge badge-info">
-                                    <i class="fas fa-sync-alt fa-spin"></i> Auto Refresh Aktif
+                                <span id="autoRefreshStatus" class="badge badge-info mr-2" style="display: none;">
+                                    <i class="fas fa-sync-alt fa-spin"></i> Auto Refresh: <span id="autoRefreshCountdown">30</span>s
                                 </span>
+                                <button type="button" id="btnToggleAutoRefresh" class="btn btn-sm btn-outline-primary" title="Toggle Auto Refresh">
+                                    <i class="fas fa-sync-alt"></i> <span id="autoRefreshText">Aktifkan Auto Refresh</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -209,6 +210,7 @@
                                 <thead>
                                     <tr>
                                         <th>No</th>
+                                        <th>Grup Peserta</th>
                                         <th>No Peserta</th>
                                         <th>Nama Peserta</th>
                                         <th>Room</th>
@@ -231,9 +233,19 @@
                                             $badgeClass = 'badge-success';
                                         }
                                         $typeResolved = $row['TypeUjian'] ?? ($row['TypeUjianResolved'] ?? '-');
+                                        $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
+
+                                        // Array warna Bootstrap yang bisa diulang
+                                        $groupColors = ['badge-primary', 'badge-success', 'badge-warning', 'badge-danger', 'badge-info', 'badge-dark', 'badge-secondary'];
+                                        // Ambil warna berdasarkan hash sederhana dari nama grup
+                                        $colorIndex = crc32($groupPeserta) % count($groupColors);
+                                        $groupBadgeClass = $groupColors[abs($colorIndex)];
                                         ?>
                                         <tr>
                                             <td><?= $no++ ?></td>
+                                            <td>
+                                                <span class="badge <?= $groupBadgeClass ?>"><?= htmlspecialchars($groupPeserta) ?></span>
+                                            </td>
                                             <td><?= $row['NoPeserta'] ?></td>
                                             <td><?= $row['NamaSantri'] ?? '-' ?></td>
                                             <td>
@@ -296,10 +308,6 @@
 </style>
 <script>
     $(function() {
-
-        let refreshInterval = <?= $refresh_interval ?>;
-        let refreshTimer = null;
-
         // Format waktu update
         function updateLastUpdateTime() {
             const now = new Date();
@@ -314,56 +322,160 @@
         // Update waktu saat ini
         updateLastUpdateTime();
 
-        // Fungsi untuk refresh data
-        function refreshData() {
-            const params = new URLSearchParams(window.location.search);
-            params.set('interval', refreshInterval);
+        // Auto Refresh Functionality (seragam dengan listAntrian.php)
+        let autoRefreshInterval = null;
+        let autoRefreshCountdownInterval = null;
+        // Default true untuk monitoring (jika belum ada setting, aktifkan auto refresh)
+        const storedRefreshEnabled = localStorage.getItem('monitoringAutoRefreshEnabled');
+        let autoRefreshEnabled = storedRefreshEnabled === null ? true : storedRefreshEnabled === 'true';
 
-            // Reload halaman dengan parameter yang sama
-            window.location.reload();
+        // Gunakan parameter interval dari URL jika ada, jika tidak gunakan dari localStorage, jika tidak gunakan default
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlInterval = urlParams.get('interval');
+        let autoRefreshSeconds = urlInterval ? parseInt(urlInterval) : (parseInt(localStorage.getItem('monitoringAutoRefreshSeconds')) || <?= $refresh_interval ?? 30 ?>);
+        let countdownSeconds = autoRefreshSeconds;
+        let pausedCountdown = null; // Untuk menyimpan countdown yang di-pause
+
+        // Set interval dropdown ke nilai yang tersimpan
+        $('#autoRefreshInterval').val(autoRefreshSeconds);
+
+        // Simpan interval ke localStorage jika dari URL
+        if (urlInterval) {
+            localStorage.setItem('monitoringAutoRefreshSeconds', autoRefreshSeconds);
         }
 
-        // Event handler untuk perubahan interval
-        $('#refreshInterval').on('change', function() {
-            refreshInterval = parseInt($(this).val());
-            const params = new URLSearchParams(window.location.search);
-            params.set('interval', refreshInterval);
+        // Fungsi untuk format countdown
+        function formatCountdown(seconds) {
+            if (seconds >= 60) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                if (secs > 0) {
+                    return `${minutes}m ${secs}s`;
+                }
+                return `${minutes}m`;
+            }
+            return `${seconds}s`;
+        }
 
-            // Update URL dan reload
-            window.location.href = window.location.pathname + '?' + params.toString();
+        // Fungsi untuk update UI auto refresh
+        function updateAutoRefreshUI() {
+            const $btn = $('#btnToggleAutoRefresh');
+            const $status = $('#autoRefreshStatus');
+            const $text = $('#autoRefreshText');
+            const $icon = $btn.find('i');
+
+            // Update countdown display
+            $('#autoRefreshCountdown').text(formatCountdown(autoRefreshSeconds));
+
+            if (autoRefreshEnabled) {
+                $btn.removeClass('btn-outline-primary').addClass('btn-primary');
+                $text.text('Nonaktifkan Auto Refresh');
+                $icon.removeClass('fa-sync-alt').addClass('fa-pause');
+                $status.show();
+                startAutoRefresh();
+            } else {
+                $btn.removeClass('btn-primary').addClass('btn-outline-primary');
+                $text.text('Aktifkan Auto Refresh');
+                $icon.removeClass('fa-pause').addClass('fa-sync-alt');
+                $status.hide();
+                stopAutoRefresh();
+            }
+        }
+
+        // Fungsi untuk memulai auto refresh
+        function startAutoRefresh() {
+            stopAutoRefresh(); // Hentikan yang lama jika ada
+
+            // Reset countdown atau gunakan paused countdown jika ada
+            if (pausedCountdown !== null) {
+                countdownSeconds = pausedCountdown;
+                pausedCountdown = null;
+            } else {
+                countdownSeconds = autoRefreshSeconds;
+            }
+
+            // Update countdown display
+            $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
+
+            // Mulai countdown
+            autoRefreshCountdownInterval = setInterval(function() {
+                countdownSeconds--;
+                $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
+
+                if (countdownSeconds <= 0) {
+                    // Cek apakah ada modal atau popup yang terbuka
+                    const hasOpenModal = $('.modal.show').length > 0;
+                    const hasSwalOpen = $('.swal2-container').length > 0;
+
+                    // Jangan refresh jika ada modal/popup terbuka
+                    if (!hasOpenModal && !hasSwalOpen) {
+                        // Reload halaman dengan parameter yang sama
+                        const params = new URLSearchParams(window.location.search);
+                        params.set('interval', autoRefreshSeconds);
+                        window.location.href = window.location.pathname + '?' + params.toString();
+                    } else {
+                        // Reset countdown jika tidak bisa refresh
+                        countdownSeconds = autoRefreshSeconds;
+                        $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
+                    }
+                }
+            }, 1000);
+
+            // Backup refresh interval (jika countdown terlewat)
+            autoRefreshInterval = setInterval(function() {
+                const hasOpenModal = $('.modal.show').length > 0;
+                const hasSwalOpen = $('.swal2-container').length > 0;
+
+                if (!hasOpenModal && !hasSwalOpen) {
+                    // Reload halaman dengan parameter yang sama
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('interval', autoRefreshSeconds);
+                    window.location.href = window.location.pathname + '?' + params.toString();
+                }
+            }, autoRefreshSeconds * 1000);
+        }
+
+        // Fungsi untuk menghentikan auto refresh
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+            if (autoRefreshCountdownInterval) {
+                clearInterval(autoRefreshCountdownInterval);
+                autoRefreshCountdownInterval = null;
+            }
+        }
+
+        // Toggle auto refresh
+        $('#btnToggleAutoRefresh').on('click', function() {
+            autoRefreshEnabled = !autoRefreshEnabled;
+            localStorage.setItem('monitoringAutoRefreshEnabled', autoRefreshEnabled);
+            updateAutoRefreshUI();
         });
 
-        // Set auto refresh timer
-        function startAutoRefresh() {
-            if (refreshTimer) {
-                clearInterval(refreshTimer);
-            }
-            refreshTimer = setInterval(function() {
-                refreshData();
-            }, refreshInterval * 1000);
-        }
+        // Change interval auto refresh
+        $('#autoRefreshInterval').on('change', function() {
+            const newInterval = parseInt($(this).val());
+            autoRefreshSeconds = newInterval;
+            localStorage.setItem('monitoringAutoRefreshSeconds', newInterval);
 
-        // Mulai auto refresh
-        startAutoRefresh();
-
-        // Update status refresh setiap detik
-        let countdown = refreshInterval;
-        const countdownInterval = setInterval(function() {
-            countdown--;
-            if (countdown <= 0) {
-                countdown = refreshInterval;
+            // Jika auto refresh sedang aktif, restart dengan interval baru
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+            } else {
+                // Update countdown display meskipun tidak aktif
+                countdownSeconds = newInterval;
+                $('#autoRefreshCountdown').text(formatCountdown(newInterval));
             }
-            $('#refreshStatus').html(`<i class="fas fa-sync-alt fa-spin"></i> Refresh dalam ${countdown} detik`);
-        }, 1000);
+        });
+
+        // Inisialisasi auto refresh UI
+        updateAutoRefreshUI();
 
         // Cleanup saat halaman ditutup
         $(window).on('beforeunload', function() {
-            if (refreshTimer) {
-                clearInterval(refreshTimer);
-            }
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
+            stopAutoRefresh();
         });
     });
 </script>

@@ -1352,109 +1352,183 @@ class Munaqosah extends BaseController
 
     // ==================== ANTRIAN MUNAQOSAH ====================
 
+    /**
+     * Function untuk menampilkan halaman antrian munaqosah
+     * Menampilkan daftar peserta dalam antrian beserta statistik dan status ruangan
+     * 
+     * @return view Halaman list antrian munaqosah
+     */
     public function antrian()
     {
+        // ============================================
+        // STEP 1: INISIALISASI PARAMETER DASAR
+        // ============================================
+        // Ambil tahun ajaran saat ini sebagai default
         $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
-        $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
-        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
-        $selectedGroup = $this->request->getGet('group');
 
+        // Ambil parameter filter dari URL (GET), jika tidak ada gunakan default
+        $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah'; // Default: pra-munaqosah
+        $selectedGroup = $this->request->getGet('group'); // Grup materi ujian yang dipilih
+
+        // ============================================
+        // STEP 2: PENANGANAN SESSION DAN ROLE USER
+        // ============================================
         // Ambil IdTpq dari session (untuk admin TPQ)
         $sessionIdTpq = session()->get('IdTpq');
-        $selectedTpq = $this->request->getGet('tpq');
+        $selectedTpq = $this->request->getGet('tpq'); // Ambil dari parameter URL jika ada
 
-        // Jika user login sebagai admin TPQ
+        // Jika user login sebagai admin TPQ (ada IdTpq di session)
         if (!empty($sessionIdTpq)) {
-            // Set IdTpq dari session jika belum ada filter
+            // Set IdTpq dari session jika belum ada filter dari URL
             if (empty($selectedTpq)) {
                 $selectedTpq = $sessionIdTpq;
             }
-            // Set TypeUjian ke 'pra-munaqosah' secara otomatis
+            // Admin TPQ hanya bisa melihat pra-munaqosah
             $selectedType = 'pra-munaqosah';
-            // Set TahunAjaran ke tahun saat ini
+            // Admin TPQ hanya bisa melihat tahun ajaran saat ini
             $selectedTahun = $currentTahunAjaran;
         } else {
-            // Admin super: ambil dari parameter GET
+            // Admin super: ambil semua parameter dari URL GET (bisa filter semua)
             $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
             $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
         }
 
-        // Get list TPQ untuk dropdown (jika admin super)
+        // ============================================
+        // STEP 3: PENGAMBILAN DATA MASTER (TPQ LIST)
+        // ============================================
+        // Get list TPQ untuk dropdown filter (jika admin super)
         $tpqList = [];
         if (empty($sessionIdTpq)) {
             // Jika admin super (tidak ada IdTpq di session), tampilkan semua TPQ
             $tpqList = $this->tpqModel->GetData();
         } else {
-            // Jika admin TPQ, hanya tampilkan TPQ yang sesuai
+            // Jika admin TPQ, hanya tampilkan TPQ yang sesuai dengan session
             $tpqList = $this->tpqModel->GetData($sessionIdTpq);
+            // Pastikan hasilnya dalam format array
             if (!empty($tpqList) && !is_array($tpqList)) {
                 $tpqList = [$tpqList];
             }
         }
 
+        // ============================================
+        // STEP 4: PENGAMBILAN DATA GRUP MATERI
+        // ============================================
+        // Ambil daftar grup materi ujian yang aktif
         $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
 
+        // Jika belum ada grup yang dipilih, gunakan grup pertama sebagai default
         if (!$selectedGroup && !empty($grupList)) {
             $selectedGroup = $grupList[0]['IdGrupMateriUjian'];
         }
 
+        // ============================================
+        // STEP 5: DEFINISI OPSI TYPE UJIAN
+        // ============================================
+        // Definisikan opsi type ujian untuk dropdown
         $typeOptions = [
             'pra-munaqosah' => 'Pra Munaqosah',
             'munaqosah' => 'Munaqosah'
         ];
 
+        // ============================================
+        // STEP 6: PEMBUATAN FILTER UNTUK QUERY DATA
+        // ============================================
+        // Siapkan array filter untuk query data antrian
         $filters = [
             'IdTahunAjaran' => $selectedTahun,
             'IdGrupMateriUjian' => $selectedGroup,
             'TypeUjian' => $selectedType,
         ];
 
-        // Tambahkan filter IdTpq jika ada
+        // Tambahkan filter IdTpq jika ada (untuk filter per TPQ)
         if (!empty($selectedTpq)) {
             $filters['IdTpq'] = $selectedTpq;
         }
 
+        // ============================================
+        // STEP 7: PENGAMBILAN DATA ANTRIAN
+        // ============================================
+        // Ambil data antrian dengan detail lengkap berdasarkan filter
         $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+
+        // Ambil jumlah peserta per status (untuk statistik)
         $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
 
+        // ============================================
+        // STEP 8: PERHITUNGAN STATISTIK ANTRIAN
+        // ============================================
+        // Hitung total peserta dari semua status
         $totalPeserta = array_sum($statusCounts);
+
+        // Hitung jumlah peserta per status:
+        // Status 2 = Selesai
         $totalSelesai = $statusCounts[2] ?? 0;
+        // Status 1 = Sedang proses
         $totalProses = $statusCounts[1] ?? 0;
+        // Status 0 = Menunggu
         $totalMenunggu = $statusCounts[0] ?? 0;
+
+        // Hitung total antrian aktif (total peserta dikurangi yang selesai)
         $totalAntrianAktif = max($totalPeserta - $totalSelesai, 0);
+
+        // Hitung persentase progress (peserta selesai / total peserta * 100)
         $progressPersentase = $totalPeserta > 0 ? round(($totalSelesai / $totalPeserta) * 100) : 0;
 
+        // ============================================
+        // STEP 9: INISIALISASI VARIABEL RUANGAN
+        // ============================================
+        // Inisialisasi array untuk menyimpan data ruangan
         $rooms = [];
-        $availableRooms = [];
+        $availableRooms = []; // Ruangan yang masih tersedia (belum penuh)
 
+        // ============================================
+        // STEP 10: PENGELOLAAN RUANGAN DAN KAPASITAS
+        // ============================================
+        // Proses hanya dilakukan jika ada grup materi yang dipilih
         if ($selectedGroup) {
-            // Ambil kapasitas maksimal ruangan dari konfigurasi berdasarkan grup materi
+            // STEP 10.1: Ambil kapasitas maksimal ruangan dari konfigurasi
+            // Gunakan IdTpq yang dipilih, atau '0' jika tidak ada (untuk konfigurasi global)
             $configIdTpq = $selectedTpq ?? '0';
             $settingKey = 'KapasitasRuanganMaksimal_' . $selectedGroup;
+
+            // Ambil setting kapasitas dari konfigurasi (default: 1 jika tidak ada)
             $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+
+            // Pastikan kapasitas minimal 1 (validasi)
             if ($kapasitasMaksimal <= 0) {
                 $kapasitasMaksimal = 1;
             }
 
+            // STEP 10.2: Ambil daftar ruangan berdasarkan grup, type, dan TPQ
             $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
             $roomStatuses = [];
 
+            // STEP 10.3: Inisialisasi status untuk setiap ruangan
+            // Loop melalui setiap ruangan yang ditemukan
             foreach ($roomRows as $roomRow) {
                 $roomId = $roomRow['RoomId'];
+                // Buat struktur data status ruangan dengan nilai default
                 $roomStatuses[$roomId] = [
                     'RoomId' => $roomId,
-                    'occupied' => false,
-                    'participant_count' => 0,
-                    'participants' => [],
-                    'max_capacity' => $kapasitasMaksimal,
-                    'is_full' => false,
+                    'occupied' => false, // Belum terisi
+                    'participant_count' => 0, // Jumlah peserta: 0
+                    'participants' => [], // Array kosong untuk data peserta
+                    'max_capacity' => $kapasitasMaksimal, // Kapasitas maksimal
+                    'is_full' => false, // Belum penuh
                 ];
             }
 
-            // Hitung jumlah peserta per ruangan
+            // STEP 10.4: Hitung jumlah peserta per ruangan dari data antrian
+            // Loop melalui setiap peserta dalam antrian
             foreach ($queue as $row) {
+                // Hanya proses peserta yang:
+                // - Status = 1 (sedang ujian/proses)
+                // - Memiliki RoomId (sudah ditentukan ruangannya)
                 if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
                     $roomId = $row['RoomId'];
+
+                    // Jika ruangan belum ada di array roomStatuses, buat baru
                     if (!isset($roomStatuses[$roomId])) {
                         $roomStatuses[$roomId] = [
                             'RoomId' => $roomId,
@@ -1466,51 +1540,68 @@ class Munaqosah extends BaseController
                         ];
                     }
 
+                    // Update statistik ruangan:
+                    // - Tambah jumlah peserta
                     $roomStatuses[$roomId]['participant_count']++;
+                    // - Tambahkan data peserta ke array
                     $roomStatuses[$roomId]['participants'][] = $row;
+                    // - Tandai ruangan sudah terisi
                     $roomStatuses[$roomId]['occupied'] = true;
 
-                    // Tandai ruangan penuh jika mencapai kapasitas maksimal
+                    // STEP 10.5: Cek apakah ruangan sudah penuh
+                    // Tandai ruangan penuh jika jumlah peserta mencapai kapasitas maksimal
                     if ($roomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
                         $roomStatuses[$roomId]['is_full'] = true;
                     }
                 }
             }
 
+            // STEP 10.6: Konversi array roomStatuses menjadi indexed array
+            // (menghilangkan key berdasarkan RoomId)
             $rooms = array_values($roomStatuses);
 
+            // STEP 10.7: Identifikasi ruangan yang masih tersedia
+            // Loop melalui setiap ruangan untuk mencari yang belum penuh
             foreach ($roomStatuses as $roomStatus) {
-                // Ruangan tersedia jika belum penuh
+                // Ruangan tersedia jika belum penuh (is_full = false)
                 if (!$roomStatus['is_full']) {
                     $availableRooms[] = $roomStatus['RoomId'];
                 }
             }
         }
 
+        // ============================================
+        // STEP 11: PENYUSUNAN DATA UNTUK VIEW
+        // ============================================
+        // Siapkan array data yang akan dikirim ke view
         $data = [
             'page_title' => 'Data Antrian Munaqosah',
-            'queue' => $queue,
-            'groups' => $grupList,
-            'selected_group' => $selectedGroup,
-            'types' => $typeOptions,
-            'selected_type' => $selectedType,
-            'selected_tahun' => $selectedTahun,
-            'selected_tpq' => $selectedTpq ?? '',
-            'tpq_list' => $tpqList,
-            'session_id_tpq' => $sessionIdTpq ?? '',
-            'current_tahun' => $currentTahunAjaran,
-            'rooms' => $rooms,
-            'available_rooms' => $availableRooms,
+            'queue' => $queue, // Data antrian peserta
+            'groups' => $grupList, // Daftar grup materi untuk dropdown
+            'selected_group' => $selectedGroup, // Grup materi yang dipilih
+            'types' => $typeOptions, // Opsi type ujian untuk dropdown
+            'selected_type' => $selectedType, // Type ujian yang dipilih
+            'selected_tahun' => $selectedTahun, // Tahun ajaran yang dipilih
+            'selected_tpq' => $selectedTpq ?? '', // TPQ yang dipilih
+            'tpq_list' => $tpqList, // Daftar TPQ untuk dropdown
+            'session_id_tpq' => $sessionIdTpq ?? '', // IdTpq dari session
+            'current_tahun' => $currentTahunAjaran, // Tahun ajaran saat ini
+            'rooms' => $rooms, // Data ruangan beserta status
+            'available_rooms' => $availableRooms, // Daftar ruangan yang masih tersedia
             'statistics' => [
-                'total' => $totalPeserta,
-                'completed' => $totalSelesai,
-                'waiting' => $totalMenunggu,
-                'in_progress' => $totalProses,
-                'queueing' => $totalAntrianAktif,
-                'progress' => $progressPersentase,
+                'total' => $totalPeserta, // Total peserta
+                'completed' => $totalSelesai, // Peserta selesai
+                'waiting' => $totalMenunggu, // Peserta menunggu
+                'in_progress' => $totalProses, // Peserta sedang proses
+                'queueing' => $totalAntrianAktif, // Total antrian aktif
+                'progress' => $progressPersentase, // Persentase progress
             ],
         ];
 
+        // ============================================
+        // STEP 12: RETURN VIEW
+        // ============================================
+        // Kembalikan view dengan data yang sudah disiapkan
         return view('backend/Munaqosah/listAntrian', $data);
     }
 
@@ -1532,28 +1623,28 @@ class Munaqosah extends BaseController
         if (empty($noPeserta)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Nomor peserta tidak boleh kosong'
+                'message' => 'Nomor peserta tidak boleh kosong. Silakan masukkan nomor peserta yang valid.'
             ]);
         }
 
         if (empty($idTahunAjaran)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Tahun ajaran tidak boleh kosong'
+                'message' => 'Tahun ajaran tidak boleh kosong. Silakan pilih tahun ajaran yang valid.'
             ]);
         }
 
         if (empty($idGrupMateri)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Grup materi ujian tidak boleh kosong'
+                'message' => 'Grup materi ujian tidak boleh kosong. Silakan pilih grup materi ujian yang valid.'
             ]);
         }
 
         if (empty($typeUjian)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Type ujian tidak boleh kosong'
+                'message' => 'Type ujian tidak boleh kosong. Silakan pilih type ujian yang valid (Pra-Munaqosah atau Munaqosah).'
             ]);
         }
 
@@ -1566,9 +1657,17 @@ class Munaqosah extends BaseController
             ->first();
 
         if (!$registrasi) {
+            // Ambil nama santri untuk informasi yang lebih jelas
+            $santriData = $this->santriBaruModel->where('NoPeserta', $noPeserta)->first();
+            $namaSantri = $santriData['NamaSantri'] ?? '-';
+
+            // Ambil nama grup materi
+            $grupMateriData = $this->grupMateriUjiMunaqosahModel->find($idGrupMateri);
+            $namaGrupMateri = $grupMateriData['NamaMateriGrup'] ?? 'Grup Materi';
+
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Peserta tidak terdaftar untuk grup materi dan tipe ujian yang dipilih.'
+                'message' => 'Peserta dengan nomor ' . $noPeserta . ' (' . $namaSantri . ') tidak terdaftar untuk grup materi ' . $namaGrupMateri . ' dan tipe ujian yang dipilih. Silakan pastikan peserta sudah terdaftar untuk ujian tersebut.'
             ]);
         }
 
@@ -1585,25 +1684,228 @@ class Munaqosah extends BaseController
         }
 
         // Cek apakah peserta sudah ada di antrian aktif dengan menggunakan IdTpq juga
-        $existing = $this->antrianMunaqosahModel
-            ->where('NoPeserta', $noPeserta)
-            ->where('IdTahunAjaran', $idTahunAjaran)
-            ->where('IdGrupMateriUjian', $idGrupMateri)
-            ->where('TypeUjian', $typeUjian)
-            ->whereIn('Status', [0, 1]);
+        // Gunakan query dengan join untuk mendapatkan informasi lengkap
+        $builder = $this->db->table('tbl_munaqosah_antrian q');
+        $builder->select('q.*, r.IdGrupMateriUjian as IdGrupMateriResolved, r.TypeUjian as TypeUjianResolved, 
+                         r.IdTpq as IdTpqResolved, s.NamaSantri, gm.NamaMateriGrup');
+        $builder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = q.NoPeserta AND r.IdTahunAjaran = q.IdTahunAjaran', 'left');
+        $builder->join('tbl_santri_baru s', 's.IdSantri = COALESCE(q.IdSantri, r.IdSantri)', 'left');
+        $builder->join('tbl_munaqosah_grup_materi_uji gm', 'gm.IdGrupMateriUjian = COALESCE(q.IdGrupMateriUjian, r.IdGrupMateriUjian)', 'left');
 
-        // Tambahkan filter IdTpq jika tersedia untuk check yang lebih akurat
+        $builder->where('q.NoPeserta', $noPeserta);
+        $builder->where('q.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('q.IdGrupMateriUjian', $idGrupMateri);
+        $builder->where('q.TypeUjian', $typeUjian);
+        $builder->whereIn('q.Status', [0, 1]);
+
         if (!empty($idTpq)) {
-            $existing->where('IdTpq', $idTpq);
+            $builder->groupStart()
+                ->where('q.IdTpq', $idTpq)
+                ->orGroupStart()
+                ->where('q.IdTpq IS NULL')
+                ->where('r.IdTpq', $idTpq)
+                ->groupEnd()
+                ->groupEnd();
         }
 
-        $existing = $existing->first();
+        $existing = $builder->get()->getRowArray();
 
         if ($existing) {
+            // Ambil informasi lengkap untuk response
+            $namaGrupMateri = $existing['NamaMateriGrup'] ?? 'Grup Materi';
+            $namaSantri = $existing['NamaSantri'] ?? '-';
+            $typeUjianExisting = $existing['TypeUjian'] ?? $existing['TypeUjianResolved'] ?? $typeUjian;
+            $statusExisting = $existing['Status'] ?? 0;
+
+            // Cek apakah grup materi adalah Tulis Al-Quran (GM002)
+            $idGrupMateriExisting = $existing['IdGrupMateriUjian'] ?? $existing['IdGrupMateriResolved'] ?? $idGrupMateri;
+            $isTulisAlQuran = ($idGrupMateriExisting === 'GM002') ||
+                (stripos($namaGrupMateri, 'TULIS') !== false && stripos($namaGrupMateri, 'QURAN') !== false);
+
+            // Cek apakah peserta sudah memiliki nilai
+            $hasNilai = false;
+            if (!empty($idGrupMateriExisting)) {
+                $hasNilai = $this->nilaiMunaqosahModel->hasNilaiByGrupMateri(
+                    $noPeserta,
+                    $idGrupMateriExisting,
+                    $idTahunAjaran,
+                    $typeUjianExisting,
+                    $idTpq
+                );
+            }
+
+            $statusLabel = 'Menunggu';
+            if ($statusExisting == 1) {
+                $statusLabel = 'Sedang Ujian';
+            }
+
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Peserta sudah berada di antrian aktif untuk grup dan tipe ujian tersebut.'
+                'already_in_queue' => true,
+                'message' => 'Peserta sudah berada di antrian aktif untuk grup dan tipe ujian tersebut.',
+                'queue_data' => [
+                    'antrian_id' => $existing['id'],
+                    'no_peserta' => $noPeserta,
+                    'nama_santri' => $namaSantri,
+                    'grup_materi' => $namaGrupMateri,
+                    'id_grup_materi' => $idGrupMateriExisting,
+                    'type_ujian' => $typeUjianExisting,
+                    'status' => $statusExisting,
+                    'status_label' => $statusLabel,
+                    'room_id' => $existing['RoomId'] ?? null,
+                    'has_nilai' => $hasNilai,
+                    'is_tulis_al_quran' => $isTulisAlQuran,
+                    'created_at' => $existing['created_at'] ?? null
+                ]
             ]);
+        }
+
+        // Cek apakah peserta sudah ada di antrian grup lain (status bukan 2)
+        // Hanya cek jika belum ada action untuk handle konfirmasi
+        $action = $this->request->getPost('action'); // 'update' atau 'delete' atau null
+        $antrianGrupLainId = $this->request->getPost('antrian_grup_lain_id');
+
+        if (empty($action)) {
+            $antrianGrupLain = $this->antrianMunaqosahModel->getAntrianDiGrupLain(
+                $noPeserta,
+                $idTahunAjaran,
+                $idGrupMateri,
+                $typeUjian,
+                $idTpq
+            );
+
+            if ($antrianGrupLain) {
+                // Ambil nama grup materi dari hasil query (sudah di-join)
+                $namaGrupLain = $antrianGrupLain['NamaMateriGrup'] ?? 'Grup Materi Lain';
+
+                // Ambil TypeUjian dari antrian (prioritas dari q, jika null ambil dari registrasi)
+                $typeUjianLain = $antrianGrupLain['TypeUjian'] ?? $antrianGrupLain['TypeUjianResolved'] ?? $typeUjian;
+
+                // Ambil IdGrupMateriUjian yang sebenarnya (dari q atau r)
+                $idGrupMateriLain = $antrianGrupLain['IdGrupMateriUjian'] ?? $antrianGrupLain['IdGrupMateriResolved'] ?? null;
+
+                // Cek apakah grup materi adalah Tulis Al-Quran (GM002)
+                $isTulisAlQuran = ($idGrupMateriLain === 'GM002') ||
+                    (stripos($namaGrupLain, 'TULIS') !== false && stripos($namaGrupLain, 'QURAN') !== false);
+
+                // Cek apakah peserta sudah memiliki nilai di grup materi lain
+                $hasNilai = false;
+                if (!empty($idGrupMateriLain)) {
+                    $hasNilai = $this->nilaiMunaqosahModel->hasNilaiByGrupMateri(
+                        $noPeserta,
+                        $idGrupMateriLain,
+                        $idTahunAjaran,
+                        $typeUjianLain,
+                        $idTpq
+                    );
+                }
+
+                $statusLabel = 'Menunggu';
+                if ($antrianGrupLain['Status'] == 1) {
+                    $statusLabel = 'Sedang Ujian';
+                }
+
+                return $this->response->setJSON([
+                    'success' => false,
+                    'needs_confirmation' => true,
+                    'message' => 'Peserta terdeteksi sedang antri di grup materi lain. Silakan konfirmasi ke peserta terlebih dahulu.',
+                    'conflict_data' => [
+                        'antrian_id' => $antrianGrupLain['id'],
+                        'no_peserta' => $noPeserta,
+                        'nama_santri' => $antrianGrupLain['NamaSantri'] ?? '-',
+                        'grup_materi_lain' => $namaGrupLain,
+                        'id_grup_materi_lain' => $idGrupMateriLain,
+                        'type_ujian' => $typeUjianLain,
+                        'status' => $antrianGrupLain['Status'],
+                        'status_label' => $statusLabel,
+                        'has_nilai' => $hasNilai,
+                        'is_tulis_al_quran' => $isTulisAlQuran
+                    ]
+                ]);
+            }
+        } else {
+            // Handle action dari konfirmasi
+            if ($action === 'update' && !empty($antrianGrupLainId)) {
+                // Update status menjadi 2 (selesai)
+                $updateResult = $this->antrianMunaqosahModel->update($antrianGrupLainId, ['Status' => 2]);
+                if (!$updateResult) {
+                    $errors = $this->antrianMunaqosahModel->errors();
+                    $errorMessage = 'Gagal mengupdate status antrian di grup lain menjadi selesai.';
+                    if (!empty($errors)) {
+                        $errorMessage .= ' Error: ' . implode(', ', $errors);
+                    } else {
+                        $errorMessage .= ' Silakan coba lagi atau hubungi administrator jika masalah berlanjut.';
+                    }
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => $errorMessage
+                    ]);
+                }
+            } elseif ($action === 'delete' && !empty($antrianGrupLainId)) {
+                // Hapus antrian di grup lain
+                $deleteResult = $this->antrianMunaqosahModel->delete($antrianGrupLainId);
+                if (!$deleteResult) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Gagal menghapus antrian di grup lain. Data antrian mungkin sudah tidak ada atau terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator jika masalah berlanjut.'
+                    ]);
+                }
+            }
+
+            // Setelah action dilakukan, cek lagi apakah masih ada antrian di grup lain
+            // (untuk memastikan tidak ada antrian lain yang terlewat)
+            $antrianGrupLainLagi = $this->antrianMunaqosahModel->getAntrianDiGrupLain(
+                $noPeserta,
+                $idTahunAjaran,
+                $idGrupMateri,
+                $typeUjian,
+                $idTpq
+            );
+
+            if ($antrianGrupLainLagi) {
+                // Masih ada antrian di grup lain, return error dengan data konfirmasi
+                $namaGrupLain = $antrianGrupLainLagi['NamaMateriGrup'] ?? 'Grup Materi Lain';
+
+                // Ambil TypeUjian dari antrian (prioritas dari q, jika null ambil dari registrasi)
+                $typeUjianLain = $antrianGrupLainLagi['TypeUjian'] ?? $antrianGrupLainLagi['TypeUjianResolved'] ?? $typeUjian;
+
+                // Ambil IdGrupMateriUjian yang sebenarnya (dari q atau r)
+                $idGrupMateriLain = $antrianGrupLainLagi['IdGrupMateriUjian'] ?? $antrianGrupLainLagi['IdGrupMateriResolved'] ?? null;
+
+                // Cek apakah grup materi adalah Tulis Al-Quran (GM002)
+                $isTulisAlQuran = ($idGrupMateriLain === 'GM002') ||
+                    (stripos($namaGrupLain, 'TULIS') !== false && stripos($namaGrupLain, 'QURAN') !== false);
+
+                // Cek apakah peserta sudah memiliki nilai di grup materi lain
+                $hasNilai = false;
+                if (!empty($idGrupMateriLain)) {
+                    $hasNilai = $this->nilaiMunaqosahModel->hasNilaiByGrupMateri(
+                        $noPeserta,
+                        $idGrupMateriLain,
+                        $idTahunAjaran,
+                        $typeUjianLain,
+                        $idTpq
+                    );
+                }
+
+                return $this->response->setJSON([
+                    'success' => false,
+                    'needs_confirmation' => true,
+                    'message' => 'Masih terdapat antrian di grup materi lain. Silakan handle terlebih dahulu.',
+                    'conflict_data' => [
+                        'antrian_id' => $antrianGrupLainLagi['id'],
+                        'no_peserta' => $noPeserta,
+                        'nama_santri' => $antrianGrupLainLagi['NamaSantri'] ?? '-',
+                        'grup_materi_lain' => $namaGrupLain,
+                        'id_grup_materi_lain' => $idGrupMateriLain,
+                        'type_ujian' => $typeUjianLain,
+                        'status' => $antrianGrupLainLagi['Status'],
+                        'status_label' => $antrianGrupLainLagi['Status'] == 1 ? 'Sedang Ujian' : 'Menunggu',
+                        'has_nilai' => $hasNilai,
+                        'is_tulis_al_quran' => $isTulisAlQuran
+                    ]
+                ]);
+            }
         }
 
         // Simpan data antrian
@@ -1639,9 +1941,17 @@ class Munaqosah extends BaseController
             ]);
         }
 
+        $errors = $this->antrianMunaqosahModel->errors();
+        $errorMessage = 'Gagal menyimpan data antrian.';
+        if (!empty($errors)) {
+            $errorMessage .= ' Error: ' . implode(', ', $errors);
+        } else {
+            $errorMessage .= ' Silakan coba lagi atau hubungi administrator jika masalah berlanjut.';
+        }
+
         return $this->response->setJSON([
             'success' => false,
-            'message' => 'Gagal menyimpan data antrian: ' . implode(', ', $this->antrianMunaqosahModel->errors())
+            'message' => $errorMessage
         ]);
     }
 
@@ -1667,6 +1977,21 @@ class Munaqosah extends BaseController
         $idGrupMateri = $antrian['IdGrupMateriUjian'] ?? null;
         $typeUjian = $antrian['TypeUjian'] ?? null;
         $idTpq = $antrian['IdTpq'] ?? null;
+
+        // Tentukan grup login sebagai panitia atau operator
+        // Jika panitia, set IdTpq menjadi 0 (munaqosah umum)
+        $isPanitia = in_groups('Panitia');
+        $isOperator = in_groups('Operator');
+
+        if ($isPanitia) {
+            $idTpq = 0; // Panitia hanya mengakses data umum (IdTpq = 0)
+        } elseif ($isOperator) {
+            // Operator menggunakan IdTpq dari antrian atau session
+            // Jika IdTpq dari antrian null, ambil dari session
+            if (empty($idTpq)) {
+                $idTpq = session()->get('IdTpq') ?? null;
+            }
+        }
 
         // Cari ruangan yang tersedia berdasarkan filter
         $availableRooms = $this->munaqosahJuriModel->getRoomsByGrupAndType($idGrupMateri, $typeUjian, $idTpq);
@@ -1702,8 +2027,18 @@ class Munaqosah extends BaseController
             $occupiedQuery->where('TypeUjian', $typeUjian);
         }
 
-        if (!empty($idTpq)) {
-            $occupiedQuery->where('IdTpq', $idTpq);
+        // Filter IdTpq - perlu handle case IdTpq = 0 (panitia) dan null
+        if ($idTpq !== null) {
+            if ($idTpq == 0) {
+                // Untuk panitia (IdTpq = 0), filter hanya data dengan IdTpq = 0 atau NULL
+                $occupiedQuery->groupStart()
+                    ->where('IdTpq', 0)
+                    ->orWhere('IdTpq IS NULL', null, false)
+                    ->groupEnd();
+            } else {
+                // Untuk operator/admin dengan IdTpq tertentu
+                $occupiedQuery->where('IdTpq', $idTpq);
+            }
         }
 
         $occupiedData = $occupiedQuery->findAll();

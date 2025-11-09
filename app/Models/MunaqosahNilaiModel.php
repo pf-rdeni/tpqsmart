@@ -416,6 +416,33 @@ class MunaqosahNilaiModel extends Model
     }
 
     /**
+     * Cek apakah peserta sudah memiliki nilai di grup materi tertentu
+     * 
+     * @param string $noPeserta
+     * @param string $idGrupMateriUjian
+     * @param string $idTahunAjaran
+     * @param string $typeUjian
+     * @param string|null $idTpq
+     * @return bool True jika sudah ada nilai, False jika belum
+     */
+    public function hasNilaiByGrupMateri($noPeserta, $idGrupMateriUjian, $idTahunAjaran, $typeUjian, $idTpq = null)
+    {
+        $builder = $this->db->table($this->table);
+        $builder->where('NoPeserta', $noPeserta);
+        $builder->where('IdGrupMateriUjian', $idGrupMateriUjian);
+        $builder->where('IdTahunAjaran', $idTahunAjaran);
+        $builder->where('TypeUjian', $typeUjian);
+
+        if (!empty($idTpq)) {
+            $builder->where('IdTpq', $idTpq);
+        }
+
+        $count = $builder->countAllResults();
+
+        return $count > 0;
+    }
+
+    /**
      * Check if a jury already scored this participant for specific grup materi
      * 
      * @param string $noPeserta
