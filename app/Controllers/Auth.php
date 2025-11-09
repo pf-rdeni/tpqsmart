@@ -297,6 +297,27 @@ class Auth extends BaseController
 
         $idTpq = session()->get('IdTpq');
         $idTahunAjaran = session()->get('IdTahunAjaran');
+        $idTahunAjaranList = session()->get('IdTahunAjaranList');
+        $tahunAjaranSaatIni = $this->helpFunctionModel->getTahunAjaranSaatIni();
+
+        // Jika IdTahunAjaranList null atau kosong, set ke tahun ajaran saat ini
+        if (empty($idTahunAjaranList) || !is_array($idTahunAjaranList)) {
+            $idTahunAjaranList = [$tahunAjaranSaatIni];
+            session()->set('IdTahunAjaranList', $idTahunAjaranList);
+        }
+
+        // Jika IdTahunAjaran null, set ke tahun ajaran saat ini
+        if ($idTahunAjaran == null) {
+            $idTahunAjaran = $tahunAjaranSaatIni;
+            session()->set('IdTahunAjaran', $idTahunAjaran);
+        }
+
+        // Pastikan tahun ajaran saat ini ada di list
+        if (!in_array($tahunAjaranSaatIni, $idTahunAjaranList)) {
+            $idTahunAjaranList[] = $tahunAjaranSaatIni;
+            session()->set('IdTahunAjaranList', $idTahunAjaranList);
+        }
+
         $idKelas = session()->get('IdKelas');
         $idGuru = session()->get('IdGuru');
         // Tentukan nama login dan peran login
@@ -351,7 +372,6 @@ class Auth extends BaseController
         if (in_groups('Guru')) {
             $data = $this->getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru);
         } else if (in_groups('Admin') || in_groups('Operator')) {
-            //$idTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
             $data = $this->getAdminDashboardData($idTpq, $idTahunAjaran);
         } else {
             $data = ['page_title' => 'Dashboard'];
@@ -440,6 +460,20 @@ class Auth extends BaseController
 
         // Cek apakah tahun ajaran ada dalam list yang diizinkan
         $tahunAjaranList = session()->get('IdTahunAjaranList');
+        $tahunAjaranSaatIni = $this->helpFunctionModel->getTahunAjaranSaatIni();
+
+        // Jika IdTahunAjaranList null atau kosong, set ke tahun ajaran saat ini
+        if (empty($tahunAjaranList) || !is_array($tahunAjaranList)) {
+            $tahunAjaranList = [$tahunAjaranSaatIni];
+            session()->set('IdTahunAjaranList', $tahunAjaranList);
+        }
+
+        // Pastikan tahun ajaran saat ini ada di list
+        if (!in_array($tahunAjaranSaatIni, $tahunAjaranList)) {
+            $tahunAjaranList[] = $tahunAjaranSaatIni;
+            session()->set('IdTahunAjaranList', $tahunAjaranList);
+        }
+
         if (!in_array($tahunAjaran, $tahunAjaranList)) {
             return $this->response->setJSON([
                 'success' => false,

@@ -98,7 +98,7 @@
                         <div class="form-group row">
                             <label for="IdNikGuru" class="col-sm-3 col-form-label">Nama Guru (Opsional)</label>
                             <div class="col-sm-9">
-                                <select class="form-control" id="IdNikGuru" name="IdNikGuru">
+                                <select class="form-control select2" id="IdNikGuru" name="IdNikGuru" style="width: 100%;">
                                     <option value="">Pilih Nama Guru (opsional)</option>
                                     <?php foreach ($dataGuru as $guru): ?>
                                         <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
@@ -111,7 +111,7 @@
                         <div class="form-group row">
                             <label for="IdNikGuru" class="col-sm-3 col-form-label">Nama Guru</label>
                             <div class="col-sm-9">
-                                <select class="form-control" id="IdNikGuru" name="IdNikGuru" required>
+                                <select class="form-control select2" id="IdNikGuru" name="IdNikGuru" required style="width: 100%;">
                                     <option value="">Pilih Nama</option>
                                     <?php foreach ($dataGuru as $guru): ?>
                                         <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
@@ -238,6 +238,39 @@
     // inisialisasi datatable
     initializeDataTableUmum("#tblUser", true);
 
+    // Inisialisasi Select2 untuk dropdown Nama Guru
+    $(document).ready(function() {
+        // Fungsi untuk inisialisasi Select2
+        function initSelect2Guru() {
+            $('#IdNikGuru').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Pilih Nama Guru',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#modal-tambah')
+            });
+        }
+
+        // Inisialisasi Select2 saat pertama kali
+        initSelect2Guru();
+
+        // Re-initialize Select2 saat modal dibuka untuk styling yang konsisten
+        $('#modal-tambah').on('shown.bs.modal', function() {
+            $('#IdNikGuru').select2('destroy');
+            initSelect2Guru();
+        });
+
+        // Reset form dan Select2 saat modal ditutup
+        $('#modal-tambah').on('hidden.bs.modal', function() {
+            $('#formTambahUser').trigger('reset');
+            $('#IdNikGuru').val('').trigger('change');
+            $('#IdNikGuru').select2('destroy');
+            // Reset error messages
+            $('#error-confirm-password').text('');
+            $('#confirm-password').removeClass('is-invalid');
+        });
+    });
+
     // fungsi delet menngunakan swal
     function confirmDelete(id) {
         const row = event.target.closest('tr');
@@ -295,16 +328,16 @@
         $('#modal-tambah').modal('show');
     }
 
-    // rekomendasi username dari selected nama guru
-    $('#IdNikGuru').change(function() {
-        const IdNik = $(this).val();
+    // Fungsi untuk handle perubahan nama guru
+    function handleGuruChange() {
+        const IdNik = $('#IdNikGuru').val();
 
         // Jika kosong (Admin tidak pilih guru), skip
         if (!IdNik || IdNik === '') {
             return;
         }
 
-        const namaGuru = $(this).find(':selected').text();
+        const namaGuru = $('#IdNikGuru').find(':selected').text();
         const namaParts = namaGuru.split(' ');
         let username = '';
 
@@ -319,8 +352,9 @@
                         icon: 'warning',
                         confirmButtonText: 'OK'
                     });
-                    // Clear input username
+                    // Clear input username dan reset select
                     $('#username').val('');
+                    $('#IdNikGuru').val('').trigger('change');
                     return;
                 }
 
@@ -356,6 +390,12 @@
                 }
                 $('#username').val(username);
             });
+    }
+
+    // rekomendasi username dari selected nama guru - event change bekerja dengan Select2
+    $(document).ready(function() {
+        // Event handler untuk change (Select2 juga memicu event change standar)
+        $(document).on('change', '#IdNikGuru', handleGuruChange);
     });
 
     // fungsi untuk menyimpan data user
@@ -490,6 +530,8 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 $('#formTambahUser').trigger('reset');
+                // Reset Select2
+                $('#IdNikGuru').val('').trigger('change');
                 $('#modal-tambah').modal('hide');
             }
         });

@@ -23,11 +23,36 @@
             </div>
         </div>
         <?php if (in_groups('Guru') || in_groups('Operator')): ?>
+            <?php
+            // Cek dan set tahun ajaran jika belum ada di session
+            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+            $idTahunAjaranList = session()->get('IdTahunAjaranList');
+            $idTahunAjaran = session()->get('IdTahunAjaran');
+            $tahunAjaranSaatIni = $helpFunctionModel->getTahunAjaranSaatIni();
+
+            // Jika IdTahunAjaranList null atau kosong, set ke tahun ajaran saat ini
+            if (empty($idTahunAjaranList) || !is_array($idTahunAjaranList)) {
+                $idTahunAjaranList = [$tahunAjaranSaatIni];
+                session()->set('IdTahunAjaranList', $idTahunAjaranList);
+            }
+
+            // Jika IdTahunAjaran null, set ke tahun ajaran saat ini
+            if ($idTahunAjaran == null) {
+                $idTahunAjaran = $tahunAjaranSaatIni;
+                session()->set('IdTahunAjaran', $idTahunAjaran);
+            }
+
+            // Pastikan tahun ajaran saat ini ada di list
+            if (!in_array($tahunAjaranSaatIni, $idTahunAjaranList)) {
+                $idTahunAjaranList[] = $tahunAjaranSaatIni;
+                session()->set('IdTahunAjaranList', $idTahunAjaranList);
+            }
+            ?>
             <div class="info">
                 <select class="form-control" id="tahunAjaranSelect">
-                    <?php foreach (session()->get('IdTahunAjaranList') as $idTahunAjaran): ?>
-                        <option value="<?= $idTahunAjaran; ?>" <?= ($idTahunAjaran == session()->get('IdTahunAjaran')) ? 'selected' : ''; ?>>
-                            <?= convertTahunAjaran($idTahunAjaran); ?>
+                    <?php foreach ($idTahunAjaranList as $ta): ?>
+                        <option value="<?= $ta; ?>" <?= ($ta == $idTahunAjaran) ? 'selected' : ''; ?>>
+                            <?= convertTahunAjaran($ta); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -764,14 +789,14 @@
                             }
                         } else {
                             // Jika gagal, kembalikan ke nilai sebelumnya
-                            this.value = '<?= session()->get('IdTahunAjaran') ?>';
+                            this.value = '<?= session()->get('IdTahunAjaran') ?? '' ?>';
                             alert('Gagal mengubah tahun ajaran: ' + (data.message || 'Terjadi kesalahan'));
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
                         // Jika error, kembalikan ke nilai sebelumnya
-                        this.value = '<?= session()->get('IdTahunAjaran') ?>';
+                        this.value = '<?= session()->get('IdTahunAjaran') ?? '' ?>';
                         alert('Terjadi kesalahan saat mengubah tahun ajaran');
                     })
                     .finally(() => {
