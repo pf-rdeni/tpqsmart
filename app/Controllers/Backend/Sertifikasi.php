@@ -136,7 +136,7 @@ class Sertifikasi extends BaseController
             }
 
             // Ambil data guru
-            $guruData = $this->sertifikasiGuruModel->getGuruByNoTest($noTest);
+            $guruData = $this->sertifikasiGuruModel->getGuruByNoPeserta($noTest);
             
             if (empty($guruData)) {
                 return $this->response->setJSON([
@@ -146,6 +146,9 @@ class Sertifikasi extends BaseController
                     'message' => 'Data guru dengan nomor test ' . $noTest . ' tidak ditemukan',
                 ]);
             }
+
+            // Convert object to array untuk kompatibilitas
+            $guruDataArray = is_object($guruData) ? (array)$guruData : $guruData;
 
             // Ambil data juri
             $juriData = $this->sertifikasiJuriModel->getJuriByIdJuri($idJuri);
@@ -220,7 +223,7 @@ class Sertifikasi extends BaseController
                 'success' => true,
                 'status' => 'SUCCESS',
                 'data' => [
-                    'guru' => $guruData,
+                    'guru' => $guruDataArray,
                     'juri' => $juriData,
                     'groupMateri' => $groupMateri,
                     'materiList' => $materiList,
@@ -543,8 +546,8 @@ class Sertifikasi extends BaseController
     private function getPesertaTerakhirByJuri($idJuri)
     {
         $builder = $this->db->table('tbl_sertifikasi_nilai sn');
-        $builder->select('sn.NoPeserta as noTest, sn.updated_at, sg.Nama as NamaGuru, sj.usernameJuri');
-        $builder->join('tbl_sertifikasi_guru sg', 'sg.noTest = sn.NoPeserta', 'left');
+        $builder->select('sn.NoPeserta, sn.NoPeserta as noTest, sn.updated_at, sg.Nama as NamaGuru, sj.usernameJuri');
+        $builder->join('tbl_sertifikasi_guru sg', 'sg.NoPeserta = sn.NoPeserta', 'left');
         $builder->join('tbl_sertifikasi_juri sj', 'sj.IdJuri = sn.IdJuri', 'left');
         $builder->where('sn.IdJuri', $idJuri);
         $builder->groupBy('sn.NoPeserta, sg.Nama, sj.usernameJuri, sn.updated_at');

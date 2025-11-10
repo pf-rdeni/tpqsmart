@@ -10,23 +10,29 @@ class SertifikasiGuruModel extends Model
     protected $primaryKey = 'id';
     protected $useTimestamps = true;
     protected $allowedFields = [
-        'noTest',
+        'NoPeserta',
         'NoRek',
         'Nama',
         'NamaTpq',
+        'JenisKelamin',
+        'Kecamatan',
+        'Note',
     ];
 
     protected $validationRules = [
-        'noTest' => 'required|max_length[50]',
+        'NoPeserta' => 'required|max_length[50]',
         'NoRek' => 'permit_empty|max_length[50]',
         'Nama' => 'required|max_length[255]',
         'NamaTpq' => 'permit_empty|max_length[255]',
+        'JenisKelamin' => 'permit_empty|max_length[20]',
+        'Kecamatan' => 'permit_empty|max_length[255]',
+        'Note' => 'permit_empty',
     ];
 
     protected $validationMessages = [
-        'noTest' => [
-            'required' => 'Nomor test harus diisi',
-            'max_length' => 'Nomor test maksimal 50 karakter'
+        'NoPeserta' => [
+            'required' => 'Nomor peserta harus diisi',
+            'max_length' => 'Nomor peserta maksimal 50 karakter'
         ],
         'Nama' => [
             'required' => 'Nama harus diisi',
@@ -35,11 +41,19 @@ class SertifikasiGuruModel extends Model
     ];
 
     /**
-     * Get guru by noTest
+     * Get guru by NoPeserta
+     */
+    public function getGuruByNoPeserta($noPeserta)
+    {
+        return $this->where('NoPeserta', $noPeserta)->first();
+    }
+
+    /**
+     * Get guru by noTest (backward compatibility)
      */
     public function getGuruByNoTest($noTest)
     {
-        return $this->where('noTest', $noTest)->first();
+        return $this->where('NoPeserta', $noTest)->first();
     }
 
     /**

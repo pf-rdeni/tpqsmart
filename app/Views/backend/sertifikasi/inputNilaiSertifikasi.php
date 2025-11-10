@@ -42,15 +42,15 @@
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="noTest">No Peserta <span class="text-danger">*</span></label>
-                                                    <input type="number" 
-                                                           class="form-control" 
-                                                           id="noTest" 
-                                                           name="noTest" 
-                                                           placeholder="Masukkan Nomor Peserta (100-300)" 
-                                                           min="100" 
-                                                           max="300" 
-                                                           pattern="[0-9]{3}" 
-                                                           required>
+                                                    <input type="number"
+                                                        class="form-control"
+                                                        id="noTest"
+                                                        name="noTest"
+                                                        placeholder="Masukkan Nomor Peserta (100-300)"
+                                                        min="100"
+                                                        max="300"
+                                                        pattern="[0-9]{3}"
+                                                        required>
                                                     <small class="form-text text-muted">
                                                         Masukkan nomor peserta guru yang akan dinilai (100-300, 3 digit angka)
                                                     </small>
@@ -97,12 +97,12 @@
                                                                     <tbody>
                                                                         <?php foreach ($peserta_terakhir as $peserta): ?>
                                                                             <tr>
-                                                                                <td><strong><?= $peserta['noTest'] ?></strong></td>
-                                                                                <td><?= $peserta['NamaGuru'] ?? '-' ?></td>
+                                                                                <td><strong><?= esc($peserta['NoPeserta'] ?? $peserta['noTest'] ?? '-') ?></strong></td>
+                                                                                <td><?= esc($peserta['NamaGuru'] ?? '-') ?></td>
                                                                                 <td><?= date('d/m/Y', strtotime($peserta['updated_at'])) ?></td>
                                                                                 <td><?= date('H:i:s', strtotime($peserta['updated_at'])) ?></td>
                                                                                 <td class="text-center">
-                                                                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setNoTest('<?= $peserta['noTest'] ?>')">
+                                                                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setNoTest('<?= esc($peserta['NoPeserta'] ?? $peserta['noTest'] ?? '') ?>')">
                                                                                         <i class="fas fa-edit"></i> Input Lagi
                                                                                     </button>
                                                                                 </td>
@@ -163,26 +163,26 @@
 
         // Validasi input no peserta: hanya angka, min 100, max 300 dengan validasi real-time
         var noTestInput = document.getElementById('noTest');
-        
+
         // Fungsi untuk validasi dan tampilkan error
         function validateNoPesertaRealTime(input) {
             var value = input.value.trim();
             var errorMsg = input.parentElement.querySelector('.error-message');
-            
+
             // Hapus error message lama jika ada
             if (errorMsg) {
                 errorMsg.remove();
             }
-            
+
             // Jika kosong, tidak tampilkan error
             if (!value) {
                 input.classList.remove('is-invalid');
                 return true;
             }
-            
+
             var isValid = true;
             var errorText = '';
-            
+
             // Cek panjang digit
             if (value.length > 3) {
                 isValid = false;
@@ -226,7 +226,7 @@
                     }
                 }
             }
-            
+
             // Tampilkan atau sembunyikan error
             if (!isValid) {
                 input.classList.add('is-invalid');
@@ -241,31 +241,31 @@
             } else {
                 input.classList.remove('is-invalid');
             }
-            
+
             return isValid;
         }
-        
+
         // Event listener untuk input real-time
         noTestInput.addEventListener('input', function() {
             var value = this.value;
             // Hapus karakter non-angka
             value = value.replace(/[^0-9]/g, '');
             this.value = value;
-            
+
             // Validasi real-time
             validateNoPesertaRealTime(this);
         });
-        
+
         noTestInput.addEventListener('keypress', function(e) {
             var currentValue = this.value;
             var key = e.key;
-            
+
             // Hanya izinkan angka
             if (!/[0-9]/.test(key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(key)) {
                 e.preventDefault();
                 return;
             }
-            
+
             // Validasi digit sebelum input
             if (/[0-9]/.test(key)) {
                 var newValue = currentValue + key;
@@ -308,7 +308,7 @@
                     return;
                 }
             }
-            
+
             // Enter key untuk cek peserta
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -317,7 +317,7 @@
                 }
             }
         });
-        
+
         // Validasi saat blur
         noTestInput.addEventListener('blur', function() {
             validateNoPesertaRealTime(this);
@@ -344,7 +344,7 @@
 
     function cekPeserta() {
         var noTest = document.getElementById('noTest').value.trim();
-        
+
         if (!noTest) {
             Swal.fire({
                 icon: 'error',
@@ -353,7 +353,7 @@
             });
             return;
         }
-        
+
         // Validasi range
         var noTestInt = parseInt(noTest);
         if (isNaN(noTestInt) || noTestInt < 100 || noTestInt > 300) {
@@ -365,7 +365,7 @@
             document.getElementById('noTest').focus();
             return;
         }
-        
+
         // Validasi panjang (3 digit)
         if (noTest.length !== 3) {
             Swal.fire({
@@ -388,38 +388,38 @@
 
         // AJAX request
         fetch('<?= base_url('backend/sertifikasi/cekPeserta') ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: new URLSearchParams({
-                noTest: noTest,
-                IdJuri: currentJuriData.IdJuri
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new URLSearchParams({
+                    noTest: noTest,
+                    IdJuri: currentJuriData.IdJuri
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            Swal.close();
-            
-            if (data.success) {
-                currentGuruData = data.data.guru;
-                isEditMode = data.data.allMateriSudahDinilai || false;
-                
-                // Tentukan status sudah dinilai atau belum (hanya badge)
-                var statusBadge = '';
-                if (data.data.allMateriSudahDinilai) {
-                    statusBadge = '<span class="badge badge-success">Sudah Dinilai</span>';
-                } else {
-                    statusBadge = '<span class="badge badge-warning">Belum Dinilai</span>';
-                }
-                
-                // Tampilkan info peserta (hanya No Peserta, Nama, dan Status)
-                var infoHtml = `
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+
+                if (data.success) {
+                    currentGuruData = data.data.guru;
+                    isEditMode = data.data.allMateriSudahDinilai || false;
+
+                    // Tentukan status sudah dinilai atau belum (hanya badge)
+                    var statusBadge = '';
+                    if (data.data.allMateriSudahDinilai) {
+                        statusBadge = '<span class="badge badge-success">Sudah Dinilai</span>';
+                    } else {
+                        statusBadge = '<span class="badge badge-warning">Belum Dinilai</span>';
+                    }
+
+                    // Tampilkan info peserta (hanya No Peserta, Nama, dan Status)
+                    var infoHtml = `
                     <table class="table table-sm">
                         <tr>
                             <th width="150">No Peserta:</th>
-                            <td><strong>${data.data.guru.noTest}</strong></td>
+                            <td><strong>${data.data.guru.NoPeserta || 'N/A'}</strong></td>
                         </tr>
                         <tr>
                             <th>Nama:</th>
@@ -431,47 +431,47 @@
                         </tr>
                     </table>
                 `;
-                
-                document.getElementById('pesertaInfo').innerHTML = infoHtml;
-                document.getElementById('infoPeserta').className = 'alert alert-info';
-                document.getElementById('infoPeserta').style.display = 'block';
-                document.getElementById('noTestHeader').textContent = 'No Peserta : ' + noTest;
-                document.getElementById('noTestHeader').style.display = 'inline-block';
-                
-                // Load form nilai dengan materi
-                loadFormNilai(data.data);
-            } else {
-                // Tampilkan pesan error yang lebih informatif
-                var icon = 'error';
-                var title = 'Validasi Gagal';
-                
-                if (data.code === 'NILAI_SUDAH_ADA_DARI_JURI_LAIN') {
-                    icon = 'warning';
-                    title = 'Nilai Sudah Ada';
+
+                    document.getElementById('pesertaInfo').innerHTML = infoHtml;
+                    document.getElementById('infoPeserta').className = 'alert alert-info';
+                    document.getElementById('infoPeserta').style.display = 'block';
+                    document.getElementById('noTestHeader').textContent = 'No Peserta : ' + noTest;
+                    document.getElementById('noTestHeader').style.display = 'inline-block';
+
+                    // Load form nilai dengan materi
+                    loadFormNilai(data.data);
+                } else {
+                    // Tampilkan pesan error yang lebih informatif
+                    var icon = 'error';
+                    var title = 'Validasi Gagal';
+
+                    if (data.code === 'NILAI_SUDAH_ADA_DARI_JURI_LAIN') {
+                        icon = 'warning';
+                        title = 'Nilai Sudah Ada';
+                    }
+
+                    Swal.fire({
+                        icon: icon,
+                        title: title,
+                        text: data.message || 'Terjadi kesalahan',
+                        confirmButtonText: 'OK'
+                    });
                 }
-                
+            })
+            .catch(error => {
+                Swal.close();
                 Swal.fire({
-                    icon: icon,
-                    title: title,
-                    text: data.message || 'Terjadi kesalahan',
-                    confirmButtonText: 'OK'
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Terjadi kesalahan: ' + error.message
                 });
-            }
-        })
-        .catch(error => {
-            Swal.close();
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Terjadi kesalahan: ' + error.message
             });
-        });
     }
 
     function loadFormNilai(data) {
         var materiList = data.materiList || [];
         var existingNilaiByMateri = data.existingNilaiByMateri || {};
-        
+
         if (materiList.length === 0) {
             Swal.fire({
                 icon: 'warning',
@@ -494,7 +494,7 @@
             var existingNilai = existingNilaiByMateri[materi.IdMateri] || null;
             var nilaiValue = existingNilai ? existingNilai.Nilai : '';
             var statusBadge = existingNilai ? '<span class="badge badge-warning ml-2">Sudah Ada</span>' : '';
-            
+
             // Khusus untuk Materi Pilihan Ganda (SM001), gunakan 2 field
             if (materi.IdMateri === 'SM001') {
                 // Hitung jumlah benar dari nilai yang ada (jika ada)
@@ -505,7 +505,7 @@
                     var jumlahBenar = Math.round((parseFloat(nilaiValue) / 100) * 25);
                     jumlahBenarValue = jumlahBenar;
                 }
-                
+
                 formHtml += `
                     <div class="form-group">
                         <label for="materi_${materi.IdMateri}">
@@ -571,10 +571,10 @@
                 </div>
             </div>
         `;
-        
+
         document.getElementById('formNilaiContainer').innerHTML = formHtml;
         document.getElementById('btnKirimNilaiContainer').style.display = 'block';
-        
+
         // Setup event listener untuk konversi otomatis jumlah benar ke nilai (khusus SM001)
         var jumlahBenarInputs = document.querySelectorAll('.jumlah-benar-input');
         jumlahBenarInputs.forEach(function(input) {
@@ -593,7 +593,7 @@
                 }
             });
         });
-        
+
         // Setup event listener untuk nilai input (jika user langsung isi nilai, tidak perlu update jumlah benar)
         var nilaiInputs = document.querySelectorAll('.nilai-input');
         nilaiInputs.forEach(function(input) {
@@ -605,7 +605,7 @@
                 });
             }
         });
-        
+
         // Move to step 2
         stepper.to(2);
         document.getElementById('btnKembaliStep1').style.display = 'block';
@@ -621,7 +621,7 @@
         nilaiInputs.forEach(function(input) {
             var idMateri = input.getAttribute('data-id-materi');
             var nilai = input.value.trim();
-            
+
             if (!nilai || nilai === '') {
                 hasError = true;
                 errorMessage = 'Semua nilai harus diisi';
@@ -638,7 +638,7 @@
                 }
             }
         });
-        
+
         // Validasi khusus untuk SM001: pastikan jumlah benar valid jika diisi
         var jumlahBenarInput = document.getElementById('jumlah_benar_SM001');
         if (jumlahBenarInput) {
@@ -684,9 +684,9 @@
 
         // Prepare form data
         var formData = new URLSearchParams();
-        formData.append('noTest', currentGuruData.noTest);
+        formData.append('noTest', currentGuruData.NoPeserta || currentGuruData.noTest);
         formData.append('IdJuri', currentJuriData.IdJuri);
-        
+
         // Append nilai data as JSON string
         Object.keys(nilaiData).forEach(function(idMateri) {
             formData.append('nilai[' + idMateri + ']', nilaiData[idMateri]);
@@ -694,53 +694,52 @@
 
         // AJAX request
         fetch('<?= base_url('backend/sertifikasi/simpanNilai') ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            Swal.close();
-            
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: data.message || 'Nilai berhasil disimpan',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    // Reset form
-                    document.getElementById('noTest').value = '';
-                    document.getElementById('infoPeserta').style.display = 'none';
-                    document.getElementById('noTestHeader').style.display = 'none';
-                    document.getElementById('formNilaiContainer').innerHTML = '';
-                    document.getElementById('btnKirimNilaiContainer').style.display = 'none';
-                    stepper.to(1);
-                    document.getElementById('btnKembaliStep1').style.display = 'none';
-                    
-                    // Reload page to refresh peserta terakhir
-                    location.reload();
-                });
-            } else {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: data.message || 'Nilai berhasil disimpan',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Reset form
+                        document.getElementById('noTest').value = '';
+                        document.getElementById('infoPeserta').style.display = 'none';
+                        document.getElementById('noTestHeader').style.display = 'none';
+                        document.getElementById('formNilaiContainer').innerHTML = '';
+                        document.getElementById('btnKirimNilaiContainer').style.display = 'none';
+                        stepper.to(1);
+                        document.getElementById('btnKembaliStep1').style.display = 'none';
+
+                        // Reload page to refresh peserta terakhir
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Gagal menyimpan nilai'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.close();
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.message || 'Gagal menyimpan nilai'
+                    text: 'Terjadi kesalahan: ' + error.message
                 });
-            }
-        })
-        .catch(error => {
-            Swal.close();
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Terjadi kesalahan: ' + error.message
             });
-        });
     }
 </script>
 <?= $this->endSection(); ?>
-

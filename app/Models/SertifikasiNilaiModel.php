@@ -53,7 +53,7 @@ class SertifikasiNilaiModel extends Model
         $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sgm.NamaMateri, sg.Nama as NamaGuru, sg.NoRek, sg.NamaTpq');
         $builder->join('tbl_sertifikasi_juri sj', 'sj.IdJuri = sn.IdJuri', 'left');
         $builder->join('tbl_sertifikasi_group_materi sgm', 'sgm.IdGroupMateri = sn.IdGroupMateri', 'left');
-        $builder->join('tbl_sertifikasi_guru sg', 'sg.noTest = sn.NoPeserta', 'left');
+        $builder->join('tbl_sertifikasi_guru sg', 'sg.NoPeserta = sn.NoPeserta', 'left');
         $builder->where('sn.NoPeserta', $noPeserta);
         $builder->orderBy('sgm.IdGroupMateri', 'ASC');
         $builder->orderBy('sj.IdJuri', 'ASC');
@@ -120,11 +120,11 @@ class SertifikasiNilaiModel extends Model
     public function getAllNilaiWithRelations()
     {
         $builder = $this->db->table($this->table . ' sn');
-        $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sgm.NamaMateri as NamaGroupMateri, sm.NamaMateri, sm.IdMateri, sg.Nama as NamaGuru, sg.NoRek, sg.NamaTpq, sg.noTest, sn.NoPeserta');
+        $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sgm.NamaMateri as NamaGroupMateri, sm.NamaMateri, sm.IdMateri, sg.Nama as NamaGuru, sg.NoRek, sg.NamaTpq, sg.NoPeserta as noTest, sn.NoPeserta');
         $builder->join('tbl_sertifikasi_juri sj', 'sj.IdJuri = sn.IdJuri', 'left');
         $builder->join('tbl_sertifikasi_group_materi sgm', 'sgm.IdGroupMateri = sn.IdGroupMateri', 'left');
         $builder->join('tbl_sertifikasi_materi sm', 'sm.IdMateri = sn.IdMateri', 'left');
-        $builder->join('tbl_sertifikasi_guru sg', 'sg.noTest = sn.NoPeserta', 'left');
+        $builder->join('tbl_sertifikasi_guru sg', 'sg.NoPeserta = sn.NoPeserta', 'left');
         $builder->orderBy('sg.Nama', 'ASC');
         $builder->orderBy('sgm.IdGroupMateri', 'ASC');
         $builder->orderBy('sm.IdMateri', 'ASC');
@@ -138,11 +138,11 @@ class SertifikasiNilaiModel extends Model
     public function getAllNilaiByIdJuri($idJuri)
     {
         $builder = $this->db->table($this->table . ' sn');
-        $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sgm.NamaMateri as NamaGroupMateri, sm.NamaMateri, sm.IdMateri, sg.Nama as NamaGuru, sg.NoRek, sg.NamaTpq, sg.noTest, sn.NoPeserta');
+        $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sgm.NamaMateri as NamaGroupMateri, sm.NamaMateri, sm.IdMateri, sg.Nama as NamaGuru, sg.NoRek, sg.NamaTpq, sg.NoPeserta as noTest, sn.NoPeserta');
         $builder->join('tbl_sertifikasi_juri sj', 'sj.IdJuri = sn.IdJuri', 'left');
         $builder->join('tbl_sertifikasi_group_materi sgm', 'sgm.IdGroupMateri = sn.IdGroupMateri', 'left');
         $builder->join('tbl_sertifikasi_materi sm', 'sm.IdMateri = sn.IdMateri', 'left');
-        $builder->join('tbl_sertifikasi_guru sg', 'sg.noTest = sn.NoPeserta', 'left');
+        $builder->join('tbl_sertifikasi_guru sg', 'sg.NoPeserta = sn.NoPeserta', 'left');
         $builder->where('sn.IdJuri', $idJuri);
         $builder->orderBy('sg.Nama', 'ASC');
         $builder->orderBy('sgm.IdGroupMateri', 'ASC');
