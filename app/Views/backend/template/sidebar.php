@@ -69,6 +69,42 @@
                         <p> Dashboard</p>
                     </a>
                 </li>
+                <?php if (in_groups('JuriSertifikasi') || in_groups('Admin')): ?>
+                    <!-- Sertifikasi -->
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-certificate"></i>
+                            <p>
+                                Sertifikasi
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <?php if (in_groups('JuriSertifikasi')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/inputNilaiSertifikasi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Input Nilai Sertifikasi</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/nilaiPesertaSertifikasi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Nilai Peserta</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/listNilaiSertifikasi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>List Nilai Sertifikasi</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </li>
+                <?php endif; ?>
                 <?php if (in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || in_groups('Operator')): ?>
                     <!-- Munaqosah -->
                     <li class="nav-item no-hover">
@@ -196,6 +232,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
+
                             <?php if (in_groups('Panitia')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
