@@ -190,12 +190,28 @@ class StatusUjianMunaqosah extends BaseController
             }
         }
 
-        // Ambil setting AktiveTombolKelulusan dari konfigurasi
-        $idTpq = $peserta['IdTpq'] ?? 'default';
-        $aktiveTombolKelulusan = $this->munaqosahKonfigurasiModel->getSetting((string)$idTpq, 'AktiveTombolKelulusan');
+        // Ambil setting AktiveTombolKelulusan per type ujian
+        // - Untuk pra-munaqosah: ambil dari idTpq peserta
+        // - Untuk munaqosah: ambil dari idTpq = 0 (umum)
+        $idTpq = $peserta['IdTpq'] ?? 0;
+        $aktiveTombolKelulusanPerType = [];
 
-        // Jika tidak ada setting, default false (tidak aktif)
-        $aktiveTombolKelulusan = $aktiveTombolKelulusan !== null ? (bool)$aktiveTombolKelulusan : false;
+        // Cek untuk pra-munaqosah (menggunakan idTpq peserta)
+        if (in_array('pra-munaqosah', $availableTypeUjian)) {
+            $aktiveTombolKelulusanPraMunaqosah = $this->munaqosahKonfigurasiModel->getSettingAsBool((string)$idTpq, 'AktiveTombolKelulusan', false);
+            $aktiveTombolKelulusanPerType['pra-munaqosah'] = $aktiveTombolKelulusanPraMunaqosah;
+        }
+
+        // Cek untuk munaqosah (menggunakan idTpq = 0 untuk umum)
+        if (in_array('munaqosah', $availableTypeUjian)) {
+            $aktiveTombolKelulusanMunaqosah = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+            $aktiveTombolKelulusanPerType['munaqosah'] = $aktiveTombolKelulusanMunaqosah;
+        }
+
+        // Untuk backward compatibility, set aktiveTombolKelulusan berdasarkan type ujian pertama
+        // Tapi ini hanya digunakan jika tidak ada multiple type ujian
+        $firstTypeUjian = !empty($availableTypeUjian) ? $availableTypeUjian[0] : 'munaqosah';
+        $aktiveTombolKelulusan = $aktiveTombolKelulusanPerType[$firstTypeUjian] ?? false;
 
         // Ambil status verifikasi dari database
         $pesertaData = $this->munaqosahPesertaModel
@@ -210,7 +226,8 @@ class StatusUjianMunaqosah extends BaseController
             'page_title' => 'Konfirmasi Data Santri',
             'isPublic' => true,
             'peserta' => $peserta,
-            'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
+            'aktiveTombolKelulusan' => $aktiveTombolKelulusan, // Untuk backward compatibility
+            'aktiveTombolKelulusanPerType' => $aktiveTombolKelulusanPerType, // Data per type ujian
             'availableTypeUjian' => $availableTypeUjian,
             'statusVerifikasi' => $statusVerifikasi,
             'isVerified' => $isVerified
@@ -327,23 +344,35 @@ class StatusUjianMunaqosah extends BaseController
     public function processKonfirmasi()
     {
         $action = $this->request->getPost('action');
-        $confirmed = $this->request->getPost('confirmed');
         $typeUjian = $this->request->getPost('typeUjian');
 
-        if (empty($confirmed)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Anda harus menyetujui informasi penting terlebih dahulu'
-            ]);
-        }
-
         $peserta = session()->get('munaqosah_peserta');
-        
+
         if (empty($peserta)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Session expired. Silakan masukkan HashKey lagi.'
             ]);
+        }
+
+        // Untuk action 'kelulusan', cek status verified di database
+        // Untuk action 'status', tidak perlu pengecekan (selalu bisa digunakan)
+        if ($action === 'kelulusan') {
+            // Ambil status verifikasi dari database
+            $pesertaData = $this->munaqosahPesertaModel
+                ->where('IdSantri', $peserta['IdSantri'])
+                ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+                ->first();
+
+            $statusVerifikasi = $pesertaData['status_verifikasi'] ?? null;
+            $isVerified = ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi');
+
+            if (!$isVerified) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data Ananda belum diverifikasi. Tombol kelulusan akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.'
+                ]);
+            }
         }
 
         // Normalisasi TypeUjian
@@ -513,8 +542,11 @@ class StatusUjianMunaqosah extends BaseController
             ];
         }
 
+        // Tentukan page title berdasarkan type ujian
+        $typeUjianLabel = ($typeUjian === 'pra-munaqosah') ? 'Pra-Munaqosah' : 'Munaqosah';
+
         $data = [
-            'page_title' => 'Status Proses Munaqosah',
+            'page_title' => 'Status Proses ' . $typeUjianLabel,
             'isPublic' => true,
             'peserta' => $peserta,
             'statusGrup' => $statusGrup,
@@ -619,8 +651,11 @@ class StatusUjianMunaqosah extends BaseController
         $lulus = $pesertaData['KelulusanMet'] ?? false;
         $status = $pesertaData['KelulusanStatus'] ?? 'Belum Lulus';
 
+        // Tentukan page title berdasarkan type ujian
+        $typeUjianLabel = ($typeUjian === 'pra-munaqosah') ? 'Pra-Munaqosah' : 'Munaqosah';
+
         $data = [
-            'page_title' => 'Status Kelulusan Munaqosah',
+            'page_title' => 'Hasil Kelulusan ' . $typeUjianLabel,
             'isPublic' => true,
             'peserta' => $peserta,
             'totalBobot' => $totalBobot,

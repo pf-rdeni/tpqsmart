@@ -3,11 +3,17 @@ $isPublic = isset($isPublic) ? $isPublic : false;
 $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/template/template';
 $peserta = $peserta ?? [];
 $aktiveTombolKelulusan = $aktiveTombolKelulusan ?? true;
+$aktiveTombolKelulusanPerType = $aktiveTombolKelulusanPerType ?? [];
 $availableTypeUjian = $availableTypeUjian ?? ['munaqosah'];
 $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
 $statusVerifikasi = $statusVerifikasi ?? null;
 $isVerified = ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi');
 $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
+
+// Tentukan default type ujian untuk inisialisasi
+$defaultTypeUjian = !empty($availableTypeUjian) ? $availableTypeUjian[0] : 'munaqosah';
+// Tentukan status tombol kelulusan untuk default type ujian
+$aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian] ?? false;
 ?>
 
 <?= $this->extend($templatePath); ?>
@@ -314,7 +320,7 @@ $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
             <strong><i class="fas fa-exclamation-triangle"></i> Status Verifikasi: Perlu Perbaikan</strong>
             <p>
                 Data Ananda sedang dalam proses verifikasi perbaikan. Admin/Operator sedang meninjau permintaan perbaikan data yang telah Ananda ajukan.
-                Tombol "Lihat Status Munaqosah" dan "Lihat Kelulusan" akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.
+                Tombol "Lihat Kelulusan" akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.
             </p>
         </div>
     <?php elseif ($isVerified): ?>
@@ -334,34 +340,9 @@ $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
         </div>
     <?php endif; ?>
 
-    <?php if ($isVerified && $hasMultipleTypeUjian): ?>
-        <!-- Pilihan Type Ujian hanya ditampilkan ketika status sudah valid -->
-        <div class="type-ujian-selection" style="margin: 20px 0; padding: 15px; background-color: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
-            <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #2e7d32;">
-                <i class="fas fa-list-check"></i> Pilih Type Ujian:
-            </label>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <?php foreach ($availableTypeUjian as $type): ?>
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background-color 0.2s;">
-                        <input type="radio" name="typeUjian" value="<?= esc($type) ?>" <?= $type === 'munaqosah' ? 'checked' : '' ?> class="type-ujian-radio" required>
-                        <span style="font-weight: 500;">
-                            <?php if ($type === 'pra-munaqosah'): ?>
-                                Pra-Munaqosah
-                            <?php else: ?>
-                                Munaqosah
-                            <?php endif; ?>
-                        </span>
-                    </label>
-                <?php endforeach; ?>
-            </div>
-            <p style="margin-top: 10px; font-size: 13px; color: #555; font-style: italic;">
-                <i class="fas fa-info-circle"></i> Ananda memiliki data untuk kedua type ujian. Silakan pilih salah satu untuk melihat status atau hasil kelulusan.
-            </p>
-        </div>
-    <?php else: ?>
-        <!-- Jika status belum valid atau hanya satu type ujian, gunakan hidden input -->
-        <input type="hidden" name="typeUjian" value="<?= esc($availableTypeUjian[0] ?? 'munaqosah') ?>" id="typeUjianHidden">
-    <?php endif; ?>
+    <!-- Type Ujian akan dipilih melalui popup ketika tombol ditekan -->
+    <!-- Hidden input untuk menyimpan default type ujian (jika hanya satu) -->
+    <input type="hidden" name="typeUjian" value="<?= esc($availableTypeUjian[0] ?? 'munaqosah') ?>" id="typeUjianHidden">
 
     <form id="confirmationForm">
         <?php if (!$isVerified && !$isPerluPerbaikan): ?>
@@ -376,30 +357,26 @@ $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
         <!-- Jika status sudah ada (valid atau perlu_perbaikan), checkbox tidak ditampilkan karena status sudah ditampilkan di status-box di atas -->
 
         <div class="button-group">
-            <button type="button" class="btn-action btn-status" onclick="processAction('status')"
-                <?= $isVerified ? '' : 'disabled' ?> id="btnStatus">
+            <!-- Tombol Status selalu aktif (tidak bergantung pada status verified) -->
+            <button type="button" class="btn-action btn-status" onclick="processAction('status')" id="btnStatus">
                 <i class="fas fa-tasks"></i> Lihat Status Munaqosah
             </button>
+            <!-- Tombol Kelulusan bergantung pada status verified dan aktiveTombolKelulusan per type ujian -->
             <button
                 type="button"
-                class="btn-action btn-kelulusan <?= !$aktiveTombolKelulusan ? 'locked' : '' ?>"
-                onclick="<?= $aktiveTombolKelulusan ? "processAction('kelulusan')" : "return false;" ?>"
-                <?= $isVerified && $aktiveTombolKelulusan ? '' : 'disabled' ?>
+                class="btn-action btn-kelulusan"
+                onclick="processAction('kelulusan')"
                 id="btnKelulusan"
-                <?= !$aktiveTombolKelulusan ? 'style="pointer-events: none;"' : '' ?>>
+                data-aktive-per-type='<?= json_encode($aktiveTombolKelulusanPerType) ?>'>
                 <i class="fas fa-graduation-cap"></i> Lihat Kelulusan
-                <?php if (!$aktiveTombolKelulusan): ?>
-                    <i class="fas fa-lock" style="margin-left: 8px;"></i>
-                <?php endif; ?>
             </button>
         </div>
 
-        <?php if (!$aktiveTombolKelulusan): ?>
-            <div class="info-disabled">
-                <i class="fas fa-info-circle"></i>
-                <span>Tombol "Lihat Kelulusan" saat ini tidak aktif berdasarkan pengaturan sistem. Silakan hubungi admin lembaga untuk informasi lebih lanjut.</span>
-            </div>
-        <?php endif; ?>
+        <!-- Info untuk tombol kelulusan yang dinamis -->
+        <div class="info-disabled" id="infoKelulusan" style="display: none;">
+            <i class="fas fa-info-circle"></i>
+            <span>Tombol "Lihat Kelulusan" saat ini tidak aktif berdasarkan pengaturan sistem untuk type ujian yang dipilih. Silakan hubungi admin lembaga untuk informasi lebih lanjut.</span>
+        </div>
     </form>
 </div>
 
@@ -410,20 +387,84 @@ $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
     $(document).ready(function() {
         const isVerified = <?= $isVerified ? 'true' : 'false' ?>;
         const isPerluPerbaikan = <?= $isPerluPerbaikan ? 'true' : 'false' ?>;
+        const aktiveTombolKelulusanPerType = <?= json_encode($aktiveTombolKelulusanPerType) ?>;
+        const defaultTypeUjian = '<?= esc($defaultTypeUjian, 'js') ?>';
 
-        // Button hanya aktif jika status valid (verified)
-        if (isVerified) {
-            $('#btnStatus').prop('disabled', false);
-            <?php if ($aktiveTombolKelulusan): ?>
-                $('#btnKelulusan').prop('disabled', false);
-            <?php endif; ?>
-        } else {
-            // Jika belum verified atau perlu perbaikan, disable tombol
-            $('#btnStatus').prop('disabled', true);
-            <?php if ($aktiveTombolKelulusan): ?>
-                $('#btnKelulusan').prop('disabled', true);
-            <?php endif; ?>
+        // Function untuk update status tombol kelulusan berdasarkan type ujian default
+        // (Untuk multiple type ujian, status akan dicek saat popup muncul)
+        function updateTombolKelulusan() {
+            const availableTypeUjian = <?= json_encode($availableTypeUjian) ?>;
+
+            // Ambil type ujian default dari hidden input
+            const hiddenInput = $('#typeUjianHidden');
+            const selectedTypeUjian = hiddenInput.length > 0 ? hiddenInput.val() : defaultTypeUjian;
+
+            // Cek status aktiveTombolKelulusan untuk type ujian default
+            const aktiveTombolKelulusan = aktiveTombolKelulusanPerType[selectedTypeUjian] ?? false;
+
+            // Update tombol kelulusan
+            const btnKelulusan = $('#btnKelulusan');
+            const infoKelulusan = $('#infoKelulusan');
+
+            // Jika ada multiple type ujian, tombol kelulusan akan dicek saat popup muncul
+            // Tapi kita tetap perlu cek untuk type ujian default
+            const hasMultiple = <?= $hasMultipleTypeUjian ? 'true' : 'false' ?>;
+
+            if (hasMultiple) {
+                // Jika ada multiple type ujian, cek apakah setidaknya ada satu type ujian yang aktif
+                // Jika ada yang aktif dan status verified, enable tombol (nanti dicek lagi di popup)
+                let hasActiveType = false;
+                availableTypeUjian.forEach(function(type) {
+                    if (aktiveTombolKelulusanPerType[type] === true) {
+                        hasActiveType = true;
+                    }
+                });
+
+                if (isVerified && hasActiveType) {
+                    // Setidaknya ada satu type ujian yang aktif, enable tombol
+                    btnKelulusan.prop('disabled', false);
+                    btnKelulusan.removeClass('locked');
+                    btnKelulusan.css('pointer-events', 'auto');
+                    infoKelulusan.hide();
+                } else if (isVerified && !hasActiveType) {
+                    // Semua type ujian tidak aktif
+                    btnKelulusan.prop('disabled', true);
+                    btnKelulusan.addClass('locked');
+                    btnKelulusan.css('pointer-events', 'none');
+                    infoKelulusan.show();
+                } else {
+                    // Status belum verified
+                    btnKelulusan.prop('disabled', true);
+                    btnKelulusan.removeClass('locked');
+                    btnKelulusan.css('pointer-events', 'auto');
+                    infoKelulusan.hide();
+                }
+            } else {
+                // Jika hanya satu type ujian, cek seperti biasa
+                if (isVerified && aktiveTombolKelulusan) {
+                    btnKelulusan.prop('disabled', false);
+                    btnKelulusan.removeClass('locked');
+                    btnKelulusan.css('pointer-events', 'auto');
+                    infoKelulusan.hide();
+                } else if (isVerified && !aktiveTombolKelulusan) {
+                    btnKelulusan.prop('disabled', true);
+                    btnKelulusan.addClass('locked');
+                    btnKelulusan.css('pointer-events', 'none');
+                    infoKelulusan.show();
+                } else {
+                    btnKelulusan.prop('disabled', true);
+                    btnKelulusan.removeClass('locked');
+                    btnKelulusan.css('pointer-events', 'auto');
+                    infoKelulusan.hide();
+                }
+            }
         }
+
+        // Inisialisasi tombol status (selalu aktif)
+        $('#btnStatus').prop('disabled', false);
+
+        // Inisialisasi tombol kelulusan
+        updateTombolKelulusan();
 
         // Event handler hanya jika checkbox ada (belum verified dan tidak perlu perbaikan)
         // Jika status sudah valid, checkbox tidak ditampilkan, jadi tidak perlu event handler
@@ -437,20 +478,12 @@ $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
                         // Tampilkan popup konfirmasi
                         showVerifikasiPopup();
                     } else {
-                        // Jika unchecked, disable tombol
-                        $('#btnStatus').prop('disabled', true);
-                        <?php if ($aktiveTombolKelulusan): ?>
-                            $('#btnKelulusan').prop('disabled', true);
-                        <?php endif; ?>
+                        // Jika unchecked, update tombol kelulusan (tombol status tetap aktif)
+                        updateTombolKelulusan();
                     }
                 });
             }
         }
-
-        // Pastikan tombol kelulusan tetap disabled jika tidak aktif
-        <?php if (!$aktiveTombolKelulusan): ?>
-            $('#btnKelulusan').prop('disabled', true);
-        <?php endif; ?>
     });
 
     function showVerifikasiPopup() {
@@ -1029,19 +1062,137 @@ $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
         }
     }
 
-    function processAction(action) {
+    // Function untuk menampilkan popup pilihan type ujian
+    function showTypeUjianSelectionPopup(action) {
+        const availableTypeUjian = <?= json_encode($availableTypeUjian) ?>;
+        const aktiveTombolKelulusanPerType = <?= json_encode($aktiveTombolKelulusanPerType) ?>;
         const isVerified = <?= $isVerified ? 'true' : 'false' ?>;
 
-        // Button hanya bisa digunakan jika status verified
-        if (!isVerified) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Perhatian',
-                text: 'Data Ananda belum diverifikasi. Tombol ini akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.'
-            });
+        // Jika hanya satu type ujian, langsung proses tanpa popup
+        if (availableTypeUjian.length === 1) {
+            processActionWithTypeUjian(action, availableTypeUjian[0]);
             return;
         }
 
+        // Buat HTML untuk pilihan type ujian
+        let htmlContent = '<div class="text-left" style="padding: 10px 0;">';
+        htmlContent += '<p class="mb-3" style="font-weight: 600; color: #333;">Silakan pilih type ujian:</p>';
+        htmlContent += '<div style="display: flex; flex-direction: column; gap: 12px;">';
+
+        availableTypeUjian.forEach(function(type) {
+            const typeLabel = type === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
+            const typeIcon = type === 'pra-munaqosah' ? 'fa-book-reader' : 'fa-graduation-cap';
+            const isActive = aktiveTombolKelulusanPerType[type] ?? false;
+            const isDisabled = (action === 'kelulusan' && (!isVerified || !isActive));
+
+            htmlContent += '<label style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s; ' +
+                (isDisabled ? 'opacity: 0.6; background-color: #f5f5f5;' : 'background-color: #fff;') +
+                '" class="type-ujian-option" data-type="' + type + '">';
+            htmlContent += '<input type="radio" name="popupTypeUjian" value="' + type + '" ' +
+                (isDisabled ? 'disabled' : '') + ' style="width: 18px; height: 18px; cursor: pointer;">';
+            htmlContent += '<i class="fas ' + typeIcon + '" style="font-size: 20px; color: #4caf50;"></i>';
+            htmlContent += '<div style="flex: 1;">';
+            htmlContent += '<div style="font-weight: 600; color: #333; font-size: 16px;">' + typeLabel + '</div>';
+            if (action === 'kelulusan' && !isVerified) {
+                htmlContent += '<div style="font-size: 12px; color: #dc3545; margin-top: 4px;">Data belum diverifikasi</div>';
+            } else if (action === 'kelulusan' && !isActive) {
+                htmlContent += '<div style="font-size: 12px; color: #dc3545; margin-top: 4px;">Tidak aktif untuk type ujian ini</div>';
+            }
+            htmlContent += '</div>';
+            htmlContent += '</label>';
+        });
+
+        htmlContent += '</div>';
+        htmlContent += '</div>';
+
+        // Tampilkan popup
+        Swal.fire({
+            title: action === 'status' ? 'Pilih Type Ujian untuk Status' : 'Pilih Type Ujian untuk Kelulusan',
+            html: htmlContent,
+            icon: 'question',
+            width: '500px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-check"></i> Pilih',
+            cancelButtonText: '<i class="fas fa-times"></i> Batal',
+            confirmButtonColor: '#4caf50',
+            cancelButtonColor: '#6c757d',
+            allowOutsideClick: true,
+            allowEscapeKey: true,
+            didOpen: () => {
+                // Event listener untuk radio button
+                $('input[name="popupTypeUjian"]').on('change', function() {
+                    const selectedType = $(this).val();
+                    const optionLabel = $(this).closest('.type-ujian-option');
+
+                    // Update visual selection
+                    $('.type-ujian-option').css({
+                        'border-color': '#ddd',
+                        'background-color': '#fff'
+                    });
+                    optionLabel.css({
+                        'border-color': '#4caf50',
+                        'background-color': '#e8f5e9'
+                    });
+                });
+
+                // Event listener untuk klik pada label
+                $('.type-ujian-option').on('click', function() {
+                    const radio = $(this).find('input[type="radio"]');
+                    if (!radio.prop('disabled')) {
+                        radio.prop('checked', true).trigger('change');
+                    }
+                });
+
+                // Set default selection (pilih yang pertama yang tidak disabled)
+                const firstEnabled = $('input[name="popupTypeUjian"]:not(:disabled)').first();
+                if (firstEnabled.length > 0) {
+                    firstEnabled.prop('checked', true).trigger('change');
+                }
+            },
+            preConfirm: () => {
+                const selectedType = $('input[name="popupTypeUjian"]:checked').val();
+                if (!selectedType) {
+                    Swal.showValidationMessage('Silakan pilih type ujian terlebih dahulu');
+                    return false;
+                }
+                return selectedType;
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                processActionWithTypeUjian(action, result.value);
+            }
+        });
+    }
+
+    // Function untuk memproses action dengan type ujian yang dipilih
+    function processActionWithTypeUjian(action, typeUjian) {
+        const isVerified = <?= $isVerified ? 'true' : 'false' ?>;
+        const aktiveTombolKelulusanPerType = <?= json_encode($aktiveTombolKelulusanPerType) ?>;
+
+        // Untuk tombol kelulusan, cek status verified dan aktiveTombolKelulusan
+        if (action === 'kelulusan') {
+            if (!isVerified) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Data Ananda belum diverifikasi. Tombol kelulusan akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.'
+                });
+                return;
+            }
+
+            // Cek aktiveTombolKelulusan untuk type ujian yang dipilih
+            const aktiveTombolKelulusan = aktiveTombolKelulusanPerType[typeUjian] ?? false;
+            if (!aktiveTombolKelulusan) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Tombol "Lihat Kelulusan" saat ini tidak aktif untuk type ujian yang dipilih berdasarkan pengaturan sistem. Silakan hubungi admin lembaga untuk informasi lebih lanjut.'
+                });
+                return;
+            }
+        }
+
+        // Tampilkan loading
         Swal.fire({
             title: 'Memproses...',
             allowOutsideClick: false,
@@ -1050,47 +1201,13 @@ $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
             }
         });
 
-        // Ambil TypeUjian yang dipilih
-        let typeUjian = '';
-        <?php if ($isVerified && $hasMultipleTypeUjian): ?>
-            // Jika status valid dan ada multiple type ujian, ambil dari radio button
-            const selectedTypeUjian = $('input[name="typeUjian"]:checked');
-            if (selectedTypeUjian.length === 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Perhatian',
-                    text: 'Silakan pilih Type Ujian terlebih dahulu'
-                });
-                return;
-            }
-            typeUjian = selectedTypeUjian.val();
-        <?php else: ?>
-            // Jika status belum valid atau hanya satu type ujian, ambil dari hidden input
-            typeUjian = $('#typeUjianHidden').val() || '<?= esc($availableTypeUjian[0] ?? 'munaqosah') ?>';
-        <?php endif; ?>
-
-        // Ambil status confirmed
-        // Jika status sudah valid, confirmed selalu true (karena status valid berarti sudah dikonfirmasi)
-        // Jika checkbox ada (belum verified), ambil dari checkbox
-        let confirmed = false;
-        <?php if ($isVerified): ?>
-            // Jika status valid, confirmed selalu true
-            confirmed = true;
-        <?php else: ?>
-            // Jika checkbox ada, ambil dari checkbox
-            const confirmedCheckbox = $('#confirmed');
-            if (confirmedCheckbox.length > 0) {
-                confirmed = confirmedCheckbox.is(':checked');
-            }
-        <?php endif; ?>
-
+        // Kirim request ke backend
         $.ajax({
             url: '<?= base_url('munaqosah/process-konfirmasi') ?>',
             type: 'POST',
             data: {
                 typeUjian: typeUjian,
-                action: action,
-                confirmed: confirmed ? '1' : '0'
+                action: action
             },
             dataType: 'json',
             success: function(response) {
@@ -1112,6 +1229,22 @@ $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
                 });
             }
         });
+    }
+
+    // Function utama untuk process action (akan menampilkan popup jika ada multiple type ujian)
+    function processAction(action) {
+        const hasMultipleTypeUjian = <?= $hasMultipleTypeUjian ? 'true' : 'false' ?>;
+        const availableTypeUjian = <?= json_encode($availableTypeUjian) ?>;
+
+        // Jika ada multiple type ujian, tampilkan popup
+        // Jika hanya satu type ujian, langsung proses
+        if (hasMultipleTypeUjian && availableTypeUjian.length > 1) {
+            showTypeUjianSelectionPopup(action);
+        } else {
+            // Langsung proses dengan type ujian default
+            const defaultTypeUjian = $('#typeUjianHidden').val() || availableTypeUjian[0] || 'munaqosah';
+            processActionWithTypeUjian(action, defaultTypeUjian);
+        }
     }
 </script>
 <?= $this->endSection(); ?>

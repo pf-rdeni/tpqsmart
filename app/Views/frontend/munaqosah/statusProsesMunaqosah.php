@@ -3,6 +3,12 @@ $isPublic = isset($isPublic) ? $isPublic : false;
 $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/template/template';
 $peserta = $peserta ?? [];
 $statusGrup = $statusGrup ?? [];
+$typeUjian = $typeUjian ?? 'munaqosah';
+
+// Tentukan label dan icon berdasarkan type ujian
+$typeUjianLabel = ($typeUjian === 'pra-munaqosah') ? 'Pra-Munaqosah' : 'Munaqosah';
+$typeUjianIcon = ($typeUjian === 'pra-munaqosah') ? 'fa-book-reader' : 'fa-graduation-cap';
+$pageTitle = 'Status Proses ' . $typeUjianLabel;
 ?>
 
 <?= $this->extend($templatePath); ?>
@@ -12,30 +18,30 @@ $statusGrup = $statusGrup ?? [];
     body {
         background-color: #f5f5f5;
     }
-    
+
     .status-card {
         max-width: 800px;
         margin: 40px auto;
         background: white;
         border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         padding: 40px;
     }
-    
+
     .title-container {
         position: relative;
         margin-bottom: 40px;
         padding-bottom: 20px;
         border-bottom: 3px solid #4caf50;
     }
-    
+
     .title-wrapper {
         position: relative;
         display: flex;
         align-items: center;
         gap: 15px;
     }
-    
+
     .blue-line-vertical {
         width: 5px;
         height: 40px;
@@ -44,7 +50,13 @@ $statusGrup = $statusGrup ?? [];
         flex-shrink: 0;
         box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
     }
-    
+
+    .title-icon {
+        font-size: 32px;
+        color: #2196F3;
+        flex-shrink: 0;
+    }
+
     .card-title {
         font-size: 28px;
         font-weight: 700;
@@ -55,7 +67,7 @@ $statusGrup = $statusGrup ?? [];
         text-transform: none;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
-    
+
     .info-section {
         margin-bottom: 25px;
         padding: 15px 15px 15px 20px;
@@ -64,7 +76,7 @@ $statusGrup = $statusGrup ?? [];
         border-left: 5px solid #2196F3;
         position: relative;
     }
-    
+
     .info-section::before {
         content: '';
         position: absolute;
@@ -75,35 +87,39 @@ $statusGrup = $statusGrup ?? [];
         background: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
         border-radius: 0 3px 3px 0;
     }
-    
+
     .info-label {
         font-weight: 600;
         color: #555;
         font-size: 14px;
         margin-bottom: 5px;
     }
-    
+
     .info-value {
         font-size: 16px;
         color: #000;
         font-weight: 500;
     }
-    
+
     @media (max-width: 768px) {
         .card-title {
             font-size: 24px;
         }
-        
+
         .blue-line-vertical {
             height: 35px;
             width: 4px;
         }
+
+        .title-icon {
+            font-size: 28px;
+        }
     }
-    
+
     .status-list {
         margin-top: 30px;
     }
-    
+
     .status-item {
         display: flex;
         align-items: center;
@@ -115,55 +131,55 @@ $statusGrup = $statusGrup ?? [];
         border-left: 4px solid #ddd;
         transition: all 0.3s;
     }
-    
+
     .status-item:hover {
         background-color: #f0f0f0;
     }
-    
+
     .status-item.completed {
         border-left-color: #4caf50;
         background-color: #e8f5e9;
     }
-    
+
     .status-item.pending {
         border-left-color: #f44336;
         background-color: #ffebee;
     }
-    
+
     .grup-info {
         flex: 1;
     }
-    
+
     .grup-name {
         font-size: 18px;
         font-weight: 600;
         color: #000;
         margin-bottom: 5px;
     }
-    
+
     .grup-detail {
         font-size: 14px;
         color: #666;
     }
-    
+
     .status-icon {
         font-size: 32px;
         margin-left: 20px;
     }
-    
+
     .status-icon.check {
         color: #4caf50;
     }
-    
+
     .status-icon.cross {
         color: #f44336;
     }
-    
+
     .btn-back {
         margin-top: 30px;
         text-align: center;
     }
-    
+
     .btn-back a {
         display: inline-block;
         padding: 10px 30px;
@@ -174,20 +190,20 @@ $statusGrup = $statusGrup ?? [];
         font-weight: bold;
         transition: background-color 0.3s;
     }
-    
+
     .btn-back a:hover {
         background-color: #5a6268;
     }
-    
+
     .note-section {
         margin-top: 40px;
         padding: 20px;
         background-color: #e3f2fd;
         border-left: 5px solid #2196F3;
         border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
-    
+
     .note-title {
         font-size: 16px;
         font-weight: 700;
@@ -197,11 +213,11 @@ $statusGrup = $statusGrup ?? [];
         align-items: center;
         gap: 8px;
     }
-    
+
     .note-title i {
         font-size: 18px;
     }
-    
+
     .note-content {
         font-size: 14px;
         color: #424242;
@@ -209,7 +225,7 @@ $statusGrup = $statusGrup ?? [];
         margin: 0;
         text-align: justify;
     }
-    
+
     .note-content strong {
         color: #1565C0;
         font-weight: 600;
@@ -220,20 +236,21 @@ $statusGrup = $statusGrup ?? [];
     <div class="title-container">
         <div class="title-wrapper">
             <div class="blue-line-vertical"></div>
-            <h2 class="card-title">Status Proses Munaqosah</h2>
+            <i class="fas <?= $typeUjianIcon ?> title-icon"></i>
+            <h2 class="card-title">Status Proses <?= esc($typeUjianLabel) ?></h2>
         </div>
     </div>
-    
+
     <div class="info-section">
         <div class="info-label">Nama Santri:</div>
         <div class="info-value"><?= esc($peserta['NamaSantri'] ?? '-') ?></div>
     </div>
-    
+
     <div class="info-section">
         <div class="info-label">TPQ:</div>
         <div class="info-value"><?= esc($peserta['NamaTpq'] ?? '-') ?></div>
     </div>
-    
+
     <div class="status-list">
         <?php if (empty($statusGrup)): ?>
             <div class="alert alert-info">
@@ -269,7 +286,7 @@ $statusGrup = $statusGrup ?? [];
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
-    
+
     <div class="note-section">
         <div class="note-title">
             <i class="fas fa-info-circle"></i>
@@ -279,7 +296,7 @@ $statusGrup = $statusGrup ?? [];
             Apabila Ananda melihat status silang (belum selesai) pada grup materi ujian di atas, hal tersebut dapat berarti bahwa proses input nilai belum sepenuhnya selesai dilakukan karena memerlukan waktu dalam memproses data. Ananda dapat melihat dan memperbarui status secara berkala melalui halaman ini. Selain itu, Ananda juga dapat merujuk pada <strong>manual checklist dari panitia pada kartu peserta ujian</strong> yang menunjukkan bahwa Ananda sudah melakukan proses ujian munaqosah untuk memastikan kelengkapan data.
         </p>
     </div>
-    
+
     <div class="btn-back">
         <a href="<?= base_url('munaqosah/konfirmasi-data') ?>">
             <i class="fas fa-arrow-left"></i> Kembali ke Konfirmasi Data
@@ -299,4 +316,3 @@ $statusGrup = $statusGrup ?? [];
     });
 </script>
 <?= $this->endSection(); ?>
-
