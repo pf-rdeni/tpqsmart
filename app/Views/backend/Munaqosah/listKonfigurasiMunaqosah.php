@@ -218,8 +218,25 @@
                     </div>
                     <div class="form-group">
                         <label for="editSettingValue">Setting Value <span class="text-danger">*</span></label>
+                        <!-- Input text untuk non-boolean -->
                         <input type="text" class="form-control" id="editSettingValue" name="SettingValue" required>
+                        <!-- Radio button untuk boolean -->
+                        <div id="editSettingValueBoolean" style="display: none;">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="SettingValueBoolean" id="editSettingValueTrue" value="true" required>
+                                <label class="form-check-label" for="editSettingValueTrue">
+                                    True
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="SettingValueBoolean" id="editSettingValueFalse" value="false" required>
+                                <label class="form-check-label" for="editSettingValueFalse">
+                                    False
+                                </label>
+                            </div>
+                        </div>
                         <small class="form-text text-muted">Nilai pengaturan yang dapat diubah</small>
+                        <small class="form-text text-danger" id="editSettingValueError" style="display: none;"></small>
                     </div>
                     <div class="form-group">
                         <label for="editSettingType">Setting Type</label>
@@ -420,6 +437,24 @@
             $('#formAddKonfigurasi')[0].reset();
         });
 
+        // Reset form saat modal edit ditutup
+        $('#modalEditKonfigurasi').on('hidden.bs.modal', function() {
+            $('#formEditKonfigurasi')[0].reset();
+            // Reset visibility
+            $('#editSettingValue').show().prop('required', true)
+                .attr('type', 'text')
+                .removeAttr('min')
+                .removeAttr('step')
+                .removeAttr('data-setting-type')
+                .removeClass('is-invalid');
+            $('#editSettingValueBoolean').hide();
+            // Reset radio buttons
+            $('#editSettingValueTrue').prop('checked', false).prop('required', false);
+            $('#editSettingValueFalse').prop('checked', false).prop('required', false);
+            // Reset error message
+            $('#editSettingValueError').hide();
+        });
+
         // Button Edit Click
         $(document).on('click', '.edit-konfigurasi-btn', function() {
             var id = $(this).data('id');
@@ -439,12 +474,201 @@
             $('#editId').val(id);
             $('#editIdTpq').val(idTpq);
             $('#editSettingKey').val(settingKey);
-            $('#editSettingValue').val(settingValue);
             $('#editSettingType').val(settingType);
             $('#editSettingTypeHidden').val(settingType); // Hidden field untuk submit
             $('#editDescription').val(description);
 
+            // Reset error message
+            $('#editSettingValueError').hide();
+            $('#editSettingValue').removeClass('is-invalid');
+
+            // Handle boolean type - show radio buttons, hide text input
+            if (settingType === 'boolean') {
+                $('#editSettingValue').hide().prop('required', false);
+                $('#editSettingValueBoolean').show();
+                // Enable required on radio buttons
+                $('#editSettingValueTrue').prop('required', true);
+                $('#editSettingValueFalse').prop('required', true);
+
+                // Set radio button value
+                // Handle various boolean representations: true, false, "true", "false", "1", "0"
+                var boolValue = String(settingValue).toLowerCase();
+                if (boolValue === 'true' || boolValue === '1' || boolValue === 'yes') {
+                    $('#editSettingValueTrue').prop('checked', true);
+                    $('#editSettingValueFalse').prop('checked', false);
+                } else {
+                    $('#editSettingValueTrue').prop('checked', false);
+                    $('#editSettingValueFalse').prop('checked', true);
+                }
+            } else if (settingType === 'number') {
+                // Number type - show number input with min 0, hide radio buttons
+                $('#editSettingValue').show().prop('required', true)
+                    .attr('type', 'number')
+                    .attr('min', '0')
+                    .attr('step', '1')
+                    .attr('data-setting-type', 'number') // Tambahkan atribut untuk tracking
+                    .val(settingValue);
+                $('#editSettingValueBoolean').hide();
+                // Disable required on radio buttons and uncheck them
+                $('#editSettingValueTrue').prop('required', false).prop('checked', false);
+                $('#editSettingValueFalse').prop('required', false).prop('checked', false);
+            } else {
+                // Other types (text, json) - show text input, hide radio buttons
+                $('#editSettingValue').show().prop('required', true)
+                    .attr('type', 'text')
+                    .removeAttr('min')
+                    .removeAttr('step')
+                    .removeAttr('data-setting-type')
+                    .val(settingValue);
+                $('#editSettingValueBoolean').hide();
+                // Disable required on radio buttons and uncheck them
+                $('#editSettingValueTrue').prop('required', false).prop('checked', false);
+                $('#editSettingValueFalse').prop('required', false).prop('checked', false);
+            }
+
             $('#modalEditKonfigurasi').modal('show');
+        });
+
+        // Fungsi helper untuk cek apakah setting type adalah number
+        function isNumberType() {
+            return $('#editSettingTypeHidden').val() === 'number' || $('#editSettingValue').attr('data-setting-type') === 'number';
+        }
+
+        // Validasi input number - hanya menerima angka 0-9
+        $(document).on('keydown keypress', '#editSettingValue', function(e) {
+            // Hanya validasi jika setting type adalah number
+            if (!isNumberType()) {
+                return true;
+            }
+
+            // Allow: backspace, delete, tab, escape, enter, arrow keys, home, end
+            if ([8, 9, 27, 13, 46, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+                // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true)) {
+                return true;
+            }
+
+            // Hanya izinkan angka 0-9 (keyboard utama: 48-57, numpad: 96-105)
+            var charCode = e.which || e.keyCode;
+            if (charCode >= 48 && charCode <= 57) {
+                return true; // Angka 0-9 dari keyboard utama
+            }
+            if (charCode >= 96 && charCode <= 105) {
+                return true; // Angka 0-9 dari numpad
+            }
+
+            // Blokir semua karakter lain
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+
+        // Handler untuk paste - filter hanya angka
+        $(document).on('paste', '#editSettingValue', function(e) {
+            // Hanya validasi jika setting type adalah number
+            if (!isNumberType()) {
+                return true;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            var paste = (e.originalEvent || e).clipboardData.getData('text/plain');
+            // Hapus semua karakter yang bukan angka
+            var numericValue = paste.replace(/[^0-9]/g, '');
+
+            if (numericValue !== paste) {
+                $('#editSettingValueError').text('Hanya angka 0-9 yang diperbolehkan. Karakter lain telah dihapus.').show();
+                $(this).addClass('is-invalid');
+                var $this = $(this);
+                setTimeout(function() {
+                    $('#editSettingValueError').hide();
+                    $this.removeClass('is-invalid');
+                }, 2000);
+            }
+
+            // Set nilai yang sudah difilter
+            var currentValue = $(this).val();
+            var selectionStart = this.selectionStart || 0;
+            var selectionEnd = this.selectionEnd || selectionStart;
+            var newValue = currentValue.substring(0, selectionStart) + numericValue + currentValue.substring(selectionEnd);
+            $(this).val(newValue);
+
+            // Set cursor position
+            var newCursorPos = selectionStart + numericValue.length;
+            this.setSelectionRange(newCursorPos, newCursorPos);
+            return false;
+        });
+
+        // Validasi saat input berubah - hapus karakter non-numeric
+        $(document).on('input', '#editSettingValue', function() {
+            // Hanya validasi jika setting type adalah number
+            if (!isNumberType()) {
+                return true;
+            }
+
+            var $this = $(this);
+            var originalValue = $this.val();
+
+            // Hapus semua karakter yang bukan angka
+            var numericValue = originalValue.replace(/[^0-9]/g, '');
+
+            // Jika ada perubahan, update nilai
+            if (originalValue !== numericValue) {
+                var cursorPos = this.selectionStart || 0;
+                $this.val(numericValue);
+
+                // Tampilkan peringatan jika ada karakter yang dihapus
+                if (originalValue.length > numericValue.length) {
+                    $('#editSettingValueError').text('Hanya angka 0-9 yang diperbolehkan. Karakter lain telah dihapus.').show();
+                    $this.addClass('is-invalid');
+                    var $errorField = $('#editSettingValueError');
+                    var $inputField = $this;
+                    setTimeout(function() {
+                        $errorField.hide();
+                        $inputField.removeClass('is-invalid');
+                    }, 2000);
+                }
+
+                // Restore cursor position
+                var newCursorPos = Math.max(0, cursorPos - (originalValue.length - numericValue.length));
+                this.setSelectionRange(newCursorPos, newCursorPos);
+            }
+
+            // Validasi nilai >= 0 (sudah otomatis karena hanya angka)
+            if (numericValue !== '' && parseFloat(numericValue) < 0) {
+                $('#editSettingValueError').text('Hanya angka positif >= 0 yang diperbolehkan').show();
+                $this.addClass('is-invalid');
+            } else if (numericValue !== '') {
+                $('#editSettingValueError').hide();
+                $this.removeClass('is-invalid');
+            }
+        });
+
+        // Validasi saat blur
+        $(document).on('blur', '#editSettingValue', function() {
+            // Hanya validasi jika setting type adalah number
+            if (!isNumberType()) {
+                return true;
+            }
+
+            var value = $(this).val();
+            // Hapus karakter non-numeric terlebih dahulu
+            var numericValue = value.replace(/[^0-9]/g, '');
+            if (value !== numericValue) {
+                $(this).val(numericValue);
+            }
+
+            if (numericValue !== '' && (isNaN(numericValue) || parseFloat(numericValue) < 0)) {
+                $('#editSettingValueError').text('Hanya angka positif >= 0 yang diperbolehkan').show();
+                $(this).addClass('is-invalid');
+            } else {
+                $('#editSettingValueError').hide();
+                $(this).removeClass('is-invalid');
+            }
         });
 
         // Form Edit Konfigurasi
@@ -452,11 +676,57 @@
             e.preventDefault();
 
             var id = $('#editId').val();
+            var settingType = $('#editSettingTypeHidden').val();
+
+            // Prepare form data
+            var formData = $(this).serializeArray();
+
+            // If boolean type, get value from radio button instead of text input
+            if (settingType === 'boolean') {
+                // Remove the text input value from form data
+                formData = formData.filter(function(item) {
+                    return item.name !== 'SettingValue';
+                });
+
+                // Add the radio button value
+                var boolValue = $('input[name="SettingValueBoolean"]:checked').val();
+                if (boolValue) {
+                    formData.push({
+                        name: 'SettingValue',
+                        value: boolValue
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Silakan pilih nilai boolean (True atau False)'
+                    });
+                    return;
+                }
+            } else if (settingType === 'number') {
+                // Validate number value >= 0
+                var numberValue = parseFloat($('#editSettingValue').val());
+                if (isNaN(numberValue) || numberValue < 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Nilai harus berupa angka positif >= 0'
+                    });
+                    $('#editSettingValue').focus();
+                    return;
+                }
+            }
+
+            // Convert array to object for jQuery ajax
+            var dataObject = {};
+            $.each(formData, function(i, field) {
+                dataObject[field.name] = field.value;
+            });
 
             $.ajax({
                 url: '<?= base_url('backend/munaqosah/update-konfigurasi/') ?>' + id,
                 type: 'POST',
-                data: $(this).serialize(),
+                data: dataObject,
                 dataType: 'json',
                 beforeSend: function() {
                     $('#formEditKonfigurasi button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Mengupdate...');
