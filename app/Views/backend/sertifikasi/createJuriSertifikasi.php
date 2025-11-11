@@ -1,6 +1,5 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
-
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
@@ -12,11 +11,11 @@
                 </div>
                 <form id="formCreateJuri" onsubmit="event.preventDefault(); simpanJuri();">
                     <div class="card-body">
-                         <div class="form-group">
-                             <label for="IdJuri">ID Juri <span class="text-danger">*</span></label>
-                             <input type="text" class="form-control" id="IdJuri" name="IdJuri" value="<?= esc($next_id_juri) ?>" placeholder="Contoh: JS001" required readonly>
-                             <small class="form-text text-muted">ID Juri di-generate otomatis berdasarkan ID terakhir</small>
-                         </div>
+                        <div class="form-group">
+                            <label for="IdJuri">ID Juri <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="IdJuri" name="IdJuri" value="<?= esc($next_id_juri) ?>" placeholder="Contoh: JS001" required readonly>
+                            <small class="form-text text-muted">ID Juri di-generate otomatis berdasarkan ID terakhir</small>
+                        </div>
 
                         <div class="form-group">
                             <label for="IdGroupMateri">Group Materi <span class="text-danger">*</span></label>
@@ -36,7 +35,7 @@
                             <div class="input-group">
                                 <input type="text" class="form-control" id="usernameJuri" name="usernameJuri" placeholder="Contoh: juri.materi.pg" required readonly>
                                 <div class="input-group-append">
-                                    <button type="button" class="btn btn-secondary" onclick="generateUsername()" title="Generate Username">
+                                    <button type="button" class="btn btn-secondary" id="btnGenerateUsername" title="Generate Username">
                                         <i class="fas fa-sync-alt"></i> Generate
                                     </button>
                                 </div>
@@ -93,23 +92,16 @@
         </div>
     </div>
 </div>
-
-
-
 <?= $this->endSection(); ?>
 
-<?= $this->section('script'); ?>
+<?= $this->section('scripts'); ?>
 <script>
-    $(document).ready(function() {
-        // Event handler untuk perubahan Group Materi
-        $('#IdGroupMateri').on('change', function() {
-            generateUsername();
-        });
-    });
-
+    // Definisikan fungsi generateUsername di luar document.ready agar bisa diakses
     function generateUsername() {
         var idGroupMateri = $('#IdGroupMateri').val();
-        
+
+        console.log('generateUsername called, IdGroupMateri:', idGroupMateri);
+
         if (!idGroupMateri) {
             $('#usernameJuri').val('');
             return;
@@ -117,8 +109,17 @@
 
         // Tampilkan loading
         $('#usernameJuri').prop('disabled', true);
-        var generateBtn = $('#usernameJuri').closest('.input-group').find('button');
+        var generateBtn = $('#btnGenerateUsername');
         generateBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+        // Ambil CSRF token dari meta tag atau form
+        var csrfName = '<?= csrf_token() ?>';
+        var csrfHash = '<?= csrf_hash() ?>';
+
+        var formData = {
+            IdGroupMateri: idGroupMateri
+        };
+        formData[csrfName] = csrfHash;
 
         $.ajax({
             url: '<?= base_url('backend/sertifikasi/generateNextUsernameJuri') ?>',
@@ -126,17 +127,16 @@
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            data: {
-                IdGroupMateri: idGroupMateri,
-                <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-            },
+            data: formData,
             dataType: 'json',
             success: function(response) {
+                console.log('AJAX Success Response:', response);
                 $('#usernameJuri').prop('disabled', false);
                 generateBtn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Generate');
-                
+
                 if (response.success) {
                     $('#usernameJuri').val(response.username);
+                    console.log('Username generated:', response.username);
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -147,9 +147,12 @@
                 }
             },
             error: function(xhr, status, error) {
+                console.error('AJAX Error:', xhr, status, error);
+                console.error('Response Text:', xhr.responseText);
+
                 $('#usernameJuri').prop('disabled', false);
                 generateBtn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Generate');
-                
+
                 var errorMessage = 'Terjadi kesalahan saat generate username';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
@@ -163,17 +166,47 @@
                         errorMessage = 'Error: ' + xhr.status + ' - ' + error;
                     }
                 }
-                
+
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: errorMessage
                 });
                 $('#usernameJuri').val('');
-                console.error('AJAX Error:', xhr, status, error);
             }
         });
     }
+
+    $(document).ready(function() {
+        console.log('Document ready, setting up event handlers');
+
+        // Pastikan elemen sudah ada
+        var $idGroupMateri = $('#IdGroupMateri');
+        var $btnGenerate = $('#btnGenerateUsername');
+
+        console.log('IdGroupMateri element found:', $idGroupMateri.length > 0);
+        console.log('Generate button found:', $btnGenerate.length > 0);
+
+        if ($idGroupMateri.length > 0) {
+            // Event handler untuk perubahan Group Materi
+            $idGroupMateri.on('change', function() {
+                console.log('IdGroupMateri changed to:', $(this).val());
+                generateUsername();
+            });
+            console.log('Change event handler attached to IdGroupMateri');
+        }
+
+        if ($btnGenerate.length > 0) {
+            // Event handler untuk tombol Generate
+            $btnGenerate.on('click', function() {
+                console.log('Generate button clicked');
+                generateUsername();
+            });
+            console.log('Click event handler attached to Generate button');
+        }
+
+        console.log('Event handlers setup complete');
+    });
 
     function toggleUserFields() {
         var createUser = $('#createUser').is(':checked');
@@ -192,7 +225,7 @@
 
     function simpanJuri() {
         var createUser = $('#createUser').is(':checked') ? 'true' : 'false';
-        
+
         var formData = {
             IdJuri: $('#IdJuri').val(),
             IdGroupMateri: $('#IdGroupMateri').val(),
@@ -273,4 +306,3 @@
     }
 </script>
 <?= $this->endSection(); ?>
-

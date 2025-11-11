@@ -192,18 +192,46 @@ class Sertifikasi extends BaseController
             $materiList = $this->sertifikasiMateriModel->getMateriByGrupMateri($juriDataArray['IdGroupMateri']);
 
             // Filter materi jika juri adalah GMS002 dan ada filter pilihan
+            $filterSM001 = $this->request->getPost('filterSM001'); // 'true' atau 'false' atau null
             $filterSM004 = $this->request->getPost('filterSM004'); // 'true' atau 'false' atau null
-            if ($juriDataArray['IdGroupMateri'] === 'GMS002' && $filterSM004 !== null) {
-                if ($filterSM004 === 'true' || $filterSM004 === true) {
-                    // Hanya tampilkan SM004
-                    $materiList = array_filter($materiList, function ($materi) {
-                        return $materi['IdMateri'] === 'SM004';
+
+            if ($juriDataArray['IdGroupMateri'] === 'GMS002') {
+                $selectedMateri = []; // Materi yang akan ditampilkan
+                $excludedMateri = []; // Materi yang akan dikecualikan
+
+                // Proses filter SM001
+                if ($filterSM001 !== null) {
+                    if ($filterSM001 === 'true' || $filterSM001 === true) {
+                        // Hanya tampilkan SM001
+                        $selectedMateri[] = 'SM001';
+                    } else {
+                        // Kecualikan SM001
+                        $excludedMateri[] = 'SM001';
+                    }
+                }
+
+                // Proses filter SM004
+                if ($filterSM004 !== null) {
+                    if ($filterSM004 === 'true' || $filterSM004 === true) {
+                        // Hanya tampilkan SM004
+                        $selectedMateri[] = 'SM004';
+                    } else {
+                        // Kecualikan SM004
+                        $excludedMateri[] = 'SM004';
+                    }
+                }
+
+                // Terapkan filter
+                if (!empty($selectedMateri)) {
+                    // Jika ada materi yang dipilih, hanya tampilkan yang dipilih
+                    $materiList = array_filter($materiList, function ($materi) use ($selectedMateri) {
+                        return in_array($materi['IdMateri'], $selectedMateri);
                     });
                     $materiList = array_values($materiList); // Re-index array
-                } else {
-                    // Kecualikan SM004
-                    $materiList = array_filter($materiList, function ($materi) {
-                        return $materi['IdMateri'] !== 'SM004';
+                } elseif (!empty($excludedMateri)) {
+                    // Jika tidak ada yang dipilih tapi ada yang dikecualikan, kecualikan yang dikecualikan
+                    $materiList = array_filter($materiList, function ($materi) use ($excludedMateri) {
+                        return !in_array($materi['IdMateri'], $excludedMateri);
                     });
                     $materiList = array_values($materiList); // Re-index array
                 }
@@ -1061,14 +1089,42 @@ class Sertifikasi extends BaseController
                 ]);
             }
 
-            // Hapus data
+            // Start database transaction
+            $this->db->transStart();
+
+            // Cek apakah ada user dengan username yang sama dengan usernameJuri
+            $user = $this->userModel->where('username', $juri['usernameJuri'])->first();
+
+            if ($user) {
+                // Hapus dari auth_groups_users
+                $this->db->table('auth_groups_users')
+                    ->where('user_id', $user['id'])
+                    ->delete();
+
+                // Hapus dari users
+                $this->userModel->delete($user['id']);
+            }
+
+            // Hapus dari tbl_sertifikasi_juri
             $this->sertifikasiJuriModel->delete($id);
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Database transaction failed');
+            }
+
+            $message = 'Juri Sertifikasi berhasil dihapus';
+            if ($user) {
+                $message .= ' beserta user terkait';
+            }
 
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Juri Sertifikasi berhasil dihapus'
+                'message' => $message
             ]);
         } catch (\Exception $e) {
+            $this->db->transRollback();
             log_message('error', 'Error in deleteJuriSertifikasi: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,

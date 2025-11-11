@@ -58,14 +58,16 @@
 </div>
 <?= $this->endSection(); ?>
 
-<?= $this->section('script'); ?>
+<?= $this->section('scripts'); ?>
 <script>
     $(document).ready(function() {
         $('#tblJuriSertifikasi').DataTable({
             "responsive": true,
             "lengthChange": true,
             "autoWidth": false,
-            "order": [[0, "asc"]],
+            "order": [
+                [0, "asc"]
+            ],
             "language": {
                 "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json"
             }
@@ -124,4 +126,3 @@
     }
 </script>
 <?= $this->endSection(); ?>
-

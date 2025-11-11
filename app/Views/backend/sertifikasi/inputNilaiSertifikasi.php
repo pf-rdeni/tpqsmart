@@ -53,6 +53,21 @@
                                                                 <div class="custom-control custom-checkbox">
                                                                     <input type="checkbox"
                                                                         class="custom-control-input"
+                                                                        id="filterSM001"
+                                                                        name="filterSM001"
+                                                                        value="true">
+                                                                    <label class="custom-control-label" for="filterSM001">
+                                                                        <strong>Nilai Materi SM001 - Pilihan Ganda</strong>
+                                                                    </label>
+                                                                </div>
+                                                                <small class="form-text text-muted">
+                                                                    Centang jika ingin menilai materi Pilihan Ganda. Jika tidak dicentang, materi ini tidak akan muncul di step 2.
+                                                                </small>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <div class="custom-control custom-checkbox">
+                                                                    <input type="checkbox"
+                                                                        class="custom-control-input"
                                                                         id="filterSM004"
                                                                         name="filterSM004"
                                                                         value="true">
@@ -183,13 +198,40 @@
     var currentJuriData = <?= json_encode($juri_data) ?>;
     var isEditMode = false;
     var isGMS002 = <?= !empty($is_gms002) && $is_gms002 ? 'true' : 'false' ?>;
+    var autoCheckTimeout = null; // Timeout untuk auto check peserta
 
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize stepper
         stepper = new Stepper(document.querySelector('.bs-stepper'));
 
+        // Load settingan filter dari local storage
+        if (isGMS002) {
+            loadFilterSettings();
+
+            // Event listener untuk menyimpan settingan saat checkbox berubah
+            var filterSM001Checkbox = document.getElementById('filterSM001');
+            var filterSM004Checkbox = document.getElementById('filterSM004');
+
+            if (filterSM001Checkbox) {
+                filterSM001Checkbox.addEventListener('change', function() {
+                    saveFilterSettings();
+                });
+            }
+
+            if (filterSM004Checkbox) {
+                filterSM004Checkbox.addEventListener('change', function() {
+                    saveFilterSettings();
+                });
+            }
+        }
+
         // Cek peserta button
         document.getElementById('btnCekPeserta').addEventListener('click', function() {
+            // Clear auto check timeout jika ada
+            if (autoCheckTimeout) {
+                clearTimeout(autoCheckTimeout);
+                autoCheckTimeout = null;
+            }
             cekPeserta();
         });
 
@@ -285,7 +327,28 @@
             this.value = value;
 
             // Validasi real-time
-            validateNoPesertaRealTime(this);
+            var isValid = validateNoPesertaRealTime(this);
+
+            // Clear timeout sebelumnya jika ada
+            if (autoCheckTimeout) {
+                clearTimeout(autoCheckTimeout);
+                autoCheckTimeout = null;
+            }
+
+            // Jika sudah 3 digit dan valid, set timeout untuk auto check setelah 2 detik
+            if (value.length === 3 && isValid) {
+                autoCheckTimeout = setTimeout(function() {
+                    // Validasi sekali lagi sebelum auto check
+                    var currentValue = noTestInput.value.trim();
+                    if (currentValue.length === 3) {
+                        var valueInt = parseInt(currentValue);
+                        if (!isNaN(valueInt) && valueInt >= 100 && valueInt <= 300) {
+                            cekPeserta();
+                        }
+                    }
+                    autoCheckTimeout = null;
+                }, 2000); // 2 detik delay
+            }
         });
 
         noTestInput.addEventListener('keypress', function(e) {
@@ -344,6 +407,11 @@
             // Enter key untuk cek peserta
             if (e.key === 'Enter') {
                 e.preventDefault();
+                // Clear auto check timeout jika ada
+                if (autoCheckTimeout) {
+                    clearTimeout(autoCheckTimeout);
+                    autoCheckTimeout = null;
+                }
                 if (validateNoPesertaRealTime(this)) {
                     cekPeserta();
                 }
@@ -368,6 +436,46 @@
             simpanNilai();
         });
     });
+
+    // Fungsi untuk menyimpan settingan filter ke local storage
+    function saveFilterSettings() {
+        if (!isGMS002) return;
+
+        var filterSM001 = document.getElementById('filterSM001');
+        var filterSM004 = document.getElementById('filterSM004');
+
+        var settings = {
+            filterSM001: filterSM001 ? filterSM001.checked : false,
+            filterSM004: filterSM004 ? filterSM004.checked : false
+        };
+
+        localStorage.setItem('sertifikasi_filter_settings', JSON.stringify(settings));
+    }
+
+    // Fungsi untuk memuat settingan filter dari local storage
+    function loadFilterSettings() {
+        if (!isGMS002) return;
+
+        try {
+            var savedSettings = localStorage.getItem('sertifikasi_filter_settings');
+            if (savedSettings) {
+                var settings = JSON.parse(savedSettings);
+
+                var filterSM001 = document.getElementById('filterSM001');
+                var filterSM004 = document.getElementById('filterSM004');
+
+                if (filterSM001 && settings.hasOwnProperty('filterSM001')) {
+                    filterSM001.checked = settings.filterSM001;
+                }
+
+                if (filterSM004 && settings.hasOwnProperty('filterSM004')) {
+                    filterSM004.checked = settings.filterSM004;
+                }
+            }
+        } catch (e) {
+            console.error('Error loading filter settings:', e);
+        }
+    }
 
     function setNoTest(noTest) {
         document.getElementById('noTest').value = noTest;
@@ -418,12 +526,17 @@
             }
         });
 
-        // Ambil nilai filter SM004 jika GMS002
+        // Ambil nilai filter SM001 dan SM004 jika GMS002
+        var filterSM001 = null;
         var filterSM004 = null;
         if (isGMS002) {
-            var filterCheckbox = document.getElementById('filterSM004');
-            if (filterCheckbox) {
-                filterSM004 = filterCheckbox.checked ? 'true' : 'false';
+            var filterSM001Checkbox = document.getElementById('filterSM001');
+            if (filterSM001Checkbox) {
+                filterSM001 = filterSM001Checkbox.checked ? 'true' : 'false';
+            }
+            var filterSM004Checkbox = document.getElementById('filterSM004');
+            if (filterSM004Checkbox) {
+                filterSM004 = filterSM004Checkbox.checked ? 'true' : 'false';
             }
         }
 
@@ -434,8 +547,13 @@
         };
 
         // Tambahkan filter jika GMS002
-        if (isGMS002 && filterSM004 !== null) {
-            requestBody.filterSM004 = filterSM004;
+        if (isGMS002) {
+            if (filterSM001 !== null) {
+                requestBody.filterSM001 = filterSM001;
+            }
+            if (filterSM004 !== null) {
+                requestBody.filterSM004 = filterSM004;
+            }
         }
 
         fetch('<?= base_url('backend/sertifikasi/cekPeserta') ?>', {
