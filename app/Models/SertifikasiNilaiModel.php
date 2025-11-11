@@ -105,6 +105,21 @@ class SertifikasiNilaiModel extends Model
     }
 
     /**
+     * Get nilai dengan informasi juri yang sudah menilai untuk NoPeserta, IdGroupMateri, and IdMateri
+     */
+    public function getNilaiWithJuriInfoByMateri($noPeserta, $idGroupMateri, $idMateri)
+    {
+        $builder = $this->db->table($this->table . ' sn');
+        $builder->select('sn.*, sj.IdJuri, sj.usernameJuri');
+        $builder->join('tbl_sertifikasi_juri sj', 'sj.IdJuri = sn.IdJuri', 'left');
+        $builder->where('sn.NoPeserta', $noPeserta);
+        $builder->where('sn.IdGroupMateri', $idGroupMateri);
+        $builder->where('sn.IdMateri', $idMateri);
+        $builder->limit(1);
+        return $builder->get()->getRowArray();
+    }
+
+    /**
      * Get all nilai for NoPeserta and IdGroupMateri (any IdJuri)
      */
     public function getAllNilaiByPesertaAndGroup($noPeserta, $idGroupMateri)

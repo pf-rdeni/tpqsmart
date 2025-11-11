@@ -8,6 +8,9 @@ use App\Models\SertifikasiNilaiModel;
 use App\Models\SertifikasiJuriModel;
 use App\Models\SertifikasiGroupMateriModel;
 use App\Models\SertifikasiMateriModel;
+use App\Models\UserModel;
+use App\Models\HelpFunctionModel;
+use Myth\Auth\Password;
 
 class Sertifikasi extends BaseController
 {
@@ -16,6 +19,8 @@ class Sertifikasi extends BaseController
     protected $sertifikasiJuriModel;
     protected $sertifikasiGroupMateriModel;
     protected $sertifikasiMateriModel;
+    protected $userModel;
+    protected $helpFunction;
     protected $db;
 
     public function __construct()
@@ -25,6 +30,8 @@ class Sertifikasi extends BaseController
         $this->sertifikasiJuriModel = new SertifikasiJuriModel();
         $this->sertifikasiGroupMateriModel = new SertifikasiGroupMateriModel();
         $this->sertifikasiMateriModel = new SertifikasiMateriModel();
+        $this->userModel = new UserModel();
+        $this->helpFunction = new HelpFunctionModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -99,10 +106,14 @@ class Sertifikasi extends BaseController
         // Ambil 5 peserta terakhir yang sudah dinilai oleh juri ini
         $pesertaTerakhir = $this->getPesertaTerakhirByJuri($juriDataArray['IdJuri']);
 
+        // Cek apakah juri adalah GMS002 (Materi Praktek)
+        $isGMS002 = ($juriDataArray['IdGroupMateri'] === 'GMS002');
+
         $data = [
             'page_title' => 'Input Nilai Sertifikasi',
             'juri_data' => $juriDataArray,
             'peserta_terakhir' => $pesertaTerakhir,
+            'is_gms002' => $isGMS002,
         ];
 
         return view('backend/sertifikasi/inputNilaiSertifikasi', $data);
@@ -180,28 +191,63 @@ class Sertifikasi extends BaseController
             // Ambil materi berdasarkan IdGroupMateri
             $materiList = $this->sertifikasiMateriModel->getMateriByGrupMateri($juriDataArray['IdGroupMateri']);
 
-            // Cek apakah semua materi sudah dinilai oleh juri lain
+            // Filter materi jika juri adalah GMS002 dan ada filter pilihan
+            $filterSM004 = $this->request->getPost('filterSM004'); // 'true' atau 'false' atau null
+            if ($juriDataArray['IdGroupMateri'] === 'GMS002' && $filterSM004 !== null) {
+                if ($filterSM004 === 'true' || $filterSM004 === true) {
+                    // Hanya tampilkan SM004
+                    $materiList = array_filter($materiList, function ($materi) {
+                        return $materi['IdMateri'] === 'SM004';
+                    });
+                    $materiList = array_values($materiList); // Re-index array
+                } else {
+                    // Kecualikan SM004
+                    $materiList = array_filter($materiList, function ($materi) {
+                        return $materi['IdMateri'] !== 'SM004';
+                    });
+                    $materiList = array_values($materiList); // Re-index array
+                }
+            }
+
+            // Cek apakah semua materi sudah dinilai oleh juri lain dan ambil informasi juri
             $allMateriSudahDinilai = true;
+            $juriInfoByMateri = []; // Informasi juri yang sudah menilai per materi
             foreach ($materiList as $materi) {
-                $existingNilai = $this->sertifikasiNilaiModel->checkNilaiExistsByMateriAnyJuri(
+                $existingNilaiWithJuri = $this->sertifikasiNilaiModel->getNilaiWithJuriInfoByMateri(
                     $noTest,
                     $juriDataArray['IdGroupMateri'],
                     $materi['IdMateri']
                 );
-                
-                if (empty($existingNilai)) {
+
+                if (!empty($existingNilaiWithJuri)) {
+                    // Simpan informasi juri yang sudah menilai
+                    $juriInfoByMateri[$materi['IdMateri']] = [
+                        'IdJuri' => $existingNilaiWithJuri['IdJuri'] ?? null,
+                        'usernameJuri' => $existingNilaiWithJuri['usernameJuri'] ?? null,
+                    ];
+                } else {
                     $allMateriSudahDinilai = false;
-                    break;
                 }
             }
 
-            // Jika semua materi sudah dinilai oleh juri lain, tolak
+            // Jika semua materi sudah dinilai oleh juri lain, tolak dengan informasi juri
             if ($allMateriSudahDinilai) {
+                // Buat daftar juri yang sudah menilai
+                $juriList = [];
+                foreach ($juriInfoByMateri as $idMateri => $juriInfo) {
+                    if (!empty($juriInfo['usernameJuri'])) {
+                        $juriList[] = $juriInfo['usernameJuri'];
+                    }
+                }
+                $juriList = array_unique($juriList);
+                $juriListStr = !empty($juriList) ? ' oleh ' . implode(', ', $juriList) : '';
+
                 return $this->response->setJSON([
                     'success' => false,
                     'status' => 'VALIDATION_ERROR',
                     'code' => 'ALL_MATERI_ALREADY_SCORED',
-                    'message' => 'Semua materi untuk peserta ini sudah dinilai oleh juri lain',
+                    'message' => 'Semua materi untuk peserta ini sudah dinilai' . $juriListStr,
+                    'juriInfoByMateri' => $juriInfoByMateri,
                 ]);
             }
 
@@ -229,6 +275,7 @@ class Sertifikasi extends BaseController
                     'materiList' => $materiList,
                     'existingNilaiByMateri' => $existingNilaiByMateri,
                     'allMateriSudahDinilai' => $allMateriSudahDinilai,
+                    'juriInfoByMateri' => $juriInfoByMateri, // Informasi juri yang sudah menilai per materi
                 ]
             ]);
         } catch (\Exception $e) {
@@ -555,6 +602,479 @@ class Sertifikasi extends BaseController
         $builder->limit(5);
         
         return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Halaman list juri sertifikasi untuk admin
+     */
+    public function listJuriSertifikasi()
+    {
+        // Ambil semua juri dengan relations
+        $juriList = $this->sertifikasiJuriModel->getAllJuriWithRelations();
+
+        $data = [
+            'page_title' => 'Data Juri Sertifikasi',
+            'juri_list' => $juriList,
+        ];
+
+        return view('backend/sertifikasi/listJuriSertifikasi', $data);
+    }
+
+    /**
+     * Halaman create juri sertifikasi
+     */
+    public function createJuriSertifikasi()
+    {
+        // Ambil semua group materi untuk dropdown
+        $groupMateriList = $this->sertifikasiGroupMateriModel->getAllGroupMateri();
+
+        // Ambil semua auth groups untuk dropdown
+        $authGroups = $this->helpFunction->getDataAuthGoups();
+
+        // Generate ID Juri berikutnya
+        $nextIdJuri = $this->generateNextIdJuri();
+
+        $data = [
+            'page_title' => 'Tambah Juri Sertifikasi',
+            'group_materi_list' => $groupMateriList,
+            'auth_groups' => $authGroups,
+            'next_id_juri' => $nextIdJuri,
+        ];
+
+        return view('backend/sertifikasi/createJuriSertifikasi', $data);
+    }
+
+    /**
+     * Generate ID Juri berikutnya berdasarkan ID terakhir
+     */
+    private function generateNextIdJuri()
+    {
+        // Ambil ID Juri terakhir berdasarkan IdJuri (bukan id primary key)
+        $builder = $this->db->table('tbl_sertifikasi_juri');
+        $builder->select('IdJuri');
+        $builder->orderBy('IdJuri', 'DESC');
+        $builder->limit(1);
+        $lastJuri = $builder->get()->getRowArray();
+
+        if (empty($lastJuri)) {
+            // Jika belum ada data, mulai dari JS001
+            return 'JS001';
+        }
+
+        $lastIdJuri = $lastJuri['IdJuri'];
+
+        // Extract angka dari ID Juri (misalnya JS006 -> 6)
+        if (preg_match('/JS(\d+)/', $lastIdJuri, $matches)) {
+            $lastNumber = intval($matches[1]);
+            $nextNumber = $lastNumber + 1;
+
+            // Format dengan leading zero (JS007, JS008, dll)
+            return 'JS' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        }
+
+        // Jika format tidak sesuai, mulai dari JS001
+        return 'JS001';
+    }
+
+    /**
+     * Generate username juri berikutnya berdasarkan grup materi
+     */
+    public function generateNextUsernameJuri()
+    {
+        // Set response header untuk JSON
+        $this->response->setContentType('application/json');
+
+        try {
+            $idGroupMateri = $this->request->getPost('IdGroupMateri');
+
+            if (empty($idGroupMateri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Group Materi harus dipilih'
+                ]);
+            }
+
+            // Ambil informasi grup materi
+            $groupMateri = $this->sertifikasiGroupMateriModel->getGroupMateriById($idGroupMateri);
+            if (empty($groupMateri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Group Materi tidak ditemukan'
+                ]);
+            }
+
+            // Ambil username juri terakhir untuk grup materi ini
+            $builder = $this->db->table('tbl_sertifikasi_juri');
+            $builder->select('usernameJuri');
+            $builder->where('IdGroupMateri', $idGroupMateri);
+            $builder->orderBy('usernameJuri', 'DESC');
+            $builder->limit(1);
+            $lastJuri = $builder->get()->getRowArray();
+
+            if (empty($lastJuri)) {
+                // Jika belum ada data untuk grup ini, cek format dari data yang ada
+                // Ambil contoh username dari grup lain untuk referensi format
+                $exampleBuilder = $this->db->table('tbl_sertifikasi_juri');
+                $exampleBuilder->select('usernameJuri');
+                $exampleBuilder->limit(1);
+                $exampleJuri = $exampleBuilder->get()->getRowArray();
+
+                if ($exampleJuri) {
+                    // Extract format dari contoh (misalnya juri.praktek.1 -> juri.praktek)
+                    $exampleUsername = $exampleJuri['usernameJuri'];
+                    if (preg_match('/^(.+?)\.\d+$/', $exampleUsername, $exampleMatches)) {
+                        $baseFormat = $exampleMatches[1];
+                        // Generate berdasarkan nama materi
+                        $namaMateri = strtolower(str_replace(' ', '.', $groupMateri['NamaMateri']));
+                        $namaMateri = preg_replace('/[^a-z0-9.]/', '', $namaMateri);
+                        $namaMateri = str_replace(',', '', $namaMateri);
+                        $namaMateri = preg_replace('/\.+/', '.', $namaMateri);
+                        $namaMateri = trim($namaMateri, '.');
+                        $nextUsername = 'juri.' . $namaMateri . '.1';
+                    } else {
+                        // Fallback ke format default
+                        $namaMateri = strtolower(str_replace(' ', '.', $groupMateri['NamaMateri']));
+                        $namaMateri = preg_replace('/[^a-z0-9.]/', '', $namaMateri);
+                        $namaMateri = str_replace(',', '', $namaMateri);
+                        $namaMateri = preg_replace('/\.+/', '.', $namaMateri);
+                        $namaMateri = trim($namaMateri, '.');
+                        $nextUsername = 'juri.' . $namaMateri . '.1';
+                    }
+                } else {
+                    // Jika tidak ada data sama sekali, gunakan format default
+                    $namaMateri = strtolower(str_replace(' ', '.', $groupMateri['NamaMateri']));
+                    $namaMateri = preg_replace('/[^a-z0-9.]/', '', $namaMateri);
+                    $namaMateri = str_replace(',', '', $namaMateri);
+                    $namaMateri = preg_replace('/\.+/', '.', $namaMateri);
+                    $namaMateri = trim($namaMateri, '.');
+                    $nextUsername = 'juri.' . $namaMateri . '.1';
+                }
+            } else {
+                $lastUsername = $lastJuri['usernameJuri'];
+
+                // Extract nomor terakhir dari username yang sudah ada
+                // Contoh: juri.praktek.6 -> extract "6", lalu buat "juri.praktek.7"
+                if (preg_match('/^(.+?)\.(\d+)$/', $lastUsername, $matches)) {
+                    $baseUsername = $matches[1]; // juri.praktek
+                    $lastNumber = intval($matches[2]); // 6
+                    $nextNumber = $lastNumber + 1; // 7
+                    $nextUsername = $baseUsername . '.' . $nextNumber; // juri.praktek.7
+                } else {
+                    // Jika format tidak sesuai, tambahkan .1
+                    $nextUsername = $lastUsername . '.1';
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'username' => $nextUsername
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in generateNextUsernameJuri: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Store juri sertifikasi baru
+     */
+    public function storeJuriSertifikasi()
+    {
+        try {
+            $idJuri = $this->request->getPost('IdJuri');
+            $idGroupMateri = $this->request->getPost('IdGroupMateri');
+            $usernameJuri = $this->request->getPost('usernameJuri');
+            $fullname = $this->request->getPost('fullname');
+            $idAuthGroup = $this->request->getPost('IdAuthGroup');
+            $createUser = $this->request->getPost('createUser'); // Checkbox untuk create user
+
+            // Validasi
+            if (empty($idJuri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID Juri harus diisi'
+                ]);
+            }
+
+            if (empty($idGroupMateri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Group Materi harus dipilih'
+                ]);
+            }
+
+            if (empty($usernameJuri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Username Juri harus diisi'
+                ]);
+            }
+
+            // Jika create user dicentang, validasi field user
+            if ($createUser === 'true' || $createUser === true) {
+                if (empty($fullname)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Nama Lengkap harus diisi jika ingin membuat user'
+                    ]);
+                }
+
+                if (empty($idAuthGroup)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Group User harus dipilih jika ingin membuat user'
+                    ]);
+                }
+
+                // Cek apakah username sudah ada di tabel users
+                $existingUser = $this->userModel->where('username', $usernameJuri)->first();
+                if ($existingUser) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Username sudah digunakan di sistem user'
+                    ]);
+                }
+            }
+
+            // Cek apakah IdJuri sudah ada
+            $existingJuri = $this->sertifikasiJuriModel->getJuriByIdJuri($idJuri);
+            if ($existingJuri) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID Juri sudah digunakan'
+                ]);
+            }
+
+            // Cek apakah usernameJuri sudah ada di tabel juri
+            $existingUsername = $this->sertifikasiJuriModel->getJuriByUsernameJuri($usernameJuri);
+            if ($existingUsername) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Username Juri sudah digunakan'
+                ]);
+            }
+
+            // Simpan data juri
+            $this->sertifikasiJuriModel->insert([
+                'IdJuri' => $idJuri,
+                'IdGroupMateri' => $idGroupMateri,
+                'usernameJuri' => $usernameJuri,
+            ]);
+
+            // Jika checkbox create user dicentang, buat user baru
+            $userId = null;
+            if ($createUser === 'true' || $createUser === true) {
+                // Buat user dengan password default: TpqSmart123
+                $defaultPassword = 'TpqSmart123';
+                $passwordHash = Password::hash($defaultPassword);
+
+                $userData = [
+                    'username' => $usernameJuri,
+                    'fullname' => $fullname,
+                    'email' => $usernameJuri . '@tpqsmart.simpedis.com',
+                    'password_hash' => $passwordHash,
+                    'active' => 1
+                ];
+
+                $userId = $this->userModel->store($userData);
+
+                // Tambahkan user ke group
+                $groupData = [
+                    'group_id' => (int)$idAuthGroup,
+                    'user_id' => $userId
+                ];
+
+                $this->helpFunction->insertAuthGroupsUsers($groupData);
+            }
+
+            $message = 'Juri Sertifikasi berhasil ditambahkan';
+            if ($createUser === 'true' || $createUser === true) {
+                $message .= ' dan user berhasil dibuat dengan password default (TpqSmart123)';
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message,
+                'user_id' => $userId
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in storeJuriSertifikasi: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Halaman edit juri sertifikasi
+     */
+    public function editJuriSertifikasi($id)
+    {
+        // Ambil data juri
+        $juri = $this->sertifikasiJuriModel->find($id);
+
+        if (empty($juri)) {
+            return redirect()->to(base_url('backend/sertifikasi/listJuriSertifikasi'))->with('error', 'Data juri tidak ditemukan');
+        }
+
+        // Ambil semua group materi untuk dropdown
+        $groupMateriList = $this->sertifikasiGroupMateriModel->getAllGroupMateri();
+
+        $data = [
+            'page_title' => 'Edit Juri Sertifikasi',
+            'juri' => $juri,
+            'group_materi_list' => $groupMateriList,
+        ];
+
+        return view('backend/sertifikasi/editJuriSertifikasi', $data);
+    }
+
+    /**
+     * Update juri sertifikasi
+     */
+    public function updateJuriSertifikasi($id)
+    {
+        try {
+            $idJuri = $this->request->getPost('IdJuri');
+            $idGroupMateri = $this->request->getPost('IdGroupMateri');
+            $usernameJuri = $this->request->getPost('usernameJuri');
+            $resetPassword = $this->request->getPost('resetPassword'); // Checkbox untuk reset password
+
+            // Validasi
+            if (empty($idJuri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID Juri harus diisi'
+                ]);
+            }
+
+            if (empty($idGroupMateri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Group Materi harus dipilih'
+                ]);
+            }
+
+            if (empty($usernameJuri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Username Juri harus diisi'
+                ]);
+            }
+
+            // Cek apakah data juri ada
+            $juri = $this->sertifikasiJuriModel->find($id);
+            if (empty($juri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data juri tidak ditemukan'
+                ]);
+            }
+
+            // Cek apakah IdJuri sudah digunakan oleh juri lain
+            $existingJuri = $this->sertifikasiJuriModel->getJuriByIdJuri($idJuri);
+            if ($existingJuri && $existingJuri->id != $id) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID Juri sudah digunakan oleh juri lain'
+                ]);
+            }
+
+            // Cek apakah usernameJuri sudah digunakan oleh juri lain
+            $existingUsername = $this->sertifikasiJuriModel->getJuriByUsernameJuri($usernameJuri);
+            if ($existingUsername && $existingUsername->id != $id) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Username Juri sudah digunakan oleh juri lain'
+                ]);
+            }
+
+            // Update data juri
+            $this->sertifikasiJuriModel->update($id, [
+                'IdJuri' => $idJuri,
+                'IdGroupMateri' => $idGroupMateri,
+                'usernameJuri' => $usernameJuri,
+            ]);
+
+            // Jika checkbox reset password dicentang, reset password user
+            if ($resetPassword === 'true' || $resetPassword === true) {
+                // Cari user berdasarkan usernameJuri
+                $user = $this->userModel->where('username', $usernameJuri)->first();
+
+                if ($user) {
+                    // Reset password ke default: TpqSmart123
+                    $defaultPassword = 'TpqSmart123';
+                    $passwordHash = Password::hash($defaultPassword);
+
+                    $this->userModel->update($user['id'], [
+                        'password_hash' => $passwordHash
+                    ]);
+                } else {
+                    // Jika user tidak ditemukan, beri peringatan tapi tetap lanjutkan update juri
+                    log_message('warning', 'User dengan username ' . $usernameJuri . ' tidak ditemukan untuk reset password');
+                }
+            }
+
+            $message = 'Juri Sertifikasi berhasil diupdate';
+            if ($resetPassword === 'true' || $resetPassword === true) {
+                $message .= ' dan password berhasil direset ke default (TpqSmart123)';
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in updateJuriSertifikasi: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete juri sertifikasi
+     */
+    public function deleteJuriSertifikasi($id)
+    {
+        try {
+            // Cek apakah data juri ada
+            $juri = $this->sertifikasiJuriModel->find($id);
+            if (empty($juri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data juri tidak ditemukan'
+                ]);
+            }
+
+            // Cek apakah juri sudah memiliki nilai
+            $nilaiCount = $this->sertifikasiNilaiModel->where('IdJuri', $juri['IdJuri'])->countAllResults();
+            if ($nilaiCount > 0) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Juri tidak dapat dihapus karena sudah memiliki ' . $nilaiCount . ' data nilai'
+                ]);
+            }
+
+            // Hapus data
+            $this->sertifikasiJuriModel->delete($id);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Juri Sertifikasi berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in deleteJuriSertifikasi: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
     }
 }
 

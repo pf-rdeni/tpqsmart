@@ -101,6 +101,12 @@
                                         <p>List Nilai Sertifikasi</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/listJuriSertifikasi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Data Juri Sertifikasi</p>
+                                    </a>
+                                </li>
                             <?php endif; ?>
                         </ul>
                     </li>

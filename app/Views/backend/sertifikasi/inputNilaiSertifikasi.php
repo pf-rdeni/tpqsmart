@@ -38,6 +38,37 @@
                                 <form id="formInputNilai">
                                     <!-- Step 1: Input No Peserta -->
                                     <div id="step1" class="content" role="tabpanel" aria-labelledby="stepper1-trigger">
+                                        <?php if (!empty($is_gms002) && $is_gms002): ?>
+                                            <!-- Filter Materi untuk GMS002 -->
+                                            <div class="row mb-3">
+                                                <div class="col-md-12">
+                                                    <div class="card card-info">
+                                                        <div class="card-header">
+                                                            <h5 class="card-title mb-0">
+                                                                <i class="fas fa-filter"></i> Filter Materi Penilaian
+                                                            </h5>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="form-group">
+                                                                <div class="custom-control custom-checkbox">
+                                                                    <input type="checkbox"
+                                                                        class="custom-control-input"
+                                                                        id="filterSM004"
+                                                                        name="filterSM004"
+                                                                        value="true">
+                                                                    <label class="custom-control-label" for="filterSM004">
+                                                                        <strong>Nilai Materi SM004 - Tulis Al-Quran</strong>
+                                                                    </label>
+                                                                </div>
+                                                                <small class="form-text text-muted">
+                                                                    Centang jika ingin menilai materi Tulis Al-Quran. Jika tidak dicentang, materi ini tidak akan muncul di step 2.
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group">
@@ -151,6 +182,7 @@
     var currentGuruData = null;
     var currentJuriData = <?= json_encode($juri_data) ?>;
     var isEditMode = false;
+    var isGMS002 = <?= !empty($is_gms002) && $is_gms002 ? 'true' : 'false' ?>;
 
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize stepper
@@ -386,17 +418,33 @@
             }
         });
 
+        // Ambil nilai filter SM004 jika GMS002
+        var filterSM004 = null;
+        if (isGMS002) {
+            var filterCheckbox = document.getElementById('filterSM004');
+            if (filterCheckbox) {
+                filterSM004 = filterCheckbox.checked ? 'true' : 'false';
+            }
+        }
+
         // AJAX request
+        var requestBody = {
+            noTest: noTest,
+            IdJuri: currentJuriData.IdJuri
+        };
+
+        // Tambahkan filter jika GMS002
+        if (isGMS002 && filterSM004 !== null) {
+            requestBody.filterSM004 = filterSM004;
+        }
+
         fetch('<?= base_url('backend/sertifikasi/cekPeserta') ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: new URLSearchParams({
-                    noTest: noTest,
-                    IdJuri: currentJuriData.IdJuri
-                })
+                body: new URLSearchParams(requestBody)
             })
             .then(response => response.json())
             .then(data => {
@@ -471,6 +519,7 @@
     function loadFormNilai(data) {
         var materiList = data.materiList || [];
         var existingNilaiByMateri = data.existingNilaiByMateri || {};
+        var juriInfoByMateri = data.juriInfoByMateri || {};
 
         if (materiList.length === 0) {
             Swal.fire({
@@ -493,7 +542,20 @@
         materiList.forEach(function(materi) {
             var existingNilai = existingNilaiByMateri[materi.IdMateri] || null;
             var nilaiValue = existingNilai ? existingNilai.Nilai : '';
-            var statusBadge = existingNilai ? '<span class="badge badge-warning ml-2">Sudah Ada</span>' : '';
+
+            // Cek apakah sudah dinilai oleh juri lain
+            var juriInfo = juriInfoByMateri[materi.IdMateri] || null;
+            var statusBadge = '';
+            var juriInfoText = '';
+
+            if (existingNilai) {
+                // Sudah dinilai oleh juri yang login
+                statusBadge = '<span class="badge badge-warning ml-2">Sudah Ada (Anda)</span>';
+            } else if (juriInfo && juriInfo.usernameJuri) {
+                // Sudah dinilai oleh juri lain
+                statusBadge = '<span class="badge badge-danger ml-2">Sudah Dinilai</span>';
+                juriInfoText = '<small class="form-text text-danger"><i class="fas fa-info-circle"></i> Sudah dinilai oleh: <strong>' + juriInfo.usernameJuri + '</strong></small>';
+            }
 
             // Khusus untuk Materi Pilihan Ganda (SM001), gunakan 2 field
             if (materi.IdMateri === 'SM001') {
@@ -511,6 +573,7 @@
                         <label for="materi_${materi.IdMateri}">
                             ${materi.NamaMateri} <span class="text-danger">*</span> ${statusBadge}
                         </label>
+                        ${juriInfoText}
                         <div class="row">
                             <div class="col-md-6">
                                 <label for="jumlah_benar_${materi.IdMateri}" class="small">Jumlah Soal Benar</label>
@@ -520,7 +583,8 @@
                                        data-id-materi="${materi.IdMateri}"
                                        min="0" max="25" step="1" 
                                        value="${jumlahBenarValue}" 
-                                       placeholder="Masukkan jumlah benar (0-25)">
+                                       placeholder="Masukkan jumlah benar (0-25)"
+                                       ${juriInfo && juriInfo.usernameJuri ? 'disabled' : ''}>
                                 <small class="form-text text-muted">
                                     Total soal: 25
                                 </small>
@@ -535,7 +599,7 @@
                                        min="0" max="100" step="0.01" 
                                        value="${nilaiValue}" 
                                        placeholder="Masukkan nilai (0-100)" 
-                                       required>
+                                       ${juriInfo && juriInfo.usernameJuri ? 'disabled' : 'required'}>
                                 <small class="form-text text-muted">
                                     Nilai akan otomatis terisi dari jumlah benar, atau isi manual
                                 </small>
@@ -550,6 +614,7 @@
                         <label for="nilai_${materi.IdMateri}">
                             ${materi.NamaMateri} <span class="text-danger">*</span> ${statusBadge}
                         </label>
+                        ${juriInfoText}
                         <input type="number" 
                                class="form-control nilai-input" 
                                id="nilai_${materi.IdMateri}" 
@@ -558,7 +623,7 @@
                                min="0" max="100" step="0.01" 
                                value="${nilaiValue}" 
                                placeholder="Masukkan nilai (0-100)" 
-                               required>
+                               ${juriInfo && juriInfo.usernameJuri ? 'disabled' : 'required'}>
                         <small class="form-text text-muted">
                             Masukkan nilai untuk ${materi.NamaMateri} dalam range 0-100
                         </small>
@@ -613,7 +678,8 @@
 
     function simpanNilai() {
         // Ambil semua input nilai (hanya field nilai yang akan disimpan, bukan jumlah benar)
-        var nilaiInputs = document.querySelectorAll('.nilai-input');
+        // Hanya ambil yang tidak disabled (tidak sudah dinilai oleh juri lain)
+        var nilaiInputs = document.querySelectorAll('.nilai-input:not([disabled])');
         var nilaiData = {};
         var hasError = false;
         var errorMessage = '';
