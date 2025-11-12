@@ -38,52 +38,6 @@
                                 <form id="formInputNilai">
                                     <!-- Step 1: Input No Peserta -->
                                     <div id="step1" class="content" role="tabpanel" aria-labelledby="stepper1-trigger">
-                                        <?php if (!empty($is_gms002) && $is_gms002): ?>
-                                            <!-- Filter Materi untuk GMS002 -->
-                                            <div class="row mb-3">
-                                                <div class="col-md-12">
-                                                    <div class="card card-info">
-                                                        <div class="card-header">
-                                                            <h5 class="card-title mb-0">
-                                                                <i class="fas fa-filter"></i> Filter Materi Penilaian
-                                                            </h5>
-                                                        </div>
-                                                        <div class="card-body">
-                                                            <div class="form-group">
-                                                                <div class="custom-control custom-checkbox">
-                                                                    <input type="checkbox"
-                                                                        class="custom-control-input"
-                                                                        id="filterSM001"
-                                                                        name="filterSM001"
-                                                                        value="true">
-                                                                    <label class="custom-control-label" for="filterSM001">
-                                                                        <strong>Nilai Materi SM001 - Pilihan Ganda</strong>
-                                                                    </label>
-                                                                </div>
-                                                                <small class="form-text text-muted">
-                                                                    Centang jika ingin menilai materi Pilihan Ganda. Jika tidak dicentang, materi ini tidak akan muncul di step 2.
-                                                                </small>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <div class="custom-control custom-checkbox">
-                                                                    <input type="checkbox"
-                                                                        class="custom-control-input"
-                                                                        id="filterSM004"
-                                                                        name="filterSM004"
-                                                                        value="true">
-                                                                    <label class="custom-control-label" for="filterSM004">
-                                                                        <strong>Nilai Materi SM004 - Tulis Al-Quran</strong>
-                                                                    </label>
-                                                                </div>
-                                                                <small class="form-text text-muted">
-                                                                    Centang jika ingin menilai materi Tulis Al-Quran. Jika tidak dicentang, materi ini tidak akan muncul di step 2.
-                                                                </small>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group">
@@ -197,33 +151,11 @@
     var currentGuruData = null;
     var currentJuriData = <?= json_encode($juri_data) ?>;
     var isEditMode = false;
-    var isGMS002 = <?= !empty($is_gms002) && $is_gms002 ? 'true' : 'false' ?>;
     var autoCheckTimeout = null; // Timeout untuk auto check peserta
 
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize stepper
         stepper = new Stepper(document.querySelector('.bs-stepper'));
-
-        // Load settingan filter dari local storage
-        if (isGMS002) {
-            loadFilterSettings();
-
-            // Event listener untuk menyimpan settingan saat checkbox berubah
-            var filterSM001Checkbox = document.getElementById('filterSM001');
-            var filterSM004Checkbox = document.getElementById('filterSM004');
-
-            if (filterSM001Checkbox) {
-                filterSM001Checkbox.addEventListener('change', function() {
-                    saveFilterSettings();
-                });
-            }
-
-            if (filterSM004Checkbox) {
-                filterSM004Checkbox.addEventListener('change', function() {
-                    saveFilterSettings();
-                });
-            }
-        }
 
         // Cek peserta button
         document.getElementById('btnCekPeserta').addEventListener('click', function() {
@@ -437,46 +369,6 @@
         });
     });
 
-    // Fungsi untuk menyimpan settingan filter ke local storage
-    function saveFilterSettings() {
-        if (!isGMS002) return;
-
-        var filterSM001 = document.getElementById('filterSM001');
-        var filterSM004 = document.getElementById('filterSM004');
-
-        var settings = {
-            filterSM001: filterSM001 ? filterSM001.checked : false,
-            filterSM004: filterSM004 ? filterSM004.checked : false
-        };
-
-        localStorage.setItem('sertifikasi_filter_settings', JSON.stringify(settings));
-    }
-
-    // Fungsi untuk memuat settingan filter dari local storage
-    function loadFilterSettings() {
-        if (!isGMS002) return;
-
-        try {
-            var savedSettings = localStorage.getItem('sertifikasi_filter_settings');
-            if (savedSettings) {
-                var settings = JSON.parse(savedSettings);
-
-                var filterSM001 = document.getElementById('filterSM001');
-                var filterSM004 = document.getElementById('filterSM004');
-
-                if (filterSM001 && settings.hasOwnProperty('filterSM001')) {
-                    filterSM001.checked = settings.filterSM001;
-                }
-
-                if (filterSM004 && settings.hasOwnProperty('filterSM004')) {
-                    filterSM004.checked = settings.filterSM004;
-                }
-            }
-        } catch (e) {
-            console.error('Error loading filter settings:', e);
-        }
-    }
-
     function setNoTest(noTest) {
         document.getElementById('noTest').value = noTest;
         cekPeserta();
@@ -526,35 +418,11 @@
             }
         });
 
-        // Ambil nilai filter SM001 dan SM004 jika GMS002
-        var filterSM001 = null;
-        var filterSM004 = null;
-        if (isGMS002) {
-            var filterSM001Checkbox = document.getElementById('filterSM001');
-            if (filterSM001Checkbox) {
-                filterSM001 = filterSM001Checkbox.checked ? 'true' : 'false';
-            }
-            var filterSM004Checkbox = document.getElementById('filterSM004');
-            if (filterSM004Checkbox) {
-                filterSM004 = filterSM004Checkbox.checked ? 'true' : 'false';
-            }
-        }
-
         // AJAX request
         var requestBody = {
             noTest: noTest,
             IdJuri: currentJuriData.IdJuri
         };
-
-        // Tambahkan filter jika GMS002
-        if (isGMS002) {
-            if (filterSM001 !== null) {
-                requestBody.filterSM001 = filterSM001;
-            }
-            if (filterSM004 !== null) {
-                requestBody.filterSM004 = filterSM004;
-            }
-        }
 
         fetch('<?= base_url('backend/sertifikasi/cekPeserta') ?>', {
                 method: 'POST',
