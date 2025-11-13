@@ -292,6 +292,11 @@ class Auth extends BaseController
             return redirect()->to(base_url('backend/sertifikasi/dashboard'));
         }
 
+        // Cek jika user adalah PanitiaSertifikasi, redirect ke dashboard panitia sertifikasi
+        if (in_groups('PanitiaSertifikasi')) {
+            return redirect()->to(base_url('backend/sertifikasi/dashboardPanitiaSertifikasi'));
+        }
+
         // Cek jika user adalah Juri, redirect ke dashboard munaqosah
         // Hanya Juri yang diarahkan ke dashboard munaqosah secara default setelah login
         // Admin dan Operator tetap ke dashboard biasa, bisa akses dashboard munaqosah dari menu

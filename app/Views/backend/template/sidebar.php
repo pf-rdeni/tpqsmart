@@ -69,7 +69,7 @@
                         <p> Dashboard</p>
                     </a>
                 </li>
-                <?php if (in_groups('JuriSertifikasi') || in_groups('Admin')): ?>
+                <?php if (in_groups('JuriSertifikasi') || in_groups('Admin') || in_groups('PanitiaSertifikasi')): ?>
                     <!-- Sertifikasi -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -82,6 +82,12 @@
                         <ul class="nav nav-treeview" style="display: none;">
                             <?php if (in_groups('JuriSertifikasi')): ?>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/dashboard') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/sertifikasi/inputNilaiSertifikasi') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Input Nilai Sertifikasi</p>
@@ -91,6 +97,26 @@
                                     <a href=<?php echo base_url('backend/sertifikasi/nilaiPesertaSertifikasi') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Nilai Peserta</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('PanitiaSertifikasi')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/dashboardPanitiaSertifikasi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/listPesertaSertifikasi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>List Peserta Sertifikasi</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/listNilaiSertifikasi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>List Nilai Sertifikasi</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
@@ -546,6 +572,12 @@
                                 </a>
                             </li>
                             <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/user/authGroup') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Auth Group</p>
+                                    </a>
+                                </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/tools/index') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>

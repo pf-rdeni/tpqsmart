@@ -11,10 +11,13 @@ class User extends BaseController
 {
     protected $userModel;
     protected $helpFunction;
+    protected $db;
+
     public function __construct()
     {
         $this->userModel = new UserModel();
         $this->helpFunction = new HelpFunctionModel();
+        $this->db = \Config\Database::connect();
     }
     public function index()
     {
@@ -258,6 +261,185 @@ class User extends BaseController
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Gagal mengubah status user: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Halaman pengaturan auth_group
+     */
+    public function authGroup()
+    {
+        $authGroups = $this->helpFunction->getDataAuthGoups();
+
+        $data = [
+            'page_title' => 'Pengaturan Auth Group',
+            'auth_groups' => $authGroups
+        ];
+
+        return view('backend/user/authGroup', $data);
+    }
+
+    /**
+     * Create auth_group
+     */
+    public function createAuthGroup()
+    {
+        $name = $this->request->getPost('name');
+        $description = $this->request->getPost('description');
+
+        if (empty($name)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Nama group tidak boleh kosong'
+            ]);
+        }
+
+        // Cek apakah nama group sudah ada
+        $existing = $this->db->table('auth_groups')
+            ->where('name', $name)
+            ->get()
+            ->getRowArray();
+
+        if ($existing) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Nama group sudah ada'
+            ]);
+        }
+
+        try {
+            $data = [
+                'name' => $name,
+                'description' => $description ?? ''
+            ];
+
+            $this->db->table('auth_groups')->insert($data);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Auth group berhasil ditambahkan'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal menambahkan auth group: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get auth_group by id
+     */
+    public function getAuthGroup($id)
+    {
+        $group = $this->db->table('auth_groups')
+            ->where('id', $id)
+            ->get()
+            ->getRowArray();
+
+        if (!$group) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Auth group tidak ditemukan'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'group' => $group
+        ]);
+    }
+
+    /**
+     * Update auth_group
+     */
+    public function updateAuthGroup()
+    {
+        $id = $this->request->getPost('id');
+        $name = $this->request->getPost('name');
+        $description = $this->request->getPost('description');
+
+        if (empty($id) || empty($name)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        // Cek apakah nama group sudah ada (selain id yang sedang diupdate)
+        $existing = $this->db->table('auth_groups')
+            ->where('name', $name)
+            ->where('id !=', $id)
+            ->get()
+            ->getRowArray();
+
+        if ($existing) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Nama group sudah ada'
+            ]);
+        }
+
+        try {
+            $data = [
+                'name' => $name,
+                'description' => $description ?? ''
+            ];
+
+            $this->db->table('auth_groups')
+                ->where('id', $id)
+                ->update($data);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Auth group berhasil diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate auth group: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete auth_group
+     */
+    public function deleteAuthGroup($id)
+    {
+        if (empty($id)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'ID tidak boleh kosong'
+            ]);
+        }
+
+        // Cek apakah group masih digunakan oleh user
+        $usersInGroup = $this->db->table('auth_groups_users')
+            ->where('group_id', $id)
+            ->countAllResults();
+
+        if ($usersInGroup > 0) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Group masih digunakan oleh ' . $usersInGroup . ' user. Hapus user terlebih dahulu.'
+            ]);
+        }
+
+        try {
+            $this->db->table('auth_groups')
+                ->where('id', $id)
+                ->delete();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Auth group berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus auth group: ' . $e->getMessage()
             ]);
         }
     }
