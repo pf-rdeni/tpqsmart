@@ -15,6 +15,7 @@
                             <table class="table table-bordered table-striped table-hover" id="tableNilaiSertifikasi">
                                 <thead>
                                     <tr>
+                                        <th>UserName Juri</th>
                                         <th>No Peserta</th>
                                         <th>Nama Guru</th>
                                         <th>No Rek</th>
@@ -32,17 +33,18 @@
                                     <?php if (!empty($nilai_data)): ?>
                                         <?php foreach ($nilai_data as $peserta): ?>
                                             <tr>
+                                                <td data-export="<?= esc($peserta['usernameJuri'] ?? '-') ?>"><?= esc($peserta['usernameJuri'] ?? '-') ?></td>
                                                 <td data-export="<?= esc($peserta['noTest']) ?>"><strong><?= esc($peserta['noTest']) ?></strong></td>
                                                 <td data-export="<?= esc($peserta['NamaGuru']) ?>"><?= esc($peserta['NamaGuru']) ?></td>
                                                 <td data-export="<?= esc($peserta['NoRek']) ?>"><?= esc($peserta['NoRek']) ?></td>
                                                 <td data-export="<?= esc($peserta['NamaTpq']) ?>"><?= esc($peserta['NamaTpq']) ?></td>
                                                 <?php if (!empty($all_materi)): ?>
                                                     <?php foreach ($all_materi as $materi): ?>
-                                                        <?php 
+                                                        <?php
                                                         $nilaiMateri = $peserta['nilaiByMateri'][$materi['IdMateri']] ?? null;
                                                         $badgeClass = '';
                                                         $displayNilai = 0;
-                                                        
+
                                                         if ($nilaiMateri !== null && $nilaiMateri !== '') {
                                                             $displayNilai = floatval($nilaiMateri);
                                                             $badgeClass = $displayNilai >= 70 ? 'success' : ($displayNilai >= 60 ? 'warning' : 'danger');
@@ -69,7 +71,7 @@
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="<?= 4 + (count($all_materi ?? [])) + 2 ?>" class="text-center">
+                                            <td colspan="<?= 5 + (count($all_materi ?? [])) + 2 ?>" class="text-center">
                                                 <p class="text-muted">Tidak ada data nilai sertifikasi</p>
                                             </td>
                                         </tr>
@@ -98,10 +100,11 @@
             'autoWidth': false,
             'responsive': true,
             'pageLength': 25,
-            'order': [[0, 'asc']],
+            'order': [
+                [1, 'asc']
+            ],
             'dom': 'Bfrtip',
-            'buttons': [
-                {
+            'buttons': [{
                     extend: 'excel',
                     text: '<i class="fas fa-file-excel"></i> Excel',
                     className: 'btn btn-success btn-sm',
@@ -166,9 +169,9 @@
     .dt-buttons {
         margin-bottom: 10px;
     }
+
     .dt-buttons .btn {
         margin-right: 5px;
     }
 </style>
 <?= $this->endSection(); ?>
-

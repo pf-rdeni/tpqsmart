@@ -493,8 +493,15 @@ class Sertifikasi extends BaseController
                     'NamaGuru' => $nilai['NamaGuru'] ?? '-',
                     'NoRek' => $nilai['NoRek'] ?? '-',
                     'NamaTpq' => $nilai['NamaTpq'] ?? '-',
+                    'usernameJuri' => [], // Array untuk menyimpan semua username juri yang menilai
                     'nilaiByMateri' => [], // Array dengan key IdMateri
                 ];
+            }
+
+            // Simpan username juri jika ada dan belum ada di array
+            $usernameJuri = $nilai['usernameJuri'] ?? null;
+            if ($usernameJuri && !in_array($usernameJuri, $groupedData[$noPeserta]['usernameJuri'])) {
+                $groupedData[$noPeserta]['usernameJuri'][] = $usernameJuri;
             }
 
             // Simpan nilai per materi (hanya simpan yang pertama jika ada duplikat)
@@ -503,6 +510,12 @@ class Sertifikasi extends BaseController
                 $groupedData[$noPeserta]['nilaiByMateri'][$idMateri] = $nilai['Nilai'] ?? 0;
             }
         }
+
+        // Konversi array usernameJuri menjadi string (dipisahkan koma)
+        foreach ($groupedData as &$peserta) {
+            $peserta['usernameJuri'] = !empty($peserta['usernameJuri']) ? implode(', ', $peserta['usernameJuri']) : '-';
+        }
+        unset($peserta);
 
         // Hitung jumlah dan rata-rata untuk setiap peserta
         // Rata-rata dihitung berdasarkan jumlah semua materi (bukan hanya yang ada nilainya)
