@@ -554,6 +554,53 @@ class Sertifikasi extends BaseController
     }
 
     /**
+     * Halaman list peserta sertifikasi (sudah test dan belum test)
+     */
+    public function listPesertaSertifikasi()
+    {
+        // Ambil semua peserta
+        $allPeserta = $this->sertifikasiGuruModel->getAllGuru();
+
+        // Ambil semua NoPeserta yang sudah ada nilai
+        $pesertaSudahTest = $this->db->query("
+            SELECT DISTINCT NoPeserta 
+            FROM tbl_sertifikasi_nilai
+        ")->getResultArray();
+
+        // Buat array untuk memudahkan pengecekan
+        $noPesertaSudahTest = [];
+        foreach ($pesertaSudahTest as $peserta) {
+            $noPesertaSudahTest[] = $peserta['NoPeserta'];
+        }
+
+        // Tambahkan status untuk setiap peserta
+        $pesertaData = [];
+        foreach ($allPeserta as $peserta) {
+            $noPeserta = $peserta['NoPeserta'];
+            $pesertaArray = is_object($peserta) ? (array)$peserta : $peserta;
+            $pesertaArray['sudahTest'] = in_array($noPeserta, $noPesertaSudahTest);
+            $pesertaData[] = $pesertaArray;
+        }
+
+        // Hitung statistik
+        $totalPeserta = count($pesertaData);
+        $sudahTest = count(array_filter($pesertaData, function ($p) {
+            return $p['sudahTest'];
+        }));
+        $belumTest = $totalPeserta - $sudahTest;
+
+        $data = [
+            'page_title' => 'List Peserta Sertifikasi',
+            'peserta_data' => $pesertaData,
+            'total_peserta' => $totalPeserta,
+            'sudah_test' => $sudahTest,
+            'belum_test' => $belumTest,
+        ];
+
+        return view('backend/sertifikasi/listPesertaSertifikasi', $data);
+    }
+
+    /**
      * Halaman nilai peserta untuk juri (hanya nilai yang dinilai oleh juri yang login)
      */
     public function nilaiPesertaSertifikasi()

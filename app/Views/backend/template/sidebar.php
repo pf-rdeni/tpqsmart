@@ -96,6 +96,12 @@
                             <?php endif; ?>
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/sertifikasi/listPesertaSertifikasi') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>List Peserta Sertifikasi</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/sertifikasi/listNilaiSertifikasi') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>List Nilai Sertifikasi</p>
