@@ -89,7 +89,10 @@
 <body>
     <div class="header">
         <h2>JADWAL PESERTA UJIAN MUNAQOSAH</h2>
-        <p>Tahun Ajaran: <?= esc($tahunAjaran) ?> | Type Ujian: <?= esc(ucfirst($typeUjian ?? 'munaqosah')) ?></p>
+        <p>Tahun Ajaran: <?= esc($tahunAjaran) ?> | Type Ujian: <?= esc(ucfirst(str_replace('-', ' ', $typeUjian ?? 'munaqosah'))) ?></p>
+        <?php if (isset($isFilteredTpq) && $isFilteredTpq && isset($namaTpq) && $namaTpq): ?>
+            <p>TPQ: <?= esc($namaTpq) ?></p>
+        <?php endif; ?>
         <p>Dicetak pada: <?= esc($generated_at) ?></p>
     </div>
 

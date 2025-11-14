@@ -187,6 +187,11 @@
                                                     <i class="fas fa-list"></i><br>Antrian Ujian
                                                 </a>
                                             </div>
+                                            <div class="col-md-4 col-sm-6 mb-3">
+                                                <a href="<?= $menu_items['jadwal_peserta_ujian'] ?>" class="btn btn-danger btn-block btn-lg">
+                                                    <i class="fas fa-calendar-alt"></i><br>Jadwal Peserta Ujian
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

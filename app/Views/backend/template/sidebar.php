@@ -237,6 +237,12 @@
                                         <p>Dashboard Munaqosah</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/jadwal-peserta-ujian?type=pra-munaqosah') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Jadwal Peserta Ujian</p>
+                                    </a>
+                                </li>
                             <?php endif; ?>
                             <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">

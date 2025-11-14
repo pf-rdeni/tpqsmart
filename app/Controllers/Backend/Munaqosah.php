@@ -330,6 +330,7 @@ class Munaqosah extends BaseController
                 'daftar_peserta' => base_url('backend/munaqosah/peserta'),
                 'registrasi_peserta' => base_url('backend/munaqosah/registrasi-peserta'),
                 'antrian' => base_url('backend/munaqosah/antrian'),
+                'jadwal_peserta_ujian' => base_url('backend/munaqosah/jadwal-peserta-ujian?type=pra-munaqosah'),
             ];
 
             // Data TPQ
@@ -9718,6 +9719,35 @@ class Munaqosah extends BaseController
         $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
 
         $idTpq = session()->get('IdTpq');
+
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+        $isPanitiaTpq = false;
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat TPQ mereka
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $idTpq = $idTpqPanitia;
+                $isPanitiaTpq = true;
+            }
+        }
+
+        // Cek apakah user adalah Operator
+        $isOperator = in_groups('Operator');
+        $isOperatorTpq = false;
+
+        // Jika user adalah Operator, ambil IdTpq dari session
+        if ($isOperator) {
+            // Operator hanya melihat TPQ mereka sendiri
+            if ($idTpq && $idTpq != 0) {
+                $isOperatorTpq = true;
+            }
+        }
+
         $dataTpq = $this->helpFunction->getDataTpq($idTpq);
         $isAdmin = empty($idTpq) || $idTpq == 0;
 
@@ -9740,6 +9770,10 @@ class Munaqosah extends BaseController
             'isAdmin' => $isAdmin,
             'groupStart' => $groupStart,
             'groupEnd' => $groupEnd,
+            'is_panitia_tpq' => $isPanitiaTpq,
+            'panitia_id_tpq' => $isPanitiaTpq ? $idTpq : null,
+            'is_operator_tpq' => $isOperatorTpq,
+            'operator_id_tpq' => $isOperatorTpq ? $idTpq : null,
         ];
 
         return view('backend/Munaqosah/jadwalPesertaUjian', $data);
@@ -9750,6 +9784,39 @@ class Munaqosah extends BaseController
         $idTahunAjaran = $this->request->getGet('tahunAjaran');
         $typeUjian = $this->request->getGet('typeUjian');
         $idTpq = session()->get('IdTpq');
+
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+        $isPanitiaTpq = false;
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat TPQ mereka
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $idTpq = $idTpqPanitia;
+                $isPanitiaTpq = true;
+                // Panitia TPQ selalu melihat pra-munaqosah
+                $typeUjian = 'pra-munaqosah';
+            }
+        }
+
+        // Cek apakah user adalah Operator
+        $isOperator = in_groups('Operator');
+        $isOperatorTpq = false;
+
+        // Jika user adalah Operator, ambil IdTpq dari session
+        if ($isOperator) {
+            // Operator hanya melihat TPQ mereka sendiri
+            if ($idTpq && $idTpq != 0) {
+                $isOperatorTpq = true;
+                // Operator selalu melihat pra-munaqosah
+                $typeUjian = 'pra-munaqosah';
+            }
+        }
+
         $isAdmin = empty($idTpq) || $idTpq == 0;
 
         if (empty($idTahunAjaran)) {
@@ -9759,7 +9826,8 @@ class Munaqosah extends BaseController
 
         $jadwal = $this->munaqosahJadwalUjianModel->getJadwalGrouped($idTahunAjaran, $typeUjian);
 
-        if (!$isAdmin) {
+        // Filter berdasarkan IdTpq jika bukan admin, panitia TPQ, atau operator TPQ
+        if (!$isAdmin || $isPanitiaTpq || $isOperatorTpq) {
             $jadwal = array_filter($jadwal, function ($item) use ($idTpq) {
                 return $item['IdTpq'] == $idTpq;
             });
@@ -9998,6 +10066,35 @@ class Munaqosah extends BaseController
         $idTahunAjaran = $this->request->getGet('tahunAjaran');
         $typeUjian = $this->request->getGet('typeUjian');
         $idTpq = session()->get('IdTpq');
+
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+        $isPanitiaTpq = false;
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat TPQ mereka
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $idTpq = $idTpqPanitia;
+                $isPanitiaTpq = true;
+            }
+        }
+
+        // Cek apakah user adalah Operator
+        $isOperator = in_groups('Operator');
+        $isOperatorTpq = false;
+
+        // Jika user adalah Operator, ambil IdTpq dari session
+        if ($isOperator) {
+            // Operator hanya melihat TPQ mereka sendiri
+            if ($idTpq && $idTpq != 0) {
+                $isOperatorTpq = true;
+            }
+        }
+
         $isAdmin = empty($idTpq) || $idTpq == 0;
 
         if (empty($idTahunAjaran)) {
@@ -10006,6 +10103,7 @@ class Munaqosah extends BaseController
         }
 
         // Get TPQ dari peserta menggunakan model
+        // Jika panitia TPQ, filter berdasarkan IdTpq mereka (sudah di-handle di parameter $idTpq)
         $tpqFromPeserta = $this->pesertaMunaqosahModel->getTpqFromPeserta(
             $idTahunAjaran,
             $isAdmin ? null : $idTpq
@@ -10047,6 +10145,39 @@ class Munaqosah extends BaseController
             $idTahunAjaran = $this->request->getGet('tahunAjaran');
             $typeUjian = $this->request->getGet('typeUjian');
             $idTpq = session()->get('IdTpq');
+
+            // Cek apakah user adalah Panitia
+            $isPanitia = in_groups('Panitia');
+            $isPanitiaTpq = false;
+
+            // Jika user adalah Panitia, ambil IdTpq dari username
+            if ($isPanitia) {
+                $usernamePanitia = user()->username;
+                $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+                // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat TPQ mereka
+                if ($idTpqPanitia && $idTpqPanitia != 0) {
+                    $idTpq = $idTpqPanitia;
+                    $isPanitiaTpq = true;
+                    // Panitia TPQ selalu melihat pra-munaqosah
+                    $typeUjian = 'pra-munaqosah';
+                }
+            }
+
+            // Cek apakah user adalah Operator
+            $isOperator = in_groups('Operator');
+            $isOperatorTpq = false;
+
+            // Jika user adalah Operator, ambil IdTpq dari session
+            if ($isOperator) {
+                // Operator hanya melihat TPQ mereka sendiri
+                if ($idTpq && $idTpq != 0) {
+                    $isOperatorTpq = true;
+                    // Operator selalu melihat pra-munaqosah
+                    $typeUjian = 'pra-munaqosah';
+                }
+            }
+
             $isAdmin = empty($idTpq) || $idTpq == 0;
 
             if (empty($idTahunAjaran)) {
@@ -10054,10 +10185,20 @@ class Munaqosah extends BaseController
                 $idTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
             }
 
+            // Jika typeUjian tidak ada, default ke pra-munaqosah untuk panitia/operator, atau munaqosah untuk admin
+            if (empty($typeUjian)) {
+                if ($isPanitiaTpq || $isOperatorTpq) {
+                    $typeUjian = 'pra-munaqosah';
+                } else {
+                    $typeUjian = 'munaqosah';
+                }
+            }
+
             // Get jadwal data
             $jadwal = $this->munaqosahJadwalUjianModel->getJadwalGrouped($idTahunAjaran, $typeUjian);
 
-            if (!$isAdmin) {
+            // Filter berdasarkan IdTpq jika bukan admin, panitia TPQ, atau operator TPQ
+            if (!$isAdmin || $isPanitiaTpq || $isOperatorTpq) {
                 $jadwal = array_filter($jadwal, function ($item) use ($idTpq) {
                     return $item['IdTpq'] == $idTpq;
                 });
@@ -10119,13 +10260,25 @@ class Munaqosah extends BaseController
                 }
             }
 
+            // Get nama TPQ untuk header jika filter TPQ
+            $namaTpq = null;
+            if ($isPanitiaTpq || $isOperatorTpq) {
+                $tpqModel = new \App\Models\TpqModel();
+                $tpqData = $tpqModel->find($idTpq);
+                if ($tpqData) {
+                    $namaTpq = $tpqData['NamaTpq'];
+                }
+            }
+
             // Prepare data for view
             $data = [
                 'jadwal' => $formattedData,
                 'grandTotal' => $grandTotal,
                 'tahunAjaran' => $idTahunAjaran,
                 'typeUjian' => $typeUjian ?? 'munaqosah',
-                'generated_at' => date('Y-m-d H:i:s')
+                'generated_at' => date('d/m/Y H:i:s'),
+                'namaTpq' => $namaTpq,
+                'isFilteredTpq' => $isPanitiaTpq || $isOperatorTpq
             ];
 
             // Load view untuk PDF

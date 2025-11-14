@@ -14,12 +14,25 @@
                             </div>
                             <div class="mr-2">
                                 <label class="mb-0 small">Type Ujian</label>
-                                <select id="filterTypeUjian" class="form-control form-control-sm">
-                                    <?php if ($isAdmin): ?>
-                                        <option value="munaqosah">Munaqosah</option>
-                                    <?php endif; ?>
-                                    <option value="pra-munaqosah">Pra-Munaqosah</option>
-                                </select>
+                                <?php
+                                // Gunakan variabel dari controller
+                                $isPanitiaTpq = isset($is_panitia_tpq) ? $is_panitia_tpq : false;
+                                $isOperatorTpq = isset($is_operator_tpq) ? $is_operator_tpq : false;
+                                ?>
+                                <?php if ($isPanitiaTpq || $isOperatorTpq): ?>
+                                    <!-- Jika panitia TPQ atau operator TPQ, disable dan set ke pra-munaqosah -->
+                                    <input type="hidden" id="filterTypeUjian" value="pra-munaqosah">
+                                    <select class="form-control form-control-sm" disabled style="background-color: #e9ecef; cursor: not-allowed;">
+                                        <option value="pra-munaqosah" selected>Pra-Munaqosah</option>
+                                    </select>
+                                <?php else: ?>
+                                    <select id="filterTypeUjian" class="form-control form-control-sm">
+                                        <?php if ($isAdmin): ?>
+                                            <option value="munaqosah">Munaqosah</option>
+                                        <?php endif; ?>
+                                        <option value="pra-munaqosah">Pra-Munaqosah</option>
+                                    </select>
+                                <?php endif; ?>
                             </div>
                             <div class="align-self-end">
                                 <button id="btnReload" class="btn btn-sm btn-primary"><i class="fas fa-sync-alt"></i> Muat</button>
@@ -36,14 +49,22 @@
                             </div>
                             <div class="col-md-2">
                                 <label class="mb-0 small">TypeUjian</label>
-                                <select id="inputTypeUjian" class="form-control form-control-sm" <?= !$isAdmin ? 'disabled' : '' ?>>
-                                    <?php if ($isAdmin): ?>
-                                        <option value="munaqosah" selected>Munaqosah</option>
-                                        <option value="pra-munaqosah">Pra-Munaqosah</option>
-                                    <?php else: ?>
+                                <?php if ($isPanitiaTpq || $isOperatorTpq): ?>
+                                    <!-- Jika panitia TPQ atau operator TPQ, disable dan set ke pra-munaqosah -->
+                                    <input type="hidden" id="inputTypeUjian" value="pra-munaqosah">
+                                    <select class="form-control form-control-sm" disabled style="background-color: #e9ecef; cursor: not-allowed;">
                                         <option value="pra-munaqosah" selected>Pra-Munaqosah</option>
-                                    <?php endif; ?>
-                                </select>
+                                    </select>
+                                <?php else: ?>
+                                    <select id="inputTypeUjian" class="form-control form-control-sm" <?= !$isAdmin ? 'disabled' : '' ?>>
+                                        <?php if ($isAdmin): ?>
+                                            <option value="munaqosah" selected>Munaqosah</option>
+                                            <option value="pra-munaqosah">Pra-Munaqosah</option>
+                                        <?php else: ?>
+                                            <option value="pra-munaqosah" selected>Pra-Munaqosah</option>
+                                        <?php endif; ?>
+                                    </select>
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-2">
                                 <label class="mb-0 small">Tanggal</label>
@@ -143,7 +164,16 @@
                             endif; ?>
                         </select>
                     </div>
-                    <?php if ($isAdmin): ?>
+                    <?php if ($isPanitiaTpq || $isOperatorTpq): ?>
+                        <!-- Jika panitia TPQ atau operator TPQ, disable dan set ke pra-munaqosah -->
+                        <input type="hidden" id="editTypeUjian" value="pra-munaqosah">
+                        <div class="form-group">
+                            <label>Type Ujian</label>
+                            <select class="form-control" disabled style="background-color: #e9ecef; cursor: not-allowed;">
+                                <option value="pra-munaqosah" selected>Pra-Munaqosah</option>
+                            </select>
+                        </div>
+                    <?php elseif ($isAdmin): ?>
                         <div class="form-group">
                             <label>Type Ujian</label>
                             <select id="editTypeUjian" class="form-control">
@@ -168,6 +198,10 @@
     $(document).ready(function() {
         const currentTahunAjaran = '<?= esc($current_tahun_ajaran) ?>';
         const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
+        const isPanitiaTpq = <?= isset($is_panitia_tpq) && $is_panitia_tpq ? 'true' : 'false' ?>;
+        const panitiaIdTpq = <?= isset($panitia_id_tpq) && $panitia_id_tpq ? $panitia_id_tpq : 'null' ?>;
+        const isOperatorTpq = <?= isset($is_operator_tpq) && $is_operator_tpq ? 'true' : 'false' ?>;
+        const operatorIdTpq = <?= isset($operator_id_tpq) && $operator_id_tpq ? $operator_id_tpq : 'null' ?>;
 
         // Konfigurasi grup dari database (default: start=1, end=8)
         const groupStart = <?= isset($groupStart) ? (int)$groupStart : 1 ?>;
@@ -197,7 +231,8 @@
         // Load TPQ dari peserta saat filter berubah
         function loadTpqFromPeserta() {
             const tahunAjaran = $('#filterTahunAjaran').val() || currentTahunAjaran;
-            const typeUjian = $('#inputTypeUjian').val() || $('#filterTypeUjian').val();
+            // Jika panitia TPQ atau operator TPQ, selalu gunakan pra-munaqosah
+            const typeUjian = (isPanitiaTpq || isOperatorTpq) ? 'pra-munaqosah' : ($('#inputTypeUjian').val() || $('#filterTypeUjian').val());
 
             $.get('<?= base_url("backend/munaqosah/get-tpq-from-peserta") ?>', {
                 tahunAjaran: tahunAjaran,
@@ -206,9 +241,25 @@
                 if (response.success) {
                     const select = $('#inputIdTpq');
                     select.empty().append('<option value="">Pilih TPQ</option>');
+
                     response.data.forEach(function(item) {
+                        // Jika panitia TPQ atau operator TPQ, hanya tampilkan TPQ mereka
+                        if (isPanitiaTpq && panitiaIdTpq && item.IdTpq != panitiaIdTpq) {
+                            return; // Skip TPQ yang bukan milik panitia
+                        }
+                        if (isOperatorTpq && operatorIdTpq && item.IdTpq != operatorIdTpq) {
+                            return; // Skip TPQ yang bukan milik operator
+                        }
                         select.append(`<option value="${item.IdTpq}" data-nama="${item.NamaTpq}">${item.IdTpq}-${item.NamaTpq}</option>`);
                     });
+
+                    // Jika panitia TPQ atau operator TPQ dan hanya ada satu TPQ, auto-select
+                    if (isPanitiaTpq && panitiaIdTpq && response.data.length === 1) {
+                        select.val(panitiaIdTpq);
+                    }
+                    if (isOperatorTpq && operatorIdTpq && response.data.length === 1) {
+                        select.val(operatorIdTpq);
+                    }
                 }
             }, 'json');
         }
@@ -346,7 +397,8 @@
         // Load jadwal
         function loadJadwal() {
             const tahunAjaran = $('#filterTahunAjaran').val() || currentTahunAjaran;
-            const typeUjian = $('#filterTypeUjian').val();
+            // Jika panitia TPQ atau operator TPQ, selalu gunakan pra-munaqosah
+            const typeUjian = (isPanitiaTpq || isOperatorTpq) ? 'pra-munaqosah' : $('#filterTypeUjian').val();
 
             // Set flag loading
             isJadwalLoading = true;
@@ -648,7 +700,8 @@
                 Jam: $('#inputJam').val(),
                 IdTpq: $('#inputIdTpq').val(),
                 IdTahunAjaran: $('#inputTahunAjaran').val(),
-                TypeUjian: $('#inputTypeUjian').val()
+                // Jika panitia TPQ atau operator TPQ, selalu gunakan pra-munaqosah
+                TypeUjian: (isPanitiaTpq || isOperatorTpq) ? 'pra-munaqosah' : $('#inputTypeUjian').val()
             };
 
             if (!data.Tanggal || !data.Jam || !data.IdTpq) {
@@ -712,7 +765,8 @@
             // Ambil data jadwal
             $.get('<?= base_url("backend/munaqosah/get-jadwal-peserta-ujian") ?>', {
                 tahunAjaran: $('#filterTahunAjaran').val() || currentTahunAjaran,
-                typeUjian: $('#filterTypeUjian').val()
+                // Jika panitia TPQ atau operator TPQ, selalu gunakan pra-munaqosah
+                typeUjian: (isPanitiaTpq || isOperatorTpq) ? 'pra-munaqosah' : $('#filterTypeUjian').val()
             }, function(response) {
                 if (response.success) {
                     let jadwalData = null;
@@ -732,7 +786,10 @@
                         $('#editTanggal').val(jadwalData.Tanggal);
                         $('#editJam').val(jadwalData.Jam);
                         $('#editIdTpq').val(jadwalData.IdTpq);
-                        if (isAdmin) {
+                        if (isPanitiaTpq || isOperatorTpq) {
+                            // Panitia TPQ atau operator TPQ selalu pra-munaqosah
+                            $('#editTypeUjian').val('pra-munaqosah');
+                        } else if (isAdmin) {
                             $('#editTypeUjian').val(jadwalData.TypeUjian);
                         }
                         $('#modalEditJadwal').modal('show');
@@ -751,7 +808,10 @@
                 IdTpq: $('#editIdTpq').val()
             };
 
-            if (isAdmin) {
+            if (isPanitiaTpq || isOperatorTpq) {
+                // Panitia TPQ atau operator TPQ selalu pra-munaqosah
+                data.TypeUjian = 'pra-munaqosah';
+            } else if (isAdmin) {
                 data.TypeUjian = $('#editTypeUjian').val();
             }
 
@@ -847,7 +907,8 @@
         // Print PDF
         $('#btnPrintPdf').click(function() {
             const tahunAjaran = $('#filterTahunAjaran').val() || currentTahunAjaran;
-            const typeUjian = $('#filterTypeUjian').val();
+            // Jika panitia TPQ atau operator TPQ, selalu gunakan pra-munaqosah
+            const typeUjian = (isPanitiaTpq || isOperatorTpq) ? 'pra-munaqosah' : $('#filterTypeUjian').val();
 
             const url = '<?= base_url("backend/munaqosah/print-jadwal-peserta") ?>' +
                 '?tahunAjaran=' + encodeURIComponent(tahunAjaran) +
@@ -863,13 +924,29 @@
             loadJadwal();
         });
 
+        // Jika panitia TPQ atau operator TPQ, set filter TypeUjian ke pra-munaqosah dan jangan biarkan diubah
+        if (isPanitiaTpq || isOperatorTpq) {
+            $('#filterTypeUjian').val('pra-munaqosah');
+            $('#inputTypeUjian').val('pra-munaqosah');
+        }
+
         $('#filterTypeUjian').change(function() {
+            // Jika panitia TPQ atau operator TPQ, jangan biarkan mengubah TypeUjian
+            if (isPanitiaTpq || isOperatorTpq) {
+                $(this).val('pra-munaqosah');
+                return;
+            }
             loadTpqFromPeserta();
             loadJadwal();
         });
 
         // Event handler untuk input TypeUjian - update TPQ dropdown saat type ujian berubah
         $('#inputTypeUjian').change(function() {
+            // Jika panitia TPQ atau operator TPQ, jangan biarkan mengubah TypeUjian
+            if (isPanitiaTpq || isOperatorTpq) {
+                $(this).val('pra-munaqosah');
+                return;
+            }
             loadTpqFromPeserta();
             loadAvailableGroups();
         });
@@ -891,6 +968,11 @@
         });
 
         // Load initial data
+        // Jika panitia TPQ atau operator TPQ, pastikan TypeUjian sudah di-set ke pra-munaqosah sebelum load data
+        if (isPanitiaTpq || isOperatorTpq) {
+            $('#filterTypeUjian').val('pra-munaqosah');
+            $('#inputTypeUjian').val('pra-munaqosah');
+        }
         loadTpqFromPeserta();
         // Hanya load jadwal sekali di awal, jangan panggil loadAvailableGroups() karena akan dipanggil di loadJadwal()
         loadJadwal();
