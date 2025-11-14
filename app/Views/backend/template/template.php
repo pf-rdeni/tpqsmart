@@ -14,6 +14,7 @@
     </div>
     <?= $this->include('/backend/template/js'); ?>
     <?= $this->include('/backend/template/scripts'); ?>
+    <?= $this->include('/backend/template/dashboardSelector'); ?>
     <?= $this->renderSection('scripts'); ?>
 </body>
 

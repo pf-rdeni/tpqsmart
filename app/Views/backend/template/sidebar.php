@@ -827,7 +827,7 @@
                 <?php endif; ?>
                 <!-- Logout -->
                 <li class="nav-item">
-                    <a href=<?php echo base_url('logout') ?> class="nav-link">
+                    <a href=<?php echo base_url('logout') ?> class="nav-link" onclick="localStorage.removeItem('selectedDashboard');">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <p> Logout</p>
                     </a>

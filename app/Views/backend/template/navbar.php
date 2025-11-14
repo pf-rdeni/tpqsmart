@@ -20,6 +20,15 @@
 
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
+        <!-- Dashboard Selector Toggle (hanya untuk Admin dan Operator) -->
+        <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="btnPilihDashboard" role="button" title="Ganti Dashboard" style="cursor: pointer;">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span class="d-none d-md-inline ml-1" id="currentDashboardLabel">Dashboard</span>
+                </a>
+            </li>
+        <?php endif; ?>
         <!-- Navbar Search -->
         <li class="nav-item">
             <a class="nav-link" data-widget="navbar-search" href="#" role="button">

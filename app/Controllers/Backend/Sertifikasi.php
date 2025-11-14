@@ -86,6 +86,105 @@ class Sertifikasi extends BaseController
     }
 
     /**
+     * Dashboard untuk Admin
+     */
+    public function dashboardAdmin()
+    {
+        // Statistik: Total Peserta
+        $totalPeserta = $this->sertifikasiGuruModel->countAllResults();
+
+        // Statistik: Peserta yang sudah test (ada nilai)
+        $pesertaSudahTest = $this->db->query("
+            SELECT COUNT(DISTINCT NoPeserta) as total 
+            FROM tbl_sertifikasi_nilai
+        ")->getRow()->total ?? 0;
+
+        // Statistik: Peserta yang belum test
+        $pesertaBelumTest = $totalPeserta - $pesertaSudahTest;
+
+        // Statistik: Total Juri
+        $totalJuri = $this->sertifikasiJuriModel->countAllResults();
+
+        // Statistik: Total Nilai yang sudah diinput
+        $totalNilai = $this->sertifikasiNilaiModel->countAllResults();
+
+        // Statistik: Total Materi
+        $totalMateri = $this->sertifikasiMateriModel->countAllResults();
+
+        // Ambil semua materi aktif
+        $allMateri = $this->sertifikasiMateriModel->getMateriAktif();
+
+        // Statistik per materi: berapa peserta yang sudah dinilai
+        $statistikPerMateri = [];
+        foreach ($allMateri as $materi) {
+            $jumlahPesertaSudahDinilai = $this->db->query("
+                SELECT COUNT(DISTINCT NoPeserta) as total 
+                FROM tbl_sertifikasi_nilai 
+                WHERE IdMateri = ?
+            ", [$materi['IdMateri']])->getRow()->total ?? 0;
+
+            $statistikPerMateri[] = [
+                'IdMateri' => $materi['IdMateri'],
+                'NamaMateri' => $materi['NamaMateri'],
+                'jumlahPesertaSudahDinilai' => $jumlahPesertaSudahDinilai,
+                'persentase' => $totalPeserta > 0 ? ($jumlahPesertaSudahDinilai / $totalPeserta) * 100 : 0
+            ];
+        }
+
+        // Ambil 10 peserta terakhir yang sudah dinilai
+        $pesertaTerakhir = $this->db->query("
+            SELECT DISTINCT 
+                sn.NoPeserta,
+                sg.Nama as NamaGuru,
+                sn.updated_at,
+                GROUP_CONCAT(DISTINCT sj.usernameJuri SEPARATOR ', ') as usernameJuri
+            FROM tbl_sertifikasi_nilai sn
+            LEFT JOIN tbl_sertifikasi_guru sg ON sg.NoPeserta = sn.NoPeserta
+            LEFT JOIN tbl_sertifikasi_juri sj ON sj.IdJuri = sn.IdJuri
+            GROUP BY sn.NoPeserta, sg.Nama, sn.updated_at
+            ORDER BY sn.updated_at DESC
+            LIMIT 10
+        ")->getResultArray();
+
+        // Statistik per juri: berapa peserta yang sudah dinilai
+        $statistikPerJuri = $this->db->query("
+            SELECT 
+                sj.IdJuri,
+                sj.usernameJuri,
+                sgm.NamaMateri as NamaGroupMateri,
+                COUNT(DISTINCT sn.NoPeserta) as jumlahPesertaDinilai
+            FROM tbl_sertifikasi_juri sj
+            LEFT JOIN tbl_sertifikasi_nilai sn ON sn.IdJuri = sj.IdJuri
+            LEFT JOIN tbl_sertifikasi_group_materi sgm ON sgm.IdGroupMateri = sj.IdGroupMateri
+            GROUP BY sj.IdJuri, sj.usernameJuri, sgm.NamaMateri
+            ORDER BY jumlahPesertaDinilai DESC
+        ")->getResultArray();
+
+        // Menu yang bisa diakses Admin
+        $menuItems = [
+            'list_peserta' => base_url('backend/sertifikasi/listPesertaSertifikasi'),
+            'list_nilai' => base_url('backend/sertifikasi/listNilaiSertifikasi'),
+            'list_juri' => base_url('backend/sertifikasi/listJuriSertifikasi'),
+        ];
+
+        $data = [
+            'page_title' => 'Dashboard Sertifikasi - Admin',
+            'total_peserta' => $totalPeserta,
+            'peserta_sudah_test' => $pesertaSudahTest,
+            'peserta_belum_test' => $pesertaBelumTest,
+            'total_juri' => $totalJuri,
+            'total_nilai' => $totalNilai,
+            'total_materi' => $totalMateri,
+            'statistik_per_materi' => $statistikPerMateri,
+            'peserta_terakhir' => $pesertaTerakhir,
+            'statistik_per_juri' => $statistikPerJuri,
+            'menu_items' => $menuItems,
+        ];
+
+        return view('backend/sertifikasi/dashboardAdmin', $data);
+    }
+
+    /**
      * Dashboard untuk PanitiaSertifikasi
      */
     public function dashboardPanitiaSertifikasi()

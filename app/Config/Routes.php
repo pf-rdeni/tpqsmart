@@ -294,6 +294,24 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
 
     // API Routes untuk data master
     $routes->get('backend/tpq/get-all', 'Tpq::getAll');
+
+    // Sertifikasi Routes
+    $routes->get('sertifikasi/dashboard', 'Sertifikasi::dashboard');
+    $routes->get('sertifikasi/dashboard-admin', 'Sertifikasi::dashboardAdmin');
+    $routes->get('sertifikasi/dashboardPanitiaSertifikasi', 'Sertifikasi::dashboardPanitiaSertifikasi');
+    $routes->get('sertifikasi/inputNilaiSertifikasi', 'Sertifikasi::inputNilaiSertifikasi');
+    $routes->get('sertifikasi/nilaiPesertaSertifikasi', 'Sertifikasi::nilaiPesertaSertifikasi');
+    $routes->get('sertifikasi/listPesertaSertifikasi', 'Sertifikasi::listPesertaSertifikasi');
+    $routes->get('sertifikasi/listNilaiSertifikasi', 'Sertifikasi::listNilaiSertifikasi');
+    $routes->get('sertifikasi/listJuriSertifikasi', 'Sertifikasi::listJuriSertifikasi');
+    $routes->get('sertifikasi/createJuriSertifikasi', 'Sertifikasi::createJuriSertifikasi');
+    $routes->get('sertifikasi/editJuriSertifikasi/(:num)', 'Sertifikasi::editJuriSertifikasi/$1');
+    $routes->post('sertifikasi/cekPeserta', 'Sertifikasi::cekPeserta');
+    $routes->post('sertifikasi/simpanNilai', 'Sertifikasi::simpanNilai');
+    $routes->post('sertifikasi/generateNextUsernameJuri', 'Sertifikasi::generateNextUsernameJuri');
+    $routes->post('sertifikasi/storeJuriSertifikasi', 'Sertifikasi::storeJuriSertifikasi');
+    $routes->post('sertifikasi/updateJuriSertifikasi/(:num)', 'Sertifikasi::updateJuriSertifikasi/$1');
+    $routes->post('sertifikasi/deleteJuriSertifikasi/(:num)', 'Sertifikasi::deleteJuriSertifikasi/$1');
 });
 
 $routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::validateSignature/$1');

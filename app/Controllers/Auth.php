@@ -297,13 +297,13 @@ class Auth extends BaseController
             return redirect()->to(base_url('backend/sertifikasi/dashboardPanitiaSertifikasi'));
         }
 
-        // Cek jika user adalah Juri, redirect ke dashboard munaqosah
-        // Hanya Juri yang diarahkan ke dashboard munaqosah secara default setelah login
-        // Admin dan Operator tetap ke dashboard biasa, bisa akses dashboard munaqosah dari menu
+        // Cek jika user adalah Juri atau Panitia, redirect ke dashboard munaqosah
         if (in_groups('Juri') || in_groups('Panitia')) {
-            // Redirect ke dashboard munaqosah untuk Juri
             return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah'));
         }
+
+        // Untuk Admin dan Operator, biarkan JavaScript handle redirect berdasarkan localStorage
+        // Dashboard default (ujian semester) akan ditampilkan jika tidak ada pilihan di localStorage
 
         $idTpq = session()->get('IdTpq');
         $idTahunAjaran = session()->get('IdTahunAjaran');
@@ -423,6 +423,7 @@ class Auth extends BaseController
         // Hapus session
         session()->destroy();
 
+        // Clear localStorage untuk selectedDashboard (akan dihandle di client side)
         // Redirect ke halaman login
         return redirect()->to(base_url('login'));
     }
