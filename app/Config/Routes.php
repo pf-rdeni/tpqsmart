@@ -42,8 +42,8 @@ $routes->get('pendaftaran/getNikSantri/(:segment)', 'SantriPendaftaran::getNikSa
 $routes->get('pendaftaran/generatePDFSantriBaru/(:segment)', 'SantriPendaftaran::generatePDFSantriBaru/$1');
 
 // Routes untuk cek status munaqosah (public access)
-$routes->get('munaqosah/cek-status', 'Frontend\StatusUjianMunaqosah::index');
-$routes->get('munaqosah/cek-status/(:segment)', 'Frontend\StatusUjianMunaqosah::index/$1');
+$routes->get('cek-status', 'Frontend\StatusUjianMunaqosah::index');
+$routes->get('cek-status/(:segment)', 'Frontend\StatusUjianMunaqosah::index/$1');
 $routes->post('munaqosah/verify-hashkey', 'Frontend\StatusUjianMunaqosah::verifyHashKey');
 $routes->get('munaqosah/konfirmasi-data', 'Frontend\StatusUjianMunaqosah::konfirmasiData');
 $routes->post('munaqosah/process-konfirmasi', 'Frontend\StatusUjianMunaqosah::processKonfirmasi');

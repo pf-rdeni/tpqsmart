@@ -8,7 +8,7 @@
     <style>
         @page {
             size: A4;
-            margin: 0.5cm;
+            margin: 0.2cm;
         }
 
         body {
@@ -77,6 +77,7 @@
             text-align: center;
             font-weight: bold;
             font-size: 10px;
+            margin-top: 0.05cm;
             margin-bottom: 0.2cm;
             word-wrap: break-word;
         }
@@ -120,9 +121,9 @@
             position: absolute;
             left: 0;
             top: 70%;
-            transform: translateY(-50%);
-            width: 30px;
-            height: 30px;
+            transform: translateY(-25%);
+            width: 80px;
+            height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -130,8 +131,8 @@
 
         .footer-text {
             position: absolute;
-            left: 35px;
-            top: 50%;
+            left: 55px;
+            top: 70%;
             transform: translateY(-50%);
         }
 
@@ -196,9 +197,9 @@
                 <!-- Footer -->
                 <div class="footer">
                     <div class="footer-qr">
-                        <?= $p['footerQrCode'] ?? '<div style="font-size: 6px; text-align: center; border: 1px solid #000; padding: 1px; background: #f0f0f0;">QR</div>' ?>
+                        <?= $p['footerQrCode'] ?? '<div style="font-size: 8px; text-align: center; border: 1px solid #000; padding: 1px; background: #f0f0f0;">QR</div>' ?>
                     </div>
-                    <div class="footer-text"> <br> Scan QR untuk hasil ujian:<br>Website: https://tpqsmart.simpedis.com/munaqosah/cek-status<br> HasKey: <b><?= $p['HasKey'] ?></b> </div>
+                    <div class="footer-text"> <br><b> Scan QR untuk hasil ujian </b><br><br> Atau buka link dan masukkan Key:<br><b>https://tpqsmart.simpedis.com/cek-status</b><br>Key:<b><?= $p['HasKey'] ?></b> </div>
                 </div>
             </div>
         </div>

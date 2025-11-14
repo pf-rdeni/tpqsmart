@@ -41,7 +41,7 @@ class StatusUjianMunaqosah extends BaseController
 
     /**
      * Halaman input HashKey untuk cek status munaqosah
-     * Dapat menerima HashKey sebagai parameter di URL: /munaqosah/cek-status/{hashKey}
+     * Dapat menerima HashKey sebagai parameter di URL: /cek-status/{hashKey}
      */
     public function index($hasKey = null)
     {
@@ -50,7 +50,7 @@ class StatusUjianMunaqosah extends BaseController
             $peserta = $this->getPesertaByHashKey($hasKey);
             
             if (empty($peserta)) {
-                return redirect()->to(base_url('munaqosah/cek-status'))
+                return redirect()->to(base_url('cek-status'))
                     ->with('error', 'HashKey tidak valid atau tidak ditemukan. Silakan masukkan HashKey yang benar.');
             }
 
@@ -133,7 +133,7 @@ class StatusUjianMunaqosah extends BaseController
         $pesertaSession = session()->get('munaqosah_peserta');
 
         if (empty($pesertaSession)) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
+            return redirect()->to(base_url('cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
         }
 
         // Ambil data lengkap peserta dari database termasuk JenisKelamin
@@ -420,7 +420,7 @@ class StatusUjianMunaqosah extends BaseController
         $peserta = session()->get('munaqosah_peserta');
         
         if (empty($peserta)) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
+            return redirect()->to(base_url('cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
         }
 
         // Ambil TypeUjian dari query parameter atau session
@@ -470,7 +470,7 @@ class StatusUjianMunaqosah extends BaseController
             if (!empty($availableTypeUjian)) {
                 $typeUjian = $availableTypeUjian[0];
             } else {
-                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+                return redirect()->to(base_url('cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
             }
         }
 
@@ -485,7 +485,7 @@ class StatusUjianMunaqosah extends BaseController
                 ->first();
 
             if (empty($registrasi)) {
-                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+                return redirect()->to(base_url('cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
             }
             $noPeserta = $registrasi['NoPeserta'];
         }
@@ -565,7 +565,7 @@ class StatusUjianMunaqosah extends BaseController
         $peserta = session()->get('munaqosah_peserta');
         
         if (empty($peserta)) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
+            return redirect()->to(base_url('cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
         }
 
         // Ambil TypeUjian dari query parameter atau session
@@ -615,7 +615,7 @@ class StatusUjianMunaqosah extends BaseController
             if (!empty($availableTypeUjian)) {
                 $typeUjian = $availableTypeUjian[0];
             } else {
-                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+                return redirect()->to(base_url('cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
             }
         }
 
@@ -630,7 +630,7 @@ class StatusUjianMunaqosah extends BaseController
                 ->first();
 
             if (empty($registrasi)) {
-                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+                return redirect()->to(base_url('cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
             }
             $noPeserta = $registrasi['NoPeserta'];
         }
@@ -642,7 +642,7 @@ class StatusUjianMunaqosah extends BaseController
         $kelulusanData = $this->prepareKelulusanPesertaData($noPeserta, $idTahunAjaran, $typeUjian, $idTpq);
 
         if (!$kelulusanData['success']) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', $kelulusanData['message'] ?? 'Data kelulusan tidak ditemukan.');
+            return redirect()->to(base_url('cek-status'))->with('error', $kelulusanData['message'] ?? 'Data kelulusan tidak ditemukan.');
         }
 
         $pesertaData = $kelulusanData['peserta'];
@@ -678,7 +678,7 @@ class StatusUjianMunaqosah extends BaseController
         $peserta = session()->get('munaqosah_peserta');
         
         if (empty($peserta)) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Session expired.');
+            return redirect()->to(base_url('cek-status'))->with('error', 'Session expired.');
         }
 
         // Ambil TypeUjian dari query parameter atau session
@@ -732,7 +732,7 @@ class StatusUjianMunaqosah extends BaseController
                 ->first();
 
             if (empty($registrasi)) {
-                return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+                return redirect()->to(base_url('cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
             }
             $noPeserta = $registrasi['NoPeserta'];
         }
@@ -744,7 +744,7 @@ class StatusUjianMunaqosah extends BaseController
         $kelulusanData = $this->prepareKelulusanPesertaData($noPeserta, $idTahunAjaran, $typeUjian, $idTpq);
 
         if (!$kelulusanData['success']) {
-            return redirect()->to(base_url('munaqosah/cek-status'))->with('error', 'Data kelulusan tidak ditemukan.');
+            return redirect()->to(base_url('cek-status'))->with('error', 'Data kelulusan tidak ditemukan.');
         }
 
         $pesertaData = $kelulusanData['peserta'];

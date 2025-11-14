@@ -520,8 +520,8 @@
             }
 
             // Format teks yang akan dicopy
-            // URL menggunakan base_url untuk fleksibilitas, format: /munaqosah/cek-status/#haskey
-            const baseUrl = '<?= base_url('munaqosah/cek-status/') ?>';
+            // URL menggunakan base_url untuk fleksibilitas, format: /cek-status/#haskey
+            const baseUrl = '<?= base_url('cek-status/') ?>';
             const statusUrl = baseUrl + hasKey;
             const copyText = `${noPeserta}-${santriName}\nCheck Status:\n${statusUrl}`;
 

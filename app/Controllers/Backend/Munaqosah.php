@@ -5782,13 +5782,13 @@ class Munaqosah extends BaseController
                 $qrContent = (string)$noPeserta;
                 $svgContent = $qrCode->render($qrContent);
                 $base64Svg = 'data:image/svg+xml;base64,' . base64_encode($svgContent);
-                $peserta['qrCode'] = '<img src="' . $base64Svg . '" style="width: 40px; height: 40px;" />';
+                $peserta['qrCode'] = '<img src="' . $base64Svg . '" style="width: 30px; height: 30px;" />';
 
                 // QR Code footer untuk link
                 $footerQrOptions = new QROptions([
                     'outputType' => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
                     'eccLevel' => \chillerlan\QRCode\Common\EccLevel::L,
-                    'scale' => 1,
+                    'scale' => 2,
                     'imageBase64' => false,
                     'addQuietzone' => true,
                     'quietzoneSize' => 1,
@@ -5808,9 +5808,9 @@ class Munaqosah extends BaseController
 
                 // QR Code footer untuk link hasil ujian
                 $footerQrCode = new QRCode($footerQrOptions);
-                $footerSvgContent = $footerQrCode->render('https://tpqsmart.simpedis.com/munaqosah/cek-status/' . $hash);
+                $footerSvgContent = $footerQrCode->render('https://tpqsmart.simpedis.com/cek-status/' . $hash);
                 $footerBase64Svg = 'data:image/svg+xml;base64,' . base64_encode($footerSvgContent);
-                $peserta['footerQrCode'] = '<img src="' . $footerBase64Svg . '" style="width: 30px; height: 30px;" />';
+                $peserta['footerQrCode'] = '<img src="' . $footerBase64Svg . '" style="width: 50px; height: 50px;" />';
             }
 
             // Batch update HasKey setelah loop selesai

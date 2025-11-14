@@ -82,8 +82,8 @@ class Filters extends BaseFilters
                     'frontend/home',
                     'pendaftaran',           // Form pendaftaran publik
                     'pendaftaran/*',         // Semua route pendaftaran
-                    'munaqosah/cek-status',  // Cek status munaqosah publik
-                    'munaqosah/cek-status/*', // Cek status munaqosah publik dengan parameter
+                    'cek-status',  // Cek status munaqosah publik
+                    'cek-status/*', // Cek status munaqosah publik dengan parameter
                     'munaqosah/verify-hashkey',
                     'munaqosah/konfirmasi-data',
                     'munaqosah/process-konfirmasi',
