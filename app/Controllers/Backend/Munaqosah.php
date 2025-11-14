@@ -6683,38 +6683,83 @@ class Munaqosah extends BaseController
             // Start database transaction
             $this->db->transStart();
 
-            // Save to tbl_munaqosah_juri
-            if (!$this->munaqosahJuriModel->save($data)) {
-                throw new \Exception('Gagal menyimpan data juri: ' . implode(', ', $this->munaqosahJuriModel->errors()));
-            }
+            try {
+                // Save to tbl_munaqosah_juri
+                if (!$this->munaqosahJuriModel->save($data)) {
+                    $errors = $this->munaqosahJuriModel->errors();
+                    throw new \Exception('Gagal menyimpan data juri: ' . implode(', ', $errors));
+                }
 
-            // Create user in MyAuth
-            $email = $data['UsernameJuri'] . '@smartpq.simpedis.com';
-            $password = $this->request->getPost('PasswordJuri') ?: 'JuriTpqSmart';
+                // Create user in MyAuth
+                $email = $data['UsernameJuri'] . '@smartpq.simpedis.com';
+                $password = $this->request->getPost('PasswordJuri') ?: 'JuriTpqSmart';
 
-            // Insert to users table
-            $userData = [
-                'username' => $data['UsernameJuri'],
-                'email' => $email,
-                'password_hash' => Password::hash($password),
-                'active' => 1
-            ];
+                // Hash password
+                if (empty($password)) {
+                    throw new \Exception('Password tidak boleh kosong');
+                }
 
-            $this->db->table('users')->insert($userData);
-            $userId = $this->db->insertID();
+                $passwordHash = Password::hash($password);
+                if (!$passwordHash) {
+                    throw new \Exception('Gagal membuat hash password');
+                }
 
-            // Insert to auth_groups_users table
-            $groupData = [
-                'group_id' => 5, // Group ID untuk juri
-                'user_id' => $userId,
-            ];
+                // Insert to users table
+                $userData = [
+                    'username' => $data['UsernameJuri'],
+                    'email' => $email,
+                    'password_hash' => $passwordHash,
+                    'active' => 1
+                ];
 
-            $this->db->table('auth_groups_users')->insert($groupData);
+                // Cek apakah username sudah ada di users
+                $existingUser = $this->db->table('users')->where('username', $data['UsernameJuri'])->get()->getRow();
+                if ($existingUser) {
+                    throw new \Exception('Username sudah digunakan di sistem user');
+                }
 
-            $this->db->transComplete();
+                // Cek apakah email sudah ada
+                $existingEmail = $this->db->table('users')->where('email', $email)->get()->getRow();
+                if ($existingEmail) {
+                    throw new \Exception('Email sudah digunakan: ' . $email);
+                }
 
-            if ($this->db->transStatus() === false) {
-                throw new \Exception('Database transaction failed');
+                if (!$this->db->table('users')->insert($userData)) {
+                    $error = $this->db->error();
+                    throw new \Exception('Gagal menyimpan user: ' . ($error['message'] ?? 'Unknown error'));
+                }
+
+                $userId = $this->db->insertID();
+                if (!$userId) {
+                    throw new \Exception('Gagal mendapatkan ID user yang baru dibuat');
+                }
+
+                // Insert to auth_groups_users table
+                $groupData = [
+                    'group_id' => 5, // Group ID untuk juri
+                    'user_id' => $userId,
+                ];
+
+                // Cek apakah group_id 5 ada
+                $groupExists = $this->db->table('auth_groups')->where('id', 5)->get()->getRow();
+                if (!$groupExists) {
+                    throw new \Exception('Group ID 5 (Juri) tidak ditemukan di auth_groups');
+                }
+
+                if (!$this->db->table('auth_groups_users')->insert($groupData)) {
+                    $error = $this->db->error();
+                    throw new \Exception('Gagal menyimpan group user: ' . ($error['message'] ?? 'Unknown error'));
+                }
+
+                $this->db->transComplete();
+
+                if ($this->db->transStatus() === false) {
+                    $error = $this->db->error();
+                    throw new \Exception('Database transaction failed: ' . ($error['message'] ?? 'Unknown database error'));
+                }
+            } catch (\Exception $e) {
+                $this->db->transRollback();
+                throw $e;
             }
 
             return $this->response->setJSON([
@@ -6723,7 +6768,15 @@ class Munaqosah extends BaseController
                 'data' => $data
             ]);
         } catch (\Exception $e) {
-            $this->db->transRollback();
+            // Rollback sudah dilakukan di dalam try-catch internal
+            // Tapi pastikan transaction di-rollback jika belum
+            if ($this->db->transStatus() !== false) {
+                $this->db->transRollback();
+            }
+
+            // Log error untuk debugging (opsional, bisa diaktifkan jika perlu)
+            // log_message('error', 'Save Juri Error: ' . $e->getMessage());
+
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal menyimpan data juri: ' . $e->getMessage()

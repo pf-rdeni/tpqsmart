@@ -88,8 +88,8 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <tr>
-                                    <td colspan="9" class="text-center">Tidak ada data juri</td>
+                                <tr class="no-data-row">
+                                    <td colspan="9" class="text-center" data-order="0">Tidak ada data juri</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -342,7 +342,56 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
     $(document).ready(function() {
         let tableJuri;
         let currentJuriId = null;
-        initializeDataTableUmum('#tableJuri', true, true, ['excel', 'pdf']);
+
+        // Inisialisasi DataTables menggunakan fungsi initializeDataTableUmum yang sudah ada
+        try {
+            var $table = $('#tableJuri');
+
+            // Pastikan tabel ada di DOM
+            if ($table.length) {
+                // Cek apakah tabel sudah diinisialisasi
+                if ($.fn.DataTable && $.fn.DataTable.isDataTable('#tableJuri')) {
+                    // Destroy existing DataTable
+                    try {
+                        $table.DataTable().destroy();
+                    } catch (e) {
+                        console.warn('Error destroying existing DataTable:', e);
+                    }
+                }
+
+                // Tunggu sebentar untuk memastikan destroy selesai
+                setTimeout(function() {
+                    // Double check - pastikan tidak ada instance DataTable
+                    if (!$.fn.DataTable.isDataTable('#tableJuri')) {
+                        // Gunakan fungsi initializeDataTableUmum yang sudah ada
+                        if (typeof initializeDataTableUmum === 'function') {
+                            try {
+                                // Inisialisasi dengan options tambahan untuk kolom Aksi
+                                initializeDataTableUmum('#tableJuri', true, true, ['excel', 'pdf'], {
+                                    "order": [],
+                                    "columnDefs": [{
+                                        "targets": -1, // Last column (Aksi)
+                                        "orderable": false,
+                                        "searchable": false
+                                    }]
+                                });
+
+                                // Simpan instance DataTable
+                                tableJuri = $('#tableJuri').DataTable();
+                            } catch (e) {
+                                console.error('Error calling initializeDataTableUmum:', e);
+                            }
+                        } else {
+                            console.error('Function initializeDataTableUmum not found');
+                        }
+                    } else {
+                        console.warn('DataTable still exists, skipping initialization');
+                    }
+                }, 100);
+            }
+        } catch (e) {
+            console.error('Error initializing DataTable:', e);
+        }
 
         // Pendekatan baru: Generate Username menggunakan vanilla JavaScript untuk kompatibilitas maksimal
         function generateUsernameJuri() {
