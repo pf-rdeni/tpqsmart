@@ -343,41 +343,111 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
         let tableJuri;
         let currentJuriId = null;
         initializeDataTableUmum('#tableJuri', true, true, ['excel', 'pdf']);
-        // Generate Username
-        function generateUsername() {
-            let idGrupMateriUjian = $('#IdGrupMateriUjian').val();
-            let idTpq = $('#IdTpq').val();
 
-            if (!idGrupMateriUjian) {
+        // Pendekatan baru: Generate Username menggunakan vanilla JavaScript untuk kompatibilitas maksimal
+        function generateUsernameJuri() {
+            // Ambil nilai dari form
+            var idGrupMateriUjian = document.getElementById('IdGrupMateriUjian');
+            var idTpq = document.getElementById('IdTpq');
+            var usernameField = document.getElementById('UsernameJuri');
+            var emailPreview = document.getElementById('emailPreview');
+            var btnGenerate = document.getElementById('btnGenerateUsername');
+
+            // Validasi
+            if (!idGrupMateriUjian || !idGrupMateriUjian.value) {
                 showAlert('Pilih grup materi ujian terlebih dahulu', 'warning');
                 return;
             }
 
-            // Show loading on button
-            let $btn = $('#btnGenerateUsername');
-            let originalText = $btn.html();
-            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generate...');
+            // Simpan state button
+            var originalBtnHTML = btnGenerate.innerHTML;
+            var originalBtnDisabled = btnGenerate.disabled;
 
-            $.post('<?= base_url('backend/munaqosah/generate-username-juri') ?>', {
-                    IdGrupMateriUjian: idGrupMateriUjian,
-                    IdTpq: idTpq
-                })
-                .done(function(response) {
-                    if (response.success) {
-                        $('#UsernameJuri').val(response.username);
-                        $('#emailPreview').text(response.username + '@smartpq.simpedis.com');
-                    } else {
-                        showAlert(response.message, 'error');
-                    }
-                })
-                .fail(function() {
-                    showAlert('Gagal generate username', 'error');
-                })
-                .always(function() {
+            // Update button state
+            btnGenerate.disabled = true;
+            btnGenerate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generate...';
+
+            // Siapkan data
+            var formData = new FormData();
+            formData.append('IdGrupMateriUjian', idGrupMateriUjian.value);
+            formData.append('IdTpq', (idTpq && idTpq.value) ? idTpq.value : '');
+
+            // CSRF token
+            var csrfName = '<?= csrf_token() ?>';
+            var csrfHash = '<?= csrf_hash() ?>';
+            formData.append(csrfName, csrfHash);
+
+            // URL endpoint
+            var url = '<?= base_url('backend/munaqosah/generate-username-juri') ?>';
+
+            // Gunakan XMLHttpRequest untuk kompatibilitas maksimal
+            var xhr = new XMLHttpRequest();
+
+            xhr.open('POST', url, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
                     // Restore button
-                    $btn.prop('disabled', false).html(originalText);
-                });
+                    btnGenerate.disabled = originalBtnDisabled;
+                    btnGenerate.innerHTML = originalBtnHTML;
+
+                    if (xhr.status === 200) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+
+                            if (response && response.success === true && response.username) {
+                                // Set username
+                                if (usernameField) {
+                                    usernameField.value = response.username;
+                                }
+                                // Update email preview
+                                if (emailPreview) {
+                                    emailPreview.textContent = response.username + '@smartpq.simpedis.com';
+                                }
+                            } else {
+                                var errorMsg = (response && response.message) ? response.message : 'Gagal generate username';
+                                showAlert(errorMsg, 'error');
+                            }
+                        } catch (e) {
+                            console.error('Parse error:', e);
+                            showAlert('Gagal memproses response dari server', 'error');
+                        }
+                    } else {
+                        var errorMsg = 'Gagal generate username';
+                        if (xhr.status === 404) {
+                            errorMsg = 'Endpoint tidak ditemukan. Silakan refresh halaman.';
+                        } else if (xhr.status === 500) {
+                            errorMsg = 'Terjadi kesalahan di server. Silakan coba lagi.';
+                        } else if (xhr.responseText) {
+                            try {
+                                var errorResponse = JSON.parse(xhr.responseText);
+                                if (errorResponse && errorResponse.message) {
+                                    errorMsg = errorResponse.message;
+                                }
+                            } catch (e) {
+                                // Use default message
+                            }
+                        }
+                        showAlert(errorMsg, 'error');
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                // Restore button
+                btnGenerate.disabled = originalBtnDisabled;
+                btnGenerate.innerHTML = originalBtnHTML;
+                showAlert('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.', 'error');
+            };
+
+            // Send request
+            xhr.send(formData);
         }
+
+        // Expose function globally untuk kompatibilitas
+        window.generateUsername = generateUsernameJuri;
+        window.generateUsernameJuri = generateUsernameJuri;
 
         // Show Alert using SweetAlert2
         function showAlert(message, type) {
@@ -443,19 +513,74 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
         }
 
 
-        // Event Handlers
-        $('#btnGenerateUsername').click(function() {
-            generateUsername();
-        });
-
-        $('#IdGrupMateriUjian, #IdTpq').change(function() {
-            // Atur TypeUjian otomatis berdasarkan pilihan TPQ
-            const hasTpq = $('#IdTpq').val() && $('#IdTpq').val() !== '' && $('#IdTpq').val() !== '0';
-            $('#TypeUjian').val(hasTpq ? 'pra-munaqosah' : 'munaqosah');
-            if ($('#IdGrupMateriUjian').val()) {
-                generateUsername();
+        // Fungsi untuk setup event handlers (dipanggil setelah modal dibuka)
+        function setupGenerateUsernameHandlers() {
+            // Button Generate Username
+            var btnGenerateEl = document.getElementById('btnGenerateUsername');
+            if (btnGenerateEl && !btnGenerateEl.hasAttribute('data-handler-attached')) {
+                btnGenerateEl.setAttribute('data-handler-attached', 'true');
+                btnGenerateEl.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof window.generateUsernameJuri === 'function') {
+                        window.generateUsernameJuri();
+                    }
+                });
             }
-        });
+
+            // Change event untuk IdGrupMateriUjian
+            var grupMateriEl = document.getElementById('IdGrupMateriUjian');
+            if (grupMateriEl && !grupMateriEl.hasAttribute('data-handler-attached')) {
+                grupMateriEl.setAttribute('data-handler-attached', 'true');
+                grupMateriEl.addEventListener('change', function() {
+                    // Atur TypeUjian otomatis berdasarkan pilihan TPQ
+                    var idTpqEl = document.getElementById('IdTpq');
+                    var typeUjianEl = document.getElementById('TypeUjian');
+                    var hasTpq = idTpqEl && idTpqEl.value && idTpqEl.value !== '' && idTpqEl.value !== '0';
+
+                    if (typeUjianEl) {
+                        typeUjianEl.value = hasTpq ? 'pra-munaqosah' : 'munaqosah';
+                    }
+
+                    // Auto generate jika grup materi sudah dipilih
+                    if (this.value) {
+                        setTimeout(function() {
+                            if (typeof window.generateUsernameJuri === 'function') {
+                                window.generateUsernameJuri();
+                            }
+                        }, 200);
+                    }
+                });
+            }
+
+            // Change event untuk IdTpq
+            var idTpqEl = document.getElementById('IdTpq');
+            if (idTpqEl && !idTpqEl.hasAttribute('data-handler-attached')) {
+                idTpqEl.setAttribute('data-handler-attached', 'true');
+                idTpqEl.addEventListener('change', function() {
+                    // Atur TypeUjian otomatis berdasarkan pilihan TPQ
+                    var typeUjianEl = document.getElementById('TypeUjian');
+                    var hasTpq = this.value && this.value !== '' && this.value !== '0';
+
+                    if (typeUjianEl) {
+                        typeUjianEl.value = hasTpq ? 'pra-munaqosah' : 'munaqosah';
+                    }
+
+                    // Auto generate jika grup materi sudah dipilih
+                    var grupMateriEl = document.getElementById('IdGrupMateriUjian');
+                    if (grupMateriEl && grupMateriEl.value) {
+                        setTimeout(function() {
+                            if (typeof window.generateUsernameJuri === 'function') {
+                                window.generateUsernameJuri();
+                            }
+                        }, 200);
+                    }
+                });
+            }
+        }
+
+        // Setup handlers saat document ready (jika elemen sudah ada)
+        setupGenerateUsernameHandlers();
 
         // Toggle Password Visibility
         $(document).on('click', '#togglePasswordBtn', function() {
@@ -762,14 +887,39 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
         });
 
         // Auto generate username when modal is shown and TPQ is pre-selected
-        $('#modalJuri').on('shown.bs.modal', function() {
-            <?php if (count($tpqDropdown) == 1): ?>
-                // Auto generate username if TPQ is pre-selected
-                if ($('#IdGrupMateriUjian').val()) {
-                    generateUsername();
+        var modalJuriEl = document.getElementById('modalJuri');
+        if (modalJuriEl) {
+            // Event saat modal ditampilkan
+            modalJuriEl.addEventListener('shown.bs.modal', function() {
+                // Setup handlers setelah modal dibuka
+                setupGenerateUsernameHandlers();
+
+                setTimeout(function() {
+                    <?php if (count($tpqDropdown) == 1): ?>
+                        // Auto generate username if TPQ is pre-selected
+                        var idGrupMateriUjian = document.getElementById('IdGrupMateriUjian');
+                        if (idGrupMateriUjian && idGrupMateriUjian.value) {
+                            if (typeof window.generateUsernameJuri === 'function') {
+                                window.generateUsernameJuri();
+                            }
+                        }
+                    <?php endif; ?>
+                }, 300);
+            });
+
+            // Event saat modal akan ditampilkan
+            modalJuriEl.addEventListener('show.bs.modal', function() {
+                // Reset form state
+                var usernameField = document.getElementById('UsernameJuri');
+                var emailPreview = document.getElementById('emailPreview');
+                if (usernameField) {
+                    usernameField.value = '';
                 }
-            <?php endif; ?>
-        });
+                if (emailPreview) {
+                    emailPreview.textContent = 'username@smartpq.simpedis.com';
+                }
+            });
+        }
 
     });
 </script>

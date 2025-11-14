@@ -6559,8 +6559,13 @@ class Munaqosah extends BaseController
     public function generateUsernameJuri()
     {
         try {
+            // Set header untuk kompatibilitas browser
+            $this->response->setHeader('Content-Type', 'application/json; charset=utf-8');
+            $this->response->setHeader('Cache-Control', 'no-cache, must-revalidate');
+
             $idGrupMateriUjian = $this->request->getPost('IdGrupMateriUjian');
-            $idTpq = $this->request->getPost('IdTpq');
+            $idTpq = $this->request->getPost('IdTpq') ?: '';
+
             // Ambil nama grup materi dari tbl_munaqosah_grup_materi_uji
             $namaGrupMateri = $this->grupMateriUjiMunaqosahModel->getGrupMateriById($idGrupMateriUjian);
 
@@ -6585,6 +6590,8 @@ class Munaqosah extends BaseController
                 'username' => $usernameJuri
             ]);
         } catch (\Exception $e) {
+            // Set header untuk error response juga
+            $this->response->setHeader('Content-Type', 'application/json; charset=utf-8');
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal generate username: ' . $e->getMessage()
