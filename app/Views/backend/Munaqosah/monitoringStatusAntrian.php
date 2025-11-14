@@ -41,10 +41,24 @@
                             }
                             echo $selectedGroupName;
                             ?>
-                            <?php if (empty($session_id_tpq)): ?>
+                            <?php if (empty($session_id_tpq) && empty($is_panitia_tpq ?? false)): ?>
                                 | <strong>TPQ:</strong>
                                 <?php
                                 $selectedTpqName = 'Semua TPQ';
+                                foreach ($tpq_list as $tpq) {
+                                    $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
+                                    $tpqNama = is_array($tpq) ? ($tpq['NamaTpq'] ?? '') : ($tpq->NamaTpq ?? '');
+                                    if ($tpqId === $selected_tpq) {
+                                        $selectedTpqName = $tpqId . ' - ' . $tpqNama;
+                                        break;
+                                    }
+                                }
+                                echo $selectedTpqName;
+                                ?>
+                            <?php elseif (!empty($is_panitia_tpq ?? false)): ?>
+                                | <strong>TPQ:</strong>
+                                <?php
+                                $selectedTpqName = '-';
                                 foreach ($tpq_list as $tpq) {
                                     $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
                                     $tpqNama = is_array($tpq) ? ($tpq['NamaTpq'] ?? '') : ($tpq->NamaTpq ?? '');

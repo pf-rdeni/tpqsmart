@@ -17,11 +17,23 @@
                                 <label class="mb-0 small">Tahun Ajaran</label>
                                 <input type="text" id="filterTahunAjaran" class="form-control form-control-sm" value="<?= esc($current_tahun_ajaran) ?>" readonly>
                             </div>
-                            <?php if (empty($session_id_tpq) && (!isset($is_juri) || !$is_juri)): ?>
+                            <?php if (empty($session_id_tpq) && (!isset($is_juri) || !$is_juri) && empty($is_panitia_tpq ?? false)): ?>
                                 <div class="mr-2 mb-1">
                                     <label class="mb-0 small">TPQ</label>
                                     <select id="filterTpq" class="form-control form-control-sm">
                                         <option value="0">Semua TPQ</option>
+                                        <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
+                                                <option value="<?= esc($tpq['IdTpq']) ?>" <?= ($selected_tpq == $tpq['IdTpq']) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
+                                        <?php endforeach;
+                                        endif; ?>
+                                    </select>
+                                </div>
+                            <?php elseif (!empty($is_panitia_tpq ?? false)): ?>
+                                <!-- Jika panitia TPQ, tampilkan TPQ mereka dan disable -->
+                                <div class="mr-2 mb-1">
+                                    <label class="mb-0 small">TPQ</label>
+                                    <input type="hidden" id="filterTpq" value="<?= esc($selected_tpq) ?>">
+                                    <select class="form-control form-control-sm" disabled style="background-color: #e9ecef; cursor: not-allowed;">
                                         <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
                                                 <option value="<?= esc($tpq['IdTpq']) ?>" <?= ($selected_tpq == $tpq['IdTpq']) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
                                         <?php endforeach;

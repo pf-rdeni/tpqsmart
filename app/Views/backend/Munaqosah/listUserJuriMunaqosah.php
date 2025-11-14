@@ -23,10 +23,78 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
 
 <section class="content">
     <div class="container-fluid">
+        <!-- Card Panitia -->
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">
-                    <i class="fas fa-users"></i> Data Juri Pra-munaqosah/Munaqosah
+                    <i class="fas fa-clipboard-list"></i> Data Panitia Munaqosah
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalPanitia">
+                        <i class="fas fa-plus"></i> Tambah Panitia
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tablePanitia" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th width="5%">No</th>
+                                <th width="25%">Username</th>
+                                <th width="15%">Type Ujian</th>
+                                <th width="15%">TPQ</th>
+                                <th width="10%">Status</th>
+                                <th width="15%">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($panitia)): ?>
+                                <?php $no = 1; ?>
+                                <?php foreach ($panitia as $p): ?>
+                                    <tr>
+                                        <td><?= $no++ ?></td>
+                                        <td><?= $p['username'] ?></td>
+                                        <td>
+                                            <?php
+                                            // Tentukan TypeUjian dari IdTpq
+                                            $typeUjian = (!empty($p['IdTpq']) && $p['IdTpq'] != 0) ? 'pra-munaqosah' : 'munaqosah';
+                                            ?>
+                                            <span class="badge badge-info"><?= $typeUjian ?></span>
+                                        </td>
+                                        <td><?= $p['NamaTpq'] ?? '-' ?></td>
+                                        <td>
+                                            <?php
+                                            $statusBadgeClass = $p['Status'] === 'Aktif' ? 'badge-success' : 'badge-danger';
+                                            ?>
+                                            <span class="badge <?= $statusBadgeClass ?>"><?= $p['Status'] ?></span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info btn-edit-password-panitia" data-id="<?= $p['id'] ?>" data-username="<?= htmlspecialchars($p['username'], ENT_QUOTES, 'UTF-8') ?>" title="Ubah Password">
+                                                <i class="fas fa-key"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger btn-delete-panitia" data-id="<?= $p['id'] ?>" title="Hapus">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr class="no-data-row">
+                                    <td colspan="6" class="text-center" data-order="0">Tidak ada data panitia</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Juri -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-gavel"></i> Data Juri Pra-munaqosah/Munaqosah
                 </h3>
                 <div class="card-tools">
                     <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalJuri">
@@ -328,6 +396,157 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary" id="btnUpdateRoom">
                         <i class="fas fa-save"></i> Update Room
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Panitia -->
+<div class="modal fade" id="modalPanitia" tabindex="-1" role="dialog" aria-labelledby="modalPanitiaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalPanitiaLabel">Tambah Panitia Baru</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formPanitia">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="IdTpqPanitia">TPQ <span class="text-danger">*</span></label>
+                                <select class="form-control" id="IdTpqPanitia" name="IdTpq" required>
+                                    <?php if (count($tpqDropdown) == 1): ?>
+                                        <option value="<?= $tpqDropdown[0]['IdTpq'] ?>" selected><?= $tpqDropdown[0]['NamaTpq'] ?></option>
+                                    <?php else: ?>
+                                        <option value="0" selected>Umum (Munaqosah)</option>
+                                        <?php foreach ($tpqDropdown as $tpq): ?>
+                                            <option value="<?= $tpq['IdTpq'] ?>"><?= $tpq['NamaTpq'] ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                                <small class="form-text text-muted">Pilih TPQ untuk panitia TPQ tertentu, atau "Umum" untuk panitia munaqosah umum</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="StatusPanitia">Status <span class="text-danger">*</span></label>
+                                <select class="form-control" id="StatusPanitia" name="Status" required>
+                                    <option value="">Pilih Status</option>
+                                    <option value="Aktif" selected>Aktif</option>
+                                    <option value="Tidak Aktif">Tidak Aktif</option>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="UsernamePanitia">Username Panitia <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="UsernamePanitia" name="UsernamePanitia" autocomplete="username" required readonly>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" id="btnGenerateUsernamePanitia">
+                                            <i class="fas fa-sync"></i> Generate
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="invalid-feedback"></div>
+                                <small class="form-text text-muted">Username akan digenerate otomatis berdasarkan TPQ</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="PasswordPanitia">Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="PasswordPanitia" name="PasswordPanitia" autocomplete="new-password" required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePasswordPanitiaBtn">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="useDefaultPasswordPanitia" name="useDefaultPasswordPanitia">
+                                    <label class="form-check-label" for="useDefaultPasswordPanitia">
+                                        Gunakan password default: <strong>PanitiaTpqSmart</strong>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <h6><i class="icon fas fa-info"></i> Informasi Akun:</h6>
+                                <ul class="mb-0">
+                                    <li><strong>Email:</strong> <span id="emailPreviewPanitia">username@smartpq.simpedis.com</span></li>
+                                    <li><strong>Password:</strong> PanitiaTpqSmart</li>
+                                    <li><strong>Group:</strong> Panitia (ID: 6)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success" id="btnSavePanitia">
+                        <i class="fas fa-save"></i> Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Password Panitia -->
+<div class="modal fade" id="modalEditPasswordPanitia" tabindex="-1" role="dialog" aria-labelledby="modalEditPasswordPanitiaLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEditPasswordPanitiaLabel">Ubah Password Panitia</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formEditPasswordPanitia">
+                <div class="modal-body">
+                    <input type="text" id="editUsernamePanitia" name="editUsernamePanitia" autocomplete="username" style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;" tabindex="-1" aria-hidden="true">
+                    <div class="form-group">
+                        <label for="editPasswordPanitia">Password Baru <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="editPasswordPanitia" name="editPasswordPanitia" autocomplete="new-password" required>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleEditPasswordPanitiaBtn">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="useDefaultPasswordEditPanitia" name="useDefaultPasswordEditPanitia">
+                            <label class="form-check-label" for="useDefaultPasswordEditPanitia">
+                                Gunakan password default: <strong>PanitiaTpqSmart</strong>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editConfirmPasswordPanitia">Konfirmasi Password Baru <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="editConfirmPasswordPanitia" name="editConfirmPasswordPanitia" autocomplete="new-password" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success" id="btnUpdatePasswordPanitia">
+                        <i class="fas fa-save"></i> Update Password
                     </button>
                 </div>
             </form>
@@ -969,6 +1188,369 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                 }
             });
         }
+
+        // ==================== PANITIA MUNAQOSAH ====================
+        let tablePanitia;
+        let currentPanitiaId = null;
+
+        // Inisialisasi DataTable untuk Panitia
+        try {
+            var $tablePanitia = $('#tablePanitia');
+            if ($tablePanitia.length) {
+                if ($.fn.DataTable && $.fn.DataTable.isDataTable('#tablePanitia')) {
+                    try {
+                        $tablePanitia.DataTable().destroy();
+                    } catch (e) {
+                        console.warn('Error destroying existing DataTable:', e);
+                    }
+                }
+                setTimeout(function() {
+                    if (!$.fn.DataTable.isDataTable('#tablePanitia')) {
+                        if (typeof initializeDataTableUmum === 'function') {
+                            try {
+                                initializeDataTableUmum('#tablePanitia', true, true, ['excel', 'pdf'], {
+                                    "order": [],
+                                    "columnDefs": [{
+                                        "targets": -1,
+                                        "orderable": false,
+                                        "searchable": false
+                                    }]
+                                });
+                                tablePanitia = $('#tablePanitia').DataTable();
+                            } catch (e) {
+                                console.error('Error calling initializeDataTableUmum:', e);
+                            }
+                        }
+                    }
+                }, 100);
+            }
+        } catch (e) {
+            console.error('Error initializing DataTable:', e);
+        }
+
+        // Generate Username Panitia
+        function generateUsernamePanitia() {
+            var idTpq = document.getElementById('IdTpqPanitia');
+            var usernameField = document.getElementById('UsernamePanitia');
+            var emailPreview = document.getElementById('emailPreviewPanitia');
+            var btnGenerate = document.getElementById('btnGenerateUsernamePanitia');
+
+            if (!idTpq || !idTpq.value) {
+                showAlert('Pilih TPQ terlebih dahulu', 'warning');
+                return;
+            }
+
+            var originalBtnHTML = btnGenerate.innerHTML;
+            var originalBtnDisabled = btnGenerate.disabled;
+
+            btnGenerate.disabled = true;
+            btnGenerate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generate...';
+
+            var formData = new FormData();
+            formData.append('IdTpq', idTpq.value);
+
+            var csrfName = '<?= csrf_token() ?>';
+            var csrfHash = '<?= csrf_hash() ?>';
+            formData.append(csrfName, csrfHash);
+
+            var url = '<?= base_url('backend/munaqosah/generate-username-panitia') ?>';
+            var xhr = new XMLHttpRequest();
+
+            xhr.open('POST', url, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    btnGenerate.disabled = originalBtnDisabled;
+                    btnGenerate.innerHTML = originalBtnHTML;
+
+                    if (xhr.status === 200) {
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            if (response && response.success === true && response.username) {
+                                if (usernameField) {
+                                    usernameField.value = response.username;
+                                }
+                                if (emailPreview) {
+                                    emailPreview.textContent = response.username + '@smartpq.simpedis.com';
+                                }
+                            } else {
+                                var errorMsg = (response && response.message) ? response.message : 'Gagal generate username';
+                                showAlert(errorMsg, 'error');
+                            }
+                        } catch (e) {
+                            console.error('Parse error:', e);
+                            showAlert('Gagal memproses response dari server', 'error');
+                        }
+                    } else {
+                        showAlert('Gagal generate username', 'error');
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                btnGenerate.disabled = originalBtnDisabled;
+                btnGenerate.innerHTML = originalBtnHTML;
+                showAlert('Tidak dapat terhubung ke server', 'error');
+            };
+
+            xhr.send(formData);
+        }
+
+        // Setup handlers untuk Panitia
+        $('#IdTpqPanitia').on('change', function() {
+            if (this.value) {
+                setTimeout(function() {
+                    generateUsernamePanitia();
+                }, 200);
+            }
+        });
+
+        $('#btnGenerateUsernamePanitia').on('click', function(e) {
+            e.preventDefault();
+            generateUsernamePanitia();
+        });
+
+        // Toggle Password Panitia
+        $(document).on('click', '#togglePasswordPanitiaBtn', function() {
+            const passwordField = $('#PasswordPanitia');
+            const icon = $(this).find('i');
+            if (passwordField.attr('type') === 'password') {
+                passwordField.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                passwordField.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+
+        // Use Default Password Panitia
+        $(document).on('change', '#useDefaultPasswordPanitia', function() {
+            const passwordField = $('#PasswordPanitia');
+            if ($(this).is(':checked')) {
+                passwordField.val('PanitiaTpqSmart').prop('readonly', true);
+            } else {
+                passwordField.val('').prop('readonly', false);
+            }
+        });
+
+        // Form Submit Panitia
+        $('#formPanitia').submit(function(e) {
+            e.preventDefault();
+
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Mohon tunggu sebentar',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            let formData = new FormData(this);
+            let url = '<?= base_url('backend/munaqosah/save-panitia') ?>';
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#modalPanitia').modal('hide');
+                        location.reload();
+                    } else {
+                        if (response.errors) {
+                            let errorMessages = [];
+                            Object.keys(response.errors).forEach(function(key) {
+                                let field = $('[name="' + key + '"]');
+                                field.addClass('is-invalid');
+                                field.siblings('.invalid-feedback').text(response.errors[key]);
+                                errorMessages.push(response.errors[key]);
+                            });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Validasi Gagal',
+                                html: '<ul class="text-left"><li>' + errorMessages.join('</li><li>') + '</li></ul>',
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
+                            showAlert(response.message, 'error');
+                        }
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    showAlert('Terjadi kesalahan saat menyimpan data', 'error');
+                }
+            });
+        });
+
+        // Edit Password Panitia Button
+        $(document).on('click', '.btn-edit-password-panitia', function() {
+            currentPanitiaId = $(this).data('id');
+            const username = $(this).data('username') || '';
+            $('#editUsernamePanitia').val(username);
+            $('#modalEditPasswordPanitia').modal('show');
+            $('#formEditPasswordPanitia')[0].reset();
+            $('#editUsernamePanitia').val(username);
+            $('#useDefaultPasswordEditPanitia').prop('checked', false);
+        });
+
+        // Toggle Edit Password Panitia
+        $(document).on('click', '#toggleEditPasswordPanitiaBtn', function() {
+            const passwordField = $('#editPasswordPanitia');
+            const icon = $(this).find('i');
+            if (passwordField.attr('type') === 'password') {
+                passwordField.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                passwordField.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+
+        // Use Default Password Edit Panitia
+        $(document).on('change', '#useDefaultPasswordEditPanitia', function() {
+            const passwordField = $('#editPasswordPanitia');
+            const confirmField = $('#editConfirmPasswordPanitia');
+            if ($(this).is(':checked')) {
+                passwordField.val('PanitiaTpqSmart').prop('readonly', true);
+                confirmField.val('PanitiaTpqSmart').prop('readonly', false);
+            } else {
+                passwordField.val('').prop('readonly', false);
+                confirmField.val('').prop('readonly', false);
+            }
+        });
+
+        // Form Edit Password Panitia Submit
+        $('#formEditPasswordPanitia').submit(function(e) {
+            e.preventDefault();
+            const password = $('#editPasswordPanitia').val();
+            const confirmPassword = $('#editConfirmPasswordPanitia').val();
+
+            if (password !== confirmPassword) {
+                showAlert('Password dan konfirmasi password tidak sama', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Mohon tunggu sebentar',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/update-password-panitia') ?>/' + currentPanitiaId,
+                type: 'POST',
+                data: {
+                    password: password
+                },
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#modalEditPasswordPanitia').modal('hide');
+                    } else {
+                        showAlert(response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    showAlert('Terjadi kesalahan saat mengupdate password', 'error');
+                }
+            });
+        });
+
+        // Delete Panitia Button
+        $(document).on('click', '.btn-delete-panitia', function() {
+            currentPanitiaId = $(this).data('id');
+
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                text: 'Apakah Anda yakin ingin menghapus data panitia ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '<?= base_url('backend/munaqosah/delete-panitia') ?>/' + currentPanitiaId,
+                        type: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    text: response.message,
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                                location.reload();
+                            } else {
+                                showAlert(response.message, 'error');
+                            }
+                        },
+                        error: function() {
+                            showAlert('Terjadi kesalahan saat menghapus data', 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Reset Form Panitia
+        $('#modalPanitia').on('hidden.bs.modal', function() {
+            $('#formPanitia')[0].reset();
+            $('#formPanitia .invalid-feedback').text('');
+            $('#formPanitia .form-control').removeClass('is-invalid');
+            $('#emailPreviewPanitia').text('username@smartpq.simpedis.com');
+            $('#StatusPanitia').val('Aktif');
+            $('#useDefaultPasswordPanitia').prop('checked', true);
+            $('#PasswordPanitia').val('PanitiaTpqSmart').prop('readonly', true);
+            <?php if (count($tpqDropdown) == 1): ?>
+                $('#IdTpqPanitia').val('<?= $tpqDropdown[0]['IdTpq'] ?>');
+            <?php else: ?>
+                $('#IdTpqPanitia').val('0');
+            <?php endif; ?>
+        });
+
+        // Auto generate username when modal is shown
+        $('#modalPanitia').on('shown.bs.modal', function() {
+            setTimeout(function() {
+                <?php if (count($tpqDropdown) == 1): ?>
+                    var idTpq = document.getElementById('IdTpqPanitia');
+                    if (idTpq && idTpq.value) {
+                        generateUsernamePanitia();
+                    }
+                <?php endif; ?>
+            }, 300);
+        });
 
     });
 </script>

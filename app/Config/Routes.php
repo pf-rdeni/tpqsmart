@@ -252,6 +252,13 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/delete-juri/(:num)', 'Munaqosah::deleteJuri/$1');
     $routes->post('munaqosah/update-password-juri/(:num)', 'Munaqosah::updatePasswordJuri/$1');
 
+    // Panitia Munaqosah Routes
+    $routes->post('munaqosah/generate-username-panitia', 'Munaqosah::generateUsernamePanitia');
+    $routes->post('munaqosah/save-panitia', 'Munaqosah::savePanitia');
+    $routes->post('munaqosah/update-room-panitia/(:num)', 'Munaqosah::updateRoomPanitia/$1');
+    $routes->post('munaqosah/delete-panitia/(:num)', 'Munaqosah::deletePanitia/$1');
+    $routes->post('munaqosah/update-password-panitia/(:num)', 'Munaqosah::updatePasswordPanitia/$1');
+
     // Kategori Materi Routes
     $routes->get('kategori-materi', 'KategoriMateri::index');
     $routes->get('kategori-materi/get-kategori-materi', 'KategoriMateri::getKategoriMateri');

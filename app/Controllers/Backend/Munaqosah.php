@@ -18,6 +18,7 @@ use App\Models\MunaqosahAlquranModel;
 use App\Models\MunaqosahRegistrasiUjiModel;
 use App\Models\SantriBaruModel;
 use App\Models\MunaqosahJuriModel;
+use App\Models\UserModel;
 use App\Models\MunaqosahKategoriKesalahanModel;
 use App\Models\MunaqosahKonfigurasiModel;
 use App\Models\MunaqosahJadwalUjianModel;
@@ -42,6 +43,7 @@ class Munaqosah extends BaseController
     protected $munaqosahRegistrasiUjiModel;
     protected $santriBaruModel;
     protected $munaqosahJuriModel;
+    protected $userModel;
     protected $munaqosahKategoriModel;
     protected $munaqosahKategoriKesalahanModel;
     protected $munaqosahKonfigurasiModel;
@@ -67,6 +69,7 @@ class Munaqosah extends BaseController
         $this->munaqosahRegistrasiUjiModel = new MunaqosahRegistrasiUjiModel();
         $this->santriBaruModel = new SantriBaruModel();
         $this->munaqosahJuriModel = new MunaqosahJuriModel();
+        $this->userModel = new UserModel();
         $this->munaqosahKategoriKesalahanModel = new MunaqosahKategoriKesalahanModel();
         $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
         $this->munaqosahJadwalUjianModel = new MunaqosahJadwalUjianModel();
@@ -350,48 +353,97 @@ class Munaqosah extends BaseController
             return view('backend/Munaqosah/dashboardOperator', $data);
         }
 
-        // Dashboard untuk Panitia (Hanya Munaqosah Umum - IdTpq = 0)
+        // Dashboard untuk Panitia
         if ($isPanitia) {
-            $typeUjian = 'munaqosah';
-            $idTpqPanitia = 0; // Panitia hanya mengakses data umum (IdTpq = 0)
+            // Ambil IdTpq dari username panitia yang login
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+            // Jika IdTpq = 0, maka melihat Munaqosah umum
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $typeUjian = 'pra-munaqosah';
+            } else {
+                $typeUjian = 'munaqosah';
+                $idTpqPanitia = 0; // Pastikan 0 untuk panitia umum
+            }
 
             // Statistik umum untuk Munaqosah
             $statistik = getStatistikMunaqosah();
 
-            // Total peserta group by NoPeserta (hanya Munaqosah, IdTpq = 0 atau NULL)
-            $query = $this->db->query("
-                SELECT COUNT(*) as total 
-                FROM (
-                    SELECT NoPeserta 
-                    FROM tbl_munaqosah_registrasi_uji 
-                    WHERE IdTahunAjaran = ? 
-                    AND TypeUjian = ? 
-                    GROUP BY NoPeserta
-                ) as grouped_peserta
-            ", [$currentTahunAjaran, $typeUjian]);
+            // Total peserta group by NoPeserta
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                // Untuk panitia TPQ tertentu, filter berdasarkan IdTpq
+                $query = $this->db->query("
+                    SELECT COUNT(*) as total 
+                    FROM (
+                        SELECT NoPeserta 
+                        FROM tbl_munaqosah_registrasi_uji 
+                        WHERE IdTahunAjaran = ? 
+                        AND TypeUjian = ? 
+                        AND IdTpq = ?
+                        GROUP BY NoPeserta
+                    ) as grouped_peserta
+                ", [$currentTahunAjaran, $typeUjian, $idTpqPanitia]);
+            } else {
+                // Untuk panitia umum, filter IdTpq = 0 atau NULL
+                $query = $this->db->query("
+                    SELECT COUNT(*) as total 
+                    FROM (
+                        SELECT NoPeserta 
+                        FROM tbl_munaqosah_registrasi_uji 
+                        WHERE IdTahunAjaran = ? 
+                        AND TypeUjian = ? 
+                        AND (IdTpq IS NULL OR IdTpq = 0)
+                        GROUP BY NoPeserta
+                    ) as grouped_peserta
+                ", [$currentTahunAjaran, $typeUjian]);
+            }
             $result = $query->getRow();
             $totalPeserta = $result ? (int)$result->total : 0;
 
-            // Total juri aktif (hanya Munaqosah, IdTpq = 0 atau NULL)
-            $totalJuri = $this->munaqosahJuriModel->where('Status', 'Aktif')
-                ->where('TypeUjian', $typeUjian)
-                ->groupStart()
-                ->where('IdTpq IS NULL')
-                ->orWhere('IdTpq', 0)
-                ->groupEnd()
-                ->countAllResults();
+            // Total juri aktif
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                // Untuk panitia TPQ tertentu, filter berdasarkan IdTpq
+                $totalJuri = $this->munaqosahJuriModel->where('Status', 'Aktif')
+                    ->where('TypeUjian', $typeUjian)
+                    ->where('IdTpq', $idTpqPanitia)
+                    ->countAllResults();
+            } else {
+                // Untuk panitia umum, filter IdTpq = 0 atau NULL
+                $totalJuri = $this->munaqosahJuriModel->where('Status', 'Aktif')
+                    ->where('TypeUjian', $typeUjian)
+                    ->groupStart()
+                    ->where('IdTpq IS NULL')
+                    ->orWhere('IdTpq', 0)
+                    ->groupEnd()
+                    ->countAllResults();
+            }
 
             // Total grup materi aktif
             $totalGrupMateri = $this->grupMateriUjiMunaqosahModel->where('Status', 'Aktif')
                 ->countAllResults();
 
-            // Total peserta sudah dinilai (hitung distinct NoPeserta, hanya Munaqosah, IdTpq = 0 atau NULL)
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT NoPeserta) as total 
-                FROM tbl_munaqosah_nilai 
-                WHERE IdTahunAjaran = ? 
-                AND TypeUjian = ? 
-            ", [$currentTahunAjaran, $typeUjian]);
+            // Total peserta sudah dinilai
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                // Untuk panitia TPQ tertentu, filter berdasarkan IdTpq
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT NoPeserta) as total 
+                    FROM tbl_munaqosah_nilai 
+                    WHERE IdTahunAjaran = ? 
+                    AND TypeUjian = ? 
+                    AND IdTpq = ?
+                ", [$currentTahunAjaran, $typeUjian, $idTpqPanitia]);
+            } else {
+                // Untuk panitia umum, filter IdTpq = 0 atau NULL
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT NoPeserta) as total 
+                    FROM tbl_munaqosah_nilai 
+                    WHERE IdTahunAjaran = ? 
+                    AND TypeUjian = ? 
+                    AND (IdTpq IS NULL OR IdTpq = 0)
+                ", [$currentTahunAjaran, $typeUjian]);
+            }
             $result = $query->getRow();
             $totalSudahDinilai = $result ? (int)$result->total : 0;
 
@@ -442,19 +494,30 @@ class Munaqosah extends BaseController
                     ->groupEnd()
                     ->groupEnd();
 
-                // Filter IdTpq = 0 atau NULL (Panitia hanya melihat data umum)
-                // Jika q.IdTpq NULL, gunakan r.IdTpq, jika keduanya NULL atau 0, maka include
-                $builder->groupStart()
-                    ->groupStart()
-                    ->where('q.IdTpq IS NULL')
-                    ->where('r.IdTpq IS NULL')
-                    ->groupEnd()
-                    ->orGroupStart()
-                    ->where('q.IdTpq IS NULL')
-                    ->where('r.IdTpq', 0)
-                    ->groupEnd()
-                    ->orWhere('q.IdTpq', 0)
-                    ->groupEnd();
+                // Filter IdTpq berdasarkan panitia
+                if ($idTpqPanitia && $idTpqPanitia != 0) {
+                    // Untuk panitia TPQ tertentu, filter berdasarkan IdTpq
+                    $builder->groupStart()
+                        ->where('q.IdTpq', $idTpqPanitia)
+                        ->orGroupStart()
+                        ->where('q.IdTpq IS NULL')
+                        ->where('r.IdTpq', $idTpqPanitia)
+                        ->groupEnd()
+                        ->groupEnd();
+                } else {
+                    // Untuk panitia umum, filter IdTpq = 0 atau NULL
+                    $builder->groupStart()
+                        ->groupStart()
+                        ->where('q.IdTpq IS NULL')
+                        ->where('r.IdTpq IS NULL')
+                        ->groupEnd()
+                        ->orGroupStart()
+                        ->where('q.IdTpq IS NULL')
+                        ->where('r.IdTpq', 0)
+                        ->groupEnd()
+                        ->orWhere('q.IdTpq', 0)
+                        ->groupEnd();
+                }
 
                 $builder->groupBy('q.Status');
                 $results = $builder->get()->getResultArray();
@@ -480,13 +543,15 @@ class Munaqosah extends BaseController
             }
 
             // Menu yang bisa diakses Panitia
+            $menuType = $typeUjian;
+            $menuTpq = $idTpqPanitia;
             $menuItems = [
-                'daftar_peserta' => base_url('backend/munaqosah/peserta?type=munaqosah&tpq=0'),
-                'registrasi_peserta' => base_url('backend/munaqosah/registrasi-peserta?type=munaqosah&tpq=0'),
-                'jadwal_peserta_ujian' => base_url('backend/munaqosah/jadwal-peserta-ujian?type=munaqosah&tpq=0'),
-                'antrian' => base_url('backend/munaqosah/antrian?type=munaqosah&tpq=0'),
-                'dashboard_monitoring' => base_url('backend/munaqosah/dashboard-monitoring?type=munaqosah&tpq=0'),
-                'monitoring' => base_url('backend/munaqosah/monitoring?type=munaqosah&tpq=0'),
+                'daftar_peserta' => base_url('backend/munaqosah/peserta?type=' . $menuType . '&tpq=' . $menuTpq),
+                'registrasi_peserta' => base_url('backend/munaqosah/registrasi-peserta?type=' . $menuType . '&tpq=' . $menuTpq),
+                'jadwal_peserta_ujian' => base_url('backend/munaqosah/jadwal-peserta-ujian?type=' . $menuType . '&tpq=' . $menuTpq),
+                'antrian' => base_url('backend/munaqosah/antrian?type=' . $menuType . '&tpq=' . $menuTpq),
+                'dashboard_monitoring' => base_url('backend/munaqosah/dashboard-monitoring?type=' . $menuType . '&tpq=' . $menuTpq),
+                'monitoring' => base_url('backend/munaqosah/monitoring?type=' . $menuType . '&tpq=' . $menuTpq),
             ];
 
             $data = [
@@ -1378,8 +1443,29 @@ class Munaqosah extends BaseController
         $sessionIdTpq = session()->get('IdTpq');
         $selectedTpq = $this->request->getGet('tpq'); // Ambil dari parameter URL jika ada
 
-        // Jika user login sebagai admin TPQ (ada IdTpq di session)
-        if (!empty($sessionIdTpq)) {
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+        $isPanitiaTpq = false;
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $selectedType = 'pra-munaqosah';
+                $selectedTpq = $idTpqPanitia;
+                $selectedTahun = $currentTahunAjaran;
+                $isPanitiaTpq = true;
+            } else {
+                // Panitia umum (IdTpq = 0), melihat Munaqosah
+                $selectedType = 'munaqosah';
+                $selectedTpq = 0;
+                $selectedTahun = $currentTahunAjaran;
+            }
+        } elseif (!empty($sessionIdTpq)) {
+            // Jika user login sebagai admin TPQ (ada IdTpq di session)
             // Set IdTpq dari session jika belum ada filter dari URL
             if (empty($selectedTpq)) {
                 $selectedTpq = $sessionIdTpq;
@@ -1397,14 +1483,18 @@ class Munaqosah extends BaseController
         // ============================================
         // STEP 3: PENGAMBILAN DATA MASTER (TPQ LIST)
         // ============================================
-        // Get list TPQ untuk dropdown filter (jika admin super)
+        // Get list TPQ untuk dropdown filter (jika admin super atau panitia umum)
         $tpqList = [];
-        if (empty($sessionIdTpq)) {
+        if (empty($sessionIdTpq) && !$isPanitiaTpq) {
             // Jika admin super (tidak ada IdTpq di session), tampilkan semua TPQ
             $tpqList = $this->tpqModel->GetData();
         } else {
-            // Jika admin TPQ, hanya tampilkan TPQ yang sesuai dengan session
-            $tpqList = $this->tpqModel->GetData($sessionIdTpq);
+            // Jika admin TPQ atau panitia TPQ tertentu, hanya tampilkan TPQ yang sesuai
+            if ($isPanitiaTpq) {
+                $tpqList = $this->tpqModel->GetData($selectedTpq);
+            } else {
+                $tpqList = $this->tpqModel->GetData($sessionIdTpq);
+            }
             // Pastikan hasilnya dalam format array
             if (!empty($tpqList) && !is_array($tpqList)) {
                 $tpqList = [$tpqList];
@@ -1588,6 +1678,7 @@ class Munaqosah extends BaseController
             'current_tahun' => $currentTahunAjaran, // Tahun ajaran saat ini
             'rooms' => $rooms, // Data ruangan beserta status
             'available_rooms' => $availableRooms, // Daftar ruangan yang masih tersedia
+            'is_panitia_tpq' => $isPanitiaTpq, // Flag apakah panitia dengan IdTpq
             'statistics' => [
                 'total' => $totalPeserta, // Total peserta
                 'completed' => $totalSelesai, // Peserta selesai
@@ -1979,12 +2070,19 @@ class Munaqosah extends BaseController
         $idTpq = $antrian['IdTpq'] ?? null;
 
         // Tentukan grup login sebagai panitia atau operator
-        // Jika panitia, set IdTpq menjadi 0 (munaqosah umum)
         $isPanitia = in_groups('Panitia');
         $isOperator = in_groups('Operator');
 
         if ($isPanitia) {
-            $idTpq = 0; // Panitia hanya mengakses data umum (IdTpq = 0)
+            // Ambil IdTpq dari username panitia yang login
+            $usernamePanitia = user()->username;
+            $idTpq = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+            // Jika IdTpq = 0, maka melihat Munaqosah umum
+            if (!$idTpq || $idTpq == 0) {
+                $idTpq = 0; // Pastikan 0 untuk panitia umum
+            }
         } elseif ($isOperator) {
             // Operator menggunakan IdTpq dari antrian atau session
             // Jika IdTpq dari antrian null, ambil dari session
@@ -2030,7 +2128,7 @@ class Munaqosah extends BaseController
         // Filter IdTpq - perlu handle case IdTpq = 0 (panitia) dan null
         if ($idTpq !== null) {
             if ($idTpq == 0) {
-                // Untuk panitia (IdTpq = 0), filter hanya data dengan IdTpq = 0 atau NULL
+                // Untuk panitia, filter berdasarkan IdTpq mereka
                 $occupiedQuery->groupStart()
                     ->where('IdTpq', 0)
                     ->orWhere('IdTpq IS NULL', null, false)
@@ -2219,8 +2317,29 @@ class Munaqosah extends BaseController
         $sessionIdTpq = session()->get('IdTpq');
         $selectedTpq = $this->request->getGet('tpq');
 
-        // Jika user login sebagai admin TPQ
-        if (!empty($sessionIdTpq)) {
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+        $isPanitiaTpq = false;
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $selectedType = 'pra-munaqosah';
+                $selectedTpq = $idTpqPanitia;
+                $selectedTahun = $currentTahunAjaran;
+                $isPanitiaTpq = true;
+            } else {
+                // Panitia umum (IdTpq = 0), melihat Munaqosah
+                $selectedType = 'munaqosah';
+                $selectedTpq = 0;
+                $selectedTahun = $currentTahunAjaran;
+            }
+        } elseif (!empty($sessionIdTpq)) {
+            // Jika user login sebagai admin TPQ
             if (empty($selectedTpq)) {
                 $selectedTpq = $sessionIdTpq;
             }
@@ -2231,12 +2350,17 @@ class Munaqosah extends BaseController
             $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
         }
 
-        // Get list TPQ untuk dropdown (jika admin super)
+        // Get list TPQ untuk dropdown (jika admin super atau panitia umum)
         $tpqList = [];
-        if (empty($sessionIdTpq)) {
+        if (empty($sessionIdTpq) && !$isPanitiaTpq) {
             $tpqList = $this->tpqModel->GetData();
         } else {
-            $tpqList = $this->tpqModel->GetData($sessionIdTpq);
+            if ($isPanitiaTpq) {
+                // Panitia TPQ tertentu, hanya tampilkan TPQ mereka
+                $tpqList = $this->tpqModel->GetData($selectedTpq);
+            } else {
+                $tpqList = $this->tpqModel->GetData($sessionIdTpq);
+            }
             if (!empty($tpqList) && !is_array($tpqList)) {
                 $tpqList = [$tpqList];
             }
@@ -2351,6 +2475,7 @@ class Munaqosah extends BaseController
             'rooms' => $rooms,
             'available_rooms' => $availableRooms,
             'refresh_interval' => $refreshInterval,
+            'is_panitia_tpq' => $isPanitiaTpq,
             'statistics' => [
                 'total' => $totalPeserta,
                 'completed' => $totalSelesai,
@@ -3097,6 +3222,22 @@ class Munaqosah extends BaseController
         $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
         // IdTpq dari session
         $idTpq = session()->get('IdTpq');
+
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpq = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+            // Jika IdTpq = 0, maka melihat Munaqosah umum
+            if (!$idTpq || $idTpq == 0) {
+                $idTpq = 0; // Pastikan 0 untuk panitia umum
+            }
+        }
+
         // DataKelas dari help function model
         $dataKelas = $this->helpFunction->getDataKelas();
         $dataTpq = $this->helpFunction->getDataTpq($idTpq);
@@ -4605,11 +4746,27 @@ class Munaqosah extends BaseController
 
         // Ambil data TPQ
         $idTpq = session()->get('IdTpq');
-        if ($idTpq) {
-            // User TPQ - hanya tampilkan TPQ mereka
+
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpq = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+            // Jika IdTpq = 0, maka melihat Munaqosah umum
+            if (!$idTpq || $idTpq == 0) {
+                $idTpq = 0; // Pastikan 0 untuk panitia umum
+            }
+        }
+
+        if ($idTpq && $idTpq != 0) {
+            // User TPQ atau Panitia TPQ tertentu - hanya tampilkan TPQ mereka
             $tpq = [$this->tpqModel->find($idTpq)];
         } else {
-            // Admin - tampilkan semua TPQ
+            // Admin atau Panitia umum - tampilkan semua TPQ
             $tpq = $this->tpqModel->findAll();
         }
         
@@ -4641,9 +4798,24 @@ class Munaqosah extends BaseController
             // Check if user is admin (IdTpq = 0 or null means Admin)
             $sessionIdTpq = session()->get('IdTpq');
             $isAdmin = empty($sessionIdTpq) || $sessionIdTpq == 0;
+            $isPanitia = in_groups('Panitia');
 
-            // Force Pra-Munaqosah for non-admin users
-            if (!$isAdmin) {
+            // Jika user adalah Panitia, ambil IdTpq dari username
+            if ($isPanitia) {
+                $usernamePanitia = user()->username;
+                $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+                // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+                if ($idTpqPanitia && $idTpqPanitia != 0) {
+                    $typeUjian = 'pra-munaqosah';
+                    $filterTpq = $idTpqPanitia;
+                } else {
+                    // Panitia umum (IdTpq = 0), melihat Munaqosah
+                    $typeUjian = 'munaqosah';
+                    $filterTpq = 0;
+                }
+            } elseif (!$isAdmin) {
+                // Force Pra-Munaqosah for non-admin users (selain panitia)
                 $typeUjian = 'pra-munaqosah';
                 // Force filter TPQ to user's TPQ only
                 $filterTpq = $sessionIdTpq;
@@ -5702,7 +5874,7 @@ class Munaqosah extends BaseController
     // ==================== JURI MUNAQOSAH ====================
 
     /**
-     * Halaman list juri munaqosah
+     * Halaman list juri dan panitia munaqosah
      */
     public function listUserJuriMunaqosah()
     {
@@ -5714,12 +5886,15 @@ class Munaqosah extends BaseController
         $DataTpqDropdown = $this->helpFunction->getDataTpq($idTpq);
         // Ambil data juri dengan relasi untuk ditampilkan langsung
         $DataJuri = $this->munaqosahJuriModel->getJuriWithRelations($idTpq);
+        // Ambil data panitia dari users table dengan group_id = 6
+        $DataPanitia = $this->getPanitiaFromUsers($idTpq);
 
         $roomConfig = $this->getRoomIdRange($idTpq);
 
         $data = [
-            'page_title' => 'Data Juri Munaqosah',
+            'page_title' => 'Data Juri dan Panitia Munaqosah',
             'juri' => $DataJuri,
+            'panitia' => $DataPanitia,
             'grupMateriUjian' => $DataGrupMateriUjian,
             'tpqDropdown' => $DataTpqDropdown,
             'roomOptions' => $roomConfig['rooms'],
@@ -6941,6 +7116,440 @@ class Munaqosah extends BaseController
         }
     }
 
+    // ==================== PANITIA MUNAQOSAH ====================
+
+    /**
+     * Get IdTpq from panitia username
+     * Format: panitia.munaqosah.{idTpqTrim}.{number} atau panitia.munaqosah.{number}
+     */
+    private function getIdTpqFromPanitiaUsername($username)
+    {
+        // Extract IdTpq dari username
+        // Format: panitia.munaqosah.{idTpqTrim}.{number} atau panitia.munaqosah.{number}
+        if (preg_match('/^panitia\.munaqosah\.(\d{3})\.(\d+)$/', $username, $matches)) {
+            // Panitia TPQ tertentu: panitia.munaqosah.215.2
+            $idTpqTrim = $matches[1];
+            // Cari TPQ yang memiliki 3 digit terakhir sama
+            $tpqData = $this->db->table('tbl_tpq')
+                ->select('IdTpq')
+                ->where("SUBSTRING(CAST(IdTpq AS CHAR), -3) =", $idTpqTrim)
+                ->get()
+                ->getRowArray();
+            if (!$tpqData) {
+                // Jika tidak ditemukan dengan SUBSTRING, coba dengan LIKE
+                $tpqData = $this->db->table('tbl_tpq')
+                    ->select('IdTpq')
+                    ->like('IdTpq', $idTpqTrim, 'both')
+                    ->get()
+                    ->getRowArray();
+            }
+            return $tpqData ? $tpqData['IdTpq'] : 0;
+        } else if (preg_match('/^panitia\.munaqosah\.(\d+)$/', $username, $matches)) {
+            // Panitia umum: panitia.munaqosah.2
+            return 0;
+        } else {
+            // Format tidak dikenal, default ke 0
+            return 0;
+        }
+    }
+
+    /**
+     * Get panitia from users table dengan group_id = 6
+     */
+    private function getPanitiaFromUsers($idTpq = null)
+    {
+        $builder = $this->db->table('users u');
+        $builder->select('u.id, u.username, u.email, u.active');
+        $builder->join('auth_groups_users agu', 'agu.user_id = u.id', 'inner');
+        $builder->where('agu.group_id', 6); // Group ID untuk Panitia
+        $builder->where('u.username LIKE', 'panitia.munaqosah.%');
+
+        // Filter berdasarkan IdTpq dari username pattern
+        if ($idTpq !== null) {
+            if ($idTpq == 0 || $idTpq == '0') {
+                // Untuk panitia umum (IdTpq = 0), username format: panitia.munaqosah.{number}
+                $builder->where('u.username REGEXP', '^panitia\\.munaqosah\\.([0-9]+)$');
+            } else {
+                // Untuk panitia TPQ tertentu, username format: panitia.munaqosah.{idTpqTrim}.{number}
+                $idTpqTrim = substr($idTpq, -3);
+                $builder->where('u.username LIKE', 'panitia.munaqosah.' . $idTpqTrim . '.%');
+            }
+        }
+
+        $builder->orderBy('u.created_at', 'DESC');
+        $results = $builder->get()->getResultArray();
+
+        // Process results untuk menambahkan informasi IdTpq dan NamaTpq dari username
+        foreach ($results as &$result) {
+            $username = $result['username'];
+            // Extract IdTpq dari username
+            // Format: panitia.munaqosah.{idTpqTrim}.{number} atau panitia.munaqosah.{number}
+            if (preg_match('/^panitia\.munaqosah\.(\d{3})\.(\d+)$/', $username, $matches)) {
+                // Panitia TPQ tertentu: panitia.munaqosah.215.2
+                $idTpqTrim = $matches[1];
+                // Cari TPQ yang memiliki 3 digit terakhir sama
+                $tpqData = $this->db->table('tbl_tpq')
+                    ->select('IdTpq, NamaTpq')
+                    ->where("SUBSTRING(CAST(IdTpq AS CHAR), -3) =", $idTpqTrim)
+                    ->get()
+                    ->getRowArray();
+                if (!$tpqData) {
+                    // Jika tidak ditemukan dengan SUBSTRING, coba dengan LIKE
+                    $tpqData = $this->db->table('tbl_tpq')
+                        ->select('IdTpq, NamaTpq')
+                        ->like('IdTpq', $idTpqTrim, 'both')
+                        ->get()
+                        ->getRowArray();
+                }
+                $result['IdTpq'] = $tpqData ? $tpqData['IdTpq'] : null;
+                $result['NamaTpq'] = $tpqData ? $tpqData['NamaTpq'] : '-';
+            } else if (preg_match('/^panitia\.munaqosah\.(\d+)$/', $username, $matches)) {
+                // Panitia umum: panitia.munaqosah.2
+                $result['IdTpq'] = 0;
+                $result['NamaTpq'] = 'Umum';
+            } else {
+                $result['IdTpq'] = null;
+                $result['NamaTpq'] = '-';
+            }
+            // Set Status berdasarkan active
+            $result['Status'] = $result['active'] == 1 ? 'Aktif' : 'Tidak Aktif';
+        }
+
+        return $results;
+    }
+
+    /**
+     * Generate username panitia berdasarkan TPQ
+     */
+    public function generateUsernamePanitia()
+    {
+        try {
+            // Set header untuk kompatibilitas browser
+            $this->response->setHeader('Content-Type', 'application/json; charset=utf-8');
+            $this->response->setHeader('Cache-Control', 'no-cache, must-revalidate');
+
+            $idTpq = $this->request->getPost('IdTpq') ?: '';
+
+            $usernamePanitia = $this->generateUsernamePanitiaFromUsers($idTpq);
+
+            if (!$usernamePanitia) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal generate username panitia'
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'username' => $usernamePanitia
+            ]);
+        } catch (\Exception $e) {
+            // Set header untuk error response juga
+            $this->response->setHeader('Content-Type', 'application/json; charset=utf-8');
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal generate username: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Generate username panitia dari users table
+     * Format: panitia.munaqosah.{idTpqTrim}.{number} untuk TPQ tertentu
+     * Format: panitia.munaqosah.{number} untuk umum
+     */
+    private function generateUsernamePanitiaFromUsers($idTpq = 0)
+    {
+        $builder = $this->db->table('users u');
+        $builder->select('u.username');
+        $builder->join('auth_groups_users agu', 'agu.user_id = u.id', 'inner');
+        $builder->where('agu.group_id', 6); // Group ID untuk Panitia
+
+        // trim id tpq 3 digit terakhir
+        if ($idTpq && $idTpq != '0') {
+            $idTpqTrim = substr($idTpq, -3);
+            // Pencarian untuk TPQ tertentu contoh panitia.munaqosah.215.2
+            $prefix = 'panitia.munaqosah.' . $idTpqTrim . '.';
+            $builder->like('u.username', $prefix, 'after');
+        } else {
+            // Pencarian untuk TPQ 0 contoh panitia.munaqosah.2
+            $prefix = 'panitia.munaqosah.';
+            $builder->like('u.username', $prefix, 'after');
+            $builder->where('u.username REGEXP', '^panitia\\.munaqosah\\.([0-9]+)$');
+        }
+        $builder->orderBy('u.username', 'DESC');
+        $builder->limit(1);
+        $result = $builder->get()->getRow();
+
+        // Jika format username panitia ditemukan maka cek jika pattern match, jika match maka ambil angka setelah pattern
+        if ($result) {
+            $lastUsername = $result->username;
+            if ($idTpq && $idTpq != '0') {
+                // panitia.munaqosah.215.2
+                $pattern = '/^panitia\.munaqosah\.' . preg_quote($idTpqTrim, '/') . '\.(\d+)$/';
+            } else {
+                // panitia.munaqosah.2
+                $pattern = '/^panitia\.munaqosah\.(\d+)$/';
+            }
+
+            // cek jika pattern match, jika match maka ambil angka setelah pattern
+            if (preg_match($pattern, $lastUsername, $matches)) {
+                $nextNumber = intval($matches[1]) + 1;
+            } else {
+                $nextNumber = 1;
+            }
+        } else {
+            $nextNumber = 1;
+        }
+        // Format
+        if ($idTpq && $idTpq != '0') {
+            return 'panitia.munaqosah.' . $idTpqTrim . '.' . $nextNumber;
+        } else {
+            return 'panitia.munaqosah.' . $nextNumber;
+        }
+    }
+
+    /**
+     * Save panitia baru
+     */
+    public function savePanitia()
+    {
+        try {
+            $validation = \Config\Services::validation();
+
+            // Set validation rules
+            $validation->setRules([
+                'UsernamePanitia' => 'required|max_length[100]|is_unique[users.username]',
+                'Status' => 'required|in_list[Aktif,Tidak Aktif]'
+            ], [
+                'UsernamePanitia' => [
+                    'required' => 'Username Panitia harus diisi',
+                    'max_length' => 'Username Panitia maksimal 100 karakter',
+                    'is_unique' => 'Username Panitia sudah digunakan'
+                ],
+                'Status' => [
+                    'required' => 'Status harus dipilih',
+                    'in_list' => 'Status harus Aktif atau Tidak Aktif'
+                ]
+            ]);
+
+            if (!$validation->withRequest($this->request)->run()) {
+                $errors = $validation->getErrors();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $errors
+                ]);
+            }
+
+            $usernamePanitia = $this->request->getPost('UsernamePanitia');
+            $idTpqPost = $this->request->getPost('IdTpq');
+            $status = $this->request->getPost('Status');
+            $active = ($status === 'Aktif') ? 1 : 0;
+
+            // Start database transaction
+            $this->db->transStart();
+
+            try {
+                // Create user in MyAuth
+                $email = $usernamePanitia . '@smartpq.simpedis.com';
+                $password = $this->request->getPost('PasswordPanitia') ?: 'PanitiaTpqSmart';
+
+                // Hash password
+                if (empty($password)) {
+                    throw new \Exception('Password tidak boleh kosong');
+                }
+
+                $passwordHash = Password::hash($password);
+                if (!$passwordHash) {
+                    throw new \Exception('Gagal membuat hash password');
+                }
+
+                // Insert to users table
+                $userData = [
+                    'username' => $usernamePanitia,
+                    'email' => $email,
+                    'password_hash' => $passwordHash,
+                    'active' => $active
+                ];
+
+                // Cek apakah username sudah ada di users
+                $existingUser = $this->db->table('users')->where('username', $usernamePanitia)->get()->getRow();
+                if ($existingUser) {
+                    throw new \Exception('Username sudah digunakan di sistem user');
+                }
+
+                // Cek apakah email sudah ada
+                $existingEmail = $this->db->table('users')->where('email', $email)->get()->getRow();
+                if ($existingEmail) {
+                    throw new \Exception('Email sudah digunakan: ' . $email);
+                }
+
+                if (!$this->db->table('users')->insert($userData)) {
+                    $error = $this->db->error();
+                    throw new \Exception('Gagal menyimpan user: ' . ($error['message'] ?? 'Unknown error'));
+                }
+
+                $userId = $this->db->insertID();
+                if (!$userId) {
+                    throw new \Exception('Gagal mendapatkan ID user yang baru dibuat');
+                }
+
+                // Insert to auth_groups_users table
+                $groupData = [
+                    'group_id' => 6, // Group ID untuk Panitia
+                    'user_id' => $userId,
+                ];
+
+                // Cek apakah group_id 6 ada
+                $groupExists = $this->db->table('auth_groups')->where('id', 6)->get()->getRow();
+                if (!$groupExists) {
+                    throw new \Exception('Group ID 6 (Panitia) tidak ditemukan di auth_groups');
+                }
+
+                if (!$this->db->table('auth_groups_users')->insert($groupData)) {
+                    $error = $this->db->error();
+                    throw new \Exception('Gagal menyimpan group user: ' . ($error['message'] ?? 'Unknown error'));
+                }
+
+                $this->db->transComplete();
+
+                if ($this->db->transStatus() === false) {
+                    throw new \Exception('Database transaction failed');
+                }
+
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Data panitia berhasil disimpan'
+                ]);
+            } catch (\Exception $e) {
+                $this->db->transRollback();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan data panitia: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update room panitia (tidak digunakan karena panitia tidak punya room)
+     */
+    public function updateRoomPanitia($id)
+    {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Panitia tidak menggunakan sistem room'
+        ]);
+    }
+
+    /**
+     * Update password panitia
+     */
+    public function updatePasswordPanitia($id)
+    {
+        try {
+            $password = $this->request->getPost('password');
+
+            if (!$password) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Password harus diisi'
+                ]);
+            }
+
+            // Get existing panitia data from users table
+            $existingUser = $this->db->table('users u')
+                ->select('u.id, u.username')
+                ->join('auth_groups_users agu', 'agu.user_id = u.id', 'inner')
+                ->where('agu.group_id', 6)
+                ->where('u.id', $id)
+                ->get()
+                ->getRowArray();
+
+            if (!$existingUser) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data panitia tidak ditemukan'
+                ]);
+            }
+
+            // Update password in users table
+            $this->db->table('users')
+                ->where('id', $id)
+                ->update([
+                    'password_hash' => Password::hash($password),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Password panitia berhasil diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate password: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete panitia
+     */
+    public function deletePanitia($id)
+    {
+        try {
+            // Get existing data from users table
+            $existingUser = $this->db->table('users u')
+                ->select('u.id, u.username')
+                ->join('auth_groups_users agu', 'agu.user_id = u.id', 'inner')
+                ->where('agu.group_id', 6)
+                ->where('u.id', $id)
+                ->get()
+                ->getRowArray();
+
+            if (!$existingUser) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data panitia tidak ditemukan'
+                ]);
+            }
+
+            // Start database transaction
+            $this->db->transStart();
+
+            // Delete from auth_groups_users
+            $this->db->table('auth_groups_users')
+                ->where('user_id', $id)
+                ->delete();
+
+            // Delete from users
+            $this->db->table('users')
+                ->where('id', $id)
+                ->delete();
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Database transaction failed');
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data panitia berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus data panitia: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function updateSantri()
     {
         $validation = \Config\Services::validation();
@@ -7187,9 +7796,31 @@ class Munaqosah extends BaseController
         $selectedTpq = $this->request->getGet('tpq');
         $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah'; // Default untuk dashboard
 
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+        $isPanitiaTpq = false;
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $selectedType = 'pra-munaqosah';
+                $selectedTpq = $idTpqPanitia;
+                $sessionIdTpq = $idTpqPanitia;
+                $isPanitiaTpq = true;
+            } else {
+                // Panitia umum (IdTpq = 0), melihat Munaqosah
+                $selectedType = 'munaqosah';
+                $selectedTpq = 0;
+            }
+        }
+
         // Jika user login sebagai Juri, ambil IdTpq dari data juri
         $isJuri = in_groups('Juri');
-        if ($isJuri) {
+        if ($isJuri && !$isPanitia) {
             $usernameJuri = user()->username;
             $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
             if ($juriData) {
@@ -7208,7 +7839,7 @@ class Munaqosah extends BaseController
             }
         }
         // Jika user login sebagai admin TPQ/Operator
-        elseif (!empty($sessionIdTpq)) {
+        elseif (!empty($sessionIdTpq) && !$isPanitia) {
             $selectedTpq = $sessionIdTpq;
         }
 
@@ -7224,7 +7855,7 @@ class Munaqosah extends BaseController
         $builder->where('r.IdTahunAjaran', $currentTahunAjaran);
         $builder->where('r.TypeUjian', $selectedType);
 
-        // Jika user login sebagai Juri, operator TPQ, atau admin TPQ, filter berdasarkan IdTpq
+        // Jika user login sebagai Juri, operator TPQ, admin TPQ, atau panitia TPQ, filter berdasarkan IdTpq
         if (!empty($sessionIdTpq)) {
             $builder->where('r.IdTpq', $sessionIdTpq);
         }
@@ -7352,6 +7983,7 @@ class Munaqosah extends BaseController
             'statistikGroupPeserta' => $statistikGroupPeserta,
             'is_juri' => $isJuri,
             'juri_id_tpq' => $isJuri && isset($juriData) ? ($juriData->IdTpq ?? null) : null,
+            'is_panitia_tpq' => $isPanitiaTpq,
         ];
 
         return view('backend/Munaqosah/dashboardMonitoring', $data);

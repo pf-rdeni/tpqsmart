@@ -71,12 +71,29 @@
 
                         <form method="get" action="<?= base_url('backend/munaqosah/antrian') ?>" class="mb-4">
                             <div class="form-row align-items-end">
-                                <?php if (empty($session_id_tpq)): ?>
+                                <?php if (empty($session_id_tpq) && empty($is_panitia_tpq ?? false)): ?>
                                     <!-- Jika admin super, tampilkan dropdown TPQ -->
                                     <div class="form-group col-md-3">
                                         <label for="tpq">TPQ</label>
                                         <select name="tpq" id="tpq" class="form-control">
                                             <option value="">Semua TPQ</option>
+                                            <?php foreach ($tpq_list as $tpq): ?>
+                                                <?php
+                                                $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
+                                                $tpqNama = is_array($tpq) ? ($tpq['NamaTpq'] ?? '') : ($tpq->NamaTpq ?? '');
+                                                ?>
+                                                <option value="<?= $tpqId ?>" <?= ($selected_tpq === $tpqId) ? 'selected' : '' ?>>
+                                                    <?= $tpqId ?> - <?= $tpqNama ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                <?php elseif (!empty($is_panitia_tpq ?? false)): ?>
+                                    <!-- Jika panitia TPQ, tampilkan TPQ mereka dan disable -->
+                                    <div class="form-group col-md-3">
+                                        <label for="tpq">TPQ</label>
+                                        <input type="hidden" name="tpq" value="<?= $selected_tpq ?>">
+                                        <select id="tpq" class="form-control" disabled style="background-color: #e9ecef; cursor: not-allowed;">
                                             <?php foreach ($tpq_list as $tpq): ?>
                                                 <?php
                                                 $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
@@ -107,11 +124,25 @@
                                         $isPanitia = in_groups('Panitia');
                                         $isAdmin = in_groups('Admin');
 
+                                        // Untuk Panitia, tentukan TypeUjian berdasarkan IdTpq dari username
+                                        $panitiaTypeUjian = 'munaqosah'; // Default untuk panitia umum
+                                        if ($isPanitia) {
+                                            $usernamePanitia = user()->username;
+                                            // Extract IdTpq dari username: panitia.munaqosah.{idTpqTrim}.{number} atau panitia.munaqosah.{number}
+                                            if (preg_match('/^panitia\.munaqosah\.(\d{3})\.(\d+)$/', $usernamePanitia, $matches)) {
+                                                // Panitia TPQ tertentu, hanya melihat pra-munaqosah
+                                                $panitiaTypeUjian = 'pra-munaqosah';
+                                            } else {
+                                                // Panitia umum, melihat munaqosah
+                                                $panitiaTypeUjian = 'munaqosah';
+                                            }
+                                        }
+
                                         // Jika Operator, disable dan set ke pra-munaqosah
-                                        // Jika Panitia, disable dan set ke munaqosah
+                                        // Jika Panitia, disable dan set sesuai IdTpq mereka
                                         // Jika Admin, biarkan bisa memilih
                                         $typeDisabled = ($isOperator || $isPanitia) && !$isAdmin;
-                                        $typeRequiredValue = $isOperator ? 'pra-munaqosah' : ($isPanitia ? 'munaqosah' : null);
+                                        $typeRequiredValue = $isOperator ? 'pra-munaqosah' : ($isPanitia ? $panitiaTypeUjian : null);
                                         $typeDisabledStyle = $typeDisabled ? 'background-color: #e9ecef; cursor: not-allowed;' : '';
                                         ?>
                                         <?php if ($typeDisabled): ?>
@@ -124,7 +155,7 @@
                                                     $showOption = false;
                                                     if ($isOperator && $typeValue === 'pra-munaqosah') {
                                                         $showOption = true;
-                                                    } elseif ($isPanitia && $typeValue === 'munaqosah') {
+                                                    } elseif ($isPanitia && $typeValue === $panitiaTypeUjian) {
                                                         $showOption = true;
                                                     }
 

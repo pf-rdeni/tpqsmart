@@ -260,7 +260,7 @@
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/juri') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Data Juri</p>
+                                        <p>Data Juri dan Panitia</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
