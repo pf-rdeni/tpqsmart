@@ -121,6 +121,11 @@ $routes->post('backend/strukturlembaga/update/(:num)', 'Backend\StrukturLembaga:
 $routes->get('backend/strukturlembaga/delete/(:num)', 'Backend\StrukturLembaga::delete/$1');
 
 $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
+    // Log Viewer Routes
+    $routes->get('logviewer', 'LogViewer::index');
+    $routes->post('logviewer/getLogContentByDate', 'LogViewer::getLogContentByDate');
+    $routes->get('logviewer/download', 'LogViewer::download');
+
     $routes->get('rapor/(:segment)', 'Rapor::index/$1');
     $routes->get('rapor/getSantriByKelas/(:num)', 'Rapor::getSantriByKelas/$1');
     $routes->get('rapor/previewRapor/(:num)', 'Rapor::previewRapor/$1');

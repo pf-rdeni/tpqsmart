@@ -29,6 +29,13 @@ class NilaiModel extends Model
 
     public function getDataNilaiDetail($IdSantri = null, $IdSemester = null, $IdTahunAjaran = null, $IdKelas = null)
     {
+        log_message('info', "getDataNilaiDetail START - Parameters: " . json_encode([
+            'IdSantri' => $IdSantri,
+            'IdSemester' => $IdSemester,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'IdKelas' => $IdKelas
+        ]));
+
         $builder = $this->db->table('tbl_nilai n');
         $builder->select('n.Id, n.IdTahunAjaran, n.IdTpq, ks.IdKelas, k.NamaKelas, s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Semester, n.Nilai');
         $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
@@ -58,7 +65,20 @@ class NilaiModel extends Model
         }
         $builder->orderBy('n.IdMateri', 'ASC');
 
-        return $builder->get();
+        // Get SQL query before execution
+        $sql = $builder->getCompiledSelect(false);
+        log_message('info', "getDataNilaiDetail SQL Query: {$sql}");
+
+        $queryStartTime = microtime(true);
+        $result = $builder->get();
+        $queryEndTime = microtime(true);
+        $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
+
+        log_message('info', "getDataNilaiDetail Query Execution Time: {$queryExecutionTime}ms");
+        log_message('info', "getDataNilaiDetail Result Count: " . ($result ? $result->getNumRows() : 0));
+        log_message('info', "getDataNilaiDetail END");
+
+        return $result;
     }
 
     /**
@@ -136,8 +156,27 @@ class NilaiModel extends Model
 
             $query .= " ORDER BY n.IdMateri ASC";
 
+            // Log query dengan parameters
+            $loggedQuery = $query;
+            foreach ($params as $index => $param) {
+                $loggedQuery = preg_replace('/\?/', "'" . addslashes($param) . "'", $loggedQuery, 1);
+            }
+            log_message('info', "getDataNilaiDetailOptimized SQL Query: {$loggedQuery}");
+            log_message('info', "getDataNilaiDetailOptimized Parameters: " . json_encode([
+                'IdSantri' => $IdSantri,
+                'IdSemester' => $IdSemester,
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'IdKelas' => $IdKelas
+            ]));
+
             // Execute query
+            $queryStartTime = microtime(true);
             $result = $this->db->query($query, $params)->getResult();
+            $queryEndTime = microtime(true);
+            $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
+
+            log_message('info', "getDataNilaiDetailOptimized Query Execution Time: {$queryExecutionTime}ms");
+            log_message('info', "getDataNilaiDetailOptimized Result Count: " . count($result));
 
             $this->db->transComplete();
 
@@ -147,6 +186,7 @@ class NilaiModel extends Model
 
             // Log error
             log_message('error', 'Error in getDataNilaiDetailOptimized: ' . $e->getMessage());
+            log_message('error', 'Error in getDataNilaiDetailOptimized Stack Trace: ' . $e->getTraceAsString());
 
             // Fallback to original method
             return $this->getDataNilaiDetail($IdSantri, $IdSemester, $IdTahunAjaran, $IdKelas);

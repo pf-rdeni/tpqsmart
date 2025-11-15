@@ -977,30 +977,52 @@ class HelpFunctionModel extends Model
      */
     public function getNilaiAlphabetSettings($IdTpq)
     {
+        log_message('info', "getNilaiAlphabetSettings START - IdTpq: {$IdTpq}");
+
         // jika IdTpq tidak ada, kembalikan null
         if (empty($IdTpq)) {
+            log_message('info', "getNilaiAlphabetSettings: IdTpq is empty, returning null");
             return null;
         }
 
         // Check the value of Nilai_Alphabet setting dengan type conversion
-        $nilaiAlfabeticSetting = $this->db->table('tbl_tools')
-            ->select('SettingValue, SettingType')
-            ->where('IdTpq', $IdTpq)
-            ->where('SettingKey', 'Nilai_Alphabet')
-            ->get()
-            ->getRowArray();
+        log_message('info', "getNilaiAlphabetSettings Query 1: Check Nilai_Alphabet setting START");
+        $builder1 = $this->db->table('tbl_tools');
+        $builder1->select('SettingValue, SettingType');
+        $builder1->where('IdTpq', $IdTpq);
+        $builder1->where('SettingKey', 'Nilai_Alphabet');
+
+        $sql1 = $builder1->getCompiledSelect(false);
+        log_message('info', "getNilaiAlphabetSettings Query 1 SQL: {$sql1}");
+
+        $queryStartTime1 = microtime(true);
+        $nilaiAlfabeticSetting = $builder1->get()->getRowArray();
+        $queryEndTime1 = microtime(true);
+        $queryExecutionTime1 = ($queryEndTime1 - $queryStartTime1) * 1000; // Convert to milliseconds
+        log_message('info', "getNilaiAlphabetSettings Query 1: Check Nilai_Alphabet setting END - Execution Time: {$queryExecutionTime1}ms");
+        log_message('info', "getNilaiAlphabetSettings Query 1 Result: " . ($nilaiAlfabeticSetting ? 'Found' : 'Not Found'));
 
         // If Nilai_Alfabetic setting is true (boolean), retrieve other settings
         if ($nilaiAlfabeticSetting) {
             $isEnabled = $this->convertSettingValue($nilaiAlfabeticSetting['SettingValue'], $nilaiAlfabeticSetting['SettingType']);
+            log_message('info', "getNilaiAlphabetSettings: isEnabled = " . ($isEnabled ? 'true' : 'false'));
 
             if ($isEnabled) {
-                $settings = $this->db->table('tbl_tools')
-                    ->select('SettingKey, SettingValue, SettingType')
-                    ->where('IdTpq', $IdTpq)
-                    ->whereIn('SettingKey', ['Nilai_Alphabet', 'Nilai_Alphabet_Persamaan', 'Nilai_Alphabet_Kelas'])
-                    ->get()
-                    ->getResultArray();
+                log_message('info', "getNilaiAlphabetSettings Query 2: Get detail settings START");
+                $builder2 = $this->db->table('tbl_tools');
+                $builder2->select('SettingKey, SettingValue, SettingType');
+                $builder2->where('IdTpq', $IdTpq);
+                $builder2->whereIn('SettingKey', ['Nilai_Alphabet', 'Nilai_Alphabet_Persamaan', 'Nilai_Alphabet_Kelas']);
+
+                $sql2 = $builder2->getCompiledSelect(false);
+                log_message('info', "getNilaiAlphabetSettings Query 2 SQL: {$sql2}");
+
+                $queryStartTime2 = microtime(true);
+                $settings = $builder2->get()->getResultArray();
+                $queryEndTime2 = microtime(true);
+                $queryExecutionTime2 = ($queryEndTime2 - $queryStartTime2) * 1000; // Convert to milliseconds
+                log_message('info', "getNilaiAlphabetSettings Query 2: Get detail settings END - Execution Time: {$queryExecutionTime2}ms");
+                log_message('info', "getNilaiAlphabetSettings Query 2 Result Count: " . count($settings));
 
                 $result = [];
                 foreach ($settings as $setting) {
@@ -1008,11 +1030,13 @@ class HelpFunctionModel extends Model
                     $result[$setting['SettingKey']] = $this->convertSettingValue($setting['SettingValue'], $setting['SettingType']);
                 }
 
+                log_message('info', "getNilaiAlphabetSettings END - Returning object with " . count($result) . " settings");
                 return (object)$result;
             }
         }
 
         // Return null if condition not met
+        log_message('info', "getNilaiAlphabetSettings END - Returning null");
         return null;
     }
 

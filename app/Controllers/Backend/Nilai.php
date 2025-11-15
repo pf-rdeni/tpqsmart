@@ -29,9 +29,14 @@ class Nilai extends BaseController
 
     public function showDetail($IdSantri, $IdSemseter, $Edit = null, $IdJabatan = null)
     {
+        log_message('info', '=== showDetail: START ===');
+        log_message('info', 'showDetail Parameters - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter) . ', Edit: ' . json_encode($Edit) . ', IdJabatan: ' . json_encode($IdJabatan));
+
         // ambil settingan nilai minimun dan maksimal dari session
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $IdKelas = session()->get('IdKelas');
+        log_message('info', 'showDetail Session Data - IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas));
+
         $settingNilai = (object)[
             'NilaiMin' => session()->get('SettingNilaiMin'),
             'NilaiMax' => session()->get('SettingNilaiMax')
@@ -39,21 +44,49 @@ class Nilai extends BaseController
 
         // ambil jika settingan nilai alfabetic dari session
         $nilaiAlphabetEnabled = session()->get('SettingNilaiAlphabet') ?? false;
+        log_message('info', "showDetail - NilaiAlphabetEnabled: " . ($nilaiAlphabetEnabled ? 'true' : 'false'));
+
         if ($nilaiAlphabetEnabled) {
             // Jika alphabet enabled, ambil detail settings
+            log_message('info', "showDetail Query 1: getNilaiAlphabetSettings START - IdTpq: " . json_encode($this->IdTpq));
+            $queryStartTime = microtime(true);
+
             $settingNilai->NilaiAlphabet = $this->helpFunction->getNilaiAlphabetSettings($this->IdTpq);
+
+            $queryEndTime = microtime(true);
+            $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
+            log_message('info', "showDetail Query 1: getNilaiAlphabetSettings END - Execution Time: {$queryExecutionTime}ms");
+            log_message('info', "showDetail Query 1: getNilaiAlphabetSettings Result - " . (is_null($settingNilai->NilaiAlphabet) ? 'NULL' : 'Object'));
         } else {
             $settingNilai->NilaiAlphabet = false;
         }
 
         try {
             // Gunakan method yang dioptimasi dengan caching
+            log_message('info', 'showDetail Query 2: getDataNilaiDetailOptimized START - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter) . ', IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas));
+            $queryStartTime = microtime(true);
+
             $datanilai = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas);
+
+            $queryEndTime = microtime(true);
+            $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
+            $resultCount = is_array($datanilai) ? count($datanilai) : (is_object($datanilai) ? count((array)$datanilai) : 0);
+            log_message('info', "showDetail Query 2: getDataNilaiDetailOptimized END - Execution Time: {$queryExecutionTime}ms, Result Count: {$resultCount}");
         } catch (\Exception $e) {
             // Log error dan fallback ke method lama
             log_message('error', 'Error in showDetail optimized method: ' . $e->getMessage());
+            log_message('info', 'showDetail Query 2 (FALLBACK): GetDataNilaiDetail START - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter) . ', IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas));
+            $queryStartTime = microtime(true);
+
             $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas);
+
+            $queryEndTime = microtime(true);
+            $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
+            $resultCount = is_object($datanilai) ? $datanilai->getNumRows() : 0;
+            log_message('info', "showDetail Query 2 (FALLBACK): GetDataNilaiDetail END - Execution Time: {$queryExecutionTime}ms, Result Count: {$resultCount}");
         }
+
+        log_message('info', '=== showDetail: END ===');
 
         $data = [
             'page_title' => 'Data Nilai',
