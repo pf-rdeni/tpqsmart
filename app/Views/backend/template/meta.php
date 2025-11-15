@@ -3,6 +3,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo $page_title ?></title>
 
+    <?php
+    // Ambil logo lembaga untuk favicon
+    $faviconUrl = base_url('favicon.ico'); // Default favicon
+    $faviconType = 'image/x-icon'; // Default type
+
+    $idTpq = session()->get('IdTpq');
+    if (!empty($idTpq)) {
+        $tpqModel = new \App\Models\TpqModel();
+        $tpqData = $tpqModel->GetData($idTpq);
+
+        if (!empty($tpqData) && !empty($tpqData[0]['LogoLembaga'])) {
+            // Gunakan logo lembaga sebagai favicon jika ada
+            $logoFile = $tpqData[0]['LogoLembaga'];
+            $faviconUrl = base_url('uploads/logo/' . $logoFile);
+
+            // Tentukan tipe berdasarkan ekstensi file
+            $extension = strtolower(pathinfo($logoFile, PATHINFO_EXTENSION));
+            switch ($extension) {
+                case 'png':
+                    $faviconType = 'image/png';
+                    break;
+                case 'jpg':
+                case 'jpeg':
+                    $faviconType = 'image/jpeg';
+                    break;
+                case 'gif':
+                    $faviconType = 'image/gif';
+                    break;
+                case 'svg':
+                    $faviconType = 'image/svg+xml';
+                    break;
+                default:
+                    $faviconType = 'image/png';
+                    break;
+            }
+        }
+    }
+    ?>
+    <!-- Favicon -->
+    <link rel="icon" type="<?= $faviconType ?>" href="<?= $faviconUrl ?>" />
+    <link rel="shortcut icon" type="<?= $faviconType ?>" href="<?= $faviconUrl ?>" />
+    <link rel="apple-touch-icon" href="<?= $faviconUrl ?>" />
+
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -51,5 +94,8 @@
 
     <!-- fullCalendar -->
     <link rel="stylesheet" href="<?php echo base_url('/plugins') ?>/fullcalendar/main.css">
+
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 </head>

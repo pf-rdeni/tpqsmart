@@ -1,9 +1,32 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href=<?php echo base_url('auth/index') ?> class="brand-link">
-        <img src="<?php echo base_url('/template/backend/dist') ?>/img/AdminLTELogo.png" alt="AdminLTE Logo"
-            class="brand-image img-circle elevation-3" style="opacity: .8">
-        <span class="brand-text font-weight-light">TPQ</span>
+        <?php
+        // Ambil logo lembaga dari database
+        $logoUrl = base_url('/template/backend/dist/img/AdminLTELogo.png'); // Default logo
+        $namaTpq = 'TPQ'; // Default nama
+
+        $idTpq = session()->get('IdTpq');
+        if (!empty($idTpq)) {
+            $tpqModel = new \App\Models\TpqModel();
+            $tpqData = $tpqModel->GetData($idTpq);
+
+            if (!empty($tpqData) && !empty($tpqData[0]['LogoLembaga'])) {
+                // Gunakan logo lembaga jika ada
+                $logoUrl = base_url('uploads/logo/' . $tpqData[0]['LogoLembaga']);
+            }
+
+            // Ambil nama TPQ jika ada
+            if (!empty($tpqData) && !empty($tpqData[0]['NamaTpq'])) {
+                $namaTpq = $tpqData[0]['NamaTpq'];
+            }
+        }
+        ?>
+        <img src="<?= $logoUrl ?>" alt="Logo Lembaga"
+            class="brand-image img-circle elevation-3"
+            style="opacity: .8; object-fit: cover;"
+            onerror="this.src='<?= base_url('/template/backend/dist/img/AdminLTELogo.png') ?>'">
+        <span class="brand-text font-weight-light"><?= esc($namaTpq) ?></span>
     </a>
 
     <!-- Sidebar -->
@@ -11,14 +34,40 @@
         <!-- Sidebar user panel (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
-                <img src="<?php echo base_url('/template/backend/dist') ?>/img/user.svg"
-                    class="img-circle elevation-2" alt="User Image">
+                <?php
+                // Ambil foto profil user yang sedang login
+                $userImage = null;
+                if (function_exists('user') && user()) {
+                    $userModel = new \App\Models\UserModel();
+                    $userId = null;
+                    if (function_exists('user_id')) {
+                        $userId = user_id();
+                    } else {
+                        $userId = user()->id ?? null;
+                    }
+                    if ($userId) {
+                        $userData = $userModel->getUser($userId);
+                        $userImage = $userData['user_image'] ?? null;
+                    }
+                }
+
+                // Set URL foto profil atau fallback
+                if (!empty($userImage)) {
+                    $photoUrl = base_url('uploads/profil/user/' . $userImage);
+                } else {
+                    $photoUrl = base_url('images/no-photo.jpg');
+                }
+                ?>
+                <img src="<?= $photoUrl ?>"
+                    class="img-circle elevation-2" alt="User Image"
+                    style="width: 40px; height: 40px; object-fit: cover;"
+                    onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
             </div>
             <div class="info">
                 <?php if (in_groups('Juri')): ?>
                     <a href=<?php echo base_url('backend/munaqosah/input-nilai-juri') ?> class="d-block"><?= user()->username; ?></a>
                 <?php else: ?>
-                    <a href=<?php echo base_url('auth/index') ?> class="d-block"><?= user()->fullname; ?></a>
+                    <a href=<?php echo base_url('backend/pages/profil') ?> class="d-block"><?= user()->fullname; ?></a>
                 <?php endif; ?>
             </div>
         </div>

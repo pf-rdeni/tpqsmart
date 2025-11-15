@@ -322,6 +322,12 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('sertifikasi/storeJuriSertifikasi', 'Sertifikasi::storeJuriSertifikasi');
     $routes->post('sertifikasi/updateJuriSertifikasi/(:num)', 'Sertifikasi::updateJuriSertifikasi/$1');
     $routes->post('sertifikasi/deleteJuriSertifikasi/(:num)', 'Sertifikasi::deleteJuriSertifikasi/$1');
+
+    // Profile Routes
+    $routes->get('pages/profil', 'Pages::profil');
+    $routes->post('pages/updateProfil', 'Pages::updateProfil');
+    $routes->post('pages/resetPassword', 'Pages::resetPassword');
+    $routes->post('pages/uploadPhotoProfil', 'Pages::uploadPhotoProfil');
 });
 
 $routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::validateSignature/$1');
