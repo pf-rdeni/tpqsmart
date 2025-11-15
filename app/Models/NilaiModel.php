@@ -347,14 +347,18 @@ class NilaiModel extends Model
 
         if ($IdKelas !== null) {
             if (is_array($IdKelas)) {
-                $materiBuilder->whereIn('n.IdKelas', $IdKelas);
+                if (!empty($IdKelas)) {
+                    $materiBuilder->whereIn('n.IdKelas', $IdKelas);
+                }
             } else {
                 $materiBuilder->where('n.IdKelas', $IdKelas);
             }
         }
         if ($IdTahunAjaran !== null) {
             if (is_array($IdTahunAjaran)) {
-                $materiBuilder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+                if (!empty($IdTahunAjaran)) {
+                    $materiBuilder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+                }
             } else {
                 $materiBuilder->where('n.IdTahunAjaran', $IdTahunAjaran);
             }
@@ -373,14 +377,18 @@ class NilaiModel extends Model
             $builder->where('n.IdTpq', $IdTpq);
             if ($IdKelas !== null) {
                 if (is_array($IdKelas)) {
-                    $builder->whereIn('n.IdKelas', $IdKelas);
+                    if (!empty($IdKelas)) {
+                        $builder->whereIn('n.IdKelas', $IdKelas);
+                    }
                 } else {
                     $builder->where('n.IdKelas', $IdKelas);
                 }
             }
             if ($IdTahunAjaran !== null) {
                 if (is_array($IdTahunAjaran)) {
-                    $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+                    if (!empty($IdTahunAjaran)) {
+                        $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+                    }
                 } else {
                     $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
                 }
