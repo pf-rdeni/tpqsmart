@@ -299,6 +299,12 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     // API Routes untuk data master
     $routes->get('backend/tpq/get-all', 'Tpq::getAll');
 
+    // Reset Nilai Routes
+    $routes->get('nilai/resetNilai', 'ResetNilai::index');
+    $routes->get('resetNilai', 'ResetNilai::index');
+    $routes->post('resetNilai/getCount', 'ResetNilai::getCount');
+    $routes->post('resetNilai/reset', 'ResetNilai::reset');
+
     // Sertifikasi Routes
     $routes->get('sertifikasi/dashboard', 'Sertifikasi::dashboard');
     $routes->get('sertifikasi/dashboard-admin', 'Sertifikasi::dashboardAdmin');

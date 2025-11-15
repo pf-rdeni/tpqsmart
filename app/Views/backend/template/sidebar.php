@@ -590,6 +590,12 @@
                                         <p>Pengaturan Umum</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/nilai/resetNilai') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Reset Nilai</p>
+                                    </a>
+                                </li>
                             <?php endif; ?>
                         </ul>
                     </li>

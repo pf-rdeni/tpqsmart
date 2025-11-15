@@ -608,4 +608,264 @@ class NilaiModel extends Model
 
         return $result;
     }
+
+    /**
+     * Mendapatkan count data nilai berdasarkan filter untuk preview sebelum reset
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $Semester
+     * @return array
+     */
+    public function getCountNilaiByFilter($IdTpq = null, $IdTahunAjaran = null, $Semester = null)
+    {
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('
+            n.IdTpq, 
+            t.NamaTpq,
+            t.KelurahanDesa,
+            n.IdTahunAjaran, 
+            n.Semester, 
+            n.IdKelas, 
+            k.NamaKelas, 
+            COUNT(*) as TotalNilai,
+            SUM(CASE WHEN (n.Nilai > 0 OR n.IdGuru IS NOT NULL) THEN 1 ELSE 0 END) as TotalSudahDiisi,
+            COUNT(DISTINCT n.IdMateri) as TotalMateri
+        ');
+        $builder->join('tbl_kelas k', 'k.IdKelas = n.IdKelas', 'left');
+        $builder->join('tbl_tpq t', 't.IdTpq = n.IdTpq', 'left');
+
+        // Apply filters
+        if (!empty($IdTpq)) {
+            if (is_array($IdTpq)) {
+                $builder->whereIn('n.IdTpq', $IdTpq);
+            } else {
+                $builder->where('n.IdTpq', $IdTpq);
+            }
+        }
+
+        if (!empty($IdTahunAjaran)) {
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+            } else {
+                $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+            }
+        }
+
+        if (!empty($Semester)) {
+            if (is_array($Semester)) {
+                $builder->whereIn('n.Semester', $Semester);
+            } else {
+                $builder->where('n.Semester', $Semester);
+            }
+        }
+
+        $builder->groupBy(['n.IdTpq', 't.NamaTpq', 't.KelurahanDesa', 'n.IdTahunAjaran', 'n.Semester', 'n.IdKelas', 'k.NamaKelas']);
+        $builder->orderBy('n.IdTpq', 'ASC');
+        $builder->orderBy('n.IdTahunAjaran', 'DESC');
+        $builder->orderBy('n.Semester', 'ASC');
+        $builder->orderBy('n.IdKelas', 'ASC');
+
+        $results = $builder->get()->getResultArray();
+
+        // Hitung total dan format data
+        $totalCount = 0;
+        foreach ($results as &$row) {
+            $row['TotalNilai'] = (int)$row['TotalNilai'];
+            $row['TotalSudahDiisi'] = (int)$row['TotalSudahDiisi'];
+            $row['TotalMateri'] = (int)$row['TotalMateri'];
+            $row['TotalBelumDiisi'] = $row['TotalNilai'] - $row['TotalSudahDiisi'];
+            $totalCount += $row['TotalNilai'];
+        }
+        unset($row);
+
+        return [
+            'detail' => $results,
+            'total' => $totalCount
+        ];
+    }
+
+    /**
+     * Reset nilai berdasarkan filter
+     * Reset kolom: IdGuru, Nilai
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $Semester
+     * @return array
+     */
+    public function resetNilaiByFilter($IdTpq = null, $IdTahunAjaran = null, $Semester = null)
+    {
+        // Mulai transaksi
+        $this->db->transStart();
+
+        try {
+            // Buat builder untuk count
+            $countBuilder = $this->db->table($this->table);
+
+            // Apply filters untuk count
+            if (!empty($IdTpq)) {
+                if (is_array($IdTpq)) {
+                    $countBuilder->whereIn('IdTpq', $IdTpq);
+                } else {
+                    $countBuilder->where('IdTpq', $IdTpq);
+                }
+            }
+
+            if (!empty($IdTahunAjaran)) {
+                if (is_array($IdTahunAjaran)) {
+                    $countBuilder->whereIn('IdTahunAjaran', $IdTahunAjaran);
+                } else {
+                    $countBuilder->where('IdTahunAjaran', $IdTahunAjaran);
+                }
+            }
+
+            if (!empty($Semester)) {
+                if (is_array($Semester)) {
+                    $countBuilder->whereIn('Semester', $Semester);
+                } else {
+                    $countBuilder->where('Semester', $Semester);
+                }
+            }
+
+            // Hitung jumlah data yang akan direset
+            $totalAffected = $countBuilder->countAllResults();
+
+            // Buat builder baru untuk update
+            $updateBuilder = $this->db->table($this->table);
+
+            // Apply filters untuk update
+            if (!empty($IdTpq)) {
+                if (is_array($IdTpq)) {
+                    $updateBuilder->whereIn('IdTpq', $IdTpq);
+                } else {
+                    $updateBuilder->where('IdTpq', $IdTpq);
+                }
+            }
+
+            if (!empty($IdTahunAjaran)) {
+                if (is_array($IdTahunAjaran)) {
+                    $updateBuilder->whereIn('IdTahunAjaran', $IdTahunAjaran);
+                } else {
+                    $updateBuilder->where('IdTahunAjaran', $IdTahunAjaran);
+                }
+            }
+
+            if (!empty($Semester)) {
+                if (is_array($Semester)) {
+                    $updateBuilder->whereIn('Semester', $Semester);
+                } else {
+                    $updateBuilder->where('Semester', $Semester);
+                }
+            }
+
+            // Reset kolom IdGuru dan Nilai
+            $updateData = [
+                'IdGuru' => null,
+                'Nilai' => 0
+            ];
+
+            // Update data
+            $updateBuilder->update($updateData);
+
+            // Selesaikan transaksi
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Gagal melakukan reset nilai');
+            }
+
+            // Clear cache setelah reset
+            $this->clearNilaiCache();
+
+            return [
+                'total_affected' => $totalAffected,
+                'message' => 'Berhasil mereset ' . $totalAffected . ' data nilai'
+            ];
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            throw $e;
+        }
+    }
+
+    /**
+     * Reset nilai berdasarkan kelas yang dipilih
+     * Reset kolom: IdGuru, Nilai
+     * @param array $selectedClasses Array berisi data kelas yang dipilih
+     * @return array
+     */
+    public function resetNilaiBySelectedClasses($selectedClasses)
+    {
+        // Mulai transaksi
+        $this->db->transStart();
+
+        try {
+            $totalAffected = 0;
+            $details = [];
+
+            foreach ($selectedClasses as $classData) {
+                $IdTpq = $classData['IdTpq'] ?? null;
+                $IdTahunAjaran = $classData['IdTahunAjaran'] ?? null;
+                $Semester = $classData['Semester'] ?? null;
+                $IdKelas = $classData['IdKelas'] ?? null;
+
+                if (empty($IdTpq) || empty($IdTahunAjaran) || empty($Semester) || empty($IdKelas)) {
+                    continue;
+                }
+
+                // Buat builder untuk count
+                $countBuilder = $this->db->table($this->table);
+                $countBuilder->where('IdTpq', $IdTpq);
+                $countBuilder->where('IdTahunAjaran', $IdTahunAjaran);
+                $countBuilder->where('Semester', $Semester);
+                $countBuilder->where('IdKelas', $IdKelas);
+
+                $count = $countBuilder->countAllResults();
+
+                if ($count > 0) {
+                    // Buat builder untuk update
+                    $updateBuilder = $this->db->table($this->table);
+                    $updateBuilder->where('IdTpq', $IdTpq);
+                    $updateBuilder->where('IdTahunAjaran', $IdTahunAjaran);
+                    $updateBuilder->where('Semester', $Semester);
+                    $updateBuilder->where('IdKelas', $IdKelas);
+
+                    // Reset kolom IdGuru dan Nilai
+                    $updateData = [
+                        'IdGuru' => null,
+                        'Nilai' => 0
+                    ];
+
+                    // Update data
+                    $updateBuilder->update($updateData);
+
+                    $totalAffected += $count;
+                    $details[] = [
+                        'IdTpq' => $IdTpq,
+                        'IdTahunAjaran' => $IdTahunAjaran,
+                        'Semester' => $Semester,
+                        'IdKelas' => $IdKelas,
+                        'count' => $count
+                    ];
+                }
+            }
+
+            // Selesaikan transaksi
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Gagal melakukan reset nilai');
+            }
+
+            // Clear cache setelah reset
+            $this->clearNilaiCache();
+
+            return [
+                'total_affected' => $totalAffected,
+                'details' => $details,
+                'message' => 'Berhasil mereset ' . $totalAffected . ' data nilai dari ' . count($details) . ' kelas'
+            ];
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            throw $e;
+        }
+    }
 }
