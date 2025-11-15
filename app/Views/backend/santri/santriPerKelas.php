@@ -94,6 +94,45 @@
         // Inisialisasi tooltip
         $('[data-toggle="tooltip"]').tooltip();
 
+        // Key untuk localStorage
+        const storageKey = 'santriPerKelas_activeTab';
+
+        // Fungsi untuk menyimpan tab aktif ke localStorage
+        function saveActiveTab(tabId) {
+            localStorage.setItem(storageKey, tabId);
+        }
+
+        // Fungsi untuk memuat tab aktif dari localStorage
+        function loadActiveTab() {
+            const savedTabId = localStorage.getItem(storageKey);
+            if (savedTabId) {
+                // Hapus class active dari semua tab dan tab pane
+                $('.nav-link').removeClass('active');
+                $('.tab-pane').removeClass('show active');
+
+                // Aktifkan tab yang tersimpan
+                const tabLink = $('#tab-' + savedTabId);
+                const tabPane = $('#kelas-' + savedTabId);
+
+                if (tabLink.length && tabPane.length) {
+                    tabLink.addClass('active').attr('aria-selected', 'true');
+                    tabPane.addClass('show active');
+
+                    // Trigger tab event untuk Bootstrap
+                    tabLink.tab('show');
+                }
+            }
+        }
+
+        // Event listener untuk menyimpan tab saat tab diubah
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+            const tabId = $(e.target).attr('id').replace('tab-', '');
+            saveActiveTab(tabId);
+        });
+
+        // Memuat tab yang tersimpan saat halaman dimuat
+        loadActiveTab();
+
         // Initial DataTabel per kelas
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
             initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true);

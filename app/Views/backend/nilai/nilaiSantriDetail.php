@@ -39,6 +39,17 @@
             </div>
         </div> <!-- /.card-header -->
         <div class="card-body">
+            <style>
+                .filter-header th {
+                    padding: 8px;
+                    background-color: #f8f9fa;
+                }
+
+                .filter-header select {
+                    width: 100%;
+                    min-width: 150px;
+                }
+            </style>
             <table id="TabelNilaiPerSemester" class="table table-bordered table-striped">
                 <thead>
                     <?php
@@ -57,6 +68,35 @@
                     echo $tableHeadersFooter
                     ?>
 
+                </thead>
+                <thead class="filter-header">
+                    <tr>
+                        <?php if ($pageEdit): ?>
+                            <th></th>
+                        <?php endif; ?>
+                        <th></th>
+                        <th>
+                            <select id="filterNamaMateri" class="form-control form-control-sm" multiple>
+                                <?php
+                                // Kumpulkan daftar nama materi yang unik
+                                $uniqueMateri = [];
+                                foreach ($nilai as $DataNilai) {
+                                    $materiKey = $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri;
+                                    if (!in_array($materiKey, $uniqueMateri)) {
+                                        $uniqueMateri[] = $materiKey;
+                                    }
+                                }
+                                // Urutkan daftar materi
+                                sort($uniqueMateri);
+                                // Tampilkan opsi
+                                foreach ($uniqueMateri as $materi) {
+                                    echo '<option value="' . htmlspecialchars($materi, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($materi, ENT_QUOTES, 'UTF-8') . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </th>
+                        <th></th>
+                    </tr>
                 </thead>
                 <tbody>
                     <?php
@@ -193,7 +233,102 @@ foreach ($nilai as $DataNilai) : ?>
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
 <script>
-    initializeDataTableUmum("#TabelNilaiPerSemester", true, true);
+    // Key untuk localStorage
+    const filterStorageKey = 'nilaiSantriDetail_filterNamaMateri';
+
+    // Flag untuk mencegah double save saat load filter
+    var isLoadingFilter = false;
+
+    // Inisialisasi DataTable dengan konfigurasi tambahan untuk filter header
+    initializeDataTableUmum("#TabelNilaiPerSemester", true, true, [], {
+        orderCellsTop: true,
+        order: []
+    });
+
+    // Dapatkan referensi DataTable setelah inisialisasi
+    var table = $('#TabelNilaiPerSemester').DataTable();
+
+    // Tentukan index kolom "Id - Nama Materi"
+    // Jika ada kolom Aksi: index 2, jika tidak: index 1
+    var namaMateriColumnIndex = <?= $pageEdit ? 2 : 1 ?>;
+
+    // Fungsi untuk membuat regex pattern dari array nilai
+    function createFilterPattern(selectedValues) {
+        if (!selectedValues || selectedValues.length === 0) {
+            return ''; // Tidak ada filter, tampilkan semua
+        }
+        // Escape special characters untuk regex dan gabungkan dengan OR
+        const escapedValues = selectedValues.map(function(value) {
+            return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        });
+        return escapedValues.join('|');
+    }
+
+    // Fungsi untuk menyimpan filter ke localStorage
+    function saveFilter(selectedValues) {
+        if (selectedValues && selectedValues.length > 0) {
+            localStorage.setItem(filterStorageKey, JSON.stringify(selectedValues));
+        } else {
+            localStorage.removeItem(filterStorageKey);
+        }
+    }
+
+    // Fungsi untuk memuat filter dari localStorage
+    function loadFilter() {
+        const savedFilter = localStorage.getItem(filterStorageKey);
+        if (savedFilter) {
+            try {
+                const selectedValues = JSON.parse(savedFilter);
+                if (Array.isArray(selectedValues) && selectedValues.length > 0) {
+                    isLoadingFilter = true;
+                    // Set nilai select untuk Select2
+                    $('#filterNamaMateri').val(selectedValues).trigger('change.select2');
+                    // Terapkan filter ke tabel
+                    const filterPattern = createFilterPattern(selectedValues);
+                    table.column(namaMateriColumnIndex).search(filterPattern, true, false).draw();
+                    isLoadingFilter = false;
+                }
+            } catch (e) {
+                console.error('Error loading filter from localStorage:', e);
+                localStorage.removeItem(filterStorageKey);
+                isLoadingFilter = false;
+            }
+        }
+    }
+
+    // Inisialisasi Select2 untuk filter nama materi (multiple select)
+    $('#filterNamaMateri').select2({
+        placeholder: 'Pilih atau Cari Materi (bisa pilih beberapa)...',
+        allowClear: true,
+        width: '100%',
+        closeOnSelect: false,
+        language: {
+            noResults: function() {
+                return "Tidak ada hasil yang ditemukan";
+            },
+            searching: function() {
+                return "Mencari...";
+            }
+        }
+    });
+
+    // Event listener untuk filter nama materi saat berubah
+    $('#filterNamaMateri').on('change', function() {
+        const selectedValues = $(this).val() || [];
+        // Simpan filter ke localStorage (kecuali saat loading)
+        if (!isLoadingFilter) {
+            saveFilter(selectedValues);
+        }
+        // Buat pattern filter untuk DataTable
+        const filterPattern = createFilterPattern(selectedValues);
+        // Terapkan filter ke tabel
+        table.column(namaMateriColumnIndex).search(filterPattern, true, false).draw();
+    });
+
+    // Memuat filter yang tersimpan setelah Select2 siap
+    setTimeout(function() {
+        loadFilter();
+    }, 200);
 
     // Fungsi untuk menampilkan modal edit nilai dan menangani pengiriman form
     function showModalEditNilai(id) {
