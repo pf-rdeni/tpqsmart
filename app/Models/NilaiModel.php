@@ -171,7 +171,22 @@ class NilaiModel extends Model
 
             // Execute query
             $queryStartTime = microtime(true);
-            $result = $this->db->query($query, $params)->getResult();
+            $queryResult = $this->db->query($query, $params);
+
+            // Check if query failed
+            if ($queryResult === false) {
+                $error = $this->db->error();
+                $errorMessage = $error['message'] ?? 'Unknown database error';
+                $errorCode = $error['code'] ?? 0;
+
+                log_message('error', "getDataNilaiDetailOptimized Query Failed: [{$errorCode}] {$errorMessage}");
+                log_message('error', "getDataNilaiDetailOptimized Failed Query: {$loggedQuery}");
+
+                $this->db->transRollback();
+                throw new \Exception("Database query failed: [{$errorCode}] {$errorMessage}");
+            }
+
+            $result = $queryResult->getResult();
             $queryEndTime = microtime(true);
             $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
 

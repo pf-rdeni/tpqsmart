@@ -35,10 +35,17 @@ class Logger extends BaseConfig
      *
      * For a live site you'll usually enable Critical or higher (3) to be logged otherwise
      * your log files will fill up very fast.
+     * 
+     * Production Setting:
+     * - Option 1: Use threshold 7 to log all up to INFO level (recommended for monitoring)
+     * - Option 2: Use array [1, 2, 3, 4, 7] to log Emergency, Alert, Critical, Error, and Info only
+     * 
+     * Note: Using INFO level in production will increase log file size significantly.
+     * Consider setting up log rotation to automatically delete old logs.
      *
      * @var int|list<int>
      */
-    public $threshold = (ENVIRONMENT === 'production') ? 4 : 9;
+    public $threshold = (ENVIRONMENT === 'production') ? 7 : 9;
 
     /**
      * --------------------------------------------------------------------------
