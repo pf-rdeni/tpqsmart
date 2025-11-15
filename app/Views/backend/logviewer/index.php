@@ -111,13 +111,16 @@
                                                         <?php endif; ?>
                                                     </td>
                                                 </tr>
-                                                <?php if ($loggerConfig['retentionEnabled'] && $loggerConfig['oldLogsCount'] > 0): ?>
+                                                <?php if ($loggerConfig['oldLogsCount'] > 0): ?>
                                                     <tr>
-                                                        <th>Log Lama (Tertunda Hapus)</th>
+                                                        <th>Log Lama <?= $loggerConfig['retentionEnabled'] ? '(Tertunda Hapus)' : '(Informasi)' ?></th>
                                                         <td>
-                                                            <span class="badge badge-warning"><?= $loggerConfig['oldLogsCount'] ?> file</span>
+                                                            <span class="badge badge-<?= $loggerConfig['retentionEnabled'] ? 'warning' : 'info' ?>"><?= $loggerConfig['oldLogsCount'] ?> file</span>
                                                             <small class="text-muted">
-                                                                (File lebih dari <?= esc($loggerConfig['retentionDays']) ?> hari)
+                                                                (File lebih dari <?= esc($loggerConfig['retentionEnabled'] ? $loggerConfig['retentionDays'] : 30) ?> hari)
+                                                                <?php if (!$loggerConfig['retentionEnabled']): ?>
+                                                                    <br><em>Retention tidak aktif, ini hanya informasi.</em>
+                                                                <?php endif; ?>
                                                             </small>
                                                         </td>
                                                     </tr>
@@ -170,10 +173,17 @@
                                             </table>
                                         </div>
                                     </div>
-                                    <?php if ($loggerConfig['retentionEnabled'] && $loggerConfig['oldLogsCount'] > 0): ?>
-                                        <div class="alert alert-warning mt-3">
-                                            <strong><i class="fas fa-exclamation-triangle"></i> Peringatan:</strong>
-                                            <p class="mb-2">Terdapat <strong><?= $loggerConfig['oldLogsCount'] ?></strong> file log yang sudah melebihi retention period (<?= esc($loggerConfig['retentionDays']) ?> hari).</p>
+                                    <?php if ($loggerConfig['oldLogsCount'] > 0): ?>
+                                        <div class="alert alert-<?= $loggerConfig['retentionEnabled'] ? 'warning' : 'info' ?> mt-3">
+                                            <strong><i class="fas fa-<?= $loggerConfig['retentionEnabled'] ? 'exclamation-triangle' : 'info-circle' ?>"></i> <?= $loggerConfig['retentionEnabled'] ? 'Peringatan' : 'Informasi' ?>:</strong>
+                                            <p class="mb-2">
+                                                Terdapat <strong><?= $loggerConfig['oldLogsCount'] ?></strong> file log yang lebih lama dari <?= esc($loggerConfig['retentionEnabled'] ? $loggerConfig['retentionDays'] : 30) ?> hari.
+                                                <?php if (!$loggerConfig['retentionEnabled']): ?>
+                                                    <br><em>Retention tidak aktif - file-file ini tidak akan dihapus otomatis.</em>
+                                                <?php else: ?>
+                                                    <br><em>File-file ini seharusnya sudah dihapus oleh log cleanup cron job.</em>
+                                                <?php endif; ?>
+                                            </p>
                                             <button type="button" class="btn btn-sm btn-warning btn-cleanup-logs" data-trigger="alert">
                                                 <i class="fas fa-trash-alt"></i> Hapus Log Lama Sekarang
                                             </button>

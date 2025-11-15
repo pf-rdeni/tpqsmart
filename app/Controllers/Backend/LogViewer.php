@@ -519,25 +519,27 @@ class LogViewer extends BaseController
         }
 
         // Check if logs older than retention days exist
+        // Even if retention is disabled, we still show old logs for information
         $oldLogs = [];
-        if ($retentionEnabled) {
-            $logDir = WRITEPATH . 'logs/';
-            $cutoffDate = strtotime("-{$retentionDays} days");
+        $logDir = WRITEPATH . 'logs/';
 
-            if (is_dir($logDir)) {
-                $items = scandir($logDir);
-                foreach ($items as $item) {
-                    if (preg_match('/^log-(\d{4}-\d{2}-\d{2})\.log$/', $item, $matches)) {
-                        $fileDate = strtotime($matches[1]);
-                        if ($fileDate < $cutoffDate) {
-                            $filePath = $logDir . $item;
-                            $oldLogs[] = [
-                                'filename' => $item,
-                                'date' => $matches[1],
-                                'age' => floor((time() - $fileDate) / 86400), // days old
-                                'size' => file_exists($filePath) ? filesize($filePath) : 0,
-                            ];
-                        }
+        // Use retentionDays if enabled, otherwise use default 30 days for display purposes
+        $displayThreshold = $retentionEnabled ? $retentionDays : 30;
+        $cutoffDate = strtotime("-{$displayThreshold} days");
+
+        if (is_dir($logDir)) {
+            $items = scandir($logDir);
+            foreach ($items as $item) {
+                if (preg_match('/^log-(\d{4}-\d{2}-\d{2})\.log$/', $item, $matches)) {
+                    $fileDate = strtotime($matches[1]);
+                    if ($fileDate < $cutoffDate) {
+                        $filePath = $logDir . $item;
+                        $oldLogs[] = [
+                            'filename' => $item,
+                            'date' => $matches[1],
+                            'age' => floor((time() - $fileDate) / 86400), // days old
+                            'size' => file_exists($filePath) ? filesize($filePath) : 0,
+                        ];
                     }
                 }
             }
