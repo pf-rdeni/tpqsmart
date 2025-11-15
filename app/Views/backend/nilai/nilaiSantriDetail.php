@@ -60,6 +60,46 @@
                     min-width: 300px;
                     margin-left: 10px;
                 }
+
+                /* Responsive untuk mobile view */
+                @media (max-width: 768px) {
+                    .dataTables_wrapper .dataTables_filter {
+                        float: none;
+                        text-align: left;
+                        margin-bottom: 10px;
+                    }
+
+                    .dataTables_wrapper .dataTables_filter label {
+                        flex-direction: column;
+                        align-items: stretch;
+                        width: 100%;
+                        gap: 10px;
+                    }
+
+                    .dataTables_wrapper .dataTables_filter input[type="search"] {
+                        width: 100% !important;
+                        margin-bottom: 0;
+                    }
+
+                    .dataTables_wrapper .dataTables_filter #filterNamaMateri {
+                        width: 100% !important;
+                        min-width: 100% !important;
+                        margin-left: 0 !important;
+                        margin-top: 0;
+                    }
+
+                    /* Pastikan Select2 container juga full width di mobile */
+                    .dataTables_wrapper .dataTables_filter .select2-container {
+                        width: 100% !important;
+                    }
+                }
+
+                /* Responsive untuk tablet view */
+                @media (max-width: 992px) and (min-width: 769px) {
+                    .dataTables_wrapper .dataTables_filter #filterNamaMateri {
+                        min-width: 250px;
+                    }
+                }
             </style>
             <table id="TabelNilaiPerSemester" class="table table-bordered table-striped">
                 <thead>
@@ -322,11 +362,22 @@ foreach ($nilai as $DataNilai) : ?>
 
                 // Tunggu sebentar untuk memastikan elemen sudah di DOM
                 setTimeout(function() {
+                    // Fungsi untuk mengatur width Select2 berdasarkan ukuran layar
+                    function setSelect2Width() {
+                        var width = '300px';
+                        if (window.innerWidth <= 768) {
+                            width = '100%';
+                        } else if (window.innerWidth <= 992) {
+                            width = '250px';
+                        }
+                        $('#filterNamaMateri').next('.select2-container').css('width', width);
+                    }
+
                     // Inisialisasi Select2 untuk filter nama materi (multiple select)
                     $('#filterNamaMateri').select2({
                         placeholder: 'Filter Materi (bisa pilih beberapa)...',
                         allowClear: true,
-                        width: '300px',
+                        width: 'resolve', // Gunakan resolve agar responsive
                         closeOnSelect: false,
                         minimumResultsForSearch: 0, // Paksa search box selalu muncul
                         language: {
@@ -337,6 +388,14 @@ foreach ($nilai as $DataNilai) : ?>
                                 return "Mencari...";
                             }
                         }
+                    });
+
+                    // Set width awal
+                    setSelect2Width();
+
+                    // Event listener untuk resize window
+                    $(window).on('resize', function() {
+                        setSelect2Width();
                     });
 
                     // Event listener untuk filter nama materi saat berubah
@@ -355,6 +414,8 @@ foreach ($nilai as $DataNilai) : ?>
                     // Memuat filter yang tersimpan setelah Select2 siap
                     setTimeout(function() {
                         loadFilter();
+                        // Set width lagi setelah load filter
+                        setSelect2Width();
                     }, 100);
                 }, 50);
             }
