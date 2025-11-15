@@ -292,6 +292,140 @@ class LogViewer extends BaseController
     }
 
     /**
+     * Manual cleanup old log files
+     * Only accessible by Admin
+     */
+    public function cleanup()
+    {
+        // Check if user is Admin
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk melakukan cleanup log.'
+            ]);
+        }
+
+        try {
+            // Get parameters from request
+            $mode = $this->request->getPost('mode') ?? 'specific'; // 'specific' or 'range'
+            $selectedDate = $this->request->getPost('date') ?? date('Y-m-d');
+            $daysBefore = (int)($this->request->getPost('days') ?? 7);
+
+            // Validate date
+            if (!strtotime($selectedDate)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tanggal tidak valid.'
+                ]);
+            }
+
+            $selectedTimestamp = strtotime($selectedDate);
+
+            // Get log directory
+            $logDir = WRITEPATH . 'logs/';
+
+            $deletedCount = 0;
+            $failedCount = 0;
+            $totalSize = 0;
+            $deletedFiles = [];
+
+            if (is_dir($logDir)) {
+                $items = scandir($logDir);
+
+                foreach ($items as $item) {
+                    if (preg_match('/^log-(\d{4}-\d{2}-\d{2})\.log$/', $item, $matches)) {
+                        $fileDate = $matches[1]; // YYYY-MM-DD format
+                        $fileTimestamp = strtotime($fileDate);
+                        $shouldDelete = false;
+
+                        if ($mode === 'specific') {
+                            // Mode 1: Hapus hanya tanggal yang dipilih (1 file spesifik)
+                            // Delete only if file date matches selected date exactly
+                            if ($fileDate === $selectedDate) {
+                                $shouldDelete = true;
+                            }
+                        } else {
+                            // Mode 2: Hapus 7 hari ke belakang dari tanggal saat ini
+                            // Calculate cutoff: current date - daysBefore
+                            $currentDate = date('Y-m-d');
+                            $currentTimestamp = strtotime($currentDate);
+                            $cutoffTimestamp = strtotime("-{$daysBefore} days", $currentTimestamp);
+                            $cutoffDate = date('Y-m-d', $cutoffTimestamp);
+
+                            // Delete files that are older than cutoff date
+                            if ($fileTimestamp < $cutoffTimestamp) {
+                                $shouldDelete = true;
+                            }
+                        }
+
+                        if ($shouldDelete) {
+                            $filePath = $logDir . $item;
+
+                            if (file_exists($filePath)) {
+                                $fileSize = filesize($filePath);
+                                $ageDays = floor((time() - $fileTimestamp) / 86400);
+
+                                if (unlink($filePath)) {
+                                    $deletedCount++;
+                                    $totalSize += $fileSize;
+                                    $deletedFiles[] = [
+                                        'filename' => $item,
+                                        'date' => $fileDate,
+                                        'size' => $fileSize,
+                                        'age' => $ageDays,
+                                    ];
+                                    log_message('info', "Log cleanup: Deleted {$item} (Mode: {$mode}, Date: {$fileDate})");
+                                } else {
+                                    $failedCount++;
+                                    log_message('error', "Log cleanup: Failed to delete {$item}");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sort deleted files by date (oldest first)
+            usort($deletedFiles, function ($a, $b) {
+                return strcmp($a['date'], $b['date']);
+            });
+
+            // Build message based on mode
+            if ($mode === 'specific') {
+                $message = "Cleanup berhasil. File log untuk tanggal {$selectedDate} dihapus.";
+                if ($deletedCount === 0) {
+                    $message = "Tidak ada file log untuk tanggal {$selectedDate}.";
+                }
+            } else {
+                $currentDate = date('Y-m-d');
+                $cutoffDate = date('Y-m-d', strtotime("-{$daysBefore} days"));
+                $message = "Cleanup berhasil. {$deletedCount} file log (lebih lama dari {$daysBefore} hari sebelum {$currentDate}) dihapus.";
+                if ($deletedCount === 0) {
+                    $message = "Tidak ada file log yang lebih lama dari {$daysBefore} hari.";
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message . ($failedCount > 0 ? " {$failedCount} file gagal." : ""),
+                'deletedCount' => $deletedCount,
+                'failedCount' => $failedCount,
+                'totalSize' => $totalSize,
+                'deletedFiles' => $deletedFiles,
+                'mode' => $mode,
+                'selectedDate' => $selectedDate,
+                'daysBefore' => $daysBefore,
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Log cleanup error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Get logger configuration from Logger.php
      */
     private function getLoggerConfig()

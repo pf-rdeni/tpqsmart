@@ -49,10 +49,16 @@
                                 <option value="10000">10000</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <label>&nbsp;</label>
                             <button type="button" class="btn btn-primary btn-block" id="btnRefresh">
                                 <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-warning btn-block btn-cleanup-logs" title="Hapus log lama sesuai retention period" data-trigger="toolbar">
+                                <i class="fas fa-broom"></i> Cleanup
                             </button>
                         </div>
                     </div>
@@ -168,6 +174,9 @@
                                         <div class="alert alert-warning mt-3">
                                             <strong><i class="fas fa-exclamation-triangle"></i> Peringatan:</strong>
                                             <p class="mb-2">Terdapat <strong><?= $loggerConfig['oldLogsCount'] ?></strong> file log yang sudah melebihi retention period (<?= esc($loggerConfig['retentionDays']) ?> hari).</p>
+                                            <button type="button" class="btn btn-sm btn-warning btn-cleanup-logs" data-trigger="alert">
+                                                <i class="fas fa-trash-alt"></i> Hapus Log Lama Sekarang
+                                            </button>
                                             <div class="table-responsive">
                                                 <table class="table table-sm table-bordered mb-0">
                                                     <thead>
@@ -545,6 +554,234 @@
                     loadLogContent();
                 }, 5000); // Refresh every 5 seconds
             }
+        });
+
+        // Format dates for display helper function
+        function formatDateDisplay(dateStr) {
+            var date = new Date(dateStr);
+            var day = String(date.getDate()).padStart(2, '0');
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var year = date.getFullYear();
+            return day + '/' + month + '/' + year;
+        }
+
+        // Cleanup logs button handler - Mode 1: Hapus tanggal spesifik (tombol Cleanup di toolbar)
+        $(document).on('click', '.btn-cleanup-logs[data-trigger="toolbar"]', function(e) {
+            e.preventDefault();
+
+            var $btn = $(this);
+            var originalHtml = $btn.html();
+
+            // Get selected date from date picker
+            var selectedDate = $('#logDate').val() || '<?= date('Y-m-d') ?>';
+            var selectedDateFormatted = formatDateDisplay(selectedDate);
+
+            // Mode 1: Hapus hanya tanggal yang dipilih (1 file spesifik)
+            Swal.fire({
+                title: 'Hapus Log Tanggal Spesifik?',
+                html: '<div style="text-align: left;">' +
+                    '<p>Anda akan menghapus <strong>hanya</strong> file log untuk tanggal yang dipilih.</p>' +
+                    '<p><strong>Tanggal yang akan dihapus:</strong> ' + selectedDateFormatted + '</p>' +
+                    '<p><strong>File:</strong> log-' + selectedDate + '.log</p>' +
+                    '<p class="text-danger"><strong>⚠ Tindakan ini tidak dapat dibatalkan!</strong></p>' +
+                    '</div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                showLoaderOnConfirm: true,
+                preConfirm: function() {
+                    return new Promise(function(resolve, reject) {
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menghapus...');
+
+                        $.ajax({
+                            url: '<?= base_url('backend/logviewer/cleanup') ?>',
+                            type: 'POST',
+                            dataType: 'json',
+                            data: {
+                                mode: 'specific',
+                                date: selectedDate
+                            },
+                            success: function(response) {
+                                resolve(response);
+                            },
+                            error: function(xhr, status, error) {
+                                reject(new Error('Terjadi kesalahan saat menghapus log: ' + error));
+                            }
+                        });
+                    });
+                },
+                allowOutsideClick: function() {
+                    return !Swal.isLoading();
+                }
+            }).then(function(result) {
+                if (result.isConfirmed && result.value) {
+                    var response = result.value;
+
+                    if (response.success) {
+                        var deletedFilesHtml = '';
+                        if (response.deletedFiles && response.deletedFiles.length > 0) {
+                            deletedFilesHtml = '<br><br><strong>File yang dihapus:</strong><br>';
+                            deletedFilesHtml += '<div style="max-height: 200px; overflow-y: auto; text-align: left; font-size: 12px; margin-top: 10px;">';
+                            response.deletedFiles.forEach(function(file) {
+                                deletedFilesHtml += '• ' + file.filename + ' (' + file.date + ') - ' + formatBytes(file.size) + '<br>';
+                            });
+                            deletedFilesHtml += '</div>';
+                        }
+
+                        Swal.fire({
+                            icon: response.deletedCount > 0 ? 'success' : 'info',
+                            title: response.deletedCount > 0 ? 'Berhasil' : 'Informasi',
+                            html: response.message + '<br>' +
+                                (response.deletedCount > 0 ? '<strong>File dihapus:</strong> ' + response.deletedCount + '<br>' : '') +
+                                (response.deletedCount > 0 && response.totalSize > 0 ? '<strong>Ukuran yang dibebaskan:</strong> ' + formatBytes(response.totalSize) + '<br>' : '') +
+                                deletedFilesHtml,
+                            showConfirmButton: true,
+                            width: '600px'
+                        }).then(function() {
+                            // Reload page to refresh log list
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: response.message || 'Terjadi kesalahan saat menghapus log'
+                        });
+                        $btn.prop('disabled', false).html(originalHtml);
+                    }
+                } else {
+                    $btn.prop('disabled', false).html(originalHtml);
+                }
+            }).catch(function(error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Terjadi kesalahan saat menghapus log'
+                });
+                $btn.prop('disabled', false).html(originalHtml);
+            });
+        });
+
+        // Cleanup logs button handler - Mode 2: Hapus 7 hari ke belakang (tombol di alert warning)
+        $(document).on('click', '.btn-cleanup-logs[data-trigger="alert"]', function(e) {
+            e.preventDefault();
+
+            var $btn = $(this);
+            var originalHtml = $btn.html();
+
+            // Mode 2: Hapus 7 hari ke belakang dari tanggal saat ini
+            var currentDate = '<?= date('Y-m-d') ?>';
+            var daysBefore = 7;
+
+            // Calculate cutoff date (7 days before current date)
+            var currentDateObj = new Date(currentDate);
+            var cutoffDateObj = new Date(currentDateObj);
+            cutoffDateObj.setDate(cutoffDateObj.getDate() - daysBefore);
+            var cutoffDate = cutoffDateObj.toISOString().split('T')[0];
+
+            var currentDateFormatted = formatDateDisplay(currentDate);
+            var cutoffDateFormatted = formatDateDisplay(cutoffDate);
+
+            // Konfirmasi menggunakan SweetAlert
+            Swal.fire({
+                title: 'Hapus Log Lama?',
+                html: '<div style="text-align: left;">' +
+                    '<p>Anda akan menghapus log yang lebih lama dari <strong>' + daysBefore + ' hari</strong> sebelum tanggal saat ini.</p>' +
+                    '<p><strong>Tanggal saat ini:</strong> ' + currentDateFormatted + '</p>' +
+                    '<p><strong>Hapus log sebelum:</strong> ' + cutoffDateFormatted + '</p>' +
+                    '<p class="text-danger"><strong>⚠ Tindakan ini tidak dapat dibatalkan!</strong></p>' +
+                    '</div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                showLoaderOnConfirm: true,
+                preConfirm: function() {
+                    return new Promise(function(resolve, reject) {
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menghapus...');
+
+                        $.ajax({
+                            url: '<?= base_url('backend/logviewer/cleanup') ?>',
+                            type: 'POST',
+                            dataType: 'json',
+                            data: {
+                                mode: 'range',
+                                date: currentDate,
+                                days: daysBefore
+                            },
+                            success: function(response) {
+                                resolve(response);
+                            },
+                            error: function(xhr, status, error) {
+                                reject(new Error('Terjadi kesalahan saat menghapus log: ' + error));
+                            }
+                        });
+                    });
+                },
+                allowOutsideClick: function() {
+                    return !Swal.isLoading();
+                }
+            }).then(function(result) {
+                if (result.isConfirmed && result.value) {
+                    var response = result.value;
+
+                    if (response.success) {
+                        var deletedFilesHtml = '';
+                        if (response.deletedFiles && response.deletedFiles.length > 0) {
+                            deletedFilesHtml = '<br><br><strong>File yang dihapus:</strong><br>';
+                            deletedFilesHtml += '<div style="max-height: 200px; overflow-y: auto; text-align: left; font-size: 12px; margin-top: 10px;">';
+                            response.deletedFiles.slice(0, 10).forEach(function(file) {
+                                deletedFilesHtml += '• ' + file.filename + ' (' + file.date + ') - ' + formatBytes(file.size) + '<br>';
+                            });
+                            if (response.deletedFiles.length > 10) {
+                                deletedFilesHtml += '<em>... dan ' + (response.deletedFiles.length - 10) + ' file lainnya</em>';
+                            }
+                            deletedFilesHtml += '</div>';
+                        }
+
+                        // Calculate cutoff for display
+                        var cutoffDateObj = new Date(currentDate);
+                        cutoffDateObj.setDate(cutoffDateObj.getDate() - daysBefore);
+                        var cutoffDate = cutoffDateObj.toISOString().split('T')[0];
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            html: response.message + '<br><br>' +
+                                '<strong>File dihapus:</strong> ' + response.deletedCount + '<br>' +
+                                (response.failedCount > 0 ? '<strong>File gagal:</strong> ' + response.failedCount + '<br>' : '') +
+                                '<strong>Ukuran yang dibebaskan:</strong> ' + formatBytes(response.totalSize) +
+                                deletedFilesHtml,
+                            showConfirmButton: true,
+                            width: '600px'
+                        }).then(function() {
+                            // Reload page to refresh log list
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: response.message || 'Terjadi kesalahan saat menghapus log'
+                        });
+                        $btn.prop('disabled', false).html(originalHtml);
+                    }
+                } else {
+                    $btn.prop('disabled', false).html(originalHtml);
+                }
+            }).catch(function(error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Terjadi kesalahan saat menghapus log'
+                });
+                $btn.prop('disabled', false).html(originalHtml);
+            });
         });
 
         // Initial load if needed

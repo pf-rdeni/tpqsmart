@@ -125,6 +125,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('logviewer', 'LogViewer::index');
     $routes->post('logviewer/getLogContentByDate', 'LogViewer::getLogContentByDate');
     $routes->get('logviewer/download', 'LogViewer::download');
+    $routes->post('logviewer/cleanup', 'LogViewer::cleanup');
 
     $routes->get('rapor/(:segment)', 'Rapor::index/$1');
     $routes->get('rapor/getSantriByKelas/(:num)', 'Rapor::getSantriByKelas/$1');
