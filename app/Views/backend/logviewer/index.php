@@ -92,6 +92,30 @@
                                                     <th>Log Path</th>
                                                     <td><code><?= esc($loggerConfig['logPath']) ?></code></td>
                                                 </tr>
+                                                <tr>
+                                                    <th>Log Retention</th>
+                                                    <td>
+                                                        <?php if ($loggerConfig['retentionEnabled']): ?>
+                                                            <span class="badge badge-success">Aktif</span>
+                                                            <strong><?= esc($loggerConfig['retentionDays']) ?> hari</strong>
+                                                            <small class="text-muted">(Log > <?= esc($loggerConfig['retentionDays']) ?> hari akan dihapus)</small>
+                                                        <?php else: ?>
+                                                            <span class="badge badge-secondary">Tidak Aktif</span>
+                                                            <small class="text-muted">(Log tidak akan dihapus otomatis)</small>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                                <?php if ($loggerConfig['retentionEnabled'] && $loggerConfig['oldLogsCount'] > 0): ?>
+                                                    <tr>
+                                                        <th>Log Lama (Tertunda Hapus)</th>
+                                                        <td>
+                                                            <span class="badge badge-warning"><?= $loggerConfig['oldLogsCount'] ?> file</span>
+                                                            <small class="text-muted">
+                                                                (File lebih dari <?= esc($loggerConfig['retentionDays']) ?> hari)
+                                                            </small>
+                                                        </td>
+                                                    </tr>
+                                                <?php endif; ?>
                                             </table>
                                         </div>
                                         <div class="col-md-6">
@@ -140,6 +164,42 @@
                                             </table>
                                         </div>
                                     </div>
+                                    <?php if ($loggerConfig['retentionEnabled'] && $loggerConfig['oldLogsCount'] > 0): ?>
+                                        <div class="alert alert-warning mt-3">
+                                            <strong><i class="fas fa-exclamation-triangle"></i> Peringatan:</strong>
+                                            <p class="mb-2">Terdapat <strong><?= $loggerConfig['oldLogsCount'] ?></strong> file log yang sudah melebihi retention period (<?= esc($loggerConfig['retentionDays']) ?> hari).</p>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>File</th>
+                                                            <th>Tanggal</th>
+                                                            <th>Umur (hari)</th>
+                                                            <th>Ukuran</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php foreach (array_slice($loggerConfig['oldLogs'], 0, 5) as $oldLog): ?>
+                                                            <tr>
+                                                                <td><?= esc($oldLog['filename']) ?></td>
+                                                                <td><?= date('d/m/Y', strtotime($oldLog['date'])) ?></td>
+                                                                <td><span class="badge badge-danger"><?= $oldLog['age'] ?> hari</span></td>
+                                                                <td><?= number_format($oldLog['size'] / 1024, 2) ?> KB</td>
+                                                            </tr>
+                                                        <?php endforeach; ?>
+                                                        <?php if (count($loggerConfig['oldLogs']) > 5): ?>
+                                                            <tr>
+                                                                <td colspan="4" class="text-center text-muted">
+                                                                    ... dan <?= count($loggerConfig['oldLogs']) - 5 ?> file lainnya
+                                                                </td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <p class="mt-2 mb-0"><small>File-file ini seharusnya sudah dihapus oleh log cleanup cron job atau scheduled task.</small></p>
+                                        </div>
+                                    <?php endif; ?>
                                     <div class="alert alert-info mt-3">
                                         <strong><i class="fas fa-info-circle"></i> Catatan:</strong>
                                         <ul class="mb-0 mt-2">
@@ -147,6 +207,8 @@
                                             <li>Threshold 0 = Logging OFF, 9 = Semua level aktif</li>
                                             <li>Threshold array = Hanya level tertentu yang aktif</li>
                                             <li>Konfigurasi ini dapat diubah di <code>app/Config/Logger.php</code></li>
+                                            <li>Log Retention: Log akan otomatis dihapus setelah <?= $loggerConfig['retentionEnabled'] ? esc($loggerConfig['retentionDays']) . ' hari' : 'tidak aktif (0 = tidak pernah dihapus)' ?></li>
+                                            <li><strong>Penting:</strong> CodeIgniter 4 tidak punya built-in log rotation. Harus setup cron job atau scheduled task untuk cleanup otomatis.</li>
                                         </ul>
                                     </div>
                                 </div>

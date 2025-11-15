@@ -374,6 +374,41 @@ class LogViewer extends BaseController
         $dateFormatProperty->setAccessible(true);
         $dateFormat = $dateFormatProperty->getValue($logger) ?? 'Y-m-d H:i:s';
 
+        // Get retention days using reflection (if exists)
+        $retentionDays = 0;
+        $retentionEnabled = false;
+        if ($reflection->hasProperty('retentionDays')) {
+            $retentionProperty = $reflection->getProperty('retentionDays');
+            $retentionProperty->setAccessible(true);
+            $retentionDays = $retentionProperty->getValue($logger) ?? 0;
+            $retentionEnabled = ($retentionDays > 0);
+        }
+
+        // Check if logs older than retention days exist
+        $oldLogs = [];
+        if ($retentionEnabled) {
+            $logDir = WRITEPATH . 'logs/';
+            $cutoffDate = strtotime("-{$retentionDays} days");
+
+            if (is_dir($logDir)) {
+                $items = scandir($logDir);
+                foreach ($items as $item) {
+                    if (preg_match('/^log-(\d{4}-\d{2}-\d{2})\.log$/', $item, $matches)) {
+                        $fileDate = strtotime($matches[1]);
+                        if ($fileDate < $cutoffDate) {
+                            $filePath = $logDir . $item;
+                            $oldLogs[] = [
+                                'filename' => $item,
+                                'date' => $matches[1],
+                                'age' => floor((time() - $fileDate) / 86400), // days old
+                                'size' => file_exists($filePath) ? filesize($filePath) : 0,
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
         return [
             'threshold' => $threshold,
             'thresholdValue' => $thresholdValue,
@@ -384,6 +419,10 @@ class LogViewer extends BaseController
             'environment' => ENVIRONMENT,
             'handlers' => $handlerInfo,
             'logPath' => WRITEPATH . 'logs/',
+            'retentionDays' => $retentionDays,
+            'retentionEnabled' => $retentionEnabled,
+            'oldLogs' => $oldLogs,
+            'oldLogsCount' => count($oldLogs),
         ];
     }
 }

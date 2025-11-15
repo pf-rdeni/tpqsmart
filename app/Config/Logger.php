@@ -59,6 +59,30 @@ class Logger extends BaseConfig
 
     /**
      * --------------------------------------------------------------------------
+     * Log Retention (Auto Delete Old Logs)
+     * --------------------------------------------------------------------------
+     *
+     * Number of days to keep log files before automatic deletion.
+     * Set to 0 to disable automatic deletion (logs will never be deleted).
+     * 
+     * Recommended settings:
+     * - Development: 7-14 days
+     * - Production: 30-90 days (depending on storage capacity)
+     * 
+     * Note: This setting only applies if log cleanup is implemented via cron job
+     * or scheduled task. CodeIgniter 4 does not have built-in log rotation.
+     * 
+     * To enable automatic log cleanup:
+     * 1. Setup cron job: 0 2 * * * php /path/to/spark log:cleanup
+     * 2. Or use logrotate tool: /etc/logrotate.d/codeigniter
+     * 3. Or create scheduled task to run cleanup script
+     * 
+     * @var int Number of days to retain logs (0 = never delete)
+     */
+    public int $retentionDays = (ENVIRONMENT === 'production') ? 30 : 7;
+
+    /**
+     * --------------------------------------------------------------------------
      * Log Handlers
      * --------------------------------------------------------------------------
      *
