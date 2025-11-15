@@ -640,7 +640,7 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/nilai/resetNilai') ?> class="nav-link">
+                                    <a href=<?php echo base_url('backend/nilai/resetNilaiIndex') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Reset Nilai</p>
                                     </a>

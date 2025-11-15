@@ -300,10 +300,21 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('backend/tpq/get-all', 'Tpq::getAll');
 
     // Reset Nilai Routes
+    $routes->get('nilai/resetNilaiIndex', 'ResetNilaiIndex::index');
     $routes->get('nilai/resetNilai', 'ResetNilai::index');
     $routes->get('resetNilai', 'ResetNilai::index');
     $routes->post('resetNilai/getCount', 'ResetNilai::getCount');
     $routes->post('resetNilai/reset', 'ResetNilai::reset');
+
+    // Reset Nilai Munaqosah Routes
+    $routes->get('nilai/resetNilaiMunaqosah', 'ResetNilaiMunaqosah::index');
+    $routes->post('nilai/resetNilaiMunaqosah/getCount', 'ResetNilaiMunaqosah::getCount');
+    $routes->post('nilai/resetNilaiMunaqosah/delete', 'ResetNilaiMunaqosah::reset');
+
+    // Reset Nilai Sertifikasi Routes
+    $routes->get('nilai/resetNilaiSertifikasi', 'ResetNilaiSertifikasi::index');
+    $routes->post('nilai/resetNilaiSertifikasi/getCount', 'ResetNilaiSertifikasi::getCount');
+    $routes->post('nilai/resetNilaiSertifikasi/delete', 'ResetNilaiSertifikasi::delete');
 
     // Sertifikasi Routes
     $routes->get('sertifikasi/dashboard', 'Sertifikasi::dashboard');

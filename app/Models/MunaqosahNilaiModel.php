@@ -532,4 +532,128 @@ class MunaqosahNilaiModel extends Model
 
         return $result;
     }
+
+    /**
+     * Get count nilai munaqosah by filter - group by NoPeserta
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $TypeUjian
+     * @return array
+     */
+    public function getCountNilaiByFilter($IdTpq = null, $IdTahunAjaran = null, $TypeUjian = null)
+    {
+        $builder = $this->db->table('tbl_munaqosah_nilai n');
+        $builder->select('
+            n.IdTpq, 
+            t.NamaTpq,
+            t.KelurahanDesa,
+            n.IdTahunAjaran, 
+            n.TypeUjian,
+            n.NoPeserta,
+            COUNT(*) as TotalNilai
+        ');
+        $builder->join('tbl_tpq t', 't.IdTpq = n.IdTpq', 'left');
+
+        // Apply filters
+        if (!empty($IdTpq)) {
+            if (is_array($IdTpq)) {
+                $builder->whereIn('n.IdTpq', $IdTpq);
+            } else {
+                $builder->where('n.IdTpq', $IdTpq);
+            }
+        }
+
+        if (!empty($IdTahunAjaran)) {
+            if (is_array($IdTahunAjaran)) {
+                $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+            } else {
+                $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+            }
+        }
+
+        if (!empty($TypeUjian)) {
+            if (is_array($TypeUjian)) {
+                $builder->whereIn('n.TypeUjian', $TypeUjian);
+            } else {
+                $builder->where('n.TypeUjian', $TypeUjian);
+            }
+        }
+
+        $builder->groupBy(['n.IdTpq', 't.NamaTpq', 't.KelurahanDesa', 'n.IdTahunAjaran', 'n.TypeUjian', 'n.NoPeserta']);
+        $builder->orderBy('n.IdTpq', 'ASC');
+        $builder->orderBy('n.IdTahunAjaran', 'DESC');
+        $builder->orderBy('n.TypeUjian', 'ASC');
+        $builder->orderBy('n.NoPeserta', 'ASC');
+
+        $results = $builder->get()->getResultArray();
+
+        // Hitung total dan format data
+        $totalCount = 0;
+        foreach ($results as &$row) {
+            $row['TotalNilai'] = (int)$row['TotalNilai'];
+            $totalCount += $row['TotalNilai'];
+        }
+        unset($row);
+
+        return [
+            'detail' => $results,
+            'total' => $totalCount
+        ];
+    }
+
+    /**
+     * Hapus nilai munaqosah by selected peserta berdasarkan NoPeserta
+     * @param array $selectedPeserta Array of peserta data (NoPeserta)
+     * @return array
+     */
+    public function deleteNilaiBySelectedPeserta($selectedPeserta)
+    {
+        $this->db->transStart();
+        try {
+            $totalAffected = 0;
+            $details = [];
+            
+            foreach ($selectedPeserta as $pesertaData) {
+                $NoPeserta = $pesertaData['NoPeserta'] ?? null;
+
+                if (empty($NoPeserta)) {
+                    continue;
+                }
+
+                // Count before delete
+                $countBuilder = $this->db->table($this->table);
+                $countBuilder->where('NoPeserta', $NoPeserta);
+                $countBefore = $countBuilder->countAllResults();
+
+                // Hapus data berdasarkan NoPeserta
+                $deleteBuilder = $this->db->table($this->table);
+                $deleteBuilder->where('NoPeserta', $NoPeserta);
+                $deleteBuilder->delete();
+                
+                $affected = $this->db->affectedRows();
+                $totalAffected += $affected;
+
+                $details[] = [
+                    'NoPeserta' => $NoPeserta,
+                    'affected' => $affected,
+                    'count_before' => $countBefore
+                ];
+            }
+
+            $this->db->transComplete();
+
+            // Clear cache jika ada
+            if (function_exists('cache')) {
+                cache()->clean();
+            }
+
+            return [
+                'total_affected' => $totalAffected,
+                'details' => $details
+            ];
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            throw $e;
+        }
+    }
 }

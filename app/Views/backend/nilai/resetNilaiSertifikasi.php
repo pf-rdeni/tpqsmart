@@ -1,0 +1,401 @@
+<?= $this->extend('backend/template/template'); ?>
+<?= $this->section('content'); ?>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-trash"></i> Hapus Nilai Sertifikasi
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Peringatan!</strong> Tindakan ini akan <strong>MENGHAPUS</strong> data nilai sertifikasi berdasarkan <strong>NoPeserta</strong> yang dipilih. Data yang dihapus tidak dapat dikembalikan. Pastikan Anda telah memilih dengan benar sebelum melakukan penghapusan.
+                    </div>
+
+                    <form id="filterForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="NoPeserta">No Peserta <small class="text-muted">(Opsional - kosongkan untuk melihat semua)</small></label>
+                                    <input type="text" name="NoPeserta" id="NoPeserta" class="form-control" placeholder="Masukkan No Peserta atau kosongkan untuk semua">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="button" id="btnPreview" class="btn btn-info">
+                                    <i class="fas fa-eye"></i> Preview Data yang Akan Dihapus
+                                </button>
+                                <button type="button" id="btnDelete" class="btn btn-danger" disabled>
+                                    <i class="fas fa-trash"></i> Hapus Nilai
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Preview Section -->
+                    <div id="previewSection" class="mt-4" style="display: none;">
+                        <div class="card card-info">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-list"></i> Preview Data yang Akan Dihapus
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <strong>Total Data yang Akan Dihapus: <span id="totalCount">0</span></strong>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped table-sm" id="previewTable">
+                                        <thead>
+                                            <tr>
+                                                <th width="40">
+                                                    <input type="checkbox" id="selectAll" title="Pilih Semua">
+                                                </th>
+                                                <th>No</th>
+                                                <th>No Peserta</th>
+                                                <th>Jumlah Nilai</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="previewTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?= $this->endSection(); ?>
+
+<?= $this->section('scripts'); ?>
+<script>
+$(document).ready(function() {
+    let previewData = null;
+
+    // Load saved filters from localStorage
+    function loadSavedFilters() {
+        const savedFilters = localStorage.getItem('resetNilaiSertifikasiFilters');
+        if (savedFilters) {
+            try {
+                const filters = JSON.parse(savedFilters);
+                if (filters.NoPeserta) {
+                    $('#NoPeserta').val(filters.NoPeserta);
+                }
+            } catch (e) {
+                console.error('Error loading saved filters:', e);
+            }
+        }
+    }
+
+    // Save filters to localStorage
+    function saveFilters() {
+        const filters = {
+            NoPeserta: $('#NoPeserta').val() || ''
+        };
+        localStorage.setItem('resetNilaiSertifikasiFilters', JSON.stringify(filters));
+    }
+
+    // Load saved filters on page load
+    loadSavedFilters();
+
+    // Save filters when changed
+    $('#NoPeserta').on('change keyup', function() {
+        saveFilters();
+    });
+
+    // Preview button click
+    $('#btnPreview').on('click', function() {
+        const NoPeserta = $('#NoPeserta').val().trim();
+
+        // Show loading
+        Swal.fire({
+            title: 'Memproses...',
+            text: 'Sedang menghitung data yang akan dihapus',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '<?= base_url('backend/nilai/resetNilaiSertifikasi/getCount') ?>',
+            type: 'POST',
+            data: {
+                NoPeserta: NoPeserta || null,
+                <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+            },
+            dataType: 'json',
+            success: function(response) {
+                Swal.close();
+                
+                if (response.success) {
+                    previewData = response.data;
+                    displayPreview(previewData);
+                    // Tombol delete tetap disabled sampai ada checkbox yang dipilih
+                    $('#btnDelete').prop('disabled', true);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Terjadi kesalahan saat mengambil data'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                console.error('AJAX Error:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
+                });
+                
+                let errorMessage = 'Terjadi kesalahan pada server';
+                if (xhr.status === 404) {
+                    errorMessage = 'Endpoint tidak ditemukan. Pastikan routes sudah dikonfigurasi dengan benar.';
+                } else if (xhr.status === 403) {
+                    errorMessage = 'Akses ditolak. Pastikan Anda memiliki hak akses Admin.';
+                } else if (xhr.status === 500) {
+                    errorMessage = 'Terjadi kesalahan pada server. Silakan cek log untuk detail.';
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else {
+                    errorMessage = 'Error: ' + error + ' (Status: ' + xhr.status + ')';
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMessage
+                });
+            }
+        });
+    });
+
+    // Display preview data
+    function displayPreview(data) {
+        $('#totalCount').text(data.total);
+        
+        let html = '';
+        if (data.detail && data.detail.length > 0) {
+            let no = 1;
+            data.detail.forEach(function(row) {
+                // Buat unique key untuk checkbox
+                const rowKey = row.NoPeserta || '';
+                
+                // Cek apakah checkbox harus disabled (TotalNilai = 0 = belum ada data)
+                const totalNilaiNum = parseInt(row.TotalNilai) || 0;
+                const isDisabled = totalNilaiNum === 0;
+                const disabledAttr = isDisabled ? 'disabled' : '';
+                const disabledClass = isDisabled ? 'text-muted' : '';
+                const disabledTitle = isDisabled ? 'title="Data sudah kosong, tidak perlu dihapus"' : '';
+                
+                html += '<tr class="' + disabledClass + '">';
+                html += '<td><input type="checkbox" class="row-checkbox" data-key="' + rowKey + '" data-nopeserta="' + (row.NoPeserta || '') + '" data-totalnilai="' + row.TotalNilai + '" ' + disabledAttr + ' ' + disabledTitle + '></td>';
+                html += '<td>' + no++ + '</td>';
+                html += '<td>' + (row.NoPeserta || '-') + '</td>';
+                html += '<td><strong>' + row.TotalNilai + '</strong></td>';
+                html += '</tr>';
+            });
+        } else {
+            html = '<tr><td colspan="4" class="text-center">Tidak ada data</td></tr>';
+        }
+        
+        $('#previewTableBody').html(html);
+        $('#previewSection').show();
+        
+        // Reset select all checkbox
+        $('#selectAll').prop('checked', false);
+    }
+
+    // Select All checkbox - hanya pilih yang tidak disabled
+    $(document).on('change', '#selectAll', function() {
+        $('.row-checkbox:not(:disabled)').prop('checked', $(this).prop('checked'));
+        updateSelectedCount();
+    });
+
+    // Individual checkbox change - hanya hitung yang tidak disabled
+    $(document).on('change', '.row-checkbox', function() {
+        const totalCheckboxes = $('.row-checkbox:not(:disabled)').length;
+        const checkedCheckboxes = $('.row-checkbox:not(:disabled):checked').length;
+        $('#selectAll').prop('checked', totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes);
+        updateSelectedCount();
+    });
+
+    // Update selected count
+    function updateSelectedCount() {
+        const selectedRows = $('.row-checkbox:checked');
+        let totalSelected = 0;
+        selectedRows.each(function() {
+            totalSelected += parseInt($(this).data('totalnilai') || 0);
+        });
+        
+        if (selectedRows.length > 0) {
+            $('#btnDelete').prop('disabled', false);
+            $('#btnDelete').html('<i class="fas fa-trash"></i> Hapus Nilai (' + selectedRows.length + ' peserta, ' + totalSelected + ' data)');
+        } else {
+            $('#btnDelete').prop('disabled', true);
+            $('#btnDelete').html('<i class="fas fa-trash"></i> Hapus Nilai');
+        }
+    }
+
+    // Delete button click
+    $('#btnDelete').on('click', function() {
+        const selectedRows = $('.row-checkbox:checked');
+        
+        if (selectedRows.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan',
+                text: 'Pilih minimal satu peserta untuk dihapus!'
+            });
+            return;
+        }
+
+        // Kumpulkan data peserta yang dipilih dan buat detail informasi
+        const selectedPeserta = [];
+        let totalSelectedNilai = 0;
+        const pesertaDetails = [];
+        
+        selectedRows.each(function() {
+            const row = $(this).closest('tr');
+            const rowData = {
+                NoPeserta: $(this).data('nopeserta')
+            };
+            selectedPeserta.push(rowData);
+            
+            const totalNilai = parseInt($(this).data('totalnilai') || 0);
+            totalSelectedNilai += totalNilai;
+            
+            // Kumpulkan detail peserta untuk ditampilkan
+            const pesertaInfo = {
+                NoPeserta: row.find('td').eq(2).text(),
+                TotalNilai: totalNilai
+            };
+            pesertaDetails.push(pesertaInfo);
+        });
+
+        // Buat detail informasi untuk konfirmasi
+        let detailHtml = '<div style="text-align: left; max-height: 300px; overflow-y: auto;">';
+        detailHtml += '<table class="table table-sm table-bordered" style="margin-bottom: 10px;">';
+        detailHtml += '<thead><tr><th>No Peserta</th><th>Jumlah Nilai</th></tr></thead>';
+        detailHtml += '<tbody>';
+        
+        pesertaDetails.forEach(function(detail) {
+            detailHtml += '<tr>';
+            detailHtml += '<td>' + detail.NoPeserta + '</td>';
+            detailHtml += '<td><strong>' + detail.TotalNilai + '</strong></td>';
+            detailHtml += '</tr>';
+        });
+        
+        detailHtml += '</tbody></table>';
+        detailHtml += '</div>';
+
+        // Konfirmasi dengan detail lengkap
+        Swal.fire({
+            title: 'Konfirmasi Hapus Nilai',
+            html: '<div style="text-align: left;">' +
+                  '<p><strong>Ringkasan:</strong></p>' +
+                  '<ul>' +
+                  '<li>Total peserta yang dipilih: <strong>' + selectedRows.length + '</strong></li>' +
+                  '<li>Total data nilai: <strong>' + totalSelectedNilai + '</strong></li>' +
+                  '</ul>' +
+                  '<p><strong>Detail peserta yang akan dihapus:</strong></p>' +
+                  detailHtml +
+                  '<p class="text-danger mt-3"><strong><i class="fas fa-exclamation-triangle"></i> Peringatan:</strong> Tindakan ini akan <strong>MENGHAPUS</strong> semua data nilai untuk peserta yang dipilih berdasarkan <strong>NoPeserta</strong>. Data yang dihapus tidak dapat dikembalikan!</p>' +
+                  '</div>',
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Hapus Sekarang!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+            width: '800px'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show progress
+                Swal.fire({
+                    title: 'Memproses Hapus...',
+                    html: 'Sedang menghapus data nilai, mohon tunggu...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '<?= base_url('backend/nilai/resetNilaiSertifikasi/delete') ?>',
+                    type: 'POST',
+                    data: {
+                        selectedPeserta: selectedPeserta,
+                        <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                html: '<p>' + response.message + '</p>' +
+                                      '<p>Total data yang dihapus: <strong>' + response.data.total_affected + '</strong></p>',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Reset form but keep filters
+                                $('#previewSection').hide();
+                                $('#btnDelete').prop('disabled', true);
+                                $('#btnDelete').html('<i class="fas fa-trash"></i> Hapus Nilai');
+                                $('.row-checkbox').prop('checked', false);
+                                $('#selectAll').prop('checked', false);
+                                previewData = null;
+                                // Filters tetap tersimpan di localStorage
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'Gagal melakukan hapus nilai'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', {
+                            status: xhr.status,
+                            statusText: xhr.statusText,
+                            responseText: xhr.responseText,
+                            error: error
+                        });
+                        
+                        let errorMessage = 'Terjadi kesalahan pada server';
+                        if (xhr.status === 404) {
+                            errorMessage = 'Endpoint tidak ditemukan. Pastikan routes sudah dikonfigurasi dengan benar.';
+                        } else if (xhr.status === 403) {
+                            errorMessage = 'Akses ditolak. Pastikan Anda memiliki hak akses Admin.';
+                        } else if (xhr.status === 500) {
+                            errorMessage = 'Terjadi kesalahan pada server. Silakan cek log untuk detail.';
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else {
+                            errorMessage = 'Error: ' + error + ' (Status: ' + xhr.status + ')';
+                        }
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: errorMessage
+                        });
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+<?= $this->endSection(); ?>

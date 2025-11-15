@@ -164,5 +164,103 @@ class SertifikasiNilaiModel extends Model
         $builder->orderBy('sm.IdMateri', 'ASC');
         return $builder->get()->getResultArray();
     }
+
+    /**
+     * Get count nilai sertifikasi by filter - group by NoPeserta
+     * @param mixed $NoPeserta (null untuk semua, string untuk filter spesifik)
+     * @return array
+     */
+    public function getCountNilaiByFilter($NoPeserta = null)
+    {
+        $builder = $this->db->table('tbl_sertifikasi_nilai n');
+        $builder->select('
+            n.NoPeserta,
+            COUNT(*) as TotalNilai
+        ');
+
+        // Apply filters - jika NoPeserta tidak null dan tidak kosong
+        if ($NoPeserta !== null && trim($NoPeserta) !== '') {
+            if (is_array($NoPeserta)) {
+                $builder->whereIn('n.NoPeserta', $NoPeserta);
+            } else {
+                // Support partial match dengan LIKE
+                $builder->like('n.NoPeserta', $NoPeserta);
+            }
+        }
+
+        $builder->groupBy(['n.NoPeserta']);
+        $builder->orderBy('n.NoPeserta', 'ASC');
+
+        $results = $builder->get()->getResultArray();
+
+        // Hitung total dan format data
+        $totalCount = 0;
+        foreach ($results as &$row) {
+            $row['TotalNilai'] = (int)$row['TotalNilai'];
+            $totalCount += $row['TotalNilai'];
+        }
+        unset($row);
+
+        return [
+            'detail' => $results,
+            'total' => $totalCount
+        ];
+    }
+
+    /**
+     * Hapus nilai sertifikasi by selected peserta berdasarkan NoPeserta
+     * @param array $selectedPeserta Array of peserta data (NoPeserta)
+     * @return array
+     */
+    public function deleteNilaiBySelectedPeserta($selectedPeserta)
+    {
+        $this->db->transStart();
+        try {
+            $totalAffected = 0;
+            $details = [];
+            
+            foreach ($selectedPeserta as $pesertaData) {
+                $NoPeserta = $pesertaData['NoPeserta'] ?? null;
+
+                if (empty($NoPeserta)) {
+                    continue;
+                }
+
+                // Count before delete
+                $countBuilder = $this->db->table($this->table);
+                $countBuilder->where('NoPeserta', $NoPeserta);
+                $countBefore = $countBuilder->countAllResults();
+
+                // Hapus data berdasarkan NoPeserta
+                $deleteBuilder = $this->db->table($this->table);
+                $deleteBuilder->where('NoPeserta', $NoPeserta);
+                $deleteBuilder->delete();
+                
+                $affected = $this->db->affectedRows();
+                $totalAffected += $affected;
+
+                $details[] = [
+                    'NoPeserta' => $NoPeserta,
+                    'affected' => $affected,
+                    'count_before' => $countBefore
+                ];
+            }
+
+            $this->db->transComplete();
+
+            // Clear cache jika ada
+            if (function_exists('cache')) {
+                cache()->clean();
+            }
+
+            return [
+                'total_affected' => $totalAffected,
+                'details' => $details
+            ];
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            throw $e;
+        }
+    }
 }
 
