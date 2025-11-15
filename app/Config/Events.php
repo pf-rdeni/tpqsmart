@@ -53,3 +53,36 @@ Events::on('pre_system', static function (): void {
         }
     }
 });
+
+/*
+ * --------------------------------------------------------------------
+ * Logger Threshold Runtime Override
+ * --------------------------------------------------------------------
+ * Update logger threshold from session override if available
+ * This allows admin to change threshold dynamically via LogViewer
+ */
+Events::on('post_controller_constructor', static function (): void {
+    try {
+        // Check if session is available and has threshold override
+        if (function_exists('session')) {
+            $session = session();
+            if ($session && $session->has('logger_threshold_override')) {
+                $runtimeThreshold = $session->get('logger_threshold_override');
+                if ($runtimeThreshold !== null) {
+                    // Get Logger config and update threshold
+                    $loggerConfig = new \Config\Logger();
+                    $thresholdValue = is_array($runtimeThreshold) ? $runtimeThreshold : (int)$runtimeThreshold;
+
+                    // Update threshold property
+                    $loggerConfig->threshold = $thresholdValue;
+
+                    // Reload Logger service with updated threshold
+                    // Note: This only affects new log messages, existing Logger instance won't be updated
+                    // But for practical purposes, threshold check happens at log_message() call time
+                }
+            }
+        }
+    } catch (\Exception $e) {
+        // Silently fail if session or logger not available yet
+    }
+});

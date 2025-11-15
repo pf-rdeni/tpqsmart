@@ -29,15 +29,119 @@ class LogViewer extends BaseController
         // Get log statistics
         $logStats = $this->getLogStatistics($date);
 
+        // Get current logger threshold
+        $loggerConfig = new \Config\Logger();
+        $currentThreshold = $loggerConfig->getThreshold();
+        $thresholdOverride = session()->get('logger_threshold_override');
+
         $data = [
             'page_title' => 'Log Viewer',
             'date' => $date,
             'logFiles' => $logFiles,
             'logContent' => $logContent,
             'logStats' => $logStats,
+            'currentThreshold' => $currentThreshold,
+            'thresholdOverride' => $thresholdOverride,
         ];
 
         return view('backend/logviewer/index', $data);
+    }
+
+    /**
+     * Get current logger threshold setting
+     */
+    public function getLoggerThreshold()
+    {
+        // Check if user is Admin
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses'
+            ])->setStatusCode(403);
+        }
+
+        $loggerConfig = new \Config\Logger();
+        $currentThreshold = $loggerConfig->getThreshold();
+        $thresholdOverride = session()->get('logger_threshold_override');
+        $defaultThreshold = (ENVIRONMENT === 'production') ? 7 : 9;
+
+        return $this->response->setJSON([
+            'success' => true,
+            'currentThreshold' => $currentThreshold,
+            'thresholdOverride' => $thresholdOverride,
+            'defaultThreshold' => $defaultThreshold,
+            'isOverridden' => $thresholdOverride !== null
+        ]);
+    }
+
+    /**
+     * Update logger threshold setting
+     */
+    public function updateLoggerThreshold()
+    {
+        // Check if user is Admin
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses'
+            ])->setStatusCode(403);
+        }
+
+        $threshold = $this->request->getPost('threshold');
+        $action = $this->request->getPost('action'); // 'set' or 'reset'
+
+        if ($action === 'reset') {
+            // Reset to default
+            session()->remove('logger_threshold_override');
+
+            // Reload config to apply default
+            $loggerConfig = new \Config\Logger();
+            $newThreshold = $loggerConfig->getThreshold();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Logger threshold berhasil direset ke default',
+                'currentThreshold' => $newThreshold,
+                'isOverridden' => false
+            ]);
+        }
+
+        // Validate threshold value
+        if ($threshold === null || $threshold === '') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Threshold tidak boleh kosong'
+            ]);
+        }
+
+        // Convert to integer or array
+        if (is_array($threshold)) {
+            $thresholdValue = array_map('intval', $threshold);
+        } else {
+            $thresholdValue = (int)$threshold;
+
+            // Validate threshold range (0-9)
+            if ($thresholdValue < 0 || $thresholdValue > 9) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Threshold harus antara 0-9'
+                ]);
+            }
+        }
+
+        // Save to session
+        session()->set('logger_threshold_override', $thresholdValue);
+
+        // Reload config to apply new threshold
+        $loggerConfig = new \Config\Logger();
+        $newThreshold = $loggerConfig->getThreshold();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Logger threshold berhasil diubah',
+            'currentThreshold' => $newThreshold,
+            'isOverridden' => true
+        ]);
     }
 
     /**

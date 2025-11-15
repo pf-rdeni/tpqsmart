@@ -45,7 +45,44 @@ class Logger extends BaseConfig
      *
      * @var int|list<int>
      */
-    public $threshold = (ENVIRONMENT === 'production') ? 7 : 9;
+    /**
+     * Threshold property with runtime override support
+     * Set to default value initially, but can be overridden via session
+     * @var int|list<int>
+     */
+    public $threshold;
+
+    public function __construct()
+    {
+        parent::__construct();
+        // Set default threshold initially to avoid undefined property error
+        // This will be used if session override is not available
+        $this->threshold = (ENVIRONMENT === 'production') ? 7 : 9;
+    }
+
+    /**
+     * Public method to get threshold with session override support
+     * This can safely use session() helper since it's called after Logger initialization
+     * Use this method in LogViewer controller to get current threshold
+     */
+    public function getThreshold()
+    {
+        // This method can safely use session() helper since it's called after initialization
+        // Logger is already constructed, so no circular dependency
+        try {
+            if (function_exists('session')) {
+                $runtimeThreshold = session()->get('logger_threshold_override');
+                if ($runtimeThreshold !== null) {
+                    return is_array($runtimeThreshold) ? $runtimeThreshold : (int)$runtimeThreshold;
+                }
+            }
+        } catch (\Exception $e) {
+            // Fallback to default if session helper not available
+        }
+
+        // Return default threshold
+        return $this->threshold ?? ((ENVIRONMENT === 'production') ? 7 : 9);
+    }
 
     /**
      * --------------------------------------------------------------------------
