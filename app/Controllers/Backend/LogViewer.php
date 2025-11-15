@@ -29,10 +29,8 @@ class LogViewer extends BaseController
         // Get log statistics
         $logStats = $this->getLogStatistics($date);
 
-        // Get current logger threshold
-        $loggerConfig = new \Config\Logger();
-        $currentThreshold = $loggerConfig->getThreshold();
-        $thresholdOverride = session()->get('logger_threshold_override');
+        // Get logger configuration
+        $loggerConfig = $this->getLoggerConfig();
 
         $data = [
             'page_title' => 'Log Viewer',
@@ -40,108 +38,10 @@ class LogViewer extends BaseController
             'logFiles' => $logFiles,
             'logContent' => $logContent,
             'logStats' => $logStats,
-            'currentThreshold' => $currentThreshold,
-            'thresholdOverride' => $thresholdOverride,
+            'loggerConfig' => $loggerConfig,
         ];
 
         return view('backend/logviewer/index', $data);
-    }
-
-    /**
-     * Get current logger threshold setting
-     */
-    public function getLoggerThreshold()
-    {
-        // Check if user is Admin
-        if (!in_groups('Admin')) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses'
-            ])->setStatusCode(403);
-        }
-
-        $loggerConfig = new \Config\Logger();
-        $currentThreshold = $loggerConfig->getThreshold();
-        $thresholdOverride = session()->get('logger_threshold_override');
-        $defaultThreshold = (ENVIRONMENT === 'production') ? 7 : 9;
-
-        return $this->response->setJSON([
-            'success' => true,
-            'currentThreshold' => $currentThreshold,
-            'thresholdOverride' => $thresholdOverride,
-            'defaultThreshold' => $defaultThreshold,
-            'isOverridden' => $thresholdOverride !== null
-        ]);
-    }
-
-    /**
-     * Update logger threshold setting
-     */
-    public function updateLoggerThreshold()
-    {
-        // Check if user is Admin
-        if (!in_groups('Admin')) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Anda tidak memiliki akses'
-            ])->setStatusCode(403);
-        }
-
-        $threshold = $this->request->getPost('threshold');
-        $action = $this->request->getPost('action'); // 'set' or 'reset'
-
-        if ($action === 'reset') {
-            // Reset to default
-            session()->remove('logger_threshold_override');
-
-            // Reload config to apply default
-            $loggerConfig = new \Config\Logger();
-            $newThreshold = $loggerConfig->getThreshold();
-
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Logger threshold berhasil direset ke default',
-                'currentThreshold' => $newThreshold,
-                'isOverridden' => false
-            ]);
-        }
-
-        // Validate threshold value
-        if ($threshold === null || $threshold === '') {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Threshold tidak boleh kosong'
-            ]);
-        }
-
-        // Convert to integer or array
-        if (is_array($threshold)) {
-            $thresholdValue = array_map('intval', $threshold);
-        } else {
-            $thresholdValue = (int)$threshold;
-
-            // Validate threshold range (0-9)
-            if ($thresholdValue < 0 || $thresholdValue > 9) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Threshold harus antara 0-9'
-                ]);
-            }
-        }
-
-        // Save to session
-        session()->set('logger_threshold_override', $thresholdValue);
-
-        // Reload config to apply new threshold
-        $loggerConfig = new \Config\Logger();
-        $newThreshold = $loggerConfig->getThreshold();
-
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Logger threshold berhasil diubah',
-            'currentThreshold' => $newThreshold,
-            'isOverridden' => true
-        ]);
     }
 
     /**
@@ -389,6 +289,102 @@ class LogViewer extends BaseController
         }
 
         return $stats;
+    }
+
+    /**
+     * Get logger configuration from Logger.php
+     */
+    private function getLoggerConfig()
+    {
+        // Load Logger config using reflection to safely access properties
+        $logger = config('Logger');
+
+        // Get threshold using reflection
+        $reflection = new \ReflectionClass($logger);
+        $thresholdProperty = $reflection->getProperty('threshold');
+        $thresholdProperty->setAccessible(true);
+        $threshold = $thresholdProperty->getValue($logger);
+
+        // If threshold is null, use default based on environment
+        if ($threshold === null) {
+            $threshold = (ENVIRONMENT === 'production') ? 7 : 9;
+        }
+
+        // Determine which log levels are enabled based on threshold
+        $logLevels = [
+            'emergency' => 1,
+            'alert' => 2,
+            'critical' => 3,
+            'error' => 4,
+            'warning' => 5,
+            'notice' => 6,
+            'info' => 7,
+            'debug' => 8,
+        ];
+
+        $enabledLevels = [];
+        $disabledLevels = [];
+
+        if (is_array($threshold)) {
+            // If threshold is an array, only those levels are enabled
+            foreach ($logLevels as $level => $value) {
+                if (in_array($value, $threshold)) {
+                    $enabledLevels[] = strtoupper($level);
+                } else {
+                    $disabledLevels[] = strtoupper($level);
+                }
+            }
+            $thresholdValue = implode(', ', $threshold);
+            $thresholdType = 'Array (Selective)';
+        } else {
+            // If threshold is a number, all levels <= threshold are enabled
+            $thresholdValue = (string)$threshold;
+            $thresholdType = 'Integer (All levels up to)';
+
+            foreach ($logLevels as $level => $value) {
+                if ($threshold == 0) {
+                    $disabledLevels[] = strtoupper($level);
+                } elseif ($threshold >= $value) {
+                    $enabledLevels[] = strtoupper($level);
+                } else {
+                    $disabledLevels[] = strtoupper($level);
+                }
+            }
+        }
+
+        // Get handlers configuration using reflection
+        $handlersProperty = $reflection->getProperty('handlers');
+        $handlersProperty->setAccessible(true);
+        $handlers = $handlersProperty->getValue($logger) ?? [];
+
+        $handlerInfo = [];
+
+        foreach ($handlers as $handlerClass => $handlerConfig) {
+            $handlerName = class_basename($handlerClass);
+            $handlerInfo[] = [
+                'name' => $handlerName,
+                'handles' => $handlerConfig['handles'] ?? [],
+                'path' => $handlerConfig['path'] ?? 'default (WRITEPATH . logs/)',
+                'fileExtension' => $handlerConfig['fileExtension'] ?? 'log',
+            ];
+        }
+
+        // Get date format using reflection
+        $dateFormatProperty = $reflection->getProperty('dateFormat');
+        $dateFormatProperty->setAccessible(true);
+        $dateFormat = $dateFormatProperty->getValue($logger) ?? 'Y-m-d H:i:s';
+
+        return [
+            'threshold' => $threshold,
+            'thresholdValue' => $thresholdValue,
+            'thresholdType' => $thresholdType,
+            'enabledLevels' => $enabledLevels,
+            'disabledLevels' => $disabledLevels,
+            'dateFormat' => $dateFormat,
+            'environment' => ENVIRONMENT,
+            'handlers' => $handlerInfo,
+            'logPath' => WRITEPATH . 'logs/',
+        ];
     }
 }
 

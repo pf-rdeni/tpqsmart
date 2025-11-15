@@ -57,74 +57,97 @@
                         </div>
                     </div>
 
-                    <!-- Logger Threshold Settings -->
+                    <!-- Logger Configuration -->
                     <div class="row mb-3">
                         <div class="col-12">
-                            <div class="card card-outline card-warning">
+                            <div class="card card-outline card-warning collapsed-card">
                                 <div class="card-header">
-                                    <h3 class="card-title"><i class="fas fa-cog"></i> Pengaturan Logger</h3>
+                                    <h3 class="card-title"><i class="fas fa-cog"></i> Konfigurasi Logger (app/Config/Logger.php)</h3>
                                     <div class="card-tools">
                                         <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                            <i class="fas fa-minus"></i>
+                                            <i class="fas fa-plus"></i>
                                         </button>
                                     </div>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body" style="display: none;">
                                     <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="loggerThreshold">Log Threshold Level:</label>
-                                                <select class="form-control" id="loggerThreshold">
-                                                    <option value="0">0 - Disabled (No Logging)</option>
-                                                    <option value="1">1 - Emergency Only</option>
-                                                    <option value="2">2 - Alert</option>
-                                                    <option value="3">3 - Critical</option>
-                                                    <option value="4">4 - Runtime Errors</option>
-                                                    <option value="5">5 - Warnings</option>
-                                                    <option value="6">6 - Notices</option>
-                                                    <option value="7">7 - Info</option>
-                                                    <option value="8">8 - Debug</option>
-                                                    <option value="9">9 - All Messages</option>
-                                                </select>
-                                                <small class="form-text text-muted">
-                                                    Current: <strong id="currentThresholdDisplay"><?= is_array($currentThreshold) ? implode(', ', $currentThreshold) : $currentThreshold ?></strong>
-                                                    <?php if ($thresholdOverride !== null): ?>
-                                                        <span class="badge badge-warning">Overridden</span>
-                                                    <?php else: ?>
-                                                        <span class="badge badge-secondary">Default</span>
-                                                    <?php endif; ?>
-                                                </small>
-                                            </div>
+                                        <div class="col-md-6">
+                                            <table class="table table-bordered table-sm">
+                                                <tr>
+                                                    <th width="40%">Environment</th>
+                                                    <td><span class="badge badge-<?= $loggerConfig['environment'] === 'production' ? 'danger' : 'success' ?>"><?= strtoupper($loggerConfig['environment']) ?></span></td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Threshold</th>
+                                                    <td>
+                                                        <strong><?= esc($loggerConfig['thresholdValue']) ?></strong>
+                                                        <small class="text-muted">(<?= $loggerConfig['thresholdType'] ?>)</small>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Date Format</th>
+                                                    <td><?= esc($loggerConfig['dateFormat']) ?></td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Log Path</th>
+                                                    <td><code><?= esc($loggerConfig['logPath']) ?></code></td>
+                                                </tr>
+                                            </table>
                                         </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label>&nbsp;</label>
-                                                <div>
-                                                    <button type="button" class="btn btn-primary" id="btnUpdateThreshold">
-                                                        <i class="fas fa-save"></i> Update Threshold
-                                                    </button>
-                                                    <?php if ($thresholdOverride !== null): ?>
-                                                        <button type="button" class="btn btn-secondary" id="btnResetThreshold">
-                                                            <i class="fas fa-undo"></i> Reset ke Default
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label>Threshold Info:</label>
-                                                <div class="info-box bg-light">
-                                                    <div class="info-box-content">
-                                                        <span class="info-box-text">Default (<?= ENVIRONMENT === 'production' ? 'Production' : 'Development' ?>):</span>
-                                                        <span class="info-box-number"><?= ENVIRONMENT === 'production' ? '7 (Info)' : '9 (All)' ?></span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div class="col-md-6">
+                                            <table class="table table-bordered table-sm">
+                                                <tr>
+                                                    <th>Level yang Aktif</th>
+                                                    <td>
+                                                        <?php if (!empty($loggerConfig['enabledLevels'])): ?>
+                                                            <?php foreach ($loggerConfig['enabledLevels'] as $level): ?>
+                                                                <span class="badge badge-success"><?= esc($level) ?></span>
+                                                            <?php endforeach; ?>
+                                                        <?php else: ?>
+                                                            <span class="badge badge-danger">Tidak Ada</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Level yang Tidak Aktif</th>
+                                                    <td>
+                                                        <?php if (!empty($loggerConfig['disabledLevels'])): ?>
+                                                            <?php foreach ($loggerConfig['disabledLevels'] as $level): ?>
+                                                                <span class="badge badge-secondary"><?= esc($level) ?></span>
+                                                            <?php endforeach; ?>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">Semua aktif</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Handlers</th>
+                                                    <td>
+                                                        <?php foreach ($loggerConfig['handlers'] as $handler): ?>
+                                                            <div class="mb-1">
+                                                                <strong><?= esc($handler['name']) ?></strong>
+                                                                <br>
+                                                                <small class="text-muted">
+                                                                    Handles: <?= implode(', ', array_map('strtoupper', $handler['handles'])) ?>
+                                                                    <?php if (!empty($handler['path'])): ?>
+                                                                        | Path: <?= esc($handler['path']) ?>
+                                                                    <?php endif; ?>
+                                                                </small>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </td>
+                                                </tr>
+                                            </table>
                                         </div>
                                     </div>
-                                    <div class="alert alert-info mt-2" id="thresholdMessage" style="display: none;">
-                                        <i class="fas fa-info-circle"></i> <span id="thresholdMessageText"></span>
+                                    <div class="alert alert-info mt-3">
+                                        <strong><i class="fas fa-info-circle"></i> Catatan:</strong>
+                                        <ul class="mb-0 mt-2">
+                                            <li>Threshold menentukan level log mana yang akan direkam</li>
+                                            <li>Threshold 0 = Logging OFF, 9 = Semua level aktif</li>
+                                            <li>Threshold array = Hanya level tertentu yang aktif</li>
+                                            <li>Konfigurasi ini dapat diubah di <code>app/Config/Logger.php</code></li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
@@ -352,130 +375,6 @@
             width: '100%',
             closeOnSelect: false
         });
-
-        // Load current logger threshold
-        function loadCurrentThreshold() {
-            $.ajax({
-                url: '<?= base_url('backend/logviewer/getLoggerThreshold') ?>',
-                method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        $('#loggerThreshold').val(response.currentThreshold);
-                        updateThresholdDisplay(response);
-                    }
-                }
-            });
-        }
-
-        // Update threshold display
-        function updateThresholdDisplay(response) {
-            let thresholdText = isNaN(response.currentThreshold) ?
-                response.currentThreshold.join(', ') :
-                response.currentThreshold;
-            $('#currentThresholdDisplay').html(thresholdText);
-
-            if (response.isOverridden) {
-                $('#currentThresholdDisplay').next().remove();
-                $('#currentThresholdDisplay').after('<span class="badge badge-warning">Overridden</span>');
-                if ($('#btnResetThreshold').length === 0) {
-                    $('#btnUpdateThreshold').after('<button type="button" class="btn btn-secondary" id="btnResetThreshold"><i class="fas fa-undo"></i> Reset ke Default</button>');
-                }
-            } else {
-                $('#currentThresholdDisplay').next().remove();
-                $('#currentThresholdDisplay').after('<span class="badge badge-secondary">Default</span>');
-                $('#btnResetThreshold').remove();
-            }
-        }
-
-        // Update threshold
-        $('#btnUpdateThreshold').click(function() {
-            const threshold = $('#loggerThreshold').val();
-
-            if (!threshold) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Pilih threshold level terlebih dahulu'
-                });
-                return;
-            }
-
-            $.ajax({
-                url: '<?= base_url('backend/logviewer/updateLoggerThreshold') ?>',
-                method: 'POST',
-                data: {
-                    threshold: threshold,
-                    action: 'set'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#thresholdMessageText').text(response.message);
-                        $('#thresholdMessage').removeClass('alert-danger').addClass('alert-success').show();
-                        updateThresholdDisplay(response);
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil',
-                            text: response.message,
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    } else {
-                        $('#thresholdMessageText').text(response.message || 'Gagal mengupdate threshold');
-                        $('#thresholdMessage').removeClass('alert-success').addClass('alert-danger').show();
-                    }
-                },
-                error: function() {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Terjadi kesalahan saat mengupdate threshold'
-                    });
-                }
-            });
-        });
-
-        // Reset threshold
-        $(document).on('click', '#btnResetThreshold', function() {
-            Swal.fire({
-                title: 'Reset Threshold?',
-                text: 'Threshold akan direset ke nilai default berdasarkan environment.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Reset!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '<?= base_url('backend/logviewer/updateLoggerThreshold') ?>',
-                        method: 'POST',
-                        data: {
-                            action: 'reset'
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                $('#thresholdMessageText').text(response.message);
-                                $('#thresholdMessage').removeClass('alert-danger').addClass('alert-success').show();
-                                updateThresholdDisplay(response);
-
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Berhasil',
-                                    text: response.message,
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                });
-                            }
-                        }
-                    });
-                }
-            });
-        });
-
-        // Initialize threshold value
-        $('#loggerThreshold').val(<?= is_array($currentThreshold) ? json_encode($currentThreshold) : $currentThreshold ?>);
 
         // Get selected filters from Select2
         function getSelectedFilters() {

@@ -123,8 +123,6 @@ $routes->get('backend/strukturlembaga/delete/(:num)', 'Backend\StrukturLembaga::
 $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
     // Log Viewer Routes
     $routes->get('logviewer', 'LogViewer::index');
-    $routes->get('logviewer/getLoggerThreshold', 'LogViewer::getLoggerThreshold');
-    $routes->post('logviewer/updateLoggerThreshold', 'LogViewer::updateLoggerThreshold');
     $routes->post('logviewer/getLogContentByDate', 'LogViewer::getLogContentByDate');
     $routes->get('logviewer/download', 'LogViewer::download');
 
