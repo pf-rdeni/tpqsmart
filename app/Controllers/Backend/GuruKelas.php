@@ -20,17 +20,149 @@ class GuruKelas extends BaseController
     public function show()
     {
         $IdTpq = session()->get('IdTpq');
-        $GuruKelas = $this->helpFunction->getDataGuruKelas(IdTpq: $IdTpq);
+        // Filter berdasarkan tahun ajaran saat ini
+        $IdTahunAjaranSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
+        $GuruKelas = $this->helpFunction->getDataGuruKelas(IdTpq: $IdTpq, IdTahunAjaran: $IdTahunAjaranSaatIni);
         $Kelas = $this->helpFunction->getDataKelas();
+
+        // Ambil semua tahun ajaran yang tersedia untuk dropdown filter (tanpa filter)
+        $allGuruKelas = $this->helpFunction->getDataGuruKelas(IdTpq: $IdTpq);
+        $tahunAjaranList = [];
+        foreach ($allGuruKelas as $row) {
+            if (!in_array($row->IdTahunAjaran, array_column($tahunAjaranList, 'IdTahunAjaran'))) {
+                $tahunAjaranList[] = [
+                    'IdTahunAjaran' => $row->IdTahunAjaran,
+                    'NamaTahunAjaran' => $this->helpFunction->convertTahunAjaran($row->IdTahunAjaran)
+                ];
+            }
+        }
+        // Sort berdasarkan IdTahunAjaran (descending)
+        usort($tahunAjaranList, function ($a, $b) {
+            return $b['IdTahunAjaran'] <=> $a['IdTahunAjaran'];
+        });
 
         $data = [
             'page_title' => 'Daftar Guru Kelas',
             'guruKelas' => $GuruKelas,
             'kelas' => $Kelas,
-            'dataTpq' => $IdTpq
+            'dataTpq' => $IdTpq,
+            'tahunAjaranSaatIni' => $IdTahunAjaranSaatIni,
+            'tahunAjaranList' => $tahunAjaranList
         ];
 
         return view('backend/kelas/guruKelas', $data);
+    }
+
+    public function getDataByTahunAjaran()
+    {
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = $this->request->getGet('IdTahunAjaran');
+        $IdJabatan = $this->request->getGet('IdJabatan');
+        $IdKelas = $this->request->getGet('IdKelas');
+
+        // Jika IdTahunAjaran adalah "next", hitung tahun ajaran berikutnya
+        if ($IdTahunAjaran === 'next') {
+            $tahunAjaranSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
+            $IdTahunAjaran = $this->helpFunction->getTahuanAjaranBerikutnya($tahunAjaranSaatIni);
+        }
+        // Jika IdTahunAjaran kosong, gunakan tahun ajaran saat ini
+        elseif (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        }
+
+        $GuruKelas = $this->helpFunction->getDataGuruKelas(
+            IdTpq: $IdTpq,
+            IdTahunAjaran: $IdTahunAjaran,
+            IdJabatan: !empty($IdJabatan) ? $IdJabatan : null,
+            IdKelas: !empty($IdKelas) ? $IdKelas : null
+        );
+
+        // Ambil semua guru untuk dibandingkan dengan yang sudah punya data
+        $allGuru = $this->helpFunction->getDataGuru(id: false, status: true, IdTpq: $IdTpq);
+
+        // Identifikasi guru yang sudah punya data di tahun ajaran ini
+        $guruWithData = [];
+        foreach ($GuruKelas as $row) {
+            $idGuru = (string)$row->IdGuru;
+            if (!in_array($idGuru, $guruWithData)) {
+                $guruWithData[] = $idGuru;
+            }
+        }
+
+        // Identifikasi guru yang belum punya data
+        $guruWithoutData = [];
+        foreach ($allGuru as $guru) {
+            $idGuru = (string)$guru['IdGuru'];
+            if (!in_array($idGuru, $guruWithData)) {
+                $guruWithoutData[] = [
+                    'IdGuru' => $guru['IdGuru'],
+                    'Nama' => $guru['Nama']
+                ];
+            }
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $GuruKelas,
+            'isEmpty' => empty($GuruKelas),
+            'allGuru' => $allGuru,
+            'guruWithoutData' => $guruWithoutData,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'TahunAjaran' => $this->helpFunction->convertTahunAjaran($IdTahunAjaran)
+        ]);
+    }
+
+    public function getFilterOptions()
+    {
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = $this->request->getGet('IdTahunAjaran');
+
+        // Jika IdTahunAjaran adalah "next", hitung tahun ajaran berikutnya
+        if ($IdTahunAjaran === 'next') {
+            $tahunAjaranSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
+            $IdTahunAjaran = $this->helpFunction->getTahuanAjaranBerikutnya($tahunAjaranSaatIni);
+        }
+        // Jika IdTahunAjaran kosong, gunakan tahun ajaran saat ini
+        elseif (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        }
+
+        // Ambil data berdasarkan tahun ajaran
+        $GuruKelas = $this->helpFunction->getDataGuruKelas(IdTpq: $IdTpq, IdTahunAjaran: $IdTahunAjaran);
+
+        // Extract unique posisi dan kelas
+        $posisiList = [];
+        $kelasList = [];
+        foreach ($GuruKelas as $row) {
+            // Posisi
+            if (!in_array($row->IdJabatan, array_column($posisiList, 'IdJabatan'))) {
+                $posisiList[] = [
+                    'IdJabatan' => $row->IdJabatan,
+                    'NamaJabatan' => $row->NamaJabatan
+                ];
+            }
+            // Kelas
+            if (!in_array($row->IdKelas, array_column($kelasList, 'IdKelas'))) {
+                $kelasList[] = [
+                    'IdKelas' => $row->IdKelas,
+                    'NamaKelas' => $row->NamaKelas
+                ];
+            }
+        }
+
+        // Sort
+        usort($posisiList, function ($a, $b) {
+            return strcmp($a['NamaJabatan'], $b['NamaJabatan']);
+        });
+        usort($kelasList, function ($a, $b) {
+            return strcmp($a['NamaKelas'], $b['NamaKelas']);
+        });
+
+        return $this->response->setJSON([
+            'success' => true,
+            'posisi' => $posisiList,
+            'kelas' => $kelasList
+        ]);
     }
 
     public function store()

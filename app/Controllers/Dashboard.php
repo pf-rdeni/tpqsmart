@@ -279,31 +279,28 @@ class Dashboard extends BaseController
                 // Ignore error
             }
 
-            // Cek apakah guru adalah Wali Kelas
-            if (!empty($idKelas) && !empty($idTahunAjaran)) {
+            // Cek apakah guru adalah Guru Kelas/Wali Kelas
+            // Wali Kelas (IdJabatan = 3) dan Guru Kelas (IdJabatan = 2 atau lainnya) sama sebagai 'guru'
+            // Jadi tidak perlu menambahkan 'wali_kelas' sebagai role terpisah
+            // Cek 1: Apakah user memiliki group 'Guru'
+            if (in_groups('Guru')) {
+                $roles[] = 'guru';
+            } else {
+                // Cek 2: Apakah IdGuru memiliki data di tbl_guru_kelas (apapun IdJabatannya)
+                // Jika ada data di tbl_guru_kelas, berarti memiliki peran Guru
                 try {
                     $guruKelasRows = $this->helpFunctionModel->getDataGuruKelas(
                         IdGuru: $idGuru,
-                        IdTpq: $idTpq,
-                        IdKelas: $idKelas,
-                        IdTahunAjaran: $idTahunAjaran
+                        IdTpq: $idTpq
                     );
-                    if (!empty($guruKelasRows)) {
-                        foreach ($guruKelasRows as $row) {
-                            if (isset($row->IdJabatan) && (int)$row->IdJabatan === 3) {
-                                $roles[] = 'wali_kelas';
-                                break;
-                            }
-                        }
+                    // Jika ada data di tbl_guru_kelas, berarti memiliki peran Guru
+                    // Tidak perlu mengecek IdJabatan spesifik, karena semua IdJabatan di tbl_guru_kelas adalah peran Guru
+                    if (!empty($guruKelasRows) && count($guruKelasRows) > 0) {
+                        $roles[] = 'guru';
                     }
                 } catch (\Throwable $e) {
                     // Ignore error
                 }
-            }
-
-            // Cek apakah guru adalah Guru biasa (jika memiliki group Guru)
-            if (in_groups('Guru')) {
-                $roles[] = 'guru';
             }
         }
 
@@ -453,13 +450,15 @@ class Dashboard extends BaseController
 
         // Simpan all roles dan active role ke session untuk digunakan di view (selalu update)
         session()->set('available_roles', $userInfo['AllRoles']);
-        session()->set('active_role', $activeRole);
-
+        
         // Jika multiple peran dan belum ada peran aktif di session, tampilkan modal pemilihan
         if ($userInfo['HasMultipleRoles'] && empty($activeRole)) {
             // Redirect ke halaman pemilihan peran
             return redirect()->to(base_url('backend/dashboard/select-role'));
         }
+        
+        // Set active role ke session
+        session()->set('active_role', $activeRole);
 
         // Redirect berdasarkan peran aktif
         switch ($activeRole) {
@@ -472,7 +471,26 @@ class Dashboard extends BaseController
             case 'wali_kelas':
             case 'guru':
             default:
-                return redirect()->to(base_url('backend/dashboard/guru'));
+                // Pastikan user memiliki peran guru sebelum redirect
+                if (in_array('guru', $userInfo['AllRoles']) || in_groups('Guru')) {
+                    return redirect()->to(base_url('backend/dashboard/guru'));
+                } else {
+                    // Jika tidak memiliki peran guru, redirect ke select-role atau dashboard sesuai peran yang ada
+                    if ($userInfo['HasMultipleRoles']) {
+                        return redirect()->to(base_url('backend/dashboard/select-role'));
+                    } else {
+                        // Fallback ke peran pertama yang ada
+                        $firstRole = !empty($userInfo['AllRoles']) ? $userInfo['AllRoles'][0] : 'pengguna';
+                        switch ($firstRole) {
+                            case 'operator':
+                                return redirect()->to(base_url('backend/dashboard/operator'));
+                            case 'kepala_tpq':
+                                return redirect()->to(base_url('backend/dashboard/kepala-tpq'));
+                            default:
+                                return redirect()->to(base_url('backend/dashboard/select-role'));
+                        }
+                    }
+                }
         }
     }
 
@@ -589,10 +607,6 @@ class Dashboard extends BaseController
      */
     public function dashboardGuru()
     {
-        if (!in_groups('Guru')) {
-            return redirect()->to(base_url());
-        }
-
         $this->initSessionTahunAjaran();
         
         $idTpq = session()->get('IdTpq');
@@ -603,13 +617,22 @@ class Dashboard extends BaseController
         // Cek peran aktif
         $userInfo = $this->getUserInfo();
         $activeRole = $userInfo['ActiveRole'];
-
-        // Jika peran aktif bukan guru/wali_kelas tapi memiliki peran lain, cek apakah perlu redirect
-        if ($activeRole === 'kepala_tpq') {
-            return redirect()->to(base_url('backend/dashboard/kepala-tpq'));
+        
+        // Cek apakah user memiliki peran guru (baik dari group 'Guru' atau dari tbl_guru_kelas)
+        $hasGuruRole = in_groups('Guru') || in_array('guru', $userInfo['AllRoles']);
+        
+        // Jika tidak memiliki peran guru, redirect ke halaman utama
+        if (!$hasGuruRole) {
+            return redirect()->to(base_url());
         }
-        if ($activeRole === 'operator') {
-            return redirect()->to(base_url('backend/dashboard/operator'));
+
+        // Jika user memiliki multiple peran dan peran aktif bukan 'guru' atau 'wali_kelas',
+        // tapi user mengakses dashboard guru secara langsung, set peran aktif ke 'guru'
+        if ($userInfo['HasMultipleRoles'] && !in_array($activeRole, ['guru', 'wali_kelas'])) {
+            // Jika user mengakses dashboard guru secara langsung, set peran aktif ke 'guru'
+            session()->set('active_role', 'guru');
+            $activeRole = 'guru';
+            $userInfo['ActiveRole'] = 'guru';
         }
 
         $data = $this->getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru);

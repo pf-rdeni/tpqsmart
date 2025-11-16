@@ -123,6 +123,8 @@ $routes->post('GuruKelas/store', 'GuruKelas::store');
 $routes->get('edit/(:num)', 'GuruKelas::edit/$1');
 $routes->post('update/(:num)', 'GuruKelas::update/$1');
 $routes->get('backend/GuruKelas/delete/(:num)', 'Backend\GuruKelas::delete/$1');
+$routes->get('backend/GuruKelas/getDataByTahunAjaran', 'Backend\GuruKelas::getDataByTahunAjaran');
+$routes->get('backend/GuruKelas/getFilterOptions', 'Backend\GuruKelas::getFilterOptions');
 
 //Table tbl_struktur_lembaga
 $routes->get('backend/strukturlembaga', 'Backend\StrukturLembaga::index');

@@ -74,8 +74,36 @@
         <?php
         // Ambil active_role dari session untuk menentukan menu yang ditampilkan
         $activeRole = session()->get('active_role');
-        $isActiveOperator = ($activeRole === 'operator' || (empty($activeRole) && in_groups('Operator')));
-        $isActiveGuru = ($activeRole === 'guru' || $activeRole === 'wali_kelas' || $activeRole === 'kepala_tpq' || (empty($activeRole) && in_groups('Guru')));
+        $availableRoles = session()->get('available_roles') ?? [];
+        
+        // Cek apakah sedang di halaman Munaqosah (untuk menyembunyikan menu operator)
+        $currentUri = current_url(true);
+        $uriString = uri_string();
+        $request = \Config\Services::request();
+        $dashboardParam = $request->getGet('dashboard');
+        $isMunaqosahPage = (
+            strpos($uriString, 'munaqosah') !== false || 
+            strpos($currentUri->getPath(), 'munaqosah') !== false ||
+            $dashboardParam === 'munaqosah'
+        );
+        
+        // Cek apakah user memiliki peran operator
+        $hasOperatorRole = ($activeRole === 'operator' || (empty($activeRole) && in_groups('Operator')));
+        
+        // Menu operator (Kelembagaan, Guru, Santri, dll) tidak ditampilkan jika sedang di halaman Munaqosah
+        // Tapi menu Munaqosah tetap muncul untuk operator
+        $isActiveOperator = $hasOperatorRole && !$isMunaqosahPage;
+        
+        // Cek apakah user memiliki peran guru (dari active_role atau available_roles)
+        // Peran guru bisa dari: 'guru', 'wali_kelas', atau 'kepala_tpq' (kepala TPQ juga memiliki akses menu guru)
+        $hasGuruRole = in_array('guru', $availableRoles) || in_groups('Guru');
+        $isActiveGuru = (
+            $activeRole === 'guru' || 
+            $activeRole === 'wali_kelas' || 
+            $activeRole === 'kepala_tpq' || 
+            (empty($activeRole) && $hasGuruRole)
+        );
+        
         $isActiveKepalaTpq = ($activeRole === 'kepala_tpq');
         ?>
         <?php if ($isActiveGuru || $isActiveOperator): ?>
@@ -199,7 +227,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if (in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $isActiveOperator): ?>
+                <?php if (in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $hasOperatorRole): ?>
                     <!-- Munaqosah -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -286,7 +314,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if ($isActiveOperator): ?>
+                            <?php if ($hasOperatorRole): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -300,7 +328,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                            <?php if (in_groups('Admin') || $hasOperatorRole): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -662,7 +690,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if (in_groups('Guru')): ?>
+                <?php if ($isActiveGuru): ?>
                     <li class="nav-item">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>

@@ -37,22 +37,25 @@
             $allRoles = $availableRoles;
             $hasMultipleRoles = count($allRoles) > 1;
         } else {
-            // Jika tidak ada di session, cek manual (simplified version)
+            // Jika tidak ada di session, cek manual berdasarkan IdGuru
             $roleCount = 0;
+            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+
             if (in_groups('Admin')) {
                 $roleCount++;
             }
-            if (in_groups('Operator')) {
+
+            // Cek Operator - jika IdGuru memiliki peran sebagai Operator
+            if (in_groups('Operator') && !empty($idGuru)) {
+                // Cek apakah IdGuru ini adalah Operator
+                // Jika user adalah Operator dan memiliki IdGuru, tambahkan role operator
                 $roleCount++;
                 $allRoles[] = 'operator';
             }
-            if (in_groups('Guru') && !empty($idGuru) && !empty($idTpq)) {
-                $roleCount++;
-                $allRoles[] = 'guru';
-                
-                // Cek Kepala TPQ
+
+            // Cek Kepala TPQ - jika IdGuru memiliki peran sebagai Kepala TPQ
+            if (!empty($idGuru) && !empty($idTpq)) {
                 try {
-                    $helpFunctionModel = new \App\Models\HelpFunctionModel();
                     $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
                     foreach ($strukturLembaga as $jabatan) {
                         if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
@@ -64,31 +67,44 @@
                 } catch (\Throwable $e) {
                     // Ignore error
                 }
+            }
 
-                // Cek Wali Kelas
-                if (!empty($idKelas) && !empty($idTahunAjaran)) {
+            // Cek Guru Kelas/Wali Kelas - jika IdGuru memiliki peran sebagai Guru Kelas atau Wali Kelas
+            // Jika IdGuru memiliki data di tbl_guru_kelas (apapun IdJabatannya), berarti memiliki peran Guru
+            if (!empty($idGuru) && !empty($idTpq)) {
+                $hasGuruKelas = false;
+
+                // Cek 1: Apakah user memiliki group 'Guru'
+                if (in_groups('Guru')) {
+                    $hasGuruKelas = true;
+                } else {
+                    // Cek 2: Apakah IdGuru memiliki data di tbl_guru_kelas (apapun IdJabatannya)
+                    // Jika ada data di tbl_guru_kelas, berarti memiliki peran Guru
                     try {
-                        $helpFunctionModel = new \App\Models\HelpFunctionModel();
                         $guruKelasRows = $helpFunctionModel->getDataGuruKelas(
                             IdGuru: $idGuru,
-                            IdTpq: $idTpq,
-                            IdKelas: $idKelas,
-                            IdTahunAjaran: $idTahunAjaran
+                            IdTpq: $idTpq
                         );
-                        if (!empty($guruKelasRows)) {
-                            foreach ($guruKelasRows as $row) {
-                                if (isset($row->IdJabatan) && (int)$row->IdJabatan === 3) {
-                                    $roleCount++;
-                                    $allRoles[] = 'wali_kelas';
-                                    break;
-                                }
-                            }
+                        // Jika ada data di tbl_guru_kelas, berarti memiliki peran Guru
+                        // Tidak perlu mengecek IdJabatan spesifik, karena semua IdJabatan di tbl_guru_kelas adalah peran Guru
+                        if (!empty($guruKelasRows) && count($guruKelasRows) > 0) {
+                            $hasGuruKelas = true;
                         }
                     } catch (\Throwable $e) {
-                        // Ignore error
+                        // Ignore error, tapi log untuk debugging
+                        // log_message('error', 'Error checking guru kelas: ' . $e->getMessage());
+                    }
+                }
+
+                if ($hasGuruKelas) {
+                    // Pastikan 'guru' belum ada di array
+                    if (!in_array('guru', $allRoles)) {
+                        $roleCount++;
+                        $allRoles[] = 'guru';
                     }
                 }
             }
+
             $hasMultipleRoles = $roleCount > 1;
         }
 
@@ -99,8 +115,19 @@
             'guru' => 'Guru Kelas'
         ];
         $activeRoleLabel = isset($roleLabels[$activeRole]) ? $roleLabels[$activeRole] : 'Peran';
+
+        // Cek apakah sedang di halaman Munaqosah (tidak relevan untuk menampilkan menu peran)
+        $currentUri = current_url(true);
+        $uriString = uri_string();
+        $request = \Config\Services::request();
+        $dashboardParam = $request->getGet('dashboard');
+        $isMunaqosahPage = (
+            strpos($uriString, 'munaqosah') !== false ||
+            strpos($currentUri->getPath(), 'munaqosah') !== false ||
+            $dashboardParam === 'munaqosah'
+        );
         ?>
-        <?php if ($hasMultipleRoles && !in_groups('Admin')): ?>
+        <?php if ($hasMultipleRoles && !in_groups('Admin') && !$isMunaqosahPage): ?>
             <li class="nav-item dropdown">
                 <a class="nav-link" href="#" data-toggle="dropdown" title="Ganti Peran">
                     <i class="fas fa-user-cog"></i>
