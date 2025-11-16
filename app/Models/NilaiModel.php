@@ -340,10 +340,12 @@ class NilaiModel extends Model
     public function getDataNilaiPerKelas($IdTpq, $IdKelas = null, $IdTahunAjaran = null, $Semester)
     {
         // Query untuk mendapatkan kolom dinamis
+        // Gunakan subquery yang lebih aman untuk menghindari masalah escape string
         $materiBuilder = $this->db->table('tbl_nilai n');
-        $materiBuilder->select("GROUP_CONCAT(DISTINCT CONCAT('MAX(CASE WHEN n.IdMateri = \"', n.IdMateri, '\" THEN n.Nilai END) AS \"', m.NamaMateri, '\"')) AS dynamic_columns");
+        $materiBuilder->select("n.IdMateri, m.NamaMateri");
         $materiBuilder->join('tbl_materi_pelajaran m', 'n.IdMateri = m.IdMateri');
         $materiBuilder->where('n.IdTpq', $IdTpq);
+        $materiBuilder->groupBy('n.IdMateri, m.NamaMateri');
 
         if ($IdKelas !== null) {
             if (is_array($IdKelas)) {
@@ -365,12 +367,25 @@ class NilaiModel extends Model
         }
         $materiBuilder->where('n.Semester', $Semester);
 
-        $materiResult = $materiBuilder->get()->getRow();
-        $dynamicColumns = $materiResult->dynamic_columns;
+        $materiResults = $materiBuilder->get()->getResultArray();
+
+        // Build dynamic columns secara manual untuk menghindari masalah escape
+        $dynamicColumns = [];
+        if (!empty($materiResults)) {
+            foreach ($materiResults as $materi) {
+                $idMateri = $this->db->escape($materi['IdMateri']);
+                // Escape backticks dan karakter khusus untuk nama kolom
+                $namaMateri = str_replace('`', '``', $materi['NamaMateri']);
+                // Gunakan backticks untuk nama kolom yang aman
+                $dynamicColumns[] = "MAX(CASE WHEN n.IdMateri = {$idMateri} THEN n.Nilai END) AS `{$namaMateri}`";
+            }
+        }
+        $dynamicColumns = implode(', ', $dynamicColumns);
 
         if ($dynamicColumns) {
             $builder = $this->db->table('tbl_nilai n');
-            $builder->select("n.IdSantri AS 'IdSantri', s.NamaSantri AS 'Nama Santri', n.IdKelas, k.NamaKelas AS 'Nama Kelas', IdTahunAjaran AS 'Tahun Ajaran', Semester, $dynamicColumns");
+            // Fix: Tambahkan alias tabel untuk semua kolom dan escape dynamicColumns dengan benar
+            $builder->select("n.IdSantri AS 'IdSantri', s.NamaSantri AS 'Nama Santri', n.IdKelas, k.NamaKelas AS 'Nama Kelas', n.IdTahunAjaran AS 'Tahun Ajaran', n.Semester AS 'Semester', " . $dynamicColumns);
             $builder->join('tbl_kelas k', 'n.IdKelas = k.IdKelas');
             $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
 
@@ -397,7 +412,8 @@ class NilaiModel extends Model
 
             $builder->where('s.Active', 1);
 
-            $builder->groupBy(['IdSantri', 'IdTahunAjaran', 'Semester']);
+            // Fix: Gunakan alias tabel yang tepat untuk groupBy
+            $builder->groupBy(['n.IdSantri', 'n.IdTahunAjaran', 'n.Semester']);
             $builder->orderBy('n.IdKelas', 'ASC');
             $builder->orderBy('s.NamaSantri', 'ASC');
 
