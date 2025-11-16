@@ -71,7 +71,14 @@
                 <?php endif; ?>
             </div>
         </div>
-        <?php if (in_groups('Guru') || in_groups('Operator')): ?>
+        <?php
+        // Ambil active_role dari session untuk menentukan menu yang ditampilkan
+        $activeRole = session()->get('active_role');
+        $isActiveOperator = ($activeRole === 'operator' || (empty($activeRole) && in_groups('Operator')));
+        $isActiveGuru = ($activeRole === 'guru' || $activeRole === 'wali_kelas' || $activeRole === 'kepala_tpq' || (empty($activeRole) && in_groups('Guru')));
+        $isActiveKepalaTpq = ($activeRole === 'kepala_tpq');
+        ?>
+        <?php if ($isActiveGuru || $isActiveOperator): ?>
             <?php
             // Cek dan set tahun ajaran jika belum ada di session
             $helpFunctionModel = new \App\Models\HelpFunctionModel();
@@ -192,7 +199,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if (in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || in_groups('Operator')): ?>
+                <?php if (in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $isActiveOperator): ?>
                     <!-- Munaqosah -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -279,7 +286,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Operator')): ?>
+                            <?php if ($isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -293,7 +300,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -370,7 +377,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Panitia') || in_groups('Admin') || in_groups('Operator')): ?>
+                            <?php if (in_groups('Panitia') || in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/registrasi-peserta') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -387,7 +394,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                <?php if (in_groups('Admin') || $isActiveOperator): ?>
                     <!--  Kelembagaan -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -406,7 +413,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Operator')): ?>
+                            <?php if ($isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/tpq/profilLembaga') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -491,7 +498,7 @@
                                     <p>Data Emis</p>
                                 </a>
                             </li>
-                            <?php if (in_groups('Operator')): ?>
+                            <?php if ($isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>

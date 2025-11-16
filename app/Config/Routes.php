@@ -33,6 +33,12 @@ $routes->get('login', 'AuthController::login', ['as' => 'login']);
 $routes->post('login', 'AuthController::attemptLogin');
 
 $routes->get('/', 'Dashboard::index');
+$routes->get('backend/dashboard/select-role', 'Dashboard::selectRole');
+$routes->post('backend/dashboard/switch-role', 'Dashboard::switchRole');
+$routes->get('backend/dashboard/guru', 'Dashboard::dashboardGuru');
+$routes->get('backend/dashboard/operator', 'Dashboard::dashboardOperator');
+$routes->get('backend/dashboard/kepala-tpq', 'Dashboard::dashboardKepalaTpq');
+$routes->get('backend/dashboard/admin', 'Dashboard::dashboardAdmin');
 $routes->post('dashboard/updateTahunAjaranDanKelas', 'Dashboard::updateTahunAjaranDanKelas');
 //$routes->get('/', 'Backend\Pages::index');
 //$routes->get('/', 'Frontend\Home::index');

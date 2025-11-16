@@ -20,6 +20,116 @@
 
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
+        <!-- Role Switcher (hanya untuk user dengan multiple peran) -->
+        <?php
+        // Cek apakah user memiliki multiple peran
+        $idGuru = session()->get('IdGuru');
+        $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran');
+        $idKelas = session()->get('IdKelas');
+        $hasMultipleRoles = false;
+        $allRoles = [];
+        $activeRole = session()->get('active_role');
+        $availableRoles = session()->get('available_roles', []);
+
+        // Jika available_roles ada di session, gunakan itu
+        if (!empty($availableRoles)) {
+            $allRoles = $availableRoles;
+            $hasMultipleRoles = count($allRoles) > 1;
+        } else {
+            // Jika tidak ada di session, cek manual (simplified version)
+            $roleCount = 0;
+            if (in_groups('Admin')) {
+                $roleCount++;
+            }
+            if (in_groups('Operator')) {
+                $roleCount++;
+                $allRoles[] = 'operator';
+            }
+            if (in_groups('Guru') && !empty($idGuru) && !empty($idTpq)) {
+                $roleCount++;
+                $allRoles[] = 'guru';
+                
+                // Cek Kepala TPQ
+                try {
+                    $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                    $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                    foreach ($strukturLembaga as $jabatan) {
+                        if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                            $roleCount++;
+                            $allRoles[] = 'kepala_tpq';
+                            break;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore error
+                }
+
+                // Cek Wali Kelas
+                if (!empty($idKelas) && !empty($idTahunAjaran)) {
+                    try {
+                        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                        $guruKelasRows = $helpFunctionModel->getDataGuruKelas(
+                            IdGuru: $idGuru,
+                            IdTpq: $idTpq,
+                            IdKelas: $idKelas,
+                            IdTahunAjaran: $idTahunAjaran
+                        );
+                        if (!empty($guruKelasRows)) {
+                            foreach ($guruKelasRows as $row) {
+                                if (isset($row->IdJabatan) && (int)$row->IdJabatan === 3) {
+                                    $roleCount++;
+                                    $allRoles[] = 'wali_kelas';
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        // Ignore error
+                    }
+                }
+            }
+            $hasMultipleRoles = $roleCount > 1;
+        }
+
+        $roleLabels = [
+            'operator' => 'Operator',
+            'kepala_tpq' => 'Kepala TPQ',
+            'wali_kelas' => 'Wali Kelas',
+            'guru' => 'Guru Kelas'
+        ];
+        $activeRoleLabel = isset($roleLabels[$activeRole]) ? $roleLabels[$activeRole] : 'Peran';
+        ?>
+        <?php if ($hasMultipleRoles && !in_groups('Admin')): ?>
+            <li class="nav-item dropdown">
+                <a class="nav-link" href="#" data-toggle="dropdown" title="Ganti Peran">
+                    <i class="fas fa-user-cog"></i>
+                    <span class="d-none d-md-inline ml-1"><?= esc($activeRoleLabel) ?></span>
+                    <i class="fas fa-angle-down ml-1"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <span class="dropdown-header">Pilih Peran</span>
+                    <div class="dropdown-divider"></div>
+                    <?php foreach ($allRoles as $role): ?>
+                        <?php if (isset($roleLabels[$role])): ?>
+                            <a href="#" class="dropdown-item switch-role-btn <?= $role === $activeRole ? 'active' : '' ?>" data-role="<?= esc($role) ?>">
+                                <?php if ($role === $activeRole): ?>
+                                    <i class="fas fa-check text-success"></i>
+                                <?php else: ?>
+                                    <i class="far fa-circle"></i>
+                                <?php endif; ?>
+                                <span class="ml-2"><?= esc($roleLabels[$role]) ?></span>
+                            </a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                    <div class="dropdown-divider"></div>
+                    <a href="<?= base_url('backend/dashboard/select-role') ?>" class="dropdown-item">
+                        <i class="fas fa-cog"></i>
+                        <span class="ml-2">Kelola Peran</span>
+                    </a>
+                </div>
+            </li>
+        <?php endif; ?>
         <!-- Dashboard Selector Toggle (hanya untuk Admin dan Operator) -->
         <?php if (in_groups('Admin') || in_groups('Operator')): ?>
             <li class="nav-item">

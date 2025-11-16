@@ -206,31 +206,12 @@ class Dashboard extends BaseController
     }
 
     /**
-     * Halaman utama dashboard
+     * Helper method untuk inisialisasi session tahun ajaran
      */
-    public function index()
+    private function initSessionTahunAjaran()
     {
-        // Cek jika user adalah JuriSertifikasi, redirect ke dashboard sertifikasi
-        if (in_groups('JuriSertifikasi')) {
-            return redirect()->to(base_url('backend/sertifikasi/dashboard'));
-        }
-
-        // Cek jika user adalah PanitiaSertifikasi, redirect ke dashboard panitia sertifikasi
-        if (in_groups('PanitiaSertifikasi')) {
-            return redirect()->to(base_url('backend/sertifikasi/dashboardPanitiaSertifikasi'));
-        }
-
-        // Cek jika user adalah Juri atau Panitia, redirect ke dashboard munaqosah
-        if (in_groups('Juri') || in_groups('Panitia')) {
-            return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah'));
-        }
-
-        // Untuk Admin dan Operator, biarkan JavaScript handle redirect berdasarkan localStorage
-        // Dashboard default (ujian semester) akan ditampilkan jika tidak ada pilihan di localStorage
-
-        $idTpq = session()->get('IdTpq');
-        $idTahunAjaran = session()->get('IdTahunAjaran');
         $idTahunAjaranList = session()->get('IdTahunAjaranList');
+        $idTahunAjaran = session()->get('IdTahunAjaran');
         $tahunAjaranSaatIni = $this->helpFunctionModel->getTahunAjaranSaatIni();
 
         // Jika IdTahunAjaranList null atau kosong, set ke tahun ajaran saat ini
@@ -250,12 +231,137 @@ class Dashboard extends BaseController
             $idTahunAjaranList[] = $tahunAjaranSaatIni;
             session()->set('IdTahunAjaranList', $idTahunAjaranList);
         }
+    }
 
-        $idKelas = session()->get('IdKelas');
+    /**
+     * Helper method untuk mendapatkan semua peran yang dimiliki IdGuru
+     * Mengembalikan array peran: ['kepala_tpq', 'operator', 'wali_kelas', 'guru']
+     */
+    private function getAllUserRoles($idGuru = null, $idTpq = null, $idTahunAjaran = null, $idKelas = null)
+    {
+        $roles = [];
+        
+        if (empty($idGuru)) {
+            $idGuru = session()->get('IdGuru');
+        }
+        if (empty($idTpq)) {
+            $idTpq = session()->get('IdTpq');
+        }
+        if (empty($idTahunAjaran)) {
+            $idTahunAjaran = session()->get('IdTahunAjaran');
+        }
+        if (empty($idKelas)) {
+            $idKelas = session()->get('IdKelas');
+        }
+
+        // Cek apakah user adalah Admin (prioritas tertinggi, tidak perlu cek peran lain)
+        if (in_groups('Admin')) {
+            return ['admin'];
+        }
+
+        // Cek apakah user adalah Operator (dari auth groups)
+        if (in_groups('Operator')) {
+            $roles[] = 'operator';
+        }
+
+        // Cek apakah IdGuru ada (untuk peran Kepala TPQ, Wali Kelas, Guru)
+        if (!empty($idGuru) && !empty($idTpq)) {
+            // Cek apakah guru adalah Kepala TPQ dari struktur lembaga
+            try {
+                $strukturLembaga = $this->helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                foreach ($strukturLembaga as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $roles[] = 'kepala_tpq';
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore error
+            }
+
+            // Cek apakah guru adalah Wali Kelas
+            if (!empty($idKelas) && !empty($idTahunAjaran)) {
+                try {
+                    $guruKelasRows = $this->helpFunctionModel->getDataGuruKelas(
+                        IdGuru: $idGuru,
+                        IdTpq: $idTpq,
+                        IdKelas: $idKelas,
+                        IdTahunAjaran: $idTahunAjaran
+                    );
+                    if (!empty($guruKelasRows)) {
+                        foreach ($guruKelasRows as $row) {
+                            if (isset($row->IdJabatan) && (int)$row->IdJabatan === 3) {
+                                $roles[] = 'wali_kelas';
+                                break;
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore error
+                }
+            }
+
+            // Cek apakah guru adalah Guru biasa (jika memiliki group Guru)
+            if (in_groups('Guru')) {
+                $roles[] = 'guru';
+            }
+        }
+
+        // Jika tidak ada peran yang ditemukan, return default
+        if (empty($roles)) {
+            $roles = ['pengguna'];
+        }
+
+        return array_unique($roles);
+    }
+
+    /**
+     * Helper method untuk mendapatkan peran aktif dari session atau menentukan default
+     */
+    private function getActiveRole($allRoles = [])
+    {
+        if (empty($allRoles)) {
+            $allRoles = $this->getAllUserRoles();
+        }
+
+        // Jika hanya satu peran, langsung return
+        if (count($allRoles) === 1) {
+            return $allRoles[0];
+        }
+
+        // Ambil peran aktif dari session
+        $activeRole = session()->get('active_role');
+
+        // Jika peran aktif tidak ada di list peran yang dimiliki, reset ke default
+        if (!empty($activeRole) && in_array($activeRole, $allRoles)) {
+            return $activeRole;
+        }
+
+        // Tentukan peran default berdasarkan prioritas
+        $priorityRoles = ['admin', 'operator', 'kepala_tpq', 'wali_kelas', 'guru', 'pengguna'];
+        foreach ($priorityRoles as $priorityRole) {
+            if (in_array($priorityRole, $allRoles)) {
+                return $priorityRole;
+            }
+        }
+
+        // Fallback ke peran pertama
+        return $allRoles[0];
+    }
+
+    /**
+     * Helper method untuk mendapatkan data user (nama, sapaan, peran)
+     */
+    private function getUserInfo()
+    {
         $idGuru = session()->get('IdGuru');
-        // Tentukan nama login dan peran login
+        $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran');
+        $idKelas = session()->get('IdKelas');
+
         $namaLogin = null;
         $sapaanLogin = null;
+        
         if (!empty($idGuru)) {
             $guruRow = $this->helpFunctionModel->getGuruById($idGuru);
             if (is_array($guruRow)) {
@@ -263,7 +369,6 @@ class Dashboard extends BaseController
                     $namaLogin = $guruRow['Nama'];
                 }
                 $jk = strtolower(trim($guruRow['JenisKelamin'] ?? ''));
-                // Asumsi: 'P' atau 'Perempuan' => Ustadzah; lainnya => Ustadz
                 if ($jk === 'p' || $jk === 'perempuan' || $jk === 'female' || $jk === 'f') {
                     $sapaanLogin = 'Ustadzah';
                 } else if ($jk === 'l' || $jk === 'laki-laki' || $jk === 'laki laki' || $jk === 'male' || $jk === 'm') {
@@ -271,6 +376,7 @@ class Dashboard extends BaseController
                 }
             }
         }
+        
         if ($namaLogin === null && function_exists('user') && user()) {
             $namaLogin = user()->username ?? user()->email ?? 'Pengguna';
         }
@@ -278,45 +384,239 @@ class Dashboard extends BaseController
             $sapaanLogin = 'Ustadz';
         }
 
-        // Tentukan peran login dengan cek langsung ke tbl_guru_kelas berdasarkan session
-        $peranLogin = (in_groups('Admin') ? 'Admin' : (in_groups('Operator') ? 'Operator' : 'Pengguna'));
-        if (in_groups('Guru')) {
-            $peranLogin = 'Guru Kelas';
-            try {
-                $guruKelasRows = $this->helpFunctionModel->getDataGuruKelas(
-                    IdGuru: $idGuru,
-                    IdTpq: $idTpq,
-                    IdKelas: $idKelas,
-                    IdTahunAjaran: $idTahunAjaran
-                );
-                if (!empty($guruKelasRows)) {
-                    foreach ($guruKelasRows as $row) {
-                        if (isset($row->IdJabatan) && (int)$row->IdJabatan === 3) {
-                            $peranLogin = 'Wali Kelas';
-                            break;
-                        }
-                    }
-                }
-            } catch (\Throwable $e) {
-                // fallback tetap 'Guru Kelas' jika terjadi error
+        // Ambil semua peran yang dimiliki
+        $allRoles = $this->getAllUserRoles($idGuru, $idTpq, $idTahunAjaran, $idKelas);
+        $activeRole = $this->getActiveRole($allRoles);
+
+        // Tentukan peran login untuk display
+        $peranLoginMap = [
+            'admin' => 'Admin',
+            'operator' => 'Operator',
+            'kepala_tpq' => 'Kepala TPQ',
+            'wali_kelas' => 'Wali Kelas',
+            'guru' => 'Guru Kelas',
+            'pengguna' => 'Pengguna'
+        ];
+        $peranLogin = $peranLoginMap[$activeRole] ?? 'Pengguna';
+
+        return [
+            'NamaLogin' => $namaLogin,
+            'SapaanLogin' => $sapaanLogin,
+            'PeranLogin' => $peranLogin,
+            'ActiveRole' => $activeRole,
+            'AllRoles' => $allRoles,
+            'IsKepalaTpq' => in_array('kepala_tpq', $allRoles),
+            'IsOperator' => in_array('operator', $allRoles),
+            'IsWaliKelas' => in_array('wali_kelas', $allRoles),
+            'IsGuru' => in_array('guru', $allRoles),
+            'HasMultipleRoles' => count($allRoles) > 1
+        ];
+    }
+
+    /**
+     * Halaman utama dashboard - redirect ke dashboard sesuai role
+     */
+    public function index()
+    {
+        // Cek jika user adalah JuriSertifikasi, redirect ke dashboard sertifikasi
+        if (in_groups('JuriSertifikasi')) {
+            return redirect()->to(base_url('backend/sertifikasi/dashboard'));
+        }
+
+        // Cek jika user adalah PanitiaSertifikasi, redirect ke dashboard panitia sertifikasi
+        if (in_groups('PanitiaSertifikasi')) {
+            return redirect()->to(base_url('backend/sertifikasi/dashboardPanitiaSertifikasi'));
+        }
+
+        // Cek jika user adalah Juri atau Panitia, redirect ke dashboard munaqosah
+        if (in_groups('Juri') || in_groups('Panitia')) {
+            return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah'));
+        }
+
+        // Untuk Admin dan Operator, cek query parameter dashboard untuk redirect server-side
+        if (in_groups('Admin') || in_groups('Operator')) {
+            $dashboardParam = $this->request->getGet('dashboard');
+            if ($dashboardParam === 'munaqosah') {
+                return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah'));
+            }
+            if ($dashboardParam === 'sertifikasi' && in_groups('Admin')) {
+                return redirect()->to(base_url('backend/sertifikasi/dashboard-admin'));
             }
         }
 
-        if (in_groups('Guru')) {
-            $data = $this->getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru);
-        } else if (in_groups('Admin') || in_groups('Operator')) {
-            $data = $this->getAdminDashboardData($idTpq, $idTahunAjaran);
-        } else {
-            $data = ['page_title' => 'Dashboard'];
+        // Inisialisasi session tahun ajaran
+        $this->initSessionTahunAjaran();
+
+        // Redirect ke dashboard sesuai peran aktif
+        $userInfo = $this->getUserInfo();
+        $activeRole = $userInfo['ActiveRole'];
+
+        // Simpan all roles dan active role ke session untuk digunakan di view (selalu update)
+        session()->set('available_roles', $userInfo['AllRoles']);
+        session()->set('active_role', $activeRole);
+
+        // Jika multiple peran dan belum ada peran aktif di session, tampilkan modal pemilihan
+        if ($userInfo['HasMultipleRoles'] && empty($activeRole)) {
+            // Redirect ke halaman pemilihan peran
+            return redirect()->to(base_url('backend/dashboard/select-role'));
         }
 
-        // Tambahkan NamaLogin dan PeranLogin ke data view
-        $data['NamaLogin'] = $namaLogin;
-        $data['PeranLogin'] = $peranLogin;
-        $data['SapaanLogin'] = $sapaanLogin;
+        // Redirect berdasarkan peran aktif
+        switch ($activeRole) {
+            case 'admin':
+                return redirect()->to(base_url('backend/dashboard/admin'));
+            case 'operator':
+                return redirect()->to(base_url('backend/dashboard/operator'));
+            case 'kepala_tpq':
+                return redirect()->to(base_url('backend/dashboard/kepala-tpq'));
+            case 'wali_kelas':
+            case 'guru':
+            default:
+                return redirect()->to(base_url('backend/dashboard/guru'));
+        }
+    }
+
+    /**
+     * Halaman pemilihan peran jika user memiliki multiple peran
+     */
+    public function selectRole()
+    {
+        $userInfo = $this->getUserInfo();
+        
+        // Jika tidak multiple peran, redirect ke dashboard sesuai peran
+        if (!$userInfo['HasMultipleRoles']) {
+            return redirect()->to(base_url('backend/dashboard'));
+        }
+
+        $roleMap = [
+            'operator' => [
+                'label' => 'Operator',
+                'icon' => 'user-cog',
+                'description' => 'Mengelola data administrasi dan operasional TPQ',
+                'color' => 'success'
+            ],
+            'kepala_tpq' => [
+                'label' => 'Kepala TPQ',
+                'icon' => 'user-shield',
+                'description' => 'Mengawasi dan mengelola seluruh kegiatan akademik TPQ',
+                'color' => 'purple'
+            ],
+            'wali_kelas' => [
+                'label' => 'Wali Kelas',
+                'icon' => 'chalkboard-teacher',
+                'description' => 'Mengelola kelas yang diwalikan',
+                'color' => 'info'
+            ],
+            'guru' => [
+                'label' => 'Guru Kelas',
+                'icon' => 'chalkboard-teacher',
+                'description' => 'Mengajar dan mengelola kelas yang diajar',
+                'color' => 'primary'
+            ]
+        ];
+
+        // Filter role map berdasarkan available roles
+        $availableRoles = [];
+        foreach ($userInfo['AllRoles'] as $role) {
+            if (isset($roleMap[$role])) {
+                $availableRoles[$role] = $roleMap[$role];
+            }
+        }
+
+        $data = [
+            'page_title' => 'Pilih Peran',
+            'available_roles' => $availableRoles,
+            'user_info' => $userInfo
+        ];
+
+        return view('backend/dashboard/selectRole', $data);
+    }
+
+    /**
+     * API untuk switch peran aktif
+     */
+    public function switchRole()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $input = $this->request->getJSON(true);
+        $newRole = $input['role'] ?? null;
+
+        if (empty($newRole)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Peran tidak boleh kosong'
+            ]);
+        }
+
+        // Validasi peran dengan semua peran yang dimiliki user
+        $userInfo = $this->getUserInfo();
+        if (!in_array($newRole, $userInfo['AllRoles'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Peran tidak valid atau tidak tersedia untuk user ini'
+            ]);
+        }
+
+        // Simpan peran aktif ke session
+        session()->set('active_role', $newRole);
+
+        // Tentukan redirect URL berdasarkan peran
+        $redirectMap = [
+            'admin' => base_url('backend/dashboard/admin'),
+            'operator' => base_url('backend/dashboard/operator'),
+            'kepala_tpq' => base_url('backend/dashboard/kepala-tpq'),
+            'wali_kelas' => base_url('backend/dashboard/guru'),
+            'guru' => base_url('backend/dashboard/guru')
+        ];
+
+        $redirectUrl = $redirectMap[$newRole] ?? base_url('backend/dashboard');
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Peran berhasil diubah',
+            'redirect' => $redirectUrl
+        ]);
+    }
+
+    /**
+     * Dashboard untuk Guru/Wali Kelas
+     */
+    public function dashboardGuru()
+    {
+        if (!in_groups('Guru')) {
+            return redirect()->to(base_url());
+        }
+
+        $this->initSessionTahunAjaran();
+        
+        $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran');
+        $idKelas = session()->get('IdKelas');
+        $idGuru = session()->get('IdGuru');
+
+        // Cek peran aktif
+        $userInfo = $this->getUserInfo();
+        $activeRole = $userInfo['ActiveRole'];
+
+        // Jika peran aktif bukan guru/wali_kelas tapi memiliki peran lain, cek apakah perlu redirect
+        if ($activeRole === 'kepala_tpq') {
+            return redirect()->to(base_url('backend/dashboard/kepala-tpq'));
+        }
+        if ($activeRole === 'operator') {
+            return redirect()->to(base_url('backend/dashboard/operator'));
+        }
+
+        $data = $this->getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru);
+        $data = array_merge($data, $userInfo);
 
         // Jika wali kelas, kumpulkan daftar nama kelas yang diwalikan
-        if ($peranLogin === 'Wali Kelas') {
+        if ($userInfo['PeranLogin'] === 'Wali Kelas') {
             try {
                 $waliRows = $this->helpFunctionModel->getDataGuruKelas(
                     IdGuru: $idGuru,
@@ -329,7 +629,7 @@ class Dashboard extends BaseController
                 if (!empty($waliRows)) {
                     foreach ($waliRows as $row) {
                         if (!empty($row->NamaKelas)) {
-                            $kelasNames[$row->NamaKelas] = true; // unique by name
+                            $kelasNames[$row->NamaKelas] = true;
                         }
                     }
                 }
@@ -339,7 +639,87 @@ class Dashboard extends BaseController
             }
         }
 
-        return view('backend/dashboard/index', $data);
+        return view('backend/dashboard/dashboardGuru', $data);
+    }
+
+    /**
+     * Dashboard untuk Operator
+     */
+    public function dashboardOperator()
+    {
+        $userInfo = $this->getUserInfo();
+        
+        // Cek apakah user memiliki peran operator
+        if (!in_array('operator', $userInfo['AllRoles'])) {
+            return redirect()->to(base_url());
+        }
+
+        // Validasi peran aktif
+        if ($userInfo['ActiveRole'] !== 'operator' && $userInfo['HasMultipleRoles']) {
+            // Jika peran aktif bukan operator, tapi memiliki multiple peran, perlu konfirmasi
+            // Tapi karena sudah ada validasi di index(), biarkan saja
+        }
+
+        $this->initSessionTahunAjaran();
+        
+        $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran');
+
+        $data = $this->getAdminDashboardData($idTpq, $idTahunAjaran);
+        $data = array_merge($data, $userInfo);
+
+        return view('backend/dashboard/dashboardOperator', $data);
+    }
+
+    /**
+     * Dashboard untuk Kepala TPQ
+     */
+    public function dashboardKepalaTpq()
+    {
+        $userInfo = $this->getUserInfo();
+        
+        // Cek apakah user memiliki peran kepala_tpq
+        if (!in_array('kepala_tpq', $userInfo['AllRoles'])) {
+            return redirect()->to(base_url());
+        }
+
+        // Validasi peran aktif
+        if ($userInfo['ActiveRole'] !== 'kepala_tpq' && $userInfo['HasMultipleRoles']) {
+            // Jika peran aktif bukan kepala_tpq, tapi memiliki multiple peran, perlu konfirmasi
+        }
+
+        $this->initSessionTahunAjaran();
+        
+        $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran');
+        $idGuru = session()->get('IdGuru');
+
+        // Dashboard Kepala TPQ memiliki akses seperti Admin tapi untuk TPQ nya saja
+        $data = $this->getAdminDashboardData($idTpq, $idTahunAjaran);
+        $data = array_merge($data, $userInfo);
+
+        return view('backend/dashboard/dashboardKepalaTpq', $data);
+    }
+
+    /**
+     * Dashboard untuk Admin
+     */
+    public function dashboardAdmin()
+    {
+        if (!in_groups('Admin')) {
+            return redirect()->to(base_url());
+        }
+
+        $this->initSessionTahunAjaran();
+        
+        $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran');
+
+        $data = $this->getAdminDashboardData($idTpq, $idTahunAjaran);
+        $userInfo = $this->getUserInfo();
+        $data = array_merge($data, $userInfo);
+
+        return view('backend/dashboard/dashboardAdmin', $data);
     }
 
     /**

@@ -113,4 +113,47 @@
         return capitalizeEachWord(hasil.trim());
     }
     //=============================================================================================
+    
+    // Handle Role Switcher
+    $(document).ready(function() {
+        $('.switch-role-btn').on('click', function(e) {
+            e.preventDefault();
+            const role = $(this).data('role');
+            const $btn = $(this);
+            
+            // Jika sudah aktif, tidak perlu switch
+            if ($btn.hasClass('active')) {
+                return;
+            }
+            
+            // Disable semua button
+            $('.switch-role-btn').addClass('disabled');
+            $btn.html('<i class="fas fa-spinner fa-spin"></i> <span class="ml-2">Memproses...</span>');
+
+            // Kirim request untuk switch role
+            $.ajax({
+                url: '<?= base_url('backend/dashboard/switch-role') ?>',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    role: role
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        // Redirect ke dashboard sesuai peran
+                        window.location.href = response.redirect;
+                    } else {
+                        alert('Gagal mengubah peran: ' + (response.message || 'Terjadi kesalahan'));
+                        // Enable button kembali
+                        location.reload();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Terjadi kesalahan saat mengubah peran. Silakan coba lagi.');
+                    // Enable button kembali
+                    location.reload();
+                }
+            });
+        });
+    });
 </script>
