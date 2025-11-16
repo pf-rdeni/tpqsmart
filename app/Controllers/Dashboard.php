@@ -12,99 +12,21 @@ use App\Models\HelpFunctionModel;
 use App\Models\SantriModel;
 use App\Models\TabunganModel;
 
-class Auth extends BaseController
+/**
+ * Dashboard Controller
+ * Menangani halaman dashboard dan manajemen session untuk dashboard
+ */
+class Dashboard extends BaseController
 {
     protected $helpFunctionModel;
     protected $santriModel;
     protected $tabunganModel;
+    
     public function __construct()
     {
         $this->helpFunctionModel = new HelpFunctionModel();
         $this->santriModel = new SantriModel();
         $this->tabunganModel = new TabunganModel();
-    }
-
-    /**
-     * Set Guru-related session data and scoring settings.
-     * This centralizes logic previously in vendor auth controller.
-     */
-    public function setGuruSessionData($idGuru)
-    {
-        if ($idGuru == null) {
-            return;
-        }
-
-        try {
-            // Get all guru session data in optimized queries
-            $guruData = $this->helpFunctionModel->getGuruSessionDataOptimized($idGuru);
-
-            $dataGuruKelas = $guruData['guruKelasData'];
-            $settings = $guruData['settings'];
-            $kelasOnLatestTa = $guruData['kelasOnLatestTa'];
-            $idTpqFromGuru = $guruData['idTpqFromGuru'];
-            $tahunAjaranFromGuruKelas = $guruData['tahunAjaranFromGuruKelas'];
-
-            // Set settings
-            if ($settings) {
-                session()->set('SettingNilaiMin', (int)($settings['Min'] ?? 0));
-                session()->set('SettingNilaiMax', (int)($settings['Max'] ?? 100));
-
-                if (isset($settings['Nilai_Alphabet'])) {
-                    session()->set('SettingNilaiAlphabet', $settings['Nilai_Alphabet']);
-                }
-
-                if (isset($settings['Nilai_Angka_Arabic'])) {
-                    session()->set('SettingNilaiArabic', $settings['Nilai_Angka_Arabic']);
-                }
-            }
-
-            // Set session utama
-            if ($dataGuruKelas) {
-                $IdKelasList = [];
-                $IdJabatanList = [];
-                $IdTahunAjaranList = [];
-                $IdTpq = '';
-
-                foreach ($dataGuruKelas as $dataGuru) {
-                    $IdKelasList[] = $dataGuru->IdKelas;
-                    $IdJabatanList[] = $dataGuru->IdJabatan;
-                    $IdTahunAjaranList[] = $dataGuru->IdTahunAjaran;
-                    $IdTpq = $dataGuru->IdTpq;
-                }
-
-                $IdTahunAjaranList = array_unique($IdTahunAjaranList);
-                $IdTahunAjaranList = array_values($IdTahunAjaranList);
-
-                // Use optimized kelas data if available
-                if ($kelasOnLatestTa) {
-                    $IdKelasList = array_map(function ($kelas) {
-                        return $kelas->IdKelas;
-                    }, $kelasOnLatestTa);
-                }
-
-                session()->set('IdGuru', $idGuru);
-                session()->set('IdKelas', $IdKelasList);
-                session()->set('IdJabatan', $IdJabatanList);
-                session()->set('IdTahunAjaranList', $IdTahunAjaranList);
-                session()->set('IdTahunAjaran', $IdTahunAjaranList[count($IdTahunAjaranList) - 1]);
-                session()->set('IdTpq', $IdTpq);
-            } else {
-                session()->set('IdGuru', $idGuru);
-
-                if ($idTpqFromGuru) {
-                    session()->set('IdTpq', $idTpqFromGuru);
-                }
-
-                if ($tahunAjaranFromGuruKelas && !empty($tahunAjaranFromGuruKelas)) {
-                    session()->set('IdTahunAjaranList', $tahunAjaranFromGuruKelas);
-                    $idTahunAjaran = $tahunAjaranFromGuruKelas[count($tahunAjaranFromGuruKelas) - 1];
-                    session()->set('IdTahunAjaran', $idTahunAjaran);
-                }
-            }
-        } catch (\Exception $e) {
-            // Log error and fallback to original method if needed
-            log_message('error', 'Error in optimized setGuruSessionData: ' . $e->getMessage());
-        }
     }
 
     private function getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $kelasList, $semester)
@@ -283,8 +205,9 @@ class Auth extends BaseController
         ];
     }
 
-
-
+    /**
+     * Halaman utama dashboard
+     */
     public function index()
     {
         // Cek jika user adalah JuriSertifikasi, redirect ke dashboard sertifikasi
@@ -418,28 +341,10 @@ class Auth extends BaseController
 
         return view('backend/dashboard/index', $data);
     }
+
     /**
-     * Setup session data setelah login berhasil
-     * Method ini dipanggil dari AuthController setelah user berhasil login
-     * 
-     * @return string Redirect URL
+     * Logout user
      */
-    public function setupPostLoginSession()
-    {
-        // Ambil informasi Guru Kelas
-        $idGuru = user()->nik ?? null;
-
-        if ($idGuru) {
-            $this->setGuruSessionData($idGuru);
-        }
-
-        // Ambil redirect URL dari session atau default ke home
-        $redirectURL = session('redirect_url') ?? site_url('/');
-        unset($_SESSION['redirect_url']);
-
-        return $redirectURL;
-    }
-
     public function logout()
     {
         // Hapus session
@@ -551,3 +456,4 @@ class Auth extends BaseController
         }
     }
 }
+

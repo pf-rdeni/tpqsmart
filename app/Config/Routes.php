@@ -26,8 +26,14 @@ $routes->setAutoRoute(true);
  * Route Definitions
  * --------------------------------------------------------------------
  */
-$routes->get('/', 'Auth::index');
-$routes->post('auth/updateTahunAjaranDanKelas', 'Auth::updateTahunAjaranDanKelas');
+
+// Override Myth Auth routes untuk menggunakan custom AuthController
+// Route ini harus didefinisikan SEBELUM Myth Auth routes dimuat agar memiliki prioritas lebih tinggi
+$routes->get('login', 'AuthController::login', ['as' => 'login']);
+$routes->post('login', 'AuthController::attemptLogin');
+
+$routes->get('/', 'Dashboard::index');
+$routes->post('dashboard/updateTahunAjaranDanKelas', 'Dashboard::updateTahunAjaranDanKelas');
 //$routes->get('/', 'Backend\Pages::index');
 //$routes->get('/', 'Frontend\Home::index');
 $routes->get('program', 'Frontend\Program::index');
@@ -352,7 +358,7 @@ $routes->get('signature/santri/(:num)', 'Frontend\\Signature::getSignaturesBySan
 $routes->get('signature/guru/(:num)', 'Frontend\\Signature::getSignaturesByGuru/$1');
 $routes->get('signature/tpq/(:num)', 'Frontend\\Signature::getSignaturesByTpq/$1');
 
-$routes->get('logout', 'Auth::logout');
+$routes->get('logout', 'Dashboard::logout');
 
 /*
  * --------------------------------------------------------------------
