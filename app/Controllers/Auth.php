@@ -418,6 +418,28 @@ class Auth extends BaseController
 
         return view('backend/dashboard/index', $data);
     }
+    /**
+     * Setup session data setelah login berhasil
+     * Method ini dipanggil dari AuthController setelah user berhasil login
+     * 
+     * @return string Redirect URL
+     */
+    public function setupPostLoginSession()
+    {
+        // Ambil informasi Guru Kelas
+        $idGuru = user()->nik ?? null;
+
+        if ($idGuru) {
+            $this->setGuruSessionData($idGuru);
+        }
+
+        // Ambil redirect URL dari session atau default ke home
+        $redirectURL = session('redirect_url') ?? site_url('/');
+        unset($_SESSION['redirect_url']);
+
+        return $redirectURL;
+    }
+
     public function logout()
     {
         // Hapus session
