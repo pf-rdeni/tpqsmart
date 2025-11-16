@@ -1,6 +1,6 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
-    <a href=<?php echo base_url('auth/index') ?> class="brand-link">
+    <a href=<?php echo base_url('/') ?> class="brand-link">
         <?php
         // Ambil logo lembaga dari database
         $logoUrl = base_url('/template/backend/dist/img/AdminLTELogo.png'); // Default logo
@@ -113,7 +113,7 @@
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 <li class="nav-item">
-                    <a href=<?php echo base_url('auth/index') ?> class="nav-link">
+                    <a href=<?php echo base_url('/') ?> class="nav-link">
                         <i class="nav-icon 	fas fa-tachometer-alt"></i>
                         <p> Dashboard</p>
                     </a>
@@ -913,7 +913,7 @@
                 this.style.opacity = '0.6';
 
                 // Kirim request ke server untuk update session
-                fetch('<?= base_url('auth/updateTahunAjaranDanKelas') ?>', {
+                fetch('<?= base_url('dashboard/updateTahunAjaranDanKelas') ?>', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

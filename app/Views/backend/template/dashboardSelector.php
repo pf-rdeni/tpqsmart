@@ -223,9 +223,8 @@ $(document).ready(function() {
         // Hanya redirect jika user berada di dashboard default (ujian semester)
         // dan pilihan bukan semester
         const isDashboardDefault = currentPath === '/' || 
-                                   currentPath === '/auth/index' || 
                                    currentPath.includes('/dashboard/index') ||
-                                   (currentUrl.includes('auth/index') && 
+                                   (currentUrl.includes('dashboard') && 
                                     !currentUrl.includes('munaqosah') && 
                                     !currentUrl.includes('sertifikasi'));
         
@@ -253,7 +252,7 @@ $(document).ready(function() {
         const currentUrl = window.location.href.toLowerCase();
         
         // Jika user sudah di dashboard yang dipilih, tidak perlu redirect
-        if ((dashboard === 'semester' && (currentPath === '/' || currentPath === '/auth/index' || currentPath.includes('/dashboard/index'))) ||
+        if ((dashboard === 'semester' && (currentPath === '/' || currentPath.includes('/dashboard/index'))) ||
             (dashboard === 'munaqosah' && currentUrl.includes('munaqosah')) ||
             (dashboard === 'sertifikasi' && currentUrl.includes('sertifikasi'))) {
             // Sudah di dashboard yang dipilih, tidak perlu redirect
@@ -274,7 +273,7 @@ $(document).ready(function() {
                 break;
             case 'semester':
             default:
-                url = '<?= base_url("auth/index") ?>';
+                url = '<?= base_url("/") ?>';
                 break;
         }
         
