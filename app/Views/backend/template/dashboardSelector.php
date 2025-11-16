@@ -216,8 +216,7 @@
         // Update label dashboard di navbar
         updateDashboardLabel();
 
-        // Jika belum ada pilihan, tampilkan modal (tidak bisa ditutup)
-        // Tapi cek juga query parameter untuk menghindari flash content
+        // Cek query parameter untuk menghindari flash content
         const urlParams = new URLSearchParams(window.location.search);
         const dashboardParam = urlParams.get('dashboard');
 
@@ -236,27 +235,41 @@
             // Jika dashboard=semester, biarkan halaman tetap tampil
         }
 
-        if (!selectedDashboard && !dashboardParam) {
-            showDashboardModal(false);
-        } else {
-            // Jika sudah ada pilihan, cek apakah perlu redirect
-            // Hanya redirect jika user berada di dashboard default (ujian semester)
-            // dan pilihan bukan semester
+        // Jika ada pilihan dashboard dari localStorage (dari login sebelumnya)
+        // dan tidak ada query parameter, langsung terapkan pilihan tersebut
+        if (selectedDashboard && !dashboardParam) {
+            // Cek apakah user berada di dashboard default (ujian semester)
             const isDashboardDefault = currentPath === '/' ||
                 currentPath.includes('/dashboard/index') ||
+                currentPath.includes('/backend/dashboard/admin') ||
+                currentPath.includes('/backend/dashboard/operator') ||
+                currentPath.includes('/backend/dashboard/kepala-tpq') ||
+                currentPath.includes('/backend/dashboard/guru') ||
                 (currentUrl.includes('dashboard') &&
                     !currentUrl.includes('munaqosah') &&
                     !currentUrl.includes('sertifikasi'));
 
             // Jika user berada di dashboard default dan pilihan bukan semester,
-            // redirect melalui query parameter untuk server-side redirect (lebih cepat)
+            // redirect ke dashboard yang dipilih (langsung, tidak melalui query parameter)
             if (selectedDashboard !== 'semester' && isDashboardDefault) {
-                // Redirect ke / dengan query parameter dashboard untuk server-side redirect
-                // Ini mencegah flash content sebelum redirect
-                window.location.href = '<?= base_url("/") ?>?dashboard=' + selectedDashboard;
-                return;
+                if (selectedDashboard === 'munaqosah') {
+                    window.location.href = '<?= base_url("backend/munaqosah/dashboard-munaqosah") ?>';
+                    return;
+                }
+                if (selectedDashboard === 'sertifikasi' && isAdmin) {
+                    window.location.href = '<?= base_url("backend/sertifikasi/dashboard-admin") ?>';
+                    return;
+                }
             }
-            // Jika pilihan adalah semester dan user sudah di dashboard semester, tidak perlu redirect
+        }
+
+        // Jika belum ada pilihan dashboard, tampilkan modal pemilihan
+        if (!selectedDashboard && !dashboardParam) {
+            showDashboardModal(false);
+        } else {
+            // Jika sudah ada pilihan dan sudah di dashboard yang benar, tidak perlu redirect lagi
+            // Hanya update label dashboard
+            updateDashboardLabel();
         }
 
         // Handle klik tombol "Pilih Dashboard" di navbar
@@ -337,11 +350,12 @@
             // Jika pilihan adalah semester atau tidak ada, biarkan default behavior
         });
 
-        // Clear localStorage saat logout
-        // Handle logout event
-        $(document).on('click', 'a[href*="logout"]', function() {
-            localStorage.removeItem('selectedDashboard');
-        });
+        // Jangan hapus localStorage saat logout
+        // Pilihan dashboard tetap tersimpan untuk digunakan saat login kembali
+        // Handle logout event - hanya untuk cleanup data lain jika diperlukan
+        // $(document).on('click', 'a[href*="logout"]', function() {
+        //     localStorage.removeItem('selectedDashboard'); // DIHAPUS: biarkan tersimpan untuk login berikutnya
+        // });
 
         // Reset modal settings saat modal ditutup
         $('#modalPilihDashboard').on('hidden.bs.modal', function() {
