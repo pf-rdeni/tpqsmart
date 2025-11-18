@@ -153,6 +153,44 @@
                         <p> Dashboard</p>
                     </a>
                 </li>
+                <!-- Jadwal Sholat & Al-Qur'an -->
+                <?php if (in_groups('Admin')): ?>
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-mosque"></i>
+                            <p>
+                                Sholat & Al-Qur'an
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/jadwal-sholat') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Jadwal Sholat</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/surah') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Surah Al-Qur'an</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/ayah') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Cari Ayat</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/quran/search') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Pencarian Al-Qur'an</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                <?php endif; ?>
                 <?php if (in_groups('JuriSertifikasi') || in_groups('Admin') || in_groups('PanitiaSertifikasi')): ?>
                     <!-- Sertifikasi -->
                     <li class="nav-item no-hover">

@@ -359,6 +359,17 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('pages/updateProfil', 'Pages::updateProfil');
     $routes->post('pages/resetPassword', 'Pages::resetPassword');
     $routes->post('pages/uploadPhotoProfil', 'Pages::uploadPhotoProfil');
+
+    // Islamic API Routes (Jadwal Sholat & Al-Qur'an)
+    $routes->get('jadwal-sholat', 'IslamicController::jadwalSholatByCity');
+    $routes->get('jadwal-sholat/(:segment)', 'IslamicController::jadwalSholatByCity/$1');
+    $routes->get('jadwal-sholat/(:segment)/(:segment)', 'IslamicController::jadwalSholatByCoordinate/$1/$2');
+    $routes->get('surah', 'IslamicController::surah');
+    $routes->get('surah/(:num)', 'IslamicController::surah/$1');
+    $routes->get('surah/(:num)/(:num)/(:num)', 'IslamicController::ayah/$1/$2/$3'); // Range ayat: surah/start/end
+    $routes->get('surah/(:num)/(:num)', 'IslamicController::ayah/$1/$2'); // Single ayat
+    $routes->get('ayah', 'IslamicController::ayah');
+    $routes->get('quran/search', 'IslamicController::searchQuran');
 });
 
 $routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::validateSignature/$1');
