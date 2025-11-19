@@ -15,6 +15,7 @@ class SertifikasiNilaiModel extends Model
         'IdMateri',
         'IdJuri',
         'Nilai',
+        'catatan',
     ];
 
     protected $validationRules = [

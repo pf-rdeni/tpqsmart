@@ -353,6 +353,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('sertifikasi/editJuriSertifikasi/(:num)', 'Sertifikasi::editJuriSertifikasi/$1');
     $routes->post('sertifikasi/cekPeserta', 'Sertifikasi::cekPeserta');
     $routes->post('sertifikasi/simpanNilai', 'Sertifikasi::simpanNilai');
+    $routes->post('sertifikasi/updateNilai', 'Sertifikasi::updateNilai');
     $routes->post('sertifikasi/generateNextUsernameJuri', 'Sertifikasi::generateNextUsernameJuri');
     $routes->post('sertifikasi/storeJuriSertifikasi', 'Sertifikasi::storeJuriSertifikasi');
     $routes->post('sertifikasi/updateJuriSertifikasi/(:num)', 'Sertifikasi::updateJuriSertifikasi/$1');

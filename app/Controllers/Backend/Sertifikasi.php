@@ -643,6 +643,148 @@ class Sertifikasi extends BaseController
     }
 
     /**
+     * Update nilai sertifikasi dan simpan catatan perubahan
+     */
+    public function updateNilai()
+    {
+        try {
+            $idNilai = $this->request->getPost('idNilai');
+            $nilaiBaru = $this->request->getPost('nilaiBaru');
+
+            // Validasi parameter wajib
+            if (empty($idNilai)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_ID_NILAI',
+                    'message' => 'ID Nilai tidak boleh kosong',
+                ]);
+            }
+
+            if ($nilaiBaru === null || $nilaiBaru === '') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_NILAI',
+                    'message' => 'Nilai baru harus diisi',
+                ]);
+            }
+
+            // Validasi nilai harus berupa angka
+            if (!is_numeric($nilaiBaru)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'INVALID_NILAI',
+                    'message' => 'Nilai harus berupa angka',
+                ]);
+            }
+
+            $nilaiBaruFloat = floatval($nilaiBaru);
+            if ($nilaiBaruFloat < 0 || $nilaiBaruFloat > 100) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'NILAI_OUT_OF_RANGE',
+                    'message' => 'Nilai harus dalam range 0-100',
+                ]);
+            }
+
+            // Ambil data nilai lama dengan informasi juri
+            $builder = $this->db->table('tbl_sertifikasi_nilai sn');
+            $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sm.NamaMateri, sgm.NamaMateri as NamaGroupMateri');
+            $builder->join('tbl_sertifikasi_juri sj', 'sj.IdJuri = sn.IdJuri', 'left');
+            $builder->join('tbl_sertifikasi_materi sm', 'sm.IdMateri = sn.IdMateri', 'left');
+            $builder->join('tbl_sertifikasi_group_materi sgm', 'sgm.IdGroupMateri = sn.IdGroupMateri', 'left');
+            $builder->where('sn.id', $idNilai);
+            $nilaiLama = $builder->get()->getRowArray();
+
+            if (empty($nilaiLama)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'DATA_NOT_FOUND',
+                    'code' => 'NILAI_NOT_FOUND',
+                    'message' => 'Data nilai tidak ditemukan',
+                ]);
+            }
+
+            $nilaiLamaFloat = floatval($nilaiLama['Nilai'] ?? 0);
+
+            // Jika nilai sama, tidak perlu update
+            if ($nilaiLamaFloat == $nilaiBaruFloat) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'status' => 'NO_CHANGE',
+                    'message' => 'Nilai tidak berubah',
+                ]);
+            }
+
+            // Ambil informasi user yang melakukan update
+            $username = 'System';
+            if (function_exists('user') && user()) {
+                $username = user()->username ?? user()->email ?? 'System';
+            } else {
+                // Fallback ke session atau auth service
+                $auth = service('auth');
+                if ($auth && $auth->user()) {
+                    $username = $auth->user()->username ?? $auth->user()->email ?? 'System';
+                }
+            }
+            $tanggalWaktu = date('d/m/Y H:i:s');
+
+            // Ambil informasi juri yang memberikan nilai sebelumnya
+            $juriSebelumnya = $nilaiLama['usernameJuri'] ?? 'Tidak diketahui';
+            $namaMateri = $nilaiLama['NamaMateri'] ?? 'Materi';
+            $namaGroupMateri = $nilaiLama['NamaGroupMateri'] ?? '';
+
+            // Buat catatan perubahan dengan detail lengkap
+            $catatanBaru = "PERUBAHAN NILAI\n";
+            $catatanBaru .= "Nilai Sebelum: " . number_format($nilaiLamaFloat, 2) . "\n";
+            $catatanBaru .= "Nilai Sesudah: " . number_format($nilaiBaruFloat, 2) . "\n";
+            $catatanBaru .= "Materi: " . $namaMateri;
+            if (!empty($namaGroupMateri)) {
+                $catatanBaru .= " (" . $namaGroupMateri . ")";
+            }
+            $catatanBaru .= "\nSumber Nilai Sebelumnya: " . $juriSebelumnya;
+            $catatanBaru .= "\nWaktu Perubahan: " . $tanggalWaktu;
+            $catatanBaru .= "\nDiubah oleh: " . $username;
+
+            // Jika sudah ada catatan sebelumnya, tambahkan di baris baru dengan separator
+            $catatanLama = $nilaiLama['catatan'] ?? '';
+            if (!empty($catatanLama)) {
+                $catatanBaru = $catatanLama . "\n\n" . str_repeat("=", 50) . "\n" . $catatanBaru;
+            }
+
+            // Update nilai dan catatan
+            $updateData = [
+                'Nilai' => $nilaiBaruFloat,
+                'catatan' => $catatanBaru,
+            ];
+            
+            $this->sertifikasiNilaiModel->update($idNilai, $updateData);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'status' => 'SUCCESS',
+                'message' => 'Nilai berhasil diupdate',
+                'data' => [
+                    'nilaiLama' => $nilaiLamaFloat,
+                    'nilaiBaru' => $nilaiBaruFloat,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in updateNilai: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'status' => 'SYSTEM_ERROR',
+                'code' => 'INTERNAL_ERROR',
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Halaman list nilai sertifikasi untuk admin
      */
     public function listNilaiSertifikasi()
@@ -685,6 +827,7 @@ class Sertifikasi extends BaseController
                     'NamaTpq' => $nilai['NamaTpq'] ?? '-',
                     'usernameJuri' => [], // Array untuk menyimpan semua username juri yang menilai
                     'nilaiByMateri' => [], // Array dengan key IdMateri
+                    'idNilaiByMateri' => [], // Array dengan key IdMateri untuk menyimpan id nilai
                 ];
             }
 
@@ -698,6 +841,7 @@ class Sertifikasi extends BaseController
             $idMateri = $nilai['IdMateri'] ?? null;
             if ($idMateri && !isset($groupedData[$noPeserta]['nilaiByMateri'][$idMateri])) {
                 $groupedData[$noPeserta]['nilaiByMateri'][$idMateri] = $nilai['Nilai'] ?? 0;
+                $groupedData[$noPeserta]['idNilaiByMateri'][$idMateri] = $nilai['id'] ?? null;
             }
         }
 
