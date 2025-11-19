@@ -12,6 +12,8 @@ class MunaqosahKategoriKesalahanModel extends Model
         'IdKategoriKesalahan',
         'IdKategoriMateri',
         'NamaKategoriKesalahan',
+        'NilaiMin',
+        'NilaiMax',
         'Status',
         'created_at',
         'updated_at'

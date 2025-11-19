@@ -779,15 +779,176 @@ class Sertifikasi extends BaseController
         }));
         $belumTest = $totalPeserta - $sudahTest;
 
+        // Ambil data NamaTpq yang unik dari tabel sertifikasi_guru (grouped)
+        $tpqList = $this->db->query("
+            SELECT DISTINCT NamaTpq 
+            FROM tbl_sertifikasi_guru 
+            WHERE NamaTpq IS NOT NULL AND NamaTpq != '' 
+            ORDER BY NamaTpq ASC
+        ")->getResultArray();
+
         $data = [
             'page_title' => 'List Peserta Sertifikasi',
             'peserta_data' => $pesertaData,
             'total_peserta' => $totalPeserta,
             'sudah_test' => $sudahTest,
             'belum_test' => $belumTest,
+            'tpq_list' => $tpqList,
         ];
 
         return view('backend/sertifikasi/listPesertaSertifikasi', $data);
+    }
+
+    /**
+     * Get next NoPeserta untuk form tambah peserta
+     */
+    public function getNextNoPeserta()
+    {
+        try {
+            $nextNoPeserta = $this->sertifikasiGuruModel->generateNextNoPeserta(100, 999);
+            
+            if ($nextNoPeserta === false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak dapat menghasilkan nomor peserta. Semua nomor dalam range sudah digunakan.'
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'NoPeserta' => $nextNoPeserta,
+                'message' => 'Nomor peserta berhasil di-generate'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getNextNoPeserta: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Store peserta sertifikasi baru
+     */
+    public function storePesertaSertifikasi()
+    {
+        try {
+            // Validasi input
+            $validation = \Config\Services::validation();
+            $validation->setRules([
+                'NoPeserta' => [
+                    'label' => 'No Peserta',
+                    'rules' => 'required|max_length[50]',
+                    'errors' => [
+                        'required' => 'No Peserta harus diisi',
+                        'max_length' => 'No Peserta maksimal 50 karakter'
+                    ]
+                ],
+                'Nama' => [
+                    'label' => 'Nama Guru',
+                    'rules' => 'required|max_length[255]',
+                    'errors' => [
+                        'required' => 'Nama Guru harus diisi',
+                        'max_length' => 'Nama Guru maksimal 255 karakter'
+                    ]
+                ],
+                'NoRek' => [
+                    'label' => 'No Rek',
+                    'rules' => 'permit_empty|max_length[50]',
+                    'errors' => [
+                        'max_length' => 'No Rek maksimal 50 karakter'
+                    ]
+                ],
+                'NamaTpq' => [
+                    'label' => 'Nama TPQ',
+                    'rules' => 'permit_empty|max_length[255]',
+                    'errors' => [
+                        'max_length' => 'Nama TPQ maksimal 255 karakter'
+                    ]
+                ],
+                'JenisKelamin' => [
+                    'label' => 'Jenis Kelamin',
+                    'rules' => 'permit_empty|max_length[20]',
+                    'errors' => [
+                        'max_length' => 'Jenis Kelamin maksimal 20 karakter'
+                    ]
+                ],
+                'Kecamatan' => [
+                    'label' => 'Kecamatan',
+                    'rules' => 'permit_empty|max_length[255]',
+                    'errors' => [
+                        'max_length' => 'Kecamatan maksimal 255 karakter'
+                    ]
+                ],
+                'Note' => [
+                    'label' => 'Catatan',
+                    'rules' => 'permit_empty',
+                ]
+            ]);
+
+            if (!$validation->run($this->request->getPost())) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validation->getErrors()
+                ]);
+            }
+
+            // Cek duplikasi NoPeserta
+            $noPeserta = $this->request->getPost('NoPeserta');
+            
+            if ($this->sertifikasiGuruModel->isNoPesertaExists($noPeserta)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No Peserta sudah terdaftar',
+                    'errors' => [
+                        'NoPeserta' => 'No Peserta ' . $noPeserta . ' sudah terdaftar di sistem'
+                    ]
+                ]);
+            }
+
+            // Siapkan data untuk insert
+            // Convert nama ke uppercase
+            $nama = strtoupper(trim($this->request->getPost('Nama')));
+            
+            $data = [
+                'NoPeserta' => $noPeserta,
+                'Nama' => $nama,
+                'NoRek' => $this->request->getPost('NoRek') ?: null,
+                'NamaTpq' => $this->request->getPost('NamaTpq') ?: null,
+                'JenisKelamin' => $this->request->getPost('JenisKelamin') ?: null,
+                'Kecamatan' => 'SERI KUALA LOBAM', // Fixed kecamatan
+                'Note' => $this->request->getPost('Note') ?: null,
+            ];
+
+            // Simpan data menggunakan method model
+            $insertedId = $this->sertifikasiGuruModel->insertPeserta($data);
+            
+            if ($insertedId !== false) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Data peserta sertifikasi berhasil ditambahkan',
+                    'data' => [
+                        'id' => $insertedId,
+                        'NoPeserta' => $noPeserta
+                    ]
+                ]);
+            } else {
+                $errors = $this->sertifikasiGuruModel->errors();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan data peserta',
+                    'errors' => $errors ?: ['general' => 'Terjadi kesalahan saat menyimpan data']
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in storePesertaSertifikasi: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
     }
 
     /**

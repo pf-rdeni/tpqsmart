@@ -9375,6 +9375,8 @@ class Munaqosah extends BaseController
                 'IdKategoriKesalahan' => 'required|max_length[50]|is_unique[tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan]',
                 'IdKategoriMateri' => 'required',
                 'NamaKategoriKesalahan' => 'required|max_length[255]',
+                'NilaiMin' => 'required|integer|greater_than_equal_to[40]|less_than[99]',
+                'NilaiMax' => 'required|integer|greater_than[40]|less_than_equal_to[99]',
                 'Status' => 'required|in_list[Aktif,Tidak Aktif]'
             ];
 
@@ -9386,10 +9388,23 @@ class Munaqosah extends BaseController
                 ]);
             }
 
+            $nilaiMin = (int) $this->request->getPost('NilaiMin');
+            $nilaiMax = (int) $this->request->getPost('NilaiMax');
+
+            // Validasi tambahan: min harus lebih kecil dari max
+            if ($nilaiMin >= $nilaiMax) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Nilai minimum harus lebih kecil dari nilai maximum'
+                ]);
+            }
+
             $data = [
                 'IdKategoriKesalahan' => strtoupper($this->request->getPost('IdKategoriKesalahan')),
                 'IdKategoriMateri' => $this->request->getPost('IdKategoriMateri'),
                 'NamaKategoriKesalahan' => $this->request->getPost('NamaKategoriKesalahan'),
+                'NilaiMin' => $nilaiMin,
+                'NilaiMax' => $nilaiMax,
                 'Status' => $this->request->getPost('Status')
             ];
 
@@ -9422,6 +9437,8 @@ class Munaqosah extends BaseController
             $rules = [
                 'IdKategoriMateri' => 'required',
                 'NamaKategoriKesalahan' => 'required|max_length[255]',
+                'NilaiMin' => 'required|integer|greater_than_equal_to[40]|less_than[99]',
+                'NilaiMax' => 'required|integer|greater_than[40]|less_than_equal_to[99]',
                 'Status' => 'required|in_list[Aktif,Tidak Aktif]'
             ];
 
@@ -9433,9 +9450,22 @@ class Munaqosah extends BaseController
                 ]);
             }
 
+            $nilaiMin = (int) $this->request->getPost('NilaiMin');
+            $nilaiMax = (int) $this->request->getPost('NilaiMax');
+
+            // Validasi tambahan: min harus lebih kecil dari max
+            if ($nilaiMin >= $nilaiMax) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Nilai minimum harus lebih kecil dari nilai maximum'
+                ]);
+            }
+
             $data = [
                 'IdKategoriMateri' => $this->request->getPost('IdKategoriMateri'),
                 'NamaKategoriKesalahan' => $this->request->getPost('NamaKategoriKesalahan'),
+                'NilaiMin' => $nilaiMin,
+                'NilaiMax' => $nilaiMax,
                 'Status' => $this->request->getPost('Status')
             ];
 
@@ -9476,6 +9506,453 @@ class Munaqosah extends BaseController
                     'message' => 'Gagal menghapus data'
                 ]);
             }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Save kategori kesalahan group (multiple items - new)
+     */
+    public function saveKategoriKesalahanGroup()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+
+            if (!$json) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data tidak valid'
+                ]);
+            }
+
+            // Validasi shared fields
+            $rules = [
+                'IdKategoriMateri' => 'required',
+                'NilaiMin' => 'required|integer|greater_than_equal_to[40]|less_than[99]',
+                'NilaiMax' => 'required|integer|greater_than[40]|less_than_equal_to[99]',
+                'items' => 'required'
+            ];
+
+            if (!$this->validate($rules)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $this->validator->getErrors()
+                ]);
+            }
+
+            $idKategoriMateri = $json['IdKategoriMateri'];
+            $nilaiMin = (int) $json['NilaiMin'];
+            $nilaiMax = (int) $json['NilaiMax'];
+            $items = $json['items'];
+
+            // Validasi min < max
+            if ($nilaiMin >= $nilaiMax) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Nilai minimum harus lebih kecil dari nilai maximum'
+                ]);
+            }
+
+            if (empty($items) || !is_array($items)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Items tidak boleh kosong'
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            $created = 0;
+            $errors = [];
+            $usedIds = []; // Track ID yang sudah digunakan dalam batch ini
+
+            // Process items
+            foreach ($items as $item) {
+                $idKesalahan = trim($item['IdKategoriKesalahan'] ?? '');
+                $nama = trim($item['NamaKategoriKesalahan'] ?? '');
+                $status = $item['Status'] ?? 'Aktif';
+
+                // Validasi nama
+                if (empty($nama)) {
+                    $errors[] = 'Nama kategori kesalahan tidak boleh kosong';
+                    continue;
+                }
+
+                // Generate ID jika kosong ATAU jika ID sudah digunakan dalam batch ini
+                if (empty($idKesalahan) || in_array(strtoupper($idKesalahan), $usedIds)) {
+                    // Generate ID baru yang belum digunakan
+                    do {
+                        $idKesalahan = $this->generateNextIdKategoriKesalahan(true);
+                    } while (in_array(strtoupper($idKesalahan), $usedIds));
+                }
+
+                // Check if ID already exists in database
+                $exists = $this->munaqosahKategoriKesalahanModel
+                    ->where('IdKategoriKesalahan', strtoupper($idKesalahan))
+                    ->first();
+
+                if ($exists) {
+                    // Jika ID sudah ada di DB, generate ID baru yang belum digunakan
+                    do {
+                        $idKesalahan = $this->generateNextIdKategoriKesalahan(true);
+                    } while (
+                        $this->munaqosahKategoriKesalahanModel
+                        ->where('IdKategoriKesalahan', strtoupper($idKesalahan))
+                        ->first() || in_array(strtoupper($idKesalahan), $usedIds)
+                    );
+                }
+
+                // Tandai ID sebagai sudah digunakan
+                $usedIds[] = strtoupper($idKesalahan);
+
+                // Create new item
+                $data = [
+                    'IdKategoriKesalahan' => strtoupper($idKesalahan),
+                    'IdKategoriMateri' => $idKategoriMateri,
+                    'NamaKategoriKesalahan' => $nama,
+                    'NilaiMin' => $nilaiMin,
+                    'NilaiMax' => $nilaiMax,
+                    'Status' => $status
+                ];
+
+                if ($this->munaqosahKategoriKesalahanModel->insert($data)) {
+                    $created++;
+                } else {
+                    $errors[] = 'Gagal menyimpan ' . strtoupper($idKesalahan);
+                }
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false || !empty($errors)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan saat menyimpan data',
+                    'errors' => $errors
+                ]);
+            }
+
+            $message = 'Data berhasil disimpan. ';
+            $message .= 'Ditambahkan: ' . $created . ' item';
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update kategori kesalahan group (multiple items)
+     */
+    public function updateKategoriKesalahanGroup()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+
+            if (!$json) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data tidak valid'
+                ]);
+            }
+
+            // Validasi shared fields
+            $rules = [
+                'IdKategoriMateri' => 'required',
+                'NilaiMin' => 'required|integer|greater_than_equal_to[40]|less_than[99]',
+                'NilaiMax' => 'required|integer|greater_than[40]|less_than_equal_to[99]',
+                'items' => 'required'
+            ];
+
+            if (!$this->validate($rules)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $this->validator->getErrors()
+                ]);
+            }
+
+            $idKategoriMateri = $json['IdKategoriMateri'];
+            $nilaiMin = (int) $json['NilaiMin'];
+            $nilaiMax = (int) $json['NilaiMax'];
+            $items = $json['items'];
+
+            // Validasi min < max
+            if ($nilaiMin >= $nilaiMax) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Nilai minimum harus lebih kecil dari nilai maximum'
+                ]);
+            }
+
+            if (empty($items) || !is_array($items)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Items tidak boleh kosong'
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            $updated = 0;
+            $created = 0;
+            $deleted = 0;
+            $errors = [];
+            $usedIds = []; // Track ID yang sudah digunakan dalam batch ini
+
+            // Get existing items for this group (to identify deleted items)
+            $existingItems = $this->munaqosahKategoriKesalahanModel
+                ->where('IdKategoriMateri', $idKategoriMateri)
+                ->where('NilaiMin', $nilaiMin)
+                ->where('NilaiMax', $nilaiMax)
+                ->findAll();
+
+            $existingIds = array_column($existingItems, 'id');
+            $processedIds = [];
+
+            // Process items
+            foreach ($items as $item) {
+                $itemId = $item['id'] ?? null;
+                $idKesalahan = trim($item['IdKategoriKesalahan'] ?? '');
+                $nama = trim($item['NamaKategoriKesalahan'] ?? '');
+                $status = $item['Status'] ?? 'Aktif';
+
+                // Validasi nama (ID akan di-generate jika kosong untuk item baru)
+                if (empty($nama)) {
+                    $errors[] = 'Nama kategori kesalahan tidak boleh kosong';
+                    continue;
+                }
+
+                // Untuk item existing, ID harus ada
+                if ($itemId !== 'new' && !empty($itemId) && empty($idKesalahan)) {
+                    $errors[] = 'ID kategori kesalahan tidak boleh kosong untuk item existing';
+                    continue;
+                }
+
+                if ($itemId === 'new' || empty($itemId)) {
+                    // Generate ID jika kosong ATAU jika ID sudah digunakan dalam batch ini
+                    if (empty($idKesalahan) || in_array(strtoupper($idKesalahan), $usedIds)) {
+                        // Generate ID baru yang belum digunakan
+                        do {
+                            $idKesalahan = $this->generateNextIdKategoriKesalahan(true);
+                        } while (in_array(strtoupper($idKesalahan), $usedIds));
+                    }
+
+                    // Check if ID already exists in database
+                    $exists = $this->munaqosahKategoriKesalahanModel
+                        ->where('IdKategoriKesalahan', strtoupper($idKesalahan))
+                        ->first();
+
+                    if ($exists) {
+                        // Jika ID sudah ada di DB, generate ID baru yang belum digunakan
+                        do {
+                            $idKesalahan = $this->generateNextIdKategoriKesalahan(true);
+                        } while (
+                            $this->munaqosahKategoriKesalahanModel
+                            ->where('IdKategoriKesalahan', strtoupper($idKesalahan))
+                            ->first() || in_array(strtoupper($idKesalahan), $usedIds)
+                        );
+                    }
+
+                    // Tandai ID sebagai sudah digunakan
+                    $usedIds[] = strtoupper($idKesalahan);
+
+                    // Create new item
+                    $data = [
+                        'IdKategoriKesalahan' => strtoupper($idKesalahan),
+                        'IdKategoriMateri' => $idKategoriMateri,
+                        'NamaKategoriKesalahan' => $nama,
+                        'NilaiMin' => $nilaiMin,
+                        'NilaiMax' => $nilaiMax,
+                        'Status' => $status
+                    ];
+
+                    if ($this->munaqosahKategoriKesalahanModel->insert($data)) {
+                        $created++;
+                    } else {
+                        $errors[] = 'Gagal menyimpan ' . strtoupper($idKesalahan);
+                    }
+                } else {
+                    // Update existing item
+                    $processedIds[] = $itemId;
+
+                    // Tandai ID existing sebagai sudah digunakan (jika ada)
+                    if (!empty($idKesalahan)) {
+                        $usedIds[] = strtoupper($idKesalahan);
+                    }
+
+                    $data = [
+                        'IdKategoriMateri' => $idKategoriMateri,
+                        'NamaKategoriKesalahan' => $nama,
+                        'NilaiMin' => $nilaiMin,
+                        'NilaiMax' => $nilaiMax,
+                        'Status' => $status
+                    ];
+
+                    if ($this->munaqosahKategoriKesalahanModel->update($itemId, $data)) {
+                        $updated++;
+                    } else {
+                        $errors[] = 'Gagal mengupdate ID ' . $itemId;
+                    }
+                }
+            }
+
+            // Delete items that are not in the processed list
+            $deletedIds = array_diff($existingIds, $processedIds);
+            foreach ($deletedIds as $deleteId) {
+                if ($this->munaqosahKategoriKesalahanModel->delete($deleteId)) {
+                    $deleted++;
+                }
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false || !empty($errors)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan saat menyimpan data',
+                    'errors' => $errors
+                ]);
+            }
+
+            $message = 'Data berhasil disimpan. ';
+            $message .= 'Diupdate: ' . $updated . ', ';
+            $message .= 'Ditambahkan: ' . $created . ', ';
+            $message .= 'Dihapus: ' . $deleted;
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Generate next ID Kategori Kesalahan dengan thread-safe (menggunakan database lock)
+     * @param bool $inTransaction Apakah sudah dalam transaction
+     * @return string
+     */
+    private function generateNextIdKategoriKesalahan($inTransaction = false)
+    {
+        $db = \Config\Database::connect();
+
+        // Jika belum dalam transaction, mulai transaction baru
+        if (!$inTransaction) {
+            $db->transStart();
+        }
+
+        try {
+            // Gunakan query langsung dengan FOR UPDATE untuk lock row
+            // Ini akan mencegah race condition saat multiple user input bersamaan
+            // FOR UPDATE hanya bekerja dalam transaction
+            $query = $db->query("
+                SELECT IdKategoriKesalahan 
+                FROM tbl_munaqosah_kategori_kesalahan 
+                ORDER BY IdKategoriKesalahan DESC 
+                LIMIT 1 
+                FOR UPDATE
+            ");
+
+            $lastId = $query->getRowArray();
+
+            if ($lastId) {
+                $currentId = $lastId['IdKategoriKesalahan'];
+
+                // Cek format ID (bisa berupa angka saja atau kombinasi huruf+angka)
+                // Contoh: KK001, KK002, atau 001, 002
+                if (preg_match('/([A-Za-z]*)(\d+)/', $currentId, $matches)) {
+                    $prefix = $matches[1] ?? 'KK';  // Bagian huruf (default: KK)
+                    $number = intval($matches[2]);  // Bagian angka
+
+                    // Tambah 1 ke angka dan format dengan leading zero
+                    $nextNumber = str_pad($number + 1, strlen($matches[2]), '0', STR_PAD_LEFT);
+                    $nextId = $prefix . $nextNumber;
+                } else {
+                    // Jika format tidak sesuai, coba sebagai angka saja
+                    if (is_numeric($currentId)) {
+                        $nextId = str_pad(intval($currentId) + 1, strlen($currentId), '0', STR_PAD_LEFT);
+                    } else {
+                        // Default: KK001
+                        $nextId = 'KK001';
+                    }
+                }
+            } else {
+                // Jika belum ada data, mulai dari KK001
+                $nextId = 'KK001';
+            }
+
+            // Cek apakah ID sudah ada (untuk memastikan tidak duplikat)
+            // Ini penting untuk handle race condition
+            $builder = $db->table('tbl_munaqosah_kategori_kesalahan');
+            $exists = $builder
+                ->where('IdKategoriKesalahan', $nextId)
+                ->countAllResults();
+
+            // Jika ID sudah ada, cari ID berikutnya yang belum terpakai
+            if ($exists > 0) {
+                $counter = 1;
+                do {
+                    if (preg_match('/([A-Za-z]*)(\d+)/', $nextId, $matches)) {
+                        $prefix = $matches[1] ?? 'KK';
+                        $number = intval($matches[2]) + $counter;
+                        $nextNumber = str_pad($number, strlen($matches[2]), '0', STR_PAD_LEFT);
+                        $nextId = $prefix . $nextNumber;
+                    } else {
+                        $nextId = str_pad(intval($nextId) + $counter, strlen($nextId), '0', STR_PAD_LEFT);
+                    }
+                    $exists = $builder
+                        ->where('IdKategoriKesalahan', $nextId)
+                        ->countAllResults();
+                    $counter++;
+                } while ($exists > 0 && $counter < 1000); // Max 1000 retry
+            }
+
+            // Jika kita yang mulai transaction, selesaikan
+            if (!$inTransaction) {
+                $db->transComplete();
+            }
+
+            return strtoupper($nextId);
+        } catch (\Exception $e) {
+            // Jika kita yang mulai transaction, rollback
+            if (!$inTransaction) {
+                $db->transRollback();
+            }
+            // Fallback: return default ID
+            return 'KK001';
+        }
+    }
+
+    /**
+     * Get next ID Kategori Kesalahan (auto generate) - untuk AJAX call
+     */
+    public function getNextIdKategoriKesalahan()
+    {
+        try {
+            $nextId = $this->generateNextIdKategoriKesalahan();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'nextId' => $nextId
+            ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,

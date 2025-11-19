@@ -61,6 +61,9 @@
                             <i class="fas fa-list"></i> List Peserta Sertifikasi
                         </h3>
                         <div class="card-tools">
+                            <button type="button" class="btn btn-sm btn-primary mr-2" data-toggle="modal" data-target="#modalTambahPeserta">
+                                <i class="fas fa-plus"></i> Tambah Peserta
+                            </button>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-info" id="btnFilterAll">
                                     <i class="fas fa-list"></i> Semua
@@ -127,6 +130,106 @@
         </div>
     </div>
 </section>
+
+<!-- Modal Tambah Peserta -->
+<div class="modal fade" id="modalTambahPeserta" tabindex="-1" role="dialog" aria-labelledby="modalTambahPesertaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTambahPesertaLabel">
+                    <i class="fas fa-plus"></i> Tambah Peserta Sertifikasi
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formTambahPeserta">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="NoPeserta">No Peserta <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="NoPeserta" name="NoPeserta" placeholder="Masukkan No Peserta" required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" id="btnGenerateNoPeserta" title="Generate Nomor Peserta Otomatis">
+                                            <i class="fas fa-sync-alt"></i> Generate
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Nomor peserta harus unik. Klik tombol Generate untuk nomor otomatis.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="Nama">Nama Guru <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control text-uppercase" id="Nama" name="Nama" placeholder="Masukkan Nama Guru" required style="text-transform: uppercase;">
+                                <small class="form-text text-muted">Nama akan otomatis dikonversi ke huruf kapital</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="NoRek">No Rek</label>
+                                <input type="text" class="form-control" id="NoRek" name="NoRek" placeholder="Masukkan No Rek">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="NamaTpq">Nama TPQ</label>
+                                <select class="form-control" id="NamaTpq" name="NamaTpq">
+                                    <option value="">Pilih Nama TPQ</option>
+                                    <?php if (!empty($tpq_list)): ?>
+                                        <?php foreach ($tpq_list as $tpq): ?>
+                                            <option value="<?= esc($tpq['NamaTpq']) ?>"><?= esc($tpq['NamaTpq']) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <small class="form-text text-muted">Pilih dari daftar TPQ yang sudah ada</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="JenisKelamin">Jenis Kelamin</label>
+                                <select class="form-control" id="JenisKelamin" name="JenisKelamin">
+                                    <option value="">Pilih Jenis Kelamin</option>
+                                    <option value="Laki-laki">Laki-laki</option>
+                                    <option value="Perempuan">Perempuan</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="Kecamatan">Kecamatan</label>
+                                <input type="text" class="form-control" id="Kecamatan" name="Kecamatan" value="SERI KUALA LOBAM" readonly style="background-color: #e9ecef;">
+                                <small class="form-text text-muted">Kecamatan sudah ditetapkan</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="Note">Catatan</label>
+                                <textarea class="form-control" id="Note" name="Note" rows="3" placeholder="Masukkan catatan (opsional)"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <?= $this->endSection(); ?>
 
@@ -499,6 +602,167 @@
 
         // Set default filter to "All"
         $('#btnFilterAll').addClass('active');
+
+        // Generate NoPeserta dan set kecamatan saat modal dibuka
+        $('#modalTambahPeserta').on('show.bs.modal', function() {
+            generateNoPeserta();
+            $('#Kecamatan').val('SERI KUALA LOBAM');
+        });
+
+        // Reset form saat modal ditutup
+        $('#modalTambahPeserta').on('hidden.bs.modal', function() {
+            $('#formTambahPeserta')[0].reset();
+            $('.form-control').removeClass('is-invalid');
+            $('.invalid-feedback').remove();
+            // Set kembali kecamatan setelah reset
+            $('#Kecamatan').val('SERI KUALA LOBAM');
+        });
+
+        // Function untuk generate NoPeserta
+        function generateNoPeserta() {
+            $.ajax({
+                url: '<?= base_url('backend/sertifikasi/getNextNoPeserta') ?>',
+                type: 'GET',
+                dataType: 'json',
+                beforeSend: function() {
+                    $('#btnGenerateNoPeserta').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+                },
+                success: function(response) {
+                    $('#btnGenerateNoPeserta').prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Generate');
+                    if (response.success) {
+                        $('#NoPeserta').val(response.NoPeserta);
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Peringatan',
+                            text: response.message || 'Gagal generate nomor peserta. Silakan masukkan manual.'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#btnGenerateNoPeserta').prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Generate');
+                    console.error('Error generating NoPeserta:', error);
+                }
+            });
+        }
+
+        // Button generate NoPeserta
+        $('#btnGenerateNoPeserta').on('click', function() {
+            generateNoPeserta();
+        });
+
+        // Auto uppercase untuk input Nama
+        $('#Nama').on('input', function() {
+            var cursorPos = this.selectionStart;
+            var value = $(this).val();
+            $(this).val(value.toUpperCase());
+            this.setSelectionRange(cursorPos, cursorPos);
+        });
+
+        // Handle form submit
+        $('#formTambahPeserta').on('submit', function(e) {
+            e.preventDefault();
+
+            // Validasi client-side
+            var noPeserta = $('#NoPeserta').val().trim();
+            var nama = $('#Nama').val().trim();
+
+            if (!noPeserta) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No Peserta harus diisi'
+                });
+                $('#NoPeserta').focus();
+                return;
+            }
+
+            if (!nama) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Nama Guru harus diisi'
+                });
+                $('#Nama').focus();
+                return;
+            }
+
+            // Show loading
+            Swal.fire({
+                title: 'Menyimpan Data...',
+                text: 'Sedang menyimpan data peserta, mohon tunggu',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Get form data
+            // Convert nama ke uppercase
+            var namaUpper = nama.toUpperCase();
+            
+            var formData = {
+                NoPeserta: noPeserta,
+                Nama: namaUpper,
+                NoRek: $('#NoRek').val().trim(),
+                NamaTpq: $('#NamaTpq').val(),
+                JenisKelamin: $('#JenisKelamin').val(),
+                Kecamatan: 'SERI KUALA LOBAM', // Fixed kecamatan
+                Note: $('#Note').val().trim()
+            };
+
+            // AJAX request
+            $.ajax({
+                url: '<?= base_url('backend/sertifikasi/storePesertaSertifikasi') ?>',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            $('#modalTambahPeserta').modal('hide');
+                            location.reload();
+                        });
+                    } else {
+                        var errorMessage = response.message;
+                        if (response.errors && Object.keys(response.errors).length > 0) {
+                            var errorList = '<ul>';
+                            $.each(response.errors, function(key, value) {
+                                errorList += '<li>' + value + '</li>';
+                            });
+                            errorList += '</ul>';
+                            errorMessage = errorMessage + '<br>' + errorList;
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            html: errorMessage
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.close();
+                    var errorMessage = 'Terjadi kesalahan saat menyimpan data';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: errorMessage
+                    });
+                }
+            });
+        });
     });
 </script>
 <style>

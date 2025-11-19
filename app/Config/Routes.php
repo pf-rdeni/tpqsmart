@@ -345,6 +345,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('sertifikasi/inputNilaiSertifikasi', 'Sertifikasi::inputNilaiSertifikasi');
     $routes->get('sertifikasi/nilaiPesertaSertifikasi', 'Sertifikasi::nilaiPesertaSertifikasi');
     $routes->get('sertifikasi/listPesertaSertifikasi', 'Sertifikasi::listPesertaSertifikasi');
+    $routes->get('sertifikasi/getNextNoPeserta', 'Sertifikasi::getNextNoPeserta');
+    $routes->post('sertifikasi/storePesertaSertifikasi', 'Sertifikasi::storePesertaSertifikasi');
     $routes->get('sertifikasi/listNilaiSertifikasi', 'Sertifikasi::listNilaiSertifikasi');
     $routes->get('sertifikasi/listJuriSertifikasi', 'Sertifikasi::listJuriSertifikasi');
     $routes->get('sertifikasi/createJuriSertifikasi', 'Sertifikasi::createJuriSertifikasi');
