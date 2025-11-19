@@ -1090,24 +1090,56 @@
                                  <small class="form-text text-muted">Range nilai: <?= $nilai_minimal ?> - <?= $nilai_maximal ?></small>
                                  ${(showWebButton || showApiButton) ? `
                                  <div class="mt-2">
-                                     <div class="btn-group btn-group-sm" role="group">
-                                         ${showWebButton ? `
-                                         <button type="button" class="btn btn-outline-info btn-lihat-ayat-card" 
-                                                 data-url="${escapedUrl}" 
-                                                 data-title="${escapedTitle}"
-                                                 data-materi-id="${escapedMateriId}">
-                                             <i class="fas fa-external-link-alt"></i> Lihat Ayat (Web)
-                                         </button>
-                                         ` : ''}
-                                         ${showApiButton ? `
-                                         <button type="button" class="btn btn-outline-primary btn-lihat-ayat-api" 
-                                                 data-materi-id="${escapedMateriId}"
-                                                 data-id-surah="${escapedIdSurah}"
-                                                 data-id-ayat="${escapedIdAyat}"
-                                                 data-title="${escapedTitle}">
-                                             <i class="fas fa-book-quran"></i> Lihat Ayat (API)
-                                         </button>
-                                         ` : ''}
+                                     <div class="d-flex align-items-center gap-2 flex-wrap">
+                                         <div class="btn-group btn-group-sm" role="group">
+                                             ${showWebButton ? `
+                                             <button type="button" class="btn btn-outline-info btn-lihat-ayat-card" 
+                                                     data-url="${escapedUrl}" 
+                                                     data-title="${escapedTitle}"
+                                                     data-materi-id="${escapedMateriId}">
+                                                 <i class="fas fa-external-link-alt"></i> Lihat Ayat (Web)
+                                             </button>
+                                             ` : ''}
+                                             ${showApiButton ? `
+                                             <button type="button" class="btn btn-outline-primary btn-lihat-ayat-api" 
+                                                     data-materi-id="${escapedMateriId}"
+                                                     data-id-surah="${escapedIdSurah}"
+                                                     data-id-ayat="${escapedIdAyat}"
+                                                     data-title="${escapedTitle}">
+                                                 <i class="fas fa-book-quran"></i> Lihat Ayat (API)
+                                             </button>
+                                             ` : ''}
+                                         </div>
+                                         <div class="d-flex align-items-center gap-2">
+                                             ${showWebButton ? `
+                                             <div class="form-check form-check-inline">
+                                                 <input class="form-check-input auto-open-ayat-checkbox auto-open-web" 
+                                                        type="checkbox" 
+                                                        id="autoOpenWeb_${escapedMateriId}"
+                                                        data-materi-id="${escapedMateriId}"
+                                                        data-type="web"
+                                                        name="autoOpen_${escapedMateriId}">
+                                                 <label class="form-check-label small text-muted" for="autoOpenWeb_${escapedMateriId}">
+                                                     Auto Buka (Web)
+                                                 </label>
+                                             </div>
+                                             ` : ''}
+                                             ${showApiButton ? `
+                                             <div class="form-check form-check-inline">
+                                                 <input class="form-check-input auto-open-ayat-checkbox auto-open-api" 
+                                                        type="checkbox" 
+                                                        id="autoOpenApi_${escapedMateriId}"
+                                                        data-materi-id="${escapedMateriId}"
+                                                        data-type="api"
+                                                        data-id-surah="${escapedIdSurah}"
+                                                        data-id-ayat="${escapedIdAyat}"
+                                                        name="autoOpen_${escapedMateriId}">
+                                                 <label class="form-check-label small text-muted" for="autoOpenApi_${escapedMateriId}">
+                                                     Auto Buka (API)
+                                                 </label>
+                                             </div>
+                                             ` : ''}
+                                         </div>
                                      </div>
                                  </div>
                                  ` : ''}
@@ -1186,6 +1218,12 @@
                     showAyatApiModal(materiId, idSurah, idAyat, title || 'Lihat Ayat');
                 }
             });
+
+            // Setup event listeners untuk checkbox auto-open ayat
+            setupAutoOpenAyatCheckbox();
+
+            // Auto-open ayat jika settingan aktif
+            autoOpenAyatIfEnabled();
         }
 
         // Function to get error categories for a kategori from preloaded data
@@ -2318,6 +2356,94 @@
 
         // Remove event handlers untuk pagination
         $('#btnPrevPage, #btnNextPage').off('click');
+    }
+
+    // ==================== AUTO OPEN AYAT FUNCTIONS ====================
+    const STORAGE_KEY_AUTO_OPEN_AYAT = 'munaqosah_auto_open_ayat';
+
+    // Fungsi untuk setup checkbox auto-open ayat
+    function setupAutoOpenAyatCheckbox() {
+        // Load saved settings dari localStorage
+        const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || '{}');
+
+        // Set checkbox sesuai settingan yang tersimpan
+        $('.auto-open-ayat-checkbox').each(function() {
+            const materiId = $(this).data('materi-id');
+            const type = $(this).data('type'); // 'web' atau 'api'
+            const key = materiId + '_' + type;
+
+            if (savedSettings[key]) {
+                $(this).prop('checked', true);
+            }
+        });
+
+        // Event listener untuk checkbox - mutual exclusive per materi
+        $(document).off('change', '.auto-open-ayat-checkbox').on('change', '.auto-open-ayat-checkbox', function() {
+            const materiId = $(this).data('materi-id');
+            const type = $(this).data('type'); // 'web' atau 'api'
+            const isChecked = $(this).is(':checked');
+            const key = materiId + '_' + type;
+
+            // Jika checkbox dicentang, uncheck yang lain untuk materi yang sama
+            if (isChecked) {
+                $(`.auto-open-ayat-checkbox[name="autoOpen_${materiId}"]`).not(this).prop('checked', false);
+            }
+
+            // Simpan settingan ke localStorage
+            const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || '{}');
+
+            if (isChecked) {
+                // Simpan settingan untuk type yang dipilih
+                savedSettings[key] = {
+                    materiId: materiId,
+                    type: type,
+                    idSurah: $(this).data('id-surah'),
+                    idAyat: $(this).data('id-ayat')
+                };
+
+                // Hapus settingan untuk type lain dari materi yang sama
+                const otherType = type === 'web' ? 'api' : 'web';
+                const otherKey = materiId + '_' + otherType;
+                delete savedSettings[otherKey];
+            } else {
+                // Hapus settingan jika di-uncheck
+                delete savedSettings[key];
+            }
+
+            localStorage.setItem(STORAGE_KEY_AUTO_OPEN_AYAT, JSON.stringify(savedSettings));
+        });
+    }
+
+    // Fungsi untuk auto-open ayat jika settingan aktif
+    function autoOpenAyatIfEnabled() {
+        const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || '{}');
+
+        // Cari checkbox yang tercentang
+        $('.auto-open-ayat-checkbox:checked').each(function() {
+            const materiId = $(this).data('materi-id');
+            const type = $(this).data('type'); // 'web' atau 'api'
+            const key = materiId + '_' + type;
+            const setting = savedSettings[key];
+
+            if (setting && setting.type) {
+                // Delay sedikit untuk memastikan form sudah ter-render
+                setTimeout(function() {
+                    if (setting.type === 'api' && setting.idSurah && setting.idAyat) {
+                        // Buka ayat API
+                        const apiButton = $(`.btn-lihat-ayat-api[data-materi-id="${materiId}"]`);
+                        if (apiButton.length > 0) {
+                            apiButton.trigger('click');
+                        }
+                    } else if (setting.type === 'web') {
+                        // Buka ayat Web
+                        const webButton = $(`.btn-lihat-ayat-card[data-materi-id="${materiId}"]`);
+                        if (webButton.length > 0) {
+                            webButton.trigger('click');
+                        }
+                    }
+                }, 500); // Delay 500ms untuk memastikan semua sudah ter-render
+            }
+        });
     }
 
     // ==================== ZOOM FUNCTIONS ====================
