@@ -284,6 +284,38 @@
                                             </div>
                                         </div>
 
+                                        <!-- Section untuk menampilkan Ayat dari API (di bawah form) -->
+                                        <div id="ayatApiSection" class="mt-4" style="display: none;">
+                                            <div class="card">
+                                                <div class="card-header bg-primary d-flex justify-content-between align-items-center">
+                                                    <div class="d-flex align-items-center">
+                                                        <h5 class="card-title mb-0 text-white" id="ayatApiTitle">Lihat Ayat Al-Qur'an</h5>
+                                                    </div>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="btn-group" role="group">
+                                                            <button type="button" class="btn btn-sm btn-light" id="btnZoomOutApi" title="Zoom Out">
+                                                                <i class="fas fa-search-minus"></i> Zoom Out
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-light" id="btnZoomInApi" title="Zoom In">
+                                                                <i class="fas fa-search-plus"></i> Zoom In
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-light" id="btnResetZoomApi" title="Reset Zoom">
+                                                                <i class="fas fa-undo"></i> Reset
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-light" onclick="hideAyatApiSection()">
+                                                                <i class="fas fa-times"></i> Tutup
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="ayatApiContent">
+                                                        <!-- Content akan diisi oleh JavaScript -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <!-- Button untuk mengirim nilai -->
                                         <div id="btnKirimNilaiContainer" class="text-center mt-4" style="display: none;">
                                             <button type="button" class="btn btn-success btn-lg" id="btnKirimNilai">
@@ -920,6 +952,9 @@
                     // Sembunyikan section ayat jika terbuka
                     $('#ayatSection').hide();
 
+                    // Reset tampilan ayat API
+                    resetAyatApiView();
+
                     // Kembali ke step 1
                     stepper.to(1);
 
@@ -1007,9 +1042,6 @@
                 groupedMateri[materi.KategoriMateriUjian].push(materi);
             });
 
-            // Kumpulkan semua materi yang memiliki WebLinkAyat untuk ditampilkan di bawah card
-            const materiDenganAyat = [];
-
             // Generate form for each kategori
             for (const kategori of Object.keys(groupedMateri)) {
                 // Ambil kategori kesalahan dari data yang sudah disiapkan controller
@@ -1025,15 +1057,21 @@
             `;
 
                 groupedMateri[kategori].forEach(materi => {
-                    // Kumpulkan materi yang memiliki WebLinkAyat
-                    if (materi.WebLinkAyat) {
-                        materiDenganAyat.push({
-                            namaMateri: materi.NamaMateri,
-                            url: materi.WebLinkAyat,
-                            kategori: kategori,
-                            idMateri: materi.IdMateri // Simpan IdMateri untuk fokus input
-                        });
-                    }
+                    // Cek apakah materi memiliki WebLinkAyat atau IdSurah/IdAyat
+                    const hasWebLink = materi.WebLinkAyat && String(materi.WebLinkAyat).trim() !== '';
+                    const idSurah = materi.IdSurah ? parseInt(materi.IdSurah) : null;
+                    const idAyat = materi.IdAyat ? parseInt(materi.IdAyat) : null;
+                    const hasApiData = idSurah && idAyat && idSurah > 0 && idAyat > 0;
+                    const showWebButton = hasWebLink && materi.WebLinkAyat;
+                    const showApiButton = hasApiData && idSurah && idAyat;
+
+                    // Escape untuk keamanan
+                    const escapedUrl = materi.WebLinkAyat ? $('<div>').text(materi.WebLinkAyat).html() : '';
+                    const escapedTitle = $('<div>').text(materi.NamaMateri || 'Lihat Ayat').html();
+                    const escapedMateriId = $('<div>').text(materi.IdMateri || '').html();
+                    const escapedIdSurah = idSurah ? $('<div>').text(idSurah).html() : '';
+                    const escapedIdAyat = idAyat ? $('<div>').text(idAyat).html() : '';
+
                     formHtml += `
                      <div class="row mb-4">
                          <div class="col-md-6">
@@ -1050,6 +1088,29 @@
                                         oninput="if(this.value.length > 2) this.value = this.value.slice(0, 2);"
                                         required>
                                  <small class="form-text text-muted">Range nilai: <?= $nilai_minimal ?> - <?= $nilai_maximal ?></small>
+                                 ${(showWebButton || showApiButton) ? `
+                                 <div class="mt-2">
+                                     <div class="btn-group btn-group-sm" role="group">
+                                         ${showWebButton ? `
+                                         <button type="button" class="btn btn-outline-info btn-lihat-ayat-card" 
+                                                 data-url="${escapedUrl}" 
+                                                 data-title="${escapedTitle}"
+                                                 data-materi-id="${escapedMateriId}">
+                                             <i class="fas fa-external-link-alt"></i> Lihat Ayat (Web)
+                                         </button>
+                                         ` : ''}
+                                         ${showApiButton ? `
+                                         <button type="button" class="btn btn-outline-primary btn-lihat-ayat-api" 
+                                                 data-materi-id="${escapedMateriId}"
+                                                 data-id-surah="${escapedIdSurah}"
+                                                 data-id-ayat="${escapedIdAyat}"
+                                                 data-title="${escapedTitle}">
+                                             <i class="fas fa-book-quran"></i> Lihat Ayat (API)
+                                         </button>
+                                         ` : ''}
+                                     </div>
+                                 </div>
+                                 ` : ''}
                              </div>
                          </div>
                          <div class="col-md-6">
@@ -1091,52 +1152,6 @@
             `;
             }
 
-            // Tambahkan section daftar ayat di bawah semua card jika ada materi dengan ayat
-            if (materiDenganAyat.length > 0) {
-                formHtml += `
-                <div class="col-md-12 mt-3">
-                    <div class="card">
-                        <div class="card-header bg-gradient-info">
-                            <h5 class="card-title mb-0 text-white">
-                                <i class="fas fa-book-quran"></i> Daftar Ayat Al-Quran
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                `;
-
-                materiDenganAyat.forEach((materi, index) => {
-                    const escapedUrl = $('<div>').text(materi.url).html();
-                    const escapedTitle = $('<div>').text(materi.namaMateri || 'Lihat Ayat').html();
-                    const escapedKategori = $('<div>').text(materi.kategori || '').html();
-                    const escapedMateriId = $('<div>').text(materi.idMateri || '').html();
-
-                    formHtml += `
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card border-info">
-                                <div class="card-body">
-                                    <h6 class="card-title">${escapedTitle}</h6>
-                                    <p class="card-text text-muted small mb-2">${escapedKategori}</p>
-                                    <button type="button" class="btn btn-sm btn-outline-info btn-lihat-ayat-card" 
-                                            data-url="${escapedUrl}" 
-                                            data-title="${escapedTitle}"
-                                            data-materi-id="${escapedMateriId}">
-                                        <i class="fas fa-eye"></i> Lihat Ayat
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                formHtml += `
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                `;
-            }
-
             formHtml += '</div>';
 
             // Close loading
@@ -1158,6 +1173,17 @@
                 const materiId = $(this).data('materi-id');
                 if (url) {
                     showAyatModal(url, title || 'Lihat Ayat', materiId);
+                }
+            });
+
+            // Setup event listeners for "Lihat Ayat (API)" buttons dari card
+            $(document).off('click', '.btn-lihat-ayat-api').on('click', '.btn-lihat-ayat-api', function() {
+                const materiId = $(this).data('materi-id');
+                const idSurah = $(this).data('id-surah');
+                const idAyat = $(this).data('id-ayat');
+                const title = $(this).data('title');
+                if (materiId) {
+                    showAyatApiModal(materiId, idSurah, idAyat, title || 'Lihat Ayat');
                 }
             });
         }
@@ -2005,6 +2031,360 @@
         // Trigger cek peserta otomatis
         $('#btnCekPeserta').click();
     }
+
+    // ==================== AYAT API FUNCTIONS ====================
+    // Global variable untuk menyimpan IdMateri yang sedang dilihat
+    let currentMateriIdForAyatApi = null;
+    // Global variable untuk menyimpan semua data ayat dan pagination
+    let allAyahsData = [];
+    let currentPage = 1;
+    const ayahsPerPage = 5;
+
+    // Fungsi untuk menampilkan ayat dari API
+    function showAyatApiModal(materiId, idSurah, idAyat, title) {
+        currentMateriIdForAyatApi = materiId;
+        $('#ayatApiTitle').text(title || 'Lihat Ayat Al-Qur\'an');
+
+        // Show loading
+        Swal.fire({
+            title: 'Memuat...',
+            text: 'Sedang mengambil ayat dari API',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // AJAX call to get ayat from API
+        $.ajax({
+            url: '<?= base_url("backend/munaqosah/getAyahByMateri") ?>',
+            type: 'POST',
+            data: {
+                IdMateri: materiId
+            },
+            dataType: 'json',
+            success: function(response) {
+                Swal.close();
+
+                if (response.success && response.data) {
+                    const data = response.data;
+                    const materiInfo = data.materi_info || {};
+
+                    // Simpan semua data ayat untuk pagination
+                    allAyahsData = data.ayahs || [];
+
+                    // Hitung halaman yang berisi IdAyat untuk kategori non-Baca Quran
+                    if (!materiInfo.IsBacaQuran && idAyat) {
+                        // Cari index ayat yang sesuai dengan IdAyat
+                        const targetAyahIndex = allAyahsData.findIndex(function(ayah) {
+                            return (ayah.ayah_number == idAyat) || (ayah.number_in_surah == idAyat);
+                        });
+
+                        if (targetAyahIndex >= 0) {
+                            // Hitung halaman yang berisi ayat tersebut
+                            currentPage = Math.floor(targetAyahIndex / ayahsPerPage) + 1;
+                        } else {
+                            currentPage = 1;
+                        }
+                    } else {
+                        // Untuk Baca Quran, mulai dari halaman pertama
+                        currentPage = 1;
+                    }
+
+                    // Render content dengan pagination
+                    renderAyahsWithPagination(data, materiInfo, idAyat);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Gagal mengambil ayat dari API'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                let errorMessage = 'Terjadi kesalahan koneksi';
+
+                try {
+                    const errorResponse = JSON.parse(xhr.responseText);
+                    if (errorResponse.message) {
+                        errorMessage = errorResponse.message;
+                    }
+                } catch (e) {
+                    // Use default error message
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Koneksi',
+                    text: errorMessage + ' (' + error + ')'
+                });
+            }
+        });
+    }
+
+    // Fungsi untuk render ayat dengan pagination
+    function renderAyahsWithPagination(data, materiInfo, targetAyahNumber = null) {
+        const totalAyahs = allAyahsData.length;
+        const totalPages = Math.ceil(totalAyahs / ayahsPerPage);
+        const startIndex = (currentPage - 1) * ayahsPerPage;
+        const endIndex = Math.min(startIndex + ayahsPerPage, totalAyahs);
+        const currentAyahs = allAyahsData.slice(startIndex, endIndex);
+
+        let contentHtml = '';
+
+        // Table untuk menampilkan ayat
+        if (currentAyahs.length > 0) {
+            contentHtml += `
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <tbody>
+            `;
+
+            currentAyahs.forEach(function(ayah, index) {
+                const ayahNumber = ayah.ayah_number || ayah.number || '';
+                const ayahText = ayah.text || ''; // Text sudah dibersihkan dari bismillah di service level
+
+                // Cek apakah ini ayat target yang harus di-highlight
+                const isTargetAyah = targetAyahNumber && (
+                    ayahNumber == targetAyahNumber ||
+                    ayah.ayah_number == targetAyahNumber ||
+                    ayah.number_in_surah == targetAyahNumber
+                );
+                const highlightClass = isTargetAyah ? 'table-warning' : '';
+                const highlightStyle = isTargetAyah ? 'background-color: #fff3cd; font-weight: bold;' : '';
+
+                // Tampilkan ayat
+                contentHtml += `
+                    <tr class="${highlightClass}" data-ayah-number="${ayahNumber}" ${isTargetAyah ? 'id="target-ayah-row"' : ''}>
+                        <td class="text-center align-middle" style="vertical-align: middle; ${highlightStyle}">
+                            <strong style="font-size: 18px; color: ${isTargetAyah ? '#856404' : '#007bff'};">
+                                ${isTargetAyah ? '<i class="fas fa-bookmark"></i> ' : ''}${ayahNumber}
+                            </strong>
+                        </td>
+                        <td class="ayah-text-api" style="text-align: right; direction: rtl; font-family: 'Amiri', 'Traditional Arabic', 'Arial', serif; padding: 10px 15px; ${highlightStyle}">
+                            ${ayahText}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            contentHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Pagination controls
+            if (totalPages > 1) {
+                contentHtml += `
+                    <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+                        <div>
+                            <span class="text-muted">
+                                Menampilkan ${startIndex + 1} - ${endIndex} dari ${totalAyahs} ayat
+                            </span>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnPrevPage" ${currentPage === 1 ? 'disabled' : ''}>
+                                <i class="fas fa-chevron-left"></i> Sebelumnya
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                                Halaman ${currentPage} dari ${totalPages}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnNextPage" ${currentPage === totalPages ? 'disabled' : ''}>
+                                Selanjutnya <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            contentHtml += '<p class="text-muted">Tidak ada ayat yang ditemukan.</p>';
+        }
+
+        $('#ayatApiContent').html(contentHtml);
+        $('#ayatApiSection').slideDown(300);
+
+        // Apply saved zoom level
+        applySavedZoomLevel();
+
+        // Setup pagination button handlers
+        setupPaginationHandlers(data, materiInfo, targetAyahNumber);
+
+        // Scroll ke section ayat
+        $('html, body').animate({
+            scrollTop: $('#ayatApiSection').offset().top - 100
+        }, 500);
+
+        // Jika ada target ayat, scroll ke ayat tersebut setelah render
+        if (targetAyahNumber) {
+            setTimeout(function() {
+                const targetRow = $('#target-ayah-row');
+                if (targetRow.length > 0) {
+                    $('html, body').animate({
+                        scrollTop: targetRow.offset().top - 150
+                    }, 500);
+
+                    // Highlight dengan animasi
+                    targetRow.css('transition', 'background-color 0.3s ease');
+                    setTimeout(function() {
+                        targetRow.css('background-color', '#fff3cd');
+                        setTimeout(function() {
+                            targetRow.css('background-color', '');
+                        }, 2000);
+                    }, 100);
+                }
+            }, 600);
+        }
+    }
+
+    // Fungsi untuk setup pagination handlers
+    function setupPaginationHandlers(data, materiInfo, targetAyahNumber = null) {
+        // Remove existing handlers
+        $('#btnPrevPage, #btnNextPage').off('click');
+
+        // Prev page handler
+        $('#btnPrevPage').on('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderAyahsWithPagination(data, materiInfo, targetAyahNumber);
+                // Scroll ke atas tabel
+                $('html, body').animate({
+                    scrollTop: $('#ayatApiContent').offset().top - 100
+                }, 300);
+            }
+        });
+
+        // Next page handler
+        $('#btnNextPage').on('click', function() {
+            const totalPages = Math.ceil(allAyahsData.length / ayahsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderAyahsWithPagination(data, materiInfo, targetAyahNumber);
+                // Scroll ke atas tabel
+                $('html, body').animate({
+                    scrollTop: $('#ayatApiContent').offset().top - 100
+                }, 300);
+            }
+        });
+    }
+
+    // Fungsi untuk menyembunyikan section ayat API
+    function hideAyatApiSection() {
+        $('#ayatApiSection').slideUp(300, function() {
+            $('#ayatApiContent').html('');
+
+            // Fokuskan ke input field yang sesuai dengan IdMateri yang sedang dilihat
+            if (currentMateriIdForAyatApi) {
+                const inputField = $('#nilai_' + currentMateriIdForAyatApi);
+                if (inputField.length > 0) {
+                    // Scroll ke input field
+                    $('html, body').animate({
+                        scrollTop: inputField.offset().top - 100
+                    }, 300);
+
+                    // Fokuskan kursor ke input field setelah animasi selesai
+                    setTimeout(function() {
+                        inputField.focus();
+                    }, 350);
+                }
+            }
+
+            // Reset variabel
+            resetAyatApiVariables();
+        });
+    }
+
+    // Fungsi untuk reset variabel ayat API
+    function resetAyatApiVariables() {
+        currentMateriIdForAyatApi = null;
+        allAyahsData = [];
+        currentPage = 1;
+    }
+
+    // Fungsi untuk reset tampilan ayat API (untuk digunakan saat kembali ke step 1)
+    function resetAyatApiView() {
+        // Sembunyikan section ayat API
+        $('#ayatApiSection').hide();
+
+        // Kosongkan content
+        $('#ayatApiContent').html('');
+
+        // Reset title
+        $('#ayatApiTitle').text('Lihat Ayat Al-Qur\'an');
+
+        // Reset variabel
+        resetAyatApiVariables();
+
+        // Remove event handlers untuk pagination
+        $('#btnPrevPage, #btnNextPage').off('click');
+    }
+
+    // ==================== ZOOM FUNCTIONS ====================
+    const STORAGE_KEY_ZOOM = 'munaqosah_ayat_api_zoom';
+    const DEFAULT_FONT_SIZE = 36;
+    const MIN_FONT_SIZE = 20;
+    const MAX_FONT_SIZE = 64;
+    const ZOOM_STEP = 6;
+
+    let currentFontSize = DEFAULT_FONT_SIZE;
+
+    // Load saved zoom level from localStorage
+    function loadSavedZoomLevel() {
+        const savedZoom = localStorage.getItem(STORAGE_KEY_ZOOM);
+        if (savedZoom) {
+            currentFontSize = parseInt(savedZoom);
+            // Ensure it's within valid range
+            if (currentFontSize < MIN_FONT_SIZE) {
+                currentFontSize = MIN_FONT_SIZE;
+            } else if (currentFontSize > MAX_FONT_SIZE) {
+                currentFontSize = MAX_FONT_SIZE;
+            }
+        }
+    }
+
+    // Apply saved zoom level to all ayah texts
+    function applySavedZoomLevel() {
+        loadSavedZoomLevel();
+        $('.ayah-text-api').each(function() {
+            $(this).css({
+                'font-size': currentFontSize + 'px',
+                'line-height': '1.3',
+                'transition': 'font-size 0.3s ease'
+            });
+        });
+    }
+
+    // Setup zoom buttons
+    $(document).ready(function() {
+        // Load saved zoom level on page load
+        loadSavedZoomLevel();
+
+        // Zoom In button
+        $('#btnZoomInApi').on('click', function() {
+            if (currentFontSize < MAX_FONT_SIZE) {
+                currentFontSize = Math.min(currentFontSize + ZOOM_STEP, MAX_FONT_SIZE);
+                $('.ayah-text-api').css('font-size', currentFontSize + 'px');
+                localStorage.setItem(STORAGE_KEY_ZOOM, currentFontSize);
+            }
+        });
+
+        // Zoom Out button
+        $('#btnZoomOutApi').on('click', function() {
+            if (currentFontSize > MIN_FONT_SIZE) {
+                currentFontSize = Math.max(currentFontSize - ZOOM_STEP, MIN_FONT_SIZE);
+                $('.ayah-text-api').css('font-size', currentFontSize + 'px');
+                localStorage.setItem(STORAGE_KEY_ZOOM, currentFontSize);
+            }
+        });
+
+        // Reset Zoom button
+        $('#btnResetZoomApi').on('click', function() {
+            currentFontSize = DEFAULT_FONT_SIZE;
+            $('.ayah-text-api').css('font-size', currentFontSize + 'px');
+            localStorage.setItem(STORAGE_KEY_ZOOM, currentFontSize);
+        });
+    });
 </script>
 
 <?= $this->endSection(); ?>

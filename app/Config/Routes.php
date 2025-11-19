@@ -211,6 +211,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/get-peserta-for-edit-nilai', 'Munaqosah::getPesertaForEditNilai');
     $routes->post('munaqosah/update-nilai-with-reason', 'Munaqosah::updateNilaiWithReason');
     $routes->get('munaqosah/get-current-tahun-ajaran', 'Munaqosah::getCurrentTahunAjaran');
+    $routes->post('munaqosah/getAyahByMateri', 'Munaqosah::getAyahByMateri');
+    $routes->get('munaqosah/getAyahByMateri', 'Munaqosah::getAyahByMateri');
     $routes->post('munaqosah/cek-peserta', 'Munaqosah::cekPeserta');
     $routes->post('munaqosah/simpan-nilai-juri', 'Munaqosah::simpanNilaiJuri');
     $routes->post('munaqosah/verify-admin-credentials', 'Munaqosah::verifyAdminCredentials');

@@ -819,6 +819,8 @@ class Munaqosah extends BaseController
                     'KategoriMateriUjian' => $namaKategori,
                     'IdGrupMateriUjian' => $materi['IdGrupMateriUjian'],
                     'WebLinkAyat' => isset($materi['WebLinkAyat']) ? $materi['WebLinkAyat'] : null,
+                    'IdSurah' => isset($materi['IdSurah']) ? $materi['IdSurah'] : null,
+                    'IdAyat' => isset($materi['IdAyat']) ? $materi['IdAyat'] : null,
                     'KategoriAsli' => isset($materi['KategoriAsli']) ? $materi['KategoriAsli'] : null
                 ];
             }
@@ -7750,6 +7752,204 @@ class Munaqosah extends BaseController
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in getCurrentTahunAjaran: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'status' => 'SYSTEM_ERROR',
+                'code' => 'INTERNAL_ERROR',
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get ayat berdasarkan IdMateri
+     * Mengambil ayat dari API menggunakan IdSurah dan IdAyat dari tabel tbl_munaqosah_alquran
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function getAyahByMateri()
+    {
+        try {
+            $idMateri = $this->request->getPost('IdMateri') ?? $this->request->getGet('IdMateri');
+
+            if (empty($idMateri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_ID_MATERI',
+                    'message' => 'IdMateri tidak boleh kosong',
+                    'details' => 'Parameter IdMateri harus diisi'
+                ]);
+            }
+
+            // Ambil data materi dari tbl_munaqosah_alquran dengan join ke kategori
+            $materiData = $this->munaqosahAlquranModel
+                ->select('tbl_munaqosah_alquran.*, tbl_kategori_materi.NamaKategoriMateri')
+                ->join('tbl_kategori_materi', 'tbl_kategori_materi.IdKategoriMateri = tbl_munaqosah_alquran.IdKategoriMateri', 'left')
+                ->where('tbl_munaqosah_alquran.IdMateri', $idMateri)
+                ->where('tbl_munaqosah_alquran.Status', 'Aktif')
+                ->first();
+
+            if (empty($materiData)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'DATA_NOT_FOUND',
+                    'code' => 'MATERI_NOT_FOUND',
+                    'message' => 'Data materi tidak ditemukan',
+                    'details' => 'Materi dengan ID ' . $idMateri . ' tidak ditemukan di tabel tbl_munaqosah_alquran'
+                ]);
+            }
+
+            // Cek apakah IdSurah dan IdAyat tersedia
+            $idSurah = isset($materiData['IdSurah']) ? (int)$materiData['IdSurah'] : null;
+            $idAyat = isset($materiData['IdAyat']) ? (int)$materiData['IdAyat'] : null;
+
+            if (empty($idSurah) || empty($idAyat)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_SURAH_AYAT',
+                    'message' => 'IdSurah atau IdAyat tidak tersedia',
+                    'details' => 'Materi dengan ID ' . $idMateri . ' tidak memiliki IdSurah atau IdAyat yang valid'
+                ]);
+            }
+
+            // Validasi IdSurah (1-114)
+            if ($idSurah < 1 || $idSurah > 114) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'INVALID_SURAH',
+                    'message' => 'IdSurah tidak valid',
+                    'details' => 'IdSurah harus antara 1-114, diberikan: ' . $idSurah
+                ]);
+            }
+
+            // Validasi IdAyat
+            if ($idAyat < 1) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'INVALID_AYAT',
+                    'message' => 'IdAyat tidak valid',
+                    'details' => 'IdAyat harus lebih dari 0, diberikan: ' . $idAyat
+                ]);
+            }
+
+            // Cek kategori materi untuk menentukan range ayat
+            $namaKategori = isset($materiData['NamaKategoriMateri']) ? strtoupper(trim($materiData['NamaKategoriMateri'])) : '';
+            $isBacaQuran = in_array($namaKategori, ['BACA AL-QURAN', 'BACA ALQURAN', 'BACA QURAN', "QUR'AN", 'QURAN', 'BACA AL QURAN']);
+
+            // Gunakan IslamicApiService untuk mengambil info surah terlebih dahulu
+            $islamicApiService = new \App\Libraries\IslamicApiService();
+            $edition = $this->request->getGet('edition') ?? 'quran-uthmani';
+
+            // Ambil info surah untuk mendapatkan jumlah ayat total
+            $surahInfo = $islamicApiService->getSurah($idSurah, $edition);
+            $totalAyahsInSurah = 0;
+            if ($surahInfo['success'] && isset($surahInfo['number_of_ayahs'])) {
+                $totalAyahsInSurah = (int)$surahInfo['number_of_ayahs'];
+            }
+
+            // Tentukan range ayat berdasarkan kategori
+            if ($isBacaQuran) {
+                // Untuk Baca Quran: ambil IdAyat + 5
+                $ayahStart = $idAyat;
+                $ayahEnd = $idAyat + 5;
+                // Pastikan tidak melebihi jumlah ayat dalam surah
+                if ($totalAyahsInSurah > 0 && $ayahEnd > $totalAyahsInSurah) {
+                    $ayahEnd = $totalAyahsInSurah;
+                }
+
+                // Ambil range ayat menggunakan getAyahRange
+                $result = $islamicApiService->getAyahRange($idSurah, $ayahStart, $ayahEnd, $edition);
+            } else {
+                // Untuk kategori lain: ambil seluruh surah menggunakan getSurah (lebih efisien)
+                $ayahStart = 1; // Set ayahStart untuk kategori non-Baca Quran
+                $surahResult = $islamicApiService->getSurah($idSurah, $edition);
+
+                if (!$surahResult['success']) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'status' => 'API_ERROR',
+                        'code' => 'AYAH_FETCH_FAILED',
+                        'message' => 'Gagal mengambil surah dari API',
+                        'details' => $surahResult['error'] ?? 'Terjadi kesalahan saat mengambil surah'
+                    ]);
+                }
+
+                // Update totalAyahsInSurah dari hasil getSurah jika belum ada
+                if ($totalAyahsInSurah === 0 && isset($surahResult['number_of_ayahs'])) {
+                    $totalAyahsInSurah = (int)$surahResult['number_of_ayahs'];
+                }
+                $ayahEnd = $totalAyahsInSurah > 0 ? $totalAyahsInSurah : count($surahResult['ayahs'] ?? []);
+
+                // Transform data surah ke format yang sama dengan getAyahRange
+                // Data sudah diproses di IslamicApiService untuk menghapus bismillah
+                $ayahs = [];
+                if (isset($surahResult['ayahs']) && is_array($surahResult['ayahs'])) {
+                    foreach ($surahResult['ayahs'] as $ayahItem) {
+                        // Handle berbagai format data dari API
+                        $ayahs[] = [
+                            'surah_number' => $idSurah,
+                            'ayah_number' => $ayahItem['numberInSurah'] ?? $ayahItem['number'] ?? 0,
+                            'text' => $ayahItem['text'] ?? '', // Text sudah dibersihkan dari bismillah di service
+                            'number' => $ayahItem['number'] ?? 0,
+                            'number_in_surah' => $ayahItem['numberInSurah'] ?? $ayahItem['number'] ?? 0,
+                            'juz' => $ayahItem['juz'] ?? 0,
+                            'manzil' => $ayahItem['manzil'] ?? 0,
+                            'page' => $ayahItem['page'] ?? 0,
+                            'ruku' => $ayahItem['ruku'] ?? 0,
+                            'hizb_quarter' => $ayahItem['hizbQuarter'] ?? $ayahItem['hizb_quarter'] ?? 0,
+                        ];
+                    }
+                }
+
+                $result = [
+                    'success' => true,
+                    'surah_number' => $idSurah,
+                    'ayah_start' => $ayahStart,
+                    'ayah_end' => $ayahEnd,
+                    'surah_name' => $surahResult['surah_name_arabic'] ?? '',
+                    'surah_name_english' => $surahResult['surah_name_english'] ?? '',
+                    'total_ayahs' => count($ayahs),
+                    'ayahs' => $ayahs,
+                    'raw_data' => ['note' => 'Data diambil menggunakan getSurah (seluruh surah)']
+                ];
+            }
+
+            if (!$result['success']) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'API_ERROR',
+                    'code' => 'AYAH_FETCH_FAILED',
+                    'message' => 'Gagal mengambil ayat dari API',
+                    'details' => $result['error'] ?? 'Terjadi kesalahan saat mengambil ayat'
+                ]);
+            }
+
+            // Tambahkan informasi materi ke response
+            $result['materi_info'] = [
+                'IdMateri' => $idMateri,
+                'NamaMateri' => $materiData['NamaSurah'] ?? '',
+                'IdSurah' => $idSurah,
+                'IdAyat' => $idAyat,
+                'AyahStart' => $ayahStart,
+                'AyahEnd' => $ayahEnd,
+                'IsBacaQuran' => $isBacaQuran,
+                'TotalAyahsInSurah' => $totalAyahsInSurah
+            ];
+
+            return $this->response->setJSON([
+                'success' => true,
+                'status' => 'SUCCESS',
+                'code' => 'AYAH_FETCHED',
+                'message' => 'Ayat berhasil diambil',
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getAyahByMateri: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
                 'status' => 'SYSTEM_ERROR',

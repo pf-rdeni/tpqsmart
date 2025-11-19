@@ -247,6 +247,66 @@ class IslamicApiService
 
             $surahData = $data['data'];
 
+            // Proses ayahs untuk menghapus bismillah dari ayat pertama
+            $ayahs = $surahData['ayahs'] ?? [];
+            if (!empty($ayahs) && isset($ayahs[0])) {
+                // Cek apakah ayat pertama (index 0) mengandung bismillah
+                $firstAyahText = $ayahs[0]['text'] ?? '';
+                if (!empty($firstAyahText)) {
+                    // Cek apakah text dimulai dengan بِسْمِ (bismillah)
+                    $trimmedText = trim($firstAyahText);
+                    $startsWithBismillah = (mb_substr($trimmedText, 0, 5) === 'بِسْمِ' || mb_strpos($trimmedText, 'بِسْمِ') === 0);
+
+                    if ($startsWithBismillah) {
+                        // Cari posisi "الرَّحِيمِ" atau variasi dengan alif wasla
+                        // Urutkan dari yang paling spesifik ke yang lebih umum
+                        $raheemPatterns = [
+                            'حِيمِ',  // Dengan alif wasla
+                            'الرَّحِيمِ',  // Standar
+                            'لرَّحِيمِ'   // Tanpa alif
+                        ];
+
+                        $raheemPos = false;
+                        $raheemLength = 0;
+
+                        foreach ($raheemPatterns as $pattern) {
+                            $pos = mb_strpos($firstAyahText, $pattern);
+                            if ($pos !== false) {
+                                $raheemPos = $pos;
+                                $raheemLength = mb_strlen($pattern);
+                                break;
+                            }
+                        }
+
+                        if ($raheemPos !== false) {
+                            // Ambil text setelah الرَّحِيمِ (mulai dari posisi setelah الرَّحِيمِ)
+                            $afterRaheem = mb_substr($firstAyahText, $raheemPos + $raheemLength);
+                            $afterRaheem = trim($afterRaheem);
+
+                            // Jika ada text setelah bismillah, gunakan itu
+                            if (!empty($afterRaheem)) {
+                                $ayahs[0]['text'] = $afterRaheem;
+                            } else {
+                                // Jika tidak ada text setelahnya, berarti hanya bismillah saja
+                                // Hapus seluruh bismillah dengan regex
+                                $patterns = [
+                                    '/بِسْمِ\s*[ٱا]?للَّهِ\s*[ٱا]?لرَّحْم[ٱا]?[َٰ]?نِ\s*[ٱا]?لرَّحِيمِ\s*/u',
+                                    '/بِسْمِ.*?[ٱا]?للَّهِ.*?[ٱا]?لرَّحْم.*?[ٱا]?لرَّحِيمِ\s*/u'
+                                ];
+
+                                foreach ($patterns as $pattern) {
+                                    $cleaned = preg_replace($pattern, '', $firstAyahText);
+                                    if ($cleaned !== $firstAyahText) {
+                                        $ayahs[0]['text'] = trim($cleaned);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             return [
                 'success' => true,
                 'surah_number' => $surahNumber,
@@ -256,7 +316,7 @@ class IslamicApiService
                 'surah_name_english_translation' => $surahData['englishNameTranslation'] ?? '',
                 'number_of_ayahs' => $surahData['numberOfAyahs'] ?? 0,
                 'revelation_type' => $surahData['revelationType'] ?? '',
-                'ayahs' => $surahData['ayahs'] ?? [],
+                'ayahs' => $ayahs,
                 'raw_data' => $data
             ];
         } catch (Exception $e) {
@@ -271,6 +331,7 @@ class IslamicApiService
 
     /**
      * Mendapatkan range ayat berdasarkan nomor surah dan range ayat
+     * Menggunakan parallel requests untuk performa lebih cepat
      * 
      * @param int $surah Nomor surah (1-114)
      * @param int $ayahStart Ayat awal
@@ -304,50 +365,218 @@ class IslamicApiService
             $surahInfo = [];
             $firstAyahData = null;
 
-            // Ambil setiap ayat dalam range secara individual
-            // Ini lebih reliable karena API mungkin tidak selalu mengembalikan array untuk range
-            for ($ayahNum = $ayahStart; $ayahNum <= $ayahEnd; $ayahNum++) {
-                try {
-                    $url = self::QURAN_BASE_URL . '/ayah/' . $surah . ':' . $ayahNum . '/' . $edition;
-                    
-                    $response = $this->client->get($url);
-                    $statusCode = $response->getStatusCode();
-                    $body = $response->getBody();
+            // Hitung jumlah ayat
+            $totalAyahs = $ayahEnd - $ayahStart + 1;
 
-                    if ($statusCode === 200) {
-                        $ayahData = json_decode($body, true);
-                        
-                        if (json_last_error() === JSON_ERROR_NONE && isset($ayahData['data'])) {
-                            $ayahItem = $ayahData['data'];
-                            
-                            // Simpan info surah dari ayat pertama
-                            if ($ayahNum === $ayahStart && isset($ayahItem['surah'])) {
-                                $surahInfo = $ayahItem['surah'];
-                                $firstAyahData = $ayahItem;
-                            }
-                            
-                            $ayahs[] = [
-                                'surah_number' => $surah,
-                                'ayah_number' => $ayahItem['numberInSurah'] ?? $ayahNum,
-                                'text' => $ayahItem['text'] ?? '',
-                                'number' => $ayahItem['number'] ?? 0,
-                                'number_in_surah' => $ayahItem['numberInSurah'] ?? $ayahNum,
-                                'juz' => $ayahItem['juz'] ?? 0,
-                                'manzil' => $ayahItem['manzil'] ?? 0,
-                                'page' => $ayahItem['page'] ?? 0,
-                                'ruku' => $ayahItem['ruku'] ?? 0,
-                                'hizb_quarter' => $ayahItem['hizbQuarter'] ?? 0,
-                            ];
-                        }
-                    } else {
-                        log_message('warning', "Gagal mengambil ayat {$surah}:{$ayahNum}. Status: {$statusCode}");
-                    }
-                } catch (Exception $e) {
-                    log_message('warning', "Error mengambil ayat {$surah}:{$ayahNum} - " . $e->getMessage());
-                    // Lanjutkan ke ayat berikutnya meskipun ada error
-                    continue;
+            // Jika hanya 1 ayat, gunakan method single untuk lebih cepat
+            if ($totalAyahs === 1) {
+                $singleAyah = $this->getAyah($surah, $ayahStart, $edition);
+                if ($singleAyah['success']) {
+                    return [
+                        'success' => true,
+                        'surah_number' => $surah,
+                        'ayah_start' => $ayahStart,
+                        'ayah_end' => $ayahEnd,
+                        'surah_name' => $singleAyah['surah_name'] ?? '',
+                        'surah_name_english' => $singleAyah['surah_name_english'] ?? '',
+                        'total_ayahs' => 1,
+                        'ayahs' => [[
+                            'surah_number' => $surah,
+                            'ayah_number' => $singleAyah['ayah_number'],
+                            'text' => $singleAyah['text'],
+                            'number' => $singleAyah['number'],
+                            'number_in_surah' => $singleAyah['number_in_surah'],
+                            'juz' => $singleAyah['juz'],
+                            'manzil' => $singleAyah['manzil'],
+                            'page' => $singleAyah['page'],
+                            'ruku' => $singleAyah['ruku'],
+                            'hizb_quarter' => $singleAyah['hizb_quarter'],
+                        ]],
+                        'raw_data' => ['note' => 'Single ayah request']
+                    ];
                 }
             }
+
+            // Untuk multiple ayat, gunakan parallel requests dengan curl_multi
+            $multiHandle = curl_multi_init();
+            $curlHandles = [];
+            $ayahUrls = [];
+
+            // Get CA certificate path if available
+            $caCertPath = null;
+            $caCertPath = getenv('SSL_CERT_FILE');
+            if (empty($caCertPath)) {
+                $possiblePaths = [
+                    getcwd() . '/vendor/cacert.pem',
+                    getcwd() . '/cacert.pem',
+                    'C:/laragon/etc/ssl/cacert.pem',
+                    'D:/Projects/Laragon-installer/8.0-W64/etc/ssl/cacert.pem',
+                ];
+                foreach ($possiblePaths as $path) {
+                    if (file_exists($path)) {
+                        $caCertPath = $path;
+                        break;
+                    }
+                }
+            }
+
+            // Prepare semua URL dan curl handles
+            for ($ayahNum = $ayahStart; $ayahNum <= $ayahEnd; $ayahNum++) {
+                $url = self::QURAN_BASE_URL . '/ayah/' . $surah . ':' . $ayahNum . '/' . $edition;
+                $ayahUrls[$ayahNum] = $url;
+
+                $ch = curl_init($url);
+
+                // Konfigurasi curl dengan timeout yang lebih ketat untuk performa
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 10,
+                    CURLOPT_CONNECTTIMEOUT => 5,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_HTTPHEADER => [
+                        'Accept: application/json',
+                        'User-Agent: IslamicApiService/1.0'
+                    ]
+                ]);
+
+                // SSL verification
+                if (!empty($caCertPath) && file_exists($caCertPath)) {
+                    curl_setopt($ch, CURLOPT_CAINFO, $caCertPath);
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+                } else {
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                }
+
+                curl_multi_add_handle($multiHandle, $ch);
+                $curlHandles[$ayahNum] = $ch;
+            }
+
+            // Execute semua requests secara parallel
+            $running = null;
+            $maxWaitTime = 15; // Maximum wait time in seconds
+            $startTime = time();
+
+            do {
+                $mrc = curl_multi_exec($multiHandle, $running);
+
+                // Check timeout
+                if ((time() - $startTime) > $maxWaitTime) {
+                    log_message('warning', 'IslamicApiService::getAyahRange - Timeout waiting for parallel requests');
+                    break;
+                }
+
+                // Wait a bit before checking again
+                if ($running > 0) {
+                    curl_multi_select($multiHandle, 0.1);
+                }
+            } while ($running > 0 && $mrc == CURLM_OK);
+
+            // Process semua responses
+            foreach ($curlHandles as $ayahNum => $ch) {
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $response = curl_multi_getcontent($ch);
+
+                if ($httpCode === 200 && !empty($response)) {
+                    $ayahData = json_decode($response, true);
+
+                    if (json_last_error() === JSON_ERROR_NONE && isset($ayahData['data'])) {
+                        $ayahItem = $ayahData['data'];
+
+                        // Simpan info surah dari ayat pertama
+                        if ($ayahNum === $ayahStart && isset($ayahItem['surah'])) {
+                            $surahInfo = $ayahItem['surah'];
+                            $firstAyahData = $ayahItem;
+                        }
+
+                        // Proses text ayat untuk menghapus bismillah dari ayat pertama
+                        $ayahText = $ayahItem['text'] ?? '';
+                        $ayahNumberInSurah = $ayahItem['numberInSurah'] ?? $ayahNum;
+
+                        // Jika ini ayat pertama (numberInSurah = 1) dan mengandung bismillah
+                        if ($ayahNumberInSurah == 1 && !empty($ayahText)) {
+                            // Cek apakah text dimulai dengan بِسْمِ (bismillah)
+                            $trimmedText = trim($ayahText);
+                            $startsWithBismillah = (mb_substr($trimmedText, 0, 5) === 'بِسْمِ' || mb_strpos($trimmedText, 'بِسْمِ') === 0);
+
+                            if ($startsWithBismillah) {
+                                // Cari posisi "الرَّحِيمِ" atau variasi dengan alif wasla
+                                // Urutkan dari yang paling spesifik ke yang lebih umum
+                                $raheemPatterns = [
+                                    'ٱلرَّحِيمِ',  // Dengan alif wasla
+                                    'الرَّحِيمِ',  // Standar
+                                    'لرَّحِيمِ'   // Tanpa alif
+                                ];
+
+                                $raheemPos = false;
+                                $raheemLength = 0;
+
+                                foreach ($raheemPatterns as $pattern) {
+                                    $pos = mb_strpos($ayahText, $pattern);
+                                    if ($pos !== false) {
+                                        $raheemPos = $pos;
+                                        $raheemLength = mb_strlen($pattern);
+                                        break;
+                                    }
+                                }
+
+                                if ($raheemPos !== false) {
+                                    // Ambil text setelah الرَّحِيمِ (mulai dari posisi setelah الرَّحِيمِ)
+                                    $afterRaheem = mb_substr($ayahText, $raheemPos + $raheemLength);
+                                    $afterRaheem = trim($afterRaheem);
+
+                                    // Jika ada text setelah bismillah, gunakan itu
+                                    if (!empty($afterRaheem)) {
+                                        $ayahText = $afterRaheem;
+                                    } else {
+                                        // Jika tidak ada text setelahnya, berarti hanya bismillah saja
+                                        // Hapus seluruh bismillah dengan regex
+                                        $patterns = [
+                                            '/بِسْمِ\s*[ٱا]?للَّهِ\s*[ٱا]?لرَّحْم[ٱا]?[َٰ]?نِ\s*[ٱا]?لرَّحِيمِ\s*/u',
+                                            '/بِسْمِ.*?[ٱا]?للَّهِ.*?[ٱا]?لرَّحْم.*?[ٱا]?لرَّحِيمِ\s*/u'
+                                        ];
+
+                                        foreach ($patterns as $pattern) {
+                                            $cleaned = preg_replace($pattern, '', $ayahText);
+                                            if ($cleaned !== $ayahText) {
+                                                $ayahText = trim($cleaned);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        $ayahs[] = [
+                            'surah_number' => $surah,
+                            'ayah_number' => $ayahNumberInSurah,
+                            'text' => $ayahText,
+                            'number' => $ayahItem['number'] ?? 0,
+                            'number_in_surah' => $ayahNumberInSurah,
+                            'juz' => $ayahItem['juz'] ?? 0,
+                            'manzil' => $ayahItem['manzil'] ?? 0,
+                            'page' => $ayahItem['page'] ?? 0,
+                            'ruku' => $ayahItem['ruku'] ?? 0,
+                            'hizb_quarter' => $ayahItem['hizbQuarter'] ?? 0,
+                        ];
+                    } else {
+                        log_message('warning', "Gagal memparse response untuk ayat {$surah}:{$ayahNum}");
+                    }
+                } else {
+                    $error = curl_error($ch);
+                    log_message('warning', "Gagal mengambil ayat {$surah}:{$ayahNum}. HTTP: {$httpCode}, Error: {$error}");
+                }
+
+                curl_multi_remove_handle($multiHandle, $ch);
+                curl_close($ch);
+            }
+
+            curl_multi_close($multiHandle);
+
+            // Sort ayahs by ayah_number to ensure correct order
+            usort($ayahs, function ($a, $b) {
+                return $a['ayah_number'] <=> $b['ayah_number'];
+            });
 
             if (empty($ayahs)) {
                 throw new Exception('Tidak ada ayat yang berhasil diambil untuk surah ' . $surah . ' ayat ' . $ayahStart . '-' . $ayahEnd);
@@ -377,7 +606,7 @@ class IslamicApiService
                 'surah_name_english' => $surahInfo['englishName'] ?? '',
                 'total_ayahs' => count($ayahs),
                 'ayahs' => $ayahs,
-                'raw_data' => ['note' => 'Data diambil per ayat dalam range']
+                'raw_data' => ['note' => 'Data diambil menggunakan parallel requests']
             ];
         } catch (Exception $e) {
             log_message('error', 'IslamicApiService::getAyahRange - ' . $e->getMessage());

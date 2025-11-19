@@ -17,6 +17,8 @@ class MunaqosahAlquranModel extends Model
         'IdKategoriMateri',
         'NamaSurah',
         'WebLinkAyat',
+        'IdSurah',
+        'IdAyat',
         'Status',
         'created_at',
         'updated_at'

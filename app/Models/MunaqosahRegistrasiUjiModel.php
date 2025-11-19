@@ -167,7 +167,7 @@ class MunaqosahRegistrasiUjiModel extends Model
         if ($idGrupMateriUjian === 'GM001') {
             // Untuk grup Quran, ambil dari tbl_munaqosah_alquran dengan filter IdKategoriMateri
             $builder = $this->db->table($this->table . ' r');
-            $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, a.NamaSurah as NamaMateri, a.WebLinkAyat');
+            $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, a.NamaSurah as NamaMateri, a.WebLinkAyat, a.IdSurah, a.IdAyat');
             // Join dengan filter IdKategoriMateri agar lebih presisi
             $builder->join('tbl_munaqosah_alquran a', 'a.IdMateri = r.IdMateri AND a.IdKategoriMateri = r.IdKategoriMateri', 'left');
             $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
@@ -182,7 +182,7 @@ class MunaqosahRegistrasiUjiModel extends Model
             // Untuk grup lain, ambil dari tbl_materi_pelajaran
             // Juga join ke tbl_munaqosah_alquran untuk mendapatkan WebLinkAyat jika ada (untuk kategori seperti Ayat Pilihan, Surah pendek)
             $builder = $this->db->table($this->table . ' r');
-            $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli, a.WebLinkAyat');
+            $builder->select('r.IdMateri, r.IdGrupMateriUjian, r.IdKategoriMateri, km.NamaKategoriMateri as NamaKategoriMateri, km.NamaKategoriMateri as KategoriMateriUjian, mp.NamaMateri, mp.Kategori as KategoriAsli, a.WebLinkAyat, a.IdSurah, a.IdAyat');
             $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = r.IdMateri', 'left');
             // Join ke tbl_munaqosah_alquran untuk mendapatkan WebLinkAyat jika IdMateri ada di tabel tersebut
             // Join dengan kondisi yang tepat untuk mendapatkan WebLinkAyat yang sesuai
