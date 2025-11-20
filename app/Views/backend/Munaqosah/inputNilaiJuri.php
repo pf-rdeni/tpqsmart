@@ -1297,12 +1297,23 @@
                                 
                                 <!-- Field Catatan Tambahan -->
                                 <div class="form-group mt-3">
-                                    <label for="catatan_${materi.IdMateri}">Catatan Tambahan</label>
-                                    <textarea class="form-control catatan-input" 
-                                              id="catatan_${materi.IdMateri}" 
-                                              name="catatan[${materi.IdMateri}]" 
-                                              rows="2" 
-                                              placeholder="Masukkan catatan tambahan jika ada..."></textarea>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label for="catatan_${materi.IdMateri}" class="mb-0">Catatan Tambahan</label>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-secondary toggle-catatan" 
+                                                data-materi-id="${materi.IdMateri}"
+                                                aria-label="Tampilkan atau sembunyikan catatan tambahan">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="catatan-container d-none" data-materi-id="${materi.IdMateri}" data-visible="false">
+                                        <textarea class="form-control catatan-input" 
+                                                  id="catatan_${materi.IdMateri}" 
+                                                  name="catatan[${materi.IdMateri}]" 
+                                                  rows="2" 
+                                                  placeholder="Masukkan catatan tambahan jika ada..."></textarea>
+                                    </div>
+                                    <small class="form-text text-muted">Klik ikon mata untuk menampilkan atau menyembunyikan catatan tambahan.</small>
                                 </div>
                              </div>
                          </div>
@@ -1327,6 +1338,7 @@
             // Setup event listeners for nilai inputs
             setupNilaiInputListeners();
             setupErrorCategoryToggles();
+            setupCatatanToggles();
 
             // Sembunyikan semua checkbox kategori kesalahan dan range group terlebih dahulu
             $('.error-categories-container').each(function() {
@@ -1445,6 +1457,30 @@
                 const materiId = $(this).data('materi-id');
                 toggleErrorCategories(materiId, true);
             });
+        }
+
+        function setupCatatanToggles() {
+            $('.toggle-catatan').off('click').on('click', function() {
+                const materiId = $(this).data('materi-id');
+                toggleCatatan(materiId);
+            });
+        }
+
+        function toggleCatatan(materiId) {
+            const container = $('.catatan-container[data-materi-id="' + materiId + '"]');
+            const toggleBtn = $('.toggle-catatan[data-materi-id="' + materiId + '"]');
+            const icon = toggleBtn.find('i');
+            const isVisible = container.attr('data-visible') === 'true';
+
+            if (isVisible) {
+                container.addClass('d-none').attr('data-visible', 'false');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                toggleBtn.attr('aria-pressed', 'false');
+            } else {
+                container.removeClass('d-none').attr('data-visible', 'true');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                toggleBtn.attr('aria-pressed', 'true');
+            }
         }
 
         function handleAutoShowErrorCategories($input) {
