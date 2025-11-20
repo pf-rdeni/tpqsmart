@@ -209,5 +209,46 @@
                 currentTheme = newTheme;
             });
         })();
+
+        // AdminLTE Customization - Load settings from localStorage
+        (function() {
+            const settings = JSON.parse(localStorage.getItem('adminlte_settings') || '{}');
+            if (Object.keys(settings).length === 0) return;
+            
+            const body = document.body;
+            const sidebar = document.querySelector('.main-sidebar');
+            const navbar = document.querySelector('.main-header.navbar');
+            const controlSidebar = document.querySelector('.control-sidebar');
+            
+            // Remove default classes that might conflict
+            body.classList.remove('layout-fixed', 'layout-navbar-fixed', 'layout-footer-fixed', 'layout-boxed', 'layout-top-nav', 'sidebar-collapse', 'sidebar-mini', 'sidebar-mini-md', 'sidebar-mini-xs');
+            
+            // Apply layout classes
+            if (settings.layoutFixed) body.classList.add('layout-fixed');
+            if (settings.layoutNavbarFixed) body.classList.add('layout-navbar-fixed');
+            if (settings.layoutFooterFixed) body.classList.add('layout-footer-fixed');
+            if (settings.layoutBoxed) body.classList.add('layout-boxed');
+            if (settings.layoutTopNav) body.classList.add('layout-top-nav');
+            if (settings.sidebarCollapse) body.classList.add('sidebar-collapse');
+            if (settings.sidebarMini) body.classList.add('sidebar-mini');
+            if (settings.sidebarMiniMd) body.classList.add('sidebar-mini-md');
+            if (settings.sidebarMiniXs) body.classList.add('sidebar-mini-xs');
+            
+            // Apply sidebar color
+            if (settings.sidebarColor && sidebar) {
+                sidebar.className = 'main-sidebar elevation-4 ' + settings.sidebarColor;
+            }
+            
+            // Apply navbar variant
+            if (settings.navbarVariant && navbar) {
+                const classes = settings.navbarVariant.split(' ');
+                navbar.className = 'main-header navbar navbar-expand ' + classes.join(' ');
+            }
+            
+            // Apply additional options
+            if (settings.textSm) body.classList.add('text-sm');
+            if (settings.flatStyle) body.classList.add('flat-style');
+            if (settings.legacyStyle) body.classList.add('legacy-style');
+        })();
     });
 </script>

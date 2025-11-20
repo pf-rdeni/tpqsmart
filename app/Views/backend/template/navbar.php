@@ -223,9 +223,10 @@
                 <i class="fas fa-expand-arrows-alt"></i>
             </a>
         </li>
+        <!-- Customize AdminLTE -->
         <li class="nav-item">
-            <a class="nav-link" href="<?= base_url('logout') ?>" role="button">
-                <i class="fas fa-sign-out-alt"></i>
+            <a class="nav-link" href="<?= base_url('backend/customize') ?>" role="button" title="Customize AdminLTE">
+                <i class="fab fa-windows"></i>
             </a>
         </li>
     </ul>
