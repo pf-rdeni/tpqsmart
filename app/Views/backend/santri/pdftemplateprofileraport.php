@@ -8,6 +8,8 @@
             font-family: DejaVu Sans, Arial, sans-serif;
             font-size: 12px;
             color: #222;
+            margin: 0;
+            padding: 0;
         }
 
         .header {
@@ -33,6 +35,12 @@
             margin-bottom: 20px;
             padding: 15px;
             border-bottom: 2px solid #000;
+        }
+
+        .kop-lembaga.has-kop-image {
+            margin-top: 0;
+            padding-top: 0;
+            padding-bottom: 10px;
         }
 
         .kop-lembaga .nama-lembaga {
@@ -145,17 +153,109 @@
             font-size: 10.5px;
             color: #666;
         }
+
+        @page {
+            margin-top: 5mm;
+            margin-bottom: 5mm;
+            margin-left: 15mm;
+            margin-right: 15mm;
+        }
     </style>
 </head>
 
 <body>
     <!-- Kop Lembaga -->
-    <div class="kop-lembaga">
-        <div class="nama-lembaga"><?= htmlspecialchars($d['printNamaTpq']); ?></div>
-        <div class="alamat-lembaga"><?= htmlspecialchars($d['printAlamatTpq']); ?></div>
-        <div class="alamat-lembaga"><?= htmlspecialchars($d['printKelurahanDesaTpq']); ?>, <?= htmlspecialchars($d['printKecamatanTpq']); ?>, <?= htmlspecialchars($d['printKabupatenKotaTpq']); ?></div>
-        <div class="alamat-lembaga"><?= htmlspecialchars($d['printProvinsiTpq']); ?> <?= htmlspecialchars($d['printKodePosTpq']); ?></div>
-        <div class="kontak-lembaga">Telp: <?= htmlspecialchars($d['printTelpTpq']); ?> | Email: <?= htmlspecialchars($d['printEmailTpq']); ?></div>
+    <div class="kop-lembaga <?= !empty($d['printKopLembaga']) ? 'has-kop-image' : ''; ?>" style="<?= !empty($d['printKopLembaga']) ? 'border-bottom: none;' : ''; ?>">
+        <?php if (!empty($d['printKopLembaga'])): ?>
+            <!-- Kop Lembaga dari gambar -->
+            <?php
+            $kopPath = FCPATH . 'uploads/kop/' . $d['printKopLembaga'];
+            if (file_exists($kopPath)) {
+                // Cek ukuran file untuk optimasi
+                $fileSize = filesize($kopPath);
+                if ($fileSize > 2 * 1024 * 1024) { // Jika file > 2MB
+                    // Resize image untuk performa yang lebih baik
+                    $imageInfo = getimagesize($kopPath);
+                    if ($imageInfo) {
+                        $width = $imageInfo[0];
+                        $height = $imageInfo[1];
+                        $mimeType = $imageInfo['mime'];
+
+                        // Resize jika terlalu besar
+                        if ($width > 1200) {
+                            $newWidth = 1200;
+                            $newHeight = ($height * $newWidth) / $width;
+
+                            // Buat image resource berdasarkan tipe
+                            switch ($mimeType) {
+                                case 'image/jpeg':
+                                    $source = imagecreatefromjpeg($kopPath);
+                                    break;
+                                case 'image/png':
+                                    $source = imagecreatefrompng($kopPath);
+                                    break;
+                                case 'image/gif':
+                                    $source = imagecreatefromgif($kopPath);
+                                    break;
+                                default:
+                                    $source = false;
+                            }
+
+                            if ($source) {
+                                $resized = imagecreatetruecolor($newWidth, $newHeight);
+                                imagecopyresampled($resized, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+                                // Output ke buffer
+                                ob_start();
+                                switch ($mimeType) {
+                                    case 'image/jpeg':
+                                        imagejpeg($resized, null, 85);
+                                        break;
+                                    case 'image/png':
+                                        imagepng($resized, null, 8);
+                                        break;
+                                    case 'image/gif':
+                                        imagegif($resized);
+                                        break;
+                                }
+                                $kopContent = ob_get_contents();
+                                ob_end_clean();
+
+                                imagedestroy($source);
+                                imagedestroy($resized);
+                            } else {
+                                $kopContent = file_get_contents($kopPath);
+                            }
+                        } else {
+                            $kopContent = file_get_contents($kopPath);
+                        }
+                    } else {
+                        $kopContent = file_get_contents($kopPath);
+                    }
+                } else {
+                    $kopContent = file_get_contents($kopPath);
+                }
+
+                $kopBase64 = base64_encode($kopContent);
+                $kopMimeType = mime_content_type($kopPath);
+                echo '<img src="data:' . $kopMimeType . ';base64,' . $kopBase64 . '" alt="Kop Lembaga" style="width: 100%; max-width: 800px; height: auto; display: block; margin: 0 auto;">';
+            } else {
+                // Fallback jika file tidak ditemukan
+                echo '<div class="nama-lembaga">' . htmlspecialchars($d['printNamaTpq']) . '</div>';
+                echo '<div class="alamat-lembaga">' . htmlspecialchars($d['printAlamatTpq']) . '</div>';
+                echo '<div class="alamat-lembaga">' . htmlspecialchars($d['printKelurahanDesaTpq']) . ', ' . htmlspecialchars($d['printKecamatanTpq']) . ', ' . htmlspecialchars($d['printKabupatenKotaTpq']) . '</div>';
+                echo '<div class="alamat-lembaga">' . htmlspecialchars($d['printProvinsiTpq']) . ' ' . htmlspecialchars($d['printKodePosTpq']) . '</div>';
+                echo '<div class="kontak-lembaga">Telp: ' . htmlspecialchars($d['printTelpTpq']) . ' | Email: ' . htmlspecialchars($d['printEmailTpq']) . '</div>';
+            }
+            ?>
+        <?php else: ?>
+            <!-- Fallback jika tidak ada kop lembaga -->
+            <div class="nama-lembaga"><?= htmlspecialchars($d['printNamaTpq']); ?></div>
+            <div class="alamat-lembaga"><?= htmlspecialchars($d['printAlamatTpq']); ?></div>
+            <div class="alamat-lembaga"><?= htmlspecialchars($d['printKelurahanDesaTpq']); ?>, <?= htmlspecialchars($d['printKecamatanTpq']); ?>, <?= htmlspecialchars($d['printKabupatenKotaTpq']); ?></div>
+            <div class="alamat-lembaga"><?= htmlspecialchars($d['printProvinsiTpq']); ?> <?= htmlspecialchars($d['printKodePosTpq']); ?></div>
+            <div class="kontak-lembaga">Telp: <?= htmlspecialchars($d['printTelpTpq']); ?> | Email: <?= htmlspecialchars($d['printEmailTpq']); ?></div>
+        <?php endif; ?>
     </div>
 
     <table class="header">
@@ -166,7 +266,9 @@
             </td>
         </tr>
     </table>
-    <div class="divider"></div>
+    <?php if (empty($d['printKopLembaga'])): ?>
+        <div class="divider"></div>
+    <?php endif; ?>
 
     <table class="grid">
         <tr>

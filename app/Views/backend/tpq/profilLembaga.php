@@ -109,9 +109,16 @@
                                     name="logo"
                                     accept="image/jpeg,image/jpg,image/png,image/gif"
                                     onchange="showCropModalLogo()">
-                                <button type="button" class="btn btn-primary" onclick="document.getElementById('logo').click();">
-                                    <i class="fas fa-upload"></i> Upload Logo
-                                </button>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-primary" onclick="document.getElementById('logo').click();">
+                                        <i class="fas fa-upload"></i> Upload Logo
+                                    </button>
+                                    <?php if (!empty($tpq) && !empty($tpq[0]['LogoLembaga'])) : ?>
+                                        <button type="button" class="btn btn-warning" onclick="editLogo()" title="Edit ukuran logo">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -154,9 +161,16 @@
                                     name="kop_lembaga"
                                     accept="image/jpeg,image/jpg,image/png,image/gif"
                                     onchange="showCropModalKop()">
-                                <button type="button" class="btn btn-success" onclick="document.getElementById('kop_lembaga').click();">
-                                    <i class="fas fa-upload"></i> Upload Kop
-                                </button>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success" onclick="document.getElementById('kop_lembaga').click();">
+                                        <i class="fas fa-upload"></i> Upload Kop
+                                    </button>
+                                    <?php if (!empty($tpq) && !empty($tpq[0]['KopLembaga'])) : ?>
+                                        <button type="button" class="btn btn-warning" onclick="editKop()" title="Edit ukuran kop">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -179,6 +193,35 @@
                 </button>
             </div>
             <div class="modal-body">
+                <!-- Kontrol Crop untuk Logo -->
+                <div class="crop-controls mb-3">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Zoom Controls">
+                                <button type="button" class="btn btn-outline-secondary" onclick="zoomLogo('in')" title="Zoom In">
+                                    <i class="fas fa-search-plus"></i> Zoom In
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="zoomLogo('out')" title="Zoom Out">
+                                    <i class="fas fa-search-minus"></i> Zoom Out
+                                </button>
+                            </div>
+                            <div class="btn-group btn-group-sm ml-2" role="group" aria-label="Move Controls">
+                                <button type="button" class="btn btn-outline-info" onclick="moveLogo('up')" title="Geser Atas">
+                                    <i class="fas fa-arrow-up"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="moveLogo('down')" title="Geser Bawah">
+                                    <i class="fas fa-arrow-down"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="moveLogo('left')" title="Geser Kiri">
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="moveLogo('right')" title="Geser Kanan">
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-12">
                         <div class="img-container-logo" style="min-height: 400px;">
@@ -212,6 +255,35 @@
                 </button>
             </div>
             <div class="modal-body">
+                <!-- Kontrol Crop untuk Kop -->
+                <div class="crop-controls mb-3">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Zoom Controls">
+                                <button type="button" class="btn btn-outline-secondary" onclick="zoomKop('in')" title="Zoom In">
+                                    <i class="fas fa-search-plus"></i> Zoom In
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="zoomKop('out')" title="Zoom Out">
+                                    <i class="fas fa-search-minus"></i> Zoom Out
+                                </button>
+                            </div>
+                            <div class="btn-group btn-group-sm ml-2" role="group" aria-label="Move Controls">
+                                <button type="button" class="btn btn-outline-info" onclick="moveKop('up')" title="Geser Atas">
+                                    <i class="fas fa-arrow-up"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="moveKop('down')" title="Geser Bawah">
+                                    <i class="fas fa-arrow-down"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="moveKop('left')" title="Geser Kiri">
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="moveKop('right')" title="Geser Kanan">
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-12">
                         <div class="img-container-kop" style="min-height: 400px;">
@@ -266,6 +338,26 @@
     .cropper-modal {
         direction: ltr !important;
     }
+
+    /* Styling untuk kontrol crop */
+    .crop-controls {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+    }
+
+    .crop-controls .btn-group {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .crop-controls .btn {
+        min-width: 45px;
+    }
+
+    .crop-controls .btn i {
+        margin-right: 5px;
+    }
 </style>
 
 <script>
@@ -297,6 +389,24 @@
                 });
             }
         }, 100);
+    }
+
+    // Function untuk edit logo yang sudah ada
+    function editLogo() {
+        const previewImg = document.getElementById('previewLogo');
+        if (!previewImg || !previewImg.src) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Logo tidak ditemukan'
+            });
+            return;
+        }
+
+        // Pastikan Cropper.js sudah dimuat
+        ensureCropperLoaded(function() {
+            showCropModalLogoFromBase64(previewImg.src);
+        });
     }
 
     // Function untuk menampilkan modal crop Logo Lembaga
@@ -570,6 +680,116 @@
             };
             reader.readAsDataURL(blob);
         }, 'image/jpeg', 0.9); // JPEG dengan quality 90%
+    }
+
+    // Function untuk edit kop yang sudah ada
+    function editKop() {
+        const previewImg = document.getElementById('previewKop');
+        if (!previewImg || !previewImg.src) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Kop lembaga tidak ditemukan'
+            });
+            return;
+        }
+
+        // Pastikan Cropper.js sudah dimuat
+        ensureCropperLoaded(function() {
+            showCropModalKopFromBase64(previewImg.src);
+        });
+    }
+
+    // Function untuk zoom Logo
+    function zoomLogo(direction) {
+        if (!cropperLogo) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan',
+                text: 'Cropper belum siap. Tunggu sebentar.'
+            });
+            return;
+        }
+        const ratio = direction === 'in' ? 0.1 : -0.1;
+        cropperLogo.zoom(ratio);
+    }
+
+    // Function untuk move/geser Logo
+    function moveLogo(direction) {
+        if (!cropperLogo) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan',
+                text: 'Cropper belum siap. Tunggu sebentar.'
+            });
+            return;
+        }
+        const moveAmount = 10; // pixel
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        switch(direction) {
+            case 'up':
+                offsetY = -moveAmount;
+                break;
+            case 'down':
+                offsetY = moveAmount;
+                break;
+            case 'left':
+                offsetX = -moveAmount;
+                break;
+            case 'right':
+                offsetX = moveAmount;
+                break;
+        }
+        
+        cropperLogo.move(offsetX, offsetY);
+    }
+
+    // Function untuk zoom Kop
+    function zoomKop(direction) {
+        if (!cropperKop) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan',
+                text: 'Cropper belum siap. Tunggu sebentar.'
+            });
+            return;
+        }
+        const ratio = direction === 'in' ? 0.1 : -0.1;
+        cropperKop.zoom(ratio);
+    }
+
+    // Function untuk move/geser Kop
+    function moveKop(direction) {
+        if (!cropperKop) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan',
+                text: 'Cropper belum siap. Tunggu sebentar.'
+            });
+            return;
+        }
+        const moveAmount = 10; // pixel
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        switch(direction) {
+            case 'up':
+                offsetY = -moveAmount;
+                break;
+            case 'down':
+                offsetY = moveAmount;
+                break;
+            case 'left':
+                offsetX = -moveAmount;
+                break;
+            case 'right':
+                offsetX = moveAmount;
+                break;
+        }
+        
+        cropperKop.move(offsetX, offsetY);
     }
 
     // Function untuk menampilkan modal crop Kop Lembaga

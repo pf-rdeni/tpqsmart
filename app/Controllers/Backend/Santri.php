@@ -1452,6 +1452,7 @@ class Santri extends BaseController
                 'printFotoSantri' => null,
                 'printKepalaTpq' => $tpqRow['KepalaSekolah'] ?? '',
                 // Data TPQ untuk kop lembaga
+                'printKopLembaga' => $tpqRow['KopLembaga'] ?? '',
                 'printAlamatTpq' => $tpqRow['AlamatTpq'] ?? '',
                 'printKelurahanDesaTpq' => $tpqRow['KelurahanDesa'] ?? '',
                 'printKecamatanTpq' => $tpqRow['Kecamatan'] ?? 'Seri Kuala Lobam',
