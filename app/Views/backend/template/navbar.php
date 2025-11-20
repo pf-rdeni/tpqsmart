@@ -212,6 +212,12 @@
 
             </div>
         </li>
+        <!-- Theme Switcher -->
+        <li class="nav-item">
+            <a class="nav-link" href="#" id="themeToggle" role="button" title="Ubah Tema">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </a>
+        </li>
         <li class="nav-item">
             <a class="nav-link" data-widget="fullscreen" href="#" role="button">
                 <i class="fas fa-expand-arrows-alt"></i>

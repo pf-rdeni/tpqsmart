@@ -155,5 +155,59 @@
                 }
             });
         });
+
+        // Theme Switcher - menggunakan localStorage saja
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const body = document.body;
+            
+            if (!themeToggle || !themeIcon) return;
+            
+            // Get current theme from localStorage, default to 'light'
+            let currentTheme = localStorage.getItem('user_theme') || 'light';
+            
+            // Validate theme value
+            if (currentTheme !== 'dark' && currentTheme !== 'light') {
+                currentTheme = 'light';
+            }
+            
+            // Update icon based on current theme
+            function updateThemeIcon(theme) {
+                if (theme === 'dark') {
+                    themeIcon.className = 'fas fa-sun';
+                    themeToggle.setAttribute('title', 'Ubah ke Mode Terang');
+                } else {
+                    themeIcon.className = 'fas fa-moon';
+                    themeToggle.setAttribute('title', 'Ubah ke Mode Gelap');
+                }
+            }
+            
+            // Apply theme
+            function applyTheme(theme) {
+                if (theme === 'dark') {
+                    body.classList.add('dark-mode');
+                } else {
+                    body.classList.remove('dark-mode');
+                }
+                localStorage.setItem('user_theme', theme);
+                updateThemeIcon(theme);
+            }
+            
+            // Initialize theme on page load - apply immediately to prevent flash
+            applyTheme(currentTheme);
+            
+            // Toggle theme on click
+            themeToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Toggle theme
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                // Apply theme immediately
+                applyTheme(newTheme);
+                currentTheme = newTheme;
+            });
+        })();
     });
 </script>
