@@ -172,23 +172,55 @@ class Rapor extends BaseController
         $IdTpq = session()->get('IdTpq');
         $IdGuru = session()->get('IdGuru');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $isKepalaSekolah = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+
+        // Cek apakah user adalah Operator
+        $isOperator = in_groups('Operator');
+
+        // Cek apakah user adalah Kepala Sekolah
+        $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+        $isKepalaSekolah = false;
+        if (!empty($jabatanData)) {
+            foreach ($jabatanData as $jabatan) {
+                if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    $isKepalaSekolah = true;
+                    break;
+                }
+            }
+        }
 
         // Ambil list id kelas dari tbl_kelas_santri
-        if ($isKepalaSekolah) {
+        // Operator dan Kepala Sekolah memiliki akses ke semua kelas
+        if ($isKepalaSekolah || $isOperator) {
             $listIdKelas = $this->helpFunctionModel->getListIdKelasFromKelasSantri($IdTpq, $IdTahunAjaran);
         } else {
             $listIdKelas = session()->get('IdKelas');
+            // Jika tidak ada kelas di session, ambil semua kelas dari TPQ
+            if (empty($listIdKelas)) {
+                $listIdKelas = $this->helpFunctionModel->getListIdKelasFromKelasSantri($IdTpq, $IdTahunAjaran);
+            }
         }
 
-        // Ambil object data kelas
-        $dataKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $IdGuru);
+        // Pastikan listIdKelas adalah array (bisa jadi null atau bukan array)
+        if (empty($listIdKelas) || !is_array($listIdKelas)) {
+            $listIdKelas = [];
+        }
+
+        // Untuk Operator, set IdGuru menjadi null agar getListKelas menggunakan mode admin/kepala sekolah
+        $guruIdForKelas = ($isOperator && empty($IdGuru)) ? null : $IdGuru;
+
+        // Ambil object data kelas - kirim flag isOperator agar diperlakukan seperti kepala sekolah
+        $dataKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $guruIdForKelas, $isOperator);
 
         // Ambil data summary nilai untuk setiap santri
         $summaryData = $this->getSummaryDataForSantri($IdTpq, $listIdKelas, $IdTahunAjaran, $semester);
 
         // Ambil data permission guru kelas untuk semua kelas
-        $guruKelasPermissions = $this->helpFunctionModel->getGuruKelasPermissions($IdTpq, $IdGuru, $listIdKelas, $IdTahunAjaran);
+        // Untuk Operator tanpa IdGuru, kembalikan array kosong karena tidak perlu permission signature
+        if ($isOperator && empty($IdGuru)) {
+            $guruKelasPermissions = [];
+        } else {
+            $guruKelasPermissions = $this->helpFunctionModel->getGuruKelasPermissions($IdTpq, $IdGuru, $listIdKelas, $IdTahunAjaran);
+        }
 
 
         // Ambil status signature untuk semua santri dalam kelas ini

@@ -810,10 +810,16 @@ class HelpFunctionModel extends Model
      * @param mixed $IdGuru ID Guru untuk filter (optional - jika tidak ada maka mode admin)
      * @return object|array Daftar kelas yang memenuhi kriteria
      */
-    public function getListKelas($IdTpq, $IdTahunAjaran, $IdKelas = null, $IdGuru = null)
+    public function getListKelas($IdTpq, $IdTahunAjaran, $IdKelas = null, $IdGuru = null, $isOperator = false)
     {
         // Tentukan mode query berdasarkan IdGuru dan status jabatan
         $isKepalaSekolah = $this->isKepalaSekolah($IdGuru, $IdTpq);
+
+        // Operator diperlakukan seperti Kepala Sekolah (bisa melihat semua kelas)
+        if ($isOperator) {
+            $isKepalaSekolah = true;
+        }
+
         $isGuruMode = !empty($IdGuru) && !$isKepalaSekolah;
 
         // Buat query builder sesuai mode (Guru, Kepala Sekolah, atau Admin)
