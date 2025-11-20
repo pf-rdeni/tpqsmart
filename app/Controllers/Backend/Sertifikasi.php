@@ -737,31 +737,152 @@ class Sertifikasi extends BaseController
             $namaMateri = $nilaiLama['NamaMateri'] ?? 'Materi';
             $namaGroupMateri = $nilaiLama['NamaGroupMateri'] ?? '';
 
-            // Buat catatan perubahan dengan detail lengkap
-            $catatanBaru = "PERUBAHAN NILAI\n";
-            $catatanBaru .= "Nilai Sebelum: " . number_format($nilaiLamaFloat, 2) . "\n";
-            $catatanBaru .= "Nilai Sesudah: " . number_format($nilaiBaruFloat, 2) . "\n";
-            $catatanBaru .= "Materi: " . $namaMateri;
-            if (!empty($namaGroupMateri)) {
-                $catatanBaru .= " (" . $namaGroupMateri . ")";
-            }
-            $catatanBaru .= "\nSumber Nilai Sebelumnya: " . $juriSebelumnya;
-            $catatanBaru .= "\nWaktu Perubahan: " . $tanggalWaktu;
-            $catatanBaru .= "\nDiubah oleh: " . $username;
+            // Parse catatan lama (format JSON)
+            $catatanLama = $nilaiLama['Catatan'] ?? '';
+            $history = [];
 
-            // Jika sudah ada catatan sebelumnya, tambahkan di baris baru dengan separator
-            $catatanLama = $nilaiLama['catatan'] ?? '';
             if (!empty($catatanLama)) {
-                $catatanBaru = $catatanLama . "\n\n" . str_repeat("=", 50) . "\n" . $catatanBaru;
+                $decoded = json_decode($catatanLama, true);
+                if (json_last_error() === JSON_ERROR_NONE && isset($decoded['history']) && is_array($decoded['history'])) {
+                    $history = $decoded['history'];
+                    // Log untuk debugging
+                    log_message('debug', 'Update Nilai - History sebelum tambah: ' . count($history) . ' items');
+                    foreach ($history as $idx => $item) {
+                        if (isset($item['type']) && $item['type'] === 'perubahan') {
+                            log_message('debug', 'Update Nilai - History item #' . $idx . ': perubahan #' . ($item['nomor'] ?? 'N/A'));
+                        }
+                    }
+                } else {
+                    log_message('error', 'Update Nilai - Gagal parse JSON atau history bukan array. Error: ' . json_last_error_msg());
+                }
+            } else {
+                log_message('debug', 'Update Nilai - Catatan kosong, ini adalah perubahan pertama');
             }
+
+            // Jika ini perubahan pertama, simpan nilai original terlebih dahulu
+            // Nilai original = nilai saat ini di database (sebelum perubahan pertama)
+            if (empty($history)) {
+                $history[] = [
+                    'type' => 'original',
+                    'nilai' => $nilaiLamaFloat, // Nilai original dari database
+                    'materi' => $namaMateri,
+                    'groupMateri' => $namaGroupMateri,
+                    'sumber' => $juriSebelumnya,
+                    'timestamp' => $tanggalWaktu
+                ];
+                log_message('debug', 'Update Nilai - Menyimpan nilai original: ' . $nilaiLamaFloat);
+            }
+
+            // Hitung nomor urut perubahan (hitung hanya perubahan, bukan restore)
+            // Pastikan nomor urut selalu berurutan (1, 2, 3, dst)
+            $nomorPerubahan = 0;
+            $maxNomorPerubahan = 0;
+            foreach ($history as $item) {
+                if (isset($item['type']) && $item['type'] === 'perubahan') {
+                    $nomorPerubahan++;
+                    // Ambil nomor terbesar untuk memastikan urutan benar
+                    if (isset($item['nomor']) && $item['nomor'] > $maxNomorPerubahan) {
+                        $maxNomorPerubahan = $item['nomor'];
+                    }
+                }
+            }
+
+            // Nomor urut baru = nomor terbesar + 1 (atau 1 jika belum ada perubahan)
+            $nomorPerubahanBaru = $maxNomorPerubahan > 0 ? $maxNomorPerubahan + 1 : 1;
+
+            // Log untuk debugging
+            log_message('debug', 'Update Nilai - Total perubahan sebelumnya: ' . $nomorPerubahan);
+            log_message('debug', 'Update Nilai - Nomor perubahan terbesar: ' . $maxNomorPerubahan);
+            log_message('debug', 'Update Nilai - Nomor perubahan baru: ' . $nomorPerubahanBaru);
+            log_message('debug', 'Update Nilai - Nilai sebelum (dari DB): ' . $nilaiLamaFloat . ', Nilai sesudah: ' . $nilaiBaruFloat);
+
+            // Simpan jumlah history sebelum tambah entry baru
+            $countSebelum = count($history);
+
+            // Tambahkan entry perubahan baru (SELALU entry baru, tidak pernah update yang lama)
+            // Nilai sebelum = nilai saat ini di database (bukan dari history)
+            // Nilai sesudah = nilai baru yang diinput user
+            $entryBaru = [
+                'type' => 'perubahan',
+                'nomor' => $nomorPerubahanBaru,
+                'nilaiSebelum' => $nilaiLamaFloat, // Nilai saat ini di database
+                'nilaiSesudah' => $nilaiBaruFloat, // Nilai baru yang diinput
+                'materi' => $namaMateri,
+                'groupMateri' => $namaGroupMateri,
+                'sumber' => $juriSebelumnya,
+                'waktu' => $tanggalWaktu,
+                'diubahOleh' => $username
+            ];
+
+            // Pastikan menggunakan append, bukan replace
+            array_push($history, $entryBaru);
+
+            log_message('debug', 'Update Nilai - Count sebelum: ' . $countSebelum . ', Count sesudah: ' . count($history));
+            log_message('debug', 'Update Nilai - Entry baru yang ditambahkan: perubahan #' . $nomorPerubahanBaru . ' (' . $nilaiLamaFloat . ' to ' . $nilaiBaruFloat . ')');
+
+            // Validasi: Pastikan entry baru benar-benar ditambahkan
+            // Catatan: $countSebelum sudah dihitung sebelum array_push, jadi setelah array_push harus +1
+            $totalHistorySesudah = count($history);
+            if ($totalHistorySesudah <= $countSebelum) {
+                log_message('error', 'Update Nilai - ERROR: Entry baru tidak ditambahkan! Sebelum: ' . $countSebelum . ', Sesudah: ' . $totalHistorySesudah);
+                // Jangan force tambahkan lagi karena sudah ditambahkan dengan array_push di atas
+                // Jika masih error, berarti ada masalah dengan array_push atau array reference
+            } else {
+                log_message('debug', 'Update Nilai - Entry berhasil ditambahkan. Sebelum: ' . $countSebelum . ', Sesudah: ' . $totalHistorySesudah);
+            }
+
+            // Validasi: Pastikan entry terakhir adalah perubahan baru
+            $entryTerakhir = end($history);
+            reset($history); // Reset pointer array
+            if (!isset($entryTerakhir['type']) || $entryTerakhir['type'] !== 'perubahan' || !isset($entryTerakhir['nomor']) || $entryTerakhir['nomor'] !== $nomorPerubahanBaru) {
+                log_message('error', 'Update Nilai - ERROR: Entry terakhir tidak sesuai! Type: ' . ($entryTerakhir['type'] ?? 'N/A') . ', Nomor: ' . ($entryTerakhir['nomor'] ?? 'N/A') . ', Expected: ' . $nomorPerubahanBaru);
+                log_message('error', 'Update Nilai - Entry terakhir full: ' . json_encode($entryTerakhir));
+            } else {
+                log_message('debug', 'Update Nilai - Validasi OK: Entry terakhir adalah perubahan #' . $nomorPerubahanBaru);
+            }
+
+            // Validasi final: Pastikan history array memiliki semua entry
+            $totalPerubahanDiHistory = 0;
+            $nomorPerubahanDiHistory = [];
+            foreach ($history as $item) {
+                if (isset($item['type']) && $item['type'] === 'perubahan') {
+                    $totalPerubahanDiHistory++;
+                    if (isset($item['nomor'])) {
+                        $nomorPerubahanDiHistory[] = $item['nomor'];
+                    }
+                }
+            }
+            log_message('debug', 'Update Nilai - Total perubahan di history: ' . $totalPerubahanDiHistory);
+            log_message('debug', 'Update Nilai - Nomor perubahan di history: ' . implode(', ', $nomorPerubahanDiHistory));
+
+            // Pastikan nomor baru ada di history
+            if (!in_array($nomorPerubahanBaru, $nomorPerubahanDiHistory)) {
+                log_message('error', 'Update Nilai - ERROR: Nomor perubahan baru (' . $nomorPerubahanBaru . ') tidak ditemukan di history!');
+            }
+
+            // Simpan sebagai JSON
+            $catatanBaru = json_encode([
+                'history' => $history
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+            // Log JSON yang akan disimpan (preview)
+            log_message('debug', 'Update Nilai - JSON yang akan disimpan (preview): ' . substr($catatanBaru, 0, 200) . '...');
+            log_message('debug', 'Update Nilai - Total history items: ' . count($history));
 
             // Update nilai dan catatan
             $updateData = [
                 'Nilai' => $nilaiBaruFloat,
-                'catatan' => $catatanBaru,
+                'Catatan' => $catatanBaru,
             ];
-            
+
+            // Log sebelum update
+            log_message('debug', 'Update Nilai - Akan update ID: ' . $idNilai);
+            log_message('debug', 'Update Nilai - Data yang akan diupdate: Nilai=' . $nilaiBaruFloat . ', Catatan length=' . strlen($catatanBaru));
+
             $this->sertifikasiNilaiModel->update($idNilai, $updateData);
+
+            // Log setelah update
+            log_message('debug', 'Update Nilai - Update berhasil');
 
             return $this->response->setJSON([
                 'success' => true,
@@ -774,6 +895,274 @@ class Sertifikasi extends BaseController
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateNilai: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'status' => 'SYSTEM_ERROR',
+                'code' => 'INTERNAL_ERROR',
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Restore nilai ke nilai asli (nilai pertama sebelum perubahan)
+     */
+    public function restoreNilai()
+    {
+        try {
+            $idNilai = $this->request->getPost('idNilai');
+            $nilaiAsli = $this->request->getPost('nilaiAsli');
+
+            // Validasi parameter wajib
+            if (empty($idNilai)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_ID_NILAI',
+                    'message' => 'ID Nilai tidak boleh kosong',
+                ]);
+            }
+
+            if ($nilaiAsli === null || $nilaiAsli === '') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_NILAI_ASLI',
+                    'message' => 'Nilai asli tidak ditemukan',
+                ]);
+            }
+
+            // Validasi nilai harus berupa angka
+            if (!is_numeric($nilaiAsli)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'INVALID_NILAI',
+                    'message' => 'Nilai asli harus berupa angka',
+                ]);
+            }
+
+            $nilaiAsliFloat = floatval($nilaiAsli);
+            if ($nilaiAsliFloat < 0 || $nilaiAsliFloat > 100) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'NILAI_OUT_OF_RANGE',
+                    'message' => 'Nilai asli harus dalam range 0-100',
+                ]);
+            }
+
+            // Ambil data nilai saat ini
+            $nilaiSaatIni = $this->sertifikasiNilaiModel->find($idNilai);
+            if (empty($nilaiSaatIni)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'DATA_NOT_FOUND',
+                    'code' => 'NILAI_NOT_FOUND',
+                    'message' => 'Data nilai tidak ditemukan',
+                ]);
+            }
+
+            $nilaiSaatIniFloat = floatval($nilaiSaatIni['Nilai'] ?? 0);
+
+            // Jika nilai sudah sama dengan nilai asli, tidak perlu restore
+            if (abs($nilaiSaatIniFloat - $nilaiAsliFloat) < 0.01) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'status' => 'NO_CHANGE',
+                    'message' => 'Nilai sudah sama dengan nilai asli',
+                ]);
+            }
+
+            // Ambil informasi user yang melakukan restore
+            $username = 'System';
+            if (function_exists('user') && user()) {
+                $username = user()->username ?? user()->email ?? 'System';
+            } else {
+                $auth = service('auth');
+                if ($auth && $auth->user()) {
+                    $username = $auth->user()->username ?? $auth->user()->email ?? 'System';
+                }
+            }
+            $tanggalWaktu = date('d/m/Y H:i:s');
+
+            // Ambil informasi lengkap nilai
+            $builder = $this->db->table('tbl_sertifikasi_nilai sn');
+            $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sm.NamaMateri, sgm.NamaMateri as NamaGroupMateri');
+            $builder->join('tbl_sertifikasi_juri sj', 'sj.IdJuri = sn.IdJuri', 'left');
+            $builder->join('tbl_sertifikasi_materi sm', 'sm.IdMateri = sn.IdMateri', 'left');
+            $builder->join('tbl_sertifikasi_group_materi sgm', 'sgm.IdGroupMateri = sn.IdGroupMateri', 'left');
+            $builder->where('sn.id', $idNilai);
+            $nilaiData = $builder->get()->getRowArray();
+
+            $namaMateri = $nilaiData['NamaMateri'] ?? 'Materi';
+            $namaGroupMateri = $nilaiData['NamaGroupMateri'] ?? '';
+
+            // Parse catatan lama (format JSON)
+            $catatanLama = $nilaiSaatIni['Catatan'] ?? '';
+            $history = [];
+
+            if (!empty($catatanLama)) {
+                $decoded = json_decode($catatanLama, true);
+                if (json_last_error() === JSON_ERROR_NONE && isset($decoded['history'])) {
+                    $history = $decoded['history'];
+                }
+            }
+
+            // Hitung nomor urut restore (hitung hanya restore, bukan perubahan)
+            // Pastikan nomor urut selalu berurutan (1, 2, 3, dst)
+            $nomorRestore = 0;
+            $maxNomorRestore = 0;
+            foreach ($history as $item) {
+                if (isset($item['type']) && $item['type'] === 'restore') {
+                    $nomorRestore++;
+                    // Ambil nomor terbesar untuk memastikan urutan benar
+                    if (isset($item['nomor']) && $item['nomor'] > $maxNomorRestore) {
+                        $maxNomorRestore = $item['nomor'];
+                    }
+                }
+            }
+
+            // Nomor urut baru = nomor terbesar + 1 (atau 1 jika belum ada restore)
+            $nomorRestoreBaru = $maxNomorRestore > 0 ? $maxNomorRestore + 1 : 1;
+
+            // Log untuk debugging
+            log_message('debug', 'Restore Nilai - Total restore sebelumnya: ' . $nomorRestore);
+            log_message('debug', 'Restore Nilai - Nomor restore terbesar: ' . $maxNomorRestore);
+            log_message('debug', 'Restore Nilai - Nomor restore baru: ' . $nomorRestoreBaru);
+            log_message('debug', 'Restore Nilai - Nilai sebelum: ' . $nilaiSaatIniFloat . ', Nilai sesudah: ' . $nilaiAsliFloat);
+
+            // Tambahkan entry restore baru (SELALU entry baru, tidak pernah update yang lama)
+            // Nilai sebelum = nilai saat ini di database (sebelum restore)
+            // Nilai sesudah = nilai yang dipilih user dari history untuk direstore
+            $history[] = [
+                'type' => 'restore',
+                'nomor' => $nomorRestoreBaru,
+                'nilaiSebelum' => $nilaiSaatIniFloat, // Nilai saat ini di database
+                'nilaiSesudah' => $nilaiAsliFloat, // Nilai yang dipilih untuk direstore
+                'materi' => $namaMateri,
+                'groupMateri' => $namaGroupMateri,
+                'waktu' => $tanggalWaktu,
+                'direstoreOleh' => $username
+            ];
+
+            log_message('debug', 'Restore Nilai - Total history setelah tambah: ' . count($history));
+            log_message('debug', 'Restore Nilai - Entry baru yang ditambahkan: restore #' . $nomorRestoreBaru . ' (' . $nilaiSaatIniFloat . ' to ' . $nilaiAsliFloat . ')');
+
+            // Simpan sebagai JSON
+            $catatanBaru = json_encode([
+                'history' => $history
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+            // Update nilai dan catatan
+            $this->sertifikasiNilaiModel->update($idNilai, [
+                'Nilai' => $nilaiAsliFloat,
+                'Catatan' => $catatanBaru,
+            ]);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'status' => 'SUCCESS',
+                'message' => 'Nilai berhasil dikembalikan ke nilai asli',
+                'data' => [
+                    'nilaiSebelum' => $nilaiSaatIniFloat,
+                    'nilaiSesudah' => $nilaiAsliFloat,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in restoreNilai: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'status' => 'SYSTEM_ERROR',
+                'code' => 'INTERNAL_ERROR',
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Ambil catatan dari database berdasarkan ID nilai
+     */
+    public function getCatatan()
+    {
+        try {
+            $idNilai = $this->request->getPost('idNilai') ?? $this->request->getGet('idNilai');
+
+            if (empty($idNilai)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_ID_NILAI',
+                    'message' => 'ID Nilai tidak boleh kosong',
+                ]);
+            }
+
+            // Ambil data nilai termasuk catatan dengan query eksplisit
+            $builder = $this->db->table('tbl_sertifikasi_nilai');
+            $builder->select('id, NoPeserta, IdGroupMateri, IdMateri, IdJuri, Nilai, Catatan');
+            $builder->where('id', $idNilai);
+            $nilai = $builder->get()->getRowArray();
+
+            if (empty($nilai)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'DATA_NOT_FOUND',
+                    'code' => 'NILAI_NOT_FOUND',
+                    'message' => 'Data nilai tidak ditemukan',
+                ]);
+            }
+
+            // Ambil catatan dari database
+            $catatan = $nilai['Catatan'] ?? null;
+
+            // Log untuk debugging
+            log_message('debug', 'getCatatan - ID Nilai: ' . $idNilai);
+            log_message('debug', 'getCatatan - Catatan raw: ' . ($catatan ?? 'NULL'));
+            log_message('debug', 'getCatatan - Catatan type: ' . gettype($catatan));
+
+            // Handle null atau empty
+            if ($catatan === null) {
+                $catatan = '';
+            }
+
+            // Pastikan catatan adalah string
+            $catatan = (string) $catatan;
+
+            // Cek apakah catatan tidak kosong
+            $hasCatatan = !empty($catatan) && trim($catatan) !== '';
+
+            log_message('debug', 'getCatatan - Has Catatan: ' . ($hasCatatan ? 'YES' : 'NO'));
+            log_message('debug', 'getCatatan - Catatan length: ' . strlen($catatan));
+            log_message('debug', 'getCatatan - Catatan preview (first 200 chars): ' . substr($catatan, 0, 200));
+
+            // Validasi JSON jika catatan tidak kosong
+            if ($hasCatatan) {
+                $decoded = json_decode($catatan, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    log_message('warning', 'getCatatan - Catatan bukan format JSON valid. Error: ' . json_last_error_msg());
+                } else {
+                    log_message('debug', 'getCatatan - Catatan adalah JSON valid');
+                }
+            }
+
+            // Pastikan response menggunakan key yang konsisten
+            $responseData = [
+                'Catatan' => $catatan, // Key dengan capital C
+                'catatan' => $catatan, // Key dengan lowercase c (untuk backward compatibility)
+                'hasCatatan' => $hasCatatan,
+                'catatanLength' => strlen($catatan),
+                'idNilai' => $idNilai,
+            ];
+
+            return $this->response->setJSON([
+                'success' => true,
+                'status' => 'SUCCESS',
+                'data' => $responseData
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getCatatan: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
                 'status' => 'SYSTEM_ERROR',
@@ -828,6 +1217,7 @@ class Sertifikasi extends BaseController
                     'usernameJuri' => [], // Array untuk menyimpan semua username juri yang menilai
                     'nilaiByMateri' => [], // Array dengan key IdMateri
                     'idNilaiByMateri' => [], // Array dengan key IdMateri untuk menyimpan id nilai
+                    'catatanByMateri' => [], // Array dengan key IdMateri untuk menyimpan catatan
                 ];
             }
 
@@ -842,6 +1232,7 @@ class Sertifikasi extends BaseController
             if ($idMateri && !isset($groupedData[$noPeserta]['nilaiByMateri'][$idMateri])) {
                 $groupedData[$noPeserta]['nilaiByMateri'][$idMateri] = $nilai['Nilai'] ?? 0;
                 $groupedData[$noPeserta]['idNilaiByMateri'][$idMateri] = $nilai['id'] ?? null;
+                $groupedData[$noPeserta]['catatanByMateri'][$idMateri] = $nilai['Catatan'] ?? null;
             }
         }
 

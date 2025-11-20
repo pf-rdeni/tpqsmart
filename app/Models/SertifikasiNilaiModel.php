@@ -15,7 +15,7 @@ class SertifikasiNilaiModel extends Model
         'IdMateri',
         'IdJuri',
         'Nilai',
-        'catatan',
+        'Catatan',
     ];
 
     protected $validationRules = [
@@ -136,7 +136,7 @@ class SertifikasiNilaiModel extends Model
     public function getAllNilaiWithRelations()
     {
         $builder = $this->db->table($this->table . ' sn');
-        $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sgm.NamaMateri as NamaGroupMateri, sm.NamaMateri, sm.IdMateri, sg.Nama as NamaGuru, sg.NoRek, sg.NamaTpq, sg.NoPeserta as noTest, sn.NoPeserta');
+        $builder->select('sn.*, sj.IdJuri, sj.usernameJuri, sgm.NamaMateri as NamaGroupMateri, sm.NamaMateri, sm.IdMateri, sg.Nama as NamaGuru, sg.NoRek, sg.NamaTpq, sg.NoPeserta as noTest, sn.NoPeserta, sn.Catatan');
         $builder->join('tbl_sertifikasi_juri sj', 'sj.IdJuri = sn.IdJuri', 'left');
         $builder->join('tbl_sertifikasi_group_materi sgm', 'sgm.IdGroupMateri = sn.IdGroupMateri', 'left');
         $builder->join('tbl_sertifikasi_materi sm', 'sm.IdMateri = sn.IdMateri', 'left');
