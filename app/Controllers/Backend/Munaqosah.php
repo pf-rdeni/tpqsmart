@@ -833,7 +833,7 @@ class Munaqosah extends BaseController
             $errorCategoriesByKategori = [];
             if (!empty($kategoriNames)) {
                 $errorCategoryRows = $this->munaqosahKategoriKesalahanModel
-                    ->select('tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_kategori_materi.NamaKategoriMateri')
+                    ->select('tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan, tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_munaqosah_kategori_kesalahan.NilaiMin, tbl_munaqosah_kategori_kesalahan.NilaiMax, tbl_kategori_materi.NamaKategoriMateri')
                     ->join('tbl_kategori_materi', 'tbl_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
                     ->whereIn('tbl_kategori_materi.NamaKategoriMateri', $kategoriNames)
                     ->where('tbl_munaqosah_kategori_kesalahan.Status', 'Aktif')
@@ -843,9 +843,12 @@ class Munaqosah extends BaseController
 
                 foreach ($errorCategoryRows as $row) {
                     $kategoriName = $row['NamaKategoriMateri'] ?? null;
+                    $idKesalahan = $row['IdKategoriKesalahan'] ?? null;
                     $namaKesalahan = $row['NamaKategoriKesalahan'] ?? null;
+                    $nilaiMin = isset($row['NilaiMin']) ? (int)$row['NilaiMin'] : null;
+                    $nilaiMax = isset($row['NilaiMax']) ? (int)$row['NilaiMax'] : null;
 
-                    if (!$kategoriName || !$namaKesalahan) {
+                    if (!$kategoriName || !$namaKesalahan || !$idKesalahan) {
                         continue;
                     }
 
@@ -853,11 +856,30 @@ class Munaqosah extends BaseController
                         $errorCategoriesByKategori[$kategoriName] = [];
                     }
 
-                    if (!in_array($namaKesalahan, $errorCategoriesByKategori[$kategoriName], true)) {
-                        $errorCategoriesByKategori[$kategoriName][] = $namaKesalahan;
+                    // Cek apakah kategori kesalahan dengan id yang sama sudah ada
+                    $exists = false;
+                    foreach ($errorCategoriesByKategori[$kategoriName] as $existing) {
+                        if (is_array($existing) && $existing['id'] === $idKesalahan) {
+                            $exists = true;
+                            break;
+                        } elseif (is_string($existing)) {
+                            // Skip untuk format lama
+                            continue;
+                        }
+                    }
+
+                    if (!$exists) {
+                        // Simpan sebagai object dengan id, nama, nilaiMin, dan nilaiMax
+                        $errorCategoriesByKategori[$kategoriName][] = [
+                            'id' => $idKesalahan,
+                            'nama' => $namaKesalahan,
+                            'nilaiMin' => $nilaiMin,
+                            'nilaiMax' => $nilaiMax
+                        ];
                     }
                 }
 
+                // Pastikan semua array sudah di-index ulang
                 foreach ($errorCategoriesByKategori as $kategori => $daftarKesalahan) {
                     $errorCategoriesByKategori[$kategori] = array_values($daftarKesalahan);
                 }
@@ -6545,7 +6567,7 @@ class Munaqosah extends BaseController
             $errorCategoriesByKategori = [];
             if (!empty($kategoriNames)) {
                 $errorCategoryRows = $this->munaqosahKategoriKesalahanModel
-                    ->select('tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_kategori_materi.NamaKategoriMateri')
+                    ->select('tbl_munaqosah_kategori_kesalahan.IdKategoriKesalahan, tbl_munaqosah_kategori_kesalahan.NamaKategoriKesalahan, tbl_munaqosah_kategori_kesalahan.NilaiMin, tbl_munaqosah_kategori_kesalahan.NilaiMax, tbl_kategori_materi.NamaKategoriMateri')
                     ->join('tbl_kategori_materi', 'tbl_kategori_materi.IdKategoriMateri = tbl_munaqosah_kategori_kesalahan.IdKategoriMateri', 'left')
                     ->whereIn('tbl_kategori_materi.NamaKategoriMateri', $kategoriNames)
                     ->where('tbl_munaqosah_kategori_kesalahan.Status', 'Aktif')
@@ -6554,11 +6576,46 @@ class Munaqosah extends BaseController
                     ->findAll();
 
                 foreach ($errorCategoryRows as $row) {
-                    $kategoriName = $row['NamaKategoriMateri'];
+                    $kategoriName = $row['NamaKategoriMateri'] ?? null;
+                    $idKesalahan = $row['IdKategoriKesalahan'] ?? null;
+                    $namaKesalahan = $row['NamaKategoriKesalahan'] ?? null;
+                    $nilaiMin = isset($row['NilaiMin']) ? (int)$row['NilaiMin'] : null;
+                    $nilaiMax = isset($row['NilaiMax']) ? (int)$row['NilaiMax'] : null;
+
+                    if (!$kategoriName || !$namaKesalahan || !$idKesalahan) {
+                        continue;
+                    }
+
                     if (!isset($errorCategoriesByKategori[$kategoriName])) {
                         $errorCategoriesByKategori[$kategoriName] = [];
                     }
-                    $errorCategoriesByKategori[$kategoriName][] = $row['NamaKategoriKesalahan'];
+
+                    // Cek apakah kategori kesalahan dengan id yang sama sudah ada
+                    $exists = false;
+                    foreach ($errorCategoriesByKategori[$kategoriName] as $existing) {
+                        if (is_array($existing) && $existing['id'] === $idKesalahan) {
+                            $exists = true;
+                            break;
+                        } elseif (is_string($existing)) {
+                            // Skip untuk format lama
+                            continue;
+                        }
+                    }
+
+                    if (!$exists) {
+                        // Simpan sebagai object dengan id, nama, nilaiMin, dan nilaiMax
+                        $errorCategoriesByKategori[$kategoriName][] = [
+                            'id' => $idKesalahan,
+                            'nama' => $namaKesalahan,
+                            'nilaiMin' => $nilaiMin,
+                            'nilaiMax' => $nilaiMax
+                        ];
+                    }
+                }
+
+                // Pastikan semua array sudah di-index ulang
+                foreach ($errorCategoriesByKategori as $kategori => $daftarKesalahan) {
+                    $errorCategoriesByKategori[$kategori] = array_values($daftarKesalahan);
                 }
             }
 

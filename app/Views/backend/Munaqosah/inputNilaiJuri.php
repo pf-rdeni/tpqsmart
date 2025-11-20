@@ -526,6 +526,54 @@
         font-weight: 500;
     }
 
+    /* Styling untuk range group */
+    .error-categories-container .range-group {
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .error-categories-container .range-group:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .error-categories-container .range-header {
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.25rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    /* Warna range akan ditentukan secara dinamis oleh class Bootstrap */
+    .error-categories-container .range-header.text-danger {
+        color: #dc3545 !important;
+        /* Merah untuk 50-64 */
+    }
+
+    .error-categories-container .range-header.text-warning {
+        color: #ffc107 !important;
+        /* Kuning untuk 65-74 */
+    }
+
+    .error-categories-container .range-header.text-success {
+        color: #28a745 !important;
+        /* Hijau untuk 75-85 */
+    }
+
+    .error-categories-container .range-categories {
+        margin-left: 0.5rem;
+    }
+
+    .error-categories-container .range-categories .form-check {
+        margin-bottom: 0.4rem;
+    }
+
+    .error-categories-container .range-categories .form-check:last-child {
+        margin-bottom: 0;
+    }
+
     /* Styling untuk layout 2 kolom */
     .row.mb-4 {
         border-bottom: 1px solid #e9ecef;
@@ -593,8 +641,6 @@
         let currentMateriData = null;
         let errorCategoriesByKategori = {};
         let isEditMode = false;
-
-        const ERROR_AUTO_SHOW_THRESHOLD = 67;
 
         // Get current juri data from controller
         function getCurrentJuriData() {
@@ -1148,7 +1194,7 @@
                          <div class="col-md-6">
                              <div class="form-group">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="mb-0">Kategori Kesalahan (Opsional)</label>
+                                    <label class="mb-0">Kategori Kesalahan</label>
                                     <button type="button" 
                                             class="btn btn-sm btn-outline-secondary toggle-error-categories" 
                                             data-materi-id="${materi.IdMateri}"
@@ -1157,20 +1203,107 @@
                                     </button>
                                 </div>
                                 <div class="error-categories-container d-none" data-materi-id="${materi.IdMateri}" data-visible="false" data-manual-hidden="false">
-                                     ${errorCategories.length > 0 ? errorCategories.map((category, index) => `
-                                         <div class="form-check">
-                                             <input class="form-check-input error-checkbox" 
-                                                    type="checkbox" 
-                                                    value="${category}" 
-                                                    id="error_${materi.IdMateri}_${index}"
-                                                    name="error[${materi.IdMateri}][]">
-                                             <label class="form-check-label" for="error_${materi.IdMateri}_${index}">
-                                                 ${category}
-                                             </label>
-                                         </div>
-                                     `).join('') : '<p class="text-muted">Tidak ada kategori kesalahan tersedia</p>'}
+                                     ${errorCategories.length > 0 ? (() => {
+                                         // Kelompokkan kategori berdasarkan range
+                                         const groupedByRange = {};
+                                        errorCategories.forEach((category, index) => {
+                                            const categoryId = typeof category === 'object' ? (category.id || '') : '';
+                                            const categoryName = typeof category === 'string' ? category : (category.nama || '');
+                                            const categoryMin = typeof category === 'object' ? category.nilaiMin : null;
+                                            const categoryMax = typeof category === 'object' ? category.nilaiMax : null;
+                                            
+                                            // Buat key untuk range
+                                            const rangeKey = (categoryMin !== null && categoryMax !== null) 
+                                                ? categoryMin + '-' + categoryMax
+                                                : 'no-range';
+                                            
+                                            if (!groupedByRange[rangeKey]) {
+                                                groupedByRange[rangeKey] = {
+                                                    min: categoryMin,
+                                                    max: categoryMax,
+                                                    categories: []
+                                                };
+                                            }
+                                            
+                                            groupedByRange[rangeKey].categories.push({
+                                                id: categoryId,
+                                                name: categoryName,
+                                                index: index
+                                            });
+                                        });
+                                         
+                                         // Fungsi untuk menentukan warna berdasarkan range
+                                         const getRangeColorClass = function(min, max) {
+                                             if (min >= 50 && max <= 64) {
+                                                 return 'text-danger'; // Merah untuk 50-64
+                                             } else if (min >= 65 && max <= 74) {
+                                                 return 'text-warning'; // Kuning untuk 65-74
+                                             } else if (min >= 75 && max <= 85) {
+                                                 return 'text-success'; // Hijau untuk 75-85
+                                             }
+                                             return 'text-primary'; // Default biru untuk range lain
+                                         };
+
+                                         // Generate HTML untuk setiap range group
+                                         let html = '';
+                                         Object.keys(groupedByRange).sort((a, b) => {
+                                             // Sort berdasarkan min value (ascending)
+                                             const minA = groupedByRange[a].min || 0;
+                                             const minB = groupedByRange[b].min || 0;
+                                             return minA - minB;
+                                         }).forEach(rangeKey => {
+                                             const group = groupedByRange[rangeKey];
+                                             
+                                            if (group.min !== null && group.max !== null) {
+                                                // Tentukan warna berdasarkan range
+                                                const colorClass = getRangeColorClass(group.min, group.max);
+                                                
+                                                // Tampilkan header range
+                                                html += '<div class="range-group mb-2">';
+                                                html += '<div class="range-header font-weight-bold ' + colorClass + ' mb-1">';
+                                                html += 'Range: ' + group.min + '-' + group.max;
+                                                html += '</div>';
+                                                html += '<div class="range-categories pl-3">';
+                                                
+                                                // Tampilkan kategori dalam range ini
+                                                group.categories.forEach(cat => {
+                                                    html += '<div class="form-check" data-range-min="' + group.min + '" data-range-max="' + group.max + '">';
+                                                    html += '<input class="form-check-input error-checkbox" type="checkbox" value="' + cat.id + '" data-category-id="' + cat.id + '" data-category-name="' + cat.name + '" data-range-min="' + group.min + '" data-range-max="' + group.max + '" id="error_' + materi.IdMateri + '_' + cat.index + '" name="error[' + materi.IdMateri + '][]">';
+                                                    html += '<label class="form-check-label" for="error_' + materi.IdMateri + '_' + cat.index + '">';
+                                                    html += '- ' + cat.name;
+                                                    html += '</label>';
+                                                    html += '</div>';
+                                                });
+                                                
+                                                html += '</div>';
+                                                html += '</div>';
+                                            } else {
+                                                // Kategori tanpa range (tampilkan tanpa header range)
+                                                group.categories.forEach(cat => {
+                                                    html += '<div class="form-check" data-range-min="null" data-range-max="null">';
+                                                    html += '<input class="form-check-input error-checkbox" type="checkbox" value="' + cat.id + '" data-category-id="' + cat.id + '" data-category-name="' + cat.name + '" data-range-min="null" data-range-max="null" id="error_' + materi.IdMateri + '_' + cat.index + '" name="error[' + materi.IdMateri + '][]">';
+                                                    html += '<label class="form-check-label" for="error_' + materi.IdMateri + '_' + cat.index + '">';
+                                                    html += cat.name;
+                                                    html += '</label>';
+                                                    html += '</div>';
+                                                });
+                                            }
+                                         });
+                                         
+                                         return html;
+                                     })() : '<p class="text-muted">Tidak ada kategori kesalahan tersedia</p>'}
                                  </div>
-                                <small class="form-text text-muted">Tampilkan kategori kesalahan (klik ikon mata) atau otomatis jika nilai < 67.</small>
+                                <small class="form-text text-muted">Kategori kesalahan muncul otomatis atau klik ikon mata.</small>
+                                
+                                <!-- Field Catatan Tambahan -->
+                                <div class="form-group mt-3">
+                                    <label for="catatan_${materi.IdMateri}">Catatan Tambahan</label>
+                                    <textarea class="form-control catatan-input" 
+                                              id="catatan_${materi.IdMateri}" 
+                                              name="catatan[${materi.IdMateri}]" 
+                                              rows="2" 
+                                              placeholder="Masukkan catatan tambahan jika ada..."></textarea>
+                                </div>
                              </div>
                          </div>
                      </div>
@@ -1194,6 +1327,17 @@
             // Setup event listeners for nilai inputs
             setupNilaiInputListeners();
             setupErrorCategoryToggles();
+
+            // Sembunyikan semua checkbox kategori kesalahan dan range group terlebih dahulu
+            $('.error-categories-container').each(function() {
+                const materiId = $(this).data('materi-id');
+                const container = $(this);
+                // Sembunyikan semua checkbox dan range group di container ini
+                container.find('.form-check').addClass('d-none');
+                container.find('.range-group').addClass('d-none');
+            });
+
+            // Terapkan filter berdasarkan nilai yang ada (jika ada)
             $('.nilai-input').each(function() {
                 handleAutoShowErrorCategories($(this));
             });
@@ -1233,7 +1377,54 @@
             }
 
             const categories = errorCategoriesByKategori[kategori];
-            return Array.isArray(categories) ? categories : [];
+            if (!Array.isArray(categories)) {
+                return [];
+            }
+
+            // Normalize: jika masih format lama (string), convert ke format baru
+            return categories.map(cat => {
+                if (typeof cat === 'string') {
+                    return {
+                        id: '',
+                        nama: cat,
+                        nilaiMin: null,
+                        nilaiMax: null
+                    };
+                }
+                // Pastikan id ada
+                if (!cat.id) {
+                    cat.id = '';
+                }
+                return cat;
+            });
+        }
+
+        // Function to get error categories that match the given nilai (based on range)
+        function getErrorCategoriesForNilai(kategori, nilai) {
+            if (!kategori || nilai === null || nilai === undefined || nilai === '') {
+                return [];
+            }
+
+            const numericNilai = parseFloat(nilai);
+            if (isNaN(numericNilai)) {
+                return [];
+            }
+
+            const allCategories = getErrorCategoriesForKategori(kategori);
+
+            // Filter kategori kesalahan yang range-nya mencakup nilai yang diinput
+            return allCategories.filter(cat => {
+                const min = cat.nilaiMin;
+                const max = cat.nilaiMax;
+
+                // Jika tidak ada range (null), tidak ditampilkan otomatis
+                if (min === null || max === null) {
+                    return false;
+                }
+
+                // Cek apakah nilai berada dalam range [min, max]
+                return numericNilai >= min && numericNilai <= max;
+            });
         }
 
         // Setup event listeners for nilai inputs
@@ -1271,13 +1462,119 @@
             const numericValue = parseFloat(rawValue);
             const hasTwoDigits = rawValue.length >= 2;
             const isValidNumber = !Number.isNaN(numericValue);
-            const isLowScore = hasTwoDigits && isValidNumber && numericValue < ERROR_AUTO_SHOW_THRESHOLD;
-            const shouldHide = hasTwoDigits && isValidNumber && numericValue >= ERROR_AUTO_SHOW_THRESHOLD;
 
-            if (isLowScore) {
-                showErrorCategories(materiId, false);
-                container.attr('data-manual-hidden', 'false');
-            } else if (shouldHide || rawValue === '') {
+            // Cari kategori materi untuk materi ini
+            let kategoriMateri = null;
+            if (currentMateriData && Array.isArray(currentMateriData)) {
+                const materi = currentMateriData.find(m => m.IdMateri == materiId);
+                if (materi) {
+                    kategoriMateri = materi.KategoriMateriUjian || materi.NamaKategoriMateri || null;
+                }
+            }
+
+            // Jika nilai valid dan ada kategori materi, filter kategori kesalahan berdasarkan range
+            if (hasTwoDigits && isValidNumber && kategoriMateri) {
+                // Kumpulkan semua range yang ada untuk menentukan range terdekat
+                const allRanges = [];
+                container.find('.form-check').each(function() {
+                    const $checkbox = $(this).find('.error-checkbox');
+                    const $formCheck = $(this);
+                    const rangeMin = parseFloat($checkbox.data('range-min') || $formCheck.data('range-min') || null);
+                    const rangeMax = parseFloat($checkbox.data('range-max') || $formCheck.data('range-max') || null);
+
+                    if (rangeMin !== null && rangeMax !== null && !isNaN(rangeMin) && !isNaN(rangeMax)) {
+                        allRanges.push({
+                            min: rangeMin,
+                            max: rangeMax,
+                            $formCheck: $formCheck,
+                            $checkbox: $checkbox
+                        });
+                    }
+                });
+
+                // Cari range yang sesuai atau terdekat
+                let matchingRanges = [];
+                let hasExactMatch = false;
+
+                // Cek apakah ada range yang tepat mencakup nilai
+                allRanges.forEach(range => {
+                    if (numericValue >= range.min && numericValue <= range.max) {
+                        matchingRanges.push(range);
+                        hasExactMatch = true;
+                    }
+                });
+
+                // Jika tidak ada yang tepat, cari range terdekat
+                if (!hasExactMatch && allRanges.length > 0) {
+                    // Cari min terkecil dan max terbesar dari semua range
+                    const smallestMin = Math.min(...allRanges.map(r => r.min));
+                    const largestMax = Math.max(...allRanges.map(r => r.max));
+
+                    if (numericValue < smallestMin) {
+                        // Nilai di bawah semua range, ambil range dengan min terkecil
+                        const minRangeValue = smallestMin;
+                        matchingRanges = allRanges.filter(r => r.min === minRangeValue);
+                    } else if (numericValue > largestMax) {
+                        // Nilai di atas semua range, ambil range dengan max terbesar
+                        const maxRangeValue = largestMax;
+                        matchingRanges = allRanges.filter(r => r.max === maxRangeValue);
+                    }
+                }
+
+                // Filter checkbox kategori kesalahan berdasarkan range yang cocok
+                let hasVisibleCategory = false;
+                container.find('.form-check').each(function() {
+                    const $checkbox = $(this).find('.error-checkbox');
+                    const $formCheck = $(this);
+                    const rangeMin = parseFloat($checkbox.data('range-min') || $formCheck.data('range-min') || null);
+                    const rangeMax = parseFloat($checkbox.data('range-max') || $formCheck.data('range-max') || null);
+
+                    // Cek apakah checkbox ini termasuk dalam matching ranges
+                    let isMatching = false;
+                    if (rangeMin !== null && rangeMax !== null && !isNaN(rangeMin) && !isNaN(rangeMax)) {
+                        isMatching = matchingRanges.some(range => {
+                            return range.min === rangeMin && range.max === rangeMax;
+                        });
+                    }
+
+                    if (isMatching) {
+                        // Tampilkan checkbox yang sesuai range
+                        $formCheck.removeClass('d-none');
+                        hasVisibleCategory = true;
+                    } else {
+                        // Sembunyikan checkbox yang tidak sesuai range
+                        $formCheck.addClass('d-none');
+                        // Uncheck checkbox yang disembunyikan
+                        $checkbox.prop('checked', false);
+                    }
+                });
+
+                // Sembunyikan range group jika semua kategori dalam range tersebut disembunyikan
+                container.find('.range-group').each(function() {
+                    const $rangeGroup = $(this);
+                    const visibleCategories = $rangeGroup.find('.form-check:not(.d-none)').length;
+                    if (visibleCategories === 0) {
+                        $rangeGroup.addClass('d-none');
+                    } else {
+                        $rangeGroup.removeClass('d-none');
+                    }
+                });
+
+                // Jika ada kategori yang sesuai range, tampilkan container
+                if (hasVisibleCategory) {
+                    // Tampilkan container tapi jangan tampilkan semua checkbox (hanya yang sesuai range)
+                    container.removeClass('d-none').attr('data-visible', 'true');
+                    container.attr('data-manual-hidden', 'false');
+                    updateErrorToggleState(materiId, true);
+                } else {
+                    // Tidak ada kategori kesalahan yang sesuai range, sembunyikan container
+                    hideErrorCategories(materiId, false);
+                    container.attr('data-manual-hidden', 'false');
+                }
+            } else if (rawValue === '') {
+                // Jika nilai kosong, sembunyikan semua checkbox, range group, dan container
+                container.find('.form-check').addClass('d-none');
+                container.find('.range-group').addClass('d-none');
                 hideErrorCategories(materiId, false);
                 container.attr('data-manual-hidden', 'false');
             }
@@ -1293,7 +1590,8 @@
             if (isVisible) {
                 hideErrorCategories(materiId, triggeredByManual);
             } else {
-                showErrorCategories(materiId, triggeredByManual);
+                // Ketika toggle manual, tampilkan semua kategori (tidak difilter)
+                showErrorCategories(materiId, true);
             }
         }
 
@@ -1301,6 +1599,12 @@
             const container = getErrorCategoryContainer(materiId);
             if (!container.length) {
                 return;
+            }
+
+            // Jika triggered by manual, tampilkan semua kategori dan range group (tidak difilter)
+            if (triggeredByManual) {
+                container.find('.form-check').removeClass('d-none');
+                container.find('.range-group').removeClass('d-none');
             }
 
             container.removeClass('d-none').attr('data-visible', 'true');
@@ -1475,18 +1779,29 @@
                 formData.nilai[materiId] = parseFloat($(this).val());
             });
 
-            // Collect error categories data
+            // Collect error categories data dan catatan tambahan
             $('.error-categories-container').each(function() {
                 const materiId = $(this).data('materi-id');
-                const selectedErrors = [];
+                const selectedErrorIds = [];
 
+                // Kumpulkan IdKategoriKesalahan yang dipilih
                 $(this).find('.error-checkbox:checked').each(function() {
-                    selectedErrors.push($(this).val());
+                    const categoryId = $(this).val();
+                    if (categoryId) {
+                        selectedErrorIds.push(categoryId);
+                    }
                 });
 
-                // Format data sebagai string dengan format 1-3-4-8-10
-                if (selectedErrors.length > 0) {
-                    formData.catatan[materiId] = selectedErrors.join('-');
+                // Ambil catatan tambahan
+                const catatanTambahan = $('#catatan_' + materiId).val() || '';
+
+                // Format data sebagai JSON dengan struktur: {"Kategori": "KS001,KS004,KS006", "Catatan": "Tingkatkan lagi belajar."}
+                if (selectedErrorIds.length > 0 || catatanTambahan.trim() !== '') {
+                    const catatanData = {
+                        Kategori: selectedErrorIds.length > 0 ? selectedErrorIds.join(',') : '',
+                        Catatan: catatanTambahan.trim()
+                    };
+                    formData.catatan[materiId] = JSON.stringify(catatanData);
                 }
             });
 
@@ -2076,7 +2391,7 @@
     // Global variable untuk menyimpan semua data ayat dan pagination
     let allAyahsData = [];
     let currentPage = 1;
-    const ayahsPerPage = 5;
+    const ayahsPerPage = 6;
 
     // Fungsi untuk menampilkan ayat dari API
     function showAyatApiModal(materiId, idSurah, idAyat, title) {
