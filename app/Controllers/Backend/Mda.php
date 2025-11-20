@@ -3,61 +3,80 @@
 namespace App\Controllers\Backend;
 
 use App\Controllers\BaseController;
-use App\Models\TpqModel;
 use App\Models\MdaModel;
-use App\Models\ToolsModel;
+use App\Models\TpqModel;
 use Exception;
 
 
-class Tpq extends BaseController
+class Mda extends BaseController
 {
-    public $DataTpq;
-    protected $DataMda;
-    protected $toolsModel;
-
+    public $DataMda;
+    protected $DataTpq;
+    
     public function __construct()
     {
-        $this->DataTpq = new TpqModel();
         $this->DataMda = new MdaModel();
-        $this->toolsModel = new ToolsModel();
+        $this->DataTpq = new TpqModel();
     }
 
     public function show()
     {
         $id = '';
-        $datatpq = $this->DataTpq->GetData($id);
+        $datamda = $this->DataMda->GetData($id);
+        
+        // Ambil list TPQ untuk dropdown
+        $listTpq = $this->DataTpq->GetData($id);
+        
+        // Ambil IdTpq yang sudah digunakan untuk MDA (agar tidak muncul di dropdown)
+        $usedIdTpq = [];
+        foreach ($datamda as $mda) {
+            if (!empty($mda['IdTpq'])) {
+                $usedIdTpq[] = $mda['IdTpq'];
+            }
+        }
+        
+        // Filter TPQ yang belum digunakan untuk MDA
+        $availableTpq = [];
+        foreach ($listTpq as $tpq) {
+            if (!in_array($tpq['IdTpq'], $usedIdTpq)) {
+                $availableTpq[] = $tpq;
+            }
+        }
+        
         $data = [
-            'page_title' => 'Data Tpq',
-            'tpq' => $datatpq,
+            'page_title' => 'Data MDA',
+            'mda' => $datamda,
+            'listTpq' => $availableTpq,
+            'allTpq' => $listTpq, // Semua TPQ untuk referensi
             'validation' => \Config\Services::validation()
         ];
-        return view('backend/tpq/tpq', $data);
+        return view('backend/mda/mda', $data);
     }
 
     public function create()
     {
         $data = [
-            'page_title' => 'Form Data Tambah Tpq',
+            'page_title' => 'Form Data Tambah MDA',
             'validation' => \Config\Services::validation()
         ];
 
-        return view('backend/tpq/create', $data);
+        return view('backend/mda/create', $data);
     }
 
     public function save()
     {
         if (!$this->validate([
             'IdTpq' => [
-                'rules' => 'required|is_unique[tbl_tpq.IdTpq]',
+                'rules' => 'required|is_unique[tbl_mda.IdTpq]',
                 'errors' => [
-                    'required' => 'Nama TPQ harus di isi',
-                    'is_unique' => '{field} TPQ sudah terdaftar'
+                    'required' => 'ID TPQ harus di isi',
+                    'is_unique' => 'ID TPQ sudah terdaftar'
                 ]
             ],
             'NamaTpq' => [
-                'rule' => 'required',
+                'rules' => 'required',
                 'errors' => [
-                    'required' => 'Nama TPQ harus di isi'
+                    'required' => 'Nama MDA harus di isi'
                 ]
             ]
         ])) {
@@ -70,11 +89,12 @@ class Tpq extends BaseController
                     <span aria-hidden="true">&times;</span> 
                 </button>
             </div>');
-            return redirect()->to('/backend/tpq/create/')->withInput()->with('validation', $validation);
+            return redirect()->to('/backend/mda/show')->withInput()->with('validation', $validation);
         }
 
-        $this->DataTpq->save([
+        $this->DataMda->save([
             'IdTpq' => $this->request->getVar('IdTpq'),
+            'IdMda' => $this->request->getVar('IdMda') ?? null,
             'NamaTpq' => $this->request->getVar('NamaTpq'),
             'Alamat' => $this->request->getVar('AlamatTpq'),
             'TahunBerdiri' => $this->request->getVar('TanggalBerdiri'),
@@ -90,19 +110,19 @@ class Tpq extends BaseController
             <span aria-hidden="true">&times;</span>
         </button>
         </div>');
-        return redirect()->to('/backend/tpq/show');
+        return redirect()->to('/backend/mda/show');
     }
 
     public function update($id)
     {
-        // Ambil ID TPQ dari session
-        $idTpq = session('IdTpq');
+        // Gunakan parameter $id sebagai IdTpq
+        $idTpq = $id;
 
         if (!$this->validate([
             'NamaTpq' => [
                 'rules' => 'required',
                 'errors' => [
-                    'required' => 'Nama TPQ harus di isi'
+                    'required' => 'Nama MDA harus di isi'
                 ]
             ]
         ])) {
@@ -115,11 +135,12 @@ class Tpq extends BaseController
                     <span aria-hidden="true">&times;</span> 
                 </button>
             </div>');
-            return redirect()->to('/backend/tpq/edit/' . $idTpq)->withInput()->with('validation', $validation);
+            return redirect()->to('/backend/mda/show')->withInput()->with('validation', $validation);
         }
 
-        // Update data menggunakan ID dari session
-        $this->DataTpq->update($idTpq, [
+        // Update data menggunakan ID dari parameter
+        $this->DataMda->update($idTpq, [
+            'IdMda' => $this->request->getVar('IdMda') ?? null,
             'NamaTpq' => $this->request->getVar('NamaTpq'),
             'Alamat' => $this->request->getVar('AlamatTpq'),
             'TahunBerdiri' => $this->request->getVar('TanggalBerdiri'),
@@ -130,53 +151,39 @@ class Tpq extends BaseController
 
         session()->setFlashdata('pesan', '
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            Profil lembaga berhasil diupdate 
+            Data MDA berhasil diupdate 
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
             <span aria-hidden="true">&times;</span>
         </button>
         </div>');
-        return redirect()->to('/backend/tpq/profilLembaga');
+        return redirect()->to('/backend/mda/show');
     }
 
     public function delete($id)
     {
-        $this->DataTpq->delete($id);
-        session()->setFlashdata('pesan', '
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            Data Berhasil Di Hapus 
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
-        </div>');
-        return redirect()->to('/backend/tpq/show');
-    }
-
-    public function profilLembaga()
-    {
-        // Ambil ID TPQ dari session
-        $idTpq = session('IdTpq');
-
-        // Ambil data TPQ berdasarkan ID dari session
-        $datatpq = $this->DataTpq->GetData($idTpq);
-
-        // Cek apakah memiliki lembaga MDA
-        $hasMda = $this->toolsModel->getSettingAsBool($idTpq, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
-
-        // Ambil data MDA jika setting aktif
-        $datamda = null;
-        if ($hasMda) {
-            $datamda = $this->DataMda->GetData($idTpq);
+        try {
+            $this->DataMda->delete($id);
+            session()->setFlashdata('pesan', '
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                Data Berhasil Di Hapus 
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>');
+        } catch (Exception $e) {
+            session()->setFlashdata('pesan', '
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                Gagal menghapus data: ' . $e->getMessage() . '
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>');
         }
-
-        $data = [
-            'page_title' => 'Profil Lembaga',
-            'tpq' => $datatpq,
-            'mda' => $datamda,
-            'hasMda' => $hasMda,
-            'validation' => \Config\Services::validation()
-        ];
-        return view('backend/tpq/profilLembaga', $data);
+        return redirect()->to('/backend/mda/show');
     }
+
+    // Method profilLembaga dihapus karena informasi MDA ditampilkan di halaman profilLembaga TPQ
+    // Gunakan /backend/tpq/profilLembaga untuk melihat profil TPQ dan MDA
 
     public function uploadLogo()
     {
@@ -207,9 +214,9 @@ class Tpq extends BaseController
         }
 
         // Cek apakah ada logo lama di database
-        $tpqData = $this->DataTpq->GetData($idTpq);
-        if (!empty($tpqData) && !empty($tpqData[0]['LogoLembaga'])) {
-            $oldLogoPath = $uploadPath . $tpqData[0]['LogoLembaga'];
+        $mdaData = $this->DataMda->GetData($idTpq);
+        if (!empty($mdaData) && !empty($mdaData[0]['LogoLembaga'])) {
+            $oldLogoPath = $uploadPath . $mdaData[0]['LogoLembaga'];
             // Hapus file logo lama jika ada
             $this->deleteOldFile($oldLogoPath);
         }
@@ -246,13 +253,13 @@ class Tpq extends BaseController
                 }
 
                 // Generate nama file baru
-                $newFileName = 'logo_' . $idTpq . '_' . time() . '.' . $extension;
+                $newFileName = 'logo_mda_' . $idTpq . '_' . time() . '.' . $extension;
                 $filePath = $uploadPath . $newFileName;
 
                 // Simpan file
                 if (file_put_contents($filePath, $data)) {
                     // Update database
-                    $this->DataTpq->updateLogo($idTpq, $newFileName);
+                    $this->DataMda->updateLogo($idTpq, $newFileName);
 
                     if ($this->request->isAJAX()) {
                         return $this->response->setJSON([
@@ -308,12 +315,12 @@ class Tpq extends BaseController
 
             if ($this->validateUploadFile($file) && !empty($idTpq)) {
                 // Generate nama file unik
-                $newName = 'logo_' . $idTpq . '_' . time() . '.' . $file->getExtension();
+                $newName = 'logo_mda_' . $idTpq . '_' . time() . '.' . $file->getExtension();
 
                 // Pindahkan file baru
                 if ($file->move($uploadPath, $newName)) {
                     // Update database dengan nama file logo berdasarkan IdTpq
-                    $this->DataTpq->updateLogo($idTpq, $newName);
+                    $this->DataMda->updateLogo($idTpq, $newName);
 
                     if ($this->request->isAJAX()) {
                         return $this->response->setJSON([
@@ -401,9 +408,9 @@ class Tpq extends BaseController
         }
 
         // Cek apakah ada kop lama di database
-        $tpqData = $this->DataTpq->GetData($idTpq);
-        if (!empty($tpqData) && !empty($tpqData[0]['KopLembaga'])) {
-            $oldKopPath = $uploadPath . $tpqData[0]['KopLembaga'];
+        $mdaData = $this->DataMda->GetData($idTpq);
+        if (!empty($mdaData) && !empty($mdaData[0]['KopLembaga'])) {
+            $oldKopPath = $uploadPath . $mdaData[0]['KopLembaga'];
             // Hapus file kop lama jika ada
             $this->deleteOldFile($oldKopPath);
         }
@@ -440,13 +447,13 @@ class Tpq extends BaseController
                 }
 
                 // Generate nama file baru
-                $newFileName = 'kop_' . $idTpq . '_' . time() . '.' . $extension;
+                $newFileName = 'kop_mda_' . $idTpq . '_' . time() . '.' . $extension;
                 $filePath = $uploadPath . $newFileName;
 
                 // Simpan file
                 if (file_put_contents($filePath, $data)) {
                     // Update database
-                    $this->DataTpq->updateKop($idTpq, $newFileName);
+                    $this->DataMda->updateKop($idTpq, $newFileName);
 
                     if ($this->request->isAJAX()) {
                         return $this->response->setJSON([
@@ -502,12 +509,12 @@ class Tpq extends BaseController
 
             if ($this->validateUploadFile($file) && !empty($idTpq)) {
                 // Generate nama file unik
-                $newName = 'kop_' . $idTpq . '_' . time() . '.' . $file->getExtension();
+                $newName = 'kop_mda_' . $idTpq . '_' . time() . '.' . $file->getExtension();
 
                 // Pindahkan file baru
                 if ($file->move($uploadPath, $newName)) {
                     // Update database dengan nama file kop berdasarkan IdTpq
-                    $this->DataTpq->updateKop($idTpq, $newName);
+                    $this->DataMda->updateKop($idTpq, $newName);
 
                     if ($this->request->isAJAX()) {
                         return $this->response->setJSON([
@@ -577,11 +584,11 @@ class Tpq extends BaseController
             session()->set('id_tpq', $idTpq);
         }
 
-        $datatpq = $this->DataTpq->GetData($idTpq);
-        if (empty($datatpq)) {
+        $datamda = $this->DataMda->GetData($idTpq);
+        if (empty($datamda)) {
             session()->setFlashdata('pesan', '
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                Data TPQ tidak ditemukan 
+                Data MDA tidak ditemukan 
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>
@@ -590,11 +597,11 @@ class Tpq extends BaseController
         }
 
         $data = [
-            'page_title' => 'Edit Profil Lembaga',
-            'tpq' => $datatpq[0],
+            'page_title' => 'Edit Profil Lembaga MDA',
+            'mda' => $datamda[0],
             'validation' => \Config\Services::validation()
         ];
-        return view('backend/tpq/edit', $data);
+        return view('backend/mda/edit', $data);
     }
 
     /**
@@ -642,28 +649,29 @@ class Tpq extends BaseController
     }
 
     /**
-     * API endpoint untuk mengambil semua data TPQ
+     * API endpoint untuk mengambil semua data MDA
      * Digunakan untuk AJAX requests
      */
     public function getAll()
     {
         try {
-            $data = $this->DataTpq->GetData();
+            $data = $this->DataMda->GetData();
 
             // Format data untuk response JSON
             $response = [];
-            foreach ($data as $tpq) {
+            foreach ($data as $mda) {
                 $response[] = [
-                    'IdTpq' => $tpq['IdTpq'],
-                    'NamaTpq' => $tpq['NamaTpq']
+                    'IdTpq' => $mda['IdTpq'],
+                    'NamaTpq' => $mda['NamaTpq']
                 ];
             }
 
             return $this->response->setJSON($response);
         } catch (Exception $e) {
             return $this->response->setJSON([
-                'error' => 'Gagal mengambil data TPQ: ' . $e->getMessage()
+                'error' => 'Gagal mengambil data MDA: ' . $e->getMessage()
             ])->setStatusCode(500);
         }
     }
 }
+

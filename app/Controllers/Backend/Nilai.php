@@ -201,8 +201,25 @@ class Nilai extends BaseController
         // Buat querry dari tbl_nilai dengan menggabungkan tbl_santri_baru dan tbl_kelas
         $datanilai = $this->DataNilai->getDataNilaiPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
 
-        foreach ($datanilai as $nilai) {
-            $dataKelas[$nilai['IdKelas']] = $nilai['Nama Kelas'];
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        $dataKelas = [];
+        foreach ($datanilai as $key => $nilai) {
+            $namaKelasOriginal = $nilai['Nama Kelas'];
+
+            // Check MDA mapping dan convert nama kelas jika sesuai
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $namaKelasDisplay = $this->helpFunction->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+
+            // Simpan nama kelas yang sudah dikonversi untuk tab dan display
+            if (!isset($dataKelas[$nilai['IdKelas']])) {
+                $dataKelas[$nilai['IdKelas']] = $namaKelasDisplay;
+            }
+
+            // Update nama kelas di data nilai untuk ditampilkan di tabel
+            $datanilai[$key]['Nama Kelas'] = $namaKelasDisplay;
         }
 
         $dataMateri = [];

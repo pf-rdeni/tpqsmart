@@ -167,4 +167,38 @@ class ToolsModel extends Model
         $value = $this->getSettingAsType($idTpq, $settingKey, 'text');
         return $value !== null ? (string)$value : $default;
     }
+
+    /**
+     * Get configuration by IdTpq
+     * If IdTpq exists, return default template + IdTpq data
+     * If IdTpq = 0 or null, return all
+     * 
+     * Order: 'default' first, then '0', then others
+     * 
+     * @param string|null $idTpq
+     * @return array
+     */
+    public function getByTpq($idTpq = null)
+    {
+        // If IdTpq is 0 or null (admin), return all
+        if (empty($idTpq) || $idTpq == 0 || $idTpq == '0') {
+            return $this->orderBy("CASE 
+                    WHEN IdTpq = 'default' THEN 0 
+                    WHEN IdTpq = '0' THEN 1 
+                    ELSE 2 
+                END", 'ASC', false)
+                ->orderBy('IdTpq', 'ASC')
+                ->orderBy('SettingKey', 'ASC')
+                ->findAll();
+        }
+
+        // Get default template + specific IdTpq data
+        return $this->whereIn('IdTpq', ['default', $idTpq])
+            ->orderBy("CASE 
+                    WHEN IdTpq = 'default' THEN 0 
+                    ELSE 1 
+                END", 'ASC', false)
+            ->orderBy('SettingKey', 'ASC')
+            ->findAll();
+    }
 }

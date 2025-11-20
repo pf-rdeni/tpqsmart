@@ -12,11 +12,11 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Informasi Profil Lembaga</h3>
+                        <h3 class="card-title">Informasi Profil Lembaga TPQ</h3>
                         <?php if (!empty($tpq)) : ?>
                             <div class="card-tools">
                                 <a href="<?= base_url('backend/tpq/edit/' . $tpq[0]['IdTpq']) ?>" class="btn btn-warning btn-sm">
-                                    <i class="fas fa-edit"></i> Edit Profil
+                                    <i class="fas fa-edit"></i> Edit Profil TPQ
                                 </a>
                             </div>
                         <?php endif; ?>
@@ -72,111 +72,406 @@
             </div>
         </div>
 
-        <!-- Logo Lembaga Section -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Logo Lembaga</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="text-center">
-                            <?php if (!empty($tpq) && !empty($tpq[0]['LogoLembaga'])) : ?>
-                                <img id="previewLogo" src="<?= base_url('uploads/logo/' . $tpq[0]['LogoLembaga']) ?>"
-                                    alt="Logo Lembaga"
-                                    class="img-fluid"
-                                    style="max-height: 200px; max-width: 200px;">
-                            <?php else : ?>
-                                <div class="border p-4 text-muted">
-                                    <i class="fas fa-image fa-3x"></i>
-                                    <p>Belum ada logo</p>
-                                </div>
-                            <?php endif; ?>
+        <!-- Logo dan Kop Lembaga Section -->
+        <?php if (isset($hasMda) && $hasMda) : ?>
+            <!-- Jika memiliki MDA, tampilkan Logo dan Kop untuk TPQ dan MDA -->
+            <!-- Logo dan Kop TPQ -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="card-title"><i class="fas fa-image"></i> Logo Lembaga TPQ</h3>
                         </div>
-
-                        <form id="formUploadLogo" class="mt-3">
-                            <?php if (!empty($tpq)) : ?>
-                                <input type="hidden" name="IdTpq" id="IdTpqLogo" value="<?= $tpq[0]['IdTpq'] ?>">
-                            <?php endif; ?>
-                            <div class="form-group">
-                                <label for="logo">Upload Logo Baru:</label>
-                                <small class="form-text text-muted d-block mb-2">
-                                    Format yang didukung: Image (JPG, PNG, GIF) - Format persegi
-                                </small>
-                                <input type="file"
-                                    class="form-control-file d-none"
-                                    id="logo"
-                                    name="logo"
-                                    accept="image/jpeg,image/jpg,image/png,image/gif"
-                                    onchange="showCropModalLogo()">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-primary" onclick="document.getElementById('logo').click();">
-                                        <i class="fas fa-upload"></i> Upload Logo
-                                    </button>
-                                    <?php if (!empty($tpq) && !empty($tpq[0]['LogoLembaga'])) : ?>
-                                        <button type="button" class="btn btn-warning" onclick="editLogo()" title="Edit ukuran logo">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
+                        <div class="card-body">
+                            <div class="text-center">
+                                <?php if (!empty($tpq) && !empty($tpq[0]['LogoLembaga'])) : ?>
+                                    <img id="previewLogoTpq" src="<?= base_url('uploads/logo/' . $tpq[0]['LogoLembaga']) ?>"
+                                        alt="Logo Lembaga TPQ"
+                                        class="img-fluid"
+                                        style="max-height: 200px; max-width: 200px;">
+                                <?php else : ?>
+                                    <div class="border p-4 text-muted">
+                                        <i class="fas fa-image fa-3x"></i>
+                                        <p>Belum ada logo TPQ</p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-                        </form>
+
+                            <form id="formUploadLogoTpq" class="mt-3">
+                                <?php if (!empty($tpq)) : ?>
+                                    <input type="hidden" name="IdTpq" id="IdTpqLogoTpq" value="<?= $tpq[0]['IdTpq'] ?>">
+                                <?php endif; ?>
+                                <div class="form-group">
+                                    <label for="logoTpq">Upload Logo TPQ Baru:</label>
+                                    <small class="form-text text-muted d-block mb-2">
+                                        Format yang didukung: Image (JPG, PNG, GIF) - Format persegi
+                                    </small>
+                                    <input type="file"
+                                        class="form-control-file d-none"
+                                        id="logoTpq"
+                                        name="logo"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif"
+                                        onchange="showCropModalLogoTpq()">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-primary" onclick="document.getElementById('logoTpq').click();">
+                                            <i class="fas fa-upload"></i> Upload Logo TPQ
+                                        </button>
+                                        <?php if (!empty($tpq) && !empty($tpq[0]['LogoLembaga'])) : ?>
+                                            <button type="button" class="btn btn-warning" onclick="editLogoTpq()" title="Edit ukuran logo TPQ">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h3 class="card-title"><i class="fas fa-file-image"></i> Kop Lembaga TPQ</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center">
+                                <?php if (!empty($tpq) && !empty($tpq[0]['KopLembaga'])) : ?>
+                                    <img id="previewKopTpq" src="<?= base_url('uploads/kop/' . $tpq[0]['KopLembaga']) ?>"
+                                        alt="Kop Lembaga TPQ"
+                                        class="img-fluid"
+                                        style="max-height: 200px; max-width: 100%;">
+                                <?php else : ?>
+                                    <div class="border p-4 text-muted">
+                                        <i class="fas fa-file-image fa-3x"></i>
+                                        <p>Belum ada kop lembaga TPQ</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <form id="formUploadKopTpq" class="mt-3">
+                                <?php if (!empty($tpq)) : ?>
+                                    <input type="hidden" name="IdTpq" id="IdTpqKopTpq" value="<?= $tpq[0]['IdTpq'] ?>">
+                                <?php endif; ?>
+                                <div class="form-group">
+                                    <label for="kop_lembaga_tpq">Upload Kop TPQ Baru:</label>
+                                    <small class="form-text text-muted d-block mb-2">
+                                        Format yang didukung: Image (JPG, PNG, GIF)
+                                    </small>
+                                    <input type="file"
+                                        class="form-control-file d-none"
+                                        id="kop_lembaga_tpq"
+                                        name="kop_lembaga"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif"
+                                        onchange="showCropModalKopTpq()">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-success" onclick="document.getElementById('kop_lembaga_tpq').click();">
+                                            <i class="fas fa-upload"></i> Upload Kop TPQ
+                                        </button>
+                                        <?php if (!empty($tpq) && !empty($tpq[0]['KopLembaga'])) : ?>
+                                            <button type="button" class="btn btn-warning" onclick="editKopTpq()" title="Edit ukuran kop TPQ">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Kop Lembaga Section -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Kop Lembaga</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="text-center">
-                            <?php if (!empty($tpq) && !empty($tpq[0]['KopLembaga'])) : ?>
-                                <img id="previewKop" src="<?= base_url('uploads/kop/' . $tpq[0]['KopLembaga']) ?>"
-                                    alt="Kop Lembaga"
-                                    class="img-fluid"
-                                    style="max-height: 200px; max-width: 100%;">
-                            <?php else : ?>
-                                <div class="border p-4 text-muted">
-                                    <i class="fas fa-file-image fa-3x"></i>
-                                    <p>Belum ada kop lembaga</p>
+            <!-- Informasi Profil MDA -->
+            <?php if (isset($hasMda) && $hasMda) : ?>
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h3 class="card-title"><i class="fas fa-building"></i> Informasi Profil Lembaga MDA</h3>
+                            <?php if (!empty($mda)) : ?>
+                                <div class="card-tools">
+                                    <a href="<?= base_url('backend/mda/edit/' . $mda[0]['IdTpq']) ?>" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-edit"></i> Edit Profil MDA
+                                    </a>
                                 </div>
                             <?php endif; ?>
                         </div>
-
-                        <form id="formUploadKop" class="mt-3">
-                            <?php if (!empty($tpq)) : ?>
-                                <input type="hidden" name="IdTpq" id="IdTpq" value="<?= $tpq[0]['IdTpq'] ?>">
-                            <?php endif; ?>
-                            <div class="form-group">
-                                <label for="kop_lembaga">Upload Kop Baru:</label>
-                                <small class="form-text text-muted d-block mb-2">
-                                    Format yang didukung: Image (JPG, PNG, GIF)
-                                </small>
-                                <input type="file"
-                                    class="form-control-file d-none"
-                                    id="kop_lembaga"
-                                    name="kop_lembaga"
-                                    accept="image/jpeg,image/jpg,image/png,image/gif"
-                                    onchange="showCropModalKop()">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-success" onclick="document.getElementById('kop_lembaga').click();">
-                                        <i class="fas fa-upload"></i> Upload Kop
-                                    </button>
-                                    <?php if (!empty($tpq) && !empty($tpq[0]['KopLembaga'])) : ?>
-                                        <button type="button" class="btn btn-warning" onclick="editKop()" title="Edit ukuran kop">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                    <?php endif; ?>
+                        <div class="card-body">
+                            <?php if (!empty($mda)) : ?>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>ID TPQ:</label>
+                                            <p class="form-control-static"><?= $mda[0]['IdTpq'] ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>ID MDA:</label>
+                                            <p class="form-control-static"><?= $mda[0]['IdMda'] ?? '-' ?></p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Nama MDA:</label>
+                                            <p class="form-control-static"><?= $mda[0]['NamaTpq'] ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Kepala MDA:</label>
+                                            <p class="form-control-static"><?= $mda[0]['KepalaSekolah'] ?? '-' ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label>Alamat:</label>
+                                            <p class="form-control-static"><?= $mda[0]['Alamat'] ?? '-' ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Tempat Belajar:</label>
+                                            <p class="form-control-static"><?= $mda[0]['TempatBelajar'] ?? '-' ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Tahun Berdiri:</label>
+                                            <p class="form-control-static"><?= $mda[0]['TahunBerdiri'] ?? '-' ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php else : ?>
+                                <div class="alert alert-info">
+                                    <h4><i class="icon fa fa-info-circle"></i> Data MDA Belum Tersedia</h4>
+                                    Data profil MDA belum tersimpan. Silakan edit profil MDA untuk menambahkan data.
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+            <?php endif; ?>
+
+            <!-- Logo dan Kop MDA -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h3 class="card-title"><i class="fas fa-image"></i> Logo Lembaga MDA</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center">
+                                <?php if (!empty($mda) && !empty($mda[0]['LogoLembaga'])) : ?>
+                                    <img id="previewLogoMda" src="<?= base_url('uploads/logo/' . $mda[0]['LogoLembaga']) ?>"
+                                        alt="Logo Lembaga MDA"
+                                        class="img-fluid"
+                                        style="max-height: 200px; max-width: 200px;">
+                                <?php else : ?>
+                                    <div class="border p-4 text-muted">
+                                        <i class="fas fa-image fa-3x"></i>
+                                        <p>Belum ada logo MDA</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <form id="formUploadLogoMda" class="mt-3">
+                                <?php if (!empty($mda)) : ?>
+                                    <input type="hidden" name="IdTpq" id="IdTpqLogoMda" value="<?= $mda[0]['IdTpq'] ?>">
+                                <?php endif; ?>
+                                <div class="form-group">
+                                    <label for="logoMda">Upload Logo MDA Baru:</label>
+                                    <small class="form-text text-muted d-block mb-2">
+                                        Format yang didukung: Image (JPG, PNG, GIF) - Format persegi
+                                    </small>
+                                    <input type="file"
+                                        class="form-control-file d-none"
+                                        id="logoMda"
+                                        name="logo"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif"
+                                        onchange="showCropModalLogoMda()">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-info" onclick="document.getElementById('logoMda').click();">
+                                            <i class="fas fa-upload"></i> Upload Logo MDA
+                                        </button>
+                                        <?php if (!empty($mda) && !empty($mda[0]['LogoLembaga'])) : ?>
+                                            <button type="button" class="btn btn-warning" onclick="editLogoMda()" title="Edit ukuran logo MDA">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h3 class="card-title"><i class="fas fa-file-image"></i> Kop Lembaga MDA</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center">
+                                <?php if (!empty($mda) && !empty($mda[0]['KopLembaga'])) : ?>
+                                    <img id="previewKopMda" src="<?= base_url('uploads/kop/' . $mda[0]['KopLembaga']) ?>"
+                                        alt="Kop Lembaga MDA"
+                                        class="img-fluid"
+                                        style="max-height: 200px; max-width: 100%;">
+                                <?php else : ?>
+                                    <div class="border p-4 text-muted">
+                                        <i class="fas fa-file-image fa-3x"></i>
+                                        <p>Belum ada kop lembaga MDA</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <form id="formUploadKopMda" class="mt-3">
+                                <?php if (!empty($mda)) : ?>
+                                    <input type="hidden" name="IdTpq" id="IdTpqKopMda" value="<?= $mda[0]['IdTpq'] ?>">
+                                <?php endif; ?>
+                                <div class="form-group">
+                                    <label for="kop_lembaga_mda">Upload Kop MDA Baru:</label>
+                                    <small class="form-text text-muted d-block mb-2">
+                                        Format yang didukung: Image (JPG, PNG, GIF)
+                                    </small>
+                                    <input type="file"
+                                        class="form-control-file d-none"
+                                        id="kop_lembaga_mda"
+                                        name="kop_lembaga"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif"
+                                        onchange="showCropModalKopMda()">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-warning" onclick="document.getElementById('kop_lembaga_mda').click();">
+                                            <i class="fas fa-upload"></i> Upload Kop MDA
+                                        </button>
+                                        <?php if (!empty($mda) && !empty($mda[0]['KopLembaga'])) : ?>
+                                            <button type="button" class="btn btn-warning" onclick="editKopMda()" title="Edit ukuran kop MDA">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php else : ?>
+            <!-- Jika tidak memiliki MDA, tampilkan Logo dan Kop untuk TPQ saja (default) -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Logo Lembaga</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center">
+                                <?php if (!empty($tpq) && !empty($tpq[0]['LogoLembaga'])) : ?>
+                                    <img id="previewLogo" src="<?= base_url('uploads/logo/' . $tpq[0]['LogoLembaga']) ?>"
+                                        alt="Logo Lembaga"
+                                        class="img-fluid"
+                                        style="max-height: 200px; max-width: 200px;">
+                                <?php else : ?>
+                                    <div class="border p-4 text-muted">
+                                        <i class="fas fa-image fa-3x"></i>
+                                        <p>Belum ada logo</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <form id="formUploadLogo" class="mt-3">
+                                <?php if (!empty($tpq)) : ?>
+                                    <input type="hidden" name="IdTpq" id="IdTpqLogo" value="<?= $tpq[0]['IdTpq'] ?>">
+                                <?php endif; ?>
+                                <div class="form-group">
+                                    <label for="logo">Upload Logo Baru:</label>
+                                    <small class="form-text text-muted d-block mb-2">
+                                        Format yang didukung: Image (JPG, PNG, GIF) - Format persegi
+                                    </small>
+                                    <input type="file"
+                                        class="form-control-file d-none"
+                                        id="logo"
+                                        name="logo"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif"
+                                        onchange="showCropModalLogo()">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-primary" onclick="document.getElementById('logo').click();">
+                                            <i class="fas fa-upload"></i> Upload Logo
+                                        </button>
+                                        <?php if (!empty($tpq) && !empty($tpq[0]['LogoLembaga'])) : ?>
+                                            <button type="button" class="btn btn-warning" onclick="editLogo()" title="Edit ukuran logo">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Kop Lembaga</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center">
+                                <?php if (!empty($tpq) && !empty($tpq[0]['KopLembaga'])) : ?>
+                                    <img id="previewKop" src="<?= base_url('uploads/kop/' . $tpq[0]['KopLembaga']) ?>"
+                                        alt="Kop Lembaga"
+                                        class="img-fluid"
+                                        style="max-height: 200px; max-width: 100%;">
+                                <?php else : ?>
+                                    <div class="border p-4 text-muted">
+                                        <i class="fas fa-file-image fa-3x"></i>
+                                        <p>Belum ada kop lembaga</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <form id="formUploadKop" class="mt-3">
+                                <?php if (!empty($tpq)) : ?>
+                                    <input type="hidden" name="IdTpq" id="IdTpq" value="<?= $tpq[0]['IdTpq'] ?>">
+                                <?php endif; ?>
+                                <div class="form-group">
+                                    <label for="kop_lembaga">Upload Kop Baru:</label>
+                                    <small class="form-text text-muted d-block mb-2">
+                                        Format yang didukung: Image (JPG, PNG, GIF)
+                                    </small>
+                                    <input type="file"
+                                        class="form-control-file d-none"
+                                        id="kop_lembaga"
+                                        name="kop_lembaga"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif"
+                                        onchange="showCropModalKop()">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-success" onclick="document.getElementById('kop_lembaga').click();">
+                                            <i class="fas fa-upload"></i> Upload Kop
+                                        </button>
+                                        <?php if (!empty($tpq) && !empty($tpq[0]['KopLembaga'])) : ?>
+                                            <button type="button" class="btn btn-warning" onclick="editKop()" title="Edit ukuran kop">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -1098,5 +1393,737 @@
             selectedFileKop = null;
         });
     });
+
+    // ========== Functions untuk TPQ dan MDA (jika hasMda = true) ==========
+    <?php if (isset($hasMda) && $hasMda) : ?>
+    // Variables untuk TPQ dan MDA
+    let cropperLogoTpq = null;
+    let cropperKopTpq = null;
+    let cropperLogoMda = null;
+    let cropperKopMda = null;
+
+    // ========== Functions untuk Logo TPQ ==========
+    function editLogoTpq() {
+        const previewImg = document.getElementById('previewLogoTpq');
+        if (!previewImg || !previewImg.src) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Logo TPQ tidak ditemukan'
+            });
+            return;
+        }
+        ensureCropperLoaded(function() {
+            showCropModalLogoTpqFromBase64(previewImg.src);
+        });
+    }
+
+    function showCropModalLogoTpq() {
+        const fileInput = document.getElementById('logoTpq');
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (file.size > 5242880) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Ukuran file terlalu besar. Maksimal 5MB' });
+            fileInput.value = '';
+            return;
+        }
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tipe file tidak diizinkan' });
+            fileInput.value = '';
+            return;
+        }
+        ensureCropperLoaded(function() {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showCropModalLogoTpqFromBase64(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showCropModalLogoTpqFromBase64(imageUrl) {
+        const imageElement = document.getElementById('imageToCropLogo');
+        if (cropperLogoTpq) {
+            cropperLogoTpq.destroy();
+            cropperLogoTpq = null;
+        }
+        imageElement.src = imageUrl;
+        $('#modalCropLogo').off('shown.bs.modal');
+        $('#modalCropLogo').modal('show');
+        $('#modalCropLogo').on('shown.bs.modal', function() {
+            if (cropperLogoTpq) {
+                cropperLogoTpq.destroy();
+                cropperLogoTpq = null;
+            }
+            const currentSrc = imageElement.src;
+            imageElement.src = '';
+            imageElement.src = currentSrc;
+            imageElement.onload = function() {
+                setTimeout(function() {
+                    if (typeof Cropper === 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Library Cropper.js belum dimuat' });
+                        return;
+                    }
+                    if (!imageElement.src || imageElement.offsetWidth === 0) return;
+                    if (cropperLogoTpq) {
+                        cropperLogoTpq.destroy();
+                        cropperLogoTpq = null;
+                    }
+                    try {
+                        cropperLogoTpq = new Cropper(imageElement, {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            dragMode: 'move',
+                            autoCropArea: 0.8,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            responsive: true,
+                            minCropBoxWidth: 200,
+                            minCropBoxHeight: 200
+                        });
+                    } catch (error) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menginisialisasi cropper: ' + error.message });
+                    }
+                }, 500);
+            };
+            if (imageElement.complete) {
+                imageElement.onload();
+            } else {
+                imageElement.addEventListener('load', imageElement.onload, { once: true });
+            }
+        });
+    }
+
+    function uploadLogoTpq() {
+        if (!cropperLogoTpq) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Cropper belum diinisialisasi' });
+            return;
+        }
+        const canvas = cropperLogoTpq.getCroppedCanvas({
+            width: 500,
+            height: 500,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+        });
+        if (!canvas) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat canvas' });
+            return;
+        }
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengkonversi gambar' });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                const formData = new FormData();
+                formData.append('logo_cropped', base64Image);
+                const idTpq = document.getElementById('IdTpqLogoTpq')?.value;
+                if (idTpq) {
+                    formData.append('IdTpq', idTpq);
+                }
+                Swal.fire({
+                    title: 'Mengupload...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+                $.ajax({
+                    url: '<?= base_url('backend/tpq/uploadLogo') ?>',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                            if (response.logo_url) {
+                                const previewImg = document.getElementById('previewLogoTpq');
+                                if (previewImg) {
+                                    previewImg.src = response.logo_url;
+                                } else {
+                                    setTimeout(() => { location.reload(); }, 2000);
+                                }
+                            } else {
+                                setTimeout(() => { location.reload(); }, 2000);
+                            }
+                            $('#modalCropLogo').modal('hide');
+                            document.getElementById('logoTpq').value = '';
+                            if (cropperLogoTpq) {
+                                cropperLogoTpq.destroy();
+                                cropperLogoTpq = null;
+                            }
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengupload logo' });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghubungi server' });
+                    }
+                });
+            };
+            reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.9);
+    }
+
+    // ========== Functions untuk Kop TPQ ==========
+    function editKopTpq() {
+        const previewImg = document.getElementById('previewKopTpq');
+        if (!previewImg || !previewImg.src) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Kop TPQ tidak ditemukan' });
+            return;
+        }
+        ensureCropperLoaded(function() {
+            showCropModalKopTpqFromBase64(previewImg.src);
+        });
+    }
+
+    function showCropModalKopTpq() {
+        const fileInput = document.getElementById('kop_lembaga_tpq');
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (file.size > 5242880) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Ukuran file terlalu besar. Maksimal 5MB' });
+            fileInput.value = '';
+            return;
+        }
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tipe file tidak diizinkan' });
+            fileInput.value = '';
+            return;
+        }
+        ensureCropperLoaded(function() {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showCropModalKopTpqFromBase64(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showCropModalKopTpqFromBase64(imageUrl) {
+        const imageElement = document.getElementById('imageToCropKop');
+        if (cropperKopTpq) {
+            cropperKopTpq.destroy();
+            cropperKopTpq = null;
+        }
+        imageElement.src = imageUrl;
+        $('#modalCropKop').off('shown.bs.modal');
+        $('#modalCropKop').modal('show');
+        $('#modalCropKop').on('shown.bs.modal', function() {
+            if (cropperKopTpq) {
+                cropperKopTpq.destroy();
+                cropperKopTpq = null;
+            }
+            const currentSrc = imageElement.src;
+            imageElement.src = '';
+            imageElement.src = currentSrc;
+            imageElement.onload = function() {
+                setTimeout(function() {
+                    if (typeof Cropper === 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Library Cropper.js belum dimuat' });
+                        return;
+                    }
+                    if (!imageElement.src || imageElement.offsetWidth === 0) return;
+                    if (cropperKopTpq) {
+                        cropperKopTpq.destroy();
+                        cropperKopTpq = null;
+                    }
+                    try {
+                        cropperKopTpq = new Cropper(imageElement, {
+                            aspectRatio: 4 / 1,
+                            viewMode: 1,
+                            dragMode: 'move',
+                            autoCropArea: 0.8,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            responsive: true,
+                            minCropBoxWidth: 400,
+                            minCropBoxHeight: 100
+                        });
+                    } catch (error) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menginisialisasi cropper: ' + error.message });
+                    }
+                }, 500);
+            };
+            if (imageElement.complete) {
+                imageElement.onload();
+            } else {
+                imageElement.addEventListener('load', imageElement.onload, { once: true });
+            }
+        });
+    }
+
+    function uploadKopTpq() {
+        if (!cropperKopTpq) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Cropper belum diinisialisasi' });
+            return;
+        }
+        const canvas = cropperKopTpq.getCroppedCanvas({
+            width: 2000,
+            height: 500,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+        });
+        if (!canvas) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat canvas' });
+            return;
+        }
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengkonversi gambar' });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                const formData = new FormData();
+                formData.append('kop_lembaga_cropped', base64Image);
+                const idTpq = document.getElementById('IdTpqKopTpq')?.value;
+                if (idTpq) {
+                    formData.append('IdTpq', idTpq);
+                }
+                Swal.fire({
+                    title: 'Mengupload...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+                $.ajax({
+                    url: '<?= base_url('backend/tpq/uploadKop') ?>',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                            if (response.kop_url) {
+                                const previewImg = document.getElementById('previewKopTpq');
+                                if (previewImg) {
+                                    previewImg.src = response.kop_url;
+                                } else {
+                                    setTimeout(() => { location.reload(); }, 2000);
+                                }
+                            } else {
+                                setTimeout(() => { location.reload(); }, 2000);
+                            }
+                            $('#modalCropKop').modal('hide');
+                            document.getElementById('kop_lembaga_tpq').value = '';
+                            if (cropperKopTpq) {
+                                cropperKopTpq.destroy();
+                                cropperKopTpq = null;
+                            }
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengupload kop' });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghubungi server' });
+                    }
+                });
+            };
+            reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.9);
+    }
+
+    // ========== Functions untuk Logo MDA ==========
+    function editLogoMda() {
+        const previewImg = document.getElementById('previewLogoMda');
+        if (!previewImg || !previewImg.src) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Logo MDA tidak ditemukan' });
+            return;
+        }
+        ensureCropperLoaded(function() {
+            showCropModalLogoMdaFromBase64(previewImg.src);
+        });
+    }
+
+    function showCropModalLogoMda() {
+        const fileInput = document.getElementById('logoMda');
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (file.size > 5242880) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Ukuran file terlalu besar. Maksimal 5MB' });
+            fileInput.value = '';
+            return;
+        }
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tipe file tidak diizinkan' });
+            fileInput.value = '';
+            return;
+        }
+        ensureCropperLoaded(function() {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showCropModalLogoMdaFromBase64(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showCropModalLogoMdaFromBase64(imageUrl) {
+        const imageElement = document.getElementById('imageToCropLogo');
+        if (cropperLogoMda) {
+            cropperLogoMda.destroy();
+            cropperLogoMda = null;
+        }
+        imageElement.src = imageUrl;
+        $('#modalCropLogo').off('shown.bs.modal');
+        $('#modalCropLogo').modal('show');
+        $('#modalCropLogo').on('shown.bs.modal', function() {
+            if (cropperLogoMda) {
+                cropperLogoMda.destroy();
+                cropperLogoMda = null;
+            }
+            const currentSrc = imageElement.src;
+            imageElement.src = '';
+            imageElement.src = currentSrc;
+            imageElement.onload = function() {
+                setTimeout(function() {
+                    if (typeof Cropper === 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Library Cropper.js belum dimuat' });
+                        return;
+                    }
+                    if (!imageElement.src || imageElement.offsetWidth === 0) return;
+                    if (cropperLogoMda) {
+                        cropperLogoMda.destroy();
+                        cropperLogoMda = null;
+                    }
+                    try {
+                        cropperLogoMda = new Cropper(imageElement, {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            dragMode: 'move',
+                            autoCropArea: 0.8,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            responsive: true,
+                            minCropBoxWidth: 200,
+                            minCropBoxHeight: 200
+                        });
+                    } catch (error) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menginisialisasi cropper: ' + error.message });
+                    }
+                }, 500);
+            };
+            if (imageElement.complete) {
+                imageElement.onload();
+            } else {
+                imageElement.addEventListener('load', imageElement.onload, { once: true });
+            }
+        });
+    }
+
+    function uploadLogoMda() {
+        if (!cropperLogoMda) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Cropper belum diinisialisasi' });
+            return;
+        }
+        const canvas = cropperLogoMda.getCroppedCanvas({
+            width: 500,
+            height: 500,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+        });
+        if (!canvas) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat canvas' });
+            return;
+        }
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengkonversi gambar' });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                const formData = new FormData();
+                formData.append('logo_cropped', base64Image);
+                const idTpq = document.getElementById('IdTpqLogoMda')?.value;
+                if (idTpq) {
+                    formData.append('IdTpq', idTpq);
+                }
+                Swal.fire({
+                    title: 'Mengupload...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+                $.ajax({
+                    url: '<?= base_url('backend/mda/uploadLogo') ?>',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                            if (response.logo_url) {
+                                const previewImg = document.getElementById('previewLogoMda');
+                                if (previewImg) {
+                                    previewImg.src = response.logo_url;
+                                } else {
+                                    setTimeout(() => { location.reload(); }, 2000);
+                                }
+                            } else {
+                                setTimeout(() => { location.reload(); }, 2000);
+                            }
+                            $('#modalCropLogo').modal('hide');
+                            document.getElementById('logoMda').value = '';
+                            if (cropperLogoMda) {
+                                cropperLogoMda.destroy();
+                                cropperLogoMda = null;
+                            }
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengupload logo' });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghubungi server' });
+                    }
+                });
+            };
+            reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.9);
+    }
+
+    // ========== Functions untuk Kop MDA ==========
+    function editKopMda() {
+        const previewImg = document.getElementById('previewKopMda');
+        if (!previewImg || !previewImg.src) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Kop MDA tidak ditemukan' });
+            return;
+        }
+        ensureCropperLoaded(function() {
+            showCropModalKopMdaFromBase64(previewImg.src);
+        });
+    }
+
+    function showCropModalKopMda() {
+        const fileInput = document.getElementById('kop_lembaga_mda');
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (file.size > 5242880) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Ukuran file terlalu besar. Maksimal 5MB' });
+            fileInput.value = '';
+            return;
+        }
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tipe file tidak diizinkan' });
+            fileInput.value = '';
+            return;
+        }
+        ensureCropperLoaded(function() {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showCropModalKopMdaFromBase64(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showCropModalKopMdaFromBase64(imageUrl) {
+        const imageElement = document.getElementById('imageToCropKop');
+        if (cropperKopMda) {
+            cropperKopMda.destroy();
+            cropperKopMda = null;
+        }
+        imageElement.src = imageUrl;
+        $('#modalCropKop').off('shown.bs.modal');
+        $('#modalCropKop').modal('show');
+        $('#modalCropKop').on('shown.bs.modal', function() {
+            if (cropperKopMda) {
+                cropperKopMda.destroy();
+                cropperKopMda = null;
+            }
+            const currentSrc = imageElement.src;
+            imageElement.src = '';
+            imageElement.src = currentSrc;
+            imageElement.onload = function() {
+                setTimeout(function() {
+                    if (typeof Cropper === 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Library Cropper.js belum dimuat' });
+                        return;
+                    }
+                    if (!imageElement.src || imageElement.offsetWidth === 0) return;
+                    if (cropperKopMda) {
+                        cropperKopMda.destroy();
+                        cropperKopMda = null;
+                    }
+                    try {
+                        cropperKopMda = new Cropper(imageElement, {
+                            aspectRatio: 4 / 1,
+                            viewMode: 1,
+                            dragMode: 'move',
+                            autoCropArea: 0.8,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            responsive: true,
+                            minCropBoxWidth: 400,
+                            minCropBoxHeight: 100
+                        });
+                    } catch (error) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menginisialisasi cropper: ' + error.message });
+                    }
+                }, 500);
+            };
+            if (imageElement.complete) {
+                imageElement.onload();
+            } else {
+                imageElement.addEventListener('load', imageElement.onload, { once: true });
+            }
+        });
+    }
+
+    function uploadKopMda() {
+        if (!cropperKopMda) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Cropper belum diinisialisasi' });
+            return;
+        }
+        const canvas = cropperKopMda.getCroppedCanvas({
+            width: 2000,
+            height: 500,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+        });
+        if (!canvas) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat canvas' });
+            return;
+        }
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengkonversi gambar' });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                const formData = new FormData();
+                formData.append('kop_lembaga_cropped', base64Image);
+                const idTpq = document.getElementById('IdTpqKopMda')?.value;
+                if (idTpq) {
+                    formData.append('IdTpq', idTpq);
+                }
+                Swal.fire({
+                    title: 'Mengupload...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+                $.ajax({
+                    url: '<?= base_url('backend/mda/uploadKop') ?>',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                            if (response.kop_url) {
+                                const previewImg = document.getElementById('previewKopMda');
+                                if (previewImg) {
+                                    previewImg.src = response.kop_url;
+                                } else {
+                                    setTimeout(() => { location.reload(); }, 2000);
+                                }
+                            } else {
+                                setTimeout(() => { location.reload(); }, 2000);
+                            }
+                            $('#modalCropKop').modal('hide');
+                            document.getElementById('kop_lembaga_mda').value = '';
+                            if (cropperKopMda) {
+                                cropperKopMda.destroy();
+                                cropperKopMda = null;
+                            }
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengupload kop' });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghubungi server' });
+                    }
+                });
+            };
+            reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.9);
+    }
+
+    // Update button handlers untuk TPQ dan MDA
+    $(document).ready(function() {
+        // Handle crop logo TPQ
+        $('#btnCropLogo').off('click').on('click', function() {
+            // Cek cropper mana yang aktif
+            if (cropperLogoTpq) {
+                uploadLogoTpq();
+            } else if (cropperLogoMda) {
+                uploadLogoMda();
+            } else if (cropperLogo) {
+                uploadLogo(); // Fallback untuk default
+            }
+        });
+
+        // Handle crop kop TPQ
+        $('#btnCropKop').off('click').on('click', function() {
+            // Cek cropper mana yang aktif
+            if (cropperKopTpq) {
+                uploadKopTpq();
+            } else if (cropperKopMda) {
+                uploadKopMda();
+            } else if (cropperKop) {
+                uploadKop(); // Fallback untuk default
+            }
+        });
+    });
+    <?php endif; ?>
 </script>
 <?= $this->endSection() ?>

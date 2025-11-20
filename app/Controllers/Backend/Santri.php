@@ -9,6 +9,9 @@ use App\Models\HelpFunctionModel;
 use App\Models\SantriBaruModel;
 use App\Models\NilaiModel;
 use App\Models\KelasModel;
+use App\Models\ToolsModel;
+use App\Models\MdaModel;
+use App\Models\TpqModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -20,6 +23,9 @@ class Santri extends BaseController
     protected $DataSantriBaru;
     protected $nilaiModel;
     protected $kelasModel;
+    protected $toolsModel;
+    protected $mdaModel;
+    protected $tpqModel;
 
     public function __construct()
     {
@@ -29,6 +35,9 @@ class Santri extends BaseController
         $this->helpFunction = new HelpFunctionModel();
         $this->nilaiModel = new NilaiModel();
         $this->kelasModel = new KelasModel();
+        $this->toolsModel = new ToolsModel();
+        $this->mdaModel = new MdaModel();
+        $this->tpqModel = new TpqModel();
     }
 
     // fungsi untuk menampilkan form tambah santri
@@ -550,7 +559,8 @@ class Santri extends BaseController
             $santri = $query
                 ->orderBy('tbl_santri_baru.Status', 'DESC')
                 ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->findAll();
+                ->get()
+                ->getResultArray();
         } else {
             // Jika IdTpq ada, terapkan filter IdTpq dan cek filter IdKelas
             $IdKelas = session()->get('IdKelas');
@@ -571,7 +581,8 @@ class Santri extends BaseController
                 ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
                 ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
                 ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->findAll();
+                ->get()
+                ->getResultArray();
         }
 
         $tpq = $this->helpFunction->getDataTpq();
@@ -584,7 +595,8 @@ class Santri extends BaseController
             ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
             ->groupBy('tbl_tpq.IdTpq')
-            ->findAll();
+            ->get()
+            ->getResultArray();
 
         // Gabungkan data jumlah santri ke array TPQ
         foreach ($tpq as &$t) {
@@ -596,6 +608,20 @@ class Santri extends BaseController
                 }
             }
             $t['JumlahSantri'] = $jumlahSantri;
+        }
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        if (!empty($santri) && !empty($IdTpq)) {
+            foreach ($santri as $key => $santriItem) {
+                if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
+                    $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                }
+            }
         }
 
         $data = [
@@ -620,7 +646,8 @@ class Santri extends BaseController
             $santri = $query
                 ->orderBy('tbl_santri_baru.Status', 'DESC')
                 ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->findAll();
+                ->get()
+                ->getResultArray();
         } else {
             $IdKelas = session()->get('IdKelas');
             if ($IdKelas !== null) {
@@ -636,7 +663,22 @@ class Santri extends BaseController
                 ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
                 ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
                 ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->findAll();
+                ->get()
+                ->getResultArray();
+        }
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        if (!empty($santri) && !empty($IdTpq)) {
+            foreach ($santri as $key => $santriItem) {
+                if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
+                    $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                }
+            }
         }
 
         $data = [
@@ -708,7 +750,22 @@ class Santri extends BaseController
             ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
             ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
             ->orderBy('tbl_santri_baru.Status', 'DESC')
-            ->findAll();
+            ->get()
+            ->getResultArray(); // Gunakan getResultArray() untuk memastikan array format
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        if (!empty($santri) && !empty($IdTpq)) {
+            foreach ($santri as $key => $santriItem) {
+                if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
+                    $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                }
+            }
+        }
 
         $data = [
             'page_title' => 'Data Santri',
@@ -730,7 +787,8 @@ class Santri extends BaseController
                 ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
                 ->orderBy('tbl_santri_baru.Status', 'DESC')
                 ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->findAll();
+                ->get()
+                ->getResultArray();
         } else {
             $santri = $this->DataSantriBaru
                 ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
@@ -739,7 +797,8 @@ class Santri extends BaseController
                 ->where('tbl_santri_baru.IdTpq', $IdTpq)
                 ->orderBy('tbl_santri_baru.Status', 'DESC')
                 ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->findAll();
+                ->get()
+                ->getResultArray();
         }
 
         $tpq = $this->helpFunction->getDataTpq();
@@ -764,6 +823,20 @@ class Santri extends BaseController
                 }
             }
             $t['JumlahSantri'] = $jumlahSantri;
+        }
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        if (!empty($santri) && !empty($IdTpq)) {
+            foreach ($santri as $key => $santriItem) {
+                if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
+                    $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                }
+            }
         }
 
         $data = [
@@ -1134,49 +1207,57 @@ class Santri extends BaseController
         
         $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq);
         $namaTpq = $this->helpFunction->getNamaTpqById($IdTpq);
-        // Mengelompokkan santri berdasarkan kelas
-        $santriPerKelas = [
-            'TK' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '1';
-            }),
-            'TKA' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '2';
-            }),
-            'TKB' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '3';
-            }),
-            'TPQ1' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '4';
-            }),
-            'TPQ2' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '5';
-            }),
-            'TPQ3' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '6';
-            }),
-            'TPQ4' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '7';
-            }),
-            'TPQ5' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '8';
-            }),
-            'TPQ6' => array_filter($santriAll, function ($s) {
-                return $s['IdKelas'] == '9';
-            })
-        ];
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        if (!empty($santriAll) && !empty($IdTpq)) {
+            foreach ($santriAll as $key => $santriItem) {
+                if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
+                    $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $santriAll[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                }
+            }
+        }
+
+        // Mengelompokkan santri berdasarkan kelas secara dinamis
+        $santriPerKelas = [];
+        $kelasList = []; // Untuk menyimpan informasi kelas yang ada
+
+        if (!empty($santriAll)) {
+            // Ambil semua IdKelas unik dari data santri
+            $uniqueKelas = [];
+            foreach ($santriAll as $santri) {
+                $idKelas = $santri['IdKelas'];
+                if (!isset($uniqueKelas[$idKelas])) {
+                    $uniqueKelas[$idKelas] = [
+                        'IdKelas' => $idKelas,
+                        'NamaKelas' => $santri['NamaKelas'] // Sudah dikonversi MDA
+                    ];
+                }
+            }
+
+            // Sort berdasarkan IdKelas
+            ksort($uniqueKelas);
+
+            // Buat array kelas list untuk view
+            $kelasList = array_values($uniqueKelas);
+
+            // Kelompokkan santri berdasarkan IdKelas
+            foreach ($uniqueKelas as $idKelas => $kelasInfo) {
+                $santriPerKelas[$idKelas] = array_filter($santriAll, function ($s) use ($idKelas) {
+                    return $s['IdKelas'] == $idKelas;
+                });
+            }
+        }
 
         $data = [
             'page_title' => 'Data Santri Baru Per Kelas TPQ',
             'dataSantriAll' => $santriAll,
-            'dataSantriTK' => $santriPerKelas['TK'],
-            'dataSantriTKA' => $santriPerKelas['TKA'],
-            'dataSantriTKB' => $santriPerKelas['TKB'],
-            'dataSantriTPQ1' => $santriPerKelas['TPQ1'],
-            'dataSantriTPQ2' => $santriPerKelas['TPQ2'],
-            'dataSantriTPQ3' => $santriPerKelas['TPQ3'],
-            'dataSantriTPQ4' => $santriPerKelas['TPQ4'],
-            'dataSantriTPQ5' => $santriPerKelas['TPQ5'],
-            'dataSantriTPQ6' => $santriPerKelas['TPQ6'],
+            'santriPerKelas' => $santriPerKelas, // Array dinamis berdasarkan IdKelas
+            'kelasList' => $kelasList, // List kelas yang ada untuk membuat tab
             'namaTpq' => $namaTpq,
         ];
 
@@ -1307,11 +1388,19 @@ class Santri extends BaseController
             // Ambil data TPQ untuk mendapatkan Kepala TPQ
             $tpqRow = $this->helpFunction->getNamaTpqById($dataSantri['IdTpq']);
 
+            // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+            $namaKelasOriginal = $dataSantri['NamaKelas'];
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($dataSantri['IdTpq'], $namaKelasOriginal);
+            $printNamaKelas = $this->helpFunction->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+
             // Siapkan data untuk template
             $data = [
                 //nama tpq dan nama kelas
                 'printNamaTpq' => $dataSantri['NamaTpq'],  // Menggunakan NamaTpq dari hasil join
-                'printNamaKelas' => $dataSantri['NamaKelas'],  // Menggunakan NamaKelas dari hasil join
+                'printNamaKelas' => $printNamaKelas,  // Menggunakan NamaKelas yang sudah dikonversi
                 //data santri
                 'printNamaSantri' => $dataSantri['NamaSantri'],
                 'printNikSantri' => $dataSantri['NikSantri'],
@@ -1429,9 +1518,49 @@ class Santri extends BaseController
             $dataSantri = $this->getDataSantri($IdSantri);
             $tpqRow = $this->helpFunction->getNamaTpqById($dataSantri['IdTpq']);
 
+            // Check status MDA dan mapping kelas menggunakan helper function
+            $idTpq = $dataSantri['IdTpq'];
+            $namaKelasSantri = $dataSantri['NamaKelas'];
+
+            // Gunakan helper function untuk check MDA mapping
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($idTpq, $namaKelasSantri);
+            $useMdaData = $mdaCheckResult['useMdaData'];
+            $mappedMdaKelas = $mdaCheckResult['mappedMdaKelas'];
+            $mdaRow = null;
+
+            // Jika sesuai, ambil data MDA
+            if ($useMdaData) {
+                $mdaData = $this->mdaModel->GetData($idTpq);
+                if (!empty($mdaData) && !empty($mdaData[0])) {
+                    $mdaRow = $mdaData[0];
+                    log_message('info', 'Santri: generatePDFprofilSantriRaport - Menggunakan data MDA untuk kelas ' . $namaKelasSantri);
+                } else {
+                    // Jika data MDA tidak ditemukan, fallback ke TPQ
+                    $useMdaData = false;
+                    $mappedMdaKelas = null; // Reset mapped kelas karena tidak ada data MDA
+                    log_message('warning', 'Santri: generatePDFprofilSantriRaport - Data MDA tidak ditemukan, menggunakan data TPQ');
+                }
+            }
+
+            // Tentukan data yang akan digunakan (MDA atau TPQ)
+            $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+
+            // Ambil data TPQ lengkap untuk fallback (field yang tidak ada di MDA)
+            $tpqFullData = $this->tpqModel->GetData($idTpq);
+
+            // Untuk field yang tidak ada di MDA, gunakan data TPQ sebagai fallback
+            $kopLembaga = $useMdaData && $mdaRow ? ($mdaRow['KopLembaga'] ?? $tpqRow['KopLembaga'] ?? '') : ($tpqRow['KopLembaga'] ?? '');
+            $kepalaSekolah = $useMdaData && $mdaRow ? ($mdaRow['KepalaSekolah'] ?? $tpqRow['KepalaSekolah'] ?? '') : ($tpqRow['KepalaSekolah'] ?? '');
+            $alamatLembaga = $useMdaData && $mdaRow ? ($mdaRow['Alamat'] ?? $tpqRow['Alamat'] ?? '') : ($tpqRow['Alamat'] ?? '');
+            $namaLembaga = $useMdaData && $mdaRow ? ($mdaRow['NamaTpq'] ?? $dataSantri['NamaTpq']) : $dataSantri['NamaTpq'];
+
+            // Tentukan nama kelas yang akan ditampilkan menggunakan helper function
+            // Jika match dengan mapping MDA, ganti dengan kelas MDA
+            $printNamaKelas = $this->helpFunction->convertKelasToMda($namaKelasSantri, $mappedMdaKelas);
+
             $data = [
-                'printNamaTpq' => $dataSantri['NamaTpq'],
-                'printNamaKelas' => $dataSantri['NamaKelas'],
+                'printNamaTpq' => $namaLembaga,
+                'printNamaKelas' => $printNamaKelas,
                 'printNamaSantri' => $dataSantri['NamaSantri'],
                 'printNikSantri' => $dataSantri['NikSantri'],
                 'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . formatTanggalIndonesia($dataSantri['TanggalLahirSantri'], 'd F Y'),
@@ -1450,17 +1579,19 @@ class Santri extends BaseController
                 'printPekerjaanIbu' => $dataSantri['PekerjaanUtamaIbu'],
                 'printTanggalDiterima' => formatTanggalIndonesia($dataSantri['created_at'], 'd F Y'),
                 'printFotoSantri' => null,
-                'printKepalaTpq' => $tpqRow['KepalaSekolah'] ?? '',
-                // Data TPQ untuk kop lembaga
-                'printKopLembaga' => $tpqRow['KopLembaga'] ?? '',
-                'printAlamatTpq' => $tpqRow['AlamatTpq'] ?? '',
+                // Gunakan data dari MDA atau TPQ sesuai kondisi
+                'printKepalaTpq' => $kepalaSekolah,
+                'printKopLembaga' => $kopLembaga,
+                'printAlamatTpq' => $alamatLembaga,
+                // Field alamat lengkap tetap menggunakan data TPQ (karena MDA tidak punya field ini)
                 'printKelurahanDesaTpq' => $tpqRow['KelurahanDesa'] ?? '',
                 'printKecamatanTpq' => $tpqRow['Kecamatan'] ?? 'Seri Kuala Lobam',
                 'printKabupatenKotaTpq' => $tpqRow['KabupatenKota'] ?? 'Bintan',
                 'printProvinsiTpq' => $tpqRow['Provinsi'] ?? 'Kepulauan Riau',
                 'printKodePosTpq' => $tpqRow['KodePos'] ?? '29152',
-                'printTelpTpq' => $tpqRow['NoHp'] ?? '081234567890',
-                'printEmailTpq' => $tpqRow['Email'] ?? $tpqRow['NamaTpq'] . '@TpqSmart.simpedis.com',
+                'printTelpTpq' => $useMdaData && $mdaRow ? ($mdaRow['NoHp'] ?? $tpqRow['NoHp'] ?? '081234567890') : ($tpqRow['NoHp'] ?? '081234567890'),
+                'printEmailTpq' => $tpqRow['Email'] ?? $namaLembaga . '@TpqSmart.simpedis.com',
+                'printLembagaType' => $lembagaType, // Untuk label di view
             ];
 
             if (!empty($dataSantri['PhotoProfil'])) {

@@ -478,6 +478,12 @@
                                         <p> List TPQ</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/mda/show') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p> List MDA</p>
+                                    </a>
+                                </li>
                             <?php endif; ?>
                             <?php if ($isActiveOperator): ?>
                                 <li class="nav-item">

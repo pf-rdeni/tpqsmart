@@ -51,14 +51,23 @@ class Dashboard extends BaseController
         // Ambil semua nama kelas dalam satu query
         $namaKelas = $this->helpFunctionModel->getNamaKelasBulk($kelasIds);
 
-        // Gabungkan data
+        // Gabungkan data dan konversi nama kelas ke MDA jika sesuai
         $result = [];
         if (is_array($kelasIds)) {
             foreach ($kelasIds as $idKelas) {
                 if (isset($statusNilai[$idKelas])) {
+                    $namaKelasOriginal = $namaKelas[$idKelas] ?? '';
+
+                    // Check MDA mapping dan convert nama kelas jika sesuai
+                    $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($idTpq, $namaKelasOriginal);
+                    $namaKelasDisplay = $this->helpFunctionModel->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+
                     $result[] = [
                         'IdKelas' => $idKelas,
-                        'NamaKelas' => $namaKelas[$idKelas] ?? '',
+                        'NamaKelas' => $namaKelasDisplay,
                         'StatusInputNilai' => $statusNilai[$idKelas] ?? false
                     ];
                 }
@@ -67,9 +76,18 @@ class Dashboard extends BaseController
             // Kondisi jika $kelasIds bukan array (single ID)
             $idKelas = $kelasIds;
             if (isset($statusNilai[$idKelas])) {
+                $namaKelasOriginal = $namaKelas[$idKelas] ?? '';
+
+                // Check MDA mapping dan convert nama kelas jika sesuai
+                $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($idTpq, $namaKelasOriginal);
+                $namaKelasDisplay = $this->helpFunctionModel->convertKelasToMda(
+                    $namaKelasOriginal,
+                    $mdaCheckResult['mappedMdaKelas']
+                );
+
                 $result[] = [
                     'IdKelas' => $idKelas,
-                    'NamaKelas' => $namaKelas[$idKelas] ?? '',
+                    'NamaKelas' => $namaKelasDisplay,
                     'StatusInputNilai' => $statusNilai[$idKelas] ?? false
                 ];
             }
@@ -159,12 +177,24 @@ class Dashboard extends BaseController
         $statusInputNilaiPerKelasGanjil = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $listKelas, 'Ganjil');
         $statusInputNilaiPerKelasGenap = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $listKelas, 'Genap');
 
+        // Handle IdTpq untuk admin (IdTpq=0 atau null berarti semua TPQ)
+        $idTpqForQuery = (empty($idTpq) || $idTpq == '0' || $idTpq == 0) ? 0 : $idTpq;
+
         // Data statistik utama
         $pageTitle = 'Dashboard';
-        $totalWaliKelas = $this->helpFunctionModel->getTotalWaliKelas(
-            IdTpq: $idTpq,
-            IdTahunAjaran: $idTahunAjaran,
-        );
+
+        // Untuk admin (IdTpq=0), tampilkan jumlah TPQ, untuk lainnya tampilkan Wali Kelas
+        if ($idTpqForQuery == 0) {
+            $totalTpq = $this->helpFunctionModel->getTotalTpq();
+            $totalWaliKelas = null; // Tidak digunakan untuk admin
+        } else {
+            $totalWaliKelas = $this->helpFunctionModel->getTotalWaliKelas(
+                IdTpq: $idTpq,
+                IdTahunAjaran: $idTahunAjaran,
+            );
+            $totalTpq = null; // Tidak digunakan untuk operator/kepala TPQ
+        }
+
         $totalSantri = $this->helpFunctionModel->getTotalSantri(IdTpq: $idTpq);
         $totalGuru = $this->helpFunctionModel->getTotalGuru(IdTpq: $idTpq);
         $totalKelas = $this->helpFunctionModel->getTotalKelas(
@@ -189,9 +219,25 @@ class Dashboard extends BaseController
             Semester: 'Genap'
         );
 
+        // Statistik Santri
+        $statistikSantri = $this->helpFunctionModel->getStatistikSantri($idTpqForQuery);
+
+        // Statistik Guru
+        $statistikGuru = $this->helpFunctionModel->getStatistikGuru($idTpqForQuery);
+
+        // Statistik per TPQ (hanya untuk admin dengan IdTpq=0)
+        $statistikSantriPerTpq = [];
+        $statistikGuruPerTpq = [];
+        if ($idTpqForQuery == 0) {
+            $statistikSantriPerTpq = $this->helpFunctionModel->getStatistikSantriPerTpq();
+            $statistikGuruPerTpq = $this->helpFunctionModel->getStatistikGuruPerTpq();
+        }
+
         return [
             'page_title' => $pageTitle,
             'TotalWaliKelas' => $totalWaliKelas,
+            'TotalTpq' => $totalTpq,
+            'IsAdmin' => ($idTpqForQuery == 0),
             'TotalSantri' => $totalSantri,
             'TotalGuru' => $totalGuru,
             'TotalKelas' => $totalKelas,
@@ -202,6 +248,10 @@ class Dashboard extends BaseController
             'StatusInputNilaiPerKelasGanjil' => $statusInputNilaiPerKelasGanjil,
             'StatusInputNilaiPerKelasGenap' => $statusInputNilaiPerKelasGenap,
             'JumlahSantriPerKelas' => $jumlahSantriPerKelas,
+            'StatistikSantri' => $statistikSantri,
+            'StatistikGuru' => $statistikGuru,
+            'StatistikSantriPerTpq' => $statistikSantriPerTpq,
+            'StatistikGuruPerTpq' => $statistikGuruPerTpq,
         ];
     }
 

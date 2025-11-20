@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use Myth\Auth\Controllers\AuthController as MythAuthController;
 use App\Models\HelpFunctionModel;
+use App\Models\ToolsModel;
 
 /**
  * Custom AuthController yang extend dari vendor AuthController
@@ -17,12 +18,18 @@ class AuthController extends MythAuthController
     protected $helpFunctionModel;
 
     /**
+     * @var ToolsModel
+     */
+    protected $toolsModel;
+
+    /**
      * Constructor - initialize models
      */
     public function __construct()
     {
         parent::__construct();
         $this->helpFunctionModel = new HelpFunctionModel();
+        $this->toolsModel = new ToolsModel();
     }
 
     /**
@@ -166,9 +173,50 @@ class AuthController extends MythAuthController
                     session()->set('IdTahunAjaran', $idTahunAjaran);
                 }
             }
+
+            // Set MDA settings ke session
+            $this->setMdaSessionSettings($IdTpq ?? $idTpqFromGuru);
         } catch (\Exception $e) {
             // Log error and fallback to original method if needed
             log_message('error', 'Error in optimized setGuruSessionData: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Set MDA settings ke session setelah login
+     * 
+     * @param string|null $idTpq ID TPQ
+     */
+    protected function setMdaSessionSettings($idTpq = null)
+    {
+        if (empty($idTpq)) {
+            return;
+        }
+
+        try {
+            // Ambil setting MDA_S1_ApakahMemilikiLembagaMDATA
+            $hasMda = $this->toolsModel->getSettingAsBool($idTpq, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
+            session()->set('MDA_S1_ApakahMemilikiLembagaMDATA', $hasMda);
+
+            // Ambil setting MDA_S1_PersamaanKelasMDA
+            $persamaanKelas = $this->toolsModel->getSettingAsString($idTpq, 'MDA_S1_PersamaanKelasMDA', '');
+            session()->set('MDA_S1_PersamaanKelasMDA', $persamaanKelas);
+
+            // Parse persamaan kelas menjadi array untuk kemudahan penggunaan
+            $kelasMapping = [];
+            if (!empty($persamaanKelas)) {
+                $pairs = explode(',', $persamaanKelas);
+                foreach ($pairs as $pair) {
+                    $pair = trim($pair);
+                    if (strpos($pair, '=') !== false) {
+                        list($tpqKelas, $mdaKelas) = explode('=', $pair, 2);
+                        $kelasMapping[trim($tpqKelas)] = trim($mdaKelas);
+                    }
+                }
+            }
+            session()->set('MDA_KelasMapping', $kelasMapping);
+        } catch (\Exception $e) {
+            log_message('error', 'Error setting MDA session settings: ' . $e->getMessage());
         }
     }
 }

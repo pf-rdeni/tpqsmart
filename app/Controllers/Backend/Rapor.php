@@ -8,6 +8,9 @@ use App\Models\NilaiModel;
 use App\Models\SantriBaruModel;
 use App\Models\SignatureModel;
 use App\Models\QrCodeModel;
+use App\Models\MdaModel;
+use App\Models\TpqModel;
+use App\Models\ToolsModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -18,6 +21,9 @@ class Rapor extends BaseController
     protected $santriBaruModel;
     protected $signatureModel;
     protected $qrCodeModel;
+    protected $mdaModel;
+    protected $tpqModel;
+    protected $toolsModel;
 
     public function __construct()
     {
@@ -26,6 +32,9 @@ class Rapor extends BaseController
         $this->santriBaruModel = new SantriBaruModel();
         $this->signatureModel = new SignatureModel();
         $this->qrCodeModel = new QrCodeModel();
+        $this->mdaModel = new MdaModel();
+        $this->tpqModel = new TpqModel();
+        $this->toolsModel = new ToolsModel();
         ini_set('memory_limit', '256M');
         set_time_limit(300);
         mb_internal_encoding('UTF-8');
@@ -106,6 +115,29 @@ class Rapor extends BaseController
             semester: $semester
         );
 
+        // Simpan nama kelas asli sebelum dikonversi untuk digunakan di prepareRaporData
+        $namaKelasOriginal = '';
+        if (!empty($nilai) && isset($nilai[0]->NamaKelas)) {
+            $namaKelasOriginal = $nilai[0]->NamaKelas;
+        } elseif (isset($santri['NamaKelas'])) {
+            $namaKelasOriginal = $santri['NamaKelas'];
+        }
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        if (!empty($nilai) && isset($nilai[0]->NamaKelas)) {
+            // Check MDA mapping dan convert nama kelas jika sesuai
+            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $namaKelasDisplay = $this->helpFunctionModel->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+
+            // Update nama kelas di semua data nilai
+            foreach ($nilai as $nilaiItem) {
+                $nilaiItem->NamaKelas = $namaKelasDisplay;
+            }
+        }
+
         // Ambil Nama Wali Kelas dari IdKelas data nilai ke tbl_guru_kelas
         $IdKelas = $santri['IdKelas'];
         $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(IdKelas: $IdKelas, IdTpq: $IdTpq, IdTahunAjaran: $IdTahunAjaran);
@@ -113,6 +145,9 @@ class Rapor extends BaseController
         // Ambil guru pendamping dari tbl_guru_kelas
         $guruPendamping = $this->helpFunctionModel->getGuruPendampingByIdKelas($IdKelas, $IdTpq, $IdTahunAjaran);
         $santri['GuruPendamping'] = !empty($guruPendamping) ? $guruPendamping : [];
+
+        // Simpan nama kelas asli di data santri untuk digunakan di prepareRaporData
+        $santri['NamaKelasOriginal'] = $namaKelasOriginal;
 
         return [
             'santri' => $santri,
@@ -126,7 +161,69 @@ class Rapor extends BaseController
     private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester)
     {
         // Ambil data TPQ
-        $tpq = $this->helpFunctionModel->getNamaTpqById($IdTpq);
+        $tpqRow = $this->helpFunctionModel->getNamaTpqById($IdTpq);
+        if (empty($tpqRow) || !is_array($tpqRow)) {
+            $tpqRow = [];
+        }
+
+        // Check status MDA dan mapping kelas
+        // Ambil nama kelas asli langsung dari database berdasarkan IdKelas untuk memastikan menggunakan nama asli
+        $namaKelasSantri = '';
+        if (isset($santriData['santri']['IdKelas']) && !empty($santriData['santri']['IdKelas'])) {
+            // Ambil nama kelas asli langsung dari database
+            $kelasData = $this->helpFunctionModel->getNamaKelasBulk([$santriData['santri']['IdKelas']]);
+            if (!empty($kelasData) && isset($kelasData[$santriData['santri']['IdKelas']])) {
+                $namaKelasSantri = $kelasData[$santriData['santri']['IdKelas']];
+            }
+        }
+
+        // Fallback: gunakan nama kelas asli yang sudah disimpan atau dari data santri
+        if (empty($namaKelasSantri)) {
+            if (isset($santriData['santri']['NamaKelasOriginal']) && !empty($santriData['santri']['NamaKelasOriginal'])) {
+                $namaKelasSantri = $santriData['santri']['NamaKelasOriginal'];
+            } elseif (isset($santriData['santri']['NamaKelas'])) {
+                $namaKelasSantri = $santriData['santri']['NamaKelas'];
+            }
+        }
+
+        log_message('info', 'Rapor: prepareRaporData - Nama kelas asli untuk check mapping: ' . $namaKelasSantri);
+
+        // Gunakan helper function untuk check MDA mapping
+        $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelasSantri);
+        $useMdaData = $mdaCheckResult['useMdaData'];
+        $mappedMdaKelas = $mdaCheckResult['mappedMdaKelas'];
+        $mdaRow = null;
+
+        log_message('info', 'Rapor: prepareRaporData - Check MDA mapping untuk kelas: ' . $namaKelasSantri . ', useMdaData: ' . ($useMdaData ? 'true' : 'false') . ', mappedMdaKelas: ' . ($mappedMdaKelas ?? 'null'));
+
+        // Jika sesuai, ambil data MDA
+        if ($useMdaData) {
+            $mdaData = $this->mdaModel->GetData($IdTpq);
+            if (!empty($mdaData) && !empty($mdaData[0])) {
+                $mdaRow = $mdaData[0];
+                log_message('info', 'Rapor: prepareRaporData - Menggunakan data MDA untuk kelas ' . $namaKelasSantri . ', KopLembaga: ' . ($mdaRow['KopLembaga'] ?? 'kosong'));
+            } else {
+                // Jika data MDA tidak ditemukan, fallback ke TPQ
+                $useMdaData = false;
+                log_message('warning', 'Rapor: prepareRaporData - Data MDA tidak ditemukan, menggunakan data TPQ');
+            }
+        } else {
+            log_message('info', 'Rapor: prepareRaporData - Kelas tidak sesuai mapping MDA, menggunakan data TPQ');
+        }
+
+        // Tentukan data yang akan digunakan (MDA atau TPQ)
+        $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+
+        // Untuk kop lembaga, gunakan data MDA jika sesuai, fallback ke TPQ
+        $kopLembaga = $useMdaData && $mdaRow ? ($mdaRow['KopLembaga'] ?? $tpqRow['KopLembaga'] ?? '') : ($tpqRow['KopLembaga'] ?? '');
+        $kepalaSekolah = $useMdaData && $mdaRow ? ($mdaRow['KepalaSekolah'] ?? $tpqRow['KepalaSekolah'] ?? '') : ($tpqRow['KepalaSekolah'] ?? '');
+        $namaLembaga = $useMdaData && $mdaRow ? ($mdaRow['NamaTpq'] ?? $tpqRow['NamaTpq'] ?? '') : ($tpqRow['NamaTpq'] ?? '');
+
+        // Siapkan data TPQ untuk view (dengan kop lembaga yang sudah disesuaikan)
+        $tpq = $tpqRow;
+        $tpq['KopLembaga'] = $kopLembaga;
+        $tpq['KepalaSekolah'] = $kepalaSekolah;
+        $tpq['NamaTpq'] = $namaLembaga;
 
         // Ambil data signature untuk santri ini dengan informasi posisi guru
         $signatures = $this->signatureModel->getSignaturesWithPosition(
@@ -142,7 +239,8 @@ class Rapor extends BaseController
             'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
             'semester' => $semester,
             'tanggal' => formatTanggalIndonesia(date('Y-m-d'), 'd F Y'),
-            'signatures' => $signatures
+            'signatures' => $signatures,
+            'lembagaType' => $lembagaType
         ];
     }
 
@@ -155,9 +253,25 @@ class Rapor extends BaseController
         $summaryData = $this->nilaiModel->getDataNilaiPerSemester($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
 
         // Buat array dataKelas untuk struktur yang sama dengan nilaiSantriPerSemester
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         $dataKelas = [];
         foreach ($summaryData as $nilai) {
-            $dataKelas[$nilai->IdKelas] = $nilai->NamaKelas;
+            $namaKelasOriginal = $nilai->NamaKelas;
+
+            // Check MDA mapping dan convert nama kelas jika sesuai
+            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $namaKelasDisplay = $this->helpFunctionModel->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+
+            // Simpan nama kelas yang sudah dikonversi
+            if (!isset($dataKelas[$nilai->IdKelas])) {
+                $dataKelas[$nilai->IdKelas] = $namaKelasDisplay;
+            }
+
+            // Update nama kelas di data summary untuk ditampilkan di tabel
+            $nilai->NamaKelas = $namaKelasDisplay;
         }
 
         return [
@@ -211,6 +325,18 @@ class Rapor extends BaseController
         // Ambil object data kelas - kirim flag isOperator agar diperlakukan seperti kepala sekolah
         $dataKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $guruIdForKelas, $isOperator);
 
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        foreach ($dataKelas as $kelas) {
+            $namaKelasOriginal = $kelas->NamaKelas;
+
+            // Check MDA mapping dan convert nama kelas jika sesuai
+            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $kelas->NamaKelas = $this->helpFunctionModel->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+        }
+
         // Ambil data summary nilai untuk setiap santri
         $summaryData = $this->getSummaryDataForSantri($IdTpq, $listIdKelas, $IdTahunAjaran, $semester);
 
@@ -257,11 +383,24 @@ class Rapor extends BaseController
 
     public function getSantriByKelas($IdKelas)
     {
+        $IdTpq = session()->get('IdTpq');
         $santriList = $this->santriBaruModel->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')->where([
-            'tbl_santri_baru.IdTpq' => session()->get('IdTpq'),
+            'tbl_santri_baru.IdTpq' => $IdTpq,
             'tbl_santri_baru.IdKelas' => $IdKelas,
             'tbl_santri_baru.Active' => 1
         ])->select('tbl_santri_baru.*, tbl_kelas.NamaKelas')->findAll();
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        foreach ($santriList as $santri) {
+            $namaKelasOriginal = $santri->NamaKelas;
+
+            // Check MDA mapping dan convert nama kelas jika sesuai
+            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $santri->NamaKelas = $this->helpFunctionModel->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+        }
 
         return $this->response->setJSON($santriList);
     }

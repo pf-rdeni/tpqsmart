@@ -84,6 +84,19 @@ class HelpFunctionModel extends Model
     }
 
     /**
+     * Mengambil total jumlah TPQ
+     * @return int
+     */
+    public function getTotalTpq()
+    {
+        $builder = $this->db->table('tbl_tpq');
+        $builder->select('COUNT(DISTINCT IdTpq) as total');
+
+        $result = $builder->get()->getRow();
+        return $result ? (int)$result->total : 0;
+    }
+
+    /**
      * Mengambil data guru berdasarkan ID, status, dan IdTpq
      * @param mixed $id ID Guru (optional)
      * @param bool $status Status guru (default: true)
@@ -612,9 +625,17 @@ class HelpFunctionModel extends Model
      */
     public function getTotalSantri($IdTpq, $IdKelas = null, $IdGuru = null, $Active = 1)
     {
+        // Handle IdTpq untuk admin (IdTpq=0, null, atau empty berarti semua TPQ)
+        $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
+
         $builder = $this->db->table('tbl_santri_baru');
         $builder->select('COUNT(DISTINCT IdSantri) as total');
-        $builder->where('IdTpq', $IdTpq);
+
+        // Filter berdasarkan IdTpq jika tidak 0
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+
         if ($Active == 1) {
             $builder->where('Active', $Active);
         }
@@ -630,24 +651,35 @@ class HelpFunctionModel extends Model
             $builder->where('IdGuru', $IdGuru);
         }
 
-        return $builder->get()->getRow()->total;
+        $result = $builder->get()->getRow();
+        return $result ? (int)$result->total : 0;
     }
     // get data total guru
     /**
      * Mengambil total guru aktif berdasarkan IdTpq
-     * @param mixed $IdTpq
+     * @param mixed $IdTpq ID TPQ (0, null, atau empty untuk semua TPQ)
+     * @param int $Status Status guru (default: 1 = aktif)
      * @return int
      */
     public function getTotalGuru($IdTpq, $Status = 1)
     {
+        // Handle IdTpq untuk admin (IdTpq=0, null, atau empty berarti semua TPQ)
+        $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
+
         $builder = $this->db->table('tbl_guru');
         $builder->select('COUNT(DISTINCT IdGuru) as total');
-        $builder->where('IdTpq', $IdTpq);
+
+        // Filter berdasarkan IdTpq jika tidak 0
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+
         if ($Status == 1) {
             $builder->where('Status', $Status);
         }
 
-        return $builder->get()->getRow()->total;
+        $result = $builder->get()->getRow();
+        return $result ? (int)$result->total : 0;
     }
 
     // get data total kelas
@@ -659,29 +691,45 @@ class HelpFunctionModel extends Model
      */
     public function getTotalKelas($IdTpq, $IdTahunAjaran)
     {
+        // Handle IdTpq untuk admin (IdTpq=0, null, atau empty berarti semua TPQ)
+        $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
+
         $builder = $this->db->table('tbl_kelas_santri');
         $builder->select('COUNT(DISTINCT IdKelas) as total');
-        $builder->where('IdTpq', $IdTpq);
+
+        // Filter berdasarkan IdTpq jika tidak 0
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+
         $builder->where('IdTahunAjaran', $IdTahunAjaran);
 
-        return $builder->get()->getRow()->total;
+        $result = $builder->get()->getRow();
+        return $result ? (int)$result->total : 0;
     }
 
     // get data santri baru active = 0
     /**
      * Mengambil total santri baru berdasarkan IdTpq, IdKelas, dan status aktif
-     * @param mixed $IdTpq
+     * @param mixed $IdTpq ID TPQ (0, null, atau empty untuk semua TPQ)
      * @param mixed $IdKelas
      * @param int $Active
      * @return int
      */
     public function getTotalSantriBaru($IdTpq, $IdKelas = null, $Active = 0)
     {
+        // Handle IdTpq untuk admin (IdTpq=0, null, atau empty berarti semua TPQ)
+        $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
+
         $builder = $this->db->table('tbl_santri_baru');
         $builder->select('COUNT(DISTINCT IdSantri) as total');
-        $builder->where('IdTpq', $IdTpq);
+
+        // Filter berdasarkan IdTpq jika tidak 0
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+
         $builder->where('Active', $Active);
-        
 
         if ($IdKelas) {
             if (is_array($IdKelas)) {
@@ -691,7 +739,8 @@ class HelpFunctionModel extends Model
             }
         }
 
-        return $builder->get()->getRow()->total;
+        $result = $builder->get()->getRow();
+        return $result ? (int)$result->total : 0;
     }
 
     /**
@@ -770,19 +819,28 @@ class HelpFunctionModel extends Model
     // get total wali kelas dari tbl_guru_kelas
     /**
      * Mengambil total wali kelas berdasarkan IdTpq dan IdTahunAjaran
-     * @param mixed $IdTpq
+     * @param mixed $IdTpq ID TPQ (0, null, atau empty untuk semua TPQ)
      * @param mixed $IdTahunAjaran
      * @return int
      */
     public function getTotalWaliKelas($IdTpq, $IdTahunAjaran)
     {
+        // Handle IdTpq untuk admin (IdTpq=0, null, atau empty berarti semua TPQ)
+        $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
+
         $builder = $this->db->table('tbl_guru_kelas');
         $builder->select('COUNT(DISTINCT IdGuru) as total');
-        $builder->where('IdTpq', $IdTpq);
+
+        // Filter berdasarkan IdTpq jika tidak 0
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+
         $builder->where('IdTahunAjaran', $IdTahunAjaran);
         $builder->where('IdJabatan', 3); // Wali Kelas
 
-        return $builder->get()->getRow()->total;
+        $result = $builder->get()->getRow();
+        return $result ? (int)$result->total : 0;
     }
 
     // get nama kelas dari IdKelas return hanya nama kelas
@@ -2239,6 +2297,279 @@ class HelpFunctionModel extends Model
         $builder->where('IdTahunAjaran', $IdTahunAjaran);
         $builder->groupBy('IdKelas');
         return array_column($builder->get()->getResultArray(), 'IdKelas');
+    }
+
+    /**
+     * Mengecek status MDA dan mapping kelas untuk menentukan apakah kelas santri sesuai dengan mapping MDA
+     * 
+     * @param string $idTpq ID TPQ
+     * @param string $namaKelasSantri Nama kelas santri (contoh: "TPQ3/SD3" atau "TPQ3")
+     * @return array Array dengan keys:
+     *   - 'hasMda': bool - Apakah memiliki lembaga MDA
+     *   - 'useMdaData': bool - Apakah kelas sesuai dengan mapping MDA
+     *   - 'mappedMdaKelas': string|null - Kelas MDA yang sesuai dari mapping (contoh: "MDA1")
+     *   - 'kelasMapping': array - Array mapping kelas (key: TPQ kelas, value: MDA kelas)
+     */
+    public function checkMdaKelasMapping($idTpq, $namaKelasSantri)
+    {
+        $toolsModel = new \App\Models\ToolsModel();
+
+        // Handle admin dengan IdTpq=0, gunakan 'default' sebagai gantinya
+        $idTpqForQuery = (empty($idTpq) || $idTpq == '0' || $idTpq == 0) ? 'default' : $idTpq;
+
+        // Check apakah memiliki lembaga MDA
+        $hasMda = $toolsModel->getSettingAsBool($idTpqForQuery, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
+        $useMdaData = false;
+        $mappedMdaKelas = null;
+        $kelasMapping = [];
+
+        if ($hasMda) {
+            // Ambil mapping persamaan kelas MDA
+            $persamaanKelas = $toolsModel->getSettingAsString($idTpqForQuery, 'MDA_S1_PersamaanKelasMDA', '');
+
+            // Parse mapping: TPQ3=MDA1, TPQ4=MDA2, TPQ5=MDA3, TPQ6=MDA4
+            if (!empty($persamaanKelas)) {
+                $pairs = explode(',', $persamaanKelas);
+                foreach ($pairs as $pair) {
+                    $pair = trim($pair);
+                    if (strpos($pair, '=') !== false) {
+                        list($tpqKelas, $mdaKelas) = explode('=', $pair, 2);
+                        $kelasMapping[trim($tpqKelas)] = trim($mdaKelas);
+                    }
+                }
+            }
+
+            // Check apakah nama kelas santri sesuai dengan mapping MDA
+            // Mapping format: TPQ3=MDA1, TPQ4=MDA2, TPQ5=MDA3, TPQ6=MDA4
+            // Format nama kelas: "TPQ3/SD3" atau "TPQ3" atau "Kelas TPQ3", dll
+            // Gunakan search/in (contains) untuk matching, bukan exact match
+            foreach ($kelasMapping as $tpqKelas => $mdaKelas) {
+                // Normalisasi nama kelas untuk perbandingan
+                $namaKelasNormalized = strtoupper(trim($namaKelasSantri));
+                $tpqKelasNormalized = strtoupper(trim($tpqKelas));
+
+                // Gunakan search/in (contains) untuk matching
+                // Cek apakah nama kelas santri mengandung key mapping
+                // Contoh: "TPQ3/SD3" mengandung "TPQ3" -> match
+                $isMatch = false;
+
+                // 1. Cek contains match (search in) - utama
+                if (stripos($namaKelasNormalized, $tpqKelasNormalized) !== false) {
+                    $isMatch = true;
+                }
+                // 2. Cek juga pattern TPQ + angka jika mapping mengandung "TPQ"
+                // Misal: mapping "TPQ3" bisa match dengan "TPQ3/SD3" atau "TPQ 3"
+                elseif (strpos($tpqKelasNormalized, 'TPQ') !== false) {
+                    $tpqKelasWithoutPrefix = str_replace('TPQ', '', $tpqKelasNormalized);
+                    // Cek apakah ada pattern "TPQ" diikuti angka dari mapping
+                    // Contoh: "TPQ3" -> cek apakah ada "TPQ" + "3" di "TPQ3/SD3"
+                    if (!empty($tpqKelasWithoutPrefix)) {
+                        // Pattern: TPQ diikuti angka dari mapping (bisa ada spasi atau karakter lain setelahnya)
+                        if (preg_match('/TPQ\s*' . preg_quote($tpqKelasWithoutPrefix, '/') . '/i', $namaKelasNormalized)) {
+                            $isMatch = true;
+                        }
+                    }
+                }
+
+                if ($isMatch) {
+                    // Kelas santri sesuai dengan mapping MDA
+                    $useMdaData = true;
+                    $mappedMdaKelas = $mdaKelas; // Simpan kelas MDA yang sesuai
+                    log_message('info', 'HelpFunctionModel: checkMdaKelasMapping - Kelas santri "' . $namaKelasSantri . '" sesuai dengan mapping MDA: ' . $tpqKelas . '=' . $mdaKelas);
+                    break;
+                }
+            }
+        }
+
+        return [
+            'hasMda' => $hasMda,
+            'useMdaData' => $useMdaData,
+            'mappedMdaKelas' => $mappedMdaKelas,
+            'kelasMapping' => $kelasMapping
+        ];
+    }
+
+    /**
+     * Mengubah nama kelas menjadi kelas MDA jika sesuai dengan mapping
+     * 
+     * @param string $namaKelasSantri Nama kelas santri asli (contoh: "TPQ3/SD3" atau "TPQ3")
+     * @param string|null $mappedMdaKelas Kelas MDA yang sesuai dari mapping (contoh: "MDA1")
+     * @return string Nama kelas yang sudah diubah (jika sesuai) atau nama kelas asli (jika tidak sesuai)
+     */
+    public function convertKelasToMda($namaKelasSantri, $mappedMdaKelas)
+    {
+        if (empty($mappedMdaKelas)) {
+            return $namaKelasSantri;
+        }
+
+        // Jika format kelas adalah "TPQ3/SD3", ganti menjadi "MDA1/SD3"
+        // Jika format kelas adalah "TPQ3", ganti menjadi "MDA1"
+        if (strpos($namaKelasSantri, '/') !== false) {
+            // Ada separator "/", ganti bagian TPQ dengan MDA
+            $parts = explode('/', $namaKelasSantri);
+            $parts[0] = $mappedMdaKelas; // Ganti bagian pertama dengan kelas MDA
+            $result = implode('/', $parts);
+            log_message('info', 'HelpFunctionModel: convertKelasToMda - Nama kelas diubah dari "' . $namaKelasSantri . '" menjadi "' . $result . '"');
+            return $result;
+        } else {
+            // Tidak ada separator, ganti seluruhnya dengan kelas MDA
+            log_message('info', 'HelpFunctionModel: convertKelasToMda - Nama kelas diubah dari "' . $namaKelasSantri . '" menjadi "' . $mappedMdaKelas . '"');
+            return $mappedMdaKelas;
+        }
+    }
+
+    /**
+     * Get statistik santri berdasarkan jenis kelamin dan per kelas
+     * @param mixed $IdTpq ID TPQ (0, null, atau empty untuk semua TPQ)
+     * @return array
+     */
+    public function getStatistikSantri($IdTpq = 0)
+    {
+        // Handle null, empty, atau '0' sebagai 0 (semua TPQ)
+        $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
+
+        $builder = $this->db->table('tbl_santri_baru');
+
+        // Filter berdasarkan IdTpq jika tidak 0
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+
+        // Hanya ambil santri aktif
+        $builder->where('Active', 1);
+
+        // Total santri
+        $totalSantri = $builder->countAllResults(false);
+
+        // Reset builder untuk query berikutnya
+        $builder->resetQuery();
+
+        // Santri laki-laki
+        $builder->where('Active', 1);
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+        $santriLaki = $builder->where('JenisKelamin', 'LAKI-LAKI')->countAllResults(false);
+
+        // Reset builder
+        $builder->resetQuery();
+
+        // Santri perempuan
+        $builder->where('Active', 1);
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+        $santriPerempuan = $builder->where('JenisKelamin', 'PEREMPUAN')->countAllResults(false);
+
+        // Statistik per kelas - buat builder baru untuk menghindari konflik alias
+        $builderPerKelas = $this->db->table('tbl_santri_baru');
+        $builderPerKelas->select('tbl_kelas.IdKelas, tbl_kelas.NamaKelas, 
+                         COUNT(CASE WHEN tbl_santri_baru.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
+                         COUNT(CASE WHEN tbl_santri_baru.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
+                         COUNT(*) as Total');
+        $builderPerKelas->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'inner');
+        $builderPerKelas->where('tbl_santri_baru.Active', 1);
+        if ($idTpqForQuery != 0) {
+            $builderPerKelas->where('tbl_santri_baru.IdTpq', $idTpqForQuery);
+        }
+        $builderPerKelas->groupBy('tbl_kelas.IdKelas, tbl_kelas.NamaKelas');
+        $builderPerKelas->orderBy('tbl_kelas.NamaKelas', 'ASC');
+        $statistikPerKelas = $builderPerKelas->get()->getResultArray();
+
+        return [
+            'total' => $totalSantri,
+            'laki_laki' => $santriLaki,
+            'perempuan' => $santriPerempuan,
+            'per_kelas' => $statistikPerKelas
+        ];
+    }
+
+    /**
+     * Get statistik guru berdasarkan jenis kelamin
+     * @param mixed $IdTpq ID TPQ (0, null, atau empty untuk semua TPQ)
+     * @return array
+     */
+    public function getStatistikGuru($IdTpq = 0)
+    {
+        // Handle null, empty, atau '0' sebagai 0 (semua TPQ)
+        $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
+
+        $builder = $this->db->table('tbl_guru');
+
+        // Filter berdasarkan IdTpq jika tidak 0
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+
+        // Hanya ambil guru aktif
+        $builder->where('Status', 1);
+
+        // Total guru
+        $totalGuru = $builder->countAllResults(false);
+
+        // Reset builder untuk query berikutnya
+        $builder->resetQuery();
+
+        // Guru laki-laki
+        $builder->where('Status', 1);
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+        $guruLaki = $builder->where('JenisKelamin', 'LAKI-LAKI')->countAllResults(false);
+
+        // Reset builder
+        $builder->resetQuery();
+
+        // Guru perempuan
+        $builder->where('Status', 1);
+        if ($idTpqForQuery != 0) {
+            $builder->where('IdTpq', $idTpqForQuery);
+        }
+        $guruPerempuan = $builder->where('JenisKelamin', 'PEREMPUAN')->countAllResults(false);
+
+        return [
+            'total' => $totalGuru,
+            'laki_laki' => $guruLaki,
+            'perempuan' => $guruPerempuan
+        ];
+    }
+
+    /**
+     * Get statistik santri per TPQ (untuk admin)
+     * @return array
+     */
+    public function getStatistikSantriPerTpq()
+    {
+        $builder = $this->db->table('tbl_santri_baru s');
+        $builder->select('t.IdTpq, t.NamaTpq,
+                         COUNT(CASE WHEN s.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
+                         COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
+                         COUNT(*) as Total');
+        $builder->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'inner');
+        $builder->where('s.Active', 1);
+        $builder->groupBy('t.IdTpq, t.NamaTpq');
+        $builder->orderBy('t.NamaTpq', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Get statistik guru per TPQ (untuk admin)
+     * @return array
+     */
+    public function getStatistikGuruPerTpq()
+    {
+        $builder = $this->db->table('tbl_guru g');
+        $builder->select('t.IdTpq, t.NamaTpq,
+                         COUNT(CASE WHEN g.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
+                         COUNT(CASE WHEN g.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
+                         COUNT(*) as Total');
+        $builder->join('tbl_tpq t', 't.IdTpq = g.IdTpq', 'inner');
+        $builder->where('g.Status', 1);
+        $builder->groupBy('t.IdTpq, t.NamaTpq');
+        $builder->orderBy('t.NamaTpq', 'ASC');
+
+        return $builder->get()->getResultArray();
     }
 }
 

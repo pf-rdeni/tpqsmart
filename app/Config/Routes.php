@@ -83,6 +83,16 @@ $routes->post('backend/tpq/update/(:segment)', 'Backend\Tpq::update/$1');
 $routes->post('backend/tpq/uploadLogo', 'Backend\Tpq::uploadLogo');
 $routes->post('backend/tpq/uploadKop', 'Backend\Tpq::uploadKop');
 
+// Routes untuk MDA
+$routes->get('backend/mda/show', 'Backend\Mda::show');
+$routes->get('backend/mda/create', 'Backend\Mda::create');
+$routes->post('backend/mda/save', 'Backend\Mda::save');
+$routes->get('backend/mda/edit/(:segment)', 'Backend\Mda::edit/$1');
+$routes->post('backend/mda/update/(:segment)', 'Backend\Mda::update/$1');
+$routes->post('backend/mda/delete/(:num)', 'Backend\Mda::delete/$1');
+$routes->post('backend/mda/uploadLogo', 'Backend\Mda::uploadLogo');
+$routes->post('backend/mda/uploadKop', 'Backend\Mda::uploadKop');
+
 //Table Nilai
 $routes->get('nilai/showDetail/(:num)/(:num)', 'Nilai::showDetail/$1/$2');
 $routes->get('nilai/showNilaiProfilDetail/(:any)', 'Nilai::showNilaiProfilDetail/$1');
@@ -308,6 +318,12 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/update-konfigurasi/(:num)', 'Munaqosah::updateKonfigurasi/$1');
     $routes->post('munaqosah/duplicate-konfigurasi', 'Munaqosah::duplicateKonfigurasi');
     $routes->post('munaqosah/delete-konfigurasi/(:num)', 'Munaqosah::deleteKonfigurasi/$1');
+
+    // Tools Setting Routes
+    $routes->post('tools/save-tools', 'Tools::saveTools');
+    $routes->post('tools/update-tools/(:num)', 'Tools::updateTools/$1');
+    $routes->post('tools/duplicate-tools', 'Tools::duplicateTools');
+    $routes->post('tools/delete-tools/(:num)', 'Tools::deleteTools/$1');
 
     // Jadwal Peserta Ujian Routes
     $routes->get('munaqosah/jadwal-peserta-ujian', 'Munaqosah::jadwalPesertaUjian');

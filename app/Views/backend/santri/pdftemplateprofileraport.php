@@ -384,7 +384,7 @@
         <tr>
             <td style="width:50%; text-align:left;">
                 <div class="section-bottom" style="text-align:left;">
-                    <div class="section-title">Kepala TPQ</div>
+                    <div class="section-title">Kepala <?= htmlspecialchars(($d['printLembagaType'] ?? 'TPQ') === 'MDA' ? 'MDA' : 'TPQ') ?></div>
                     <div class="sign-placeholder">
                         <?php
                         // Coba ambil QR dari folder uploads/qr, gunakan file pertama yang ditemukan
@@ -410,7 +410,7 @@
                             <img src="<?= $qrImg; ?>" alt="QR" style="width:80px;height:80px;" />
                         <?php endif; ?>
                     </div>
-                    <div class="sign-name">( <?= htmlspecialchars($d['printKepalaTpq'] ?? 'Kepala TPQ') ?> )</div>
+                    <div class="sign-name">( <?= htmlspecialchars($d['printKepalaTpq'] ?? (($d['printLembagaType'] ?? 'TPQ') === 'MDA' ? 'Kepala MDA' : 'Kepala TPQ')) ?> )</div>
                 </div>
             </td>
         </tr>

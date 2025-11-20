@@ -23,33 +23,13 @@
                         <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                             <a class="nav-link border-white text-center active" id="custom-tabs-one-all-tab" data-toggle="pill" href="#custom-tabs-one-all" role="tab" aria-controls="custom-tabs-one-all" aria-selected="true">Semua</a>
                         </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tk-tab" data-toggle="pill" href="#custom-tabs-one-tk" role="tab" aria-controls="custom-tabs-one-tk" aria-selected="false">TK</a>
-                        </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tka-tab" data-toggle="pill" href="#custom-tabs-one-tka" role="tab" aria-controls="custom-tabs-one-tka" aria-selected="false">TKA</a>
-                        </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tkb-tab" data-toggle="pill" href="#custom-tabs-one-tkb" role="tab" aria-controls="custom-tabs-one-tkb" aria-selected="false">TKB</a>
-                        </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq1-tab" data-toggle="pill" href="#custom-tabs-one-tpq1" role="tab" aria-controls="custom-tabs-one-tpq1" aria-selected="false">TPQ1</a>
-                        </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq2-tab" data-toggle="pill" href="#custom-tabs-one-tpq2" role="tab" aria-controls="custom-tabs-one-tpq2" aria-selected="false">TPQ2</a>
-                        </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq3-tab" data-toggle="pill" href="#custom-tabs-one-tpq3" role="tab" aria-controls="custom-tabs-one-tpq3" aria-selected="false">TPQ3</a>
-                        </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq4-tab" data-toggle="pill" href="#custom-tabs-one-tpq4" role="tab" aria-controls="custom-tabs-one-tpq4" aria-selected="false">TPQ4</a>
-                        </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq5-tab" data-toggle="pill" href="#custom-tabs-one-tpq5" role="tab" aria-controls="custom-tabs-one-tpq5" aria-selected="false">TPQ5</a>
-                        </li>
-                        <li class="nav-item flex-fill mx-1 my-md-0 my-1">
-                            <a class="nav-link border-white text-center" id="custom-tabs-one-tpq6-tab" data-toggle="pill" href="#custom-tabs-one-tpq6" role="tab" aria-controls="custom-tabs-one-tpq6" aria-selected="false">TPQ6</a>
-                        </li>
+                        <?php if (!empty($kelasList)): ?>
+                            <?php foreach ($kelasList as $index => $kelas): ?>
+                                <li class="nav-item flex-fill mx-1 my-md-0 my-1">
+                                    <a class="nav-link border-white text-center" id="custom-tabs-one-kelas-<?= $kelas['IdKelas'] ?>-tab" data-toggle="pill" href="#custom-tabs-one-kelas-<?= $kelas['IdKelas'] ?>" role="tab" aria-controls="custom-tabs-one-kelas-<?= $kelas['IdKelas'] ?>" aria-selected="false"><?= htmlspecialchars($kelas['NamaKelas']) ?></a>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </ul>
                 </div>
                 <div class="card-body">
@@ -57,33 +37,13 @@
                         <div class="tab-pane fade show active" id="custom-tabs-one-all" role="tabpanel" aria-labelledby="custom-tabs-one-all-tab">
                             <?= renderTpqTable($dataSantriAll, 0) ?>
                         </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tk" role="tabpanel" aria-labelledby="custom-tabs-one-tk-tab">
-                            <?= renderTpqTable($dataSantriTK, 1) ?>
-                        </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tka" role="tabpanel" aria-labelledby="custom-tabs-one-tka-tab">
-                            <?= renderTpqTable($dataSantriTKA, 2) ?>
-                        </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tkb" role="tabpanel" aria-labelledby="custom-tabs-one-tkb-tab">
-                            <?= renderTpqTable($dataSantriTKB, 3) ?>
-                        </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tpq1" role="tabpanel" aria-labelledby="custom-tabs-one-tpq1-tab">
-                            <?= renderTpqTable($dataSantriTPQ1, 4) ?>
-                        </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tpq2" role="tabpanel" aria-labelledby="custom-tabs-one-tpq2-tab">
-                            <?= renderTpqTable($dataSantriTPQ2, 5) ?>
-                        </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tpq3" role="tabpanel" aria-labelledby="custom-tabs-one-tpq3-tab">
-                            <?= renderTpqTable($dataSantriTPQ3, 6) ?>
-                        </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tpq4" role="tabpanel" aria-labelledby="custom-tabs-one-tpq4-tab">
-                            <?= renderTpqTable($dataSantriTPQ4, 7) ?>
-                        </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tpq5" role="tabpanel" aria-labelledby="custom-tabs-one-tpq5-tab">
-                            <?= renderTpqTable($dataSantriTPQ5, 8) ?>
-                        </div>
-                        <div class="tab-pane fade" id="custom-tabs-one-tpq6" role="tabpanel" aria-labelledby="custom-tabs-one-tpq6-tab">
-                            <?= renderTpqTable($dataSantriTPQ6, 9) ?>
-                        </div>
+                        <?php if (!empty($kelasList)): ?>
+                            <?php foreach ($kelasList as $index => $kelas): ?>
+                                <div class="tab-pane fade" id="custom-tabs-one-kelas-<?= $kelas['IdKelas'] ?>" role="tabpanel" aria-labelledby="custom-tabs-one-kelas-<?= $kelas['IdKelas'] ?>-tab">
+                                    <?= renderTpqTable($santriPerKelas[$kelas['IdKelas']] ?? [], $kelas['IdKelas']) ?>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <!-- /.card -->
@@ -359,18 +319,32 @@ function renderTpqTable($dataTpq, $tpqLevel)
         table.columns.adjust().responsive.recalc();
     });
 
-    /*=== Inisialisasi untuk semua tabel semua kelas TPQ (0-9) ===*/
-    for (let i = 0; i <= 9; i++) {
-        initializeDataTable(`#tableSantriBaruPerKelasTpq${i}`, false, [], {
-            "lengthChange": true,
-            "searching": true,
-            "ordering": true,
-            "info": true,
-            "autoWidth": false,
-            "responsive": true,
-            "paging": true,
-        });
-    }
+    /*=== Inisialisasi untuk semua tabel secara dinamis ===*/
+    // Inisialisasi tabel "Semua"
+    initializeDataTable(`#tableSantriBaruPerKelasTpq0`, false, [], {
+        "lengthChange": true,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "autoWidth": false,
+        "responsive": true,
+        "paging": true,
+    });
+    
+    // Inisialisasi tabel untuk setiap kelas yang ada
+    <?php if (!empty($kelasList)): ?>
+        <?php foreach ($kelasList as $kelas): ?>
+            initializeDataTable(`#tableSantriBaruPerKelasTpq<?= $kelas['IdKelas'] ?>`, false, [], {
+                "lengthChange": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "responsive": true,
+                "paging": true,
+            });
+        <?php endforeach; ?>
+    <?php endif; ?>
 
     /*=== fungsi untuk mencetak pdf ===*/
     function printPdf(idSantri) {
