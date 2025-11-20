@@ -162,57 +162,193 @@ class Tpq extends BaseController
 
     public function uploadLogo()
     {
-        $file = $this->request->getFile('logo');
-        // Ambil ID TPQ dari session
-        $idTpq = session('IdTpq');
+        // Ambil ID TPQ dari session atau post
+        $idTpq = $this->request->getPost('IdTpq') ?? session('IdTpq');
 
-        if ($this->validateUploadFile($file) && !empty($idTpq)) {
-            // Buat direktori uploads/logo jika belum ada
-            $uploadPath = FCPATH . 'uploads/logo/';
-            if (!is_dir($uploadPath)) {
-                mkdir($uploadPath, 0755, true);
+        if (empty($idTpq)) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTpq tidak tersedia'
+                ]);
             }
-
-            // Cek apakah ada logo lama di database
-            $tpqData = $this->DataTpq->GetData($idTpq);
-            if (!empty($tpqData) && !empty($tpqData[0]['LogoLembaga'])) {
-                $oldLogoPath = $uploadPath . $tpqData[0]['LogoLembaga'];
-                // Hapus file logo lama jika ada
-                $this->deleteOldFile($oldLogoPath);
-            }
-
-            // Generate nama file unik
-            $newName = 'logo_' . $idTpq . '_' . time() . '.' . $file->getExtension();
-
-            // Pindahkan file baru
-            if ($file->move($uploadPath, $newName)) {
-                // Update database dengan nama file logo berdasarkan IdTpq
-                $this->DataTpq->updateLogo($idTpq, $newName);
-
-                session()->setFlashdata('pesan', '
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    Logo berhasil diupload dan file lama telah dihapus 
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-                </div>');
-            } else {
-                session()->setFlashdata('pesan', '
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    Gagal memindahkan file logo 
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-                </div>');
-            }
-        } else {
             session()->setFlashdata('pesan', '
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                Gagal mengupload logo. Pastikan file valid dan IdTpq tersedia.
+                IdTpq tidak tersedia
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>
             </div>');
+            return redirect()->to('/backend/tpq/profilLembaga');
+        }
+
+        // Buat direktori uploads/logo jika belum ada
+        $uploadPath = FCPATH . 'uploads/logo/';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        // Cek apakah ada logo lama di database
+        $tpqData = $this->DataTpq->GetData($idTpq);
+        if (!empty($tpqData) && !empty($tpqData[0]['LogoLembaga'])) {
+            $oldLogoPath = $uploadPath . $tpqData[0]['LogoLembaga'];
+            // Hapus file logo lama jika ada
+            $this->deleteOldFile($oldLogoPath);
+        }
+
+        // Cek apakah input adalah base64 image (hasil crop) atau file biasa
+        $logoCropped = $this->request->getPost('logo_cropped');
+
+        if (!empty($logoCropped)) {
+            // Handle base64 image dari crop
+            if (preg_match('/^data:image\/(\w+);base64,/', $logoCropped, $type)) {
+                $data = substr($logoCropped, strpos($logoCropped, ',') + 1);
+                $data = base64_decode($data);
+
+                if ($data === false) {
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal decode base64 image'
+                        ]);
+                    }
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        Gagal decode base64 image
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                    return redirect()->to('/backend/tpq/profilLembaga');
+                }
+
+                $extension = strtolower($type[1] ?? 'jpg');
+                if ($extension === 'jpeg') {
+                    $extension = 'jpg';
+                }
+
+                // Generate nama file baru
+                $newFileName = 'logo_' . $idTpq . '_' . time() . '.' . $extension;
+                $filePath = $uploadPath . $newFileName;
+
+                // Simpan file
+                if (file_put_contents($filePath, $data)) {
+                    // Update database
+                    $this->DataTpq->updateLogo($idTpq, $newFileName);
+
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'message' => 'Logo berhasil diupload',
+                            'logo_url' => base_url('uploads/logo/' . $newFileName)
+                        ]);
+                    }
+
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        Logo berhasil diupload dan file lama telah dihapus 
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                    return redirect()->to('/backend/tpq/profilLembaga');
+                } else {
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal menyimpan logo'
+                        ]);
+                    }
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        Gagal menyimpan logo
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                    return redirect()->to('/backend/tpq/profilLembaga');
+                }
+            } else {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Format base64 image tidak valid'
+                    ]);
+                }
+                session()->setFlashdata('pesan', '
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    Format base64 image tidak valid
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>');
+                return redirect()->to('/backend/tpq/profilLembaga');
+            }
+        } else {
+            // Handle file upload biasa (fallback untuk kompatibilitas)
+            $file = $this->request->getFile('logo');
+
+            if ($this->validateUploadFile($file) && !empty($idTpq)) {
+                // Generate nama file unik
+                $newName = 'logo_' . $idTpq . '_' . time() . '.' . $file->getExtension();
+
+                // Pindahkan file baru
+                if ($file->move($uploadPath, $newName)) {
+                    // Update database dengan nama file logo berdasarkan IdTpq
+                    $this->DataTpq->updateLogo($idTpq, $newName);
+
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'message' => 'Logo berhasil diupload',
+                            'logo_url' => base_url('uploads/logo/' . $newName)
+                        ]);
+                    }
+
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        Logo berhasil diupload dan file lama telah dihapus 
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                } else {
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal memindahkan file logo'
+                        ]);
+                    }
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        Gagal memindahkan file logo 
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                }
+            } else {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Gagal mengupload logo. Pastikan file valid dan IdTpq tersedia.'
+                    ]);
+                }
+                session()->setFlashdata('pesan', '
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    Gagal mengupload logo. Pastikan file valid dan IdTpq tersedia.
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>');
+            }
+        }
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tidak ada data yang diupload'
+            ]);
         }
 
         return redirect()->to('/backend/tpq/profilLembaga');
@@ -220,57 +356,193 @@ class Tpq extends BaseController
 
     public function uploadKop()
     {
-        $file = $this->request->getFile('kop_lembaga');
-        // Ambil ID TPQ dari session
-        $idTpq = session('IdTpq');
+        // Ambil ID TPQ dari session atau post
+        $idTpq = $this->request->getPost('IdTpq') ?? session('IdTpq');
 
-        if ($this->validateUploadFile($file) && !empty($idTpq)) {
-            // Buat direktori uploads/kop jika belum ada
-            $uploadPath = FCPATH . 'uploads/kop/';
-            if (!is_dir($uploadPath)) {
-                mkdir($uploadPath, 0755, true);
+        if (empty($idTpq)) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTpq tidak tersedia'
+                ]);
             }
-
-            // Cek apakah ada kop lama di database
-            $tpqData = $this->DataTpq->GetData($idTpq);
-            if (!empty($tpqData) && !empty($tpqData[0]['KopLembaga'])) {
-                $oldKopPath = $uploadPath . $tpqData[0]['KopLembaga'];
-                // Hapus file kop lama jika ada
-                $this->deleteOldFile($oldKopPath);
-            }
-
-            // Generate nama file unik
-            $newName = 'kop_' . $idTpq . '_' . time() . '.' . $file->getExtension();
-
-            // Pindahkan file baru
-            if ($file->move($uploadPath, $newName)) {
-                // Update database dengan nama file kop berdasarkan IdTpq
-                $this->DataTpq->updateKop($idTpq, $newName);
-
-                session()->setFlashdata('pesan', '
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    Kop lembaga berhasil diupload dan file lama telah dihapus 
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-                </div>');
-            } else {
-                session()->setFlashdata('pesan', '
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    Gagal memindahkan file kop lembaga 
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-                </button>
-                </div>');
-            }
-        } else {
             session()->setFlashdata('pesan', '
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                Gagal mengupload kop lembaga. Pastikan file valid dan IdTpq tersedia.
+                IdTpq tidak tersedia
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>
             </div>');
+            return redirect()->to('/backend/tpq/profilLembaga');
+        }
+
+        // Buat direktori uploads/kop jika belum ada
+        $uploadPath = FCPATH . 'uploads/kop/';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        // Cek apakah ada kop lama di database
+        $tpqData = $this->DataTpq->GetData($idTpq);
+        if (!empty($tpqData) && !empty($tpqData[0]['KopLembaga'])) {
+            $oldKopPath = $uploadPath . $tpqData[0]['KopLembaga'];
+            // Hapus file kop lama jika ada
+            $this->deleteOldFile($oldKopPath);
+        }
+
+        // Cek apakah input adalah base64 image (hasil crop) atau file biasa
+        $kopCropped = $this->request->getPost('kop_lembaga_cropped');
+
+        if (!empty($kopCropped)) {
+            // Handle base64 image dari crop
+            if (preg_match('/^data:image\/(\w+);base64,/', $kopCropped, $type)) {
+                $data = substr($kopCropped, strpos($kopCropped, ',') + 1);
+                $data = base64_decode($data);
+
+                if ($data === false) {
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal decode base64 image'
+                        ]);
+                    }
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        Gagal decode base64 image
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                    return redirect()->to('/backend/tpq/profilLembaga');
+                }
+
+                $extension = strtolower($type[1] ?? 'jpg');
+                if ($extension === 'jpeg') {
+                    $extension = 'jpg';
+                }
+
+                // Generate nama file baru
+                $newFileName = 'kop_' . $idTpq . '_' . time() . '.' . $extension;
+                $filePath = $uploadPath . $newFileName;
+
+                // Simpan file
+                if (file_put_contents($filePath, $data)) {
+                    // Update database
+                    $this->DataTpq->updateKop($idTpq, $newFileName);
+
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'message' => 'Kop lembaga berhasil diupload',
+                            'kop_url' => base_url('uploads/kop/' . $newFileName)
+                        ]);
+                    }
+
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        Kop lembaga berhasil diupload dan file lama telah dihapus 
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                    return redirect()->to('/backend/tpq/profilLembaga');
+                } else {
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal menyimpan kop lembaga'
+                        ]);
+                    }
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        Gagal menyimpan kop lembaga
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                    return redirect()->to('/backend/tpq/profilLembaga');
+                }
+            } else {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Format base64 image tidak valid'
+                    ]);
+                }
+                session()->setFlashdata('pesan', '
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    Format base64 image tidak valid
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>');
+                return redirect()->to('/backend/tpq/profilLembaga');
+            }
+        } else {
+            // Handle file upload biasa (fallback untuk kompatibilitas)
+            $file = $this->request->getFile('kop_lembaga');
+
+            if ($this->validateUploadFile($file) && !empty($idTpq)) {
+                // Generate nama file unik
+                $newName = 'kop_' . $idTpq . '_' . time() . '.' . $file->getExtension();
+
+                // Pindahkan file baru
+                if ($file->move($uploadPath, $newName)) {
+                    // Update database dengan nama file kop berdasarkan IdTpq
+                    $this->DataTpq->updateKop($idTpq, $newName);
+
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'message' => 'Kop lembaga berhasil diupload',
+                            'kop_url' => base_url('uploads/kop/' . $newName)
+                        ]);
+                    }
+
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        Kop lembaga berhasil diupload dan file lama telah dihapus 
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                } else {
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal memindahkan file kop lembaga'
+                        ]);
+                    }
+                    session()->setFlashdata('pesan', '
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        Gagal memindahkan file kop lembaga 
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>');
+                }
+            } else {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Gagal mengupload kop lembaga. Pastikan file valid dan IdTpq tersedia.'
+                    ]);
+                }
+                session()->setFlashdata('pesan', '
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    Gagal mengupload kop lembaga. Pastikan file valid dan IdTpq tersedia.
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>');
+            }
+        }
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tidak ada data yang diupload'
+            ]);
         }
 
         return redirect()->to('/backend/tpq/profilLembaga');
