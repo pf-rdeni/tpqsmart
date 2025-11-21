@@ -238,8 +238,14 @@ class Rapor extends BaseController
         // Hitung rata-rata nilai untuk generate catatan raport
         $nilaiRataRata = $this->hitungRataRataNilai($santriData['nilai']);
 
-        // Ambil IdKelas dari data santri
-        $idKelas = $santriData['santri']['IdKelas'] ?? null;
+        // Ambil IdKelas dari data santri (pastikan ada dan valid)
+        $idKelas = null;
+        if (isset($santriData['santri']['IdKelas']) && !empty($santriData['santri']['IdKelas'])) {
+            $idKelas = $santriData['santri']['IdKelas'];
+        }
+
+        // Log untuk debugging
+        log_message('debug', 'Rapor: prepareRaporData - idKelas dari santri: ' . ($idKelas ?? 'null'));
 
         // Generate catatan raport berdasarkan nilai rata-rata
         $catatanRaport = $this->generateKriteriaCatatanRapor($nilaiRataRata, $IdTahunAjaran, $IdTpq, $idKelas);
@@ -781,11 +787,19 @@ class Rapor extends BaseController
         // Konversi idTpq ke string jika null atau 0, gunakan 'default'
         $idTpqString = (!empty($idTpq) && $idTpq != 0) ? (string)$idTpq : 'default';
 
-        // Konversi idKelas ke string jika ada
-        $idKelasString = (!empty($idKelas) && $idKelas != 0) ? (string)$idKelas : null;
+        // Konversi idKelas ke string jika ada (pastikan tidak kosong dan bukan 0)
+        $idKelasString = null;
+        if (!empty($idKelas) && $idKelas != 0 && $idKelas != '0') {
+            $idKelasString = (string)$idKelas;
+        }
+
+        // Log untuk debugging
+        log_message('debug', 'Rapor: generateKriteriaCatatanRapor - nilaiRataRata: ' . $nilaiRataRata . ', idTahunAjaran: ' . ($idTahunAjaran ?? 'null') . ', idTpq: ' . $idTpqString . ', idKelas: ' . ($idKelasString ?? 'null'));
 
         // Ambil catatan dari model
         $catatan = $this->kriteriaCatatanRaporModel->getCatatanByNilaiRataRata($nilaiRataRata, $idTahunAjaran, $idTpqString, $idKelasString);
+
+        log_message('debug', 'Rapor: generateKriteriaCatatanRapor - catatan found: ' . ($catatan ? 'yes' : 'no'));
 
         return $catatan ? $catatan['Catatan'] : '';
     }
