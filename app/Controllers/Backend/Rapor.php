@@ -11,6 +11,7 @@ use App\Models\QrCodeModel;
 use App\Models\MdaModel;
 use App\Models\TpqModel;
 use App\Models\ToolsModel;
+use App\Models\KriteriaCatatanRaporModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -24,6 +25,7 @@ class Rapor extends BaseController
     protected $mdaModel;
     protected $tpqModel;
     protected $toolsModel;
+    protected $kriteriaCatatanRaporModel;
 
     public function __construct()
     {
@@ -35,6 +37,7 @@ class Rapor extends BaseController
         $this->mdaModel = new MdaModel();
         $this->tpqModel = new TpqModel();
         $this->toolsModel = new ToolsModel();
+        $this->kriteriaCatatanRaporModel = new KriteriaCatatanRaporModel();
         ini_set('memory_limit', '256M');
         set_time_limit(300);
         mb_internal_encoding('UTF-8');
@@ -232,6 +235,15 @@ class Rapor extends BaseController
             semester: $semester
         );
 
+        // Hitung rata-rata nilai untuk generate catatan raport
+        $nilaiRataRata = $this->hitungRataRataNilai($santriData['nilai']);
+
+        // Ambil IdKelas dari data santri
+        $idKelas = $santriData['santri']['IdKelas'] ?? null;
+
+        // Generate catatan raport berdasarkan nilai rata-rata
+        $catatanRaport = $this->generateKriteriaCatatanRapor($nilaiRataRata, $IdTahunAjaran, $IdTpq, $idKelas);
+
         return [
             'santri' => $santriData['santri'],
             'nilai' => $santriData['nilai'],
@@ -240,7 +252,9 @@ class Rapor extends BaseController
             'semester' => $semester,
             'tanggal' => formatTanggalIndonesia(date('Y-m-d'), 'd F Y'),
             'signatures' => $signatures,
-            'lembagaType' => $lembagaType
+            'lembagaType' => $lembagaType,
+            'nilaiRataRata' => $nilaiRataRata,
+            'catatanRaport' => $catatanRaport
         ];
     }
 
@@ -282,6 +296,16 @@ class Rapor extends BaseController
 
     public function index($semester = 'Ganjil')
     {
+        // Debug: Log jika method index dipanggil dengan parameter yang tidak diharapkan
+        if ($semester !== 'Ganjil' && $semester !== 'Genap' && $semester !== 'kriteriaCatatanRapor') {
+            log_message('debug', 'Rapor::index called with semester: ' . $semester);
+        }
+
+        // Jika parameter adalah kriteriaCatatanRapor, redirect ke method yang benar
+        if ($semester === 'kriteriaCatatanRapor') {
+            return $this->kriteriaCatatanRapor();
+        }
+
         // Ambil data permission guru kelas untuk semua kelas
         $IdTpq = session()->get('IdTpq');
         $IdGuru = session()->get('IdGuru');
@@ -714,6 +738,608 @@ class Rapor extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'QR Code generation failed: ' . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Hitung rata-rata nilai dari data nilai santri
+     * 
+     * @param array $nilaiData Array of nilai objects
+     * @return float
+     */
+    private function hitungRataRataNilai($nilaiData)
+    {
+        if (empty($nilaiData)) {
+            return 0;
+        }
+
+        $total = 0;
+        $count = 0;
+
+        foreach ($nilaiData as $nilai) {
+            $nilaiValue = is_object($nilai) ? $nilai->Nilai : (is_array($nilai) ? $nilai['Nilai'] : 0);
+            if ($nilaiValue > 0) {
+                $total += floatval($nilaiValue);
+                $count++;
+            }
+        }
+
+        return $count > 0 ? round($total / $count, 2) : 0;
+    }
+
+    /**
+     * Generate catatan raport berdasarkan nilai rata-rata
+     * 
+     * @param float $nilaiRataRata
+     * @param string|null $idTahunAjaran
+     * @param int|null $idTpq
+     * @param string|null $idKelas
+     * @return string
+     */
+    private function generateKriteriaCatatanRapor($nilaiRataRata, $idTahunAjaran = null, $idTpq = null, $idKelas = null)
+    {
+        // Konversi idTpq ke string jika null atau 0, gunakan 'default'
+        $idTpqString = (!empty($idTpq) && $idTpq != 0) ? (string)$idTpq : 'default';
+
+        // Konversi idKelas ke string jika ada
+        $idKelasString = (!empty($idKelas) && $idKelas != 0) ? (string)$idKelas : null;
+
+        // Ambil catatan dari model
+        $catatan = $this->kriteriaCatatanRaporModel->getCatatanByNilaiRataRata($nilaiRataRata, $idTahunAjaran, $idTpqString, $idKelasString);
+
+        return $catatan ? $catatan['Catatan'] : '';
+    }
+
+    // ==================== MANAJEMEN KRITERIA CATATAN RAPOR ====================
+
+    /**
+     * Halaman manajemen kriteria catatan rapor
+     */
+    public function kriteriaCatatanRapor()
+    {
+        // Debug: Pastikan method ini dipanggil
+        log_message('debug', 'kriteriaCatatanRapor method called');
+
+        $currentTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+        $idTpq = session()->get('IdTpq') ?? 'default';
+        $idKelas = $this->request->getGet('IdKelas') ?? null;
+        $idGuru = session()->get('IdGuru');
+
+        // Cek apakah user adalah Admin, Operator, atau Kepala Sekolah
+        $isAdmin = in_groups('Admin');
+        $isOperator = in_groups('Operator');
+
+        // Cek apakah user adalah Kepala Sekolah (Kepala TPQ)
+        $isKepalaSekolah = false;
+        if (!empty($idGuru) && !empty($idTpq) && $idTpq !== 'default' && $idTpq !== '0') {
+            $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+            if (!empty($jabatanData)) {
+                foreach ($jabatanData as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaSekolah = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Jika user adalah Operator atau Kepala Sekolah (bukan Admin), pastikan IdTpq dari session
+        $isRestrictedUser = ($isOperator || $isKepalaSekolah) && !$isAdmin;
+        if ($isRestrictedUser) {
+            // Pastikan IdTpq dari session digunakan (jika ada)
+            $sessionIdTpq = session()->get('IdTpq');
+            if (!empty($sessionIdTpq) && $sessionIdTpq !== 'default' && $sessionIdTpq !== '0') {
+                $idTpq = $sessionIdTpq;
+            }
+        }
+
+        // Cek apakah user adalah GuruKelas atau Wali Kelas
+        $isGuruKelas = false;
+        $guruKelasData = [];
+        $userKelasList = [];
+
+        if (!empty($idGuru) && !$isAdmin && !$isOperator && !$isKepalaSekolah) {
+            // Ambil data guru kelas untuk user yang login
+            $guruKelasData = $this->helpFunctionModel->getDataGuruKelas(
+                IdGuru: $idGuru,
+                IdTahunAjaran: $currentTahunAjaran
+            );
+
+            // Cek apakah user adalah GuruKelas atau Wali Kelas
+            if (!empty($guruKelasData)) {
+                foreach ($guruKelasData as $gk) {
+                    // Convert object to array if needed
+                    $gkArray = is_object($gk) ? (array)$gk : $gk;
+                    $namaJabatan = $gkArray['NamaJabatan'] ?? '';
+                    if ($namaJabatan === 'Guru Kelas' || $namaJabatan === 'Wali Kelas') {
+                        $isGuruKelas = true;
+                        // Kumpulkan IdTpq dan IdKelas yang dimiliki
+                        if (!empty($gkArray['IdTpq']) && !empty($gkArray['IdKelas'])) {
+                            $userKelasList[] = [
+                                'IdTpq' => $gkArray['IdTpq'],
+                                'IdKelas' => $gkArray['IdKelas'],
+                                'NamaKelas' => $gkArray['NamaKelas'] ?? ''
+                            ];
+                        }
+                    }
+                }
+            }
+
+            // Jika user adalah GuruKelas/Wali Kelas, set IdTpq ke TPQ mereka
+            if ($isGuruKelas && !empty($userKelasList)) {
+                // Ambil IdTpq dari kelas pertama (biasanya guru hanya punya 1 TPQ)
+                $idTpq = $userKelasList[0]['IdTpq'];
+            }
+        }
+
+        // Flag untuk disable filter TPQ di view
+        $shouldDisableTpqFilter = $isGuruKelas || $isRestrictedUser;
+
+        // Get list TPQ untuk dropdown
+        $listTpq = $this->helpFunctionModel->getDataTpq(false); // false = ambil semua TPQ
+
+        // Get list tahun ajaran untuk dropdown (dari tbl_kelas_santri atau tbl_guru_kelas)
+        $db = \Config\Database::connect();
+        $tahunAjaranQuery = $db->query("
+            SELECT DISTINCT IdTahunAjaran 
+            FROM (
+                SELECT IdTahunAjaran FROM tbl_kelas_santri
+                UNION
+                SELECT IdTahunAjaran FROM tbl_guru_kelas
+            ) AS combined
+            ORDER BY IdTahunAjaran DESC
+        ");
+        $listTahunAjaran = $tahunAjaranQuery->getResultArray();
+
+        // Get list kelas untuk dropdown
+        $listKelas = [];
+        if (!empty($idTpq) && $idTpq !== 'default' && !empty($currentTahunAjaran)) {
+            if ($isGuruKelas && !empty($userKelasList)) {
+                // Jika user adalah GuruKelas/Wali Kelas, hanya tampilkan kelas yang mereka miliki
+                foreach ($userKelasList as $userKelas) {
+                    if ($userKelas['IdTpq'] == $idTpq) {
+                        // Ambil NamaKelas dari database jika belum ada
+                        $namaKelas = $userKelas['NamaKelas'] ?? '';
+                        if (empty($namaKelas)) {
+                            $kelasData = $db->table('tbl_kelas')
+                                ->where('IdKelas', $userKelas['IdKelas'])
+                                ->get()
+                                ->getRowArray();
+                            $namaKelas = $kelasData['NamaKelas'] ?? $userKelas['IdKelas'];
+                        }
+
+                        $listKelas[] = [
+                            'IdKelas' => $userKelas['IdKelas'],
+                            'NamaKelas' => $namaKelas
+                        ];
+                    }
+                }
+
+                // Jika IdKelas dari GET request tidak ada di list, set ke kelas pertama
+                if (empty($idKelas) && !empty($listKelas)) {
+                    $idKelas = $listKelas[0]['IdKelas'];
+                }
+            } else {
+                // Untuk Admin/Operator/Kepala Sekolah, tampilkan semua kelas di TPQ mereka
+                $kelasQuery = $db->table('tbl_guru_kelas gk')
+                    ->select('gk.IdKelas, k.NamaKelas')
+                    ->join('tbl_kelas k', 'k.IdKelas = gk.IdKelas')
+                    ->where('gk.IdTpq', $idTpq)
+                    ->where('gk.IdTahunAjaran', $currentTahunAjaran)
+                    ->groupBy('gk.IdKelas, k.NamaKelas')
+                    ->orderBy('gk.IdKelas', 'ASC');
+                $listKelas = $kelasQuery->get()->getResultArray();
+            }
+
+            // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+            foreach ($listKelas as &$kelas) {
+                $namaKelasOriginal = $kelas['NamaKelas'];
+
+                // Check MDA mapping dan convert nama kelas jika sesuai
+                $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($idTpq, $namaKelasOriginal);
+                $kelas['NamaKelas'] = $this->helpFunctionModel->convertKelasToMda(
+                    $namaKelasOriginal,
+                    $mdaCheckResult['mappedMdaKelas']
+                );
+            }
+            unset($kelas); // Unset reference untuk menghindari side effects
+        }
+
+        // Ambil data catatan dan tambahkan nama kelas dengan mapping MDA
+        $catatanList = $this->kriteriaCatatanRaporModel->getAllCatatanAktif($currentTahunAjaran, $idTpq, $idKelas);
+
+        // Tambahkan nama kelas dengan mapping MDA untuk setiap catatan
+        foreach ($catatanList as &$catatan) {
+            if (!empty($catatan['IdKelas'])) {
+                // Ambil nama kelas dari database
+                $kelasData = $db->table('tbl_kelas')
+                    ->where('IdKelas', $catatan['IdKelas'])
+                    ->get()
+                    ->getRowArray();
+
+                if (!empty($kelasData)) {
+                    $namaKelasOriginal = $kelasData['NamaKelas'];
+
+                    // Gunakan IdTpq dari catatan untuk mapping MDA (bisa berbeda dari filter)
+                    $catatanIdTpq = !empty($catatan['IdTpq']) ? $catatan['IdTpq'] : $idTpq;
+
+                    // Check MDA mapping dan convert nama kelas jika sesuai
+                    $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($catatanIdTpq, $namaKelasOriginal);
+                    $catatan['NamaKelas'] = $this->helpFunctionModel->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                } else {
+                    $catatan['NamaKelas'] = $catatan['IdKelas'];
+                }
+            } else {
+                $catatan['NamaKelas'] = 'Semua';
+            }
+        }
+        unset($catatan); // Unset reference untuk menghindari side effects
+
+        $data = [
+            'page_title' => 'Kriteria Catatan Raport',
+            'currentTahunAjaran' => $currentTahunAjaran,
+            'currentIdTpq' => $idTpq,
+            'currentIdKelas' => $idKelas,
+            'listTpq' => $listTpq,
+            'listTahunAjaran' => $listTahunAjaran,
+            'listKelas' => $listKelas,
+            'catatanList' => $catatanList,
+            'helpFunctionModel' => $this->helpFunctionModel,
+            'isGuruKelas' => $isGuruKelas, // Flag untuk disable filter TPQ di view
+            'isRestrictedUser' => $shouldDisableTpqFilter, // Flag untuk disable filter TPQ (GuruKelas, Operator, Kepala Sekolah)
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+            'isKepalaSekolah' => $isKepalaSekolah
+        ];
+
+        return view('backend/kriteriaCatatanRaport/index', $data);
+    }
+
+    /**
+     * Ambil data kriteria catatan rapor via AJAX
+     */
+    public function getKriteriaCatatanRapor()
+    {
+        $currentTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+        $idTahunAjaran = $this->request->getPost('IdTahunAjaran') ?? $currentTahunAjaran;
+        $idTpq = $this->request->getPost('IdTpq') ?? session()->get('IdTpq') ?? 'default';
+        $idKelas = $this->request->getPost('IdKelas') ?? null;
+
+        $catatanList = $this->kriteriaCatatanRaporModel->getAllCatatanAktif($idTahunAjaran, $idTpq, $idKelas);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $catatanList
+        ]);
+    }
+
+    /**
+     * Simpan kriteria catatan rapor
+     */
+    public function saveKriteriaCatatanRapor()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $data = [
+            'NilaiHuruf' => $this->request->getPost('NilaiHuruf'),
+            'NilaiMin' => $this->request->getPost('NilaiMin'),
+            'NilaiMax' => $this->request->getPost('NilaiMax'),
+            'Catatan' => $this->request->getPost('Catatan'),
+            'Status' => $this->request->getPost('Status') ?? 'Aktif',
+            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran') ?: null,
+            'IdTpq' => $this->request->getPost('IdTpq') ?: 'default',
+            'IdKelas' => $this->request->getPost('IdKelas') ?: null
+        ];
+
+        if (!$this->kriteriaCatatanRaporModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan kriteria catatan',
+                'errors' => $this->kriteriaCatatanRaporModel->errors()
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Kriteria catatan berhasil disimpan',
+            'data' => $this->kriteriaCatatanRaporModel->find($this->kriteriaCatatanRaporModel->getInsertID())
+        ]);
+    }
+
+    /**
+     * Update kriteria catatan rapor
+     */
+    public function updateKriteriaCatatanRapor($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $data = [
+            'NilaiHuruf' => $this->request->getPost('NilaiHuruf'),
+            'NilaiMin' => $this->request->getPost('NilaiMin'),
+            'NilaiMax' => $this->request->getPost('NilaiMax'),
+            'Catatan' => $this->request->getPost('Catatan'),
+            'Status' => $this->request->getPost('Status') ?? 'Aktif',
+            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran') ?: null,
+            'IdTpq' => $this->request->getPost('IdTpq') ?: 'default',
+            'IdKelas' => $this->request->getPost('IdKelas') ?: null
+        ];
+
+        if (!$this->kriteriaCatatanRaporModel->update($id, $data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate kriteria catatan',
+                'errors' => $this->kriteriaCatatanRaporModel->errors()
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Kriteria catatan berhasil diupdate',
+            'data' => $this->kriteriaCatatanRaporModel->find($id)
+        ]);
+    }
+
+    /**
+     * Hapus kriteria catatan rapor
+     */
+    public function deleteKriteriaCatatanRapor($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        if (!$this->kriteriaCatatanRaporModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus kriteria catatan'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Kriteria catatan berhasil dihapus'
+        ]);
+    }
+
+    /**
+     * Duplicate kriteria catatan rapor dari default ke individual
+     */
+    public function duplicateKriteriaCatatanRapor()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $sourceId = $this->request->getPost('source_id');
+            $targetIdTpq = $this->request->getPost('IdTpq');
+            $targetIdTahunAjaran = $this->request->getPost('IdTahunAjaran') ?: null;
+            $targetIdKelas = $this->request->getPost('IdKelas') ?: null;
+            $nilaiHuruf = $this->request->getPost('NilaiHuruf');
+            $nilaiMin = $this->request->getPost('NilaiMin');
+            $nilaiMax = $this->request->getPost('NilaiMax');
+            $catatan = $this->request->getPost('Catatan');
+            $status = $this->request->getPost('Status') ?? 'Aktif';
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = ($sessionIdTpq === '0' || $sessionIdTpq === 0 || empty($sessionIdTpq));
+
+            // Validate input
+            if (empty($sourceId)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Source ID tidak boleh kosong'
+                ]);
+            }
+
+            if (empty($targetIdTpq)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID TPQ tujuan harus diisi'
+                ]);
+            }
+
+            // Prevent duplicating to 'default'
+            if ($targetIdTpq === 'default') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak dapat menduplikasi ke "default". Gunakan ID TPQ lain atau "0" untuk admin.'
+                ]);
+            }
+
+            // Get source configuration
+            $source = $this->kriteriaCatatanRaporModel->find($sourceId);
+            if (!$source) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data kriteria catatan sumber tidak ditemukan'
+                ]);
+            }
+
+            // Verify source is from 'default'
+            if ($source['IdTpq'] !== 'default') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Hanya konfigurasi dengan IdTpq = "default" yang dapat diduplikasi'
+                ]);
+            }
+
+            // Check if configuration already exists for target
+            $existing = $this->kriteriaCatatanRaporModel
+                ->where('IdTpq', $targetIdTpq)
+                ->where('NilaiHuruf', $nilaiHuruf ?: $source['NilaiHuruf'])
+                ->where('IdTahunAjaran', $targetIdTahunAjaran)
+                ->where('IdKelas', $targetIdKelas)
+                ->first();
+
+            if ($existing) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Konfigurasi dengan kriteria tersebut sudah ada. Silakan edit konfigurasi yang sudah ada.',
+                    'duplicate' => true,
+                    'existing_id' => $existing['id']
+                ]);
+            }
+
+            // Create new configuration
+            $data = [
+                'IdTpq' => $targetIdTpq,
+                'IdTahunAjaran' => $targetIdTahunAjaran,
+                'IdKelas' => $targetIdKelas,
+                'NilaiHuruf' => $nilaiHuruf ?: $source['NilaiHuruf'],
+                'NilaiMin' => !empty($nilaiMin) ? $nilaiMin : $source['NilaiMin'],
+                'NilaiMax' => !empty($nilaiMax) ? $nilaiMax : $source['NilaiMax'],
+                'Catatan' => !empty($catatan) ? $catatan : $source['Catatan'],
+                'Status' => $status
+            ];
+
+            if ($this->kriteriaCatatanRaporModel->insert($data)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Konfigurasi berhasil diduplikasi'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menduplikasi data',
+                    'errors' => $this->kriteriaCatatanRaporModel->errors()
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in duplicateKriteriaCatatanRapor: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+
+    /**
+     * Method untuk membuat tabel kriteria catatan rapor
+     * Hanya untuk development/setup awal
+     */
+    public function createTableKriteriaCatatanRapor()
+    {
+        try {
+            $db = \Config\Database::connect();
+
+            // SQL untuk membuat tabel
+            $createTableSQL = "
+            CREATE TABLE IF NOT EXISTS `tbl_kriteria_catatan_rapor` (
+              `id` int(11) NOT NULL AUTO_INCREMENT,
+              `NilaiHuruf` enum('A','B','C','D') NOT NULL COMMENT 'Nilai huruf berdasarkan rata-rata',
+              `NilaiMin` decimal(5,2) DEFAULT NULL COMMENT 'Nilai minimum untuk kategori ini',
+              `NilaiMax` decimal(5,2) DEFAULT NULL COMMENT 'Nilai maksimum untuk kategori ini',
+              `Catatan` text NOT NULL COMMENT 'Catatan penilaian untuk raport',
+              `Status` enum('Aktif','Tidak Aktif') DEFAULT 'Aktif',
+              `IdTahunAjaran` varchar(50) DEFAULT NULL COMMENT 'Tahun ajaran (opsional, NULL untuk default)',
+              `IdTpq` varchar(50) DEFAULT 'default' COMMENT 'ID TPQ, \"default\" untuk catatan umum',
+              `created_at` datetime DEFAULT NULL,
+              `updated_at` datetime DEFAULT NULL,
+              PRIMARY KEY (`id`),
+              KEY `idx_nilai_huruf` (`NilaiHuruf`),
+              KEY `idx_status` (`Status`),
+              KEY `idx_tahun_ajaran` (`IdTahunAjaran`),
+              KEY `idx_id_tpq` (`IdTpq`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ";
+
+            // Jalankan query untuk membuat tabel
+            $db->query($createTableSQL);
+
+            // Cek apakah tabel berhasil dibuat
+            $tableExists = $db->tableExists('tbl_kriteria_catatan_rapor');
+
+            if ($tableExists) {
+                // Cek apakah data default sudah ada
+                $existingData = $db->table('tbl_kriteria_catatan_rapor')
+                    ->where('IdTpq', 'default')
+                    ->where('IdTahunAjaran IS NULL')
+                    ->countAllResults();
+
+                if ($existingData == 0) {
+                    // Insert data default jika belum ada
+                    $defaultCatatan = [
+                        [
+                            'NilaiHuruf' => 'A',
+                            'NilaiMin' => 90.00,
+                            'NilaiMax' => 100.00,
+                            'Catatan' => 'Alhamdulillah, ananda telah menunjukkan prestasi yang sangat baik dalam pembelajaran semester ini. Semangat belajar yang tinggi dan ketekunan dalam menghafal Al-Qur\'an serta memahami ilmu agama patut diacungi jempol. Terus pertahankan semangat belajar dan jangan pernah berhenti mencari ilmu, karena menuntut ilmu adalah ibadah. Semoga Allah SWT senantiasa memberikan keberkahan dalam setiap langkah ananda.',
+                            'Status' => 'Aktif',
+                            'IdTahunAjaran' => null,
+                            'IdTpq' => 'default'
+                        ],
+                        [
+                            'NilaiHuruf' => 'B',
+                            'NilaiMin' => 80.00,
+                            'NilaiMax' => 89.99,
+                            'Catatan' => 'Alhamdulillah, ananda telah menunjukkan hasil yang baik dalam pembelajaran semester ini. Prestasi yang dicapai sudah cukup memuaskan, namun masih ada ruang untuk peningkatan. Terus tingkatkan semangat belajar, perbanyak latihan menghafal, dan jangan ragu untuk bertanya kepada ustadz/ustadzah jika ada yang belum dipahami. Ingatlah bahwa menuntut ilmu membutuhkan kesabaran dan ketekunan. Semoga Allah SWT memberikan kemudahan dalam belajar.',
+                            'Status' => 'Aktif',
+                            'IdTahunAjaran' => null,
+                            'IdTpq' => 'default'
+                        ],
+                        [
+                            'NilaiHuruf' => 'C',
+                            'NilaiMin' => 70.00,
+                            'NilaiMax' => 79.99,
+                            'Catatan' => 'Ananda telah berusaha dalam pembelajaran semester ini, namun masih perlu meningkatkan fokus dan ketekunan dalam belajar. Perbanyak waktu untuk mengulang pelajaran, latihan membaca Al-Qur\'an, dan menghafal. Jangan mudah menyerah, karena setiap usaha yang ikhlas akan mendapat balasan dari Allah SWT. Tingkatkan kedisiplinan dalam belajar dan jangan lupa untuk selalu berdoa memohon kemudahan. Semoga semester depan ananda bisa lebih baik lagi.',
+                            'Status' => 'Aktif',
+                            'IdTahunAjaran' => null,
+                            'IdTpq' => 'default'
+                        ],
+                        [
+                            'NilaiHuruf' => 'D',
+                            'NilaiMin' => 60.00,
+                            'NilaiMax' => 69.99,
+                            'Catatan' => 'Ananda perlu lebih serius dan fokus dalam pembelajaran. Hasil yang dicapai masih perlu ditingkatkan dengan lebih giat belajar dan berlatih. Perbanyak waktu untuk mengulang pelajaran di rumah, latihan membaca Al-Qur\'an setiap hari, dan jangan malu untuk bertanya jika ada kesulitan. Ingatlah bahwa menuntut ilmu adalah kewajiban setiap muslim. Mulai dari sekarang, tingkatkan semangat belajar dan jadikan Al-Qur\'an sebagai pedoman hidup. Semoga dengan tekad yang kuat, ananda bisa meraih hasil yang lebih baik di semester berikutnya.',
+                            'Status' => 'Aktif',
+                            'IdTahunAjaran' => null,
+                            'IdTpq' => 'default'
+                        ]
+                    ];
+
+                    foreach ($defaultCatatan as $catatan) {
+                        $db->table('tbl_kriteria_catatan_rapor')->insert($catatan);
+                    }
+                }
+
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Tabel tbl_kriteria_catatan_rapor berhasil dibuat dan data default berhasil diinsert.',
+                    'table_exists' => true,
+                    'default_data_count' => $existingData > 0 ? $existingData : 4
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal membuat tabel tbl_kriteria_catatan_rapor'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
         }
     }
 }

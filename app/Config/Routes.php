@@ -151,6 +151,19 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('logviewer/download', 'LogViewer::download');
     $routes->post('logviewer/cleanup', 'LogViewer::cleanup');
 
+    // Routes untuk Kriteria Catatan Raport (harus didefinisikan SEBELUM route umum)
+    $routes->get('rapor/kriteriaCatatanRapor', 'Rapor::kriteriaCatatanRapor');
+    $routes->post('rapor/saveKriteriaCatatanRapor', 'Rapor::saveKriteriaCatatanRapor');
+    $routes->post('rapor/getKriteriaCatatanRapor', 'Rapor::getKriteriaCatatanRapor');
+    $routes->post('rapor/updateKriteriaCatatanRapor/(:num)', 'Rapor::updateKriteriaCatatanRapor/$1');
+    $routes->post('rapor/deleteKriteriaCatatanRapor/(:num)', 'Rapor::deleteKriteriaCatatanRapor/$1');
+    $routes->post('rapor/duplicateKriteriaCatatanRapor', 'Rapor::duplicateKriteriaCatatanRapor');
+
+    // Routes untuk Rapor (route umum harus setelah route spesifik)
+    // Route untuk semester Ganjil dan Genap
+    $routes->get('rapor/Ganjil', 'Rapor::index/Ganjil');
+    $routes->get('rapor/Genap', 'Rapor::index/Genap');
+    // Route umum untuk segment lainnya (kecuali yang sudah didefinisikan di atas)
     $routes->get('rapor/(:segment)', 'Rapor::index/$1');
     $routes->get('rapor/getSantriByKelas/(:num)', 'Rapor::getSantriByKelas/$1');
     $routes->get('rapor/previewRapor/(:num)', 'Rapor::previewRapor/$1');

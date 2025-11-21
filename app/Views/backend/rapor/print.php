@@ -303,7 +303,13 @@ helper('nilai');
                 <th width="30%">Catatan</th>
             </tr>
             <tr>
-                <td>Ananda menunjukkan kemampuan akademik yang sangat baik di seluruh mata pelajaran. Ia selalu aktif, memiliki rasa ingin tahu yang tinggi, dan bertanggung jawab penuh dalam setiap tugas yang diberikan. Pertahankan terus semangat belajarnya!"</td>
+                <td style="text-align: justify; padding: 10px;">
+                    <?php if (!empty($catatanRaport)): ?>
+                        <?= htmlspecialchars($catatanRaport) ?>
+                    <?php else: ?>
+                        Ananda telah menunjukkan usaha yang baik dalam pembelajaran semester ini. Terus tingkatkan semangat belajar dan jangan pernah berhenti mencari ilmu, karena menuntut ilmu adalah ibadah.
+                    <?php endif; ?>
+                </td>
             </tr>
         </thead>
     </table>
@@ -352,11 +358,7 @@ helper('nilai');
                     if (file_exists($qrPath)) {
                         $qrContent = file_get_contents($qrPath);
                         echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Kepala Sekolah" style="width: 80px; height: 80px;">';
-                    } else {
-                        echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">QR Code<br>tidak ditemukan</div>';
                     }
-                } else {
-                    echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">Belum ada<br>tanda tangan</div>';
                 }
                 ?>
             </td>
@@ -377,11 +379,7 @@ helper('nilai');
                     if (file_exists($qrPath)) {
                         $qrContent = file_get_contents($qrPath);
                         echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Wali Kelas" style="width: 80px; height: 80px;">';
-                    } else {
-                        echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">QR Code<br>tidak ditemukan</div>';
                     }
-                } else {
-                    echo '<div style="width: 80px; height: 80px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">Belum ada<br>tanda tangan</div>';
                 }
                 ?>
             </td>

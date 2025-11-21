@@ -626,6 +626,12 @@
                                     </li>
                                 </ul>
                             </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/rapor/kriteriaCatatanRapor') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Kriteria Catatan</p>
+                                </a>
+                            </li>
                         </ul>
 
                     </li>
@@ -813,131 +819,113 @@
                         </ul>
                     </li>
                     <!-- Penilaian -->
-                    <li class="nav-item no-hover">
-                        <a href="#" class="nav-link">
-                            <i class="nav-icon fas fas fa-award"></i>
-                            <p>
-                                Penilaian
-                                <i class="right fas fa-angle-left"></i>
-                            </p>
-                        </a>
-                        <ul class="nav nav-treeview" style="display: none;">
-                            <?php
-                            $IdGuru = session()->get('IdGuru');
-                            $encrypter = \Config\Services::encrypter();
-                            $encryptedIdGuru = null;
-                            if ($IdGuru)
-                                $encryptedIdGuru = bin2hex($encrypter->encrypt($IdGuru));; ?>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Prestasi</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#" class="nav-link no-hover">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Input Nilai
-                                        <i class="right fas fa-angle-left"></i>
-                                    </p>
-                                </a>
-                                <ul class="nav nav-treeview" style="display: none;">
-                                    <li class="nav-item">
-                                        <a href=<?php
-
-                                                echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                            <p>Semester Ganjil</p>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href=<?php
-
-                                                echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-info"></i>
-                                            <p>Semester Genap</p>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#" class="nav-link no-hover">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Detail Nilai
-                                        <i class="right fas fa-angle-left"></i>
-                                    </p>
-                                </a>
-                                <ul class="nav nav-treeview" style="display: none;">
-                                    <li class="nav-item">
-                                        <a href=<?php
-
-                                                echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                            <p>Semester Ganjil</p>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href=<?php
-
-                                                echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-info"></i>
-                                            <p>Semester Genap</p>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <!--li class="nav-item">
-                                <a href="#" class="nav-link no-hover">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Rangking</p>
+                    <?php if ($isActiveGuru || $isActiveOperator || in_groups('Operator')): ?>
+                        <li class="nav-item no-hover">
+                            <a href="#" class="nav-link">
+                                <i class="nav-icon fas fas fa-award"></i>
+                                <p>
+                                    Penilaian
                                     <i class="right fas fa-angle-left"></i>
-                                    </p>
-                                </a>
-                                <ul class="nav nav-treeview" style="display: none;">
-                                    <li class="nav-item">
-                                        <a href=<?php
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview" style="display: none;">
+                                <?php
+                                $IdGuru = session()->get('IdGuru');
+                                $encrypter = \Config\Services::encrypter();
+                                $encryptedIdGuru = null;
+                                if ($IdGuru)
+                                    $encryptedIdGuru = bin2hex($encrypter->encrypt($IdGuru));; ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Prestasi</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="#" class="nav-link no-hover">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Input Nilai
+                                            <i class="right fas fa-angle-left"></i>
+                                        </p>
+                                    </a>
+                                    <ul class="nav nav-treeview" style="display: none;">
+                                        <li class="nav-item">
+                                            <a href=<?php
 
-                                                echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Ganjil') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                            <p>Semester Ganjil</p>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href=<?php
+                                                    echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="nav-link">
+                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
+                                                <p>Semester Ganjil</p>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href=<?php
 
-                                                echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Genap') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-info"></i>
-                                            <p>Semester Genap</p>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li-->
-                            <li class="nav-item">
-                                <a href="#" class="nav-link no-hover">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Rapor Nilai</p>
-                                    <i class="right fas fa-angle-left"></i>
-                                    </p>
-                                </a>
-                                <ul class="nav nav-treeview" style="display: none;">
-                                    <li class="nav-item">
-                                        <a href=<?php
-                                                echo base_url('backend/rapor/index' . '/' . 'Ganjil') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                            <p>Semester Ganjil</p>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href=<?php
-                                                echo base_url('backend/rapor/index' . '/' . 'Genap') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-info"></i>
-                                            <p>Semester Genap</p>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                        </ul>
-                    </li>
+                                                    echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="nav-link">
+                                                <i class="far fa-dot-circle nav-icon text-info"></i>
+                                                <p>Semester Genap</p>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="#" class="nav-link no-hover">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Detail Nilai
+                                            <i class="right fas fa-angle-left"></i>
+                                        </p>
+                                    </a>
+                                    <ul class="nav nav-treeview" style="display: none;">
+                                        <li class="nav-item">
+                                            <a href=<?php
+
+                                                    echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="nav-link">
+                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
+                                                <p>Semester Ganjil</p>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href=<?php
+
+                                                    echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="nav-link">
+                                                <i class="far fa-dot-circle nav-icon text-info"></i>
+                                                <p>Semester Genap</p>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="#" class="nav-link no-hover">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Rapor Nilai</p>
+                                        <i class="right fas fa-angle-left"></i>
+                                        </p>
+                                    </a>
+                                    <ul class="nav nav-treeview" style="display: none;">
+                                        <li class="nav-item">
+                                            <a href=<?php
+                                                    echo base_url('backend/rapor/index' . '/' . 'Ganjil') ?> class="nav-link">
+                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
+                                                <p>Semester Ganjil</p>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href=<?php
+                                                    echo base_url('backend/rapor/index' . '/' . 'Genap') ?> class="nav-link">
+                                                <i class="far fa-dot-circle nav-icon text-info"></i>
+                                                <p>Semester Genap</p>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/rapor/kriteriaCatatanRapor') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Kriteria Catatan</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <?php if (in_groups('Santri')): ?>
                     <!-- Kesantrian -->
