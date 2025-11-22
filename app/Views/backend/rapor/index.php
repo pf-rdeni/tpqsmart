@@ -52,6 +52,7 @@
                                                 <th>Rangking</th>
                                                 <th>Kelas</th>
                                                 <th>Tahun Ajaran</th>
+                                                <th>Aksi Catatan & Absensi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -82,6 +83,32 @@
                                                         <td><?= $nilaiDetail->Rangking ?></td>
                                                         <td><?= $nilaiDetail->NamaKelas ?></td>
                                                         <td><?= $nilaiDetail->IdTahunAjaran ?></td>
+                                                        <td>
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input checkbox-absensi"
+                                                                    type="checkbox"
+                                                                    data-id="<?= $nilaiDetail->IdSantri ?>"
+                                                                    data-semester="<?= $semester ?>"
+                                                                    data-kelas="<?= $nilaiDetail->IdKelas ?>"
+                                                                    id="absensi-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>"
+                                                                    style="cursor: pointer;">
+                                                                <label class="form-check-label" for="absensi-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>" style="cursor: pointer;">
+                                                                    Absensi
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input checkbox-catatan"
+                                                                    type="checkbox"
+                                                                    data-id="<?= $nilaiDetail->IdSantri ?>"
+                                                                    data-semester="<?= $semester ?>"
+                                                                    data-kelas="<?= $nilaiDetail->IdKelas ?>"
+                                                                    id="catatan-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>"
+                                                                    style="cursor: pointer;">
+                                                                <label class="form-check-label" for="catatan-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>" style="cursor: pointer;">
+                                                                    Catatan
+                                                                </label>
+                                                            </div>
+                                                        </td>
                                                     </tr>
                                             <?php
                                                 endif;
@@ -108,6 +135,11 @@
         <?php foreach ($dataKelas as $kelasId => $IdKelas): ?>
             initializeDataTableUmum("#tableSantri-<?= $kelasId ?>", true, true);
         <?php endforeach; ?>
+
+        // Pastikan event handler terpasang setelah DataTable selesai
+        setTimeout(function() {
+            console.log('Setting up checkbox event handlers');
+        }, 500);
 
         // Tampilkan pesan dari session jika ada
         <?php if (session()->getFlashdata('success')): ?>
@@ -493,6 +525,635 @@
                 }
             });
         });
+
+        // Load data absensi dan catatan saat halaman dimuat (menggunakan data dari PHP)
+        function loadCatatanAbsensiData() {
+            const raportSettingsMap = <?= json_encode($raportSettingsMap ?? []) ?>;
+
+            $('.checkbox-absensi, .checkbox-catatan').each(function() {
+                const checkbox = $(this);
+                const IdSantri = checkbox.data('id');
+                const semester = checkbox.data('semester');
+                const key = IdSantri + '_' + semester;
+
+                // Ambil data dari map yang sudah di-pass dari PHP
+                const setting = raportSettingsMap[key];
+
+                if (setting) {
+                    // Set checkbox absensi
+                    if (checkbox.hasClass('checkbox-absensi')) {
+                        checkbox.prop('checked', setting.ShowAbsensi == 1);
+                    }
+
+                    // Set checkbox catatan
+                    if (checkbox.hasClass('checkbox-catatan')) {
+                        checkbox.prop('checked', setting.ShowCatatan == 1);
+                    }
+                }
+            });
+        }
+
+        // Panggil saat halaman dimuat
+        loadCatatanAbsensiData();
+
+        // Fungsi untuk menghitung jumlah tidak masuk otomatis
+        function hitungJumlahTidakMasuk() {
+            const jumlahIzin = parseInt($('#jumlahIzin').val()) || 0;
+            const jumlahAlfa = parseInt($('#jumlahAlfa').val()) || 0;
+            const jumlahSakit = parseInt($('#jumlahSakit').val()) || 0;
+            const total = jumlahIzin + jumlahAlfa + jumlahSakit;
+            $('#jumlahTidakMasuk').val(total);
+            $('#jumlahTidakMasukHidden').val(total); // Update hidden input untuk form submit
+        }
+
+        // Event listener untuk menghitung otomatis saat input berubah
+        $(document).on('input change', '#jumlahIzin, #jumlahAlfa, #jumlahSakit', function() {
+            hitungJumlahTidakMasuk();
+        });
+
+        // Handle checkbox absensi change (lebih reliable untuk checkbox)
+        $(document).on('change', '.checkbox-absensi', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            console.log('Checkbox absensi changed');
+
+            const checkbox = $(this);
+            const IdSantri = checkbox.data('id');
+            const IdKelas = checkbox.data('kelas');
+            const semester = checkbox.data('semester');
+            const IdTahunAjaran = '<?= session()->get("IdTahunAjaran") ?>';
+
+            console.log('Data:', {
+                IdSantri,
+                IdKelas,
+                semester,
+                IdTahunAjaran
+            });
+
+            // Prevent default checkbox behavior
+            checkbox.prop('checked', !checkbox.prop('checked'));
+
+            // Set form values first
+            $('#absensiIdSantri').val(IdSantri);
+            $('#absensiIdKelas').val(IdKelas);
+            $('#absensiSemester').val(semester);
+
+            // Load data existing
+            $.ajax({
+                url: '<?= base_url("backend/rapor/getCatatanAbsensi") ?>',
+                type: 'POST',
+                data: {
+                    IdSantri: IdSantri,
+                    IdTahunAjaran: IdTahunAjaran,
+                    Semester: semester
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        const data = response.data;
+                        const absensiData = data.AbsensiData || {};
+
+                        $('#showAbsensi').prop('checked', data.ShowAbsensi == 1);
+                        $('#jumlahIzin').val(absensiData.jumlahIzin || 0);
+                        $('#jumlahAlfa').val(absensiData.jumlahAlfa || 0);
+                        $('#jumlahSakit').val(absensiData.jumlahSakit || 0);
+
+                        // Hitung jumlah tidak masuk otomatis
+                        hitungJumlahTidakMasuk();
+                    } else {
+                        // Initialize dengan nilai default jika data tidak ada
+                        $('#showAbsensi').prop('checked', false);
+                        $('#jumlahIzin').val(0);
+                        $('#jumlahAlfa').val(0);
+                        $('#jumlahSakit').val(0);
+
+                        // Hitung jumlah tidak masuk otomatis
+                        hitungJumlahTidakMasuk();
+                    }
+
+                    // Tampilkan modal
+                    console.log('Showing modal absensi');
+                    hitungJumlahTidakMasuk(); // Hitung ulang sebelum tampil
+                    $('#modalAbsensi').modal('show');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading absensi data:', error, xhr.responseText);
+                    // Initialize dengan nilai default jika error
+                    $('#showAbsensi').prop('checked', false);
+                    $('#jumlahIzin').val(0);
+                    $('#jumlahAlfa').val(0);
+                    $('#jumlahSakit').val(0);
+
+                    // Hitung jumlah tidak masuk otomatis
+                    hitungJumlahTidakMasuk();
+
+                    // Tampilkan modal meskipun ada error
+                    console.log('Showing modal absensi (error case)');
+                    hitungJumlahTidakMasuk(); // Hitung ulang sebelum tampil
+                    $('#modalAbsensi').modal('show');
+                }
+            });
+        });
+
+        // Handle checkbox catatan change (lebih reliable untuk checkbox)
+        $(document).on('change', '.checkbox-catatan', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            console.log('Checkbox catatan changed');
+
+            const checkbox = $(this);
+            const IdSantri = checkbox.data('id');
+            const IdKelas = checkbox.data('kelas');
+            const semester = checkbox.data('semester');
+            const IdTahunAjaran = '<?= session()->get("IdTahunAjaran") ?>';
+
+            console.log('Data:', {
+                IdSantri,
+                IdKelas,
+                semester,
+                IdTahunAjaran
+            });
+
+            // Prevent default checkbox behavior
+            checkbox.prop('checked', !checkbox.prop('checked'));
+
+            // Set form values first
+            $('#catatanIdSantri').val(IdSantri);
+            $('#catatanIdKelas').val(IdKelas);
+            $('#catatanSemester').val(semester);
+
+            // Ambil catatan default berdasarkan nilai
+            $.ajax({
+                url: '<?= base_url("backend/rapor/getCatatanDefaultByNilai") ?>',
+                type: 'POST',
+                data: {
+                    IdSantri: IdSantri,
+                    Semester: semester
+                },
+                dataType: 'json',
+                success: function(response) {
+                    let catatanDefault = '';
+                    let selectedCatatanId = null;
+
+                    // Populate dropdown opsi catatan
+                    const selectCatatan = $('#selectCatatanSource');
+                    selectCatatan.empty();
+                    selectCatatan.append('<option value="">-- Pilih Sumber Catatan --</option>');
+
+                    if (response.success && response.allOpsiCatatan && response.allOpsiCatatan.length > 0) {
+                        // Jika ada lebih dari 1 opsi, tampilkan dropdown
+                        if (response.allOpsiCatatan.length > 1) {
+                            response.allOpsiCatatan.forEach(function(opsi) {
+                                const option = $('<option></option>')
+                                    .attr('value', opsi.id)
+                                    .attr('data-catatan', opsi.Catatan)
+                                    .text(opsi.label + ' (Nilai: ' + opsi.NilaiHuruf + ')');
+
+                                // Set selected jika ini adalah yang default
+                                if (opsi.id == response.selectedCatatanId) {
+                                    option.prop('selected', true);
+                                    catatanDefault = opsi.Catatan;
+                                    selectedCatatanId = opsi.id;
+                                }
+
+                                selectCatatan.append(option);
+                            });
+                            selectCatatan.show();
+                        } else {
+                            // Hanya 1 opsi, langsung set
+                            const opsi = response.allOpsiCatatan[0];
+                            catatanDefault = opsi.Catatan;
+                            selectedCatatanId = opsi.id;
+                            selectCatatan.hide();
+                        }
+                    } else if (response.success && response.catatan) {
+                        // Fallback ke catatan default jika tidak ada opsi
+                        catatanDefault = response.catatan;
+                        selectCatatan.hide();
+                    }
+
+                    // Event handler untuk perubahan pilihan catatan
+                    selectCatatan.off('change').on('change', function() {
+                        const selectedOption = $(this).find('option:selected');
+                        if (selectedOption.val()) {
+                            $('#catatanDefault').val(selectedOption.data('catatan') || '');
+                        }
+                    });
+
+                    // Load data existing
+                    $.ajax({
+                        url: '<?= base_url("backend/rapor/getCatatanAbsensi") ?>',
+                        type: 'POST',
+                        data: {
+                            IdSantri: IdSantri,
+                            IdTahunAjaran: IdTahunAjaran,
+                            Semester: semester
+                        },
+                        dataType: 'json',
+                        success: function(response2) {
+                            if (response2.success && response2.data) {
+                                const data = response2.data;
+                                const catatanData = data.CatatanData || {};
+
+                                $('#showCatatan').prop('checked', data.ShowCatatan == 1);
+
+                                // Jika ada catatan yang sudah disimpan, gunakan itu
+                                if (catatanData.catatanDefault) {
+                                    $('#catatanDefault').val(catatanData.catatanDefault);
+                                    // Set selected option jika ada
+                                    if (catatanData.selectedCatatanId) {
+                                        $('#selectCatatanSource').val(catatanData.selectedCatatanId);
+                                    }
+                                } else {
+                                    $('#catatanDefault').val(catatanDefault);
+                                    if (selectedCatatanId) {
+                                        $('#selectCatatanSource').val(selectedCatatanId);
+                                    }
+                                }
+
+                                $('#catatanKhusus').val(catatanData.catatanKhusus || '');
+                            } else {
+                                // Initialize dengan nilai default jika data tidak ada
+                                $('#showCatatan').prop('checked', false);
+                                $('#catatanDefault').val(catatanDefault);
+                                if (selectedCatatanId) {
+                                    $('#selectCatatanSource').val(selectedCatatanId);
+                                }
+                                $('#catatanKhusus').val('');
+                            }
+
+                            // Tampilkan modal
+                            console.log('Showing modal catatan');
+                            $('#modalCatatan').modal('show');
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error loading catatan data:', error, xhr.responseText);
+                            // Initialize dengan nilai default jika error
+                            $('#showCatatan').prop('checked', false);
+                            $('#catatanDefault').val(catatanDefault);
+                            if (selectedCatatanId) {
+                                $('#selectCatatanSource').val(selectedCatatanId);
+                            }
+                            $('#catatanKhusus').val('');
+
+                            // Tampilkan modal meskipun ada error
+                            console.log('Showing modal catatan (error case 1)');
+                            $('#modalCatatan').modal('show');
+                        }
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading default catatan:', error, xhr.responseText);
+                    // Hide dropdown jika error
+                    $('#selectCatatanSource').hide();
+
+                    // Load data existing meskipun error
+                    $.ajax({
+                        url: '<?= base_url("backend/rapor/getCatatanAbsensi") ?>',
+                        type: 'POST',
+                        data: {
+                            IdSantri: IdSantri,
+                            IdTahunAjaran: IdTahunAjaran,
+                            Semester: semester
+                        },
+                        dataType: 'json',
+                        success: function(response2) {
+                            if (response2.success && response2.data) {
+                                const data = response2.data;
+                                const catatanData = data.CatatanData || {};
+
+                                $('#showCatatan').prop('checked', data.ShowCatatan == 1);
+                                $('#catatanDefault').val(catatanData.catatanDefault || '');
+                                $('#catatanKhusus').val(catatanData.catatanKhusus || '');
+
+                                // Set selected option jika ada
+                                if (catatanData.selectedCatatanId) {
+                                    $('#selectCatatanSource').val(catatanData.selectedCatatanId);
+                                }
+                            } else {
+                                $('#showCatatan').prop('checked', false);
+                                $('#catatanDefault').val('');
+                                $('#catatanKhusus').val('');
+                            }
+
+                            $('#modalCatatan').modal('show');
+                        },
+                        error: function() {
+                            // Initialize dengan nilai default
+                            $('#showCatatan').prop('checked', false);
+                            $('#catatanDefault').val('');
+                            $('#catatanKhusus').val('');
+
+                            console.log('Showing modal catatan (error case 2)');
+                            $('#modalCatatan').modal('show');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Handle generate absensi dari tabel
+        $('#btnGenerateAbsensi').on('click', function() {
+            const IdSantri = $('#absensiIdSantri').val();
+            const IdTahunAjaran = '<?= session()->get("IdTahunAjaran") ?>';
+            const semester = $('#absensiSemester').val();
+
+            if (!IdSantri || !semester) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Data santri atau semester tidak ditemukan',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Tampilkan loading
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Sedang mengambil data dari tabel absensi',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '<?= base_url("backend/rapor/getAbsensiFromTable") ?>',
+                type: 'POST',
+                data: {
+                    IdSantri: IdSantri,
+                    IdTahunAjaran: IdTahunAjaran,
+                    Semester: semester
+                },
+                dataType: 'json',
+                success: function(response) {
+                    Swal.close();
+
+                    if (response.success && response.data) {
+                        const data = response.data;
+
+                        // Isi form dengan data dari tabel
+                        $('#jumlahIzin').val(data.jumlahIzin || 0);
+                        $('#jumlahAlfa').val(data.jumlahAlfa || 0);
+                        $('#jumlahSakit').val(data.jumlahSakit || 0);
+
+                        // Hitung jumlah tidak masuk otomatis
+                        hitungJumlahTidakMasuk();
+
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            html: `Data absensi berhasil diambil dari tabel.<br>
+                                   <strong>Jumlah Hadir:</strong> ${data.jumlahHadir || 0}<br>
+                                   <strong>Jumlah Izin:</strong> ${data.jumlahIzin}<br>
+                                   <strong>Jumlah Alfa:</strong> ${data.jumlahAlfa}<br>
+                                   <strong>Jumlah Sakit:</strong> ${data.jumlahSakit}<br>
+                                   <strong>Total Record:</strong> ${data.totalRecords}`,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Informasi',
+                            text: response.message || 'Tidak ada data absensi dari tabel untuk periode ini',
+                            icon: 'info',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.close();
+                    console.error('Error:', error, xhr.responseText);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan saat mengambil data: ' + error,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        });
+
+        // Handle save absensi
+        $('#btnSaveAbsensi').on('click', function() {
+            // Hitung ulang jumlah tidak masuk sebelum menyimpan
+            hitungJumlahTidakMasuk();
+
+            const formData = $('#formAbsensi').serialize();
+
+            $.ajax({
+                url: '<?= base_url("backend/rapor/saveAbsensi") ?>',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            $('#modalAbsensi').modal('hide');
+                            // Update checkbox status
+                            const IdSantri = $('#absensiIdSantri').val();
+                            const semester = $('#absensiSemester').val();
+                            const isChecked = $('#showAbsensi').is(':checked');
+                            $(`#absensi-${IdSantri}-${semester}`).prop('checked', isChecked);
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan saat menyimpan data',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        });
+
+        // Handle save catatan
+        $('#btnSaveCatatan').on('click', function() {
+            const formData = $('#formCatatan').serialize();
+
+            $.ajax({
+                url: '<?= base_url("backend/rapor/saveCatatan") ?>',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            $('#modalCatatan').modal('hide');
+                            // Update checkbox status
+                            const IdSantri = $('#catatanIdSantri').val();
+                            const semester = $('#catatanSemester').val();
+                            const isChecked = $('#showCatatan').is(':checked');
+                            $(`#catatan-${IdSantri}-${semester}`).prop('checked', isChecked);
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan saat menyimpan data',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        });
     });
 </script>
+
+<!-- Modal Absensi -->
+<div class="modal fade" id="modalAbsensi" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Input Absensi</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formAbsensi">
+                    <input type="hidden" name="IdSantri" id="absensiIdSantri">
+                    <input type="hidden" name="IdKelas" id="absensiIdKelas">
+                    <input type="hidden" name="Semester" id="absensiSemester">
+
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ShowAbsensi" id="showAbsensi">
+                            <label class="form-check-label" for="showAbsensi">
+                                Tampilkan Absensi di Rapor
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Jumlah Izin</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="JumlahIzin" id="jumlahIzin" min="0" value="0">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-info btn-sm" id="btnGenerateAbsensi" title="Generate dari Tabel Absensi">
+                                    <i class="fas fa-sync-alt"></i> Generate
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Klik tombol Generate untuk mengambil data dari tabel absensi.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Jumlah Alfa</label>
+                        <input type="number" class="form-control" name="JumlahAlfa" id="jumlahAlfa" min="0" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Jumlah Sakit</label>
+                        <input type="number" class="form-control" name="JumlahSakit" id="jumlahSakit" min="0" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Jumlah Tidak Masuk <small class="text-muted">(Otomatis: Izin + Alfa + Sakit)</small></label>
+                        <input type="number" class="form-control" id="jumlahTidakMasuk" min="0" value="0" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                        <input type="hidden" name="JumlahTidakMasuk" id="jumlahTidakMasukHidden">
+                        <small class="form-text text-muted">Jumlah ini dihitung otomatis dari jumlah izin, alfa, dan sakit.</small>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSaveAbsensi">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Catatan -->
+<div class="modal fade" id="modalCatatan" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Input Catatan</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formCatatan">
+                    <input type="hidden" name="IdSantri" id="catatanIdSantri">
+                    <input type="hidden" name="IdKelas" id="catatanIdKelas">
+                    <input type="hidden" name="Semester" id="catatanSemester">
+
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ShowCatatan" id="showCatatan">
+                            <label class="form-check-label" for="showCatatan">
+                                Tampilkan Catatan di Rapor
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pilih Sumber Catatan</label>
+                        <select class="form-control" id="selectCatatanSource" name="CatatanSource">
+                            <option value="">-- Pilih Sumber Catatan --</option>
+                        </select>
+                        <small class="form-text text-muted">Pilih catatan dari kriteria yang tersedia. Secara default menggunakan yang paling spesifik.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pilih Sumber Catatan</label>
+                        <select class="form-control" id="selectCatatanSource" name="CatatanSource" style="display: none;">
+                            <option value="">-- Pilih Sumber Catatan --</option>
+                        </select>
+                        <small class="form-text text-muted">Pilih catatan dari kriteria yang tersedia. Secara default menggunakan yang paling spesifik.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Catatan Default (Berdasarkan Nilai Rata-Rata)</label>
+                        <textarea class="form-control" name="CatatanDefault" id="catatanDefault" rows="5" readonly></textarea>
+                        <small class="form-text text-muted">Catatan ini diambil dari kriteria catatan rapor berdasarkan nilai rata-rata santri.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Catatan Khusus (Opsional)</label>
+                        <textarea class="form-control" name="CatatanKhusus" id="catatanKhusus" rows="5" placeholder="Tambahkan catatan khusus dari wali kelas jika diperlukan..."></textarea>
+                        <small class="form-text text-muted">Catatan khusus ini akan digabungkan dengan catatan default.</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCatatan">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>

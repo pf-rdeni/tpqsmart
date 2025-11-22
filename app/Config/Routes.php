@@ -159,6 +159,13 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('rapor/deleteKriteriaCatatanRapor/(:num)', 'Rapor::deleteKriteriaCatatanRapor/$1');
     $routes->post('rapor/duplicateKriteriaCatatanRapor', 'Rapor::duplicateKriteriaCatatanRapor');
 
+    // Routes untuk Catatan dan Absensi Rapor
+    $routes->post('rapor/getCatatanAbsensi', 'Rapor::getCatatanAbsensi');
+    $routes->post('rapor/saveAbsensi', 'Rapor::saveAbsensi');
+    $routes->post('rapor/saveCatatan', 'Rapor::saveCatatan');
+    $routes->post('rapor/getCatatanDefaultByNilai', 'Rapor::getCatatanDefaultByNilai');
+    $routes->post('rapor/getAbsensiFromTable', 'Rapor::getAbsensiFromTable');
+
     // Routes untuk Rapor (route umum harus setelah route spesifik)
     // Route untuk semester Ganjil dan Genap
     $routes->get('rapor/Ganjil', 'Rapor::index/Ganjil');

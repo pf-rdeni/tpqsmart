@@ -125,6 +125,96 @@ class KriteriaCatatanRaporModel extends Model
     }
 
     /**
+     * Ambil semua opsi catatan berdasarkan nilai huruf untuk ditampilkan di dropdown
+     * Return semua catatan yang sesuai dengan kriteria (bukan hanya yang paling spesifik)
+     * 
+     * @param string $nilaiHuruf
+     * @param string|null $idTahunAjaran
+     * @param string|null $idTpq
+     * @param string|null $idKelas
+     * @return array Array of catatan dengan informasi level spesifisitas
+     */
+    public function getAllOpsiCatatanByNilaiHuruf($nilaiHuruf, $idTahunAjaran = null, $idTpq = null, $idKelas = null)
+    {
+        $builder = $this->where('NilaiHuruf', $nilaiHuruf)
+            ->where('Status', 'Aktif');
+
+        // Filter berdasarkan IdTpq
+        if (!empty($idTpq) && $idTpq !== 'default' && $idTpq !== '0') {
+            $builder->groupStart()
+                ->where('IdTpq', $idTpq)
+                ->orWhere('IdTpq', 'default')
+                ->orWhere('IdTpq IS NULL')
+                ->orWhere('IdTpq', '0')
+                ->groupEnd();
+        } else {
+            $builder->groupStart()
+                ->where('IdTpq', 'default')
+                ->orWhere('IdTpq IS NULL')
+                ->orWhere('IdTpq', '0')
+                ->groupEnd();
+        }
+
+        // Filter berdasarkan tahun ajaran
+        if (!empty($idTahunAjaran)) {
+            $builder->groupStart()
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->orWhere('IdTahunAjaran IS NULL')
+                ->groupEnd();
+        } else {
+            $builder->where('IdTahunAjaran IS NULL');
+        }
+
+        // Filter berdasarkan IdKelas
+        if (!empty($idKelas) && $idKelas != '0') {
+            $builder->groupStart()
+                ->where('IdKelas', $idKelas)
+                ->orWhere('IdKelas IS NULL')
+                ->groupEnd();
+        } else {
+            $builder->where('IdKelas IS NULL');
+        }
+
+        $results = $builder->orderBy('IdKelas', 'DESC') // Spesifik kelas lebih dulu
+            ->orderBy('IdTpq', 'DESC') // Spesifik TPQ lebih dulu
+            ->orderBy('IdTahunAjaran', 'DESC')
+            ->orderBy('id', 'DESC')
+            ->findAll();
+
+        // Format hasil dengan informasi level
+        $formattedResults = [];
+        foreach ($results as $row) {
+            // Tentukan level spesifisitas
+            $level = 'umum';
+            $label = 'Umum (Semua TPQ & Kelas)';
+            
+            if (!empty($row['IdKelas']) && $row['IdKelas'] != '0') {
+                $level = 'spesifik_kelas';
+                $label = 'Spesifik Kelas';
+                if (!empty($row['IdTpq']) && $row['IdTpq'] != 'default' && $row['IdTpq'] != '0') {
+                    $label = 'Spesifik TPQ & Kelas';
+                }
+            } elseif (!empty($row['IdTpq']) && $row['IdTpq'] != 'default' && $row['IdTpq'] != '0') {
+                $level = 'spesifik_tpq';
+                $label = 'Spesifik TPQ';
+            }
+
+            $formattedResults[] = [
+                'id' => $row['id'],
+                'Catatan' => $row['Catatan'],
+                'NilaiHuruf' => $row['NilaiHuruf'],
+                'IdTpq' => $row['IdTpq'],
+                'IdKelas' => $row['IdKelas'],
+                'IdTahunAjaran' => $row['IdTahunAjaran'],
+                'level' => $level,
+                'label' => $label
+            ];
+        }
+
+        return $formattedResults;
+    }
+
+    /**
      * Konversi nilai numerik ke huruf
      * 
      * @param float $nilai

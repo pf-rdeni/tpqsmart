@@ -296,41 +296,50 @@ helper('nilai');
         </tbody>
     </table>
 
-    <!-- tabel catatan-->
-    <table class="nilai-table">
-        <thead>
-            <tr>
-                <th width="30%">Catatan</th>
-            </tr>
-            <tr>
-                <td style="text-align: justify; padding: 10px;">
-                    <?php if (!empty($catatanRaport)): ?>
-                        <?= htmlspecialchars($catatanRaport) ?>
-                    <?php else: ?>
-                        Ananda telah menunjukkan usaha yang baik dalam pembelajaran semester ini. Terus tingkatkan semangat belajar dan jangan pernah berhenti mencari ilmu, karena menuntut ilmu adalah ibadah.
-                    <?php endif; ?>
-                </td>
-            </tr>
-        </thead>
-    </table>
-    <table class="nilai-table">
-        <thead>
-            <tr>
-                <th width="30%">Guru Pendamping</th>
-            </tr>
-            <?php if (!empty($santri['GuruPendamping'])): ?>
-                <?php foreach ($santri['GuruPendamping'] as $key => $guru): ?>
-                    <tr>
-                        <td><?= $key + 1 ?>. <?= htmlspecialchars(toTitleCase($guru->Nama)) ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
+    <!-- Tabel Absensi (jika ShowAbsensi aktif) -->
+    <?php if (!empty($raportSetting) && $raportSetting['ShowAbsensi'] == 1 && !empty($raportSetting['AbsensiData'])): ?>
+        <?php
+        $absensiData = $raportSetting['AbsensiData'];
+        ?>
+        <table class="nilai-table" style="margin-bottom: 8px;">
+            <thead>
                 <tr>
-                    <td>-</td>
+                    <th style="background-color: #e9ecee; padding: 4px; font-size: 11px;">Absensi</th>
                 </tr>
-            <?php endif; ?>
-        </thead>
-    </table>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 4px; font-size: 10px;">
+                        Jumlah Tidak Masuk : <?= $absensiData['jumlahTidakMasuk'] ?? 0 ?> Hari
+                        (Izin: <?= $absensiData['jumlahIzin'] ?? 0 ?>,
+                        Alfa: <?= $absensiData['jumlahAlfa'] ?? 0 ?>,
+                        Sakit: <?= $absensiData['jumlahSakit'] ?? 0 ?>)
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    <?php endif; ?>
+
+    <!-- Tabel Catatan (hanya dari settingan raport) -->
+    <?php if (!empty($raportSetting) && $raportSetting['ShowCatatan'] == 1 && !empty($raportSetting['CatatanData'])): ?>
+        <?php
+        $catatanData = $raportSetting['CatatanData'];
+        if (!empty($catatanData['catatanFinal'])):
+        ?>
+            <table class="nilai-table">
+                <thead>
+                    <tr>
+                        <th width="30%">Catatan</th>
+                    </tr>
+                    <tr>
+                        <td style="text-align: justify; padding: 10px;">
+                            <?= nl2br(htmlspecialchars($catatanData['catatanFinal'])) ?>
+                        </td>
+                    </tr>
+                </thead>
+            </table>
+        <?php endif; ?>
+    <?php endif; ?>
     <!-- Tanda Tangan Layout Gambar Tabel -->
     <table style="width: 100%; border-collapse: collapse; margin-top: 50px; font-size: 12px; page-break-inside: avoid;">
         <tr>
