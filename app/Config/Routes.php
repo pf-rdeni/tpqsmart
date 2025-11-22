@@ -338,6 +338,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/update-konfigurasi/(:num)', 'Munaqosah::updateKonfigurasi/$1');
     $routes->post('munaqosah/duplicate-konfigurasi', 'Munaqosah::duplicateKonfigurasi');
     $routes->post('munaqosah/delete-konfigurasi/(:num)', 'Munaqosah::deleteKonfigurasi/$1');
+    $routes->post('munaqosah/toggle-aktive-tombol-kelulusan', 'Munaqosah::toggleAktiveTombolKelulusan');
 
     // Tools Setting Routes
     $routes->post('tools/save-tools', 'Tools::saveTools');

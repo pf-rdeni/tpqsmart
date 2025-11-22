@@ -23,7 +23,7 @@
                                 <th>TPQ</th>
                                 <th>Keterangan</th>
                                 <th>Tanggal Verifikasi</th>
-                                <th>Aksi</th>
+                                <th>Persetujuan</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -320,13 +320,59 @@
                             <strong>Peserta mengajukan permintaan perbaikan data.</strong>
                             Silakan review perubahan yang diusulkan di bawah ini.
                         </p>
-                        <p class="mb-2">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Catatan:</strong> Hanya field yang diminta perbaikan yang dapat diubah.
-                            Field lainnya telah dinonaktifkan untuk menghindari perubahan tidak sengaja.
-                        </p>
                         <div id="keteranganUser" class="mt-2"></div>
                         <div id="fieldsToFixList" class="mt-3"></div>
+                    </div>
+
+                    <!-- Card Informasi Alur Proses Review & Konfirmasi (hanya muncul jika status perlu_perbaikan) -->
+                    <div id="cardInfoProsesReview" class="card card-info collapsed-card mb-3" style="display: none;">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle"></i> Panduan Alur Proses Review & Konfirmasi Perbaikan
+                            </h5>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body" style="padding: 15px;">
+                            <h6 class="mb-2"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h6>
+                            <ol class="mb-3" style="padding-left: 20px; font-size: 13px;">
+                                <li class="mb-2">
+                                    <strong>Review Data Perbaikan:</strong> Lihat tabel perbaikan data di bawah untuk melihat perbandingan:
+                                    <ul style="margin-top: 5px; padding-left: 20px;">
+                                        <li>Kolom <span style="background-color: #fff3cd; padding: 2px 5px;"><strong>Kuning</strong></span> = Data Saat Ini (Sebelum)</li>
+                                        <li>Kolom <span style="background-color: #d4edda; padding: 2px 5px;"><strong>Hijau</strong></span> = Usulan Perbaikan (Sesudah)</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Lakukan Perbaikan:</strong> 
+                                    <ul style="margin-top: 5px; padding-left: 20px;">
+                                        <li>Gunakan toggle switch <strong>"Terima"</strong> pada tabel untuk menerima usulan perbaikan</li>
+                                        <li>Atau edit manual di form fields di bawah tabel</li>
+                                        <li>Form fields akan terisi otomatis setelah menggunakan tabel</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Konfirmasi Perbaikan:</strong> Setelah selesai review, klik tombol 
+                                    <span class="badge badge-success badge-sm"><i class="fas fa-check"></i> Konfirmasi Perbaikan</span> 
+                                    di bagian bawah modal untuk menyetujui perbaikan.
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Hasil:</strong> Status akan berubah menjadi <span class="badge badge-success badge-sm">Valid</span> 
+                                    dan data tersimpan di data utama santri.
+                                </li>
+                            </ol>
+                            <div class="alert alert-info mb-0" style="padding: 10px; font-size: 12px;">
+                                <strong><i class="fas fa-lightbulb"></i> Tips:</strong>
+                                <ul class="mb-0" style="padding-left: 20px; margin-top: 5px;">
+                                    <li>Gunakan tabel perbaikan untuk review cepat dan terima usulan dengan satu klik</li>
+                                    <li>Baca keterangan user untuk memahami alasan perbaikan</li>
+                                    <li>Pastikan checkbox konfirmasi dicentang sebelum menyimpan</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Data Santri Card -->
@@ -350,7 +396,7 @@
                                                 <th style="width: 20%;">Field</th>
                                                 <th style="width: 20%;">Saat Ini (Sebelum)</th>
                                                 <th style="width: 20%;">Usulan</th>
-                                                <th style="width: 15%;">Aksi</th>
+                                                <th style="width: 15%;">Persetujuan</th>
                                                 <th style="width: 25%;">Perbaikan (Sesudah)</th>
                                             </tr>
                                         </thead>
@@ -736,72 +782,91 @@
         outline: none;
     }
 
-    .btn-action-group {
+    /* Toggle Switch Container */
+    .toggle-switch-container {
         display: flex;
-        gap: 5px;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
+        justify-content: center;
     }
 
-    .btn-yes,
-    .btn-no {
-        border: none;
-        padding: 6px 12px;
-        border-radius: 4px;
+    /* Toggle Switch */
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 80px;
+        height: 35px;
         cursor: pointer;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        white-space: nowrap;
-        min-width: 60px;
     }
 
-    .btn-yes {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        color: white;
+    .toggle-switch-input {
+        opacity: 0;
+        width: 0;
+        height: 0;
     }
 
-    .btn-yes:hover {
-        background: linear-gradient(135deg, #218838 0%, #1ea883 100%);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        transform: translateY(-1px);
-    }
-
-    .btn-yes:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-yes.active {
-        background: linear-gradient(135deg, #218838 0%, #1ea883 100%);
+    .toggle-switch-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #dc3545;
+        transition: 0.3s;
+        border-radius: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 8px;
         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
-    .btn-no {
-        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    .toggle-switch-slider:before {
+        position: absolute;
+        content: "";
+        height: 27px;
+        width: 27px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-switch-input:checked + .toggle-switch-slider {
+        background-color: #28a745;
+    }
+
+    .toggle-switch-input:checked + .toggle-switch-slider:before {
+        transform: translateX(45px);
+    }
+
+    .toggle-switch-label-on,
+    .toggle-switch-label-off {
+        font-size: 0.7rem;
+        font-weight: bold;
         color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        z-index: 1;
+        transition: opacity 0.3s;
     }
 
-    .btn-no:hover {
-        background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        transform: translateY(-1px);
+    .toggle-switch-label-on {
+        opacity: 0;
     }
 
-    .btn-no:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    .toggle-switch-label-off {
+        opacity: 1;
     }
 
-    .btn-no.active {
-        background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    .toggle-switch-input:checked + .toggle-switch-slider .toggle-switch-label-on {
+        opacity: 1;
     }
 
-    .btn-yes i,
-    .btn-no i {
-        margin-right: 4px;
+    .toggle-switch-input:checked + .toggle-switch-slider .toggle-switch-label-off {
+        opacity: 0;
     }
 
     /* Custom styling untuk Select2 agar konsisten dengan form-control */
@@ -1906,6 +1971,8 @@
                     if (verifikasi && verifikasi.status_verifikasi === 'perlu_perbaikan') {
                         // Tampilkan alert
                         $('#alertPerluPerbaikan').show();
+                        // Tampilkan card informasi proses review
+                        $('#cardInfoProsesReview').show();
                         if (verifikasi.keterangan_text) {
                             $('#keteranganUser').html('<strong>Keterangan dari User:</strong><br>' + verifikasi.keterangan_text.replace(/\n/g, '<br>'));
                         } else {
@@ -1984,7 +2051,7 @@
                             $('#editInfoMessage').html(`
                                 <i class="fas fa-info-circle"></i> 
                                 <strong>Review perubahan yang diusulkan.</strong><br>
-                                Gunakan tombol <strong>"Ya"</strong> untuk menggunakan nilai usulan, atau tombol <strong>"Tidak"</strong> untuk mengosongkan kolom perbaikan.
+                                Gunakan toggle switch <strong>"Terima"</strong> untuk menggunakan nilai usulan, atau <strong>"Tidak"</strong> untuk mengosongkan kolom perbaikan.
                                 Anda juga dapat mengedit manual di kolom "Perbaikan (Sesudah)" jika diperlukan.
                                 Hanya <strong>${fieldsToFixCount} field</strong> yang diminta perbaikan yang dapat diubah.
                             `);
@@ -2011,6 +2078,7 @@
                         // Tidak ada status perlu perbaikan - edit normal
                         // Hide alert dan tabel perbaikan
                         $('#alertPerluPerbaikan').hide();
+                        $('#cardInfoProsesReview').hide();
                         $('#fieldsToFixList').html('');
                         $('#tablePerbaikanData').hide();
                         $('.comparison-row').hide();
@@ -2067,6 +2135,8 @@
 
                     // Cleanup saat modal ditutup
                     $('#modalEditPeserta').on('hidden.bs.modal', function() {
+                        // Hide card informasi proses review
+                        $('#cardInfoProsesReview').hide();
                         // Reset tabel perbaikan
                         $('#tbodyPerbaikanData').empty();
                         $('#tablePerbaikanData').hide();
@@ -2079,8 +2149,7 @@
                         $('#editNamaAyah').closest('.form-group').parent().show();
 
                         // Remove event handlers untuk menghindari memory leaks
-                        $('.btn-yes').off('click');
-                        $('.btn-no').off('click');
+                        $('.toggle-switch-input').off('change');
                         $('.perbaikan-input').off('change input');
                     });
 
@@ -2248,13 +2317,14 @@
                     <td class="current-value-cell">${currentDisplay || '-'}</td>
                     <td class="usulan-value-cell">${usulanDisplay || '-'}</td>
                     <td class="text-center">
-                        <div class="btn-action-group">
-                            <button type="button" class="btn-yes" data-field="${key}" data-usulan="${usulanValueForInput || usulanValue}" title="Setujui gunakan usulan">
-                                <i class="fas fa-check"></i> Ya
-                            </button>
-                            <button type="button" class="btn-no" data-field="${key}" title="Tidak setuju, kosongkan">
-                                <i class="fas fa-times"></i> Tidak
-                            </button>
+                        <div class="toggle-switch-container">
+                            <label class="toggle-switch">
+                                <input type="checkbox" class="toggle-switch-input" data-field="${key}" data-usulan="${usulanValueForInput || usulanValue}">
+                                <span class="toggle-switch-slider">
+                                    <span class="toggle-switch-label-on">TERIMA</span>
+                                    <span class="toggle-switch-label-off">TIDAK</span>
+                                </span>
+                            </label>
                         </div>
                     </td>
                     <td>
@@ -2265,82 +2335,61 @@
 
             tbody.append(row);
 
-            // Set initial button state - tidak ada yang active karena input kosong
-            // Default: Tidak button active (karena input kosong)
+            // Set initial toggle state - unchecked (Tidak) karena input kosong
             const rowElement = $(`#${rowId}`);
-            const btnNo = rowElement.find('.btn-no');
-            btnNo.addClass('active');
+            const toggleInput = rowElement.find('.toggle-switch-input');
+            toggleInput.prop('checked', false);
         });
 
-        // Attach event handlers for Yes button
-        $('.btn-yes').off('click').on('click', function() {
+        // Attach event handlers for toggle switch
+        $('.toggle-switch-input').off('change').on('change', function() {
+            const isChecked = $(this).is(':checked');
             const field = $(this).data('field');
             const usulanValue = $(this).data('usulan');
             const perbaikanInput = $('#perbaikan_' + field);
             const fieldInfo = fieldMap[field];
-            const row = $(this).closest('tr');
-            const btnYes = row.find('.btn-yes');
-            const btnNo = row.find('.btn-no');
 
-            // Set value to usulan (hanya di tabel, tidak perlu sync dengan form fields)
-            if (fieldInfo.type === 'date') {
-                // Format date for input
-                const formattedDate = formatDateForInput(usulanValue);
-                perbaikanInput.val(formattedDate);
-            } else if (fieldInfo.type === 'select') {
-                perbaikanInput.val(usulanValue);
+            if (isChecked) {
+                // Toggle ON = Terima - Set value to usulan
+                if (fieldInfo.type === 'date') {
+                    // Format date for input
+                    const formattedDate = formatDateForInput(usulanValue);
+                    perbaikanInput.val(formattedDate);
+                } else if (fieldInfo.type === 'select') {
+                    perbaikanInput.val(usulanValue);
+                } else {
+                    perbaikanInput.val(usulanValue);
+                }
+
+                // Add visual feedback
+                perbaikanInput.css({
+                    'background-color': '#d4edda',
+                    'border-color': '#28a745'
+                });
+
+                setTimeout(() => {
+                    perbaikanInput.css({
+                        'background-color': '',
+                        'border-color': '#28a745'
+                    });
+                }, 500);
             } else {
-                perbaikanInput.val(usulanValue);
+                // Toggle OFF = Tidak - Clear value
+                perbaikanInput.val('');
+
+                // Add visual feedback
+                perbaikanInput.css({
+                    'background-color': '#f8d7da',
+                    'border-color': '#dc3545'
+                });
+
+                setTimeout(() => {
+                    perbaikanInput.css({
+                        'background-color': '',
+                        'border-color': '#28a745'
+                    });
+                }, 500);
             }
-
-            // Update button states
-            btnYes.addClass('active');
-            btnNo.removeClass('active');
-
-            // Add visual feedback
-            perbaikanInput.css({
-                'background-color': '#d4edda',
-                'border-color': '#28a745'
-            });
-
-            setTimeout(() => {
-                perbaikanInput.css({
-                    'background-color': '',
-                    'border-color': '#28a745'
-                });
-            }, 500);
-
-            // Focus on the input
-            perbaikanInput.focus();
-        });
-
-        // Attach event handlers for No button
-        $('.btn-no').off('click').on('click', function() {
-            const field = $(this).data('field');
-            const perbaikanInput = $('#perbaikan_' + field);
-            const row = $(this).closest('tr');
-            const btnYes = row.find('.btn-yes');
-            const btnNo = row.find('.btn-no');
-
-            // Clear value (hanya di tabel, tidak perlu sync dengan form fields)
-            perbaikanInput.val('');
-
-            // Update button states
-            btnNo.addClass('active');
-            btnYes.removeClass('active');
-
-            // Add visual feedback
-            perbaikanInput.css({
-                'background-color': '#f8d7da',
-                'border-color': '#dc3545'
-            });
-
-            setTimeout(() => {
-                perbaikanInput.css({
-                    'background-color': '',
-                    'border-color': '#28a745'
-                });
-            }, 500);
 
             // Focus on the input
             perbaikanInput.focus();
@@ -2354,10 +2403,9 @@
             const field = $(this).data('field');
             const usulanValue = $(this).data('usulan');
             const row = $(this).closest('tr');
-            const btnYes = row.find('.btn-yes');
-            const btnNo = row.find('.btn-no');
+            const toggleInput = row.find('.toggle-switch-input');
 
-            // Update button states based on input value
+            // Update toggle state based on input value
             // Normalize values for comparison
             const normalizeValue = (val) => {
                 if (!val) return '';
@@ -2368,9 +2416,8 @@
             const normalizedUsulan = normalizeValue(usulanValue);
 
             if (normalizedValue === '') {
-                // Input kosong - Tidak active
-                btnNo.addClass('active');
-                btnYes.removeClass('active');
+                // Input kosong - Toggle OFF (Tidak)
+                toggleInput.prop('checked', false);
             } else if (normalizedValue === normalizedUsulan) {
                 // Input sama dengan usulan - Ya active
                 btnYes.addClass('active');

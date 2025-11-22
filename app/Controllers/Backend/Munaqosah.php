@@ -241,6 +241,43 @@ class Munaqosah extends BaseController
             $result = $query->getRow();
             $totalSudahDinilai = $result ? (int)$result->total : 0;
 
+            // Hitung jumlah peserta berdasarkan status verifikasi (hanya Munaqosah)
+            // Status Valid (valid atau dikonfirmasi)
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND r.TypeUjian = 'munaqosah'
+                AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
+            ", [$currentTahunAjaran]);
+            $result = $query->getRow();
+            $totalStatusValid = $result ? (int)$result->total : 0;
+
+            // Status Perbaikan
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND r.TypeUjian = 'munaqosah'
+                AND p.status_verifikasi = 'perlu_perbaikan'
+            ", [$currentTahunAjaran]);
+            $result = $query->getRow();
+            $totalStatusPerbaikan = $result ? (int)$result->total : 0;
+
+            // Status Belum Dikonfirmasi (NULL atau empty)
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND r.TypeUjian = 'munaqosah'
+                AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
+            ", [$currentTahunAjaran]);
+            $result = $query->getRow();
+            $totalStatusBelumDikonfirmasi = $result ? (int)$result->total : 0;
+
             // Menu yang bisa diakses Admin
             $menuItems = [
                 'kategori_materi' => base_url('backend/kategori-materi'),
@@ -259,6 +296,53 @@ class Munaqosah extends BaseController
                 'antrian' => base_url('backend/munaqosah/antrian'),
             ];
 
+            // Cek setting AktiveTombolKelulusan untuk Admin (IdTpq = '0' atau 0)
+            // Prioritas: 1. IdTpq = '0' atau 0, 2. IdTpq = 'default'
+            $idTpqForSetting = '0';
+
+            // Cek dulu dengan IdTpq = '0' atau 0 (prioritas utama)
+            $aktiveTombolKelulusanSetting = $this->munaqosahKonfigurasiModel
+
+                ->where('IdTpq', '0')
+
+                ->where('SettingKey', 'AktiveTombolKelulusan')
+                ->first();
+
+            // Jika tidak ditemukan dengan IdTpq = '0', cek dengan 'default'
+            if (empty($aktiveTombolKelulusanSetting)) {
+                $aktiveTombolKelulusanSetting = $this->munaqosahKonfigurasiModel
+                    ->where('IdTpq', 'default')
+                    ->where('SettingKey', 'AktiveTombolKelulusan')
+                    ->first();
+            }
+
+            $aktiveTombolKelulusanExists = !empty($aktiveTombolKelulusanSetting);
+
+            // Jika setting ditemukan, ambil nilai langsung dari setting yang ditemukan
+            if ($aktiveTombolKelulusanExists) {
+                // Convert nilai langsung dari database
+                $settingValue = $aktiveTombolKelulusanSetting['SettingValue'] ?? 'false';
+                $settingType = $aktiveTombolKelulusanSetting['SettingType'] ?? 'boolean';
+
+                // Convert to boolean
+                if (is_bool($settingValue)) {
+                    $aktiveTombolKelulusanValue = $settingValue;
+                } else {
+                    $lowerValue = strtolower(trim($settingValue));
+                    $aktiveTombolKelulusanValue = in_array($lowerValue, ['true', '1', 'yes', 'on', 'enabled', 'active']);
+                }
+
+                // Update idTpqForSetting berdasarkan setting yang ditemukan
+                $foundIdTpq = $aktiveTombolKelulusanSetting['IdTpq'];
+                // Jika yang ditemukan adalah 'default', tetap gunakan '0' untuk update/create
+                // Tapi jika yang ditemukan adalah '0' atau 0, gunakan '0'
+                if ($foundIdTpq !== 'default') {
+                    $idTpqForSetting = (string)$foundIdTpq;
+                }
+            } else {
+                $aktiveTombolKelulusanValue = false;
+            }
+
             $data = [
                 'page_title' => 'Dashboard Munaqosah - Admin',
                 'current_tahun_ajaran' => $currentTahunAjaran,
@@ -267,6 +351,12 @@ class Munaqosah extends BaseController
                 'total_grup_materi' => $totalGrupMateri,
                 'total_sudah_dinilai' => $totalSudahDinilai,
                 'total_belum_dinilai' => max(0, $totalPeserta - $totalSudahDinilai),
+                'total_status_valid' => $totalStatusValid,
+                'total_status_perbaikan' => $totalStatusPerbaikan,
+                'total_status_belum_dikonfirmasi' => $totalStatusBelumDikonfirmasi,
+                'aktive_tombol_kelulusan_exists' => $aktiveTombolKelulusanExists,
+                'aktive_tombol_kelulusan_value' => $aktiveTombolKelulusanValue,
+                'id_tpq_setting' => $idTpqForSetting,
                 'menu_items' => $menuItems,
                 'statistik' => $statistik,
             ];
@@ -296,6 +386,46 @@ class Munaqosah extends BaseController
             ", [$currentTahunAjaran, $idTpq]);
             $result = $query->getRow();
             $totalSudahDinilai = $result ? (int)$result->total : 0;
+
+            // Hitung jumlah peserta berdasarkan status verifikasi untuk TPQ ini (hanya Pra-Munaqosah)
+            // Status Valid (valid atau dikonfirmasi)
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND p.IdTpq = ?
+                AND r.TypeUjian = 'pra-munaqosah'
+                AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
+            ", [$currentTahunAjaran, $idTpq]);
+            $result = $query->getRow();
+            $totalStatusValid = $result ? (int)$result->total : 0;
+
+            // Status Perbaikan
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND p.IdTpq = ?
+                AND r.TypeUjian = 'pra-munaqosah'
+                AND p.status_verifikasi = 'perlu_perbaikan'
+            ", [$currentTahunAjaran, $idTpq]);
+            $result = $query->getRow();
+            $totalStatusPerbaikan = $result ? (int)$result->total : 0;
+
+            // Status Belum Dikonfirmasi (NULL atau empty)
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND p.IdTpq = ?
+                AND r.TypeUjian = 'pra-munaqosah'
+                AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
+            ", [$currentTahunAjaran, $idTpq]);
+            $result = $query->getRow();
+            $totalStatusBelumDikonfirmasi = $result ? (int)$result->total : 0;
 
             // Statistik per type ujian untuk TPQ ini (hitung distinct NoPeserta)
             $queryMunaqosah = $this->db->query("
@@ -334,7 +464,22 @@ class Munaqosah extends BaseController
             ];
 
             // Data TPQ
-            $dataTpq = $this->tpqModel->find($idTpq);
+            $dataTpq = null;
+            if (!empty($idTpq)) {
+                // Coba menggunakan find() terlebih dahulu
+                $dataTpq = $this->tpqModel->find($idTpq);
+            }
+
+            // Cek setting AktiveTombolKelulusan untuk Operator (IdTpq dari session)
+            $idTpqForSetting = (string)$idTpq;
+            $aktiveTombolKelulusanSetting = $this->munaqosahKonfigurasiModel
+                ->where('IdTpq', $idTpqForSetting)
+                ->where('SettingKey', 'AktiveTombolKelulusan')
+                ->first();
+            $aktiveTombolKelulusanExists = !empty($aktiveTombolKelulusanSetting);
+            $aktiveTombolKelulusanValue = $aktiveTombolKelulusanExists
+                ? $this->munaqosahKonfigurasiModel->getSettingAsBool($idTpqForSetting, 'AktiveTombolKelulusan', false)
+                : false;
 
             $data = [
                 'page_title' => 'Dashboard Munaqosah - Operator',
@@ -345,6 +490,12 @@ class Munaqosah extends BaseController
                 'total_juri' => $totalJuri,
                 'total_sudah_dinilai' => $totalSudahDinilai,
                 'total_belum_dinilai' => max(0, $totalPeserta - $totalSudahDinilai),
+                'total_status_valid' => $totalStatusValid,
+                'total_status_perbaikan' => $totalStatusPerbaikan,
+                'total_status_belum_dikonfirmasi' => $totalStatusBelumDikonfirmasi,
+                'aktive_tombol_kelulusan_exists' => $aktiveTombolKelulusanExists,
+                'aktive_tombol_kelulusan_value' => $aktiveTombolKelulusanValue,
+                'id_tpq_setting' => $idTpqForSetting,
                 'statistik_munaqosah' => $statistikMunaqosah,
                 'statistik_pra_munaqosah' => $statistikPraMunaqosah,
                 'menu_items' => $menuItems,
@@ -447,6 +598,88 @@ class Munaqosah extends BaseController
             }
             $result = $query->getRow();
             $totalSudahDinilai = $result ? (int)$result->total : 0;
+
+            // Hitung jumlah peserta berdasarkan status verifikasi untuk Panitia
+            // Status Valid (valid atau dikonfirmasi)
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                // Untuk panitia TPQ tertentu
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT p.id) as total 
+                    FROM tbl_munaqosah_peserta p
+                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                    WHERE p.IdTahunAjaran = ? 
+                    AND p.IdTpq = ?
+                    AND r.TypeUjian = ?
+                    AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
+                ", [$currentTahunAjaran, $idTpqPanitia, $typeUjian]);
+            } else {
+                // Untuk panitia umum
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT p.id) as total 
+                    FROM tbl_munaqosah_peserta p
+                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                    WHERE p.IdTahunAjaran = ? 
+                    AND (p.IdTpq IS NULL OR p.IdTpq = 0)
+                    AND r.TypeUjian = ?
+                    AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
+                ", [$currentTahunAjaran, $typeUjian]);
+            }
+            $result = $query->getRow();
+            $totalStatusValid = $result ? (int)$result->total : 0;
+
+            // Status Perbaikan
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                // Untuk panitia TPQ tertentu
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT p.id) as total 
+                    FROM tbl_munaqosah_peserta p
+                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                    WHERE p.IdTahunAjaran = ? 
+                    AND p.IdTpq = ?
+                    AND r.TypeUjian = ?
+                    AND p.status_verifikasi = 'perlu_perbaikan'
+                ", [$currentTahunAjaran, $idTpqPanitia, $typeUjian]);
+            } else {
+                // Untuk panitia umum
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT p.id) as total 
+                    FROM tbl_munaqosah_peserta p
+                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                    WHERE p.IdTahunAjaran = ? 
+                    AND (p.IdTpq IS NULL OR p.IdTpq = 0)
+                    AND r.TypeUjian = ?
+                    AND p.status_verifikasi = 'perlu_perbaikan'
+                ", [$currentTahunAjaran, $typeUjian]);
+            }
+            $result = $query->getRow();
+            $totalStatusPerbaikan = $result ? (int)$result->total : 0;
+
+            // Status Belum Dikonfirmasi (NULL atau empty)
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                // Untuk panitia TPQ tertentu
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT p.id) as total 
+                    FROM tbl_munaqosah_peserta p
+                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                    WHERE p.IdTahunAjaran = ? 
+                    AND p.IdTpq = ?
+                    AND r.TypeUjian = ?
+                    AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
+                ", [$currentTahunAjaran, $idTpqPanitia, $typeUjian]);
+            } else {
+                // Untuk panitia umum
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT p.id) as total 
+                    FROM tbl_munaqosah_peserta p
+                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                    WHERE p.IdTahunAjaran = ? 
+                    AND (p.IdTpq IS NULL OR p.IdTpq = 0)
+                    AND r.TypeUjian = ?
+                    AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
+                ", [$currentTahunAjaran, $typeUjian]);
+            }
+            $result = $query->getRow();
+            $totalStatusBelumDikonfirmasi = $result ? (int)$result->total : 0;
 
             // Statistik antrian untuk semua grup materi
             $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
@@ -555,6 +788,17 @@ class Munaqosah extends BaseController
                 'monitoring' => base_url('backend/munaqosah/monitoring?type=' . $menuType . '&tpq=' . $menuTpq),
             ];
 
+            // Cek setting AktiveTombolKelulusan untuk Panitia
+            $idTpqForSetting = ($idTpqPanitia && $idTpqPanitia != 0) ? (string)$idTpqPanitia : '0';
+            $aktiveTombolKelulusanSetting = $this->munaqosahKonfigurasiModel
+                ->where('IdTpq', $idTpqForSetting)
+                ->where('SettingKey', 'AktiveTombolKelulusan')
+                ->first();
+            $aktiveTombolKelulusanExists = !empty($aktiveTombolKelulusanSetting);
+            $aktiveTombolKelulusanValue = $aktiveTombolKelulusanExists
+                ? $this->munaqosahKonfigurasiModel->getSettingAsBool($idTpqForSetting, 'AktiveTombolKelulusan', false)
+                : false;
+
             $data = [
                 'page_title' => 'Dashboard Munaqosah - Panitia',
                 'current_tahun_ajaran' => $currentTahunAjaran,
@@ -565,6 +809,12 @@ class Munaqosah extends BaseController
                 'total_grup_materi' => $totalGrupMateri,
                 'total_sudah_dinilai' => $totalSudahDinilai,
                 'total_belum_dinilai' => max(0, $totalPeserta - $totalSudahDinilai),
+                'total_status_valid' => $totalStatusValid,
+                'total_status_perbaikan' => $totalStatusPerbaikan,
+                'total_status_belum_dikonfirmasi' => $totalStatusBelumDikonfirmasi,
+                'aktive_tombol_kelulusan_exists' => $aktiveTombolKelulusanExists,
+                'aktive_tombol_kelulusan_value' => $aktiveTombolKelulusanValue,
+                'id_tpq_setting' => $idTpqForSetting,
                 'total_antrian' => $totalAntrian,
                 'antrian_selesai' => $antrianSelesai,
                 'antrian_menunggu' => $antrianMenunggu,
@@ -8017,6 +8267,105 @@ class Munaqosah extends BaseController
         }
     }
 
+
+    /**
+     * Toggle AktiveTombolKelulusan setting
+     * Update atau create setting AktiveTombolKelulusan di dashboard
+     */
+    public function toggleAktiveTombolKelulusan()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $idTpq = $this->request->getPost('IdTpq');
+            $value = $this->request->getPost('value'); // true/false
+
+            if (empty($idTpq) && $idTpq !== '0' && $idTpq !== 0) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTpq tidak boleh kosong'
+                ]);
+            }
+
+            // Convert value to boolean
+            $boolValue = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            $settingValue = $boolValue ? 'true' : 'false';
+
+            // Cek apakah setting sudah ada
+            // Untuk IdTpq = '0' atau 0, selalu cari dengan IdTpq = '0' atau 0 (jangan pakai 'default')
+            $existing = null;
+
+            if ($idTpq === '0' || $idTpq === 0) {
+                // Cek dengan IdTpq = '0' atau 0 (prioritas utama, jangan pakai 'default')
+                $existing = $this->munaqosahKonfigurasiModel
+                    ->where('IdTpq', '0')
+                    ->where('SettingKey', 'AktiveTombolKelulusan')
+                    ->first();
+            } else {
+                // Untuk IdTpq lainnya, cek langsung
+                $existing = $this->munaqosahKonfigurasiModel
+                    ->where('IdTpq', (string)$idTpq)
+                    ->where('SettingKey', 'AktiveTombolKelulusan')
+                    ->first();
+            }
+
+            if ($existing) {
+                // Update existing setting dengan IdTpq yang sesuai
+                $updateData = [
+                    'SettingValue' => $settingValue,
+                    'SettingType' => 'boolean'
+                ];
+
+                if ($this->munaqosahKonfigurasiModel->update($existing['id'], $updateData)) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Setting berhasil diupdate',
+                        'value' => $boolValue
+                    ]);
+                } else {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Gagal mengupdate setting',
+                        'errors' => $this->munaqosahKonfigurasiModel->errors()
+                    ]);
+                }
+            } else {
+                // Create new setting
+                $insertData = [
+                    'IdTpq' => (string)$idTpq,
+                    'SettingKey' => 'AktiveTombolKelulusan',
+                    'SettingValue' => $settingValue,
+                    'SettingType' => 'boolean',
+                    'Description' => 'Mengaktifkan tombol kelulusan di halaman konfirmasi data santri'
+                ];
+
+                if ($this->munaqosahKonfigurasiModel->insert($insertData)) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Setting berhasil dibuat',
+                        'value' => $boolValue
+                    ]);
+                } else {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Gagal membuat setting',
+                        'errors' => $this->munaqosahKonfigurasiModel->errors()
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error in toggleAktiveTombolKelulusan: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
 
     // ==================== MONITORING ====================
 

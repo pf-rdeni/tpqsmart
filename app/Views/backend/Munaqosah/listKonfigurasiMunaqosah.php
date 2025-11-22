@@ -2,6 +2,107 @@
 <?= $this->section('content'); ?>
 <div class="container-fluid">
     <div class="row">
+        <!-- Card Informasi Alur Proses -->
+        <div class="col-12">
+            <div class="card card-info collapsed-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle"></i> Panduan Alur Proses Konfigurasi Munaqosah
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                            <ol class="mb-4">
+                                <li class="mb-2">
+                                    <strong>Lihat Data Konfigurasi:</strong> 
+                                    <ul class="mt-2">
+                                        <li>Tabel menampilkan semua konfigurasi munaqosah yang tersedia.</li>
+                                        <li>Konfigurasi dengan <strong>ID TPQ = "default"</strong> adalah template default yang dapat diduplikasi.</li>
+                                        <li>Konfigurasi dengan <strong>ID TPQ = "0"</strong> adalah konfigurasi untuk admin.</li>
+                                        <li>Konfigurasi dengan <strong>ID TPQ spesifik</strong> adalah konfigurasi untuk TPQ tertentu.</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Tambah Konfigurasi Baru (Admin Only):</strong>
+                                    <ul class="mt-2">
+                                        <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-plus"></i> Tambah Baru</span> di header card.</li>
+                                        <li>Isi form dengan:
+                                            <ul>
+                                                <li><strong>ID TPQ:</strong> Pilih "default" untuk template, "0" untuk admin, atau ID TPQ spesifik</li>
+                                                <li><strong>Setting Key:</strong> Nama key pengaturan (contoh: NilaiMinimal, NilaiMaximal)</li>
+                                                <li><strong>Setting Value:</strong> Nilai pengaturan</li>
+                                                <li><strong>Setting Type:</strong> Tipe data (number, text, boolean, json)</li>
+                                                <li><strong>Description:</strong> Keterangan pengaturan (opsional)</li>
+                                            </ul>
+                                        </li>
+                                        <li>Klik <strong>Simpan</strong> untuk menyimpan konfigurasi baru.</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Edit Konfigurasi:</strong>
+                                    <ul class="mt-2">
+                                        <li>Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i></span> pada baris konfigurasi yang ingin diedit.</li>
+                                        <li>Modal edit akan muncul dengan informasi:
+                                            <ul>
+                                                <li><strong>ID TPQ:</strong> Tidak dapat diubah (readonly)</li>
+                                                <li><strong>Setting Key:</strong> Dapat diubah oleh admin, readonly untuk TPQ</li>
+                                                <li><strong>Setting Value:</strong> Dapat diubah sesuai tipe data</li>
+                                                <li><strong>Setting Type:</strong> Tidak dapat diubah (disabled)</li>
+                                                <li><strong>Description:</strong> Dapat diubah</li>
+                                            </ul>
+                                        </li>
+                                        <li>Untuk tipe <strong>boolean</strong>, gunakan radio button (True/False).</li>
+                                        <li>Untuk tipe <strong>number</strong>, hanya angka 0-9 yang diperbolehkan.</li>
+                                        <li>Klik <strong>Update</strong> untuk menyimpan perubahan.</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Duplikasi Konfigurasi:</strong>
+                                    <ul class="mt-2">
+                                        <li>Klik tombol <span class="badge badge-info"><i class="fas fa-copy"></i></span> pada konfigurasi dengan ID TPQ = "default".</li>
+                                        <li>Modal duplikasi akan muncul untuk menerapkan konfigurasi default ke TPQ tertentu.</li>
+                                        <li>Untuk <strong>Admin:</strong> Dapat memilih ID TPQ tujuan dari dropdown.</li>
+                                        <li>Untuk <strong>TPQ:</strong> ID TPQ otomatis terisi dan tidak dapat diubah (readonly).</li>
+                                        <li>Anda dapat mengubah <strong>Setting Value</strong> sebelum menduplikasi jika diperlukan.</li>
+                                        <li>Klik <strong>Duplikasi</strong> untuk menerapkan konfigurasi ke TPQ tujuan.</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Hapus Konfigurasi:</strong>
+                                    <ul class="mt-2">
+                                        <li>Klik tombol <span class="badge badge-danger"><i class="fas fa-trash"></i></span> pada baris konfigurasi yang ingin dihapus.</li>
+                                        <li>Konfirmasi penghapusan di popup yang muncul.</li>
+                                        <li>Konfigurasi dengan ID TPQ = "default" hanya dapat dihapus oleh admin.</li>
+                                    </ul>
+                                </li>
+                            </ol>
+
+                            <div class="alert alert-info mb-0">
+                                <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                <ul class="mb-0">
+                                    <li><strong>Hierarki Konfigurasi:</strong> Konfigurasi default dapat diduplikasi ke TPQ tertentu untuk kustomisasi per TPQ.</li>
+                                    <li><strong>Akses Admin:</strong> Admin dapat menambah, edit, dan hapus semua konfigurasi, termasuk default.</li>
+                                    <li><strong>Akses TPQ:</strong> TPQ hanya dapat mengedit konfigurasi miliknya dan menduplikasi dari default.</li>
+                                    <li><strong>Setting Type:</strong> Pilih tipe data yang sesuai (number untuk angka, boolean untuk true/false, text untuk teks, json untuk data kompleks).</li>
+                                    <li><strong>Validasi Number:</strong> Untuk tipe number, hanya angka 0-9 yang diperbolehkan, nilai harus >= 0.</li>
+                                    <li><strong>Boolean Type:</strong> Gunakan radio button True/False saat edit konfigurasi bertipe boolean.</li>
+                                    <li><strong>Duplikasi Default:</strong> Gunakan fitur duplikasi untuk menerapkan template default ke TPQ Anda tanpa harus membuat dari awal.</li>
+                                    <li><strong>ID TPQ "default":</strong> Template default tidak dapat diduplikasi ke "default" lagi, hanya ke TPQ spesifik atau "0" (admin).</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
