@@ -1,6 +1,67 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
 <div class="col-12">
+    <!-- Card Informasi Alur Proses -->
+    <div class="card card-info collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i> Panduan Alur Proses Ubah Data Santri
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                    <ol class="mb-4">
+                        <li class="mb-2">
+                            <strong>Lihat Data Santri:</strong> Tabel menampilkan daftar semua santri dengan informasi dasar (IdSantri, Nama, Kelas, dll).
+                        </li>
+                        <li class="mb-2">
+                            <strong>Filter & Search:</strong> Gunakan search box DataTable untuk mencari santri berdasarkan nama, IdSantri, atau kolom lainnya. 
+                            Data dapat diurutkan dengan mengklik header kolom.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Lihat Profil:</strong> Klik foto profil atau kolom "Profil" untuk melihat foto profil dalam ukuran lebih besar (popup).
+                        </li>
+                        <li class="mb-2">
+                            <strong>Ubah Status Verifikasi:</strong> Gunakan dropdown di kolom "Verifikasi" untuk mengubah status:
+                            <ul class="mt-2">
+                                <li><span class="badge badge-warning">Belum Diverifikasi</span> - Data belum dicek</li>
+                                <li><span class="badge badge-success">Sudah Diverifikasi</span> - Data sudah dicek dan valid</li>
+                                <li><span class="badge badge-danger">Perlu Perbaikan</span> - Data perlu diperbaiki</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Ubah Status Aktif (Admin/Operator):</strong> Gunakan toggle switch di kolom "Active" untuk mengaktifkan/nonaktifkan santri. 
+                            Status <span class="badge badge-secondary"><i class="fas fa-graduation-cap"></i> Alumni</span> tidak dapat diubah.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Edit Data Santri:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> 
+                            pada kolom "Aksi" untuk mengubah data santri. Anda akan diarahkan ke form edit.
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-info mb-0">
+                        <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                        <ul class="mb-0">
+                            <li>Gunakan fitur <strong>Export</strong> di DataTable (Copy, Excel, PDF, dll) untuk menyalin atau mengunduh data santri.</li>
+                            <li>Perubahan status verifikasi dan aktif akan <strong>tersimpan otomatis</strong> saat Anda mengubahnya.</li>
+                            <li>Foto profil akan muncul dalam popup saat di-hover atau di-klik pada thumbnail di tabel.</li>
+                            <li>Kolom "Active" hanya muncul untuk <strong>Admin</strong> dan <strong>Operator</strong>.</li>
+                            <li>Kolom "Kelurahan/Desa" dan "TPQ" hanya muncul untuk <strong>Admin</strong>.</li>
+                            <li>Santri dengan status <strong>Alumni</strong> tidak dapat diubah status aktifnya.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">

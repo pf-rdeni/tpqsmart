@@ -1,6 +1,70 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
 <div class="col-12">
+    <!-- Card Informasi Alur Proses -->
+    <div class="card card-info collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i> Panduan Alur Proses Data Santri Per Kelas
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                    <ol class="mb-4">
+                        <li class="mb-2">
+                            <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dikelola. 
+                            Tab <strong>"SEMUA"</strong> menampilkan semua santri dari semua kelas.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Lihat Status Penilaian:</strong> Setiap baris santri menampilkan indikator status penilaian:
+                            <ul class="mt-2">
+                                <li><i class="fas fa-exclamation-circle" style="color:red"></i> <span style="color:red;"><strong>Merah</strong></span> - Belum selesai dinilai</li>
+                                <li><i class="fas fa-check-circle" style="color:green"></i> <span style="color:green;"><strong>Hijau</strong></span> - Sudah selesai dinilai</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Edit Nilai:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> 
+                            pada baris santri untuk mengisi atau mengubah nilai santri. Tombol ini hanya muncul untuk:
+                            <ul class="mt-2">
+                                <li>Guru Kelas atau Wali Kelas</li>
+                                <li>Santri yang belum selesai dinilai (StatusPenilaian = 0)</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>View Nilai:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-eye"></i> View</span> 
+                            pada baris santri untuk melihat nilai yang sudah diisi. Tombol ini muncul untuk:
+                            <ul class="mt-2">
+                                <li>Guru Kelas</li>
+                                <li>Santri yang sudah selesai dinilai (StatusPenilaian = 1)</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Export Data:</strong> Gunakan tombol export di DataTable (Copy, Excel, dll) untuk menyalin atau mengunduh data santri ke file Excel.
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-info mb-0">
+                        <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                        <ul class="mb-0">
+                            <li>Tab aktif akan <strong>tersimpan otomatis</strong> di browser Anda, sehingga saat kembali ke halaman ini, tab terakhir yang dibuka akan otomatis aktif.</li>
+                            <li>Data dapat diurutkan dan difilter menggunakan fitur DataTable (search box, sorting, dll).</li>
+                            <li>Hanya <strong>Guru Kelas</strong> atau <strong>Wali Kelas</strong> yang dapat mengedit nilai santri di kelas mereka.</li>
+                            <li>Setelah semua nilai diisi dan disimpan, status akan berubah menjadi <strong>Sudah Selesai Dinilai</strong> dan tombol akan berubah menjadi <strong>View</strong>.</li>
+                            <li>Gunakan tab <strong>"SEMUA"</strong> untuk melihat semua santri sekaligus tanpa filter kelas.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">List Santri TPQ Per Kelas</h3>

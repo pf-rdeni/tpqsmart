@@ -29,6 +29,63 @@ foreach ($dataNilai as $santri) {
 
 ?>
 <div class="col-12">
+    <!-- Card Informasi Alur Proses -->
+    <div class="card card-info collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i> Panduan Alur Proses Nilai Santri Per Kelas
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                    <ol class="mb-4">
+                        <li class="mb-2">
+                            <strong>Pilih Semester:</strong> Gunakan tombol <span class="badge badge-warning">Semester Ganjil</span> atau
+                            <span class="badge badge-info">Semester Genap</span> di pojok kanan atas untuk melihat data nilai per semester.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dilihat nilai santrinya.
+                            Setiap tab mewakili satu kelas dengan daftar santri di dalamnya.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Lihat Nilai:</strong> Tabel menampilkan nilai santri untuk setiap materi pelajaran.
+                            Nilai ditampilkan dalam format <strong>angka</strong> atau <strong>huruf</strong> (A, B, C, D) tergantung setting kelas.
+                            <ul class="mt-2">
+                                <li>Nilai <span style="color: red;"><strong>merah</strong></span> atau <span style="color: red;"><strong>0</strong></span> menandakan nilai belum diisi.</li>
+                                <li>Baris terakhir menampilkan <strong>Rata-Rata Kelas</strong> untuk setiap materi.</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Detail Nilai:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-eye"></i> Detail</span>
+                            pada baris santri untuk melihat detail nilai per materi beserta perbandingan dengan rata-rata kelas dalam modal popup.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Export Data:</strong> Gunakan tombol export di DataTable (Copy, Excel, dll) untuk menyalin atau mengunduh data nilai ke file Excel.
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-info mb-0">
+                        <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                        <ul class="mb-0">
+                            <li>Header kolom materi ditampilkan secara <strong>vertikal</strong> untuk menghemat ruang dan memudahkan pembacaan.</li>
+                            <li>Kolom <strong>Total Nilai</strong> dan <strong>Nilai Rata-Rata</strong> dihitung otomatis dari semua nilai materi santri.</li>
+                            <li>Jika kelas menggunakan sistem nilai <strong>huruf</strong>, kolom akan menampilkan "Rata-Rata Huruf" sebagai ganti "Total Nilai" dan "Nilai Rata-Rata".</li>
+                            <li>Data dapat diurutkan dan difilter menggunakan fitur DataTable (search box, sorting, dll).</li>
+                            <li>Modal detail nilai menampilkan perbandingan nilai santri dengan rata-rata kelas untuk setiap materi.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">List nilai santri</h3>

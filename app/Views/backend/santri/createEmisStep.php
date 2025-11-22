@@ -20,6 +20,99 @@ if (ENVIRONMENT === 'production') {
 <div class="modal-body">
     <div class="row">
         <div class="col-md-12">
+            <!-- Card Informasi Alur Proses -->
+            <div class="card card-info collapsed-card mb-3">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle"></i> Panduan Alur Proses Input Data Santri Baru
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                            <ol class="mb-4">
+                                <li class="mb-2">
+                                    <strong>Langkah 1 - Data TPQ:</strong> Isi informasi TPQ tempat santri akan terdaftar. 
+                                    Pastikan data TPQ sudah benar karena akan digunakan untuk semua data santri.
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Langkah 2 - Data Santri:</strong> Isi data pribadi santri meliputi:
+                                    <ul class="mt-2">
+                                        <li>Nama, NIS, NIK, Jenis Kelamin</li>
+                                        <li>Tempat & Tanggal Lahir</li>
+                                        <li>Foto Profil (wajib diupload)</li>
+                                        <li>Kelas dan Tahun Ajaran</li>
+                                    </ul>
+                                    Kolom dengan tanda <span class="text-danger font-weight-bold">*</span> adalah wajib diisi.
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Dokumen Wajib:</strong> Pastikan dokumen berikut sudah diupload:
+                                    <ul class="mt-2">
+                                        <li><strong>Foto Profil Santri</strong> - Format: JPG, JPEG, PNG. Direkomendasikan latar belakang merah, rasio 2:3 atau 3:4</li>
+                                        <li><strong>Kartu Keluarga (KK) Santri</strong> - Format: PDF, JPG, JPEG, PNG</li>
+                                        <li><strong>Kartu Indonesia Pintar (KIP)</strong> - Wajib jika memiliki KIP (centang checkbox "Memiliki KIP"). Format: PDF, JPG, JPEG, PNG</li>
+                                        <li><strong>Kartu Keluarga Sejahtera (KKS)</strong> - Wajib jika memiliki KKS (centang checkbox "Memiliki KKS"). Format: PDF, JPG, JPEG, PNG</li>
+                                        <li><strong>Program Keluarga Harapan (PKH)</strong> - Wajib jika memiliki PKH (centang checkbox "Memiliki PKH"). Format: PDF, JPG, JPEG, PNG</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Dokumen Opsional/Tambahan:</strong> Dokumen berikut dapat diupload jika tersedia:
+                                    <ul class="mt-2">
+                                        <li><strong>KK Ayah</strong> - Format: PDF, JPG, JPEG, PNG</li>
+                                        <li><strong>KK Ibu</strong> - Format: PDF, JPG, JPEG, PNG</li>
+                                    </ul>
+                                    <small class="text-muted">Dokumen opsional ini dapat membantu memperlengkapi data santri, namun tidak wajib diisi.</small>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Langkah 3 - Data Orang Tua:</strong> Isi data orang tua/wali santri:
+                                    <ul class="mt-2">
+                                        <li>Nama Ayah, Nama Ibu</li>
+                                        <li>Pekerjaan, Pendidikan</li>
+                                        <li>No HP dan Email</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Langkah 4 - Data Alamat:</strong> Isi alamat lengkap santri:
+                                    <ul class="mt-2">
+                                        <li>Alamat, RT/RW</li>
+                                        <li>Kelurahan/Desa, Kecamatan</li>
+                                        <li>Kode Pos</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Langkah 5 - Data Wali (Opsional):</strong> Jika ada wali selain orang tua, isi data wali di langkah ini.
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Submit Data:</strong> Setelah semua data diisi, klik tombol <span class="badge badge-success">Submit</span> 
+                                    untuk menyimpan data. Sistem akan memvalidasi data sebelum disimpan.
+                                </li>
+                            </ol>
+
+                            <div class="alert alert-info mb-0">
+                                <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                <ul class="mb-0">
+                                    <li>Form menggunakan <strong>Stepper</strong> (langkah demi langkah) untuk memudahkan pengisian data.</li>
+                                    <li>Anda dapat <strong>navigasi antar langkah</strong> dengan mengklik tab di bagian atas form.</li>
+                                    <li>Kolom dengan tanda <span class="text-danger font-weight-bold">*</span> adalah <strong>wajib diisi</strong>.</li>
+                                    <li><strong>Dokumen Wajib:</strong> Foto Profil, KK Santri, dan dokumen lainnya (KIP/KKS/PKH jika memiliki) harus diupload sebelum submit.</li>
+                                    <li><strong>Format Dokumen:</strong> Semua dokumen dapat diupload dalam format PDF, JPG, JPEG, atau PNG.</li>
+                                    <li><strong>Foto Profil:</strong> Akan otomatis di-resize dan dibuat thumbnail setelah diupload. Dapat diambil langsung dari kamera atau diupload dari file.</li>
+                                    <li><strong>Dokumen Kondisional:</strong> KIP, KKS, dan PKH hanya wajib jika checkbox "Memiliki" dicentang. Jika tidak memiliki, abaikan langkah tersebut.</li>
+                                    <li>Pastikan data yang diisi <strong>akurat</strong> karena akan digunakan untuk keperluan administrasi dan laporan.</li>
+                                    <li>Data yang sudah disubmit akan muncul di halaman "Ubah Santri" untuk verifikasi dan pengeditan lebih lanjut.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card card-default">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center w-100">

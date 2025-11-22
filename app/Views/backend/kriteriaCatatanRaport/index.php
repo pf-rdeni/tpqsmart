@@ -3,6 +3,75 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
+            <!-- Card Informasi Alur Proses -->
+            <div class="card card-info collapsed-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle"></i> Panduan Alur Proses Kriteria Catatan Raport
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                            <ol class="mb-4">
+                                <li class="mb-2">
+                                    <strong>Filter Data:</strong> Gunakan filter di atas tabel untuk menyaring data kriteria berdasarkan:
+                                    <ul class="mt-2">
+                                        <li><strong>TPQ:</strong> Pilih TPQ tertentu atau "Semua TPQ" (untuk Admin/Operator)</li>
+                                        <li><strong>Tahun Ajaran:</strong> Pilih tahun ajaran tertentu atau "Semua Tahun Ajaran"</li>
+                                        <li><strong>Kelas:</strong> Pilih kelas tertentu atau "Semua Kelas"</li>
+                                    </ul>
+                                    Klik tombol <span class="badge badge-info"><i class="fas fa-filter"></i> Filter</span> untuk menerapkan filter.
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Tambah Kriteria Baru:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-plus"></i> Tambah Baru</span> 
+                                    (hanya untuk Admin/Operator) untuk menambahkan kriteria catatan baru. Isi form dengan:
+                                    <ul class="mt-2">
+                                        <li>Nilai Huruf (A, B, C, D)</li>
+                                        <li>Nilai Min dan Max (opsional)</li>
+                                        <li>Catatan (wajib)</li>
+                                        <li>Status (Aktif/Tidak Aktif)</li>
+                                        <li>ID TPQ, Tahun Ajaran, dan Kelas</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Duplikasi dari Default:</strong> Untuk non-admin, gunakan tombol <span class="badge badge-info"><i class="fas fa-copy"></i> Duplikasi</span> 
+                                    pada baris dengan ID TPQ "default" untuk menyalin konfigurasi ke TPQ/Kelas Anda. 
+                                    Anda dapat mengubah catatan sebelum menduplikasi.
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Edit Kriteria:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> 
+                                    pada baris data untuk mengubah kriteria. 
+                                    <strong>Catatan:</strong> ID TPQ, Tahun Ajaran, dan Kelas tidak dapat diubah setelah dibuat.
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Hapus Kriteria:</strong> Klik tombol <span class="badge badge-danger"><i class="fas fa-trash"></i> Hapus</span> 
+                                    untuk menghapus kriteria. <strong>Perhatian:</strong> Kriteria dengan ID TPQ "default" hanya dapat dihapus oleh Admin.
+                                </li>
+                            </ol>
+
+                            <div class="alert alert-info mb-0">
+                                <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                <ul class="mb-0">
+                                    <li><strong>Hierarki Prioritas:</strong> Sistem akan memilih catatan berdasarkan prioritas: <strong>Spesifik Kelas</strong> → <strong>Spesifik TPQ</strong> → <strong>Umum (default)</strong></li>
+                                    <li><strong>Template Default:</strong> Kriteria dengan ID TPQ "default" berfungsi sebagai template yang dapat diduplikasi ke TPQ/Kelas lain.</li>
+                                    <li><strong>Non-Admin:</strong> Guru Kelas/Wali Kelas tidak dapat menambah kriteria baru, hanya dapat menduplikasi dari default ke TPQ/Kelas mereka.</li>
+                                    <li><strong>Filter TPQ:</strong> Untuk Guru Kelas/Wali Kelas, filter TPQ terkunci ke TPQ mereka sendiri dan tidak dapat diubah.</li>
+                                    <li><strong>Status Aktif:</strong> Hanya kriteria dengan status "Aktif" yang akan digunakan saat generate catatan raport.</li>
+                                    <li><strong>Kosongkan Tahun Ajaran/Kelas:</strong> Jika dikosongkan (NULL), kriteria akan berlaku untuk semua tahun ajaran/kelas.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Kriteria Catatan Raport</h3>

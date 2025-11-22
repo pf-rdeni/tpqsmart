@@ -2,6 +2,63 @@
 
 <?= $this->section('content') ?>
 <div class="col-12">
+    <!-- Card Informasi Alur Proses -->
+    <div class="card card-info collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i> Panduan Alur Proses Rapor Santri
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                    <ol class="mb-4">
+                        <li class="mb-2">
+                            <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dikelola.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Atur Absensi:</strong> Klik checkbox <span class="badge badge-info">Absensi</span> pada baris santri untuk mengisi data absensi (Izin, Alfa, Sakit).
+                            Anda dapat menggunakan tombol <span class="badge badge-info"><i class="fas fa-sync-alt"></i> Generate</span> untuk mengambil data dari tabel absensi otomatis.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Atur Catatan:</strong> Klik checkbox <span class="badge badge-success">Catatan</span> pada baris santri untuk mengatur catatan rapor.
+                            Sistem akan menampilkan catatan default berdasarkan nilai rata-rata santri. Jika tersedia beberapa opsi catatan (Spesifik Kelas, Spesifik TPQ, Umum),
+                            Anda dapat memilih dari dropdown. Anda juga dapat menambahkan catatan khusus dari wali kelas.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Cetak Rapor:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-print"></i> Cetak Rapor</span> untuk mencetak rapor individual,
+                            atau <span class="badge badge-primary"><i class="fas fa-print"></i> Cetak Semua Rapor Kelas</span> untuk mencetak semua rapor dalam satu kelas sekaligus.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Tanda Tangan:</strong>
+                            <ul class="mt-2">
+                                <li><span class="badge badge-info"><i class="fas fa-signature"></i> Ttd Walas</span> - Hanya Wali Kelas yang dapat menandatangani</li>
+                                <li><span class="badge badge-success"><i class="fas fa-signature"></i> Ttd Kepsek</span> - Hanya Kepala TPQ/Kepala Sekolah yang dapat menandatangani</li>
+                            </ul>
+                            Tombol akan otomatis nonaktif setelah ditandatangani atau jika Anda tidak memiliki akses.
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-info mb-0">
+                        <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                        <ul class="mb-0">
+                            <li>Checkbox <strong>Absensi</strong> dan <strong>Catatan</strong> berfungsi sebagai toggle untuk menampilkan/menyembunyikan informasi di rapor PDF.</li>
+                            <li>Data absensi dan catatan akan tersimpan secara otomatis setelah Anda klik tombol <strong>Simpan</strong> di modal.</li>
+                            <li>Catatan default dipilih secara otomatis berdasarkan prioritas: <strong>Spesifik Kelas</strong> → <strong>Spesifik TPQ</strong> → <strong>Umum</strong>.</li>
+                            <li>Jika ada beberapa opsi catatan untuk nilai yang sama, dropdown akan muncul untuk memilih sumber catatan yang diinginkan.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <h3 class="card-title"><?= $page_title ?> - Semester <?= $semester ?></h3>
@@ -985,12 +1042,34 @@
 
         // Handle save catatan
         $('#btnSaveCatatan').on('click', function() {
+            // Ambil catatan dari dropdown jika dipilih
+            const selectedCatatanId = $('#selectCatatanSource').val();
+            const selectedOption = $('#selectCatatanSource option:selected');
+            let catatanDefault = $('#catatanDefault').val();
+
+            // Jika ada pilihan dari dropdown, gunakan catatan dari dropdown
+            if (selectedCatatanId && selectedOption.length > 0) {
+                const catatanFromDropdown = selectedOption.data('catatan');
+                if (catatanFromDropdown) {
+                    catatanDefault = catatanFromDropdown;
+                    $('#catatanDefault').val(catatanDefault);
+                }
+            }
+
             const formData = $('#formCatatan').serialize();
+
+            // Tambahkan CatatanSource ke formData
+            const formDataObj = {};
+            $.each(formData.split('&'), function(i, pair) {
+                const parts = pair.split('=');
+                formDataObj[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1] || '');
+            });
+            formDataObj['CatatanSource'] = selectedCatatanId || '';
 
             $.ajax({
                 url: '<?= base_url("backend/rapor/saveCatatan") ?>',
                 type: 'POST',
-                data: formData,
+                data: formDataObj,
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
@@ -1121,18 +1200,10 @@
 
                     <div class="form-group">
                         <label>Pilih Sumber Catatan</label>
-                        <select class="form-control" id="selectCatatanSource" name="CatatanSource">
-                            <option value="">-- Pilih Sumber Catatan --</option>
-                        </select>
-                        <small class="form-text text-muted">Pilih catatan dari kriteria yang tersedia. Secara default menggunakan yang paling spesifik.</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Pilih Sumber Catatan</label>
                         <select class="form-control" id="selectCatatanSource" name="CatatanSource" style="display: none;">
                             <option value="">-- Pilih Sumber Catatan --</option>
                         </select>
-                        <small class="form-text text-muted">Pilih catatan dari kriteria yang tersedia. Secara default menggunakan yang paling spesifik.</small>
+                        <small class="form-text text-muted">Pilih catatan dari kriteria yang tersedia. Secara default menggunakan yang paling spesifik. Dropdown akan muncul jika tersedia lebih dari satu opsi catatan.</small>
                     </div>
 
                     <div class="form-group">

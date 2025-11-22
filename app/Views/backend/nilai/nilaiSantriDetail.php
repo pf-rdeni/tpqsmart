@@ -2,6 +2,73 @@
 <?= $this->section('content'); ?>
 <div class="col-12">
     <?php echo session()->getFlashdata('pesan'); ?>
+    
+    <!-- Card Informasi Alur Proses -->
+    <div class="card card-info collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i> Panduan Alur Proses Input/Edit Nilai Santri
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                    <ol class="mb-4">
+                        <li class="mb-2">
+                            <strong>Lihat Status Nilai:</strong> Tabel menampilkan semua materi pelajaran dengan status nilai:
+                            <ul class="mt-2">
+                                <li>Border <span style="color: red;"><strong>merah</strong></span> - Nilai belum diisi (0)</li>
+                                <li>Border <span style="color: green;"><strong>hijau</strong></span> - Nilai sudah diisi</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Filter Materi:</strong> Gunakan dropdown filter di samping search box untuk memfilter materi tertentu. 
+                            Anda dapat memilih beberapa materi sekaligus. Filter akan tersimpan otomatis di browser Anda.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Input/Edit Nilai:</strong> Klik tombol pada kolom "Aksi" untuk setiap materi:
+                            <ul class="mt-2">
+                                <li><span class="badge badge-primary"><i class="fas fa-plus"></i> Add</span> - Untuk menambah nilai baru (nilai masih 0)</li>
+                                <li><span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> - Untuk mengubah nilai yang sudah ada (Wali Kelas)</li>
+                                <li><span class="badge badge-success"><i class="fas fa-eye"></i> View</span> - Hanya melihat nilai (Guru Kelas, nilai sudah diisi)</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Isi Nilai:</strong> Di dalam modal, isi nilai sesuai dengan format yang tersedia:
+                            <ul class="mt-2">
+                                <li><strong>Sistem Angka:</strong> Input nilai numerik (minimal dan maksimal sesuai setting)</li>
+                                <li><strong>Sistem Huruf:</strong> Pilih nilai menggunakan radio button (A, B, C, D, dll sesuai setting)</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Simpan Nilai:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-save"></i> Simpan</span> 
+                            untuk menyimpan nilai. Sistem akan otomatis memperbarui tampilan tabel setelah penyimpanan berhasil.
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-info mb-0">
+                        <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                        <ul class="mb-0">
+                            <li>Filter materi akan <strong>tersimpan otomatis</strong> di browser, sehingga saat kembali ke halaman ini, filter terakhir akan tetap aktif.</li>
+                            <li>Gunakan search box DataTable untuk mencari materi berdasarkan nama atau ID.</li>
+                            <li>Data dapat diurutkan dengan mengklik header kolom tabel.</li>
+                            <li>Jika Anda mengubah nilai di modal lalu menutup modal tanpa menyimpan, sistem akan memperingatkan Anda tentang perubahan yang tidak tersimpan.</li>
+                            <li>Format nilai (angka atau huruf) tergantung pada <strong>setting kelas</strong> yang telah dikonfigurasi.</li>
+                            <li>Tombol <strong>View</strong> hanya muncul untuk Guru Kelas pada nilai yang sudah diisi, dan tombol ini <strong>disabled</strong> (tidak dapat diklik).</li>
+                            <li>Wali Kelas dapat mengedit nilai yang sudah diisi, sedangkan Guru Kelas hanya dapat melihat.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <?php
         // Extracting the first result from $dataNilai (assuming it has at least one result)
