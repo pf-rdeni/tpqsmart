@@ -168,17 +168,101 @@ $generated_at = $generated_at ?? date('Y-m-d');
 
 <body>
     <div class="header">
-        <?php if (!empty($tpqData['Logo'])): ?>
-            <img src="<?= base_url('public/uploads/logo/' . $tpqData['Logo']) ?>" alt="Logo" class="header-logo">
-        <?php endif; ?>
-        <div class="header-title"><?= esc($tpqData['NamaTpq'] ?? 'TPQ SMART SYSTEM') ?></div>
-        <div class="header-subtitle">
-            <?php if (!empty($tpqData['AlamatTpq'])): ?>
-                <?= esc($tpqData['AlamatTpq']) ?>
+        <?php if (!empty($tpqData['KopLembaga'])): ?>
+            <!-- Kop Lembaga -->
+            <?php
+            $kopPath = FCPATH . 'uploads/kop/' . $tpqData['KopLembaga'];
+            if (file_exists($kopPath)) {
+                // Cek ukuran file untuk optimasi
+                $fileSize = filesize($kopPath);
+                if ($fileSize > 2 * 1024 * 1024) { // Jika file > 2MB
+                    // Resize image untuk performa yang lebih baik
+                    $imageInfo = getimagesize($kopPath);
+                    if ($imageInfo) {
+                        $width = $imageInfo[0];
+                        $height = $imageInfo[1];
+                        $mimeType = $imageInfo['mime'];
+
+                        // Resize jika terlalu besar
+                        if ($width > 1200) {
+                            $newWidth = 1200;
+                            $newHeight = ($height * $newWidth) / $width;
+
+                            // Buat image resource berdasarkan tipe
+                            switch ($mimeType) {
+                                case 'image/jpeg':
+                                    $source = imagecreatefromjpeg($kopPath);
+                                    break;
+                                case 'image/png':
+                                    $source = imagecreatefrompng($kopPath);
+                                    break;
+                                case 'image/gif':
+                                    $source = imagecreatefromgif($kopPath);
+                                    break;
+                                default:
+                                    $source = false;
+                            }
+
+                            if ($source) {
+                                $resized = imagecreatetruecolor($newWidth, $newHeight);
+                                imagecopyresampled($resized, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                                
+                                ob_start();
+                                switch ($mimeType) {
+                                    case 'image/jpeg':
+                                        imagejpeg($resized, null, 85);
+                                        break;
+                                    case 'image/png':
+                                        imagepng($resized, null, 8);
+                                        break;
+                                    case 'image/gif':
+                                        imagegif($resized);
+                                        break;
+                                }
+                                $kopContent = ob_get_clean();
+                                imagedestroy($source);
+                                imagedestroy($resized);
+                            } else {
+                                $kopContent = file_get_contents($kopPath);
+                            }
+                        } else {
+                            $kopContent = file_get_contents($kopPath);
+                        }
+                    } else {
+                        $kopContent = file_get_contents($kopPath);
+                    }
+                } else {
+                    $kopContent = file_get_contents($kopPath);
+                }
+
+                $kopBase64 = base64_encode($kopContent);
+                $kopMimeType = mime_content_type($kopPath);
+                echo '<img src="data:' . $kopMimeType . ';base64,' . $kopBase64 . '" alt="Kop Lembaga" style="width: 100%; max-width: 800px; height: auto; display: block; margin: 0 auto;">';
+            } else {
+                // Fallback jika file tidak ditemukan
+                echo '<div class="header-title">' . esc($tpqData['NamaTpq'] ?? 'TPQ SMART SYSTEM') . '</div>';
+                if (!empty($tpqData['AlamatTpq'])) {
+                    echo '<div class="header-subtitle">' . esc($tpqData['AlamatTpq']) . '</div>';
+                }
+                if (!empty($tpqData['NoTelp'])) {
+                    echo '<div class="header-subtitle">Telp: ' . esc($tpqData['NoTelp']) . '</div>';
+                }
+            }
+            ?>
+        <?php else: ?>
+            <!-- Fallback jika tidak ada kop lembaga -->
+            <?php if (!empty($tpqData['Logo'])): ?>
+                <img src="<?= base_url('public/uploads/logo/' . $tpqData['Logo']) ?>" alt="Logo" class="header-logo">
             <?php endif; ?>
-        </div>
-        <?php if (!empty($tpqData['NoTelp'])): ?>
-            <div class="header-subtitle">Telp: <?= esc($tpqData['NoTelp']) ?></div>
+            <div class="header-title"><?= esc($tpqData['NamaTpq'] ?? 'TPQ SMART SYSTEM') ?></div>
+            <div class="header-subtitle">
+                <?php if (!empty($tpqData['AlamatTpq'])): ?>
+                    <?= esc($tpqData['AlamatTpq']) ?>
+                <?php endif; ?>
+            </div>
+            <?php if (!empty($tpqData['NoTelp'])): ?>
+                <div class="header-subtitle">Telp: <?= esc($tpqData['NoTelp']) ?></div>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 

@@ -11,6 +11,7 @@ use App\Models\SantriBaruModel;
 use App\Models\HelpFunctionModel;
 use App\Models\MunaqosahBobotNilaiModel;
 use App\Models\MunaqosahKonfigurasiModel;
+use App\Models\MdaModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -24,6 +25,7 @@ class StatusUjianMunaqosah extends BaseController
     protected $helpFunctionModel;
     protected $bobotNilaiMunaqosahModel;
     protected $munaqosahKonfigurasiModel;
+    protected $mdaModel;
     protected $db;
 
     public function __construct()
@@ -36,6 +38,7 @@ class StatusUjianMunaqosah extends BaseController
         $this->helpFunctionModel = new HelpFunctionModel();
         $this->bobotNilaiMunaqosahModel = new MunaqosahBobotNilaiModel();
         $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
+        $this->mdaModel = new MdaModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -753,6 +756,47 @@ class StatusUjianMunaqosah extends BaseController
 
         // Ambil data TPQ untuk logo/kop
         $tpqData = $this->helpFunctionModel->getNamaTpqById($peserta['IdTpq']);
+
+        // Ambil nama kelas dari data santri untuk menentukan apakah menggunakan kop MDA atau TPQ
+        $namaKelasSantri = null;
+        $santriDetail = $this->helpFunctionModel->getDetailSantriByKelasSantri(
+            $peserta['IdSantri'],
+            $peserta['IdTahunAjaran'],
+            $peserta['IdTpq']
+        );
+
+        if (!empty($santriDetail) && isset($santriDetail['NamaKelas'])) {
+            $namaKelasSantri = $santriDetail['NamaKelas'];
+        }
+
+        // Check apakah kelas sesuai dengan mapping MDA
+        $useMdaData = false;
+        $mdaRow = null;
+        $kopLembaga = $tpqData['KopLembaga'] ?? '';
+        $namaLembaga = $tpqData['NamaTpq'] ?? '';
+        $kepalaSekolah = $tpqData['KepalaSekolah'] ?? '';
+
+        if (!empty($namaKelasSantri)) {
+            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($peserta['IdTpq'], $namaKelasSantri);
+            $useMdaData = $mdaCheckResult['useMdaData'];
+
+            // Jika sesuai, ambil data MDA
+            if ($useMdaData) {
+                $mdaData = $this->mdaModel->GetData($peserta['IdTpq']);
+                if (!empty($mdaData) && !empty($mdaData[0])) {
+                    $mdaRow = $mdaData[0];
+                    // Gunakan kop lembaga dari MDA jika ada, fallback ke TPQ
+                    $kopLembaga = $mdaRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
+                    $namaLembaga = $mdaRow['NamaTpq'] ?? $tpqData['NamaTpq'] ?? '';
+                    $kepalaSekolah = $mdaRow['KepalaSekolah'] ?? $tpqData['KepalaSekolah'] ?? '';
+                }
+            }
+        }
+
+        // Update tpqData dengan kop lembaga yang sesuai
+        $tpqData['KopLembaga'] = $kopLembaga;
+        $tpqData['NamaTpq'] = $namaLembaga;
+        $tpqData['KepalaSekolah'] = $kepalaSekolah;
 
         $data = [
             'peserta' => $pesertaData,
