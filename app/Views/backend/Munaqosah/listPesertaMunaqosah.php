@@ -3,6 +3,116 @@
 <?php helper('nilai'); ?>
 
 <?= $this->section('content') ?>
+<!-- Card Informasi Alur Proses -->
+<div class="col-12">
+    <div class="card card-info collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i> Panduan Alur Proses Daftar Peserta Munaqosah
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                    <ol class="mb-4">
+                        <li class="mb-2">
+                            <strong>Tambah Peserta Baru:</strong>
+                            <ul class="mt-2">
+                                <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-edit"></i> Tambah Peserta Munaqosah</span> di header card</li>
+                                <li>Modal akan muncul dengan 3 langkah:
+                                    <ul>
+                                        <li><strong>Langkah 1:</strong> Pilih Filter (TPQ, Kelas) untuk memfilter santri yang tersedia</li>
+                                        <li><strong>Langkah 2:</strong> Pilih Santri dari daftar yang muncul (dapat pilih beberapa dengan checkbox)</li>
+                                        <li><strong>Langkah 3:</strong> Konfirmasi dan simpan peserta yang dipilih</li>
+                                    </ul>
+                                </li>
+                                <li>Peserta yang berhasil ditambahkan akan muncul di tabel</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Lihat Daftar Peserta:</strong>
+                            <ul class="mt-2">
+                                <li>Tabel menampilkan semua peserta munaqosah dengan informasi:
+                                    <ul>
+                                        <li><strong>ID Santri:</strong> Identitas santri</li>
+                                        <li><strong>Nama Santri:</strong> Nama lengkap peserta</li>
+                                        <li><strong>Tempat/Tanggal Lahir:</strong> Data kelahiran peserta</li>
+                                        <li><strong>Jenis Kelamin:</strong> Gender peserta</li>
+                                        <li><strong>Nama Ayah:</strong> Nama ayah peserta</li>
+                                        <li><strong>TPQ:</strong> Nama TPQ peserta</li>
+                                        <li><strong>Status Verifikasi:</strong> Status verifikasi data peserta</li>
+                                    </ul>
+                                </li>
+                                <li>Gunakan fitur search dan filter DataTable untuk mencari peserta tertentu</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Edit Data Peserta:</strong>
+                            <ul class="mt-2">
+                                <li>Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> pada baris peserta yang ingin diedit</li>
+                                <li>Modal edit akan muncul dengan form data peserta</li>
+                                <li>Ubah data yang diperlukan dan klik <strong>Simpan Perubahan</strong></li>
+                                <li>Perubahan akan tersimpan di data utama santri</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Review & Konfirmasi Perbaikan Data:</strong>
+                            <ul class="mt-2">
+                                <li>Peserta dengan status <span class="badge badge-warning">Perlu Perbaikan</span> akan muncul di card khusus di bagian atas</li>
+                                <li>Klik tombol <span class="badge badge-info"><i class="fas fa-check-double"></i> Review</span> untuk membuka modal review</li>
+                                <li>Di dalam modal, Anda akan melihat:
+                                    <ul>
+                                        <li>Keterangan dari user yang meminta perbaikan</li>
+                                        <li>Tabel perbaikan data dengan perbandingan data sebelum dan sesudah</li>
+                                        <li>Form untuk mengedit data jika diperlukan</li>
+                                    </ul>
+                                </li>
+                                <li>Gunakan toggle switch <strong>"Terima"</strong> untuk menerima usulan perbaikan atau <strong>"Tidak"</strong> untuk menolak</li>
+                                <li>Klik tombol <span class="badge badge-success"><i class="fas fa-check"></i> Konfirmasi Perbaikan</span> untuk menyetujui perbaikan</li>
+                                <li>Status peserta akan berubah menjadi <span class="badge badge-success">Valid</span> setelah konfirmasi</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Hapus Peserta:</strong>
+                            <ul class="mt-2">
+                                <li>Klik tombol <span class="badge badge-danger"><i class="fas fa-trash"></i></span> pada baris peserta yang ingin dihapus</li>
+                                <li>Konfirmasi penghapusan di popup yang muncul</li>
+                                <li>Sistem akan mengecek data terkait sebelum menghapus</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-info mb-0">
+                        <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                        <ul class="mb-0">
+                            <li><strong>Status Verifikasi:</strong>
+                                <ul>
+                                    <li><span class="badge badge-success">Valid</span> = Data sudah diverifikasi dan valid</li>
+                                    <li><span class="badge badge-warning">Perlu Perbaikan</span> = Peserta mengajukan perbaikan data, perlu direview</li>
+                                    <li><span class="badge badge-secondary">Belum Dikonfirmasi</span> = Data belum diverifikasi</li>
+                                </ul>
+                            </li>
+                            <li><strong>Peserta Perlu Perbaikan:</strong> Card khusus di bagian atas menampilkan peserta yang memerlukan review dan konfirmasi</li>
+                            <li><strong>Review Perbaikan:</strong> Baca keterangan user dan gunakan tabel perbaikan untuk review cepat</li>
+                            <li><strong>Toggle Switch:</strong> Gunakan toggle "Terima" untuk menerima usulan perbaikan dengan satu klik</li>
+                            <li><strong>Data Utama:</strong> Perubahan data akan tersimpan di data utama santri, bukan hanya di data peserta munaqosah</li>
+                            <li><strong>Filter & Search:</strong> Gunakan fitur DataTable untuk mencari peserta tertentu dengan cepat</li>
+                            <li><strong>Informasi KK:</strong> Informasi Kartu Keluarga ditampilkan di modal edit untuk referensi</li>
+                            <li><strong>Validasi Data:</strong> Pastikan data peserta lengkap dan valid sebelum menyimpan</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Card untuk Peserta yang Perlu Perbaikan -->
 <?php if (!empty($pesertaPerluPerbaikan) && count($pesertaPerluPerbaikan) > 0): ?>
     <div class="col-12 mt-4">

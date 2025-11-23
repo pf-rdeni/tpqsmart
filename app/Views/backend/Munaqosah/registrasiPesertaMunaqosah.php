@@ -4,6 +4,115 @@
 <div>
     <section class="content">
         <div class="container-fluid">
+            <!-- Card Informasi Alur Proses -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-info collapsed-card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-info-circle"></i> Panduan Alur Proses Registrasi Peserta Munaqosah
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                                    <ol class="mb-4">
+                                        <li class="mb-2">
+                                            <strong>Filter Data Peserta:</strong>
+                                            <ul class="mt-2">
+                                                <li>Pilih <strong>Filter TPQ</strong> (jika admin) atau otomatis terisi untuk Operator/Panitia</li>
+                                                <li>Pilih <strong>Filter Kelas</strong> untuk memfilter peserta berdasarkan kelas (opsional, pilih "Semua Kelas" untuk semua)</li>
+                                                <li>Pilih <strong>Type Ujian</strong> (Munaqosah/Pra-Munaqosah) - otomatis terisi untuk Operator/Panitia</li>
+                                                <li><strong>Tahun Ajaran</strong> otomatis terisi dan tidak dapat diubah</li>
+                                                <li>Data peserta akan otomatis dimuat sesuai filter yang dipilih</li>
+                                            </ul>
+                                        </li>
+                                        <li class="mb-2">
+                                            <strong>Pilih Peserta untuk Registrasi:</strong>
+                                            <ul class="mt-2">
+                                                <li>Tabel menampilkan daftar santri dengan kolom:
+                                                    <ul>
+                                                        <li><strong>Checkbox:</strong> Centang untuk memilih peserta</li>
+                                                        <li><strong>Status Registrasi:</strong> Status peserta (Sudah Terdaftar/Belum Terdaftar)</li>
+                                                        <li><strong>No Peserta:</strong> Nomor peserta ujian (jika sudah terdaftar)</li>
+                                                        <li><strong>Nama Santri:</strong> Nama lengkap peserta</li>
+                                                        <li><strong>Kelas:</strong> Kelas peserta</li>
+                                                        <li><strong>TPQ:</strong> Nama TPQ peserta</li>
+                                                    </ul>
+                                                </li>
+                                                <li>Gunakan checkbox di header untuk memilih semua peserta sekaligus</li>
+                                                <li>Atau centang peserta secara individual</li>
+                                                <li>Peserta yang sudah terdaftar akan ditandai dengan badge hijau</li>
+                                            </ul>
+                                        </li>
+                                        <li class="mb-2">
+                                            <strong>Print Kartu Ujian:</strong>
+                                            <ul class="mt-2">
+                                                <li>Tombol <span class="badge badge-info"><i class="fas fa-print"></i> Print Kartu Ujian</span> akan aktif setelah memilih peserta</li>
+                                                <li>Klik tombol untuk mencetak kartu ujian peserta yang dipilih</li>
+                                                <li>Kartu ujian akan menampilkan informasi peserta dan QR code</li>
+                                            </ul>
+                                        </li>
+                                        <li class="mb-2">
+                                            <strong>Proses Registrasi:</strong>
+                                            <ul class="mt-2">
+                                                <li>Setelah memilih peserta, tombol <span class="badge badge-success"><i class="fas fa-save"></i> Proses Registrasi Munaqosah</span> akan aktif</li>
+                                                <li>Klik tombol untuk memproses registrasi peserta yang dipilih</li>
+                                                <li>Sistem akan:
+                                                    <ul>
+                                                        <li>Membuat data registrasi ujian untuk peserta</li>
+                                                        <li>Menghasilkan No Peserta untuk setiap peserta</li>
+                                                        <li>Menyimpan data ke tabel nilai munaqosah</li>
+                                                    </ul>
+                                                </li>
+                                                <li>Setelah proses selesai, status peserta akan berubah menjadi "Sudah Terdaftar"</li>
+                                            </ul>
+                                        </li>
+                                        <li class="mb-2">
+                                            <strong>Reset Form:</strong>
+                                            <ul class="mt-2">
+                                                <li>Gunakan tombol <span class="badge badge-secondary"><i class="fas fa-undo"></i> Reset</span> untuk mengosongkan pilihan dan memuat ulang data</li>
+                                            </ul>
+                                        </li>
+                                    </ol>
+
+                                    <div class="alert alert-info mb-0">
+                                        <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                        <ul class="mb-0">
+                                            <li><strong>Status Registrasi:</strong>
+                                                <ul>
+                                                    <li><span class="badge badge-success">Sudah Terdaftar</span> = Peserta sudah terdaftar, memiliki No Peserta</li>
+                                                    <li><span class="badge badge-danger">Belum Terdaftar</span> = Peserta belum terdaftar, perlu diproses</li>
+                                                </ul>
+                                            </li>
+                                            <li><strong>Filter Berdasarkan Role:</strong>
+                                                <ul>
+                                                    <li><strong>Admin:</strong> Dapat memilih semua TPQ dan Type Ujian</li>
+                                                    <li><strong>Operator:</strong> Hanya melihat Pra-Munaqosah, TPQ otomatis terisi</li>
+                                                    <li><strong>Panitia TPQ:</strong> Hanya melihat Pra-Munaqosah, TPQ otomatis terisi sesuai IdTpq mereka</li>
+                                                </ul>
+                                            </li>
+                                            <li><strong>Select All:</strong> Gunakan checkbox di header untuk memilih semua peserta sekaligus</li>
+                                            <li><strong>Print Kartu:</strong> Pastikan peserta sudah dipilih sebelum mencetak kartu ujian</li>
+                                            <li><strong>Proses Registrasi:</strong> Hanya peserta yang belum terdaftar yang akan diproses</li>
+                                            <li><strong>No Peserta:</strong> No Peserta akan otomatis di-generate saat proses registrasi</li>
+                                            <li><strong>Validasi Data:</strong> Pastikan data peserta lengkap sebelum melakukan registrasi</li>
+                                            <li><strong>Batch Processing:</strong> Dapat memilih beberapa peserta sekaligus untuk registrasi massal</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Alert Messages -->
             <?php if (session()->getFlashdata('success')): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -39,19 +148,26 @@
                                             <?php
                                             $sessionIdTpq = session()->get('IdTpq');
                                             $isAdmin = empty($sessionIdTpq) || $sessionIdTpq == 0;
+                                            $isPanitiaTpq = isset($is_panitia_tpq) && $is_panitia_tpq;
+                                            $selectedTpq = $isPanitiaTpq ? ($panitia_id_tpq ?? null) : $sessionIdTpq;
+                                            // Jika panitia TPQ atau non-admin, disable filter TPQ
+                                            $isTpqDisabled = !$isAdmin || $isPanitiaTpq;
                                             ?>
-                                            <select class="form-control" id="filterTpq" name="filterTpq" <?= !$isAdmin ? 'disabled' : '' ?>>
-                                                <?php if ($isAdmin): ?>
+                                            <select class="form-control" id="filterTpq" name="filterTpq" <?= $isTpqDisabled ? 'disabled' : '' ?>>
+                                                <?php if ($isAdmin && !$isPanitiaTpq): ?>
                                                     <option value="0">Semua TPQ</option>
                                                 <?php endif; ?>
                                                 <?php foreach ($tpq as $t): ?>
-                                                    <option value="<?= $t['IdTpq'] ?>" <?= (session()->get('IdTpq') == $t['IdTpq']) ? 'selected' : '' ?>>
+                                                    <option value="<?= $t['IdTpq'] ?>" <?= ($selectedTpq == $t['IdTpq']) ? 'selected' : '' ?>>
                                                         <?= $t['NamaTpq'] ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <?php if (!$isAdmin): ?>
-                                                <small class="form-text text-muted">Hanya TPQ Anda yang tersedia</small>
+                                            <?php if (!$isAdmin || $isPanitiaTpq): ?>
+                                                <small class="form-text text-muted"><?= $isPanitiaTpq ? 'Panitia TPQ hanya dapat melihat TPQ sendiri' : 'Hanya TPQ Anda yang tersedia' ?></small>
+                                            <?php endif; ?>
+                                            <?php if ($isPanitiaTpq): ?>
+                                                <input type="hidden" id="panitiaTpqId" name="panitiaTpqId" value="<?= esc($panitia_id_tpq ?? '') ?>">
                                             <?php endif; ?>
                                         </div>
                                     </div>
@@ -77,13 +193,20 @@
                                             // Cek apakah user adalah Admin (IdTpq = 0 atau null berarti Admin)
                                             $sessionIdTpq = session()->get('IdTpq');
                                             $isAdmin = empty($sessionIdTpq) || $sessionIdTpq == 0;
+                                            // Cek apakah user adalah Panitia TPQ
+                                            $isPanitiaTpq = isset($is_panitia_tpq) && $is_panitia_tpq;
+                                            // Jika panitia TPQ, hanya bisa pra-munaqosah
+                                            $isDisabled = !$isAdmin || $isPanitiaTpq;
                                             ?>
-                                            <select class="form-control" id="typeUjian" name="typeUjian" <?= $isAdmin ? '' : 'disabled' ?>>
-                                                <option value="munaqosah" <?= $isAdmin ? 'selected' : '' ?>>Munaqosah</option>
-                                                <option value="pra-munaqosah" <?= !$isAdmin ? 'selected' : '' ?>>Pra-Munaqosah</option>
+                                            <select class="form-control" id="typeUjian" name="typeUjian" <?= $isDisabled ? 'disabled' : '' ?>>
+                                                <option value="munaqosah" <?= ($isAdmin && !$isPanitiaTpq) ? 'selected' : '' ?>>Munaqosah</option>
+                                                <option value="pra-munaqosah" <?= (!$isAdmin || $isPanitiaTpq) ? 'selected' : '' ?>>Pra-Munaqosah</option>
                                             </select>
-                                            <?php if (!$isAdmin): ?>
-                                                <small class="form-text text-muted">Akses terbatas ke Pra-Munaqosah untuk user TPQ</small>
+                                            <?php if (!$isAdmin || $isPanitiaTpq): ?>
+                                                <small class="form-text text-muted"><?= $isPanitiaTpq ? 'Panitia TPQ hanya dapat melakukan registrasi untuk Pra-Munaqosah' : 'Akses terbatas ke Pra-Munaqosah untuk user TPQ' ?></small>
+                                            <?php endif; ?>
+                                            <?php if ($isPanitiaTpq): ?>
+                                                <input type="hidden" id="panitiaIdTpq" name="panitiaIdTpq" value="<?= esc($panitia_id_tpq ?? '') ?>">
                                             <?php endif; ?>
                                         </div>
                                     </div>
@@ -352,14 +475,35 @@
 
         // Check if user is admin
         const isAdmin = <?= json_encode($isAdmin ?? true) ?>;
+        const isPanitiaTpq = <?= json_encode(isset($is_panitia_tpq) && $is_panitia_tpq) ?>;
         console.log('User is admin:', isAdmin);
+        console.log('User is panitia TPQ:', isPanitiaTpq);
 
-        // If not admin, force Pra-Munaqosah and prevent changes
-        if (!isAdmin) {
+        // Helper function to get filter TPQ value (use panitia TPQ ID if available)
+        function getFilterTpqValue() {
+            const panitiaTpqId = $('#panitiaTpqId').val();
+            return panitiaTpqId ? panitiaTpqId : $('#filterTpq').val();
+        }
+
+        // If not admin or panitia TPQ, force Pra-Munaqosah and prevent changes
+        if (!isAdmin || isPanitiaTpq) {
             $('#typeUjian').val('pra-munaqosah').prop('disabled', true);
-            $('#filterTpq').prop('disabled', true);
-            console.log('User is not admin - Type Ujian set to Pra-Munaqosah and disabled');
-            console.log('User is not admin - Filter TPQ disabled');
+            if (!isAdmin || isPanitiaTpq) {
+                $('#filterTpq').prop('disabled', true);
+                if (isPanitiaTpq) {
+                    // Set filter TPQ ke TPQ panitia sendiri
+                    const panitiaTpqId = $('#panitiaTpqId').val();
+                    if (panitiaTpqId) {
+                        $('#filterTpq').val(panitiaTpqId);
+                        console.log('User is panitia TPQ - Filter TPQ set to:', panitiaTpqId);
+                    }
+                    console.log('User is panitia TPQ - Type Ujian set to Pra-Munaqosah and disabled');
+                    console.log('User is panitia TPQ - Filter TPQ disabled');
+                } else {
+                    console.log('User is not admin - Filter TPQ disabled');
+                    console.log('User is not admin - Type Ujian set to Pra-Munaqosah and disabled');
+                }
+            }
         }
 
         // Clean up invalid localStorage data first
@@ -367,11 +511,11 @@
 
         // Load saved preferences with delay to ensure DOM is ready
         console.log('Initial load - loading Type Ujian preference...');
-        if (isAdmin) {
+        if (isAdmin && !isPanitiaTpq) {
             loadTypeUjianPreference();
         } else {
-            // Force Pra-Munaqosah for non-admin
-            console.log('Non-admin user - skipping Type Ujian preference load');
+            // Force Pra-Munaqosah for non-admin or panitia TPQ
+            console.log('Non-admin user or panitia TPQ - skipping Type Ujian preference load');
         }
 
         // Load filter preferences after a short delay to ensure dropdowns are rendered
@@ -628,7 +772,8 @@ ${text}
 
 
         function loadSantriData() {
-            const filterTpq = $('#filterTpq').val();
+            // Jika panitia TPQ, gunakan nilai dari hidden input, jika tidak gunakan dari select
+            const filterTpq = getFilterTpqValue();
             const filterKelas = $('#filterKelas').val();
             const typeUjian = $('#typeUjian').val();
 
@@ -1025,8 +1170,17 @@ ${text}
                             localStorage.removeItem('munaqosah_filter_kelas');
 
                             // Reset form to default values
-                            $('#typeUjian').val('munaqosah');
-                            $('#filterTpq').val('0');
+                            // Jika panitia TPQ, tetap set ke pra-munaqosah dan TPQ mereka sendiri
+                            if (isPanitiaTpq) {
+                                $('#typeUjian').val('pra-munaqosah');
+                                const panitiaTpqId = $('#panitiaTpqId').val();
+                                if (panitiaTpqId) {
+                                    $('#filterTpq').val(panitiaTpqId);
+                                }
+                            } else {
+                                $('#typeUjian').val('munaqosah');
+                                $('#filterTpq').val('0');
+                            }
                             $('#filterKelas').val('0');
 
                             // Show success message
@@ -1447,7 +1601,7 @@ ${text}
                 santri_ids: validSantriIds,
                 typeUjian: $('#typeUjian').val(),
                 tahunAjaran: $('#tahunAjaran').val(),
-                filterTpq: $('#filterTpq').val(),
+                filterTpq: getFilterTpqValue(),
                 filterKelas: $('#filterKelas').val()
             };
 
@@ -1515,7 +1669,7 @@ ${text}
                 santri_ids: [santriId], // Array dengan satu ID santri
                 typeUjian: $('#typeUjian').val(),
                 tahunAjaran: $('#tahunAjaran').val(),
-                filterTpq: $('#filterTpq').val(),
+                filterTpq: getFilterTpqValue(),
                 filterKelas: $('#filterKelas').val()
             };
 
@@ -1630,10 +1784,20 @@ ${text}
             $('.santri-checkbox').prop('checked', false);
 
             // Reset filter ke default
-            $('#filterTpq').val('0');
+            // Jika panitia TPQ, set ke TPQ mereka sendiri, jika tidak set ke 0
+            if (isPanitiaTpq) {
+                const panitiaTpqId = $('#panitiaTpqId').val();
+                if (panitiaTpqId) {
+                    $('#filterTpq').val(panitiaTpqId);
+                }
+            } else {
+                $('#filterTpq').val('0');
+            }
             $('#filterKelas').val('0');
-            if (isAdmin) {
+            if (isAdmin && !isPanitiaTpq) {
                 $('#typeUjian').val('munaqosah');
+            } else {
+                $('#typeUjian').val('pra-munaqosah');
             }
 
             // Destroy DataTable dan reload data

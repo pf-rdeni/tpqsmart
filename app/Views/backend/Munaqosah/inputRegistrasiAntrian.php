@@ -4,6 +4,128 @@
 <section class="content">
     <div class="container-fluid">
         <div class="row">
+            <!-- Card Informasi Alur Proses -->
+            <div class="col-12">
+                <div class="card card-info collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-info-circle"></i> Panduan Alur Proses Input Registrasi Antrian
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                                <ol class="mb-4">
+                                    <li class="mb-2">
+                                        <strong>Persiapan Filter:</strong>
+                                        <ul class="mt-2">
+                                            <li>Filter (Grup Materi, Type Ujian, TPQ) sudah ditentukan dari halaman sebelumnya</li>
+                                            <li>Info filter aktif ditampilkan di alert box di bagian atas</li>
+                                            <li>Pastikan filter sesuai sebelum melakukan registrasi</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Registrasi Peserta ke Antrian:</strong>
+                                        <ul class="mt-2">
+                                            <li>Masukkan atau scan <strong>No Peserta</strong> (3 digit pertama) di input field</li>
+                                            <li>Gunakan tombol <span class="badge badge-warning"><i class="fas fa-qrcode"></i> Scan QR</span> untuk scan QR code dari kartu peserta</li>
+                                            <li>Auto registrasi akan aktif setelah 3 digit dimasukkan atau tekan <strong>Enter</strong></li>
+                                            <li>Gunakan tombol <span class="badge badge-danger">Reset</span> untuk mengosongkan input</li>
+                                            <li>Peserta yang berhasil diregistrasi akan muncul di tabel antrian dengan status <span class="badge badge-warning">Menunggu</span></li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Lihat Statistik Antrian:</strong>
+                                        <ul class="mt-2">
+                                            <li><strong>Total:</strong> Jumlah total peserta yang terdaftar di antrian</li>
+                                            <li><strong>Antrian:</strong> Jumlah peserta yang menunggu untuk diuji (Status: Menunggu)</li>
+                                            <li><strong>Progress:</strong> Persentase penyelesaian ujian (peserta selesai / total peserta)</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Monitor Status Ruangan:</strong>
+                                        <ul class="mt-2">
+                                            <li>Lihat daftar ruangan dan statusnya:
+                                                <ul>
+                                                    <li><span class="badge badge-success">Kosong</span> = Ruangan tersedia, belum ada peserta</li>
+                                                    <li><span class="badge badge-warning">Digunakan</span> = Ruangan sedang digunakan, ada peserta yang sedang ujian</li>
+                                                    <li><span class="badge badge-danger">Penuh</span> = Ruangan sudah mencapai kapasitas maksimal</li>
+                                                </ul>
+                                            </li>
+                                            <li>Lihat peserta yang sedang ujian di setiap ruangan</li>
+                                            <li>Gunakan tombol <span class="badge badge-success"><i class="fas fa-check"></i> Selesai</span> untuk menyelesaikan ujian peserta di ruangan</li>
+                                            <li>Gunakan tombol <span class="badge badge-warning"><i class="fas fa-sign-out-alt"></i> Keluar</span> untuk mengeluarkan peserta dari ruangan</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Kelola Antrian di Tabel:</strong>
+                                        <ul class="mt-2">
+                                            <li>Tabel menampilkan semua peserta dalam antrian dengan informasi:
+                                                <ul>
+                                                    <li><strong>Group Peserta:</strong> Grup pengelompokan peserta (dengan badge warna berbeda)</li>
+                                                    <li><strong>No Peserta - Nama Santri:</strong> Identitas peserta</li>
+                                                    <li><strong>Status:</strong> Status peserta (Menunggu, Sedang Ujian, Selesai)</li>
+                                                </ul>
+                                            </li>
+                                            <li>Gunakan tombol <span class="badge badge-warning">Buka Ruangan</span> untuk memasukkan peserta ke ruangan (mengubah status menjadi Sedang Ujian)</li>
+                                            <li>Gunakan tombol <span class="badge badge-success">Selesai</span> untuk menyelesaikan ujian peserta (mengubah status menjadi Selesai)</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Auto Refresh:</strong>
+                                        <ul class="mt-2">
+                                            <li>Pilih interval auto refresh (10 detik - 5 menit, default: 30 detik)</li>
+                                            <li>Klik tombol <span class="badge badge-outline-primary">Aktifkan Auto Refresh</span> untuk mengaktifkan</li>
+                                            <li>Data akan otomatis di-refresh sesuai interval yang dipilih</li>
+                                            <li>Countdown timer menampilkan waktu tersisa hingga refresh berikutnya</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+
+                                <div class="alert alert-info mb-0">
+                                    <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                    <ul class="mb-0">
+                                        <li><strong>Status Antrian:</strong>
+                                            <ul>
+                                                <li><span class="badge badge-warning">Menunggu</span> = Peserta sudah terdaftar, menunggu giliran ujian</li>
+                                                <li><span class="badge badge-danger">Sedang Ujian</span> = Peserta sedang dalam proses ujian di ruangan</li>
+                                                <li><span class="badge badge-success">Selesai</span> = Peserta sudah selesai ujian</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Group Peserta:</strong> Setiap grup memiliki badge warna berbeda untuk memudahkan identifikasi</li>
+                                        <li><strong>Scan QR Code:</strong> Gunakan fitur scan QR untuk registrasi cepat tanpa mengetik manual</li>
+                                        <li><strong>Input 3 Digit:</strong> Cukup masukkan 3 digit pertama No Peserta, sistem akan mencari otomatis</li>
+                                        <li><strong>Auto Refresh:</strong> Aktifkan auto refresh dengan interval 30 detik untuk update real-time tanpa refresh manual</li>
+                                        <li><strong>Status Ruangan:</strong>
+                                            <ul>
+                                                <li>Monitor kapasitas ruangan untuk mengatur alur ujian</li>
+                                                <li>Ruangan penuh tidak dapat menerima peserta baru</li>
+                                                <li>Gunakan tombol "Keluar" jika peserta perlu dipindahkan ke ruangan lain</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Alur Ujian:</strong>
+                                            <ol>
+                                                <li>Registrasi peserta → Status: Menunggu</li>
+                                                <li>Buka ruangan untuk peserta → Status: Sedang Ujian</li>
+                                                <li>Selesai ujian → Status: Selesai</li>
+                                            </ol>
+                                        </li>
+                                        <li><strong>Progress Tracking:</strong> Gunakan statistik progress untuk memantau tingkat penyelesaian ujian</li>
+                                        <li><strong>Format Ruangan:</strong> Jika hanya 1 ruangan dengan banyak peserta, akan ditampilkan dalam format tabel kompak</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-12">
                 <div class="card card-outline card-primary">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">

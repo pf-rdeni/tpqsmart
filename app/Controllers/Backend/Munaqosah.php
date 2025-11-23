@@ -5021,6 +5021,7 @@ class Munaqosah extends BaseController
 
         // Ambil data TPQ
         $idTpq = session()->get('IdTpq');
+        $isPanitiaTpq = false;
 
         // Cek apakah user adalah Panitia
         $isPanitia = in_groups('Panitia');
@@ -5028,12 +5029,15 @@ class Munaqosah extends BaseController
         // Jika user adalah Panitia, ambil IdTpq dari username
         if ($isPanitia) {
             $usernamePanitia = user()->username;
-            $idTpq = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
 
             // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
-            // Jika IdTpq = 0, maka melihat Munaqosah umum
-            if (!$idTpq || $idTpq == 0) {
-                $idTpq = 0; // Pastikan 0 untuk panitia umum
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $idTpq = $idTpqPanitia;
+                $isPanitiaTpq = true;
+            } else {
+                // Panitia umum (IdTpq = 0), melihat Munaqosah
+                $idTpq = 0;
             }
         }
 
@@ -5052,7 +5056,9 @@ class Munaqosah extends BaseController
             'page_title' => 'Registrasi Peserta Munaqosah',
             'tahunAjaran' => $tahunAjaran,
             'tpq' => $tpq,
-            'kelas' => $kelas
+            'kelas' => $kelas,
+            'is_panitia_tpq' => $isPanitiaTpq,
+            'panitia_id_tpq' => $isPanitiaTpq ? $idTpq : null,
         ];
         
         return view('backend/Munaqosah/registrasiPesertaMunaqosah', $data);
@@ -5189,8 +5195,29 @@ class Munaqosah extends BaseController
             $sessionIdTpq = session()->get('IdTpq');
             $isAdmin = empty($sessionIdTpq) || $sessionIdTpq == 0;
 
-            // Force Pra-Munaqosah for non-admin users
-            if (!$isAdmin) {
+            // Cek apakah user adalah Panitia
+            $isPanitia = in_groups('Panitia');
+            $isPanitiaTpq = false;
+            $idTpqPanitia = null;
+
+            // Jika user adalah Panitia, ambil IdTpq dari username
+            if ($isPanitia) {
+                $usernamePanitia = user()->username;
+                $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+                // Jika panitia memiliki IdTpq (bukan 0), maka hanya bisa registrasi Pra-munaqosah
+                if ($idTpqPanitia && $idTpqPanitia != 0) {
+                    $isPanitiaTpq = true;
+                    $typeUjian = 'pra-munaqosah'; // Force pra-munaqosah untuk panitia TPQ
+                    $filterTpq = $idTpqPanitia;
+                } else {
+                    // Panitia umum (IdTpq = 0), bisa registrasi Munaqosah
+                    $typeUjian = 'munaqosah';
+                    $filterTpq = 0;
+                }
+            }
+            // Force Pra-Munaqosah for non-admin users (selain panitia)
+            elseif (!$isAdmin) {
                 $typeUjian = 'pra-munaqosah';
                 // Force filter TPQ to user's TPQ only
                 $filterTpq = $sessionIdTpq;
@@ -5212,7 +5239,13 @@ class Munaqosah extends BaseController
             } elseif (!is_numeric($tahunAjaran)) {
                 $validationErrors[] = "Parameter 'tahunAjaran' harus berupa angka";
             }
-            
+
+            // Validasi: Panitia TPQ hanya bisa registrasi pra-munaqosah
+            if ($isPanitiaTpq && $typeUjian !== 'pra-munaqosah') {
+                $validationErrors[] = "Panitia TPQ hanya dapat melakukan registrasi untuk Pra-Munaqosah";
+                $typeUjian = 'pra-munaqosah'; // Force ke pra-munaqosah
+            }
+
             if (!empty($validationErrors)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -8377,8 +8410,36 @@ class Munaqosah extends BaseController
         $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
 
         $idTpq = session()->get('IdTpq');
-        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+        $selectedTpq = $idTpq;
+        $selectedType = 'pra-munaqosah'; // Default untuk monitoring
+        $isPanitiaTpq = false;
 
+        // Cek apakah user adalah Panitia
+        $isPanitia = in_groups('Panitia');
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            // Jika panitia memiliki IdTpq (bukan 0), maka set filter TPQ dan default Type Ujian
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $selectedType = 'pra-munaqosah';
+                $selectedTpq = $idTpqPanitia;
+                $isPanitiaTpq = true;
+            } else {
+                // Panitia umum (IdTpq = 0), melihat Munaqosah
+                $selectedType = 'munaqosah';
+                $selectedTpq = 0;
+            }
+        }
+        // Jika user login sebagai admin TPQ/Operator dengan IdTpq
+        elseif (!empty($idTpq) && $idTpq != 0) {
+            $selectedTpq = $idTpq;
+            $selectedType = 'pra-munaqosah';
+        }
+
+        $dataTpq = $this->helpFunction->getDataTpq($selectedTpq);
         $statistik = getStatistikMunaqosah();
 
         $data = [
@@ -8386,6 +8447,9 @@ class Munaqosah extends BaseController
             'current_tahun_ajaran' => $currentTahunAjaran,
             'tpqDropdown' => $dataTpq,
             'statistik' => $statistik,
+            'selected_tpq' => $selectedTpq,
+            'selected_type' => $selectedType,
+            'is_panitia_tpq' => $isPanitiaTpq,
         ];
 
         return view('backend/Munaqosah/monitoringMunaqosah', $data);
@@ -9060,6 +9124,33 @@ class Munaqosah extends BaseController
             $idTpqParam = $this->request->getGet('IdTpq');
             $idTpq = ($idTpqParam === null || $idTpqParam === '') ? 0 : (int)$idTpqParam;
             $typeParam = $this->request->getGet('TypeUjian');
+
+            // Cek apakah user adalah Panitia dengan IdTpq
+            $isPanitia = in_groups('Panitia');
+            if ($isPanitia) {
+                $usernamePanitia = user()->username;
+                $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+                // Jika panitia memiliki IdTpq (bukan 0), override filter TPQ dan Type Ujian
+                if ($idTpqPanitia && $idTpqPanitia != 0) {
+                    $idTpq = $idTpqPanitia;
+                    // Jika typeParam tidak diset atau kosong, default ke pra-munaqosah
+                    if (empty($typeParam)) {
+                        $typeParam = 'pra-munaqosah';
+                    }
+                }
+            }
+            // Jika user login sebagai admin TPQ/Operator dengan IdTpq dari session
+            elseif (empty($idTpq) || $idTpq == 0) {
+                $sessionIdTpq = session()->get('IdTpq');
+                if (!empty($sessionIdTpq) && $sessionIdTpq != 0) {
+                    $idTpq = $sessionIdTpq;
+                    // Jika typeParam tidak diset atau kosong, default ke pra-munaqosah
+                    if (empty($typeParam)) {
+                        $typeParam = 'pra-munaqosah';
+                    }
+                }
+            }
 
             $result = $this->buildMonitoringDataset($idTahunAjaran, $idTpq, $typeParam, false);
 

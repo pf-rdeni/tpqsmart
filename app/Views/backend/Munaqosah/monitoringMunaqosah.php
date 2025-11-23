@@ -3,6 +3,129 @@
 <section class="content">
     <div class="container-fluid">
         <div class="row">
+            <!-- Card Informasi Alur Proses -->
+            <div class="col-12">
+                <div class="card card-info collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-info-circle"></i> Panduan Alur Proses Monitoring Munaqosah
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                                <ol class="mb-4">
+                                    <li class="mb-2">
+                                        <strong>Filter Data Monitoring:</strong>
+                                        <ul class="mt-2">
+                                            <li>Pilih <strong>Tahun Ajaran</strong> yang ingin dimonitor</li>
+                                            <li>Pilih <strong>TPQ</strong> (jika admin) atau otomatis terisi untuk Operator/Panitia</li>
+                                            <li>Pilih <strong>Type Ujian</strong> (Munaqosah/Pra-Munaqosah)</li>
+                                            <li>Pilih <strong>Refresh Interval</strong> untuk auto refresh (1-30 menit, default: 10 menit)</li>
+                                            <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-sync-alt"></i> Muat</span> untuk refresh manual</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Lihat Statistik Penilaian:</strong>
+                                        <ul class="mt-2">
+                                            <li><strong>Total Peserta:</strong> Jumlah total peserta yang terdaftar</li>
+                                            <li><strong>Sudah Dinilai:</strong> Jumlah peserta yang sudah dinilai minimal 1 kategori</li>
+                                            <li><strong>Belum Dinilai:</strong> Jumlah peserta yang belum dinilai sama sekali</li>
+                                            <li><strong>Progress:</strong> Persentase peserta yang sudah dinilai (sudah dinilai / total peserta)</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Monitor Tabel Penilaian:</strong>
+                                        <ul class="mt-2">
+                                            <li>Tabel menampilkan semua peserta dengan informasi:
+                                                <ul>
+                                                    <li><strong>No Peserta:</strong> Nomor peserta dengan icon status (merah=belum, kuning=proses, hijau=selesai)</li>
+                                                    <li><strong>Nama Santri:</strong> Nama lengkap peserta</li>
+                                                    <li><strong>TPQ:</strong> Nama TPQ peserta</li>
+                                                    <li><strong>Type:</strong> Jenis ujian (Munaqosah/Pra-Munaqosah)</li>
+                                                    <li><strong>Thn:</strong> Tahun ajaran</li>
+                                                    <li><strong>Kolom Kategori:</strong> Setiap kategori materi memiliki kolom untuk setiap juri (Juri 1, Juri 2, dst)</li>
+                                                </ul>
+                                            </li>
+                                            <li>Icon status per juri:
+                                                <ul>
+                                                    <li><span class="text-success"><i class="fas fa-check-circle"></i></span> = Sudah dinilai</li>
+                                                    <li><span class="text-warning"><i class="fas fa-hourglass-half"></i></span> = Belum dinilai</li>
+                                                </ul>
+                                            </li>
+                                            <li>Icon status per peserta (di kolom No Peserta):
+                                                <ul>
+                                                    <li><span class="text-danger"><i class="fas fa-question-circle"></i></span> = Belum dinilai sama sekali</li>
+                                                    <li><span class="text-warning"><i class="fas fa-hourglass-half"></i></span> = Sedang dalam proses (sebagian sudah dinilai)</li>
+                                                    <li><span class="text-success"><i class="fas fa-check-circle"></i></span> = Selesai (semua kategori sudah dinilai semua juri)</li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Kelola Kolom Tabel:</strong>
+                                        <ul class="mt-2">
+                                            <li>Gunakan tombol <strong>Column visibility</strong> untuk menampilkan/menyembunyikan kolom nilai per kategori</li>
+                                            <li>Kolom dapat diatur per kategori dan per juri (contoh: "Kategori A - JURI 1")</li>
+                                            <li>Gunakan tombol <strong>Excel</strong> untuk export data ke Excel</li>
+                                            <li>Gunakan tombol <strong>Print</strong> untuk mencetak tabel</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Auto Refresh:</strong>
+                                        <ul class="mt-2">
+                                            <li>Data akan otomatis di-refresh sesuai interval yang dipilih</li>
+                                            <li>Countdown timer menampilkan waktu tersisa hingga refresh berikutnya</li>
+                                            <li>Setelah refresh, countdown akan di-reset otomatis</li>
+                                            <li>Refresh manual akan me-reset countdown juga</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Monitoring Tambahan:</strong>
+                                        <ul class="mt-2">
+                                            <li><strong>Total juri aktif:</strong> Perkiraan jumlah juri per kategori</li>
+                                            <li><strong>Jumlah TPQ aktif:</strong> Jumlah TPQ yang terdaftar</li>
+                                            <li><strong>Terakhir data nilai masuk:</strong> Waktu terakhir data dimuat</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+
+                                <div class="alert alert-info mb-0">
+                                    <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                    <ul class="mb-0">
+                                        <li><strong>Status Penilaian:</strong>
+                                            <ul>
+                                                <li>Peserta dianggap <strong>Sudah Dinilai</strong> jika minimal 1 kategori sudah ada nilai dari minimal 1 juri</li>
+                                                <li>Peserta dianggap <strong>Selesai</strong> jika semua kategori sudah dinilai oleh semua juri</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Kolom Dinamis:</strong> Jumlah kolom per kategori tergantung jumlah juri yang ditetapkan (default: 2 juri per kategori)</li>
+                                        <li><strong>Nilai 0:</strong> Nilai 0 ditampilkan dengan background merah untuk indikasi belum dinilai</li>
+                                        <li><strong>Filter Berdasarkan Role:</strong>
+                                            <ul>
+                                                <li><strong>Admin:</strong> Dapat memilih semua TPQ dan Type Ujian</li>
+                                                <li><strong>Operator:</strong> Hanya melihat Pra-Munaqosah, TPQ otomatis terisi</li>
+                                                <li><strong>Panitia TPQ:</strong> TPQ otomatis terisi sesuai IdTpq mereka</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Auto Refresh:</strong> Gunakan interval yang sesuai dengan kebutuhan (10 menit direkomendasikan untuk monitoring real-time)</li>
+                                        <li><strong>Column Visibility:</strong> Sembunyikan kolom yang tidak diperlukan untuk fokus pada kategori tertentu</li>
+                                        <li><strong>Export Data:</strong> Gunakan fitur Excel untuk analisis lebih lanjut di spreadsheet</li>
+                                        <li><strong>Sorting & Search:</strong> Tabel menggunakan DataTables, dapat di-sort dan di-search untuk mencari peserta tertentu</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -14,10 +137,10 @@
                             </div>
                             <div class="mr-2">
                                 <label class="mb-0 small">TPQ</label>
-                                <select id="filterTpq" class="form-control form-control-sm">
+                                <select id="filterTpq" class="form-control form-control-sm" <?= (isset($is_panitia_tpq) && $is_panitia_tpq) ? 'disabled' : '' ?>>
                                     <option value="0">Semua TPQ</option>
                                     <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
-                                            <option value="<?= esc($tpq['IdTpq']) ?>"><?= esc($tpq['NamaTpq']) ?></option>
+                                            <option value="<?= esc($tpq['IdTpq']) ?>" <?= (isset($selected_tpq) && $selected_tpq == $tpq['IdTpq']) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
                                     <?php endforeach;
                                     endif; ?>
                                 </select>
@@ -25,8 +148,8 @@
                             <div class="mr-2">
                                 <label class="mb-0 small">Type Ujian</label>
                                 <select id="filterTypeUjian" class="form-control form-control-sm">
-                                    <option value="munaqosah">Munaqosah</option>
-                                    <option value="pra-munaqosah">Pra-Munaqosah</option>
+                                    <option value="munaqosah" <?= (isset($selected_type) && $selected_type == 'munaqosah') ? 'selected' : '' ?>>Munaqosah</option>
+                                    <option value="pra-munaqosah" <?= (isset($selected_type) && $selected_type == 'pra-munaqosah') ? 'selected' : '' ?>>Pra-Munaqosah</option>
                                 </select>
                             </div>
                             <div class="mr-2">
@@ -52,6 +175,11 @@
                     <div class="card-body">
                         <!-- Hidden input untuk role user -->
                         <input type="hidden" id="userRole" value="<?= (in_groups('Operator') || (!in_groups('Admin') && session()->get('IdTpq'))) ? 'operator' : 'admin' ?>">
+                        <!-- Hidden input untuk panitia TPQ -->
+                        <?php if (isset($is_panitia_tpq) && $is_panitia_tpq && isset($selected_tpq)): ?>
+                            <input type="hidden" id="panitiaIdTpq" value="<?= esc($selected_tpq) ?>">
+                            <input type="hidden" id="isPanitiaTpq" value="1">
+                        <?php endif; ?>
 
                         <!-- Statistik ringkas (re-use style dari inputNilaiJuri step 1) -->
                         <div class="row">
@@ -277,7 +405,9 @@
 
     function loadMonitoring() {
         const th = $('#filterTahunAjaran').val().trim();
-        const tpq = $('#filterTpq').val();
+        // Jika panitia TPQ, gunakan nilai dari hidden input, jika tidak gunakan dari select
+        const panitiaIdTpq = $('#panitiaIdTpq').val();
+        const tpq = panitiaIdTpq ? panitiaIdTpq : $('#filterTpq').val();
         const ty = $('#filterTypeUjian').val();
         const url = '<?= base_url("backend/munaqosah/monitoring-data") ?>' + `?IdTahunAjaran=${encodeURIComponent(th)}&IdTpq=${encodeURIComponent(tpq)}&TypeUjian=${encodeURIComponent(ty)}`;
 
@@ -487,6 +617,7 @@
     $(function() {
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
+        const isPanitiaTpq = $('#isPanitiaTpq').val() === '1';
 
         // Jika TPQ hanya satu, set otomatis
         const $tpqSel = $('#filterTpq');
@@ -497,12 +628,12 @@
             const onlyId = $(realTpqOptions[0]).val();
             $tpqSel.val(onlyId).prop('disabled', true);
 
-            // Untuk Operator/TPQ, Type Ujian bisa diubah (tidak disabled)
+            // Untuk Operator/TPQ dan Panitia TPQ, Type Ujian bisa diubah (tidak disabled)
             // Hanya Admin yang Type Ujian-nya dikunci jika TPQ hanya satu
-            if (!isOperator) {
+            if (!isOperator && !isPanitiaTpq) {
                 $('#filterTypeUjian').val('pra-munaqosah').prop('disabled', true);
             } else {
-                // Untuk Operator, set default tapi tetap bisa diubah
+                // Untuk Operator dan Panitia, set default tapi tetap bisa diubah
                 $('#filterTypeUjian').val('pra-munaqosah');
             }
         }

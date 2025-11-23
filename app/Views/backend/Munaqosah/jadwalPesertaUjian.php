@@ -3,6 +3,112 @@
 <section class="content">
     <div class="container-fluid">
         <div class="row">
+            <!-- Card Informasi Alur Proses -->
+            <div class="col-12">
+                <div class="card card-info collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-info-circle"></i> Panduan Alur Proses Jadwal Peserta Ujian Munaqosah
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                                <ol class="mb-4">
+                                    <li class="mb-2">
+                                        <strong>Filter Data Jadwal:</strong>
+                                        <ul class="mt-2">
+                                            <li>Pilih <strong>Tahun Ajaran</strong> yang ingin dilihat jadwalnya</li>
+                                            <li>Pilih <strong>Type Ujian</strong> (Munaqosah/Pra-Munaqosah) - otomatis terisi untuk Operator/Panitia</li>
+                                            <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-sync-alt"></i> Muat</span> untuk memuat data jadwal</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Tambah Jadwal Baru:</strong>
+                                        <ul class="mt-2">
+                                            <li>Isi form input jadwal di bagian atas (background kuning):
+                                                <ul>
+                                                    <li><strong>Tahun Ajaran:</strong> Otomatis terisi, tidak dapat diubah</li>
+                                                    <li><strong>Type Ujian:</strong> Pilih Munaqosah atau Pra-Munaqosah (otomatis terisi untuk Operator/Panitia)</li>
+                                                    <li><strong>Tanggal:</strong> Pilih tanggal ujian</li>
+                                                    <li><strong>Jam:</strong> Pilih waktu ujian</li>
+                                                    <li><strong>IdTpq-NamaTpq:</strong> Pilih TPQ yang akan mengikuti ujian</li>
+                                                    <li><strong>Group:</strong> Pilih grup peserta (Group 1-8)</li>
+                                                </ul>
+                                            </li>
+                                            <li>Klik tombol <span class="badge badge-success"><i class="fas fa-plus"></i> Add</span> untuk menambahkan jadwal</li>
+                                            <li>Jadwal baru akan muncul di tabel</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Lihat Tabel Jadwal:</strong>
+                                        <ul class="mt-2">
+                                            <li>Tabel menampilkan semua jadwal dengan informasi:
+                                                <ul>
+                                                    <li><strong>Group:</strong> Grup peserta ujian</li>
+                                                    <li><strong>Tanggal:</strong> Tanggal pelaksanaan ujian</li>
+                                                    <li><strong>Waktu:</strong> Jam pelaksanaan ujian</li>
+                                                    <li><strong>Nama TPQ:</strong> Nama TPQ yang mengikuti ujian</li>
+                                                    <li><strong>Desa/Kelurahan:</strong> Lokasi TPQ</li>
+                                                    <li><strong>Jumlah:</strong> Jumlah peserta dalam grup tersebut</li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Edit Jadwal:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i></span> pada baris jadwal yang ingin diedit</li>
+                                            <li>Modal edit akan muncul dengan form yang dapat diubah</li>
+                                            <li>Ubah data yang diperlukan (Group, Tanggal, Jam, TPQ, Type Ujian)</li>
+                                            <li>Klik <strong>Simpan</strong> untuk menyimpan perubahan</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Hapus Jadwal:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-danger"><i class="fas fa-trash"></i></span> pada baris jadwal yang ingin dihapus</li>
+                                            <li>Konfirmasi penghapusan di popup yang muncul</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Print PDF Jadwal:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-danger"><i class="fas fa-file-pdf"></i> Print PDF</span> untuk mencetak jadwal ke PDF</li>
+                                            <li>PDF akan menampilkan semua jadwal sesuai filter yang dipilih</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+
+                                <div class="alert alert-info mb-0">
+                                    <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                    <ul class="mb-0">
+                                        <li><strong>Filter Berdasarkan Role:</strong>
+                                            <ul>
+                                                <li><strong>Admin:</strong> Dapat memilih semua Type Ujian dan TPQ</li>
+                                                <li><strong>Operator/Panitia TPQ:</strong> Hanya melihat Pra-Munaqosah, Type Ujian otomatis terisi dan tidak dapat diubah</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Group Peserta:</strong> Gunakan grup untuk mengelompokkan peserta dari TPQ yang sama atau berbeda</li>
+                                        <li><strong>Jadwal Per TPQ:</strong> Setiap TPQ dapat memiliki jadwal berbeda sesuai kebutuhan</li>
+                                        <li><strong>Edit Jadwal:</strong> Pastikan mengubah jadwal jika ada perubahan waktu atau lokasi ujian</li>
+                                        <li><strong>Print PDF:</strong> Gunakan fitur print PDF untuk distribusi jadwal ke peserta atau panitia</li>
+                                        <li><strong>Validasi Data:</strong> Pastikan semua field diisi sebelum menambahkan jadwal baru</li>
+                                        <li><strong>Jumlah Peserta:</strong> Kolom "Jumlah" menampilkan total peserta dalam grup tersebut</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
