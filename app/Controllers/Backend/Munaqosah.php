@@ -3518,8 +3518,26 @@ class Munaqosah extends BaseController
         $dataTpq = $this->helpFunction->getDataTpq($idTpq);
         $peserta = $this->pesertaMunaqosahModel->getPesertaWithRelations($idTpq);
 
-        // Filter untuk peserta yang perlu perbaikan dengan data santri lengkap
-        $pesertaPerluPerbaikan = $this->pesertaMunaqosahModel
+        // Pisahkan peserta berdasarkan status verifikasi
+        $pesertaValid = [];
+        $pesertaPerluPerbaikan = [];
+        $pesertaBelumDikonfirmasi = [];
+
+        if (!empty($peserta) && is_array($peserta)) {
+            foreach ($peserta as $row) {
+                $statusVerifikasi = $row->status_verifikasi ?? null;
+                if ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi') {
+                    $pesertaValid[] = $row;
+                } elseif ($statusVerifikasi === 'perlu_perbaikan') {
+                    $pesertaPerluPerbaikan[] = $row;
+                } else {
+                    $pesertaBelumDikonfirmasi[] = $row;
+                }
+            }
+        }
+
+        // Query terpisah untuk parsing keterangan (digunakan di modal edit)
+        $pesertaPerluPerbaikanForModal = $this->pesertaMunaqosahModel
             ->select('tbl_munaqosah_peserta.*, tbl_santri_baru.NamaSantri, tbl_santri_baru.JenisKelamin, tbl_santri_baru.TempatLahirSantri, 
                      tbl_santri_baru.TanggalLahirSantri, tbl_santri_baru.NamaAyah, tbl_tpq.NamaTpq')
             ->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_munaqosah_peserta.IdSantri', 'left')
@@ -3527,13 +3545,13 @@ class Munaqosah extends BaseController
             ->where('tbl_munaqosah_peserta.status_verifikasi', 'perlu_perbaikan');
 
         if ($idTpq) {
-            $pesertaPerluPerbaikan->where('tbl_munaqosah_peserta.IdTpq', $idTpq);
+            $pesertaPerluPerbaikanForModal->where('tbl_munaqosah_peserta.IdTpq', $idTpq);
         }
 
-        $pesertaPerluPerbaikan = $pesertaPerluPerbaikan->findAll();
+        $pesertaPerluPerbaikanForModal = $pesertaPerluPerbaikanForModal->findAll();
 
-        // Parse data perbaikan dari keterangan untuk setiap peserta
-        foreach ($pesertaPerluPerbaikan as &$pesertaItem) {
+        // Parse data perbaikan dari keterangan untuk setiap peserta (untuk modal)
+        foreach ($pesertaPerluPerbaikanForModal as &$pesertaItem) {
             $keterangan = $pesertaItem['keterangan'] ?? '';
             if (!empty($keterangan) && strpos($keterangan, '[Data Perbaikan JSON]') !== false) {
                 $jsonMatch = preg_match('/\[Data Perbaikan JSON\]\s*\n([\s\S]*)/', $keterangan, $matches);
@@ -3561,7 +3579,10 @@ class Munaqosah extends BaseController
         $data = [
             'page_title' => 'Data Peserta Munaqosah',
             'peserta' => $peserta,
+            'pesertaValid' => $pesertaValid,
             'pesertaPerluPerbaikan' => $pesertaPerluPerbaikan,
+            'pesertaBelumDikonfirmasi' => $pesertaBelumDikonfirmasi,
+            'pesertaPerluPerbaikanForModal' => $pesertaPerluPerbaikanForModal, // Untuk parsing di modal
             'dataKelas' => $dataKelas,
             'dataTpq' => $dataTpq,
             'tahunAjaran' => $tahunAjaran

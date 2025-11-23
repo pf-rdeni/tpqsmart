@@ -113,81 +113,11 @@
     </div>
 </div>
 
-<!-- Card untuk Peserta yang Perlu Perbaikan -->
-<?php if (!empty($pesertaPerluPerbaikan) && count($pesertaPerluPerbaikan) > 0): ?>
-    <div class="col-12 mt-4">
-        <div class="card card-warning">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-exclamation-triangle"></i> Peserta yang Perlu Perbaikan Data
-                </h3>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>ID Santri</th>
-                                <th>Nama Santri</th>
-                                <th>TPQ</th>
-                                <th>Keterangan</th>
-                                <th>Tanggal Verifikasi</th>
-                                <th>Persetujuan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php $no = 1; ?>
-                            <?php foreach ($pesertaPerluPerbaikan as $row): ?>
-                                <tr>
-                                    <td><?= $no++ ?></td>
-                                    <td><?= $row['IdSantri'] ?? '-' ?></td>
-                                    <td><?= $row['NamaSantri'] ?? '-' ?></td>
-                                    <td><?= $row['NamaTpq'] ?? '-' ?></td>
-                                    <td>
-                                        <?php if (!empty($row['keterangan'])): ?>
-                                            <span class="text-muted" title="<?= esc($row['keterangan']) ?>">
-                                                <?= esc(strlen($row['keterangan']) > 50 ? substr($row['keterangan'], 0, 50) . '...' : $row['keterangan']) ?>
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="text-muted">-</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if (!empty($row['verified_at'])): ?>
-                                            <?= formatTanggalIndonesia($row['verified_at'], 'd F Y H:i') ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">-</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        // Gunakan fungsi editPeserta yang sama seperti di tabel utama
-                                        $idSantri = $row['IdSantri'] ?? '';
-                                        $namaSantri = $row['NamaSantri'] ?? 'Tidak Diketahui';
-                                        $statusVerifikasi = 'perlu_perbaikan'; // Status selalu perlu_perbaikan di tabel ini
-                                        ?>
-                                        <button type="button" class="btn btn-info btn-sm"
-                                            onclick="editPeserta(<?= $idSantri ?>, '<?= addslashes($namaSantri) ?>', '<?= $statusVerifikasi ?>')"
-                                            title="Review & Konfirmasi Perbaikan">
-                                            <i class="fas fa-check-double"></i> Review
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
 
 <div class="col-12">
     <div class="card">
         <div class="card-header">
             <div class="row mb-2">
-
                 <div class="col-sm-12 float-sm-left">
                     <button class="btn btn-primary" data-toggle="modal"
                         data-target="#modalAddPeserta"><i class="fas fa-edit"></i>Tambah Peserta Munaqosah</button>
@@ -197,42 +127,30 @@
 
         <!-- /.card-header -->
         <div class="card-body">
-            <table id="tabelPesertaMunaqosah" class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>ID Santri</th>
-                        <th>Nama Santri</th>
-                        <th>Tempat Lahir</th>
-                        <th>Tanggal Lahir</th>
-                        <th>Jenis Kelamin</th>
-                        <th>Nama Ayah</th>
-                        <th>TPQ</th>
-                        <th>Alamat</th>
-                        <th>Tahun Ajaran</th>
-                        <th>Status Verifikasi</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($peserta) && count($peserta) > 0): ?>
+            <!-- Tabel Peserta Perlu Perbaikan -->
+            <?php if (!empty($pesertaPerluPerbaikan) && count($pesertaPerluPerbaikan) > 0): ?>
+            <div class="mb-4">
+                <h5 class="mb-3"><i class="fas fa-exclamation-triangle text-warning"></i> Peserta Perlu Perbaikan</h5>
+                <table id="tabelPesertaPerluPerbaikan" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>ID Santri</th>
+                            <th>Nama Santri</th>
+                            <th>Tempat Lahir</th>
+                            <th>Tanggal Lahir</th>
+                            <th>Jenis Kelamin</th>
+                            <th>Nama Ayah</th>
+                            <th>TPQ</th>
+                            <th>Alamat</th>
+                            <th>Tahun Ajaran</th>
+                            <th>Status Verifikasi</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         <?php $no = 1; ?>
-                        <?php foreach ($peserta as $row): ?>
-                            <?php
-                            $statusVerifikasi = $row->status_verifikasi ?? null;
-                            $statusBadge = '';
-                            if ($statusVerifikasi === 'valid') {
-                                $statusBadge = '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span>';
-                            } elseif ($statusVerifikasi === 'perlu_perbaikan') {
-                                $statusBadge = '<span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span>';
-                            } elseif ($statusVerifikasi === 'dikonfirmasi') {
-                                // Status "dikonfirmasi" tidak lagi digunakan, langsung menjadi "valid"
-                                // Tetap tampilkan untuk backward compatibility dengan data lama
-                                $statusBadge = '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span>';
-                            } else {
-                                $statusBadge = '<span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span>';
-                            }
-                            ?>
+                        <?php foreach ($pesertaPerluPerbaikan as $row): ?>
                             <tr>
                                 <td><?= $no++ ?></td>
                                 <td><?= $row->IdSantri ?? '-' ?></td>
@@ -244,24 +162,12 @@
                                 <td><?= $row->NamaTpq ?? '-' ?></td>
                                 <td><?= $row->KelurahanDesa ?? '-' ?></td>
                                 <td><?= $row->IdTahunAjaran ?? '-' ?></td>
-                                <td><?= $statusBadge ?></td>
+                                <td><span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span></td>
                                 <td>
-                                    <?php
-                                    $statusVerifikasi = $row->status_verifikasi ?? null;
-                                    $btnClass = 'btn-warning';
-                                    $btnIcon = 'fas fa-edit';
-                                    $btnTitle = 'Edit';
-
-                                    if ($statusVerifikasi === 'perlu_perbaikan') {
-                                        $btnClass = 'btn-info';
-                                        $btnIcon = 'fas fa-check-double';
-                                        $btnTitle = 'Review & Konfirmasi Perbaikan';
-                                    }
-                                    ?>
-                                    <button type="button" class="btn <?= $btnClass ?> btn-sm mr-1"
-                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $statusVerifikasi ?? '' ?>')"
-                                        title="<?= $btnTitle ?>">
-                                        <i class="<?= $btnIcon ?>"></i> <?= $statusVerifikasi === 'perlu_perbaikan' ? 'Review' : 'Edit' ?>
+                                    <button type="button" class="btn btn-info btn-sm mr-1"
+                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', 'perlu_perbaikan')"
+                                        title="Review & Konfirmasi Perbaikan">
+                                        <i class="fas fa-check-double"></i> Review
                                     </button>
                                     <button type="button" class="btn btn-danger btn-sm"
                                         onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')">
@@ -270,13 +176,106 @@
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    <?php else: ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+
+            <!-- Tabel Peserta Valid -->
+            <?php if (!empty($pesertaValid) && count($pesertaValid) > 0): ?>
+            <div class="mb-4">
+                <h5 class="mb-3"><i class="fas fa-check-circle text-success"></i> Peserta Valid</h5>
+                <table id="tabelPesertaValid" class="table table-bordered table-striped">
+                    <thead>
                         <tr>
-                            <td colspan="12" class="text-center">Tidak ada data peserta</td>
+                            <th>No</th>
+                            <th>ID Santri</th>
+                            <th>Nama Santri</th>
+                            <th>Tempat Lahir</th>
+                            <th>Tanggal Lahir</th>
+                            <th>Jenis Kelamin</th>
+                            <th>Nama Ayah</th>
+                            <th>TPQ</th>
+                            <th>Alamat</th>
+                            <th>Tahun Ajaran</th>
+                            <th>Status Verifikasi</th>
                         </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php $no = 1; ?>
+                        <?php foreach ($pesertaValid as $row): ?>
+                            <tr>
+                                <td><?= $no++ ?></td>
+                                <td><?= $row->IdSantri ?? '-' ?></td>
+                                <td><?= $row->NamaSantri ?? '-' ?></td>
+                                <td><?= $row->TempatLahirSantri ?? '-' ?></td>
+                                <td><?= $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '-' ?></td>
+                                <td><?= $row->JenisKelamin ?? '-' ?></td>
+                                <td><?= $row->NamaAyah ?? '-' ?></td>
+                                <td><?= $row->NamaTpq ?? '-' ?></td>
+                                <td><?= $row->KelurahanDesa ?? '-' ?></td>
+                                <td><?= $row->IdTahunAjaran ?? '-' ?></td>
+                                <td><span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+
+            <!-- Tabel Peserta Belum Dikonfirmasi -->
+            <?php if (!empty($pesertaBelumDikonfirmasi) && count($pesertaBelumDikonfirmasi) > 0): ?>
+            <div>
+                <h5 class="mb-3"><i class="fas fa-clock text-secondary"></i> Peserta Belum Dikonfirmasi</h5>
+                <table id="tabelPesertaBelumDikonfirmasi" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>ID Santri</th>
+                            <th>Nama Santri</th>
+                            <th>Tempat Lahir</th>
+                            <th>Tanggal Lahir</th>
+                            <th>Jenis Kelamin</th>
+                            <th>Nama Ayah</th>
+                            <th>TPQ</th>
+                            <th>Alamat</th>
+                            <th>Tahun Ajaran</th>
+                            <th>Status Verifikasi</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php $no = 1; ?>
+                        <?php foreach ($pesertaBelumDikonfirmasi as $row): ?>
+                            <tr>
+                                <td><?= $no++ ?></td>
+                                <td><?= $row->IdSantri ?? '-' ?></td>
+                                <td><?= $row->NamaSantri ?? '-' ?></td>
+                                <td><?= $row->TempatLahirSantri ?? '-' ?></td>
+                                <td><?= $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '-' ?></td>
+                                <td><?= $row->JenisKelamin ?? '-' ?></td>
+                                <td><?= $row->NamaAyah ?? '-' ?></td>
+                                <td><?= $row->NamaTpq ?? '-' ?></td>
+                                <td><?= $row->KelurahanDesa ?? '-' ?></td>
+                                <td><?= $row->IdTahunAjaran ?? '-' ?></td>
+                                <td><span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span></td>
+                                <td>
+                                    <button type="button" class="btn btn-warning btn-sm mr-1"
+                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
+                                        title="Edit">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                        onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -1261,16 +1260,16 @@
     $(document).ready(function() {
         console.log('Document ready - initializing...');
 
-        // Inisialisasi DataTables dengan error handling
-        if ($('#tabelPesertaMunaqosah').length > 0) {
+        // Inisialisasi DataTables untuk Tabel Peserta Valid
+        if ($('#tabelPesertaValid').length > 0) {
             try {
-                var table = $('#tabelPesertaMunaqosah').DataTable({
+                var tableValid = $('#tabelPesertaValid').DataTable({
                     "responsive": true,
                     "lengthChange": false,
                     "autoWidth": false,
                     "dom": 'Bfrtip',
                     "language": {
-                        "emptyTable": "Tidak ada data peserta munaqosah",
+                        "emptyTable": "Tidak ada data peserta valid",
                         "zeroRecords": "Tidak ada data yang cocok"
                     },
                     // munculkan menu untuk export data ke pdf,excel,print
@@ -1278,7 +1277,60 @@
                             extend: 'pdf',
                             text: 'PDF',
                             className: 'btn btn-danger btn-sm',
-                            title: 'Data Peserta Munaqosah',
+                            title: 'Data Peserta Valid',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // All columns except action
+                            }
+                        },
+                        {
+                            extend: 'excel',
+                            text: 'Excel',
+                            className: 'btn btn-success btn-sm',
+                            title: 'Data Peserta Valid',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // All columns except action
+                            }
+                        },
+                        {
+                            extend: 'print',
+                            text: 'Print',
+                            className: 'btn btn-info btn-sm',
+                            title: 'Data Peserta Valid',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // All columns except action
+                            }
+                        }
+                    ]
+                });
+
+                // Pastikan button container ditambahkan ke wrapper
+                tableValid.buttons().container().appendTo('#tabelPesertaValid_wrapper .col-md-6:eq(0)');
+                console.log('DataTables for Valid table initialized successfully');
+            } catch (error) {
+                console.error('DataTables initialization error for Valid table:', error);
+                // Fallback: hide table if DataTables fails
+                $('#tabelPesertaValid').hide();
+            }
+        }
+
+        // Inisialisasi DataTables untuk Tabel Peserta Perlu Perbaikan
+        if ($('#tabelPesertaPerluPerbaikan').length > 0) {
+            try {
+                var tablePerluPerbaikan = $('#tabelPesertaPerluPerbaikan').DataTable({
+                    "responsive": true,
+                    "lengthChange": false,
+                    "autoWidth": false,
+                    "dom": 'Bfrtip',
+                    "language": {
+                        "emptyTable": "Tidak ada data peserta perlu perbaikan",
+                        "zeroRecords": "Tidak ada data yang cocok"
+                    },
+                    // munculkan menu untuk export data ke pdf,excel,print
+                    "buttons": [{
+                            extend: 'pdf',
+                            text: 'PDF',
+                            className: 'btn btn-danger btn-sm',
+                            title: 'Data Peserta Perlu Perbaikan',
                             exportOptions: {
                                 columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
                             }
@@ -1287,7 +1339,7 @@
                             extend: 'excel',
                             text: 'Excel',
                             className: 'btn btn-success btn-sm',
-                            title: 'Data Peserta Munaqosah',
+                            title: 'Data Peserta Perlu Perbaikan',
                             exportOptions: {
                                 columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
                             }
@@ -1296,7 +1348,7 @@
                             extend: 'print',
                             text: 'Print',
                             className: 'btn btn-info btn-sm',
-                            title: 'Data Peserta Munaqosah',
+                            title: 'Data Peserta Perlu Perbaikan',
                             exportOptions: {
                                 columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
                             }
@@ -1305,15 +1357,66 @@
                 });
 
                 // Pastikan button container ditambahkan ke wrapper
-                table.buttons().container().appendTo('#tabelPesertaMunaqosah_wrapper .col-md-6:eq(0)');
-                console.log('DataTables initialized successfully');
+                tablePerluPerbaikan.buttons().container().appendTo('#tabelPesertaPerluPerbaikan_wrapper .col-md-6:eq(0)');
+                console.log('DataTables for Perlu Perbaikan table initialized successfully');
             } catch (error) {
-                console.error('DataTables initialization error:', error);
+                console.error('DataTables initialization error for Perlu Perbaikan table:', error);
                 // Fallback: hide table if DataTables fails
-                $('#tabelPesertaMunaqosah').hide();
+                $('#tabelPesertaPerluPerbaikan').hide();
             }
-        } else {
-            console.log('Table element not found, skipping DataTables initialization');
+        }
+
+        // Inisialisasi DataTables untuk Tabel Peserta Belum Dikonfirmasi
+        if ($('#tabelPesertaBelumDikonfirmasi').length > 0) {
+            try {
+                var tableBelumDikonfirmasi = $('#tabelPesertaBelumDikonfirmasi').DataTable({
+                    "responsive": true,
+                    "lengthChange": false,
+                    "autoWidth": false,
+                    "dom": 'Bfrtip',
+                    "language": {
+                        "emptyTable": "Tidak ada data peserta belum dikonfirmasi",
+                        "zeroRecords": "Tidak ada data yang cocok"
+                    },
+                    // munculkan menu untuk export data ke pdf,excel,print
+                    "buttons": [{
+                            extend: 'pdf',
+                            text: 'PDF',
+                            className: 'btn btn-danger btn-sm',
+                            title: 'Data Peserta Belum Dikonfirmasi',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
+                            }
+                        },
+                        {
+                            extend: 'excel',
+                            text: 'Excel',
+                            className: 'btn btn-success btn-sm',
+                            title: 'Data Peserta Belum Dikonfirmasi',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
+                            }
+                        },
+                        {
+                            extend: 'print',
+                            text: 'Print',
+                            className: 'btn btn-info btn-sm',
+                            title: 'Data Peserta Belum Dikonfirmasi',
+                            exportOptions: {
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
+                            }
+                        }
+                    ]
+                });
+
+                // Pastikan button container ditambahkan ke wrapper
+                tableBelumDikonfirmasi.buttons().container().appendTo('#tabelPesertaBelumDikonfirmasi_wrapper .col-md-6:eq(0)');
+                console.log('DataTables for Belum Dikonfirmasi table initialized successfully');
+            } catch (error) {
+                console.error('DataTables initialization error for Belum Dikonfirmasi table:', error);
+                // Fallback: hide table if DataTables fails
+                $('#tabelPesertaBelumDikonfirmasi').hide();
+            }
         }
 
         // Inisialisasi Select2 untuk dropdown
