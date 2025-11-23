@@ -138,25 +138,11 @@ class Munaqosah extends BaseController
                     ->countAllResults('NoPeserta');
             }
 
-            // Check total semua peserta yang sudah dinilai untuk semua juri dari tpq ini jika ada id tpq
+            // Check total semua peserta yang sudah dinilai di SEMUA kategori (cara sama seperti monitoring)
             if ($juriIdTpq) {
-                // Hitung total peserta yang sudah dinilai oleh semua juri di TPQ ini
-                $query = $this->db->query("
-                    SELECT COUNT(DISTINCT NoPeserta) as total 
-                    FROM tbl_munaqosah_nilai 
-                    WHERE IdTpq = ? AND IdTahunAjaran = ? AND TypeUjian = ?
-                ", [$juriIdTpq, $currentTahunAjaran, $typeUjian]);
-                $result = $query->getRow();
-                $totalPesertaSudahDinilaiSemuaJuri = $result ? (int)$result->total : 0;
+                $totalPesertaSudahDinilaiSemuaJuri = getTotalPesertaSudahDinilaiSemuaKategori($currentTahunAjaran, $typeUjian, $juriIdTpq);
             } else {
-                // Jika tidak ada id tpq (munaqosah umum), hitung semua peserta yang sudah dinilai
-                $query = $this->db->query("
-                    SELECT COUNT(DISTINCT NoPeserta) as total 
-                    FROM tbl_munaqosah_nilai 
-                    WHERE IdTpq IS NULL AND IdTahunAjaran = ? AND TypeUjian = ?
-                ", [$currentTahunAjaran, $typeUjian]);
-                $result = $query->getRow();
-                $totalPesertaSudahDinilaiSemuaJuri = $result ? (int)$result->total : 0;
+                $totalPesertaSudahDinilaiSemuaJuri = getTotalPesertaSudahDinilaiSemuaKategori($currentTahunAjaran, $typeUjian, 0);
             }
 
 
@@ -232,14 +218,8 @@ class Munaqosah extends BaseController
             $totalGrupMateri = $this->grupMateriUjiMunaqosahModel->where('Status', 'Aktif')
                 ->countAllResults();
 
-            // Total peserta sudah dinilai (hitung distinct NoPeserta, hanya Munaqosah)
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT NoPeserta) as total 
-                FROM tbl_munaqosah_nilai 
-                WHERE IdTahunAjaran = ? AND TypeUjian = 'munaqosah'
-            ", [$currentTahunAjaran]);
-            $result = $query->getRow();
-            $totalSudahDinilai = $result ? (int)$result->total : 0;
+            // Total peserta sudah dinilai di SEMUA kategori (cara sama seperti monitoring)
+            $totalSudahDinilai = getTotalPesertaSudahDinilaiSemuaKategori($currentTahunAjaran, 'munaqosah', null);
 
             // Hitung jumlah peserta berdasarkan status verifikasi (hanya Munaqosah)
             // Status Valid (valid atau dikonfirmasi)
@@ -378,14 +358,8 @@ class Munaqosah extends BaseController
             $result = $query->getRow();
             $totalPeserta = $result ? (int)$result->total : 0;
 
-            // Total peserta sudah dinilai untuk TPQ ini (hanya Pra-Munaqosah)
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT NoPeserta) as total 
-                FROM tbl_munaqosah_nilai 
-                WHERE IdTahunAjaran = ? AND IdTpq = ? AND TypeUjian = 'pra-munaqosah'
-            ", [$currentTahunAjaran, $idTpq]);
-            $result = $query->getRow();
-            $totalSudahDinilai = $result ? (int)$result->total : 0;
+            // Total peserta sudah dinilai di SEMUA kategori untuk TPQ ini (cara sama seperti monitoring)
+            $totalSudahDinilai = getTotalPesertaSudahDinilaiSemuaKategori($currentTahunAjaran, 'pra-munaqosah', $idTpq);
 
             // Hitung jumlah peserta berdasarkan status verifikasi untuk TPQ ini (hanya Pra-Munaqosah)
             // Status Valid (valid atau dikonfirmasi)

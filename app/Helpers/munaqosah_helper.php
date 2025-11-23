@@ -203,3 +203,122 @@ if (!function_exists('getStatistikMunaqosah')) {
         ];
     }
 }
+
+if (!function_exists('getTotalPesertaSudahDinilaiSemuaKategori')) {
+    /**
+     * Menghitung total peserta yang sudah dinilai di SEMUA kategori
+     * (cara perhitungan sama seperti di monitoring)
+     * 
+     * @param string $idTahunAjaran
+     * @param string $typeUjian
+     * @param int|null $idTpq
+     * @return int
+     */
+    function getTotalPesertaSudahDinilaiSemuaKategori($idTahunAjaran, $typeUjian, $idTpq = null)
+    {
+        $db = \Config\Database::connect();
+        
+        // Ambil semua peserta yang terdaftar dengan kategori mereka (cara sama seperti buildMonitoringDataset)
+        $builder = $db->table('tbl_munaqosah_registrasi_uji r');
+        $builder->select('r.NoPeserta, r.IdKategoriMateri');
+        $builder->where('r.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('r.TypeUjian', $typeUjian);
+        
+        if ($idTpq !== null) {
+            if ($idTpq == 0) {
+                $builder->where('r.IdTpq IS NULL');
+            } else {
+                $builder->where('r.IdTpq', $idTpq);
+            }
+        }
+        
+        $registrasiRows = $builder->get()->getResultArray();
+        
+        if (empty($registrasiRows)) {
+            return 0;
+        }
+        
+        // Kelompokkan peserta berdasarkan NoPeserta dan kumpulkan kategori mereka
+        $pesertaKategori = [];
+        foreach ($registrasiRows as $row) {
+            $noPeserta = $row['NoPeserta'];
+            $idKategori = $row['IdKategoriMateri'];
+            
+            if (!isset($pesertaKategori[$noPeserta])) {
+                $pesertaKategori[$noPeserta] = [];
+            }
+            
+            // Hanya tambahkan kategori yang tidak kosong
+            if (!empty($idKategori)) {
+                $pesertaKategori[$noPeserta][$idKategori] = true;
+            }
+        }
+        
+        // Ambil semua nilai untuk peserta-peserta ini dalam satu query
+        $noPesertaList = array_keys($pesertaKategori);
+        if (empty($noPesertaList)) {
+            return 0;
+        }
+        
+        $nilaiBuilder = $db->table('tbl_munaqosah_nilai n');
+        $nilaiBuilder->select('n.NoPeserta, n.IdKategoriMateri, n.Nilai');
+        $nilaiBuilder->where('n.IdTahunAjaran', $idTahunAjaran);
+        $nilaiBuilder->where('n.TypeUjian', $typeUjian);
+        $nilaiBuilder->where('n.Nilai >', 0);
+        $nilaiBuilder->whereIn('n.NoPeserta', $noPesertaList);
+        
+        if ($idTpq !== null) {
+            if ($idTpq == 0) {
+                $nilaiBuilder->where('n.IdTpq IS NULL');
+            } else {
+                $nilaiBuilder->where('n.IdTpq', $idTpq);
+            }
+        }
+        
+        $nilaiRows = $nilaiBuilder->get()->getResultArray();
+        
+        // Kelompokkan nilai per peserta dan kategori
+        $pesertaNilai = [];
+        foreach ($nilaiRows as $row) {
+            $noPeserta = $row['NoPeserta'];
+            $idKategori = $row['IdKategoriMateri'];
+            
+            if (!isset($pesertaNilai[$noPeserta])) {
+                $pesertaNilai[$noPeserta] = [];
+            }
+            
+            if (!empty($idKategori)) {
+                $pesertaNilai[$noPeserta][$idKategori] = true;
+            }
+        }
+        
+        // Untuk setiap peserta, cek apakah semua kategori mereka sudah dinilai
+        $totalSudahDinilai = 0;
+        
+        foreach ($pesertaKategori as $noPeserta => $kategoriList) {
+            if (empty($kategoriList)) {
+                continue;
+            }
+            
+            $kategoriIds = array_keys($kategoriList);
+            $totalKategori = count($kategoriIds);
+            
+            // Cek apakah semua kategori sudah dinilai
+            $kategoriDinilai = 0;
+            if (isset($pesertaNilai[$noPeserta])) {
+                foreach ($kategoriIds as $idKategori) {
+                    if (isset($pesertaNilai[$noPeserta][$idKategori])) {
+                        $kategoriDinilai++;
+                    }
+                }
+            }
+            
+            // Jika semua kategori sudah dinilai, hitung peserta ini
+            if ($kategoriDinilai >= $totalKategori) {
+                $totalSudahDinilai++;
+            }
+        }
+        
+        return $totalSudahDinilai;
+    }
+}
