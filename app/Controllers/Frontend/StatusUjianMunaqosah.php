@@ -755,7 +755,20 @@ class StatusUjianMunaqosah extends BaseController
         $meta = $kelulusanData['meta'] ?? [];
 
         // Ambil data TPQ untuk logo/kop
-        $tpqData = $this->helpFunctionModel->getNamaTpqById($peserta['IdTpq']);
+        $tpqRaw = $this->helpFunctionModel->getNamaTpqById($peserta['IdTpq']);
+
+        // Map data TPQ sesuai dengan format yang digunakan template
+        $tpqData = [];
+        if ($tpqRaw) {
+            $tpqData = [
+                'NamaTpq' => $tpqRaw['NamaTpq'] ?? '',
+                'AlamatTpq' => $tpqRaw['Alamat'] ?? '',
+                'NoTelp' => $tpqRaw['NoHp'] ?? '',
+                'Logo' => $tpqRaw['LogoLembaga'] ?? null,
+                'KopLembaga' => $tpqRaw['KopLembaga'] ?? '',
+                'KepalaSekolah' => $tpqRaw['KepalaSekolah'] ?? '',
+            ];
+        }
 
         // Ambil nama kelas dari data santri untuk menentukan apakah menggunakan kop MDA atau TPQ
         $namaKelasSantri = null;
@@ -793,10 +806,30 @@ class StatusUjianMunaqosah extends BaseController
             }
         }
 
+        // Tentukan data yang akan digunakan (MDA atau TPQ)
+        $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+
         // Update tpqData dengan kop lembaga yang sesuai
         $tpqData['KopLembaga'] = $kopLembaga;
         $tpqData['NamaTpq'] = $namaLembaga;
         $tpqData['KepalaSekolah'] = $kepalaSekolah;
+        $tpqData['LembagaType'] = $lembagaType;
+
+        // Ambil nama kepala sesuai dengan lembaga type (MDA atau TPQ)
+        if ($lembagaType === 'MDA' && !empty($kepalaSekolah)) {
+            // Jika menggunakan MDA, gunakan KepalaSekolah dari MDA
+            $tpqData['NamaKepalaTpq'] = $kepalaSekolah;
+        } else {
+            // Jika menggunakan TPQ, ambil dari struktur lembaga
+            if (empty($tpqData['NamaKepalaTpq'])) {
+                $kepalaTpq = $this->helpFunctionModel->getDataKepalaTpqStrukturLembaga(null, $peserta['IdTpq'] ?? null, null);
+                if (!empty($kepalaTpq) && isset($kepalaTpq[0]->Nama)) {
+                    $tpqData['NamaKepalaTpq'] = $kepalaTpq[0]->Nama;
+                } elseif (!empty($kepalaSekolah)) {
+                    $tpqData['NamaKepalaTpq'] = $kepalaSekolah;
+                }
+            }
+        }
 
         $data = [
             'peserta' => $pesertaData,

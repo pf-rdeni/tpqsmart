@@ -4,6 +4,18 @@ $categoryDetails = $categoryDetails ?? [];
 $meta = $meta ?? [];
 $tpqData = $tpqData ?? [];
 $generated_at = $generated_at ?? date('Y-m-d');
+
+// Normalisasi TypeUjian untuk display
+$typeUjian = strtolower(trim($peserta['TypeUjian'] ?? 'munaqosah'));
+if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+    $typeUjian = 'pra-munaqosah';
+    $typeUjianLabel = 'Pra-Munaqosah';
+    $typeUjianLabelLower = 'pra-munaqosah';
+} else {
+    $typeUjian = 'munaqosah';
+    $typeUjianLabel = 'Munaqosah';
+    $typeUjianLabelLower = 'munaqosah';
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -20,11 +32,35 @@ $generated_at = $generated_at ?? date('Y-m-d');
             padding: 20px;
         }
 
+        body.has-kop-header {
+            padding-top: 1px;
+        }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 2px solid #333;
             padding-bottom: 20px;
+        }
+
+        .header.has-kop {
+            border-bottom: none;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .kop-lembaga {
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+        .kop-lembaga img {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
         }
 
         .header-logo {
@@ -51,6 +87,10 @@ $generated_at = $generated_at ?? date('Y-m-d');
             font-weight: bold;
             margin: 30px 0 20px 0;
             text-decoration: underline;
+        }
+
+        .header.has-kop+.surat-title {
+            margin-top: 5px;
         }
 
         .content {
@@ -166,8 +206,8 @@ $generated_at = $generated_at ?? date('Y-m-d');
     </style>
 </head>
 
-<body>
-    <div class="header">
+<body class="<?= !empty($tpqData['KopLembaga']) ? 'has-kop-header' : '' ?>">
+    <div class="header <?= !empty($tpqData['KopLembaga']) ? 'has-kop' : '' ?>">
         <?php if (!empty($tpqData['KopLembaga'])): ?>
             <!-- Kop Lembaga -->
             <?php
@@ -206,7 +246,7 @@ $generated_at = $generated_at ?? date('Y-m-d');
                             if ($source) {
                                 $resized = imagecreatetruecolor($newWidth, $newHeight);
                                 imagecopyresampled($resized, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-                                
+
                                 ob_start();
                                 switch ($mimeType) {
                                     case 'image/jpeg':
@@ -237,7 +277,9 @@ $generated_at = $generated_at ?? date('Y-m-d');
 
                 $kopBase64 = base64_encode($kopContent);
                 $kopMimeType = mime_content_type($kopPath);
-                echo '<img src="data:' . $kopMimeType . ';base64,' . $kopBase64 . '" alt="Kop Lembaga" style="width: 100%; max-width: 800px; height: auto; display: block; margin: 0 auto;">';
+                echo '<div class="kop-lembaga">';
+                echo '<img src="data:' . $kopMimeType . ';base64,' . $kopBase64 . '" alt="Kop Lembaga">';
+                echo '</div>';
             } else {
                 // Fallback jika file tidak ditemukan
                 echo '<div class="header-title">' . esc($tpqData['NamaTpq'] ?? 'TPQ SMART SYSTEM') . '</div>';
@@ -268,12 +310,28 @@ $generated_at = $generated_at ?? date('Y-m-d');
 
     <div class="surat-title">
         SURAT KETERANGAN KELULUSAN<br>
-        UJIAN MUNAQOSAH
+        UJIAN <?= strtoupper($typeUjianLabel) ?>
     </div>
 
     <div class="content">
         <p>
-            Yang bertanda tangan di bawah ini, Kepala <?= esc($tpqData['NamaTpq'] ?? 'TPQ') ?>, dengan ini menerangkan bahwa:
+            <?php
+            $lembagaType = $tpqData['LembagaType'] ?? 'TPQ';
+            $namaLembaga = $tpqData['NamaTpq'] ?? 'TPQ';
+
+            if ($typeUjian === 'pra-munaqosah') {
+                if ($lembagaType === 'MDA') {
+                    $jabatanLembaga = 'Ketua MDTA';
+                } else {
+                    $jabatanLembaga = 'Kepala TPQ';
+                }
+            } else {
+                // Untuk Munaqosah, menggunakan Ketua FKPQ
+                $jabatanLembaga = 'Ketua FKPQ';
+                $namaLembaga = 'Formum Komunikasi Pendidikan Al-Quran (FKPQ) Kec. Seri Kuala Lobam Kab. Bintan';
+            }
+            ?>
+            Yang bertanda tangan di bawah ini, <?= esc($jabatanLembaga . ' ' . $namaLembaga) ?>, dengan ini menerangkan bahwa:
         </p>
 
         <div class="data-section">
@@ -287,14 +345,14 @@ $generated_at = $generated_at ?? date('Y-m-d');
             </div>
             <div class="data-row">
                 <span class="data-label">Tahun Ajaran</span>
-                <span class="data-value">: <?= esc($peserta['IdTahunAjaran'] ?? '-') ?></span>
+                <span class="data-value">: <?= esc(convertTahunAjaran($peserta['IdTahunAjaran'] ?? '')) ?></span>
             </div>
             <div class="data-row">
                 <span class="data-label">Type Ujian</span>
-                <span class="data-value">: <?= esc($peserta['TypeUjian'] ?? '-') ?></span>
+                <span class="data-value">: <?= esc($typeUjianLabel) ?></span>
             </div>
             <div class="data-row">
-                <span class="data-label">TPQ</span>
+                <span class="data-label"><?= esc(($tpqData['LembagaType'] ?? 'TPQ') === 'MDA' ? 'MDTA' : 'TPQ') ?></span>
                 <span class="data-value">: <?= esc($peserta['NamaTpq'] ?? '-') ?></span>
             </div>
         </div>
@@ -320,15 +378,25 @@ $generated_at = $generated_at ?? date('Y-m-d');
         </div>
 
         <p style="margin-top: 30px; text-align: justify;">
-            Berdasarkan hasil evaluasi ujian munaqosah yang telah dilaksanakan pada tahun ajaran <?= esc($peserta['IdTahunAjaran'] ?? '-') ?>, oleh lembaga Formum Komunikasi Pendidikan Al-Quran (FKPQ) Kec. Seri Kuala Lobam Kab. Bintan Bintan, <?php if (!empty($peserta['KelulusanMet'])): ?>
-                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> telah <strong>LULUS</strong> dalam ujian munaqosah dengan memperoleh total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?>, yang telah memenuhi atau melebihi standar nilai minimal kelulusan sebesar <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?> sesuai dengan ketentuan yang berlaku.
+            Berdasarkan hasil evaluasi ujian <?= esc($typeUjianLabelLower) ?> yang telah dilaksanakan pada tahun ajaran <?= esc(convertTahunAjaran($peserta['IdTahunAjaran'] ?? '')) ?>, <?php if ($typeUjian === 'pra-munaqosah'): ?>
+                <?php
+                                                                                                                                                                                                $lembagaType = $tpqData['LembagaType'] ?? 'TPQ';
+                                                                                                                                                                                                $namaLembaga = $tpqData['NamaTpq'] ?? 'TPQ/MDTA';
+                                                                                                                                                                                                $prefixLembaga = ($lembagaType === 'MDA') ? 'MDTA' : 'TPQ';
+                ?>
+                oleh <?= esc($prefixLembaga . ' ' . $namaLembaga) ?>,
             <?php else: ?>
-                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> <strong>BELUM LULUS</strong> dalam ujian munaqosah dengan memperoleh total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?>, yang belum memenuhi standar nilai minimal kelulusan sebesar <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?> sesuai dengan ketentuan yang berlaku.
+                oleh lembaga Formum Komunikasi Pendidikan Al-Quran (FKPQ) Kec. Seri Kuala Lobam Kab. Bintan Bintan,
+            <?php endif; ?>
+            <?php if (!empty($peserta['KelulusanMet'])): ?>
+                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> telah <strong>LULUS</strong> dalam ujian <?= esc($typeUjianLabelLower) ?> dengan memperoleh total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?>, yang telah memenuhi atau melebihi standar nilai minimal kelulusan sebesar <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?> sesuai dengan ketentuan yang berlaku.
+            <?php else: ?>
+                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> <strong>BELUM LULUS</strong> dalam ujian <?= esc($typeUjianLabelLower) ?> dengan memperoleh total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?>, yang belum memenuhi standar nilai minimal kelulusan sebesar <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?> sesuai dengan ketentuan yang berlaku.
             <?php endif; ?>
         </p>
 
         <p style="margin-top: 20px; text-align: justify;">
-            Surat keterangan ini dibuat dengan sebenarnya berdasarkan data yang ada dalam sistem dan dapat digunakan untuk keperluan administrasi serta dokumentasi resmi terkait hasil ujian munaqosah yang bersangkutan.
+            Surat keterangan ini dibuat dengan sebenarnya berdasarkan data yang ada dalam sistem dan dapat digunakan untuk keperluan administrasi serta dokumentasi resmi terkait hasil ujian <?= esc($typeUjianLabelLower) ?> yang bersangkutan.
         </p>
     </div>
 
@@ -338,10 +406,10 @@ $generated_at = $generated_at ?? date('Y-m-d');
         </div>
         <div class="footer-right">
             <div style="margin-top: 0; text-align: right;">
-                <?= esc($tpqData['NamaTpq'] ?? 'TPQ') ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
+                <?= esc(toTitleCase($tpqData['AlamatTpq'] ?? 'TPQ')) ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
             </div>
             <div style="margin-top: 10px; text-align: right;">
-                Mengetahui Kepala TPQ
+                Mengetahui <?= esc(($tpqData['LembagaType'] ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ') ?>
             </div>
             <?php if (!empty($tpqData['NamaKepalaTpq'])): ?>
                 <div class="signature-name" style="text-align: right; margin-top: 80px;">

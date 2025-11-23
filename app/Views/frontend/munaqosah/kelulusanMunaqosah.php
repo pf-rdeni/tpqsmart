@@ -245,12 +245,12 @@ $pageTitle = 'Hasil Kelulusan ' . $typeUjianLabel;
     }
 
     .btn-pdf {
-        background-color: #f44336;
+        background-color: #2196F3;
         color: white;
     }
 
     .btn-pdf:hover {
-        background-color: #d32f2f;
+        background-color: #1976D2;
     }
 
     .btn-back {
