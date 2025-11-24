@@ -218,34 +218,7 @@
 
         // Initial DataTable per kelas dengan scroll horizontal untuk mobile
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
-            $('#TableNilaiSemester-<?= $kelasId ?>').DataTable({
-                "responsive": false, // Nonaktifkan responsive untuk scroll horizontal
-                "scrollX": true, // Aktifkan scroll horizontal
-                "scrollCollapse": true,
-                "autoWidth": false,
-                "paging": true,
-                "pageLength": 20,
-                "lengthChange": false,
-                "searching": true,
-                "ordering": true,
-                "info": true,
-                "language": {
-                    "search": "Pencarian:",
-                    "paginate": {
-                        "next": "Selanjutnya",
-                        "previous": "Sebelumnya"
-                    },
-                    "lengthMenu": "Tampilkan _MENU_ entri",
-                    "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
-                    "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
-                    "infoFiltered": "(disaring dari _MAX_ total entri)"
-                }
-            });
-
-            // Inisialisasi ulang tooltip setelah DataTable diinisialisasi
-            $('#TableNilaiSemester-<?= $kelasId ?>').on('draw.dt', function() {
-                $('[data-toggle="tooltip"]').tooltip();
-            });
+            initializeDataTableScrollX("#TableNilaiSemester-<?= $kelasId ?>");
         <?php endforeach; ?>
     });
 </script>

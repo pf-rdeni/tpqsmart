@@ -435,7 +435,7 @@ foreach ($dataNilai as $santri) {
         ];
 
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
-            initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true, buttons);
+            initializeDataTableScrollX("#TableNilaiSemester-<?= $kelasId ?>", ['excel', 'colvis']);
             // Inisialisasi ulang tooltip setelah DataTable diinisialisasi
             $('#TableNilaiSemester-<?= $kelasId ?>').on('draw.dt', function() {
                 $('[data-toggle="tooltip"]').tooltip();

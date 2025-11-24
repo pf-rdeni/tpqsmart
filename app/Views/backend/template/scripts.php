@@ -63,6 +63,59 @@
         }).buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
     }
 
+    /**
+     * Initialize DataTable dengan scroll horizontal untuk mobile
+     * Cocok untuk tabel yang perlu di-scroll ke kiri dan kanan di mobile
+     * @param {string} selector - CSS selector untuk tabel
+     * @param {array} buttons - Array button export (contoh: ['copy', 'excel', 'pdf', 'colvis'])
+     * @param {object} options - Opsi tambahan untuk DataTable
+     * @returns {object} DataTable instance
+     */
+    function initializeDataTableScrollX(selector, buttons = [], options = {}) {
+        const defaultOptions = {
+            "responsive": false, // Nonaktifkan responsive untuk scroll horizontal
+            "scrollX": true, // Aktifkan scroll horizontal
+            "scrollCollapse": true,
+            "autoWidth": false,
+            "paging": true,
+            "pageLength": 20,
+            "lengthChange": false,
+            "searching": true,
+            "ordering": true,
+            "info": true,
+            "buttons": buttons, // Tambahkan buttons untuk export
+            "language": {
+                "search": "Pencarian:",
+                "paginate": {
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                },
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ total entri)"
+            }
+        };
+
+        // Merge default options dengan custom options
+        const mergedOptions = { ...defaultOptions, ...options };
+
+        // Initialize DataTable
+        const table = $(selector).DataTable(mergedOptions);
+
+        // Append buttons container jika ada buttons
+        if (buttons && buttons.length > 0) {
+            table.buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
+        }
+
+        // Inisialisasi ulang tooltip setelah DataTable diinisialisasi
+        $(selector).on('draw.dt', function() {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+
+        return table;
+    }
+
     // Tambahkan event listener untuk tab changes
     $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
         // Dapatkan target tab yang aktif
