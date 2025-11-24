@@ -146,10 +146,27 @@ class Nilai extends BaseController
             $dataKelas[$santri->IdKelas] = $santri->NamaKelas;
         }
 
+        // Ambil data materi per kelas untuk menghitung progress
+        $dataMateri = [];
+        foreach ($dataKelas as $kelasId => $namaKelas) {
+            if ($kelasId != 0) { // Skip "SEMUA"
+                $dataMateri[$kelasId] = $this->helpFunction->getMateriPelajaranByKelas($this->IdTpq, $kelasId, $semester);
+            }
+        }
+
+        // Ambil data nilai detail per santri untuk menghitung progress
+        $dataNilaiDetail = [];
+        foreach ($dataSantri as $santri) {
+            $nilaiSantri = $this->DataNilai->getDataNilaiPerSantri($this->IdTpq, $IdTahunAjaran, $santri->IdKelas, $santri->IdSantri, $semester);
+            $dataNilaiDetail[$santri->IdSantri] = $nilaiSantri;
+        }
+
         $data = [
             'page_title' => 'Data Santri Per Semester ' . $semester,
             'dataSantri' => $dataSantri,
             'dataKelas' => $dataKelas,
+            'dataMateri' => $dataMateri,
+            'dataNilaiDetail' => $dataNilaiDetail,
             'semester' => $semester,
             'settingNilai' => $settingNilai,
         ];

@@ -19,18 +19,19 @@
                     <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
                     <ol class="mb-4">
                         <li class="mb-2">
-                            <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dikelola. 
+                            <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dikelola.
                             Tab <strong>"SEMUA"</strong> menampilkan semua santri dari semua kelas.
                         </li>
                         <li class="mb-2">
-                            <strong>Lihat Status Penilaian:</strong> Setiap baris santri menampilkan indikator status penilaian:
+                            <strong>Lihat Progress Penilaian:</strong> Setiap baris santri menampilkan icon progress persentase yang menunjukkan seberapa banyak nilai yang sudah diisi:
                             <ul class="mt-2">
-                                <li><i class="fas fa-exclamation-circle" style="color:red"></i> <span style="color:red;"><strong>Merah</strong></span> - Belum selesai dinilai</li>
-                                <li><i class="fas fa-check-circle" style="color:green"></i> <span style="color:green;"><strong>Hijau</strong></span> - Sudah selesai dinilai</li>
+                                <li>Icon <i class="fas fa-hourglass-half"></i> dengan badge persentase menampilkan progress pengisian nilai</li>
+                                <li>Warna badge berubah sesuai progress: <span class="badge badge-success">Hijau (100%)</span>, <span class="badge badge-info">Biru (75-99%)</span>, <span class="badge badge-warning">Kuning (50-74%)</span>, <span class="badge badge-danger">Merah (1-49%)</span>, <span class="badge badge-secondary">Abu-abu (0%)</span></li>
+                                <li>Hover pada icon untuk melihat detail: "Progress: X/Y materi (Z%)"</li>
                             </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Edit Nilai:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> 
+                            <strong>Edit Nilai:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span>
                             pada baris santri untuk mengisi atau mengubah nilai santri. Tombol ini hanya muncul untuk:
                             <ul class="mt-2">
                                 <li>Guru Kelas atau Wali Kelas</li>
@@ -38,7 +39,7 @@
                             </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>View Nilai:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-eye"></i> View</span> 
+                            <strong>View Nilai:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-eye"></i> View</span>
                             pada baris santri untuk melihat nilai yang sudah diisi. Tombol ini muncul untuk:
                             <ul class="mt-2">
                                 <li>Guru Kelas</li>
@@ -56,7 +57,7 @@
                             <li>Tab aktif akan <strong>tersimpan otomatis</strong> di browser Anda, sehingga saat kembali ke halaman ini, tab terakhir yang dibuka akan otomatis aktif.</li>
                             <li>Data dapat diurutkan dan difilter menggunakan fitur DataTable (search box, sorting, dll).</li>
                             <li>Hanya <strong>Guru Kelas</strong> atau <strong>Wali Kelas</strong> yang dapat mengedit nilai santri di kelas mereka.</li>
-                            <li>Setelah semua nilai diisi dan disimpan, status akan berubah menjadi <strong>Sudah Selesai Dinilai</strong> dan tombol akan berubah menjadi <strong>View</strong>.</li>
+                            <li>Progress persentase akan otomatis terupdate saat nilai diisi. Setelah semua nilai diisi (100%), tombol akan berubah menjadi <strong>View</strong>.</li>
                             <li>Gunakan tab <strong>"SEMUA"</strong> untuk melihat semua santri sekaligus tanpa filter kelas.</li>
                         </ul>
                     </div>
@@ -111,23 +112,71 @@
                                     <tbody>
                                         <?php foreach ($dataSantri as $santri) : ?>
                                             <?php if ($santri->NamaKelas == $kelas || $kelas == "SEMUA"): ?>
+                                                <?php
+                                                // Hitung progress pengisian nilai untuk santri ini
+                                                $totalMateri = 0;
+                                                $materiTerisi = 0;
+
+                                                // Tentukan IdKelas yang digunakan (gunakan IdKelas santri jika "SEMUA", otherwise gunakan $kelasId dari loop)
+                                                $kelasIdForProgress = ($kelas == "SEMUA") ? $santri->IdKelas : $kelasId;
+
+                                                // Hitung progress dari data materi dan nilai
+                                                if (isset($dataMateri[$kelasIdForProgress]) && isset($dataNilaiDetail[$santri->IdSantri])) {
+                                                    $materiKelas = $dataMateri[$kelasIdForProgress];
+                                                    $nilaiSantri = $dataNilaiDetail[$santri->IdSantri];
+
+                                                    // Buat mapping nilai per materi
+                                                    $nilaiPerMateri = [];
+                                                    foreach ($nilaiSantri as $nilai) {
+                                                        $nilaiPerMateri[$nilai->IdMateri] = (int)$nilai->Nilai;
+                                                    }
+
+                                                    // Hitung progress
+                                                    foreach ($materiKelas as $materi) {
+                                                        $totalMateri++;
+                                                        $nilaiMateri = $nilaiPerMateri[$materi->IdMateri] ?? 0;
+                                                        // Nilai dianggap terisi jika > 0
+                                                        if ($nilaiMateri > 0) {
+                                                            $materiTerisi++;
+                                                        }
+                                                    }
+                                                }
+
+                                                // Hitung persentase
+                                                $persentase = $totalMateri > 0 ? round(($materiTerisi / $totalMateri) * 100, 1) : 0;
+
+                                                // Tentukan warna badge berdasarkan persentase
+                                                $badgeColor = 'secondary';
+                                                if ($persentase >= 100) {
+                                                    $badgeColor = 'success';
+                                                } elseif ($persentase >= 75) {
+                                                    $badgeColor = 'info';
+                                                } elseif ($persentase >= 50) {
+                                                    $badgeColor = 'warning';
+                                                } elseif ($persentase > 0) {
+                                                    $badgeColor = 'danger';
+                                                }
+                                                ?>
                                                 <tr>
                                                     <td>
-                                                        <div class="d-flex justify-content-start">
-                                                            <?php if ($santri->StatusPenilaian == 0 && $santri->NamaJabatan == "Guru Kelas" || $santri->NamaJabatan == "Wali Kelas") : ?>
-                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn w-80 btn-warning me-2">
+                                                        <div class="d-flex justify-content-start align-items-center">
+                                                            <?php if ($santri->StatusPenilaian == 0 && ($santri->NamaJabatan == "Guru Kelas" || $santri->NamaJabatan == "Wali Kelas")) : ?>
+                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn btn-warning me-2">
                                                                     <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Edit&nbsp;
                                                                 </a>
                                                             <?php elseif ($santri->StatusPenilaian == 1 && $santri->NamaJabatan == "Guru Kelas"): ?>
-                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 0 . '/' . $santri->IdJabatan) ?>" class="btn w-70 btn-primary me-2">
+                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 0 . '/' . $santri->IdJabatan) ?>" class="btn btn-primary me-2">
                                                                     <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
                                                                 </a>
                                                             <?php endif; ?>
 
-                                                            <?php if ($santri->StatusPenilaian == 0) : ?>
-                                                                <i class="fas fa-exclamation-circle fa-lg" style="color:red" data-toggle="tooltip" data-placement="top" title="! Belum selesai dinilai"></i>
-                                                            <?php else : ?>
-                                                                <i class="fas fa-check-circle fa-lg" style="color:green" data-toggle="tooltip" data-placement="top" title=" ! Sudah Selesai dinilai"></i>
+                                                            <!-- Icon Progress Persentase - Tampilkan jika ada data materi -->
+                                                            <?php if ($totalMateri > 0): ?>
+                                                                <button type="button" class="btn btn-<?= $badgeColor ?> me-2" data-toggle="tooltip" data-placement="top"
+                                                                    title="Progress: <?= $materiTerisi ?>/<?= $totalMateri ?> materi (<?= $persentase ?>%)">
+                                                                    <i class="fas fa-hourglass-half"></i>
+                                                                    <span class="badge badge-light ml-1"><?= $persentase ?>%</span>
+                                                                </button>
                                                             <?php endif; ?>
                                                         </div>
                                                     </td>
@@ -200,6 +249,10 @@
         // Initial DataTabel per kelas
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
             initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true);
+            // Inisialisasi ulang tooltip setelah DataTable diinisialisasi
+            $('#TableNilaiSemester-<?= $kelasId ?>').on('draw.dt', function() {
+                $('[data-toggle="tooltip"]').tooltip();
+            });
         <?php endforeach; ?>
     });
 </script>

@@ -161,14 +161,63 @@ foreach ($dataNilai as $santri) {
                                         <?php
                                         $columnTotals = []; // Array untuk menyimpan total setiap kolom
                                         $rowCount = 0; // Counter jumlah baris (untuk rata-rata)
+
+                                        // Siapkan array materi yang sudah diurutkan untuk digunakan di semua tempat
+                                        $materiSorted = [];
+                                        if (isset($dataMateri[$kelasId])) {
+                                            // Urutkan materi berdasarkan UrutanMateri
+                                            $materiSorted = $dataMateri[$kelasId];
+                                            usort($materiSorted, function ($a, $b) {
+                                                return $a->UrutanMateri - $b->UrutanMateri;
+                                            });
+                                        }
                                         ?>
                                         <?php foreach ($dataNilai as $santri) : ?>
                                             <?php if ($santri['Nama Kelas'] == $kelas): ?>
+                                                <?php
+                                                // Hitung progress pengisian nilai untuk santri ini
+                                                $totalMateri = 0;
+                                                $materiTerisi = 0;
+
+                                                // Hitung progress dari data nilai menggunakan $materiSorted
+                                                if (!empty($materiSorted)) {
+                                                    foreach ($materiSorted as $materi) {
+                                                        $totalMateri++;
+                                                        $nilaiMateri = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : 0;
+                                                        // Nilai dianggap terisi jika > 0 (bukan 0 atau kosong)
+                                                        if ($nilaiMateri > 0) {
+                                                            $materiTerisi++;
+                                                        }
+                                                    }
+                                                }
+
+                                                // Hitung persentase
+                                                $persentase = $totalMateri > 0 ? round(($materiTerisi / $totalMateri) * 100, 1) : 0;
+
+                                                // Tentukan warna badge berdasarkan persentase
+                                                $badgeColor = 'secondary';
+                                                if ($persentase >= 100) {
+                                                    $badgeColor = 'success';
+                                                } elseif ($persentase >= 75) {
+                                                    $badgeColor = 'info';
+                                                } elseif ($persentase >= 50) {
+                                                    $badgeColor = 'warning';
+                                                } elseif ($persentase > 0) {
+                                                    $badgeColor = 'danger';
+                                                }
+                                                ?>
                                                 <tr>
                                                     <td>
-                                                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalDetailNilai<?= $santri['IdSantri'] ?>">
-                                                            <i class="fas fa-eye"></i> Detail
-                                                        </button>
+                                                        <div class="btn-group" role="group">
+                                                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalDetailNilai<?= $santri['IdSantri'] ?>">
+                                                                <i class="fas fa-eye"></i> Detail
+                                                            </button>
+                                                            <button type="button" class="btn btn-<?= $badgeColor ?> btn-sm" data-toggle="tooltip" data-placement="top"
+                                                                title="Progress: <?= $materiTerisi ?>/<?= $totalMateri ?> materi (<?= $persentase ?>%)">
+                                                                <i class="fas fa-percentage"></i>
+                                                                <span class="badge badge-light"><?= $persentase ?>%</span>
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                     <td><?= htmlspecialchars($santri['Nama Santri']) ?></td>
                                                     <td><?= htmlspecialchars($santri['Nama Kelas']) ?></td>
@@ -181,13 +230,9 @@ foreach ($dataNilai as $santri) {
                                                     $rowCount++;
 
                                                     // Tampilkan nilai materi berdasarkan kelas yang dipilih
-                                                    if (isset($dataMateri[$kelasId])) {
-                                                        // Urutkan materi berdasarkan UrutanMateri
-                                                        usort($dataMateri[$kelasId], function ($a, $b) {
-                                                            return $a->UrutanMateri - $b->UrutanMateri;
-                                                        });
-
-                                                        foreach ($dataMateri[$kelasId] as $materi) {
+                                                    // Gunakan $materiSorted yang sudah diurutkan di atas
+                                                    if (!empty($materiSorted)) {
+                                                        foreach ($materiSorted as $materi) {
                                                             $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
                                                             if ($settingAlphabetActive[$kelasId] ?? false) {
                                                                 echo '<td style="color:' . ($nilai === 0 ? 'red' : 'black') . ';">' . htmlspecialchars(konversiNilaiHuruf($nilai, $settingNilai)) . '</td>';
@@ -224,14 +269,9 @@ foreach ($dataNilai as $santri) {
                                             $grandTotal = 0;
                                             $nilaiKolomCount = 0;
 
-                                            // Tampilkan rata-rata nilai materi
-                                            if (isset($dataMateri[$kelasId])) {
-                                                // Urutkan materi berdasarkan UrutanMateri
-                                                usort($dataMateri[$kelasId], function ($a, $b) {
-                                                    return $a->UrutanMateri - $b->UrutanMateri;
-                                                });
-
-                                                foreach ($dataMateri[$kelasId] as $materi) {
+                                            // Tampilkan rata-rata nilai materi menggunakan $materiSorted yang sudah diurutkan
+                                            if (!empty($materiSorted)) {
+                                                foreach ($materiSorted as $materi) {
                                                     $rataRata = $rowCount > 0 ? round($columnTotals[$materi->NamaMateri] / $rowCount, 1) : -1;
                                                     if ($settingAlphabetActive[$kelasId] ?? false) {
                                                         echo '<th>' . ($rataRata >= 0 ? konversiNilaiHuruf($rataRata, $settingNilai) : ' ') . '</th>';
@@ -301,13 +341,18 @@ foreach ($dataNilai as $santri) {
                                         <?php
                                         $totalNilaiSantri = 0;
                                         $jumlahMateri = 0;
+
+                                        // Siapkan array materi yang sudah diurutkan untuk modal
+                                        $materiSortedModal = [];
                                         if (isset($dataMateri[$kelasId])) {
-                                            // Urutkan materi berdasarkan UrutanMateri
-                                            usort($dataMateri[$kelasId], function ($a, $b) {
+                                            $materiSortedModal = $dataMateri[$kelasId];
+                                            usort($materiSortedModal, function ($a, $b) {
                                                 return $a->UrutanMateri - $b->UrutanMateri;
                                             });
+                                        }
 
-                                            foreach ($dataMateri[$kelasId] as $materi) {
+                                        if (!empty($materiSortedModal)) {
+                                            foreach ($materiSortedModal as $materi) {
                                                 $nilai = isset($santri[$materi->NamaMateri]) ? (int)$santri[$materi->NamaMateri] : ' ';
 
                                                 // Hitung rata-rata hanya untuk kelas yang sama
@@ -391,6 +436,10 @@ foreach ($dataNilai as $santri) {
 
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
             initializeDataTableUmum("#TableNilaiSemester-<?= $kelasId ?>", true, true, buttons);
+            // Inisialisasi ulang tooltip setelah DataTable diinisialisasi
+            $('#TableNilaiSemester-<?= $kelasId ?>').on('draw.dt', function() {
+                $('[data-toggle="tooltip"]').tooltip();
+            });
         <?php endforeach; ?>
 
         // Inisialisasi DataTable untuk modal
