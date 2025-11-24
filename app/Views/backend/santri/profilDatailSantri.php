@@ -6,7 +6,6 @@
             <h3 class="card-title">Profil Detail Santri</h3>
             <div>
                 <a href="<?= base_url('backend/santri/editSantri/' . $dataSantri['IdSantri']); ?>" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i><span class="d-none d-md-inline">&nbsp;Edit</span></a>
-                <a href="<?= base_url('backend/santri/generatePDFprofilSantriRaport/' . $dataSantri['IdSantri']); ?>" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-print"></i><span class="d-none d-md-inline">&nbsp;Print</span></a>
             </div>
         </div>
         <div class="card-body">

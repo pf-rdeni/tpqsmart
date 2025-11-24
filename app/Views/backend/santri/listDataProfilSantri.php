@@ -19,15 +19,15 @@
                     <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
                     <ol class="mb-4">
                         <li class="mb-2">
-                            <strong>Lihat Daftar Santri:</strong> Tabel menampilkan daftar semua santri dengan informasi dasar 
+                            <strong>Lihat Daftar Santri:</strong> Tabel menampilkan daftar semua santri dengan informasi dasar
                             (IdSantri, Nama, Kelurahan/Desa, TPQ, Kelas, Status).
                         </li>
                         <li class="mb-2">
-                            <strong>Filter & Search:</strong> Gunakan search box DataTable untuk mencari santri berdasarkan nama, IdSantri, TPQ, atau kolom lainnya. 
+                            <strong>Filter & Search:</strong> Gunakan search box DataTable untuk mencari santri berdasarkan nama, IdSantri, TPQ, atau kolom lainnya.
                             Data dapat diurutkan dengan mengklik header kolom.
                         </li>
                         <li class="mb-2">
-                            <strong>Lihat Detail Profil:</strong> Klik tombol <span class="badge badge-info"><i class="fas fa-eye"></i> Lihat Profil</span> 
+                            <strong>Lihat Detail Profil:</strong> Klik tombol <span class="badge badge-info"><i class="fas fa-eye"></i> Lihat Profil</span>
                             pada kolom "Aksi" untuk melihat detail lengkap profil santri, termasuk:
                             <ul class="mt-2">
                                 <li>Data pribadi santri lengkap</li>
@@ -79,13 +79,18 @@
                         <tr>
                             <td>
                                 <a href="<?= base_url('backend/santri/profilDetailSantri/' . $santri['IdSantri']); ?>" class="btn btn-info btn-sm">
-                                    <i class="fas fa-eye"></i><span class="d-none d-md-inline">&nbsp;Lihat Profil</span>
+                                    <i class="fas fa-eye"></i><span class="d-none d-md-inline">&nbsp;Profil</span>
+                                </a>
+                                <a href="<?= base_url('backend/santri/generatePDFprofilSantriRaport/' . $santri['IdSantri']); ?>" target="_blank" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-print"></i><span class="d-none d-md-inline">&nbsp;Print</span>
                                 </a>
                             </td>
                             <td><?= $santri['IdSantri']; ?></td>
                             <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
                             <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
-                            <td><?= preg_replace_callback('/\b(al|el|ad|ar|at|an)-(\w+)/i', function ($matches) { return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]); }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
+                            <td><?= preg_replace_callback('/\b(al|el|ad|ar|at|an)-(\w+)/i', function ($matches) {
+                                    return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
+                                }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
                             <td><?= $santri['NamaKelas']; ?></td>
                             <td>
                                 <?php if ($santri['Status'] == "Belum Diverifikasi"): ?>
@@ -120,5 +125,3 @@
     initializeDataTableWithFilter("#tblProfilSantri", true);
 </script>
 <?= $this->endSection(); ?>
-
-
