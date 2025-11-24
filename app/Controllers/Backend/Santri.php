@@ -1181,13 +1181,12 @@ class Santri extends BaseController
                     ->delete();
             }
 
-            // 2. Update status kelas lama di tbl_kelas_santri
+            // 2. Hapus record kelas lama di tbl_kelas_santri
             $db->table('tbl_kelas_santri')
                 ->where('IdSantri', $IdSantri)
                 ->where('IdTahunAjaran', $currentTahunAjaran)
                 ->where('Status', 1)
-                ->set(['Status' => 0])
-                ->update();
+                ->delete();
 
             // 3. Update IdKelas di tbl_santri_baru
             $db->table('tbl_santri_baru')

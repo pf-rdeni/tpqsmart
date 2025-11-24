@@ -27,19 +27,22 @@
                                         <label class="text-center w-100">Photo Profil</label>
                                         <div class="text-center">
                                             <img id="previewPhoto" src="<?= $photoUrl ?>" alt="Preview Photo"
-                                                class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover; cursor: pointer;">
-                                            <div class="mt-2 d-flex justify-content-between" style="width: 215px; margin: 0 auto;">
-                                                <button type="button" class="btn btn-sm btn-primary flex-grow-1 mr-2" onclick="document.getElementById('photo_profil').click()">
-                                                    <i class="fas fa-upload"></i> Upload Foto
+                                                class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover;">
+                                            <div class="mt-2 d-flex justify-content-between" style="width: 215px; margin: 0 auto; flex-wrap: wrap; gap: 5px;">
+                                                <button type="button" class="btn btn-sm btn-primary flex-grow-1" onclick="document.getElementById('photo_profil').click()" style="min-width: 70px;">
+                                                    <i class="fas fa-upload"></i> Upload
                                                 </button>
-                                                <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()">
-                                                    <i class="fas fa-camera"></i> Ambil Foto
+                                                <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()" style="min-width: 70px;">
+                                                    <i class="fas fa-camera"></i> Ambil
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-warning flex-grow-1" id="btnEditPhoto" onclick="editExistingPhoto()" style="min-width: 70px; display: none;">
+                                                    <i class="fas fa-edit"></i> Edit
                                                 </button>
                                             </div>
                                         </div>
                                         <small class="text-center d-block mb-2 text-primary">
                                             <i class="fas fa-exclamation-circle"></i>
-                                            Upload foto profil atau ambil foto dengan kamera</small>
+                                            Upload foto profil atau ambil foto dengan kamera. <span id="editPhotoHint" style="display: none;"><strong>Klik Edit untuk crop foto yang sudah ada</strong></span></small>
                                         <form id="formUploadPhoto" style="display: none;">
                                             <input type="file" id="photo_profil" name="photo_profil" 
                                                 accept=".jpg,.jpeg,.png,image/*;capture=camera" 
@@ -308,8 +311,38 @@ function ensureCropperLoaded(callback) {
     }, 100);
 }
 
+// Fungsi untuk mengecek dan menampilkan/menyembunyikan button Edit
+function toggleEditButton() {
+    const previewPhoto = document.getElementById('previewPhoto');
+    const btnEditPhoto = document.getElementById('btnEditPhoto');
+    const editPhotoHint = document.getElementById('editPhotoHint');
+    const currentPhotoUrl = previewPhoto.src;
+    
+    // Cek apakah foto bukan default no-photo
+    if (currentPhotoUrl && !currentPhotoUrl.includes('no-photo.jpg')) {
+        // Tampilkan button Edit dan hint
+        if (btnEditPhoto) {
+            btnEditPhoto.style.display = 'block';
+        }
+        if (editPhotoHint) {
+            editPhotoHint.style.display = 'inline';
+        }
+    } else {
+        // Sembunyikan button Edit dan hint
+        if (btnEditPhoto) {
+            btnEditPhoto.style.display = 'none';
+        }
+        if (editPhotoHint) {
+            editPhotoHint.style.display = 'none';
+        }
+    }
+}
+
 // Pastikan Cropper.js tersedia saat halaman dimuat
 $(document).ready(function() {
+    // Cek dan tampilkan button Edit jika foto sudah ada
+    toggleEditButton();
+    
     // Cek apakah Cropper.js sudah dimuat
     setTimeout(function() {
         if (typeof Cropper === 'undefined') {
@@ -341,8 +374,9 @@ function previewPhoto(input) {
 }
 
 // Fungsi untuk menampilkan modal crop
-function showCropModalProfil(file) {
-    if (!file) {
+function showCropModalProfil(file, imageUrl = null) {
+    // Jika file tidak ada tapi ada imageUrl, gunakan imageUrl
+    if (!file && !imageUrl) {
         return;
     }
 
@@ -351,115 +385,151 @@ function showCropModalProfil(file) {
         errorDiv.style.display = 'none';
     }
 
-    // Validasi ukuran (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        if (errorDiv) {
-            errorDiv.innerHTML = 'Ukuran file ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(5) + ' MB) terlalu besar (maksimal 5MB)';
-            errorDiv.style.display = 'block';
+    // Validasi file jika ada
+    if (file) {
+        // Validasi ukuran (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            if (errorDiv) {
+                errorDiv.innerHTML = 'Ukuran file ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(5) + ' MB) terlalu besar (maksimal 5MB)';
+                errorDiv.style.display = 'block';
+            }
+            return;
         }
-        return;
-    }
 
-    // Validasi tipe file
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-        if (errorDiv) {
-            errorDiv.innerHTML = 'Format file tidak valid (gunakan JPG, JPEG, atau PNG)';
-            errorDiv.style.display = 'block';
+        // Validasi tipe file
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(file.type)) {
+            if (errorDiv) {
+                errorDiv.innerHTML = 'Format file tidak valid (gunakan JPG, JPEG, atau PNG)';
+                errorDiv.style.display = 'block';
+            }
+            return;
         }
-        return;
-    }
 
-    selectedFile = file;
+        selectedFile = file;
+    } else {
+        selectedFile = null;
+    }
 
     ensureCropperLoaded(function() {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const imageUrl = e.target.result;
-            const imageElement = document.getElementById('imageToCrop');
+        const imageElement = document.getElementById('imageToCrop');
 
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
-            }
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
 
-            imageElement.src = imageUrl;
+        // Jika ada file, baca sebagai data URL
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const finalImageUrl = e.target.result;
+                initializeCropper(finalImageUrl);
+            };
+            reader.readAsDataURL(file);
+        } else if (imageUrl) {
+            // Jika menggunakan URL yang sudah ada, langsung gunakan
+            initializeCropper(imageUrl);
+        }
+    });
+}
 
-            $('#modalCropImage').off('shown.bs.modal');
-            $('#modalCropImage').modal('show');
+// Fungsi untuk inisialisasi cropper
+function initializeCropper(imageUrl) {
+    const imageElement = document.getElementById('imageToCrop');
 
-            $('#modalCropImage').on('shown.bs.modal', function() {
+    imageElement.src = imageUrl;
+
+    $('#modalCropImage').off('shown.bs.modal');
+    $('#modalCropImage').modal('show');
+
+    $('#modalCropImage').on('shown.bs.modal', function() {
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+
+        const currentSrc = imageElement.src;
+        imageElement.src = '';
+        imageElement.src = currentSrc;
+
+        imageElement.onload = function() {
+            setTimeout(function() {
+                if (typeof Cropper === 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Library Cropper.js belum dimuat. Silakan refresh halaman.'
+                    });
+                    return;
+                }
+
+                if (!imageElement.src || imageElement.offsetWidth === 0) {
+                    return;
+                }
+
                 if (cropper) {
                     cropper.destroy();
                     cropper = null;
                 }
 
-                const currentSrc = imageElement.src;
-                imageElement.src = '';
-                imageElement.src = currentSrc;
-
-                imageElement.onload = function() {
-                    setTimeout(function() {
-                        if (typeof Cropper === 'undefined') {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'Library Cropper.js belum dimuat. Silakan refresh halaman.'
-                            });
-                            return;
+                try {
+                    cropper = new Cropper(imageElement, {
+                        aspectRatio: 3 / 4, // 3:4 untuk foto profil
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 0.8,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        responsive: true,
+                        minCropBoxWidth: 150,
+                        minCropBoxHeight: 200,
+                        ready: function() {
+                            console.log('Cropper initialized successfully');
                         }
-
-                        if (!imageElement.src || imageElement.offsetWidth === 0) {
-                            return;
-                        }
-
-                        if (cropper) {
-                            cropper.destroy();
-                            cropper = null;
-                        }
-
-                        try {
-                            cropper = new Cropper(imageElement, {
-                                aspectRatio: 3 / 4, // 3:4 untuk foto profil
-                                viewMode: 1,
-                                dragMode: 'move',
-                                autoCropArea: 0.8,
-                                restore: false,
-                                guides: true,
-                                center: true,
-                                highlight: false,
-                                cropBoxMovable: true,
-                                cropBoxResizable: true,
-                                toggleDragModeOnDblclick: false,
-                                responsive: true,
-                                minCropBoxWidth: 150,
-                                minCropBoxHeight: 200,
-                                ready: function() {
-                                    console.log('Cropper initialized successfully');
-                                }
-                            });
-                        } catch (error) {
-                            console.error('Error initializing cropper:', error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'Gagal menginisialisasi cropper: ' + error.message
-                            });
-                        }
-                    }, 500);
-                };
-
-                if (imageElement.complete) {
-                    imageElement.onload();
-                } else {
-                    imageElement.addEventListener('load', imageElement.onload, {
-                        once: true
+                    });
+                } catch (error) {
+                    console.error('Error initializing cropper:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal menginisialisasi cropper: ' + error.message
                     });
                 }
-            });
+            }, 500);
         };
-        reader.readAsDataURL(file);
+
+        if (imageElement.complete) {
+            imageElement.onload();
+        } else {
+            imageElement.addEventListener('load', imageElement.onload, {
+                once: true
+            });
+        }
     });
+}
+
+// Fungsi untuk edit foto yang sudah ada
+function editExistingPhoto() {
+    const previewPhoto = document.getElementById('previewPhoto');
+    const currentPhotoUrl = previewPhoto.src;
+    
+    // Cek apakah foto bukan default no-photo
+    if (currentPhotoUrl && !currentPhotoUrl.includes('no-photo.jpg')) {
+        // Load foto yang sudah ada ke modal crop
+        showCropModalProfil(null, currentPhotoUrl);
+    } else {
+        Swal.fire({
+            icon: 'info',
+            title: 'Tidak ada foto',
+            text: 'Silakan upload foto terlebih dahulu'
+        });
+    }
 }
 
 // Function untuk crop dan upload image
@@ -549,6 +619,8 @@ function uploadPhoto() {
                         if (response.photo_url) {
                             document.getElementById('previewPhoto').src = response.photo_url;
                         }
+                        // Tampilkan button Edit setelah foto berhasil diupload
+                        toggleEditButton();
                         // Close modal dan reset
                         $('#modalCropImage').modal('hide');
                         document.getElementById('photo_profil').value = '';

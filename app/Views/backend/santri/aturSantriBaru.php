@@ -124,7 +124,7 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="filterKelas">Filter Kelas</label>
-                        <select class="form-control select2" id="filterKelas" name="filterKelas" multiple data-placeholder="Pilih Kelas..." style="width: 100%;" <?= ($isGuru) ? 'disabled' : '' ?>>
+                        <select class="form-control select2" id="filterKelas" name="filterKelas" multiple data-placeholder="Pilih Kelas..." style="width: 100%;">
                             <?php if (isset($dataKelas) && !empty($dataKelas)): ?>
                                 <?php foreach ($dataKelas as $kelas): ?>
                                     <?php
@@ -143,20 +143,9 @@
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </select>
-                        <?php if ($isGuru): ?>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-lock"></i> Filter Kelas hanya menampilkan kelas yang Anda ajar
-                            </small>
-                        <?php else: ?>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i> Klik untuk memilih multiple kelas dengan checkbox. Kosongkan untuk menampilkan semua kelas.
-                            </small>
-                        <?php endif; ?>
-                        <?php if ($isGuru && isset($currentIdKelas) && is_array($currentIdKelas)): ?>
-                            <?php foreach ($currentIdKelas as $kelasId): ?>
-                                <input type="hidden" name="filterKelas[]" value="<?= $kelasId ?>">
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i> Klik untuk memilih multiple kelas dengan checkbox. Kosongkan untuk menampilkan semua kelas.
+                        </small>
                     </div>
                 </div>
             </div>
@@ -226,9 +215,9 @@
                                     onmouseover="showPopup(this)"
                                     onmouseout="hidePopup(this)"
                                     onclick="showPopup(this)"
-                                    ondblclick="openUpdatePhotoModal(<?= $santri['id']; ?>, '<?= $santri['IdSantri']; ?>')"
+                                    ondblclick="openViewPhotoModal(<?= $santri['id']; ?>, '<?= $santri['IdSantri']; ?>', '<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : ''; ?>', '<?= addslashes($santri['NamaSantri']); ?>')"
                                     style="cursor: pointer;"
-                                    title="Klik untuk melihat | Double klik untuk update">
+                                    title="Klik untuk melihat | Double klik untuk view/edit">
                                 <div class="image-popup" style="display: none; position: absolute; z-index: 1000;">
                                     <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
                                         alt="PhotoProfil"
@@ -699,6 +688,46 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal View Photo Profil -->
+<div class="modal fade" id="modalViewPhotoProfil" tabindex="-1" role="dialog" aria-labelledby="modalViewPhotoProfilLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalViewPhotoProfilLabel">
+                    <i class="fas fa-image"></i> Foto Profil Santri
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12 text-center mb-3">
+                        <h6 id="viewPhotoSantriName" class="mb-3"></h6>
+                        <img id="viewPhotoProfilImage" src="" alt="Foto Profil"
+                            class="img-thumbnail mx-auto d-block"
+                            style="max-width: 100%; max-width: 300px; height: auto; min-height: 400px; object-fit: cover;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Tutup
+                </button>
+                <button type="button" class="btn btn-warning" id="btnEditPhotoFromView" style="display: none;">
+                    <i class="fas fa-edit"></i> Edit Foto
+                </button>
+                <button type="button" class="btn btn-primary" id="btnUploadNewPhoto">
+                    <i class="fas fa-upload"></i> Upload Foto Baru
+                </button>
+                <button type="button" class="btn btn-success" id="btnTakeNewPhoto">
+                    <i class="fas fa-camera"></i> Ambil Foto
+                </button>
             </div>
         </div>
     </div>
@@ -1574,6 +1603,37 @@
     /* ===== Region: Update Photo Profil ===== */
     let cropperProfilUpdate = null;
     let selectedFileProfilUpdate = null;
+    let currentViewPhotoData = {
+        idSantri: null,
+        idSantriBaru: null,
+        photoUrl: null,
+        namaSantri: null
+    };
+
+    // Fungsi untuk membuka modal view photo
+    function openViewPhotoModal(idSantri, idSantriBaru, photoUrl, namaSantri) {
+        currentViewPhotoData.idSantri = idSantri;
+        currentViewPhotoData.idSantriBaru = idSantriBaru;
+        currentViewPhotoData.photoUrl = photoUrl;
+        currentViewPhotoData.namaSantri = namaSantri;
+
+        // Set data ke modal
+        document.getElementById('viewPhotoSantriName').textContent = namaSantri || 'Santri';
+        const viewPhotoImage = document.getElementById('viewPhotoProfilImage');
+        const btnEditPhoto = document.getElementById('btnEditPhotoFromView');
+
+        if (photoUrl && photoUrl.trim() !== '') {
+            // Jika ada foto, tampilkan foto dan tombol Edit
+            viewPhotoImage.src = photoUrl;
+            btnEditPhoto.style.display = 'inline-block';
+        } else {
+            // Jika tidak ada foto, tampilkan no-photo dan sembunyikan tombol Edit
+            viewPhotoImage.src = '<?= base_url('images/no-photo.jpg') ?>';
+            btnEditPhoto.style.display = 'none';
+        }
+
+        $('#modalViewPhotoProfil').modal('show');
+    }
 
     // Fungsi untuk membuka modal update photo
     function openUpdatePhotoModal(idSantri, idSantriBaru) {
@@ -1661,121 +1721,140 @@
     }
 
     // Fungsi untuk menampilkan modal crop
-    function showCropModalProfilUpdate(file) {
-        if (!file) {
+    function showCropModalProfilUpdate(file, imageUrl = null) {
+        // Jika file tidak ada tapi ada imageUrl, gunakan imageUrl
+        if (!file && !imageUrl) {
             return;
         }
 
-        // Validasi ukuran (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Ukuran file terlalu besar (maksimal 5MB)'
-            });
-            return;
-        }
+        // Validasi file jika ada
+        if (file) {
+            // Validasi ukuran (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ukuran file terlalu besar (maksimal 5MB)'
+                });
+                return;
+            }
 
-        // Validasi tipe file
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-        if (!validTypes.includes(file.type)) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Format file tidak valid (gunakan JPG, JPEG, atau PNG)'
-            });
-            return;
-        }
+            // Validasi tipe file
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Format file tidak valid (gunakan JPG, JPEG, atau PNG)'
+                });
+                return;
+            }
 
-        selectedFileProfilUpdate = file;
+            selectedFileProfilUpdate = file;
+        } else {
+            selectedFileProfilUpdate = null;
+        }
 
         ensureCropperLoaded(function() {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imageUrl = e.target.result;
-                const imageElement = document.getElementById('imageToCropProfilUpdate');
+            const imageElement = document.getElementById('imageToCropProfilUpdate');
 
-                if (cropperProfilUpdate) {
-                    cropperProfilUpdate.destroy();
-                    cropperProfilUpdate = null;
-                }
+            if (cropperProfilUpdate) {
+                cropperProfilUpdate.destroy();
+                cropperProfilUpdate = null;
+            }
 
-                imageElement.src = imageUrl;
+            // Jika ada file, baca sebagai data URL
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const finalImageUrl = e.target.result;
+                    initializeCropperProfilUpdate(finalImageUrl);
+                };
+                reader.readAsDataURL(file);
+            } else if (imageUrl) {
+                // Jika menggunakan URL yang sudah ada, langsung gunakan
+                initializeCropperProfilUpdate(imageUrl);
+            }
+        });
+    }
 
-                $('#modalCropPhotoProfilUpdate').off('shown.bs.modal');
-                $('#modalCropPhotoProfilUpdate').modal('show');
+    // Fungsi untuk inisialisasi cropper
+    function initializeCropperProfilUpdate(imageUrl) {
+        const imageElement = document.getElementById('imageToCropProfilUpdate');
 
-                $('#modalCropPhotoProfilUpdate').on('shown.bs.modal', function() {
+        imageElement.src = imageUrl;
+
+        $('#modalCropPhotoProfilUpdate').off('shown.bs.modal');
+        $('#modalCropPhotoProfilUpdate').modal('show');
+
+        $('#modalCropPhotoProfilUpdate').on('shown.bs.modal', function() {
+            if (cropperProfilUpdate) {
+                cropperProfilUpdate.destroy();
+                cropperProfilUpdate = null;
+            }
+
+            const currentSrc = imageElement.src;
+            imageElement.src = '';
+            imageElement.src = currentSrc;
+
+            imageElement.onload = function() {
+                setTimeout(function() {
+                    if (typeof Cropper === 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Library Cropper.js belum dimuat. Silakan refresh halaman.'
+                        });
+                        return;
+                    }
+
+                    if (!imageElement.src || imageElement.offsetWidth === 0) {
+                        return;
+                    }
+
                     if (cropperProfilUpdate) {
                         cropperProfilUpdate.destroy();
                         cropperProfilUpdate = null;
                     }
 
-                    const currentSrc = imageElement.src;
-                    imageElement.src = '';
-                    imageElement.src = currentSrc;
-
-                    imageElement.onload = function() {
-                        setTimeout(function() {
-                            if (typeof Cropper === 'undefined') {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: 'Library Cropper.js belum dimuat. Silakan refresh halaman.'
-                                });
-                                return;
+                    try {
+                        cropperProfilUpdate = new Cropper(imageElement, {
+                            aspectRatio: 3 / 4,
+                            viewMode: 1,
+                            dragMode: 'move',
+                            autoCropArea: 0.8,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            responsive: true,
+                            minCropBoxWidth: 150,
+                            minCropBoxHeight: 200,
+                            ready: function() {
+                                console.log('Cropper Profil Update initialized successfully');
                             }
-
-                            if (!imageElement.src || imageElement.offsetWidth === 0) {
-                                return;
-                            }
-
-                            if (cropperProfilUpdate) {
-                                cropperProfilUpdate.destroy();
-                                cropperProfilUpdate = null;
-                            }
-
-                            try {
-                                cropperProfilUpdate = new Cropper(imageElement, {
-                                    aspectRatio: 3 / 4,
-                                    viewMode: 1,
-                                    dragMode: 'move',
-                                    autoCropArea: 0.8,
-                                    restore: false,
-                                    guides: true,
-                                    center: true,
-                                    highlight: false,
-                                    cropBoxMovable: true,
-                                    cropBoxResizable: true,
-                                    toggleDragModeOnDblclick: false,
-                                    responsive: true,
-                                    minCropBoxWidth: 150,
-                                    minCropBoxHeight: 200,
-                                    ready: function() {
-                                        console.log('Cropper Profil Update initialized successfully');
-                                    }
-                                });
-                            } catch (error) {
-                                console.error('Error initializing cropper:', error);
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: 'Gagal menginisialisasi cropper: ' + error.message
-                                });
-                            }
-                        }, 500);
-                    };
-
-                    if (imageElement.complete) {
-                        imageElement.onload();
-                    } else {
-                        imageElement.addEventListener('load', imageElement.onload, {
-                            once: true
+                        });
+                    } catch (error) {
+                        console.error('Error initializing cropper:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Gagal menginisialisasi cropper: ' + error.message
                         });
                     }
-                });
+                }, 500);
             };
-            reader.readAsDataURL(file);
+
+            if (imageElement.complete) {
+                imageElement.onload();
+            } else {
+                imageElement.addEventListener('load', imageElement.onload, {
+                    once: true
+                });
+            }
         });
     }
 
@@ -1818,8 +1897,11 @@
 
             const formData = new FormData();
             formData.append('photo', blob, 'photo.jpg');
-            formData.append('idSantri', $('#updatePhotoIdSantri').val());
-            formData.append('idSantriBaru', $('#updatePhotoIdSantriBaru').val());
+            // Gunakan ID dari currentViewPhotoData jika ada, jika tidak gunakan dari input hidden
+            const idSantri = currentViewPhotoData.idSantri || $('#updatePhotoIdSantri').val();
+            const idSantriBaru = currentViewPhotoData.idSantriBaru || $('#updatePhotoIdSantriBaru').val();
+            formData.append('idSantri', idSantri);
+            formData.append('idSantriBaru', idSantriBaru);
 
             Swal.fire({
                 title: 'Mengupload foto...',
@@ -1858,10 +1940,18 @@
                 .finally(() => {
                     $('#modalCropPhotoProfilUpdate').modal('hide');
                     $('#modalUpdatePhotoProfil').modal('hide');
+                    $('#modalViewPhotoProfil').modal('hide');
                     if (cropperProfilUpdate) {
                         cropperProfilUpdate.destroy();
                         cropperProfilUpdate = null;
                     }
+                    // Reset currentViewPhotoData
+                    currentViewPhotoData = {
+                        idSantri: null,
+                        idSantriBaru: null,
+                        photoUrl: null,
+                        namaSantri: null
+                    };
                 });
         }, 'image/jpeg', 0.9);
     }
@@ -1886,8 +1976,50 @@
         }
     }
 
-    // Event listeners untuk tombol crop dan kontrol
+    // Event listeners untuk tombol di modal view photo
     $(document).ready(function() {
+        // Tombol Edit Foto dari modal view
+        const btnEditPhotoFromView = document.getElementById('btnEditPhotoFromView');
+        if (btnEditPhotoFromView) {
+            btnEditPhotoFromView.addEventListener('click', function() {
+                if (currentViewPhotoData.photoUrl && currentViewPhotoData.photoUrl.trim() !== '') {
+                    // Set ID untuk update
+                    $('#updatePhotoIdSantri').val(currentViewPhotoData.idSantri);
+                    $('#updatePhotoIdSantriBaru').val(currentViewPhotoData.idSantriBaru);
+                    // Tutup modal view dan buka modal crop dengan foto yang sudah ada
+                    $('#modalViewPhotoProfil').modal('hide');
+                    showCropModalProfilUpdate(null, currentViewPhotoData.photoUrl);
+                }
+            });
+        }
+
+        // Tombol Upload Foto Baru dari modal view
+        const btnUploadNewPhoto = document.getElementById('btnUploadNewPhoto');
+        if (btnUploadNewPhoto) {
+            btnUploadNewPhoto.addEventListener('click', function() {
+                // Set ID untuk update
+                $('#updatePhotoIdSantri').val(currentViewPhotoData.idSantri);
+                $('#updatePhotoIdSantriBaru').val(currentViewPhotoData.idSantriBaru);
+                // Tutup modal view dan buka modal update photo
+                $('#modalViewPhotoProfil').modal('hide');
+                openUpdatePhotoModal(currentViewPhotoData.idSantri, currentViewPhotoData.idSantriBaru);
+            });
+        }
+
+        // Tombol Ambil Foto dari modal view
+        const btnTakeNewPhoto = document.getElementById('btnTakeNewPhoto');
+        if (btnTakeNewPhoto) {
+            btnTakeNewPhoto.addEventListener('click', function() {
+                // Set ID untuk update
+                $('#updatePhotoIdSantri').val(currentViewPhotoData.idSantri);
+                $('#updatePhotoIdSantriBaru').val(currentViewPhotoData.idSantriBaru);
+                // Tutup modal view dan buka kamera
+                $('#modalViewPhotoProfil').modal('hide');
+                openCameraUpdate();
+            });
+        }
+
+        // Event listeners untuk tombol crop dan kontrol
         const btnCrop = document.getElementById('btnCropPhotoProfilUpdate');
         if (btnCrop) {
             btnCrop.addEventListener('click', uploadCroppedPhotoProfilUpdate);
