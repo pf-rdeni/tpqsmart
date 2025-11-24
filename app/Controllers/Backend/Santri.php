@@ -853,8 +853,41 @@ class Santri extends BaseController
                 }
             }
         } else if ($isGuru) {
-            // Guru: gunakan kelas dari session (tidak bisa filter, hanya kelas mereka)
-            $IdKelas = $sessionIdKelas;
+            // Guru: jika memiliki lebih dari satu kelas, bisa filter
+            // Jika hanya satu kelas, gunakan kelas tersebut
+            if ($sessionIdKelas && is_array($sessionIdKelas)) {
+                $jumlahKelasGuru = count($sessionIdKelas);
+
+                if ($jumlahKelasGuru > 1) {
+                    // Guru memiliki lebih dari satu kelas: bisa filter
+                    if ($filterIdKelas) {
+                        // Validasi: pastikan filterIdKelas adalah bagian dari kelas yang dimiliki guru
+                        $filterArray = [];
+                        if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                            $filterArray = array_filter(explode(',', $filterIdKelas));
+                        } else {
+                            $filterArray = [$filterIdKelas];
+                        }
+
+                        // Filter hanya kelas yang dimiliki guru
+                        $IdKelas = array_intersect($filterArray, $sessionIdKelas);
+
+                        // Jika setelah filter kosong, gunakan semua kelas
+                        if (empty($IdKelas)) {
+                            $IdKelas = $sessionIdKelas;
+                        }
+                    } else {
+                        // Tidak ada filter: gunakan semua kelas
+                        $IdKelas = $sessionIdKelas;
+                    }
+                } else {
+                    // Guru hanya memiliki satu kelas: gunakan kelas tersebut
+                    $IdKelas = $sessionIdKelas;
+                }
+            } else if ($sessionIdKelas) {
+                // Jika sessionIdKelas bukan array (single value)
+                $IdKelas = $sessionIdKelas;
+            }
         }
 
         if ($IdKelas !== null) {
@@ -889,6 +922,16 @@ class Santri extends BaseController
             }
         }
 
+        // Hitung jumlah kelas untuk guru (untuk menentukan apakah filter bisa diubah)
+        $guruJumlahKelas = 0;
+        if ($isGuru && $sessionIdKelas) {
+            if (is_array($sessionIdKelas)) {
+                $guruJumlahKelas = count($sessionIdKelas);
+            } else {
+                $guruJumlahKelas = 1;
+            }
+        }
+
         $data = [
             'page_title' => 'Data Santri',
             'dataSantri' => $santri,
@@ -899,7 +942,8 @@ class Santri extends BaseController
             'isAdmin' => $isAdmin,
             'isGuru' => $isGuru,
             'isOperator' => $isOperator,
-            'isKepalaTpq' => $isKepalaTpq
+            'isKepalaTpq' => $isKepalaTpq,
+            'guruJumlahKelas' => $guruJumlahKelas
         ];
 
         // Jika request AJAX, return JSON

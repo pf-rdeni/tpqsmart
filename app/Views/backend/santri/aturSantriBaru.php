@@ -124,7 +124,11 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="filterKelas">Filter Kelas</label>
-                        <select class="form-control select2" id="filterKelas" name="filterKelas" multiple data-placeholder="Pilih Kelas..." style="width: 100%;">
+                        <?php
+                        $guruJumlahKelas = isset($guruJumlahKelas) ? $guruJumlahKelas : 0;
+                        $disableFilterKelas = (isset($isGuru) && $isGuru && $guruJumlahKelas <= 1);
+                        ?>
+                        <select class="form-control select2" id="filterKelas" name="filterKelas" multiple data-placeholder="Pilih Kelas..." style="width: 100%;" <?= $disableFilterKelas ? 'disabled' : '' ?>>
                             <?php if (isset($dataKelas) && !empty($dataKelas)): ?>
                                 <?php foreach ($dataKelas as $kelas): ?>
                                     <?php
@@ -144,8 +148,19 @@
                             <?php endif; ?>
                         </select>
                         <small class="form-text text-muted">
-                            <i class="fas fa-info-circle"></i> Klik untuk memilih multiple kelas dengan checkbox. Kosongkan untuk menampilkan semua kelas.
+                            <?php if (isset($isGuru) && $isGuru): ?>
+                                <?php if ($guruJumlahKelas <= 1): ?>
+                                    <i class="fas fa-lock"></i> Filter Kelas menampilkan kelas yang Anda ajar dan tidak dapat diubah.
+                                <?php else: ?>
+                                    <i class="fas fa-info-circle"></i> Pilih kelas yang ingin ditampilkan. Kosongkan untuk menampilkan semua kelas yang Anda ajar.
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <i class="fas fa-info-circle"></i> Klik untuk memilih multiple kelas dengan checkbox. Kosongkan untuk menampilkan semua kelas.
+                            <?php endif; ?>
                         </small>
+                        <?php if ($disableFilterKelas): ?>
+                            <input type="hidden" name="filterKelas" value="">
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -1481,6 +1496,9 @@
     /* ===== Region: Filter TPQ dan Kelas dengan localStorage ===== */
     const STORAGE_KEY_TPQ = 'santri_filter_tpq';
     const STORAGE_KEY_KELAS = 'santri_filter_kelas';
+    const isGuru = <?= isset($isGuru) && $isGuru ? 'true' : 'false' ?>;
+    const guruJumlahKelas = <?= isset($guruJumlahKelas) ? $guruJumlahKelas : 0 ?>;
+    const guruBisaFilterKelas = isGuru && guruJumlahKelas > 1;
 
     // Inisialisasi filter dari localStorage saat halaman dimuat
     function initFilters() {
@@ -1495,19 +1513,23 @@
             filterTpq.value = savedTpq;
         }
 
-        // Set nilai Select2 dari localStorage jika belum ada selection dari server
-        if (savedKelas && filterKelas.length > 0) {
-            try {
-                const kelasArray = JSON.parse(savedKelas);
-                if (Array.isArray(kelasArray) && kelasArray.length > 0) {
-                    // Cek apakah ada option yang sudah selected dari server
-                    const currentVal = filterKelas.val();
-                    if (!currentVal || currentVal.length === 0) {
-                        filterKelas.val(kelasArray).trigger('change.select2');
+        // Untuk Guru: gunakan localStorage hanya jika memiliki lebih dari satu kelas
+        // Jika guru hanya memiliki satu kelas, filter sudah di-set dari server
+        if (!isGuru || guruBisaFilterKelas) {
+            // Set nilai Select2 dari localStorage jika belum ada selection dari server
+            if (savedKelas && filterKelas.length > 0) {
+                try {
+                    const kelasArray = JSON.parse(savedKelas);
+                    if (Array.isArray(kelasArray) && kelasArray.length > 0) {
+                        // Cek apakah ada option yang sudah selected dari server
+                        const currentVal = filterKelas.val();
+                        if (!currentVal || currentVal.length === 0) {
+                            filterKelas.val(kelasArray).trigger('change.select2');
+                        }
                     }
+                } catch (e) {
+                    console.error('Error parsing saved kelas:', e);
                 }
-            } catch (e) {
-                console.error('Error parsing saved kelas:', e);
             }
         }
     }
@@ -1521,7 +1543,8 @@
             localStorage.setItem(STORAGE_KEY_TPQ, filterTpq.value || '');
         }
 
-        if (filterKelas.length > 0) {
+        // Untuk Guru: simpan filter kelas ke localStorage hanya jika memiliki lebih dari satu kelas
+        if ((!isGuru || guruBisaFilterKelas) && filterKelas.length > 0) {
             const selectedKelas = filterKelas.val() || [];
             localStorage.setItem(STORAGE_KEY_KELAS, JSON.stringify(selectedKelas));
         }
@@ -1543,7 +1566,10 @@
         if (tpqValue) {
             params.append('filterIdTpq', tpqValue);
         }
-        if (kelasValues.length > 0) {
+
+        // Untuk Guru: kirim parameter filterIdKelas hanya jika memiliki lebih dari satu kelas
+        // Jika guru hanya memiliki satu kelas, filter di-handle oleh server berdasarkan session
+        if ((!isGuru || guruBisaFilterKelas) && kelasValues.length > 0) {
             params.append('filterIdKelas', kelasValues.join(','));
         }
 
