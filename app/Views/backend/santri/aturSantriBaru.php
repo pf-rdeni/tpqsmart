@@ -124,8 +124,7 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="filterKelas">Filter Kelas</label>
-                        <select class="form-control" id="filterKelas" name="filterKelas" multiple style="min-height: 100px;" <?= ($isGuru) ? 'disabled' : '' ?>>
-                            <option value="">Semua Kelas</option>
+                        <select class="form-control select2" id="filterKelas" name="filterKelas" multiple data-placeholder="Pilih Kelas..." style="width: 100%;" <?= ($isGuru) ? 'disabled' : '' ?>>
                             <?php if (isset($dataKelas) && !empty($dataKelas)): ?>
                                 <?php foreach ($dataKelas as $kelas): ?>
                                     <?php
@@ -150,7 +149,7 @@
                             </small>
                         <?php else: ?>
                             <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i> Tekan Ctrl/Cmd untuk memilih multiple kelas. Kosongkan untuk menampilkan semua kelas.
+                                <i class="fas fa-info-circle"></i> Klik untuk memilih multiple kelas dengan checkbox. Kosongkan untuk menampilkan semua kelas.
                             </small>
                         <?php endif; ?>
                         <?php if ($isGuru && isset($currentIdKelas) && is_array($currentIdKelas)): ?>
@@ -743,6 +742,51 @@
         margin-left: 0.5rem;
     }
 
+    /* Styling untuk Select2 dengan checkbox */
+    .select2-container--bootstrap4 .select2-results__option {
+        padding-left: 10px;
+    }
+
+    .select2-container--bootstrap4 .select2-results__option::before {
+        content: '';
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #6c757d;
+        border-radius: 3px;
+        margin-right: 10px;
+        vertical-align: middle;
+        background-color: #fff;
+        position: relative;
+        top: -1px;
+    }
+
+    .select2-container--bootstrap4 .select2-results__option[aria-selected="true"]::before {
+        background-color: #007bff;
+        border-color: #007bff;
+        content: '\2713';
+        color: #fff;
+        text-align: center;
+        line-height: 14px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .select2-container--bootstrap4 .select2-results__option--highlighted[aria-selected] {
+        background-color: #e9ecef;
+    }
+
+    .select2-container--bootstrap4 .select2-results__option--highlighted[aria-selected="true"] {
+        background-color: #007bff;
+        color: #fff;
+    }
+
+    .select2-container--bootstrap4 .select2-results__option--highlighted[aria-selected="true"]::before {
+        background-color: #fff;
+        border-color: #fff;
+        color: #007bff;
+    }
+
     /* Styling untuk button disabled */
     .btn:disabled {
         opacity: 0.6;
@@ -1284,25 +1328,22 @@
         const savedKelas = localStorage.getItem(STORAGE_KEY_KELAS);
 
         const filterTpq = document.getElementById('filterTpq');
-        const filterKelas = document.getElementById('filterKelas');
+        const filterKelas = $('#filterKelas');
 
         // Hanya set dari localStorage jika belum ada value dari server
         if (savedTpq && filterTpq && !filterTpq.value) {
             filterTpq.value = savedTpq;
         }
 
-        if (savedKelas && filterKelas) {
+        // Set nilai Select2 dari localStorage jika belum ada selection dari server
+        if (savedKelas && filterKelas.length > 0) {
             try {
                 const kelasArray = JSON.parse(savedKelas);
                 if (Array.isArray(kelasArray) && kelasArray.length > 0) {
                     // Cek apakah ada option yang sudah selected dari server
-                    const hasServerSelection = Array.from(filterKelas.selectedOptions).length > 0;
-                    if (!hasServerSelection) {
-                        Array.from(filterKelas.options).forEach(option => {
-                            if (option.value && kelasArray.includes(option.value)) {
-                                option.selected = true;
-                            }
-                        });
+                    const currentVal = filterKelas.val();
+                    if (!currentVal || currentVal.length === 0) {
+                        filterKelas.val(kelasArray).trigger('change.select2');
                     }
                 }
             } catch (e) {
@@ -1314,16 +1355,14 @@
     // Simpan filter ke localStorage
     function saveFilters() {
         const filterTpq = document.getElementById('filterTpq');
-        const filterKelas = document.getElementById('filterKelas');
+        const filterKelas = $('#filterKelas');
 
         if (filterTpq) {
             localStorage.setItem(STORAGE_KEY_TPQ, filterTpq.value || '');
         }
 
-        if (filterKelas) {
-            const selectedKelas = Array.from(filterKelas.selectedOptions)
-                .map(opt => opt.value)
-                .filter(val => val !== ''); // Hapus empty value
+        if (filterKelas.length > 0) {
+            const selectedKelas = filterKelas.val() || [];
             localStorage.setItem(STORAGE_KEY_KELAS, JSON.stringify(selectedKelas));
         }
     }
@@ -1331,12 +1370,10 @@
     // Reload data berdasarkan filter
     function reloadData() {
         const filterTpq = document.getElementById('filterTpq');
-        const filterKelas = document.getElementById('filterKelas');
+        const filterKelas = $('#filterKelas');
 
         const tpqValue = filterTpq ? filterTpq.value : '';
-        const kelasValues = filterKelas ? Array.from(filterKelas.selectedOptions)
-            .map(opt => opt.value)
-            .filter(val => val !== '') : [];
+        const kelasValues = filterKelas.length > 0 ? (filterKelas.val() || []) : [];
 
         // Simpan ke localStorage
         saveFilters();
@@ -1355,27 +1392,46 @@
     }
 
     // Event listeners untuk filter
-    document.addEventListener('DOMContentLoaded', function() {
-        // Inisialisasi filter dari localStorage
-        initFilters();
+    $(document).ready(function() {
+        // Inisialisasi Select2 untuk filter Kelas dengan multiple selection
+        const filterKelas = $('#filterKelas');
+
+        if (filterKelas.length > 0 && !filterKelas.prop('disabled')) {
+            filterKelas.select2({
+                placeholder: 'Pilih Kelas...',
+                allowClear: true,
+                width: '100%',
+                theme: 'bootstrap4',
+                language: 'id',
+                closeOnSelect: false // Tidak menutup dropdown saat memilih (untuk multiple selection)
+            });
+
+            // Inisialisasi filter dari localStorage setelah Select2 siap
+            setTimeout(function() {
+                initFilters();
+            }, 200);
+
+            // Event listener untuk perubahan Select2
+            filterKelas.on('change', function() {
+                // Delay reload untuk memberikan waktu user memilih multiple kelas
+                clearTimeout(window.filterTimeout);
+                window.filterTimeout = setTimeout(reloadData, 500);
+            });
+        } else {
+            // Jika Select2 tidak diinisialisasi, langsung panggil initFilters
+            initFilters();
+        }
 
         const filterTpq = document.getElementById('filterTpq');
-        const filterKelas = document.getElementById('filterKelas');
 
         // Simpan filter saat halaman dimuat (untuk memastikan sync dengan server)
-        saveFilters();
+        setTimeout(function() {
+            saveFilters();
+        }, 300);
 
         // Hanya tambahkan event listener jika field tidak disabled
         if (filterTpq && !filterTpq.disabled) {
             filterTpq.addEventListener('change', function() {
-                // Delay reload untuk memberikan waktu user memilih multiple kelas
-                clearTimeout(window.filterTimeout);
-                window.filterTimeout = setTimeout(reloadData, 300);
-            });
-        }
-
-        if (filterKelas && !filterKelas.disabled) {
-            filterKelas.addEventListener('change', function() {
                 // Delay reload untuk memberikan waktu user memilih multiple kelas
                 clearTimeout(window.filterTimeout);
                 window.filterTimeout = setTimeout(reloadData, 300);
