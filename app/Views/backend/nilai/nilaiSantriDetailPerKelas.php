@@ -13,6 +13,28 @@
     .table thead th {
         vertical-align: top;
     }
+
+    /* Fix untuk scrollX DataTable di mobile - memastikan konsistensi */
+    .dataTables_scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .dataTables_scrollBody {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Memastikan tabel tidak shrink di mobile */
+    .dataTables_wrapper .dataTables_scroll .dataTables_scrollBody table {
+        min-width: 100%;
+    }
+
+    /* Fix untuk card body yang mengandung DataTable */
+    .card-body .dataTables_wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
 </style>
 <?php
 function capitalizeWords($str)
@@ -428,18 +450,69 @@ foreach ($dataNilai as $santri) {
         // Inisialisasi tooltip
         $('[data-toggle="tooltip"]').tooltip();
 
-        // Initial DataTabel per kelas
-        // Tambahkan Button Export ke dalam DataTable
-        let buttons = [
-            'copy', 'excel', 'colvis'
-        ];
+        // Key untuk localStorage
+        const storageKey = 'nilaiSantriDetailPerKelas_activeTab';
 
+        // Fungsi untuk menyimpan tab aktif ke localStorage
+        function saveActiveTab(tabId) {
+            localStorage.setItem(storageKey, tabId);
+        }
+
+        // Fungsi untuk memuat tab aktif dari localStorage
+        function loadActiveTab() {
+            const savedTabId = localStorage.getItem(storageKey);
+            if (savedTabId) {
+                // Hapus class active dari semua tab dan tab pane
+                $('.nav-link').removeClass('active');
+                $('.tab-pane').removeClass('show active');
+
+                // Aktifkan tab yang tersimpan
+                const tabLink = $('#tab-' + savedTabId);
+                const tabPane = $('#kelas-' + savedTabId);
+
+                if (tabLink.length && tabPane.length) {
+                    tabLink.addClass('active').attr('aria-selected', 'true');
+                    tabPane.addClass('show active');
+
+                    // Trigger tab event untuk Bootstrap
+                    tabLink.tab('show');
+                } else {
+                    // Jika tab yang tersimpan tidak ditemukan, set ke tab pertama
+                    setFirstTab();
+                }
+            } else {
+                // Jika belum ada yang tersimpan, set ke tab pertama
+                setFirstTab();
+            }
+        }
+
+        // Fungsi untuk set tab pertama sebagai aktif
+        function setFirstTab() {
+            const firstTab = $('.nav-link').first();
+            const firstTabId = firstTab.attr('id');
+            if (firstTabId) {
+                const tabId = firstTabId.replace('tab-', '');
+                saveActiveTab(tabId);
+                firstTab.addClass('active').attr('aria-selected', 'true');
+                $('#kelas-' + tabId).addClass('show active');
+            }
+        }
+
+        // Event listener untuk menyimpan tab saat tab diubah
+        // Gunakan event delegation untuk memastikan event terikat dengan benar
+        $(document).on('shown.bs.tab', 'a[data-toggle="tab"]', function(e) {
+            const tabId = $(e.target).attr('id').replace('tab-', '');
+            if (tabId) {
+                saveActiveTab(tabId);
+            }
+        });
+
+        // Memuat tab yang tersimpan saat halaman dimuat
+        loadActiveTab();
+
+        // Initial DataTable per kelas dengan scroll horizontal dan export buttons
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
-            initializeDataTableScrollX("#TableNilaiSemester-<?= $kelasId ?>", ['excel', 'colvis']);
-            // Inisialisasi ulang tooltip setelah DataTable diinisialisasi
-            $('#TableNilaiSemester-<?= $kelasId ?>').on('draw.dt', function() {
-                $('[data-toggle="tooltip"]').tooltip();
-            });
+            initializeDataTableScrollX("#TableNilaiSemester-<?= $kelasId ?>", ['copy', 'excel', 'colvis']);
         <?php endforeach; ?>
 
         // Inisialisasi DataTable untuk modal

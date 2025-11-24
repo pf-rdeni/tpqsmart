@@ -98,7 +98,10 @@
         };
 
         // Merge default options dengan custom options
-        const mergedOptions = { ...defaultOptions, ...options };
+        const mergedOptions = {
+            ...defaultOptions,
+            ...options
+        };
 
         // Initialize DataTable
         const table = $(selector).DataTable(mergedOptions);
@@ -108,9 +111,61 @@
             table.buttons().container().appendTo(`${selector}_wrapper .col-md-6:eq(0)`);
         }
 
-        // Inisialisasi ulang tooltip setelah DataTable diinisialisasi
-        $(selector).on('draw.dt', function() {
+        // Fix: Adjust columns dan recalculate scrollX setelah setiap draw (pagination, search, dll)
+        let adjustTimeout;
+        $(selector).on('draw.dt', function(e, settings) {
+            // Inisialisasi ulang tooltip
             $('[data-toggle="tooltip"]').tooltip();
+
+            // Clear timeout sebelumnya jika ada
+            if (adjustTimeout) {
+                clearTimeout(adjustTimeout);
+            }
+
+            // Adjust columns dengan delay untuk memastikan DOM sudah selesai di-render
+            // Skip jika sedang destroying
+            if (!settings.bDestroying) {
+                adjustTimeout = setTimeout(function() {
+                    if ($.fn.DataTable.isDataTable(selector) && !table.settings()[0].bDestroying) {
+                        try {
+                            // Adjust columns untuk memastikan width konsisten
+                            // Hanya adjust, tidak perlu draw lagi untuk menghindari loop
+                            table.columns.adjust();
+                        } catch (e) {
+                            console.warn('Error adjusting columns:', e);
+                        }
+                    }
+                }, 300);
+            }
+        });
+
+        // Fix: Adjust columns saat window resize
+        let resizeTimer;
+        $(window).on('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                if ($.fn.DataTable.isDataTable(selector)) {
+                    table.columns.adjust();
+                }
+            }, 250);
+        });
+
+        // Fix: Adjust columns setelah tab shown (jika tabel di dalam tab)
+        $(selector).closest('.tab-pane').on('shown.bs.tab', function() {
+            setTimeout(function() {
+                if ($.fn.DataTable.isDataTable(selector)) {
+                    table.columns.adjust();
+                }
+            }, 100);
+        });
+
+        // Fix: Adjust columns setelah init complete untuk memastikan scrollX bekerja dari awal
+        table.on('init.dt', function() {
+            setTimeout(function() {
+                if ($.fn.DataTable.isDataTable(selector)) {
+                    table.columns.adjust();
+                }
+            }, 100);
         });
 
         return table;
@@ -166,19 +221,19 @@
         return capitalizeEachWord(hasil.trim());
     }
     //=============================================================================================
-    
+
     // Handle Role Switcher
     $(document).ready(function() {
         $('.switch-role-btn').on('click', function(e) {
             e.preventDefault();
             const role = $(this).data('role');
             const $btn = $(this);
-            
+
             // Jika sudah aktif, tidak perlu switch
             if ($btn.hasClass('active')) {
                 return;
             }
-            
+
             // Disable semua button
             $('.switch-role-btn').addClass('disabled');
             $btn.html('<i class="fas fa-spinner fa-spin"></i> <span class="ml-2">Memproses...</span>');
@@ -214,17 +269,17 @@
             const themeToggle = document.getElementById('themeToggle');
             const themeIcon = document.getElementById('themeIcon');
             const body = document.body;
-            
+
             if (!themeToggle || !themeIcon) return;
-            
+
             // Get current theme from localStorage, default to 'light'
             let currentTheme = localStorage.getItem('user_theme') || 'light';
-            
+
             // Validate theme value
             if (currentTheme !== 'dark' && currentTheme !== 'light') {
                 currentTheme = 'light';
             }
-            
+
             // Update icon based on current theme
             function updateThemeIcon(theme) {
                 if (theme === 'dark') {
@@ -235,7 +290,7 @@
                     themeToggle.setAttribute('title', 'Ubah ke Mode Gelap');
                 }
             }
-            
+
             // Apply theme
             function applyTheme(theme) {
                 if (theme === 'dark') {
@@ -246,17 +301,17 @@
                 localStorage.setItem('user_theme', theme);
                 updateThemeIcon(theme);
             }
-            
+
             // Initialize theme on page load - apply immediately to prevent flash
             applyTheme(currentTheme);
-            
+
             // Toggle theme on click
             themeToggle.addEventListener('click', function(e) {
                 e.preventDefault();
-                
+
                 // Toggle theme
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                
+
                 // Apply theme immediately
                 applyTheme(newTheme);
                 currentTheme = newTheme;
@@ -267,15 +322,15 @@
         (function() {
             const settings = JSON.parse(localStorage.getItem('adminlte_settings') || '{}');
             if (Object.keys(settings).length === 0) return;
-            
+
             const body = document.body;
             const sidebar = document.querySelector('.main-sidebar');
             const navbar = document.querySelector('.main-header.navbar');
             const controlSidebar = document.querySelector('.control-sidebar');
-            
+
             // Remove default classes that might conflict
             body.classList.remove('layout-fixed', 'layout-navbar-fixed', 'layout-footer-fixed', 'layout-boxed', 'layout-top-nav', 'sidebar-collapse', 'sidebar-mini', 'sidebar-mini-md', 'sidebar-mini-xs');
-            
+
             // Apply layout classes
             if (settings.layoutFixed) body.classList.add('layout-fixed');
             if (settings.layoutNavbarFixed) body.classList.add('layout-navbar-fixed');
@@ -286,18 +341,18 @@
             if (settings.sidebarMini) body.classList.add('sidebar-mini');
             if (settings.sidebarMiniMd) body.classList.add('sidebar-mini-md');
             if (settings.sidebarMiniXs) body.classList.add('sidebar-mini-xs');
-            
+
             // Apply sidebar color
             if (settings.sidebarColor && sidebar) {
                 sidebar.className = 'main-sidebar elevation-4 ' + settings.sidebarColor;
             }
-            
+
             // Apply navbar variant
             if (settings.navbarVariant && navbar) {
                 const classes = settings.navbarVariant.split(' ');
                 navbar.className = 'main-header navbar navbar-expand ' + classes.join(' ');
             }
-            
+
             // Apply additional options
             if (settings.textSm) body.classList.add('text-sm');
             if (settings.flatStyle) body.classList.add('flat-style');

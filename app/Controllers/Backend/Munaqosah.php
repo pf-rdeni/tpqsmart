@@ -326,6 +326,25 @@ class Munaqosah extends BaseController
                 $aktiveTombolKelulusanValue = false;
             }
 
+            // Query untuk mendapatkan data peserta Munaqosah per TPQ dengan jumlah Laki-Laki dan Perempuan
+            $query = $this->db->query("
+                SELECT 
+                    t.IdTpq,
+                    t.NamaTpq,
+                    COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'LAKI-LAKI' THEN p.IdSantri END) as jumlah_laki_laki,
+                    COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'PEREMPUAN' THEN p.IdSantri END) as jumlah_perempuan,
+                    COUNT(DISTINCT p.IdSantri) as total_peserta
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                INNER JOIN tbl_santri_baru s ON s.IdSantri = p.IdSantri
+                INNER JOIN tbl_tpq t ON t.IdTpq = p.IdTpq
+                WHERE p.IdTahunAjaran = ? 
+                AND r.TypeUjian = 'munaqosah'
+                GROUP BY t.IdTpq, t.NamaTpq
+                ORDER BY t.NamaTpq ASC
+            ", [$currentTahunAjaran]);
+            $pesertaPerTpq = $query->getResultArray();
+
             $data = [
                 'page_title' => 'Dashboard Munaqosah - Admin',
                 'current_tahun_ajaran' => $currentTahunAjaran,
@@ -342,6 +361,7 @@ class Munaqosah extends BaseController
                 'id_tpq_setting' => $idTpqForSetting,
                 'menu_items' => $menuItems,
                 'statistik' => $statistik,
+                'peserta_per_tpq' => $pesertaPerTpq,
             ];
 
             return view('backend/Munaqosah/dashboardAdmin', $data);

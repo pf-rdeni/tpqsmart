@@ -1,5 +1,28 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
+<style>
+    /* Fix untuk scrollX DataTable di mobile - memastikan konsistensi */
+    .dataTables_scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .dataTables_scrollBody {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Memastikan tabel tidak shrink di mobile */
+    .dataTables_wrapper .dataTables_scroll .dataTables_scrollBody table {
+        min-width: 100%;
+    }
+
+    /* Fix untuk card body yang mengandung DataTable */
+    .card-body .dataTables_wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+</style>
 <div class="col-12">
     <!-- Card Informasi Alur Proses -->
     <div class="card card-info collapsed-card">
@@ -99,66 +122,64 @@
                                 id="kelas-<?= $kelasId ?>"
                                 role="tabpanel"
                                 aria-labelledby="tab-<?= $kelasId ?>">
-                                <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                                    <table id="TableNilaiSemester-<?= $kelasId ?>" class="table table-bordered table-striped" style="min-width: 100%;">
-                                        <thead>
-                                            <tr>
-                                                <th>Aksi</th>
-                                                <th>Nama Santri</th>
-                                                <th>Tingkat Kelas</th>
-                                                <th>Id Santri</th>
-                                                <th>Tahun Ajaran</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($dataSantri as $santri) : ?>
-                                                <?php if ($santri->NamaKelas == $kelas || $kelas == "SEMUA"): ?>
-                                                    <?php
-                                                    // OPTIMASI: Gunakan progress yang sudah dihitung di controller
-                                                    $progress = $progressData[$santri->IdSantri] ?? [
-                                                        'totalMateri' => 0,
-                                                        'materiTerisi' => 0,
-                                                        'persentase' => 0,
-                                                        'badgeColor' => 'secondary'
-                                                    ];
-                                                    $totalMateri = $progress['totalMateri'];
-                                                    $materiTerisi = $progress['materiTerisi'];
-                                                    $persentase = $progress['persentase'];
-                                                    $badgeColor = $progress['badgeColor'];
-                                                    ?>
-                                                    <tr>
-                                                        <td>
-                                                            <div class="d-flex justify-content-start align-items-center">
-                                                                <?php if ($santri->StatusPenilaian == 0 && ($santri->NamaJabatan == "Guru Kelas" || $santri->NamaJabatan == "Wali Kelas")) : ?>
-                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn btn-warning me-2">
-                                                                        <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Edit&nbsp;
-                                                                    </a>
-                                                                <?php elseif ($santri->StatusPenilaian == 1 && $santri->NamaJabatan == "Guru Kelas"): ?>
-                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 0 . '/' . $santri->IdJabatan) ?>" class="btn btn-primary me-2">
-                                                                        <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
-                                                                    </a>
-                                                                <?php endif; ?>
+                                <table id="TableNilaiSemester-<?= $kelasId ?>" class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Aksi</th>
+                                            <th>Nama Santri</th>
+                                            <th>Tingkat Kelas</th>
+                                            <th>Id Santri</th>
+                                            <th>Tahun Ajaran</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($dataSantri as $santri) : ?>
+                                            <?php if ($santri->NamaKelas == $kelas || $kelas == "SEMUA"): ?>
+                                                <?php
+                                                // OPTIMASI: Gunakan progress yang sudah dihitung di controller
+                                                $progress = $progressData[$santri->IdSantri] ?? [
+                                                    'totalMateri' => 0,
+                                                    'materiTerisi' => 0,
+                                                    'persentase' => 0,
+                                                    'badgeColor' => 'secondary'
+                                                ];
+                                                $totalMateri = $progress['totalMateri'];
+                                                $materiTerisi = $progress['materiTerisi'];
+                                                $persentase = $progress['persentase'];
+                                                $badgeColor = $progress['badgeColor'];
+                                                ?>
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex justify-content-start align-items-center">
+                                                            <?php if ($santri->StatusPenilaian == 0 && ($santri->NamaJabatan == "Guru Kelas" || $santri->NamaJabatan == "Wali Kelas")) : ?>
+                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn btn-warning me-2">
+                                                                    <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Edit&nbsp;
+                                                                </a>
+                                                            <?php elseif ($santri->StatusPenilaian == 1 && $santri->NamaJabatan == "Guru Kelas"): ?>
+                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 0 . '/' . $santri->IdJabatan) ?>" class="btn btn-primary me-2">
+                                                                    <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
+                                                                </a>
+                                                            <?php endif; ?>
 
-                                                                <!-- Icon Progress Persentase - Tampilkan jika ada data materi -->
-                                                                <?php if ($totalMateri > 0): ?>
-                                                                    <button type="button" class="btn btn-<?= $badgeColor ?> me-2" data-toggle="tooltip" data-placement="top"
-                                                                        title="Progress: <?= $materiTerisi ?>/<?= $totalMateri ?> materi (<?= $persentase ?>%)">
-                                                                        <i class="fas fa-hourglass-half"></i>
-                                                                        <span class="badge badge-light ml-1"><?= $persentase ?>%</span>
-                                                                    </button>
-                                                                <?php endif; ?>
-                                                            </div>
-                                                        </td>
-                                                        <td><?php echo $santri->NamaSantri; ?></td>
-                                                        <td><?php echo $santri->NamaKelas; ?></td>
-                                                        <td><?php echo $santri->IdSantri; ?></td>
-                                                        <td><?php echo $santri->IdTahunAjaran; ?></td>
-                                                    </tr>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                            <!-- Icon Progress Persentase - Tampilkan jika ada data materi -->
+                                                            <?php if ($totalMateri > 0): ?>
+                                                                <button type="button" class="btn btn-<?= $badgeColor ?> me-2" data-toggle="tooltip" data-placement="top"
+                                                                    title="Progress: <?= $materiTerisi ?>/<?= $totalMateri ?> materi (<?= $persentase ?>%)">
+                                                                    <i class="fas fa-hourglass-half"></i>
+                                                                    <span class="badge badge-light ml-1"><?= $persentase ?>%</span>
+                                                                </button>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </td>
+                                                    <td><?php echo $santri->NamaSantri; ?></td>
+                                                    <td><?php echo $santri->NamaKelas; ?></td>
+                                                    <td><?php echo $santri->IdSantri; ?></td>
+                                                    <td><?php echo $santri->IdTahunAjaran; ?></td>
+                                                </tr>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -203,7 +224,25 @@
 
                     // Trigger tab event untuk Bootstrap
                     tabLink.tab('show');
+                } else {
+                    // Jika tab yang tersimpan tidak ditemukan, set ke tab pertama
+                    setFirstTab();
                 }
+            } else {
+                // Jika belum ada yang tersimpan, set ke tab pertama
+                setFirstTab();
+            }
+        }
+
+        // Fungsi untuk set tab pertama sebagai aktif
+        function setFirstTab() {
+            const firstTab = $('.nav-link').first();
+            const firstTabId = firstTab.attr('id');
+            if (firstTabId) {
+                const tabId = firstTabId.replace('tab-', '');
+                saveActiveTab(tabId);
+                firstTab.addClass('active').attr('aria-selected', 'true');
+                $('#kelas-' + tabId).addClass('show active');
             }
         }
 
