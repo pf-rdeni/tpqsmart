@@ -51,6 +51,7 @@ $routes->get('pendaftaran', 'SantriPendaftaran::createEmisStep/public');
 $routes->post('pendaftaran/save', 'SantriPendaftaran::save/public');
 $routes->get('pendaftaran/success/(:segment)', 'SantriPendaftaran::showSuccessEmisStep/$1/public');
 $routes->get('pendaftaran/getNikSantri/(:segment)', 'SantriPendaftaran::getNikSantri/$1');
+$routes->get('pendaftaran/checkMdaStatus/(:any)', 'SantriPendaftaran::checkMdaStatus/$1');
 $routes->get('pendaftaran/generatePDFSantriBaru/(:segment)', 'SantriPendaftaran::generatePDFSantriBaru/$1');
 
 // Routes untuk cek status munaqosah (public access)
@@ -73,6 +74,7 @@ $routes->get('backend/santri', 'SantriPendaftaran::createEmisStep/admin');
 $routes->post('backend/santri/save', 'SantriPendaftaran::save/admin');
 $routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'SantriPendaftaran::showSuccessEmisStep/$1/admin');
 $routes->get('backend/santri/getNikSantri/(:segment)', 'SantriPendaftaran::getNikSantri/$1');
+$routes->get('backend/santri/checkMdaStatus/(:any)', 'Backend\Santri::checkMdaStatus/$1');
 $routes->get('backend/santri/generatePDFSantriBaru/(:segment)', 'SantriPendaftaran::generatePDFSantriBaru/$1');
 //Table Tpq
 $routes->get('backend/tpq/tpq', 'Tpq::create');

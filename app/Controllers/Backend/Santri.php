@@ -60,6 +60,49 @@ class Santri extends BaseController
 
         return view('backend/santri/createEmisStep', $data);
     }
+
+    // Fungsi untuk mengecek status MDA dan mapping kelas
+    public function checkMdaStatus($idTpq = null)
+    {
+        if (empty($idTpq)) {
+            return $this->response->setJSON([
+                'hasMda' => false,
+                'kelasMapping' => []
+            ]);
+        }
+
+        $toolsModel = new \App\Models\ToolsModel();
+        
+        // Handle admin dengan IdTpq=0, gunakan 'default' sebagai gantinya
+        $idTpqForQuery = (empty($idTpq) || $idTpq == '0' || $idTpq == 0) ? 'default' : $idTpq;
+
+        // Check apakah memiliki lembaga MDA
+        $hasMda = $toolsModel->getSettingAsBool($idTpqForQuery, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
+        $kelasMapping = [];
+
+        if ($hasMda) {
+            // Ambil mapping persamaan kelas MDA
+            $persamaanKelas = $toolsModel->getSettingAsString($idTpqForQuery, 'MDA_S1_PersamaanKelasMDA', '');
+            
+            // Parse mapping: TPQ3=MDA1, TPQ4=MDA2, TPQ5=MDA3, TPQ6=MDA4
+            if (!empty($persamaanKelas)) {
+                $pairs = explode(',', $persamaanKelas);
+                foreach ($pairs as $pair) {
+                    $pair = trim($pair);
+                    if (strpos($pair, '=') !== false) {
+                        list($tpqKelas, $mdaKelas) = explode('=', $pair, 2);
+                        $kelasMapping[trim($tpqKelas)] = trim($mdaKelas);
+                    }
+                }
+            }
+        }
+
+        return $this->response->setJSON([
+            'hasMda' => $hasMda,
+            'kelasMapping' => $kelasMapping
+        ]);
+    }
+
     // fungsi untuk menyimpan
     public function save()
     {
