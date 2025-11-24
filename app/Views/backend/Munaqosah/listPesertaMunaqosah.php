@@ -113,6 +113,75 @@
     </div>
 </div>
 
+<!-- Statistik Status Verifikasi Peserta -->
+<div class="col-12 mb-3">
+    <div class="card card-outline card-info">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-clipboard-check"></i> Statistik Status Verifikasi Data Peserta
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta berdasarkan status verifikasi data yang telah diverifikasi oleh orang tua santri">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">
+                <i class="fas fa-info-circle"></i>
+                <strong>Informasi:</strong> Statistik ini menampilkan jumlah peserta berdasarkan status verifikasi data mereka.
+                Status verifikasi ditentukan setelah orang tua santri melakukan verifikasi data di halaman konfirmasi data santri.
+            </p>
+            <div class="row">
+                <div class="col-lg-4 col-6">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3><?= number_format($total_status_valid) ?></h3>
+                            <p>Status Valid</p>
+                            <small style="font-size: 0.85em; opacity: 0.9;">Data telah diverifikasi dan dinyatakan benar</small>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <a href="#peserta-valid" class="small-box-footer" onclick="filterByStatus('valid')">
+                            Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-6">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3><?= number_format($total_status_perbaikan) ?></h3>
+                            <p>Perlu Perbaikan</p>
+                            <small style="font-size: 0.85em; opacity: 0.9;">Data perlu diperbaiki oleh operator</small>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <a href="#peserta-perbaikan" class="small-box-footer" onclick="filterByStatus('perlu_perbaikan')">
+                            Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-6">
+                    <div class="small-box bg-secondary">
+                        <div class="inner">
+                            <h3><?= number_format($total_status_belum_dikonfirmasi) ?></h3>
+                            <p>Belum Dikonfirmasi</p>
+                            <small style="font-size: 0.85em; opacity: 0.9;">Belum melakukan konfirmasi data</small>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <a href="#peserta-belum-dikonfirmasi" class="small-box-footer" onclick="filterByStatus('belum_dikonfirmasi')">
+                            Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="col-12">
     <div class="card">
@@ -3720,6 +3789,29 @@
                 });
             }
         });
+    }
+
+    // Fungsi untuk filter tabel berdasarkan status
+    function filterByStatus(status) {
+        // Scroll ke bagian tabel
+        $('html, body').animate({
+            scrollTop: $('.card-body').offset().top - 100
+        }, 500);
+
+        // Filter berdasarkan status di DataTable
+        if (status === 'valid') {
+            if ($.fn.DataTable.isDataTable('#tabelPesertaValid')) {
+                $('#tabelPesertaValid').DataTable().search('').draw();
+            }
+        } else if (status === 'perlu_perbaikan') {
+            if ($.fn.DataTable.isDataTable('#tabelPesertaPerluPerbaikan')) {
+                $('#tabelPesertaPerluPerbaikan').DataTable().search('').draw();
+            }
+        } else if (status === 'belum_dikonfirmasi') {
+            if ($.fn.DataTable.isDataTable('#tabelPesertaBelumDikonfirmasi')) {
+                $('#tabelPesertaBelumDikonfirmasi').DataTable().search('').draw();
+            }
+        }
     }
 </script>
 

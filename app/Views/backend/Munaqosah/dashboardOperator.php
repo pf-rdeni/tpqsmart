@@ -162,7 +162,7 @@
                                             <i class="fas fa-clipboard-check"></i> Statistik Status Verifikasi Data Peserta
                                         </h3>
                                         <div class="card-tools">
-                                            <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta berdasarkan status verifikasi data yang telah dikonfirmasi oleh santri">
+                                            <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta berdasarkan status verifikasi data yang telah diverifikasi oleh orang tua santri">
                                                 <i class="fas fa-info-circle"></i>
                                             </button>
                                         </div>
@@ -171,7 +171,7 @@
                                         <p class="text-muted mb-3">
                                             <i class="fas fa-info-circle"></i>
                                             <strong>Informasi:</strong> Statistik ini menampilkan jumlah peserta berdasarkan status verifikasi data mereka.
-                                            Status verifikasi ditentukan setelah santri melakukan konfirmasi data di halaman konfirmasi data santri.
+                                            Status verifikasi ditentukan setelah orang tua santri melakukan verifikasi data di halaman konfirmasi data santri.
                                         </p>
                                         <div class="row">
                                             <div class="col-lg-4 col-6">

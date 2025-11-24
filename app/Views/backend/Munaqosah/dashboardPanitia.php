@@ -178,7 +178,7 @@
                                             <i class="fas fa-clipboard-check"></i> Statistik Status Verifikasi Data Peserta
                                         </h3>
                                         <div class="card-tools">
-                                            <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta berdasarkan status verifikasi data yang telah dikonfirmasi oleh santri">
+                                            <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta berdasarkan status verifikasi data yang telah diverifikasi oleh orang tua santri">
                                                 <i class="fas fa-info-circle"></i>
                                             </button>
                                         </div>
@@ -187,7 +187,7 @@
                                         <p class="text-muted mb-3">
                                             <i class="fas fa-info-circle"></i> 
                                             <strong>Informasi:</strong> Statistik ini menampilkan jumlah peserta berdasarkan status verifikasi data mereka. 
-                                            Status verifikasi ditentukan setelah santri melakukan konfirmasi data di halaman konfirmasi data santri.
+                                            Status verifikasi ditentukan setelah orang tua santri melakukan verifikasi data di halaman konfirmasi data santri.
                                         </p>
                                         <div class="row">
                                             <div class="col-lg-4 col-6">
@@ -271,6 +271,89 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Tabel Peserta Munaqosah Per TPQ (Hanya untuk Panitia Umum) -->
+                        <?php if (isset($is_panitia_umum) && $is_panitia_umum): ?>
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card card-info">
+                                        <div class="card-header">
+                                            <h3 class="card-title">
+                                                <i class="fas fa-table"></i> Informasi Peserta Munaqosah Per TPQ
+                                            </h3>
+                                            <div class="card-tools">
+                                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table id="tabelPesertaPerTpq" class="table table-bordered table-striped table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width: 5%;">No</th>
+                                                            <th>Nama TPQ</th>
+                                                            <th>Alamat</th>
+                                                            <th class="text-center" style="width: 15%;">Laki-Laki</th>
+                                                            <th class="text-center" style="width: 15%;">Perempuan</th>
+                                                            <th class="text-center" style="width: 15%;">Total Peserta</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php if (!empty($peserta_per_tpq)): ?>
+                                                            <?php $no = 1; ?>
+                                                            <?php foreach ($peserta_per_tpq as $row): ?>
+                                                                <tr>
+                                                                    <td><?= $no++ ?></td>
+                                                                    <td><?= esc($row['NamaTpq']) ?></td>
+                                                                    <td><?= esc($row['KelurahanDesa'] ?? '-') ?></td>
+                                                                    <td class="text-center">
+                                                                        <span class="badge badge-primary" style="font-size: 1em; padding: 5px 10px;">
+                                                                            <?= number_format($row['jumlah_laki_laki']) ?>
+                                                                        </span>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <span class="badge badge-pink" style="font-size: 1em; padding: 5px 10px; background-color: #e91e63; color: white;">
+                                                                            <?= number_format($row['jumlah_perempuan']) ?>
+                                                                        </span>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <strong><?= number_format($row['total_peserta']) ?></strong>
+                                                                    </td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                            <tr class="bg-light font-weight-bold">
+                                                                <td colspan="3" class="text-right"><strong>TOTAL</strong></td>
+                                                                <td class="text-center">
+                                                                    <span class="badge badge-primary" style="font-size: 1em; padding: 5px 10px;">
+                                                                        <?= number_format(array_sum(array_column($peserta_per_tpq, 'jumlah_laki_laki'))) ?>
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <span class="badge badge-pink" style="font-size: 1em; padding: 5px 10px; background-color: #e91e63; color: white;">
+                                                                        <?= number_format(array_sum(array_column($peserta_per_tpq, 'jumlah_perempuan'))) ?>
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <strong><?= number_format(array_sum(array_column($peserta_per_tpq, 'total_peserta'))) ?></strong>
+                                                                </td>
+                                                            </tr>
+                                                        <?php else: ?>
+                                                            <tr>
+                                                                <td colspan="6" class="text-center text-muted">
+                                                                    <i class="fas fa-info-circle"></i> Belum ada data peserta Munaqosah
+                                                                </td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
 
                         <!-- Statistik Antrian -->
                         <div class="row mt-4">
@@ -520,6 +603,16 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Inisialisasi DataTable untuk tabel peserta per TPQ (hanya untuk panitia umum)
+    <?php if (isset($is_panitia_umum) && $is_panitia_umum && !empty($peserta_per_tpq)): ?>
+        initializeDataTableUmum('#tabelPesertaPerTpq', true, true, ['copy', 'excel', 'pdf', 'print'], {
+            "order": [[1, "asc"]],
+            "columnDefs": [
+                { "orderable": false, "targets": 0 } // Nonaktifkan sorting pada kolom No
+            ]
+        });
+    <?php endif; ?>
 });
 </script>
 <?= $this->endSection(); ?>

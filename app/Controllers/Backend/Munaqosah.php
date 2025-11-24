@@ -331,6 +331,7 @@ class Munaqosah extends BaseController
                 SELECT 
                     t.IdTpq,
                     t.NamaTpq,
+                    t.KelurahanDesa,
                     COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'LAKI-LAKI' THEN p.IdSantri END) as jumlah_laki_laki,
                     COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'PEREMPUAN' THEN p.IdSantri END) as jumlah_perempuan,
                     COUNT(DISTINCT p.IdSantri) as total_peserta
@@ -340,7 +341,7 @@ class Munaqosah extends BaseController
                 INNER JOIN tbl_tpq t ON t.IdTpq = p.IdTpq
                 WHERE p.IdTahunAjaran = ? 
                 AND r.TypeUjian = 'munaqosah'
-                GROUP BY t.IdTpq, t.NamaTpq
+                GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa
                 ORDER BY t.NamaTpq ASC
             ", [$currentTahunAjaran]);
             $pesertaPerTpq = $query->getResultArray();
@@ -796,6 +797,30 @@ class Munaqosah extends BaseController
                 ? $this->munaqosahKonfigurasiModel->getSettingAsBool($idTpqForSetting, 'AktiveTombolKelulusan', false)
                 : false;
 
+            // Query untuk mendapatkan data peserta Munaqosah per TPQ dengan jumlah Laki-Laki dan Perempuan
+            // Hanya untuk panitia umum (IdTpq = 0 atau NULL) - sama seperti query admin
+            $pesertaPerTpq = [];
+            if (!$idTpqPanitia || $idTpqPanitia == 0) {
+                $query = $this->db->query("
+                    SELECT 
+                        t.IdTpq,
+                        t.NamaTpq,
+                        t.KelurahanDesa,
+                        COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'LAKI-LAKI' THEN p.IdSantri END) as jumlah_laki_laki,
+                        COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'PEREMPUAN' THEN p.IdSantri END) as jumlah_perempuan,
+                        COUNT(DISTINCT p.IdSantri) as total_peserta
+                    FROM tbl_munaqosah_peserta p
+                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                    INNER JOIN tbl_santri_baru s ON s.IdSantri = p.IdSantri
+                    INNER JOIN tbl_tpq t ON t.IdTpq = p.IdTpq
+                    WHERE p.IdTahunAjaran = ? 
+                    AND r.TypeUjian = ?
+                    GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa
+                    ORDER BY t.NamaTpq ASC
+                ", [$currentTahunAjaran, $typeUjian]);
+                $pesertaPerTpq = $query->getResultArray();
+            }
+
             $data = [
                 'page_title' => 'Dashboard Munaqosah - Panitia',
                 'current_tahun_ajaran' => $currentTahunAjaran,
@@ -819,6 +844,8 @@ class Munaqosah extends BaseController
                 'antrian_data' => $antrianData,
                 'menu_items' => $menuItems,
                 'statistik' => $statistik,
+                'peserta_per_tpq' => $pesertaPerTpq,
+                'is_panitia_umum' => (!$idTpqPanitia || $idTpqPanitia == 0),
             ];
 
             return view('backend/Munaqosah/dashboardPanitia', $data);
@@ -3495,8 +3522,9 @@ class Munaqosah extends BaseController
         // IdTpq dari session
         $idTpq = session()->get('IdTpq');
 
-        // Cek apakah user adalah Panitia
+        // Cek apakah user adalah Panitia atau Operator
         $isPanitia = in_groups('Panitia');
+        $isOperator = in_groups('Operator');
 
         // Jika user adalah Panitia, ambil IdTpq dari username
         if ($isPanitia) {
@@ -3509,6 +3537,11 @@ class Munaqosah extends BaseController
                 $idTpq = 0; // Pastikan 0 untuk panitia umum
             }
         }
+
+        // Untuk Operator, IdTpq sudah diambil dari session di atas
+        // Pastikan IdTpq tidak null atau empty untuk Operator dan Panitia TPQ
+        // Jika Admin atau Panitia Umum, IdTpq akan 0 atau null
+        $shouldFilterByTpq = ($isOperator || ($isPanitia && $idTpq && $idTpq != 0)) && $idTpq && $idTpq != 0;
 
         // DataKelas dari help function model
         $dataKelas = $this->helpFunction->getDataKelas();
@@ -3541,7 +3574,8 @@ class Munaqosah extends BaseController
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_munaqosah_peserta.IdTpq', 'left')
             ->where('tbl_munaqosah_peserta.status_verifikasi', 'perlu_perbaikan');
 
-        if ($idTpq) {
+        // Filter berdasarkan IdTpq untuk Operator dan Panitia TPQ
+        if ($shouldFilterByTpq) {
             $pesertaPerluPerbaikanForModal->where('tbl_munaqosah_peserta.IdTpq', $idTpq);
         }
 
@@ -3573,6 +3607,89 @@ class Munaqosah extends BaseController
         }
         unset($pesertaItem); // Hapus reference
 
+        // Tentukan TypeUjian berdasarkan user
+        $typeUjian = 'munaqosah'; // Default
+        if ($isPanitia && $idTpq && $idTpq != 0) {
+            $typeUjian = 'pra-munaqosah';
+        } elseif ($isOperator) {
+            $typeUjian = 'pra-munaqosah'; // Operator selalu melihat pra-munaqosah
+        }
+
+        // Hitung statistik status verifikasi peserta
+        // Status Valid (valid atau dikonfirmasi)
+        if ($shouldFilterByTpq) {
+            // Filter berdasarkan IdTpq untuk Operator dan Panitia TPQ
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND p.IdTpq = ?
+                AND r.TypeUjian = ?
+                AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
+            ", [$tahunAjaran, $idTpq, $typeUjian]);
+        } else {
+            // Untuk admin atau panitia umum, tidak filter IdTpq
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND r.TypeUjian = ?
+                AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
+            ", [$tahunAjaran, $typeUjian]);
+        }
+        $result = $query->getRow();
+        $totalStatusValid = $result ? (int)$result->total : 0;
+
+        // Status Perbaikan
+        if ($shouldFilterByTpq) {
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND p.IdTpq = ?
+                AND r.TypeUjian = ?
+                AND p.status_verifikasi = 'perlu_perbaikan'
+            ", [$tahunAjaran, $idTpq, $typeUjian]);
+        } else {
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND r.TypeUjian = ?
+                AND p.status_verifikasi = 'perlu_perbaikan'
+            ", [$tahunAjaran, $typeUjian]);
+        }
+        $result = $query->getRow();
+        $totalStatusPerbaikan = $result ? (int)$result->total : 0;
+
+        // Status Belum Dikonfirmasi (NULL atau empty)
+        if ($shouldFilterByTpq) {
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND p.IdTpq = ?
+                AND r.TypeUjian = ?
+                AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
+            ", [$tahunAjaran, $idTpq, $typeUjian]);
+        } else {
+            $query = $this->db->query("
+                SELECT COUNT(DISTINCT p.id) as total 
+                FROM tbl_munaqosah_peserta p
+                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
+                WHERE p.IdTahunAjaran = ? 
+                AND r.TypeUjian = ?
+                AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
+            ", [$tahunAjaran, $typeUjian]);
+        }
+        $result = $query->getRow();
+        $totalStatusBelumDikonfirmasi = $result ? (int)$result->total : 0;
+
         $data = [
             'page_title' => 'Data Peserta Munaqosah',
             'peserta' => $peserta,
@@ -3582,7 +3699,10 @@ class Munaqosah extends BaseController
             'pesertaPerluPerbaikanForModal' => $pesertaPerluPerbaikanForModal, // Untuk parsing di modal
             'dataKelas' => $dataKelas,
             'dataTpq' => $dataTpq,
-            'tahunAjaran' => $tahunAjaran
+            'tahunAjaran' => $tahunAjaran,
+            'total_status_valid' => $totalStatusValid,
+            'total_status_perbaikan' => $totalStatusPerbaikan,
+            'total_status_belum_dikonfirmasi' => $totalStatusBelumDikonfirmasi,
         ];
         return view('backend/Munaqosah/listPesertaMunaqosah', $data);
     }
@@ -7529,7 +7649,7 @@ class Munaqosah extends BaseController
         if ($idTpq !== null) {
             if ($idTpq == 0 || $idTpq == '0') {
                 // Untuk panitia umum (IdTpq = 0), username format: panitia.munaqosah.{number}
-                $builder->where('u.username REGEXP', '^panitia\\.munaqosah\\.([0-9]+)$');
+                $builder->where("u.username REGEXP '^panitia\\.munaqosah\\.([0-9]+)$'", null, false);
             } else {
                 // Untuk panitia TPQ tertentu, username format: panitia.munaqosah.{idTpqTrim}.{number}
                 $idTpqTrim = substr($idTpq, -3);
@@ -7636,7 +7756,7 @@ class Munaqosah extends BaseController
             // Pencarian untuk TPQ 0 contoh panitia.munaqosah.2
             $prefix = 'panitia.munaqosah.';
             $builder->like('u.username', $prefix, 'after');
-            $builder->where('u.username REGEXP', '^panitia\\.munaqosah\\.([0-9]+)$');
+            $builder->where("u.username REGEXP '^panitia\\.munaqosah\\.([0-9]+)$'", null, false);
         }
         $builder->orderBy('u.username', 'DESC');
         $builder->limit(1);

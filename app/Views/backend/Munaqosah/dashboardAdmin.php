@@ -133,7 +133,7 @@
                                             <i class="fas fa-clipboard-check"></i> Statistik Status Verifikasi Data Peserta
                                         </h3>
                                         <div class="card-tools">
-                                            <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta berdasarkan status verifikasi data yang telah dikonfirmasi oleh santri">
+                                            <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta berdasarkan status verifikasi data yang telah diverifikasi oleh orang tua santri">
                                                 <i class="fas fa-info-circle"></i>
                                             </button>
                                         </div>
@@ -142,7 +142,7 @@
                                         <p class="text-muted mb-3">
                                             <i class="fas fa-info-circle"></i>
                                             <strong>Informasi:</strong> Statistik ini menampilkan jumlah peserta berdasarkan status verifikasi data mereka.
-                                            Status verifikasi ditentukan setelah santri melakukan konfirmasi data di halaman konfirmasi data santri.
+                                            Status verifikasi ditentukan setelah orang tua santri melakukan verifikasi data di halaman konfirmasi data santri.
                                         </p>
                                         <div class="row">
                                             <div class="col-lg-4 col-6">
@@ -248,6 +248,7 @@
                                                     <tr>
                                                         <th style="width: 5%;">No</th>
                                                         <th>Nama TPQ</th>
+                                                        <th>Alamat</th>
                                                         <th class="text-center" style="width: 15%;">Laki-Laki</th>
                                                         <th class="text-center" style="width: 15%;">Perempuan</th>
                                                         <th class="text-center" style="width: 15%;">Total Peserta</th>
@@ -260,6 +261,7 @@
                                                             <tr>
                                                                 <td><?= $no++ ?></td>
                                                                 <td><?= esc($row['NamaTpq']) ?></td>
+                                                                <td><?= esc($row['KelurahanDesa'] ?? '-') ?></td>
                                                                 <td class="text-center">
                                                                     <span class="badge badge-primary" style="font-size: 1em; padding: 5px 10px;">
                                                                         <?= number_format($row['jumlah_laki_laki']) ?>
@@ -276,7 +278,7 @@
                                                             </tr>
                                                         <?php endforeach; ?>
                                                         <tr class="bg-light font-weight-bold">
-                                                            <td colspan="2" class="text-right"><strong>TOTAL</strong></td>
+                                                            <td colspan="3" class="text-right"><strong>TOTAL</strong></td>
                                                             <td class="text-center">
                                                                 <span class="badge badge-primary" style="font-size: 1em; padding: 5px 10px;">
                                                                     <?= number_format(array_sum(array_column($peserta_per_tpq, 'jumlah_laki_laki'))) ?>
@@ -293,7 +295,7 @@
                                                         </tr>
                                                     <?php else: ?>
                                                         <tr>
-                                                            <td colspan="5" class="text-center text-muted">
+                                                            <td colspan="6" class="text-center text-muted">
                                                                 <i class="fas fa-info-circle"></i> Belum ada data peserta Munaqosah
                                                             </td>
                                                         </tr>
