@@ -915,6 +915,69 @@ class Santri extends BaseController
         return view('backend/santri/aturSantriBaru', $data);
     }
 
+    public function updatePhotoProfil()
+    {
+        try {
+            $idSantri = $this->request->getPost('idSantri');
+            $idSantriBaru = $this->request->getPost('idSantriBaru');
+
+            if (empty($idSantri) || empty($idSantriBaru)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID Santri tidak boleh kosong'
+                ]);
+            }
+
+            // Ambil data santri untuk mendapatkan nama file lama
+            $santri = $this->DataSantriBaru->find($idSantri);
+            if (!$santri) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data santri tidak ditemukan'
+                ]);
+            }
+
+            // Ambil file dari request
+            $file = $this->request->getFile('photo');
+            if (!$file || !$file->isValid()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'File tidak valid atau tidak ada file yang diupload'
+                ]);
+            }
+
+            // Upload file menggunakan method yang sudah ada
+            $oldFileName = $santri['PhotoProfil'] ?? null;
+            $photoProfilName = $this->uploadFile($file, 'Profile', $idSantriBaru, $oldFileName);
+
+            if (!$photoProfilName) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal mengupload foto'
+                ]);
+            }
+
+            // Update database
+            $this->DataSantriBaru->update($idSantri, [
+                'PhotoProfil' => $photoProfilName
+            ]);
+
+            log_message('info', 'Santri: updatePhotoProfil - Foto profil berhasil diupdate untuk ID: ' . $idSantri);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Foto profil berhasil diupdate',
+                'photoName' => $photoProfilName
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: updatePhotoProfil - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function showSantriEmis()
     {
         // ambil IdTpq dari session

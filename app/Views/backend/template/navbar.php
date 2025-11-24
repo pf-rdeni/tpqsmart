@@ -1,20 +1,41 @@
-<nav class="main-header navbar navbar-expand navbar-white navbar-light">
+<nav class="main-header navbar navbar-expand-lg navbar-white navbar-light">
     <!-- Left navbar links -->
     <ul class="navbar-nav">
         <li class="nav-item">
             <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
         </li>
-        <li class="nav-item d-none d-sm-inline-block">
+        <!-- Menu items untuk desktop (tersembunyi di mobile) -->
+        <li class="nav-item d-none d-md-inline-block">
             <a href=<?php echo base_url('/') ?> class="nav-link">Home</a>
         </li>
-        <li class="nav-item d-none d-sm-inline-block">
+        <li class="nav-item d-none d-md-inline-block">
             <a href=<?php echo base_url('backend/pages/profil') ?> class="nav-link">Profil</a>
         </li>
-        <li class="nav-item d-none d-sm-inline-block">
+        <li class="nav-item d-none d-md-inline-block">
             <a href=<?php echo base_url('backend/pages/help') ?> class="nav-link">Help</a>
         </li>
-        <li class="nav-item d-none d-sm-inline-block">
+        <li class="nav-item d-none d-md-inline-block">
             <a href=<?php echo base_url('backend/pages/contact') ?> class="nav-link">Contact</a>
+        </li>
+        <!-- Dropdown menu untuk mobile (hanya muncul di mobile) -->
+        <li class="nav-item dropdown d-md-none">
+            <a class="nav-link" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-ellipsis-v"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-left">
+                <a href=<?php echo base_url('/') ?> class="dropdown-item">
+                    <i class="fas fa-home mr-2"></i> Home
+                </a>
+                <a href=<?php echo base_url('backend/pages/profil') ?> class="dropdown-item">
+                    <i class="fas fa-user mr-2"></i> Profil
+                </a>
+                <a href=<?php echo base_url('backend/pages/help') ?> class="dropdown-item">
+                    <i class="fas fa-question-circle mr-2"></i> Help
+                </a>
+                <a href=<?php echo base_url('backend/pages/contact') ?> class="dropdown-item">
+                    <i class="fas fa-envelope mr-2"></i> Contact
+                </a>
+            </div>
         </li>
     </ul>
 

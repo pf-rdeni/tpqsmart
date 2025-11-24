@@ -98,4 +98,49 @@
     <!-- Cropper.js CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
+    <!-- Custom CSS untuk memastikan navbar selalu terlihat di mobile -->
+    <style>
+        /* Memastikan navbar selalu terlihat di semua ukuran layar */
+        @media (max-width: 991.98px) {
+            .main-header.navbar {
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+            
+            .main-header.navbar .navbar-nav {
+                display: flex !important;
+                flex-direction: row;
+                align-items: center;
+            }
+            
+            /* Memastikan tombol hamburger menu selalu terlihat */
+            .main-header.navbar .navbar-nav > li:first-child {
+                display: block !important;
+            }
+            
+            /* Styling untuk dropdown menu mobile */
+            .main-header.navbar .navbar-nav .dropdown-menu {
+                border-radius: 0.25rem;
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+                margin-top: 0.5rem;
+                min-width: 200px;
+            }
+            
+            .main-header.navbar .navbar-nav .dropdown-item {
+                padding: 0.75rem 1rem;
+                transition: background-color 0.2s ease;
+            }
+            
+            .main-header.navbar .navbar-nav .dropdown-item:hover {
+                background-color: #f8f9fa;
+            }
+            
+            .main-header.navbar .navbar-nav .dropdown-item i {
+                width: 20px;
+                text-align: center;
+            }
+        }
+    </style>
+
 </head>
