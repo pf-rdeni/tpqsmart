@@ -66,6 +66,8 @@
             <div class="info">
                 <?php if (in_groups('Juri')): ?>
                     <a href=<?php echo base_url('backend/munaqosah/input-nilai-juri') ?> class="d-block"><?= user()->username; ?></a>
+                <?php elseif (in_groups('Panitia')): ?>
+                    <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="d-block"><?= user()->username; ?></a>
                 <?php else: ?>
                     <a href=<?php echo base_url('backend/pages/profil') ?> class="d-block"><?= user()->fullname; ?></a>
                 <?php endif; ?>

@@ -336,11 +336,9 @@ class Munaqosah extends BaseController
                     COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'PEREMPUAN' THEN p.IdSantri END) as jumlah_perempuan,
                     COUNT(DISTINCT p.IdSantri) as total_peserta
                 FROM tbl_munaqosah_peserta p
-                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
                 INNER JOIN tbl_santri_baru s ON s.IdSantri = p.IdSantri
                 INNER JOIN tbl_tpq t ON t.IdTpq = p.IdTpq
                 WHERE p.IdTahunAjaran = ? 
-                AND r.TypeUjian = 'munaqosah'
                 GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa
                 ORDER BY t.NamaTpq ASC
             ", [$currentTahunAjaran]);
@@ -810,14 +808,12 @@ class Munaqosah extends BaseController
                         COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'PEREMPUAN' THEN p.IdSantri END) as jumlah_perempuan,
                         COUNT(DISTINCT p.IdSantri) as total_peserta
                     FROM tbl_munaqosah_peserta p
-                    INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
                     INNER JOIN tbl_santri_baru s ON s.IdSantri = p.IdSantri
                     INNER JOIN tbl_tpq t ON t.IdTpq = p.IdTpq
                     WHERE p.IdTahunAjaran = ? 
-                    AND r.TypeUjian = ?
                     GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa
                     ORDER BY t.NamaTpq ASC
-                ", [$currentTahunAjaran, $typeUjian]);
+                ", [$currentTahunAjaran]);
                 $pesertaPerTpq = $query->getResultArray();
             }
 
@@ -1745,6 +1741,7 @@ class Munaqosah extends BaseController
         // Cek apakah user adalah Panitia
         $isPanitia = in_groups('Panitia');
         $isPanitiaTpq = false;
+        $isPanitiaUmum = false;
 
         // Jika user adalah Panitia, ambil IdTpq dari username
         if ($isPanitia) {
@@ -1762,6 +1759,7 @@ class Munaqosah extends BaseController
                 $selectedType = 'munaqosah';
                 $selectedTpq = 0;
                 $selectedTahun = $currentTahunAjaran;
+                $isPanitiaUmum = true;
             }
         } elseif (!empty($sessionIdTpq)) {
             // Jika user login sebagai admin TPQ (ada IdTpq di session)
@@ -1978,6 +1976,7 @@ class Munaqosah extends BaseController
             'rooms' => $rooms, // Data ruangan beserta status
             'available_rooms' => $availableRooms, // Daftar ruangan yang masih tersedia
             'is_panitia_tpq' => $isPanitiaTpq, // Flag apakah panitia dengan IdTpq
+            'is_panitia_umum' => $isPanitiaUmum, // Flag apakah panitia umum
             'statistics' => [
                 'total' => $totalPeserta, // Total peserta
                 'completed' => $totalSelesai, // Peserta selesai

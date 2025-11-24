@@ -190,7 +190,32 @@
 
                         <form method="get" action="<?= base_url('backend/munaqosah/antrian') ?>" class="mb-4">
                             <div class="form-row align-items-end">
-                                <?php if (empty($session_id_tpq) && empty($is_panitia_tpq ?? false)): ?>
+                                <?php
+                                // Tentukan role user
+                                $isOperator = in_groups('Operator');
+                                $isPanitia = in_groups('Panitia');
+                                $isAdmin = in_groups('Admin');
+
+                                // Gunakan variabel dari controller jika ada, jika tidak tentukan sendiri
+                                $isPanitiaUmum = $is_panitia_umum ?? false;
+
+                                // Untuk Panitia, tentukan TypeUjian berdasarkan IdTpq dari username
+                                $panitiaTypeUjian = 'munaqosah'; // Default untuk panitia umum
+                                if ($isPanitia) {
+                                    if ($isPanitiaUmum) {
+                                        $panitiaTypeUjian = 'munaqosah';
+                                    } else {
+                                        $panitiaTypeUjian = 'pra-munaqosah';
+                                    }
+                                }
+
+                                // Tentukan apakah TypeUjian harus disabled
+                                $typeDisabled = ($isOperator || $isPanitia) && !$isAdmin;
+                                $typeRequiredValue = $isOperator ? 'pra-munaqosah' : ($isPanitia ? $panitiaTypeUjian : null);
+                                $typeDisabledStyle = $typeDisabled ? 'background-color: #e9ecef; cursor: not-allowed;' : '';
+                                ?>
+
+                                <?php if (empty($session_id_tpq) && empty($is_panitia_tpq ?? false) && !$isPanitia): ?>
                                     <!-- Jika admin super, tampilkan dropdown TPQ -->
                                     <div class="form-group col-md-3">
                                         <label for="tpq">TPQ</label>
@@ -207,8 +232,64 @@
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                <?php elseif (!empty($is_panitia_tpq ?? false)): ?>
-                                    <!-- Jika panitia TPQ, tampilkan TPQ mereka dan disable -->
+                                    <div class="form-group col-md-3">
+                                        <label for="group">Grup Materi Ujian</label>
+                                        <select name="group" id="group" class="form-control">
+                                            <?php foreach ($groups as $group): ?>
+                                                <option value="<?= $group['IdGrupMateriUjian'] ?>"
+                                                    <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
+                                                    <?= $group['NamaMateriGrup'] ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="type">Type Ujian</label>
+                                        <select name="type" id="type" class="form-control">
+                                            <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                <option value="<?= $typeValue ?>" <?= ($selected_type === $typeValue) ? 'selected' : '' ?>>
+                                                    <?= $typeLabel ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="tahun">Tahun Ajaran</label>
+                                        <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                                    </div>
+                                <?php elseif ($isPanitia && $isPanitiaUmum): ?>
+                                    <!-- Jika panitia umum, tampilkan TypeUjian (disabled, default munaqosah) dan Grup Materi -->
+                                    <input type="hidden" name="tpq" value="0">
+                                    <div class="form-group col-md-4">
+                                        <label for="group">Grup Materi Ujian</label>
+                                        <select name="group" id="group" class="form-control">
+                                            <?php foreach ($groups as $group): ?>
+                                                <option value="<?= $group['IdGrupMateriUjian'] ?>"
+                                                    <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
+                                                    <?= $group['NamaMateriGrup'] ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="type">Type Ujian</label>
+                                        <input type="hidden" name="type" id="type" value="munaqosah">
+                                        <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
+                                            <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                <?php if ($typeValue === 'munaqosah'): ?>
+                                                    <option value="<?= $typeValue ?>" selected>
+                                                        <?= $typeLabel ?>
+                                                    </option>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="tahun">Tahun Ajaran</label>
+                                        <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                                    </div>
+                                <?php elseif (!empty($is_panitia_tpq ?? false) || ($isPanitia && !$isPanitiaUmum)): ?>
+                                    <!-- Jika panitia TPQ, tampilkan TPQ mereka (disabled), TypeUjian (disabled, default pra-munaqosah) dan Grup Materi -->
                                     <div class="form-group col-md-3">
                                         <label for="tpq">TPQ</label>
                                         <input type="hidden" name="tpq" value="<?= $selected_tpq ?>">
@@ -237,75 +318,25 @@
                                     </div>
                                     <div class="form-group col-md-3">
                                         <label for="type">Type Ujian</label>
-                                        <?php
-                                        // Tentukan apakah select TypeUjian harus disabled berdasarkan role
-                                        $isOperator = in_groups('Operator');
-                                        $isPanitia = in_groups('Panitia');
-                                        $isAdmin = in_groups('Admin');
-
-                                        // Untuk Panitia, tentukan TypeUjian berdasarkan IdTpq dari username
-                                        $panitiaTypeUjian = 'munaqosah'; // Default untuk panitia umum
-                                        if ($isPanitia) {
-                                            $usernamePanitia = user()->username;
-                                            // Extract IdTpq dari username: panitia.munaqosah.{idTpqTrim}.{number} atau panitia.munaqosah.{number}
-                                            if (preg_match('/^panitia\.munaqosah\.(\d{3})\.(\d+)$/', $usernamePanitia, $matches)) {
-                                                // Panitia TPQ tertentu, hanya melihat pra-munaqosah
-                                                $panitiaTypeUjian = 'pra-munaqosah';
-                                            } else {
-                                                // Panitia umum, melihat munaqosah
-                                                $panitiaTypeUjian = 'munaqosah';
-                                            }
-                                        }
-
-                                        // Jika Operator, disable dan set ke pra-munaqosah
-                                        // Jika Panitia, disable dan set sesuai IdTpq mereka
-                                        // Jika Admin, biarkan bisa memilih
-                                        $typeDisabled = ($isOperator || $isPanitia) && !$isAdmin;
-                                        $typeRequiredValue = $isOperator ? 'pra-munaqosah' : ($isPanitia ? $panitiaTypeUjian : null);
-                                        $typeDisabledStyle = $typeDisabled ? 'background-color: #e9ecef; cursor: not-allowed;' : '';
-                                        ?>
-                                        <?php if ($typeDisabled): ?>
-                                            <!-- Hidden input untuk mengirim nilai TypeUjian saat disabled -->
-                                            <input type="hidden" name="type" id="type" value="<?= $typeRequiredValue ?>">
-                                            <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
-                                                <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                    <?php
-                                                    // Hanya tampilkan option yang sesuai dengan role
-                                                    $showOption = false;
-                                                    if ($isOperator && $typeValue === 'pra-munaqosah') {
-                                                        $showOption = true;
-                                                    } elseif ($isPanitia && $typeValue === $panitiaTypeUjian) {
-                                                        $showOption = true;
-                                                    }
-
-                                                    if ($showOption):
-                                                    ?>
-                                                        <option value="<?= $typeValue ?>" selected>
-                                                            <?= $typeLabel ?>
-                                                        </option>
-                                                    <?php endif; ?>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        <?php else: ?>
-                                            <!-- Select normal untuk Admin -->
-                                            <select name="type" id="type" class="form-control">
-                                                <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                    <option value="<?= $typeValue ?>" <?= ($selected_type === $typeValue) ? 'selected' : '' ?>>
+                                        <input type="hidden" name="type" id="type" value="pra-munaqosah">
+                                        <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
+                                            <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                <?php if ($typeValue === 'pra-munaqosah'): ?>
+                                                    <option value="<?= $typeValue ?>" selected>
                                                         <?= $typeLabel ?>
                                                     </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        <?php endif; ?>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                     <div class="form-group col-md-3">
                                         <label for="tahun">Tahun Ajaran</label>
                                         <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
                                     </div>
                                 <?php else: ?>
-                                    <!-- Jika admin TPQ, sembunyikan dropdown TPQ dan TypeUjian -->
+                                    <!-- Jika admin TPQ atau Operator, tampilkan Grup Materi dan TypeUjian (disabled untuk Operator) -->
                                     <input type="hidden" name="tpq" value="<?= $session_id_tpq ?>">
-                                    <input type="hidden" id="type" name="type" value="pra-munaqosah">
-                                    <div class="form-group col-md-8">
+                                    <div class="form-group col-md-4">
                                         <label for="group">Grup Materi Ujian</label>
                                         <select name="group" id="group" class="form-control">
                                             <?php foreach ($groups as $group): ?>
@@ -315,6 +346,32 @@
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="type">Type Ujian</label>
+                                        <?php if ($isOperator): ?>
+                                            <input type="hidden" name="type" id="type" value="pra-munaqosah">
+                                            <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
+                                                <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                    <?php if ($typeValue === 'pra-munaqosah'): ?>
+                                                        <option value="<?= $typeValue ?>" selected>
+                                                            <?= $typeLabel ?>
+                                                        </option>
+                                                    <?php endif; ?>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        <?php else: ?>
+                                            <input type="hidden" id="type" name="type" value="pra-munaqosah">
+                                            <select class="form-control" disabled style="background-color: #e9ecef; cursor: not-allowed;">
+                                                <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                    <?php if ($typeValue === 'pra-munaqosah'): ?>
+                                                        <option value="<?= $typeValue ?>" selected>
+                                                            <?= $typeLabel ?>
+                                                        </option>
+                                                    <?php endif; ?>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="form-group col-md-4">
                                         <label for="tahun">Tahun Ajaran</label>
