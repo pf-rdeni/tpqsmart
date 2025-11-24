@@ -23,6 +23,158 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
 
 <section class="content">
     <div class="container-fluid">
+        <!-- Card Informasi Alur Proses -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card card-info collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-info-circle"></i> Panduan Alur Proses Data Juri dan Panitia Munaqosah
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                                
+                                <h6 class="mt-4 mb-2"><i class="fas fa-gavel text-warning"></i> <strong>Data Juri Munaqosah:</strong></h6>
+                                <ol class="mb-4">
+                                    <li class="mb-2">
+                                        <strong>Tambah Juri Baru:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-plus"></i> Tambah Juri</span> di header card Juri</li>
+                                            <li>Isi form di modal:
+                                                <ul>
+                                                    <li><strong>Grup Materi Ujian:</strong> Pilih grup materi yang akan dinilai oleh juri (wajib)</li>
+                                                    <li><strong>TPQ:</strong> Pilih TPQ jika juri khusus untuk TPQ tertentu (opsional, kosongkan untuk juri umum)</li>
+                                                    <li><strong>Username Juri:</strong> Klik tombol <span class="badge badge-secondary"><i class="fas fa-sync"></i> Generate</span> untuk generate username otomatis, atau akan otomatis ter-generate saat memilih grup materi</li>
+                                                    <li><strong>Status:</strong> Pilih status Aktif atau Tidak Aktif (default: Aktif)</li>
+                                                    <li><strong>Room ID:</strong> Pilih room untuk menempatkan juri (opsional, pilih "Tanpa Room" jika tidak menggunakan sistem room)</li>
+                                                    <li><strong>Password:</strong> Masukkan password atau centang checkbox untuk menggunakan password default: <strong>JuriTpqSmart</strong></li>
+                                                    <li><strong>Konfirmasi Password:</strong> Masukkan password yang sama</li>
+                                                </ul>
+                                            </li>
+                                            <li>Klik <strong>Simpan</strong> untuk menyimpan data juri</li>
+                                            <li>Akun juri akan otomatis dibuat dengan email: <code>username@smartpq.simpedis.com</code> dan group: <strong>Juri (ID: 5)</strong></li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Ubah Password Juri:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-info"><i class="fas fa-key"></i></span> pada baris juri yang ingin diubah passwordnya</li>
+                                            <li>Modal edit password akan muncul</li>
+                                            <li>Masukkan password baru atau centang checkbox untuk menggunakan password default</li>
+                                            <li>Klik <strong>Update Password</strong> untuk menyimpan</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Ubah Room Juri:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-warning"><i class="fas fa-door-open"></i></span> pada baris juri yang ingin diubah roomnya</li>
+                                            <li>Modal edit room akan muncul</li>
+                                            <li>Pilih room baru atau pilih "Tanpa Room"</li>
+                                            <li>Klik <strong>Update Room</strong> untuk menyimpan</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Hapus Juri:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-danger"><i class="fas fa-trash"></i></span> pada baris juri yang ingin dihapus</li>
+                                            <li>Konfirmasi penghapusan di popup yang muncul</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+
+                                <h6 class="mt-4 mb-2"><i class="fas fa-clipboard-list text-success"></i> <strong>Data Panitia Munaqosah:</strong></h6>
+                                <ol class="mb-4">
+                                    <li class="mb-2">
+                                        <strong>Tambah Panitia Baru:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-success"><i class="fas fa-plus"></i> Tambah Panitia</span> di header card Panitia</li>
+                                            <li>Isi form di modal:
+                                                <ul>
+                                                    <li><strong>TPQ:</strong> Pilih TPQ untuk panitia TPQ tertentu, atau "Umum (Munaqosah)" untuk panitia umum (wajib)</li>
+                                                    <li><strong>Status:</strong> Pilih status Aktif atau Tidak Aktif (default: Aktif)</li>
+                                                    <li><strong>Username Panitia:</strong> Klik tombol <span class="badge badge-secondary"><i class="fas fa-sync"></i> Generate</span> untuk generate username otomatis, atau akan otomatis ter-generate saat memilih TPQ</li>
+                                                    <li><strong>Password:</strong> Masukkan password atau centang checkbox untuk menggunakan password default: <strong>PanitiaTpqSmart</strong></li>
+                                                </ul>
+                                            </li>
+                                            <li>Klik <strong>Simpan</strong> untuk menyimpan data panitia</li>
+                                            <li>Akun panitia akan otomatis dibuat dengan email: <code>username@smartpq.simpedis.com</code> dan group: <strong>Panitia (ID: 6)</strong></li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Ubah Password Panitia:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-info"><i class="fas fa-key"></i></span> pada baris panitia yang ingin diubah passwordnya</li>
+                                            <li>Modal edit password akan muncul</li>
+                                            <li>Masukkan password baru atau centang checkbox untuk menggunakan password default</li>
+                                            <li>Klik <strong>Update Password</strong> untuk menyimpan</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Hapus Panitia:</strong>
+                                        <ul class="mt-2">
+                                            <li>Klik tombol <span class="badge badge-danger"><i class="fas fa-trash"></i></span> pada baris panitia yang ingin dihapus</li>
+                                            <li>Konfirmasi penghapusan di popup yang muncul</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+
+                                <div class="alert alert-info mb-0">
+                                    <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                    <ul class="mb-0">
+                                        <li><strong>Generate Username:</strong>
+                                            <ul>
+                                                <li>Username untuk Juri di-generate berdasarkan Grup Materi Ujian dan TPQ (jika ada)</li>
+                                                <li>Username untuk Panitia di-generate berdasarkan TPQ</li>
+                                                <li>Username akan otomatis ter-generate saat memilih field yang diperlukan</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Password Default:</strong>
+                                            <ul>
+                                                <li>Juri: <strong>JuriTpqSmart</strong></li>
+                                                <li>Panitia: <strong>PanitiaTpqSmart</strong></li>
+                                                <li>Centang checkbox untuk menggunakan password default secara otomatis</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Type Ujian:</strong>
+                                            <ul>
+                                                <li>Juri dengan TPQ = <strong>Pra-Munaqosah</strong></li>
+                                                <li>Juri tanpa TPQ (umum) = <strong>Munaqosah</strong></li>
+                                                <li>Type Ujian otomatis ditentukan berdasarkan pilihan TPQ</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Room ID:</strong>
+                                            <ul>
+                                                <li>Room ID tersedia dari <?= $roomIdMinLabel ?> hingga <?= $roomIdMaxLabel ?></li>
+                                                <li>Pilih "Tanpa Room" jika tidak menggunakan sistem room</li>
+                                                <li>Room ID dapat diubah kapan saja melalui tombol edit room</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Status:</strong>
+                                            <ul>
+                                                <li><span class="badge badge-success">Aktif</span> = Juri/Panitia dapat login dan digunakan</li>
+                                                <li><span class="badge badge-danger">Tidak Aktif</span> = Juri/Panitia tidak dapat login</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>DataTable:</strong> Gunakan fitur search, filter, dan export (Excel, PDF) untuk mengelola data dengan mudah</li>
+                                        <li><strong>Akun Otomatis:</strong> Setiap juri/panitia yang ditambahkan akan otomatis memiliki akun user dengan group yang sesuai</li>
+                                        <li><strong>Validasi Data:</strong> Pastikan semua field wajib diisi sebelum menyimpan</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Card Panitia -->
         <div class="card">
             <div class="card-header">

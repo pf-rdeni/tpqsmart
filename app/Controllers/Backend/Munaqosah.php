@@ -8810,13 +8810,36 @@ class Munaqosah extends BaseController
         $statistik = getStatistikMunaqosah();
 
         // Cek setting AktiveTombolKelulusan dengan IdTpq == 0 (setting global/admin)
-        // Operator/TPQ hanya bisa memilih munaqosah jika setting ini aktif
+        // Operator/Kepala TPQ hanya bisa memilih munaqosah jika setting ini aktif
         $aktiveTombolKelulusan = false;
         $isAdmin = empty($idTpq) || $idTpq == 0;
 
+        // Cek apakah user adalah Operator
+        $isOperator = in_groups('Operator');
+
+        // Cek apakah user adalah Kepala TPQ
+        $isKepalaTpq = false;
+        $idGuru = session()->get('IdGuru');
+        if (!empty($idGuru) && !empty($idTpq)) {
+            try {
+                $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                foreach ($strukturLembaga as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaTpq = true;
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore error
+            }
+        }
+
         if (!$isAdmin) {
             // Cek setting dengan IdTpq == 0 terlebih dahulu (setting global)
-            $aktiveTombolKelulusan = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+            // Hanya Operator atau Kepala TPQ yang bisa melihat filter Munaqosah jika setting aktif
+            if ($isOperator || $isKepalaTpq) {
+                $aktiveTombolKelulusan = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+            }
         } else {
             // Admin selalu bisa melihat semua Type Ujian
             $aktiveTombolKelulusan = true;
@@ -8829,6 +8852,8 @@ class Munaqosah extends BaseController
             'statistik' => $statistik,
             'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
             'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+            'isKepalaTpq' => $isKepalaTpq,
         ];
 
         return view('backend/Munaqosah/kelulusanUjian', $data);

@@ -3,6 +3,131 @@
 <section class="content">
     <div class="container-fluid">
         <div class="row">
+            <!-- Card Informasi Alur Proses -->
+            <div class="col-12">
+                <div class="card card-info collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-info-circle"></i> Panduan Alur Proses Kelulusan Ujian Munaqosah
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
+                                <ol class="mb-4">
+                                    <li class="mb-2">
+                                        <strong>Filter Data Kelulusan:</strong>
+                                        <ul class="mt-2">
+                                            <li>Pilih <strong>Tahun Ajaran</strong> yang ingin dilihat data kelulusannya</li>
+                                            <li>Pilih <strong>TPQ</strong> untuk memfilter berdasarkan TPQ tertentu (opsional, pilih "Semua TPQ" untuk semua)</li>
+                                            <li>Pilih <strong>Type Ujian</strong> (Munaqosah/Pra-Munaqosah) - otomatis terisi untuk Operator/Kepala TPQ jika setting tidak aktif</li>
+                                            <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-sync-alt"></i> Muat</span> untuk memuat data kelulusan</li>
+                                            <li>Data akan otomatis dimuat saat filter berubah</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Lihat Statistik Kelulusan:</strong>
+                                        <ul class="mt-2">
+                                            <li>Card statistik menampilkan informasi ringkas:
+                                                <ul>
+                                                    <li><span class="badge badge-info"><i class="fas fa-users"></i> Total Peserta:</span> Jumlah total peserta ujian</li>
+                                                    <li><span class="badge badge-success"><i class="fas fa-check-circle"></i> Lulus:</span> Jumlah peserta yang lulus beserta persentasenya</li>
+                                                    <li><span class="badge badge-warning"><i class="fas fa-hourglass-half"></i> Belum Lulus:</span> Jumlah peserta yang belum lulus beserta persentasenya</li>
+                                                    <li><span class="badge badge-primary"><i class="fas fa-percentage"></i> Rata Nilai Bobot:</span> Rata-rata total bobot semua peserta</li>
+                                                </ul>
+                                            </li>
+                                            <li>Progress bar menunjukkan persentase lulus dan belum lulus secara visual</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Lihat Tabel Kelulusan:</strong>
+                                        <ul class="mt-2">
+                                            <li>Tabel menampilkan data detail kelulusan dengan kolom:
+                                                <ul>
+                                                    <li><strong>No Peserta:</strong> Nomor peserta ujian</li>
+                                                    <li><strong>Nama Santri:</strong> Nama lengkap peserta</li>
+                                                    <li><strong>TPQ:</strong> Nama TPQ peserta</li>
+                                                    <li><strong>Type:</strong> Type ujian (Munaqosah/Pra-Munaqosah)</li>
+                                                    <li><strong>Thn:</strong> Tahun ajaran</li>
+                                                    <li><strong>Kategori Materi:</strong> Kolom dinamis berdasarkan kategori materi ujian:
+                                                        <ul>
+                                                            <li><strong>Juri 1, Juri 2, dst:</strong> Nilai dari masing-masing juri (disembunyikan untuk Operator pada Type Munaqosah)</li>
+                                                            <li><strong>Jml:</strong> Rata-rata nilai dari semua juri</li>
+                                                            <li><strong>Bobot:</strong> Nilai bobot setelah dikalikan dengan persentase kategori</li>
+                                                        </ul>
+                                                    </li>
+                                                    <li><strong>Total Bobot:</strong> Total nilai bobot dari semua kategori</li>
+                                                    <li><strong>Status Kelulusan:</strong> Status lulus/tidak lulus dengan informasi nilai dan threshold</li>
+                                                </ul>
+                                            </li>
+                                            <li>Nilai 0 akan ditandai dengan warna merah untuk perhatian</li>
+                                            <li>Gunakan fitur search dan filter DataTable untuk mencari peserta tertentu</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Aksi pada Tabel:</strong>
+                                        <ul class="mt-2">
+                                            <li>Setiap baris peserta memiliki tombol aksi:
+                                                <ul>
+                                                    <li><span class="badge badge-danger"><i class="fas fa-file-pdf"></i> Pdf:</span> Print hasil kelulusan dalam format PDF</li>
+                                                    <li><span class="badge badge-success"><i class="fas fa-file-alt"></i> Surat:</span> Print surat kelulusan peserta</li>
+                                                    <li><span class="badge badge-secondary"><i class="fas fa-eye"></i> View:</span> Lihat detail kelulusan (hanya untuk Admin)</li>
+                                                </ul>
+                                            </li>
+                                            <li>Klik tombol untuk membuka dokumen di tab baru</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>Export Data:</strong>
+                                        <ul class="mt-2">
+                                            <li>Gunakan tombol export di toolbar DataTable:
+                                                <ul>
+                                                    <li><strong>Column Visibility:</strong> Tampilkan/sembunyikan kolom tertentu</li>
+                                                    <li><strong>Excel:</strong> Export data ke file Excel</li>
+                                                    <li><strong>Print:</strong> Print tabel kelulusan</li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ol>
+
+                                <div class="alert alert-info mb-0">
+                                    <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                    <ul class="mb-0">
+                                        <li><strong>Status Kelulusan:</strong>
+                                            <ul>
+                                                <li><span class="badge badge-success">Lulus (nilai / threshold):</span> Peserta lulus, nilai total bobot memenuhi atau melebihi threshold</li>
+                                                <li><span class="badge badge-danger">Tidak Lulus (nilai / threshold):</span> Peserta tidak lulus, nilai total bobot di bawah threshold</li>
+                                                <li>Hover pada badge untuk melihat selisih nilai</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Filter Berdasarkan Role:</strong>
+                                            <ul>
+                                                <li><strong>Admin:</strong> Dapat melihat semua TPQ dan Type Ujian, serta kolom juri individual</li>
+                                                <li><strong>Operator/Kepala TPQ:</strong> Hanya melihat TPQ sendiri, kolom juri disembunyikan untuk Type Munaqosah</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Kolom Dinamis:</strong> Kolom kategori materi akan menyesuaikan dengan konfigurasi munaqosah yang aktif</li>
+                                        <li><strong>Bobot Kategori:</strong> Setiap kategori memiliki persentase bobot yang ditampilkan di header (hanya untuk Admin)</li>
+                                        <li><strong>Nilai Rata-rata:</strong> Nilai "Jml" adalah rata-rata dari semua juri, nilai 0 tidak dihitung</li>
+                                        <li><strong>Sumber Bobot:</strong> Informasi sumber bobot ditampilkan di bawah tabel</li>
+                                        <li><strong>Sorting:</strong> Tabel otomatis diurutkan berdasarkan Total Bobot (tertinggi ke terendah)</li>
+                                        <li><strong>Scroll Horizontal:</strong> Gunakan scroll horizontal jika tabel terlalu lebar</li>
+                                        <li><strong>Print PDF/Surat:</strong> Pastikan data sudah dimuat sebelum mencetak dokumen</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -25,7 +150,7 @@
                             <div class="mr-2">
                                 <label class="mb-0 small">Type Ujian</label>
                                 <select id="filterTypeUjian" class="form-control form-control-sm">
-                                    <?php if ($isAdmin || $aktiveTombolKelulusan): ?>
+                                    <?php if ($isAdmin || ($aktiveTombolKelulusan && ($isOperator || $isKepalaTpq))): ?>
                                         <option value="munaqosah">Munaqosah</option>
                                     <?php endif; ?>
                                     <option value="pra-munaqosah">Pra-Munaqosah</option>
@@ -38,7 +163,7 @@
                     </div>
                     <div class="card-body">
                         <!-- Hidden input untuk role user -->
-                        <input type="hidden" id="userRole" value="<?= (in_groups('Operator') || (!in_groups('Admin') && session()->get('IdTpq'))) ? 'operator' : 'admin' ?>">
+                        <input type="hidden" id="userRole" value="<?= (in_groups('Operator') || $isKepalaTpq || (!in_groups('Admin') && session()->get('IdTpq'))) ? 'operator' : 'admin' ?>">
 
                         <div class="row">
                             <div class="col-md-3 col-sm-6 mb-3">
