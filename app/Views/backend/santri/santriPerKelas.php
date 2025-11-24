@@ -113,49 +113,17 @@
                                         <?php foreach ($dataSantri as $santri) : ?>
                                             <?php if ($santri->NamaKelas == $kelas || $kelas == "SEMUA"): ?>
                                                 <?php
-                                                // Hitung progress pengisian nilai untuk santri ini
-                                                $totalMateri = 0;
-                                                $materiTerisi = 0;
-
-                                                // Tentukan IdKelas yang digunakan (gunakan IdKelas santri jika "SEMUA", otherwise gunakan $kelasId dari loop)
-                                                $kelasIdForProgress = ($kelas == "SEMUA") ? $santri->IdKelas : $kelasId;
-
-                                                // Hitung progress dari data materi dan nilai
-                                                if (isset($dataMateri[$kelasIdForProgress]) && isset($dataNilaiDetail[$santri->IdSantri])) {
-                                                    $materiKelas = $dataMateri[$kelasIdForProgress];
-                                                    $nilaiSantri = $dataNilaiDetail[$santri->IdSantri];
-
-                                                    // Buat mapping nilai per materi
-                                                    $nilaiPerMateri = [];
-                                                    foreach ($nilaiSantri as $nilai) {
-                                                        $nilaiPerMateri[$nilai->IdMateri] = (int)$nilai->Nilai;
-                                                    }
-
-                                                    // Hitung progress
-                                                    foreach ($materiKelas as $materi) {
-                                                        $totalMateri++;
-                                                        $nilaiMateri = $nilaiPerMateri[$materi->IdMateri] ?? 0;
-                                                        // Nilai dianggap terisi jika > 0
-                                                        if ($nilaiMateri > 0) {
-                                                            $materiTerisi++;
-                                                        }
-                                                    }
-                                                }
-
-                                                // Hitung persentase
-                                                $persentase = $totalMateri > 0 ? round(($materiTerisi / $totalMateri) * 100, 1) : 0;
-
-                                                // Tentukan warna badge berdasarkan persentase
-                                                $badgeColor = 'secondary';
-                                                if ($persentase >= 100) {
-                                                    $badgeColor = 'success';
-                                                } elseif ($persentase >= 75) {
-                                                    $badgeColor = 'info';
-                                                } elseif ($persentase >= 50) {
-                                                    $badgeColor = 'warning';
-                                                } elseif ($persentase > 0) {
-                                                    $badgeColor = 'danger';
-                                                }
+                                                // OPTIMASI: Gunakan progress yang sudah dihitung di controller
+                                                $progress = $progressData[$santri->IdSantri] ?? [
+                                                    'totalMateri' => 0,
+                                                    'materiTerisi' => 0,
+                                                    'persentase' => 0,
+                                                    'badgeColor' => 'secondary'
+                                                ];
+                                                $totalMateri = $progress['totalMateri'];
+                                                $materiTerisi = $progress['materiTerisi'];
+                                                $persentase = $progress['persentase'];
+                                                $badgeColor = $progress['badgeColor'];
                                                 ?>
                                                 <tr>
                                                     <td>

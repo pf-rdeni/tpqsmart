@@ -444,6 +444,69 @@ class NilaiModel extends Model
         return $builder->get()->getResult();
     }
 
+    /**
+     * Mengambil semua nilai detail untuk semua santri dalam satu query (optimasi untuk menghindari N+1 query)
+     * OPTIMASI: Menggunakan INNER JOIN, menghindari ORDER BY kompleks, dan optimasi index
+     * @param mixed $IdTpq
+     * @param mixed $IdTahunAjaran
+     * @param mixed $IdKelas
+     * @param string $semester
+     * @return array
+     */
+    public function getAllNilaiDetailPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $semester)
+    {
+        // OPTIMASI: Gunakan query builder dengan optimasi untuk performa
+        $builder = $this->db->table('tbl_nilai n');
+
+        // OPTIMASI: Hanya select kolom yang diperlukan
+        $builder->select('n.IdSantri, n.IdKelas, n.IdMateri, n.Nilai, m.NamaMateri, kmp.UrutanMateri');
+
+        // OPTIMASI: Gunakan INNER JOIN untuk materi (data selalu ada), LEFT JOIN hanya untuk kmp
+        $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri', 'inner');
+        // OPTIMASI: Tambahkan IdTpq di join condition untuk performa lebih baik
+        $builder->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas AND kmp.IdTpq = n.IdTpq', 'left');
+
+        // OPTIMASI: Filter WHERE dengan urutan yang optimal untuk index (IdTpq dan Semester dulu)
+        $builder->where('n.IdTpq', $IdTpq);
+        $builder->where('n.Semester', $semester);
+
+        if (is_array($IdTahunAjaran)) {
+            if (!empty($IdTahunAjaran)) {
+                $builder->whereIn('n.IdTahunAjaran', $IdTahunAjaran);
+            }
+        } else {
+            $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+        }
+
+        if (is_array($IdKelas)) {
+            if (!empty($IdKelas)) {
+                $builder->whereIn('n.IdKelas', $IdKelas);
+            }
+        } else {
+            $builder->where('n.IdKelas', $IdKelas);
+        }
+
+        // OPTIMASI: Order by sederhana di database, sorting detail di PHP (lebih cepat)
+        $builder->orderBy('n.IdSantri', 'ASC');
+        $builder->orderBy('n.IdKelas', 'ASC');
+        // UrutanMateri akan di-sort di PHP untuk menghindari NULL handling di SQL
+
+        $results = $builder->get()->getResult();
+
+        // OPTIMASI: Sort di PHP untuk handle NULL values dengan lebih efisien
+        usort($results, function ($a, $b) {
+            // Sort by IdSantri first
+            if ($a->IdSantri != $b->IdSantri) {
+                return strcmp($a->IdSantri, $b->IdSantri);
+            }
+            // Then by UrutanMateri (handle NULL as 999)
+            $urutanA = $a->UrutanMateri ?? 999;
+            $urutanB = $b->UrutanMateri ?? 999;
+            return $urutanA <=> $urutanB;
+        });
+
+        return $results;
+    }
 
     /**
      * Tahap 1: Mendapatkan data santri dengan join ke tabel santri

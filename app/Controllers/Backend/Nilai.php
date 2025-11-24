@@ -146,19 +146,80 @@ class Nilai extends BaseController
             $dataKelas[$santri->IdKelas] = $santri->NamaKelas;
         }
 
-        // Ambil data materi per kelas untuk menghitung progress
+        // OPTIMASI: Ambil data materi per kelas dalam batch (mendukung array)
         $dataMateri = [];
-        foreach ($dataKelas as $kelasId => $namaKelas) {
-            if ($kelasId != 0) { // Skip "SEMUA"
-                $dataMateri[$kelasId] = $this->helpFunction->getMateriPelajaranByKelas($this->IdTpq, $kelasId, $semester);
+        $allKelasIds = array_filter(array_keys($dataKelas), function($id) { return $id != 0; });
+        if (!empty($allKelasIds)) {
+            // Ambil semua materi untuk semua kelas dalam 1 query
+            $allMateri = $this->helpFunction->getMateriPelajaranByKelas($this->IdTpq, $allKelasIds, $semester);
+            // Group by kelas
+            foreach ($allMateri as $materi) {
+                if (!isset($dataMateri[$materi->IdKelas])) {
+                    $dataMateri[$materi->IdKelas] = [];
+                }
+                $dataMateri[$materi->IdKelas][] = $materi;
             }
         }
 
-        // Ambil data nilai detail per santri untuk menghitung progress
+        // OPTIMASI: Ambil semua nilai detail dalam 1 query (bukan N+1 query)
+        $allNilaiDetail = $this->DataNilai->getAllNilaiDetailPerKelas(
+            $this->IdTpq, 
+            $IdTahunAjaran, 
+            $IdKelas, 
+            $semester
+        );
+
+        // Group nilai per santri dan materi untuk akses cepat
         $dataNilaiDetail = [];
+        foreach ($allNilaiDetail as $nilai) {
+            if (!isset($dataNilaiDetail[$nilai->IdSantri])) {
+                $dataNilaiDetail[$nilai->IdSantri] = [];
+            }
+            $dataNilaiDetail[$nilai->IdSantri][$nilai->IdMateri] = $nilai;
+        }
+
+        // OPTIMASI: Hitung progress di controller (sekali), bukan di view (berulang)
+        $progressData = [];
         foreach ($dataSantri as $santri) {
-            $nilaiSantri = $this->DataNilai->getDataNilaiPerSantri($this->IdTpq, $IdTahunAjaran, $santri->IdKelas, $santri->IdSantri, $semester);
-            $dataNilaiDetail[$santri->IdSantri] = $nilaiSantri;
+            $kelasIdForProgress = $santri->IdKelas;
+            $totalMateri = 0;
+            $materiTerisi = 0;
+            
+            if (isset($dataMateri[$kelasIdForProgress]) && isset($dataNilaiDetail[$santri->IdSantri])) {
+                $materiKelas = $dataMateri[$kelasIdForProgress];
+                $nilaiSantri = $dataNilaiDetail[$santri->IdSantri];
+                
+                foreach ($materiKelas as $materi) {
+                    $totalMateri++;
+                    $nilaiMateri = isset($nilaiSantri[$materi->IdMateri]) ? (int)$nilaiSantri[$materi->IdMateri]->Nilai : 0;
+                    // Nilai dianggap terisi jika > 0
+                    if ($nilaiMateri > 0) {
+                        $materiTerisi++;
+                    }
+                }
+            }
+            
+            // Hitung persentase
+            $persentase = $totalMateri > 0 ? round(($materiTerisi / $totalMateri) * 100, 1) : 0;
+            
+            // Tentukan warna badge berdasarkan persentase
+            $badgeColor = 'secondary';
+            if ($persentase >= 100) {
+                $badgeColor = 'success';
+            } elseif ($persentase >= 75) {
+                $badgeColor = 'info';
+            } elseif ($persentase >= 50) {
+                $badgeColor = 'warning';
+            } elseif ($persentase > 0) {
+                $badgeColor = 'danger';
+            }
+            
+            $progressData[$santri->IdSantri] = [
+                'totalMateri' => $totalMateri,
+                'materiTerisi' => $materiTerisi,
+                'persentase' => $persentase,
+                'badgeColor' => $badgeColor
+            ];
         }
 
         $data = [
@@ -167,6 +228,7 @@ class Nilai extends BaseController
             'dataKelas' => $dataKelas,
             'dataMateri' => $dataMateri,
             'dataNilaiDetail' => $dataNilaiDetail,
+            'progressData' => $progressData,
             'semester' => $semester,
             'settingNilai' => $settingNilai,
         ];
