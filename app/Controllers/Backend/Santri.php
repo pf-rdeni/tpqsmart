@@ -754,11 +754,70 @@ class Santri extends BaseController
 
     public function showAturSantriBaru()
     {
-        // ambil IdTpq dari session
-        $IdTpq = session()->get('IdTpq');
+        // Ambil filter dari request (untuk AJAX) atau session (untuk initial load)
+        $filterIdTpq = $this->request->getGet('filterIdTpq');
+        $filterIdKelas = $this->request->getGet('filterIdKelas');
 
-        // ambil IdKelas dari session
-        $IdKelas = session()->get('IdKelas');
+        // Ambil IdTpq dari session untuk role-based filtering
+        $sessionIdTpq = session()->get('IdTpq');
+        $sessionIdKelas = session()->get('IdKelas');
+
+        // Tentukan IdTpq yang akan digunakan berdasarkan role
+        $IdTpq = null;
+        $isAdmin = in_groups('Admin');
+        $isGuru = in_groups('Guru');
+        $isOperator = in_groups('Operator');
+        $isKepalaTpq = in_groups('Kepala TPQ');
+
+        if ($isAdmin) {
+            // Admin bisa pilih semua TPQ
+            $IdTpq = $filterIdTpq ?: $sessionIdTpq;
+        } else {
+            // Operator/Guru/Kepala TPQ: set sesuai TPQ mereka dan disable
+            $IdTpq = $sessionIdTpq;
+        }
+
+        // Get data TPQ untuk filter dropdown
+        $dataTpq = $this->helpFunction->getDataTpq();
+        usort($dataTpq, function ($a, $b) {
+            return strcmp($a['NamaTpq'], $b['NamaTpq']);
+        });
+
+        // Get data Kelas untuk filter dropdown
+        $dataKelas = [];
+        if ($isAdmin) {
+            // Admin: bisa select semua kelas
+            $dataKelas = $this->helpFunction->getDataKelas();
+        } else if ($isOperator || $isKepalaTpq) {
+            // Operator/Kepala TPQ: bisa select semua kelas (bisa filter berdasarkan TPQ yang dipilih)
+            $dataKelas = $this->helpFunction->getDataKelas();
+        } else if ($isGuru) {
+            // Guru: hanya kelas yang dimiliki
+            if ($sessionIdKelas && is_array($sessionIdKelas)) {
+                $allKelas = $this->helpFunction->getDataKelas();
+                $dataKelas = array_filter($allKelas, function ($kelas) use ($sessionIdKelas) {
+                    return in_array($kelas['IdKelas'], $sessionIdKelas);
+                });
+                // Re-index array untuk menghindari masalah dengan array_filter
+                $dataKelas = array_values($dataKelas);
+            }
+        }
+
+        // Terapkan mapping MDA pada nama kelas di filter dropdown jika TPQ yang dipilih memiliki MDA aktif
+        if (!empty($dataKelas) && !empty($IdTpq)) {
+            foreach ($dataKelas as $key => $kelas) {
+                if (isset($kelas['NamaKelas']) && !empty($kelas['NamaKelas'])) {
+                    $namaKelasOriginal = $kelas['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $dataKelas[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                    // Simpan nama kelas asli untuk referensi
+                    $dataKelas[$key]['NamaKelasOriginal'] = $namaKelasOriginal;
+                }
+            }
+        }
 
         // Mulai membangun query dengan builder pattern
         $builder = $this->DataSantriBaru
@@ -770,20 +829,40 @@ class Santri extends BaseController
             ])
             ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        // Terapkan filter IdTpq
         if ($IdTpq) {
             $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
         }
 
         // Tambahkan filter Active=1 jika user adalah Guru
-        if (in_groups('Guru')) {
+        if ($isGuru) {
             $builder->where('tbl_santri_baru.Active', 1);
         }
 
-        // Terapkan filter IdKelas jika ada
+        // Terapkan filter IdKelas
+        $IdKelas = null;
+        if ($isAdmin || $isOperator || $isKepalaTpq) {
+            // Admin/Operator/Kepala TPQ: gunakan filter dari request
+            if ($filterIdKelas) {
+                // Jika filterIdKelas adalah string dengan koma, convert ke array
+                if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                    $IdKelas = array_filter(explode(',', $filterIdKelas));
+                } else {
+                    $IdKelas = $filterIdKelas;
+                }
+            }
+        } else if ($isGuru) {
+            // Guru: gunakan kelas dari session (tidak bisa filter, hanya kelas mereka)
+            $IdKelas = $sessionIdKelas;
+        }
+
         if ($IdKelas !== null) {
             if (is_array($IdKelas)) {
-                $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
-            } else {
+                if (!empty($IdKelas)) {
+                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                }
+            } else if (!empty($IdKelas)) {
                 $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
             }
         }
@@ -794,7 +873,7 @@ class Santri extends BaseController
             ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
             ->orderBy('tbl_santri_baru.Status', 'DESC')
             ->get()
-            ->getResultArray(); // Gunakan getResultArray() untuk memastikan array format
+            ->getResultArray();
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santri) && !empty($IdTpq)) {
@@ -812,8 +891,27 @@ class Santri extends BaseController
 
         $data = [
             'page_title' => 'Data Santri',
-            'dataSantri' => $santri
+            'dataSantri' => $santri,
+            'dataTpq' => $dataTpq,
+            'dataKelas' => $dataKelas,
+            'currentIdTpq' => $IdTpq,
+            'currentIdKelas' => $IdKelas,
+            'isAdmin' => $isAdmin,
+            'isGuru' => $isGuru,
+            'isOperator' => $isOperator,
+            'isKepalaTpq' => $isKepalaTpq
         ];
+
+        // Jika request AJAX, return JSON
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $santri,
+                'dataTpq' => $dataTpq,
+                'dataKelas' => $dataKelas
+            ]);
+        }
+
         return view('backend/santri/aturSantriBaru', $data);
     }
 

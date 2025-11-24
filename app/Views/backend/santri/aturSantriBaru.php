@@ -19,10 +19,29 @@
                     <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
                     <ol class="mb-4">
                         <li class="mb-2">
-                            <strong>Lihat Data Santri:</strong> Tabel menampilkan daftar semua santri dengan informasi dasar (IdSantri, Nama, Kelas, dll).
+                            <strong>Filter Data Santri:</strong> Gunakan filter di bagian atas halaman untuk mempersempit hasil pencarian:
+                            <ul class="mt-2">
+                                <li><strong>Filter TPQ:</strong>
+                                    <ul>
+                                        <li><strong>Admin:</strong> Dapat memilih semua TPQ yang tersedia</li>
+                                        <li><strong>Operator/Guru/Kepala TPQ:</strong> Otomatis diset sesuai TPQ Anda dan tidak dapat diubah</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Filter Kelas:</strong>
+                                    <ul>
+                                        <li><strong>Admin/Operator/Kepala TPQ:</strong> Dapat memilih satu atau lebih kelas (tekan Ctrl/Cmd untuk multiple selection)</li>
+                                        <li><strong>Guru:</strong> Hanya menampilkan kelas yang Anda ajar dan tidak dapat diubah</li>
+                                        <li><strong>Catatan:</strong> Nama kelas akan otomatis menampilkan mapping MDA jika TPQ yang dipilih memiliki lembaga MDA aktif (contoh: TPQ3 → MDA1)</li>
+                                    </ul>
+                                </li>
+                                <li>Pengaturan filter akan <strong>tersimpan otomatis</strong> di browser Anda, sehingga saat kembali ke halaman ini, filter sebelumnya akan otomatis diterapkan.</li>
+                            </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Filter & Search:</strong> Gunakan search box DataTable untuk mencari santri berdasarkan nama, IdSantri, atau kolom lainnya. 
+                            <strong>Lihat Data Santri:</strong> Tabel menampilkan daftar santri sesuai dengan filter yang dipilih, dengan informasi dasar (IdSantri, Nama, Kelas, dll).
+                        </li>
+                        <li class="mb-2">
+                            <strong>Search Data:</strong> Gunakan search box DataTable untuk mencari santri berdasarkan nama, IdSantri, atau kolom lainnya.
                             Data dapat diurutkan dengan mengklik header kolom.
                         </li>
                         <li class="mb-2">
@@ -37,11 +56,11 @@
                             </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Ubah Status Aktif (Admin/Operator):</strong> Gunakan toggle switch di kolom "Active" untuk mengaktifkan/nonaktifkan santri. 
+                            <strong>Ubah Status Aktif (Admin/Operator):</strong> Gunakan toggle switch di kolom "Active" untuk mengaktifkan/nonaktifkan santri.
                             Status <span class="badge badge-secondary"><i class="fas fa-graduation-cap"></i> Alumni</span> tidak dapat diubah.
                         </li>
                         <li class="mb-2">
-                            <strong>Edit Data Santri:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> 
+                            <strong>Edit Data Santri:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span>
                             pada kolom "Aksi" untuk mengubah data santri. Anda akan diarahkan ke form edit.
                         </li>
                     </ol>
@@ -49,6 +68,9 @@
                     <div class="alert alert-info mb-0">
                         <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
                         <ul class="mb-0">
+                            <li>Gunakan <strong>Filter TPQ dan Kelas</strong> di bagian atas halaman untuk mempersempit hasil pencarian sebelum menggunakan search box DataTable.</li>
+                            <li>Pengaturan filter akan <strong>tersimpan otomatis</strong> di browser Anda (localStorage), sehingga saat kembali ke halaman ini, filter sebelumnya akan otomatis diterapkan.</li>
+                            <li>Jika TPQ yang dipilih memiliki lembaga MDA aktif, nama kelas di filter dan tabel akan otomatis menampilkan mapping MDA (contoh: TPQ3 → MDA1, TPQ3/SD3 → MDA1/SD3).</li>
                             <li>Gunakan fitur <strong>Export</strong> di DataTable (Copy, Excel, PDF, dll) untuk menyalin atau mengunduh data santri.</li>
                             <li>Perubahan status verifikasi dan aktif akan <strong>tersimpan otomatis</strong> saat Anda mengubahnya.</li>
                             <li>Foto profil akan muncul dalam popup saat di-hover atau di-klik pada thumbnail di tabel.</li>
@@ -73,6 +95,72 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
+            <!-- Filter TPQ dan Kelas -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="filterTpq">Filter TPQ</label>
+                        <select class="form-control" id="filterTpq" name="filterTpq" <?= (!$isAdmin) ? 'disabled' : '' ?>>
+                            <option value="">Semua TPQ</option>
+                            <?php if (isset($dataTpq) && !empty($dataTpq)): ?>
+                                <?php foreach ($dataTpq as $tpq): ?>
+                                    <option value="<?= $tpq['IdTpq'] ?>"
+                                        <?= (isset($currentIdTpq) && $currentIdTpq == $tpq['IdTpq']) ? 'selected' : '' ?>>
+                                        <?= $tpq['NamaTpq'] ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <?php if (!$isAdmin): ?>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-lock"></i> Filter TPQ hanya dapat diubah oleh Admin
+                            </small>
+                        <?php endif; ?>
+                        <?php if (!$isAdmin && isset($currentIdTpq)): ?>
+                            <input type="hidden" name="filterTpq" value="<?= $currentIdTpq ?>">
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="filterKelas">Filter Kelas</label>
+                        <select class="form-control" id="filterKelas" name="filterKelas" multiple style="min-height: 100px;" <?= ($isGuru) ? 'disabled' : '' ?>>
+                            <option value="">Semua Kelas</option>
+                            <?php if (isset($dataKelas) && !empty($dataKelas)): ?>
+                                <?php foreach ($dataKelas as $kelas): ?>
+                                    <?php
+                                    $isSelected = false;
+                                    if (isset($currentIdKelas)) {
+                                        if (is_array($currentIdKelas)) {
+                                            $isSelected = in_array($kelas['IdKelas'], $currentIdKelas);
+                                        } else {
+                                            $isSelected = ($currentIdKelas == $kelas['IdKelas']);
+                                        }
+                                    }
+                                    ?>
+                                    <option value="<?= $kelas['IdKelas'] ?>" <?= $isSelected ? 'selected' : '' ?>>
+                                        <?= $kelas['NamaKelas'] ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <?php if ($isGuru): ?>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-lock"></i> Filter Kelas hanya menampilkan kelas yang Anda ajar
+                            </small>
+                        <?php else: ?>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Tekan Ctrl/Cmd untuk memilih multiple kelas. Kosongkan untuk menampilkan semua kelas.
+                            </small>
+                        <?php endif; ?>
+                        <?php if ($isGuru && isset($currentIdKelas) && is_array($currentIdKelas)): ?>
+                            <?php foreach ($currentIdKelas as $kelasId): ?>
+                                <input type="hidden" name="filterKelas[]" value="<?= $kelasId ?>">
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
             <table id="tblAturSantri" class="table table-bordered table-striped">
                 <thead>
                     <tr>
@@ -1185,6 +1273,116 @@
     $('#detailSantriModal').on('hidden.bs.modal', function() {
         location.reload();
     });
+
+    /* ===== Region: Filter TPQ dan Kelas dengan localStorage ===== */
+    const STORAGE_KEY_TPQ = 'santri_filter_tpq';
+    const STORAGE_KEY_KELAS = 'santri_filter_kelas';
+
+    // Inisialisasi filter dari localStorage saat halaman dimuat
+    function initFilters() {
+        const savedTpq = localStorage.getItem(STORAGE_KEY_TPQ);
+        const savedKelas = localStorage.getItem(STORAGE_KEY_KELAS);
+
+        const filterTpq = document.getElementById('filterTpq');
+        const filterKelas = document.getElementById('filterKelas');
+
+        // Hanya set dari localStorage jika belum ada value dari server
+        if (savedTpq && filterTpq && !filterTpq.value) {
+            filterTpq.value = savedTpq;
+        }
+
+        if (savedKelas && filterKelas) {
+            try {
+                const kelasArray = JSON.parse(savedKelas);
+                if (Array.isArray(kelasArray) && kelasArray.length > 0) {
+                    // Cek apakah ada option yang sudah selected dari server
+                    const hasServerSelection = Array.from(filterKelas.selectedOptions).length > 0;
+                    if (!hasServerSelection) {
+                        Array.from(filterKelas.options).forEach(option => {
+                            if (option.value && kelasArray.includes(option.value)) {
+                                option.selected = true;
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing saved kelas:', e);
+            }
+        }
+    }
+
+    // Simpan filter ke localStorage
+    function saveFilters() {
+        const filterTpq = document.getElementById('filterTpq');
+        const filterKelas = document.getElementById('filterKelas');
+
+        if (filterTpq) {
+            localStorage.setItem(STORAGE_KEY_TPQ, filterTpq.value || '');
+        }
+
+        if (filterKelas) {
+            const selectedKelas = Array.from(filterKelas.selectedOptions)
+                .map(opt => opt.value)
+                .filter(val => val !== ''); // Hapus empty value
+            localStorage.setItem(STORAGE_KEY_KELAS, JSON.stringify(selectedKelas));
+        }
+    }
+
+    // Reload data berdasarkan filter
+    function reloadData() {
+        const filterTpq = document.getElementById('filterTpq');
+        const filterKelas = document.getElementById('filterKelas');
+
+        const tpqValue = filterTpq ? filterTpq.value : '';
+        const kelasValues = filterKelas ? Array.from(filterKelas.selectedOptions)
+            .map(opt => opt.value)
+            .filter(val => val !== '') : [];
+
+        // Simpan ke localStorage
+        saveFilters();
+
+        // Reload halaman dengan parameter filter
+        const params = new URLSearchParams();
+        if (tpqValue) {
+            params.append('filterIdTpq', tpqValue);
+        }
+        if (kelasValues.length > 0) {
+            params.append('filterIdKelas', kelasValues.join(','));
+        }
+
+        const url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        window.location.href = url;
+    }
+
+    // Event listeners untuk filter
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inisialisasi filter dari localStorage
+        initFilters();
+
+        const filterTpq = document.getElementById('filterTpq');
+        const filterKelas = document.getElementById('filterKelas');
+
+        // Simpan filter saat halaman dimuat (untuk memastikan sync dengan server)
+        saveFilters();
+
+        // Hanya tambahkan event listener jika field tidak disabled
+        if (filterTpq && !filterTpq.disabled) {
+            filterTpq.addEventListener('change', function() {
+                // Delay reload untuk memberikan waktu user memilih multiple kelas
+                clearTimeout(window.filterTimeout);
+                window.filterTimeout = setTimeout(reloadData, 300);
+            });
+        }
+
+        if (filterKelas && !filterKelas.disabled) {
+            filterKelas.addEventListener('change', function() {
+                // Delay reload untuk memberikan waktu user memilih multiple kelas
+                clearTimeout(window.filterTimeout);
+                window.filterTimeout = setTimeout(reloadData, 300);
+            });
+        }
+    });
+    /* ===== End Region: Filter TPQ dan Kelas dengan localStorage ===== */
 
     // Initialize DataTable for #tblTpq
     const table = initializeDataTableUmum("#tblAturSantri", true, true, {
