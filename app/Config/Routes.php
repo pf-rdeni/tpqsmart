@@ -407,6 +407,10 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('pages/resetPassword', 'Pages::resetPassword');
     $routes->post('pages/uploadPhotoProfil', 'Pages::uploadPhotoProfil');
 
+    // Search Routes
+    $routes->get('search', 'Search::index');
+    $routes->get('search/index', 'Search::index');
+
     // Islamic API Routes (Jadwal Sholat & Al-Qur'an)
     $routes->get('jadwal-sholat', 'IslamicController::jadwalSholatByCity');
     $routes->get('jadwal-sholat/(:segment)', 'IslamicController::jadwalSholatByCity/$1');

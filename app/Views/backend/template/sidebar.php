@@ -391,15 +391,17 @@
                                         <p>Data Juri dan Panitia</p>
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Daftar Peserta</p>
-                                    </a>
-                                </li>
+                                <?php if (!in_groups('Juri')): ?>
+                                    <li class="nav-item">
+                                        <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
+                                            <i class="far fa-circle nav-icon"></i>
+                                            <p>Daftar Peserta</p>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
                             <?php endif; ?>
 
-                            <?php if (in_groups('Panitia')): ?>
+                            <?php if (in_groups('Panitia') && !in_groups('Juri')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
@@ -443,7 +445,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Panitia') || in_groups('Admin') || $isActiveOperator): ?>
+                            <?php if ((in_groups('Panitia') || in_groups('Admin') || $isActiveOperator) && !in_groups('Juri')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/registrasi-peserta') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
