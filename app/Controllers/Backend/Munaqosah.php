@@ -3678,6 +3678,13 @@ class Munaqosah extends BaseController
         $result = $query->getRow();
         $totalStatusBelumDikonfirmasi = $result ? (int)$result->total : 0;
 
+        // Tentukan apakah kolom TPQ/Alamat harus disembunyikan
+        // Hide untuk: Operator, Kepala Sekolah, Panitia TPQ (bukan panitia umum)
+        // Show untuk: Admin, Panitia Umum (IdTpq = 0)
+        $isKepalaSekolah = in_groups('Kepala Sekolah');
+        $isPanitiaTpq = $isPanitia && $idTpq && $idTpq != 0;
+        $hideTpqColumn = $isOperator || $isKepalaSekolah || $isPanitiaTpq;
+
         $data = [
             'page_title' => 'Data Peserta Munaqosah',
             'peserta' => $peserta,
@@ -3691,6 +3698,7 @@ class Munaqosah extends BaseController
             'total_status_valid' => $totalStatusValid,
             'total_status_perbaikan' => $totalStatusPerbaikan,
             'total_status_belum_dikonfirmasi' => $totalStatusBelumDikonfirmasi,
+            'hideTpqColumn' => $hideTpqColumn, // Flag untuk menyembunyikan kolom TPQ/Alamat
         ];
         return view('backend/Munaqosah/listPesertaMunaqosah', $data);
     }
@@ -3789,10 +3797,14 @@ class Munaqosah extends BaseController
             ]);
         }
 
+        // Generate HasKey saat registrasi peserta
+        $hasKey = $this->generateUniqueHasKey();
+
         $data = [
             'IdSantri' => $this->request->getPost('IdSantri'),
             'IdTpq' => $this->request->getPost('IdTpq'),
-            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran')
+            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
+            'HasKey' => $hasKey
         ];
 
         if ($this->pesertaMunaqosahModel->save($data)) {
@@ -3887,10 +3899,14 @@ class Munaqosah extends BaseController
                 continue;
             }
 
+            // Generate HasKey saat registrasi peserta
+            $hasKey = $this->generateUniqueHasKey();
+
             $data = [
                 'IdSantri' => $idSantri,
                 'IdTpq' => $idTpq,
-                'IdTahunAjaran' => $idTahunAjaran
+                'IdTahunAjaran' => $idTahunAjaran,
+                'HasKey' => $hasKey
             ];
 
             if ($this->pesertaMunaqosahModel->save($data)) {
@@ -9221,6 +9237,22 @@ class Munaqosah extends BaseController
             ksort($categoriesMap);
             $categories = array_values($categoriesMap);
 
+            // Ambil HasKey dari tbl_munaqosah_peserta untuk semua IdSantri
+            $idSantriList = array_unique(array_column($registrasiRows, 'IdSantri'));
+            $hasKeyMap = [];
+            if (!empty($idSantriList)) {
+                $hasKeyRows = $this->db->table('tbl_munaqosah_peserta')
+                    ->select('IdSantri, HasKey')
+                    ->whereIn('IdSantri', $idSantriList)
+                    ->where('IdTahunAjaran', $idTahunAjaran)
+                    ->get()
+                    ->getResultArray();
+
+                foreach ($hasKeyRows as $hkRow) {
+                    $hasKeyMap[$hkRow['IdSantri']] = $hkRow['HasKey'] ?? null;
+                }
+            }
+
             $pesertaInfo = [];
             foreach ($registrasiRows as $row) {
                 $np = $row['NoPeserta'];
@@ -9233,6 +9265,7 @@ class Munaqosah extends BaseController
                         'NamaTpq' => $row['NamaTpq'] ?? '-',
                         'TypeUjian' => $row['TypeUjian'],
                         'IdTahunAjaran' => $row['IdTahunAjaran'],
+                        'HasKey' => $hasKeyMap[$row['IdSantri']] ?? null,
                     ];
                 }
             }
@@ -12035,6 +12068,232 @@ class Munaqosah extends BaseController
             return redirect()->to(base_url('backend/munaqosah/jadwal-peserta-ujian'))
                 ->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Print instruksi verifikasi data santri untuk peserta dan orang tua
+     * @param int|null $idSantri Jika null, akan mencetak semua peserta
+     * @return mixed
+     */
+    public function printInstruksiVerifikasi($idSantri = null)
+    {
+        try {
+            helper('nilai');
+
+            // Ambil tahun ajaran saat ini
+            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+            $tahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+            // Tentukan mode: single atau all
+            $isAllMode = ($idSantri === null);
+
+            if ($isAllMode) {
+                // Mode: Print semua peserta
+                // Ambil IdTpq dari session untuk filter
+                $idTpq = session()->get('IdTpq');
+                $userGroup = session()->get('UserGroup');
+
+                // Tentukan apakah perlu filter berdasarkan TPQ
+                $isOperator = ($userGroup === 'Operator');
+                $isPanitia = ($userGroup === 'Panitia Munaqosah TPQ');
+                $shouldFilterByTpq = ($isOperator || $isPanitia) && $idTpq && $idTpq != 0;
+
+                // Ambil semua peserta munaqosah
+                $munaqosahPesertaModel = new \App\Models\MunaqosahPesertaModel();
+                $pesertaQuery = $munaqosahPesertaModel
+                    ->select('tbl_munaqosah_peserta.*, tbl_santri_baru.NamaSantri, tbl_santri_baru.JenisKelamin, 
+                             tbl_santri_baru.TempatLahirSantri, tbl_santri_baru.TanggalLahirSantri, tbl_santri_baru.NamaAyah,
+                             tbl_santri_baru.IdTpq, tbl_tpq.NamaTpq')
+                    ->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_munaqosah_peserta.IdSantri', 'left')
+                    ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                    ->where('tbl_munaqosah_peserta.IdTahunAjaran', $tahunAjaran);
+
+                // Filter berdasarkan IdTpq jika Operator atau Panitia TPQ
+                if ($shouldFilterByTpq) {
+                    $pesertaQuery->where('tbl_munaqosah_peserta.IdTpq', $idTpq);
+                }
+
+                $allPesertaMunaqosah = $pesertaQuery->findAll();
+
+                if (empty($allPesertaMunaqosah)) {
+                    return redirect()->back()->with('error', 'Tidak ada data peserta untuk dicetak');
+                }
+
+                // Siapkan list peserta untuk diproses
+                $pesertaList = [];
+                foreach ($allPesertaMunaqosah as $pesertaMunaqosah) {
+                    $pesertaList[] = [
+                        'idSantri' => $pesertaMunaqosah['IdSantri'],
+                        'hasKey' => $pesertaMunaqosah['HasKey'] ?? null
+                    ];
+                }
+            } else {
+                // Mode: Print single peserta
+                $munaqosahPesertaModel = new \App\Models\MunaqosahPesertaModel();
+                $pesertaMunaqosah = $munaqosahPesertaModel
+                    ->where('IdSantri', $idSantri)
+                    ->where('IdTahunAjaran', $tahunAjaran)
+                    ->first();
+
+                if (!$pesertaMunaqosah) {
+                    return redirect()->back()->with('error', 'Data peserta munaqosah tidak ditemukan');
+                }
+
+                $pesertaList = [[
+                    'idSantri' => $idSantri,
+                    'hasKey' => $pesertaMunaqosah['HasKey'] ?? null
+                ]];
+            }
+
+            // Generate HTML untuk semua peserta
+            $htmlContent = '';
+            $baseUrl = base_url('cek-status/');
+            $santriModel = new \App\Models\SantriBaruModel();
+            $tpqModel = new \App\Models\TpqModel();
+
+            foreach ($pesertaList as $index => $pesertaItem) {
+                // Ambil data santri lengkap
+                $peserta = $santriModel->where('IdSantri', $pesertaItem['idSantri'])->first();
+
+                if (!$peserta) {
+                    continue; // Skip jika data santri tidak ditemukan
+                }
+
+                // Ambil data TPQ untuk peserta ini
+                $tpqData = $tpqModel->where('IdTpq', $peserta['IdTpq'])->first();
+                if (!$tpqData) {
+                    $tpqData = ['NamaTpq' => 'TPQ'];
+                }
+
+                // Ambil HasKey dan buat status URL
+                $hasKey = $pesertaItem['hasKey'];
+                $statusUrl = $hasKey ? $baseUrl . $hasKey : '';
+
+                // Generate QR code untuk link verifikasi
+                $qrCodeBase64 = $this->generateQRCode($statusUrl);
+
+                // Format data untuk view
+                $data = [
+                    'peserta' => $peserta,
+                    'tpqData' => $tpqData,
+                    'tahunAjaran' => $tahunAjaran,
+                    'statusUrl' => $statusUrl,
+                    'hasKey' => $hasKey,
+                    'qrCodeBase64' => $qrCodeBase64
+                ];
+
+                // Load view untuk PDF
+                $html = view('backend/Munaqosah/printInstruksiVerifikasi', $data);
+
+                // Tambahkan page break kecuali untuk peserta terakhir (hanya untuk mode all)
+                if ($isAllMode && $index < count($pesertaList) - 1) {
+                    $html .= '<div style="page-break-after: always;"></div>';
+                }
+
+                $htmlContent .= $html;
+            }
+
+            // Generate PDF
+            $dompdf = $this->setupDompdf($htmlContent);
+
+            // Format filename
+            if ($isAllMode) {
+                $tahunAjaranFormatted = str_replace('/', '_', convertTahunAjaran($tahunAjaran));
+                $filename = 'Instruksi_Verifikasi_Semua_Peserta_' . $tahunAjaranFormatted . '.pdf';
+                $disposition = 'attachment';
+            } else {
+                $namaSantri = preg_replace('/[^a-zA-Z0-9\-]/', '', $peserta['NamaSantri'] ?? 'Instruksi');
+                $namaSantri = str_replace(' ', '', $namaSantri);
+                $filename = 'Instruksi_Verifikasi_' . $namaSantri . '.pdf';
+                $disposition = 'inline';
+            }
+
+            // Hapus semua output sebelumnya
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set header
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: ' . $disposition . '; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printInstruksiVerifikasi - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Print instruksi verifikasi data santri untuk semua peserta
+     * Alias untuk printInstruksiVerifikasi(null)
+     * @return mixed
+     */
+    public function printInstruksiVerifikasiAll()
+    {
+        return $this->printInstruksiVerifikasi(null);
+    }
+
+    /**
+     * Generate QR code untuk link verifikasi
+     * @param string $statusUrl
+     * @return string
+     */
+    private function generateQRCode($statusUrl)
+    {
+        if (empty($statusUrl)) {
+            return '';
+        }
+
+        try {
+            $qrOptions = new QROptions([
+                'outputType' => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                'eccLevel' => \chillerlan\QRCode\Common\EccLevel::L,
+                'scale' => 3,
+                'imageBase64' => false,
+                'addQuietzone' => true,
+                'quietzoneSize' => 1,
+            ]);
+
+            $qrCode = new QRCode($qrOptions);
+            $svgContent = $qrCode->render($statusUrl);
+            return 'data:image/svg+xml;base64,' . base64_encode($svgContent);
+        } catch (\Exception $e) {
+            log_message('error', 'Error generating QR code: ' . $e->getMessage());
+            return '';
+        }
+    }
+
+    /**
+     * Setup Dompdf dengan konfigurasi standar
+     * @param string $htmlContent
+     * @return \Dompdf\Dompdf
+     */
+    private function setupDompdf($htmlContent)
+    {
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', true);
+        $options->set('isRemoteEnabled', false);
+        $options->set('defaultFont', 'Arial');
+        $options->set('isFontSubsettingEnabled', true);
+        $options->set('defaultMediaType', 'print');
+        $options->set('isJavascriptEnabled', false);
+        $options->set('isCssFloatEnabled', true);
+        $options->set('debugPng', false);
+        $options->set('debugKeepTemp', false);
+        $options->set('debugCss', false);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($htmlContent);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return $dompdf;
     }
 }
 

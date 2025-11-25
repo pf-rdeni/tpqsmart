@@ -267,6 +267,22 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
     .dt-left {
         text-align: left;
     }
+
+    /* Copy link button styling untuk kelulusan - konsisten dengan button lainnya */
+    .copy-link-btn-kelulusan {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .copy-link-btn-kelulusan:hover:not(:disabled) {
+        transform: scale(1.05);
+    }
+
+    .copy-link-btn-kelulusan:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 </style>
 <script>
     let kelulusanTable = null;
@@ -356,11 +372,25 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const suratUrl = '<?= base_url('backend/munaqosah/printSuratKelulusanPesertaUjian') ?>' + '?' + params;
 
             const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
+            const hasKey = row.HasKey || null;
+            const noPeserta = row.NoPeserta || '-';
+            const namaSantri = row.NamaSantri || '-';
+
             let actionHtml = '<div class="btn-group btn-group-sm" role="group">' +
                 `<a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Pdf</a>` +
                 `<a class="btn btn-outline-success" href="${suratUrl}" target="_blank"><i class="fas fa-file-alt"></i> Surat</a>`;
             if (isAdmin) {
                 actionHtml += `<a class="btn btn-outline-secondary" href="${viewUrl}" target="_blank"><i class="fas fa-eye"></i> View</a>`;
+            }
+            // Tambahkan button copy link jika HasKey tersedia
+            if (hasKey) {
+                actionHtml += `<button type="button" class="btn btn-outline-info btn-sm copy-link-btn-kelulusan" 
+                                data-no-peserta="${noPeserta}" 
+                                data-nama-santri="${namaSantri}"
+                                data-haskey="${hasKey}"
+                                title="Copy link WhatsApp untuk ${namaSantri}">
+                            <i class="fas fa-copy"></i> Copy Link
+                        </button>`;
             }
             actionHtml += '</div>';
 
@@ -582,6 +612,128 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
         $('#btnReloadKelulusan').on('click', loadKelulusan);
         $('#filterTpq').on('change', loadKelulusan);
         $('#filterTypeUjian').on('change', loadKelulusan);
+
+        // Copy link button click handler untuk kelulusan
+        $(document).on('click', '.copy-link-btn-kelulusan:not(:disabled)', function() {
+            const noPeserta = $(this).data('no-peserta');
+            const namaSantri = $(this).data('nama-santri');
+            const hasKey = $(this).data('haskey');
+
+            if (!hasKey) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'HasKey tidak ditemukan untuk peserta ini',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Format teks yang akan dicopy
+            const baseUrl = '<?= base_url('cek-status/') ?>';
+            const statusUrl = baseUrl + hasKey;
+            const copyText = `${noPeserta}-${namaSantri}\nCheck Status:\n${statusUrl}`;
+
+            // Tampilkan popup dengan informasi yang akan dicopy
+            Swal.fire({
+                title: 'Copy Link Status Ujian',
+                html: `
+                    <div class="text-left">
+                        <p><strong>Nama Santri:</strong> ${namaSantri}</p>
+                        <p><strong>No Peserta:</strong> ${noPeserta}</p>
+                        <p><strong>Konten yang akan dicopy:</strong></p>
+                        <div class="border p-3 bg-light rounded mt-2" style="font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; word-break: break-all;">
+${copyText}
+                        </div>
+                    </div>
+                `,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#17a2b8',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-copy"></i> Copy ke Clipboard',
+                cancelButtonText: 'Batal',
+                footer: 'Klik "Copy ke Clipboard" untuk menyalin konten'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Copy ke clipboard
+                    copyToClipboardKelulusan(copyText, namaSantri);
+                }
+            });
+        });
+
+        // Fungsi untuk copy ke clipboard untuk kelulusan
+        function copyToClipboardKelulusan(text, namaSantri) {
+            // Coba menggunakan Clipboard API modern
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: `Link untuk ${namaSantri} telah disalin ke clipboard`,
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                }).catch(function(err) {
+                    console.error('Error copying to clipboard:', err);
+                    // Fallback ke method lama
+                    fallbackCopyToClipboardKelulusan(text, namaSantri);
+                });
+            } else {
+                // Fallback untuk browser yang tidak support Clipboard API
+                fallbackCopyToClipboardKelulusan(text, namaSantri);
+            }
+        }
+
+        // Fallback method untuk copy ke clipboard untuk kelulusan
+        function fallbackCopyToClipboardKelulusan(text, namaSantri) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: `Link untuk ${namaSantri} telah disalin ke clipboard`,
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                } else {
+                    throw new Error('Copy command failed');
+                }
+            } catch (err) {
+                console.error('Error copying to clipboard:', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    html: `
+                        <div class="text-left">
+                            <p>Gagal menyalin ke clipboard. Silakan copy manual:</p>
+                            <div class="border p-2 bg-light rounded mt-2" style="font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;">
+${text}
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'OK'
+                });
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
 
         loadKelulusan();
     });

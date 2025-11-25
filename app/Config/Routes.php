@@ -358,6 +358,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/delete-jadwal-peserta-ujian/(:num)', 'Munaqosah::deleteJadwalPesertaUjian/$1');
     $routes->get('munaqosah/get-tpq-from-peserta', 'Munaqosah::getTpqFromPeserta');
     $routes->get('munaqosah/print-jadwal-peserta', 'Munaqosah::printJadwalPeserta');
+    $routes->get('munaqosah/printInstruksiVerifikasi/(:num)', 'Munaqosah::printInstruksiVerifikasi/$1');
+    $routes->get('munaqosah/printInstruksiVerifikasiAll', 'Munaqosah::printInstruksiVerifikasiAll');
 
     // API Routes untuk data master
     $routes->get('backend/tpq/get-all', 'Tpq::getAll');
