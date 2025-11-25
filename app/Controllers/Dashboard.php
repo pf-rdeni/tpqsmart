@@ -228,9 +228,15 @@ class Dashboard extends BaseController
         // Statistik per TPQ (hanya untuk admin dengan IdTpq=0)
         $statistikSantriPerTpq = [];
         $statistikGuruPerTpq = [];
+        $statistikTpqDenganRasio = [];
+        $statistikSantriPerTpqPerKelas = [];
         if ($idTpqForQuery == 0) {
             $statistikSantriPerTpq = $this->helpFunctionModel->getStatistikSantriPerTpq();
             $statistikGuruPerTpq = $this->helpFunctionModel->getStatistikGuruPerTpq();
+            $statistikSantriPerTpqPerKelas = $this->getStatistikSantriPerTpqPerKelas($idTahunAjaran);
+            
+            // Gabungkan data santri dan guru untuk menghitung rasio
+            $statistikTpqDenganRasio = $this->gabungkanStatistikTpqDenganRasio($statistikSantriPerTpq, $statistikGuruPerTpq);
         }
 
         return [
@@ -252,6 +258,8 @@ class Dashboard extends BaseController
             'StatistikGuru' => $statistikGuru,
             'StatistikSantriPerTpq' => $statistikSantriPerTpq,
             'StatistikGuruPerTpq' => $statistikGuruPerTpq,
+            'StatistikTpqDenganRasio' => $statistikTpqDenganRasio,
+            'StatistikSantriPerTpqPerKelas' => $statistikSantriPerTpqPerKelas,
         ];
     }
 
@@ -793,6 +801,179 @@ class Dashboard extends BaseController
         $data = array_merge($data, $userInfo);
 
         return view('backend/dashboard/dashboardAdmin', $data);
+    }
+
+    /**
+     * Mengambil statistik santri per TPQ dan per kelas (kecuali Alumni)
+     * Menggunakan tbl_santri_baru sebagai sumber data utama seperti statistik lama
+     * @param mixed $idTahunAjaran
+     * @return array
+     */
+    private function getStatistikSantriPerTpqPerKelas($idTahunAjaran)
+    {
+        // Ambil semua TPQ
+        $tpqList = $this->helpFunctionModel->getDataTpq(0);
+        
+        // Ambil koneksi database
+        $db = db_connect();
+        
+        // Ambil semua kelas kecuali Alumni
+        $kelasList = $db->table('tbl_kelas')
+            ->where('NamaKelas !=', 'ALUMNI')
+            ->where('NamaKelas !=', 'Alumni')
+            ->where('NamaKelas !=', 'alumni')
+            ->orderBy('NamaKelas', 'ASC')
+            ->get()
+            ->getResultArray();
+        
+        // Inisialisasi array hasil
+        $result = [];
+        
+        // Query untuk mengambil jumlah santri per TPQ dan per kelas
+        // Menggunakan tbl_santri_baru sebagai sumber data utama seperti statistik lama
+        $query = $db->query("
+            SELECT 
+                t.IdTpq,
+                t.NamaTpq,
+                COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
+                k.IdKelas,
+                k.NamaKelas,
+                COUNT(DISTINCT s.IdSantri) as JumlahSantri
+            FROM tbl_santri_baru s
+            INNER JOIN tbl_tpq t ON t.IdTpq = s.IdTpq
+            LEFT JOIN tbl_kelas k ON k.IdKelas = s.IdKelas
+                AND (k.NamaKelas != 'ALUMNI' AND k.NamaKelas != 'Alumni' AND k.NamaKelas != 'alumni')
+            WHERE s.Active < 2
+            GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
+            ORDER BY t.NamaTpq ASC, k.NamaKelas ASC
+        ");
+        
+        $data = $query->getResultArray();
+        
+        // Organisir data per TPQ
+        foreach ($tpqList as $tpq) {
+            $tpqId = $tpq['IdTpq'];
+            $tpqData = [
+                'IdTpq' => $tpqId,
+                'NamaTpq' => $tpq['NamaTpq'],
+                'KelurahanDesa' => $tpq['KelurahanDesa'] ?? $tpq['Alamat'] ?? '',
+                'Kelas' => [],
+                'Total' => 0
+            ];
+            
+            // Inisialisasi jumlah per kelas
+            foreach ($kelasList as $kelas) {
+                $tpqData['Kelas'][$kelas['IdKelas']] = [
+                    'IdKelas' => $kelas['IdKelas'],
+                    'NamaKelas' => $kelas['NamaKelas'],
+                    'Jumlah' => 0
+                ];
+            }
+            
+            // Isi data dari query
+            foreach ($data as $row) {
+                if ($row['IdTpq'] == $tpqId && !empty($row['IdKelas'])) {
+                    if (isset($tpqData['Kelas'][$row['IdKelas']])) {
+                        $tpqData['Kelas'][$row['IdKelas']]['Jumlah'] = (int)$row['JumlahSantri'];
+                        $tpqData['Total'] += (int)$row['JumlahSantri'];
+                    }
+                }
+            }
+            
+            $result[] = $tpqData;
+        }
+        
+        return [
+            'data' => $result,
+            'kelasList' => $kelasList
+        ];
+    }
+
+    /**
+     * Menggabungkan statistik santri dan guru per TPQ dengan menghitung rasio
+     * @param array $statistikSantriPerTpq
+     * @param array $statistikGuruPerTpq
+     * @return array
+     */
+    private function gabungkanStatistikTpqDenganRasio($statistikSantriPerTpq, $statistikGuruPerTpq)
+    {
+        // Ambil data TPQ lengkap untuk mendapatkan KelurahanDesa
+        $db = db_connect();
+        $tpqData = $db->table('tbl_tpq')
+            ->select('IdTpq, KelurahanDesa, Alamat')
+            ->get()
+            ->getResultArray();
+        
+        // Buat map untuk akses cepat data TPQ
+        $tpqMap = [];
+        foreach ($tpqData as $tpq) {
+            $tpqMap[$tpq['IdTpq']] = $tpq;
+        }
+        
+        // Buat map untuk akses cepat data guru
+        $guruMap = [];
+        foreach ($statistikGuruPerTpq as $guru) {
+            $guruMap[$guru['IdTpq']] = $guru;
+        }
+        
+        // Gabungkan data dan hitung rasio
+        $result = [];
+        foreach ($statistikSantriPerTpq as $santri) {
+            $idTpq = $santri['IdTpq'];
+            $totalGuru = $guruMap[$idTpq]['Total'] ?? 0;
+            $totalSantri = $santri['Total'] ?? 0;
+            $kelurahanDesa = $tpqMap[$idTpq]['KelurahanDesa'] ?? $tpqMap[$idTpq]['Alamat'] ?? '';
+            
+            // Hitung rasio (Guru:Santri)
+            // Bulatkan ke atas karena orang tidak bisa dihitung pecahan
+            $rasio = '';
+            $rasioNumeric = 0;
+            $rasioCeil = 0;
+            if ($totalSantri > 0 && $totalGuru > 0) {
+                $rasioNumeric = $totalSantri / $totalGuru;
+                $rasioCeil = (int)ceil($rasioNumeric); // Bulatkan ke atas
+                // Format rasio sebagai 1:X (misalnya 1:10 berarti 1 guru untuk 10 santri)
+                $rasio = '1:' . $rasioCeil;
+            } else if ($totalSantri > 0 && $totalGuru == 0) {
+                $rasio = '-';
+                $rasioNumeric = 0;
+                $rasioCeil = 0;
+            } else {
+                $rasio = '-';
+                $rasioNumeric = 0;
+                $rasioCeil = 0;
+            }
+            
+            // Tentukan warna badge berdasarkan rasio
+            $badgeColor = 'secondary'; // default
+            if ($rasioCeil > 0) {
+                if ($rasioCeil < 9) {
+                    $badgeColor = 'danger'; // Merah - rasio < 9
+                } else if ($rasioCeil >= 9 && $rasioCeil <= 11) {
+                    $badgeColor = 'success'; // Hijau - rasio >= 9 dan <= 11
+                } else {
+                    $badgeColor = 'info'; // Biru - rasio > 11
+                }
+            }
+            
+            $result[] = [
+                'IdTpq' => $idTpq,
+                'NamaTpq' => $santri['NamaTpq'],
+                'KelurahanDesa' => $kelurahanDesa,
+                'TotalSantri' => $totalSantri,
+                'TotalGuru' => $totalGuru,
+                'Rasio' => $rasio,
+                'RasioNumeric' => $rasioNumeric,
+                'RasioCeil' => $rasioCeil,
+                'BadgeColor' => $badgeColor,
+                'LakiLakiSantri' => $santri['LakiLaki'] ?? 0,
+                'PerempuanSantri' => $santri['Perempuan'] ?? 0,
+                'LakiLakiGuru' => $guruMap[$idTpq]['LakiLaki'] ?? 0,
+                'PerempuanGuru' => $guruMap[$idTpq]['Perempuan'] ?? 0,
+            ];
+        }
+        
+        return $result;
     }
 
     /**

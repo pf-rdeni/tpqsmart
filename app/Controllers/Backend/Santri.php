@@ -1448,12 +1448,63 @@ class Santri extends BaseController
 
     public function showSantriBaruPerKelasTpq($IdTpq = null)
     {
-        // ambil id tpq dari session
-        if ($IdTpq == null)
+        // Cek user group
+        $isAdmin = in_groups('Admin');
+        $isPanitiaUmum = in_groups('Panitia Umum');
+        
+        // ambil id tpq dari session atau parameter
+        if ($IdTpq == null) {
             $IdTpq = session()->get('IdTpq');
+        }
+        
+        // Untuk admin dan panitia umum, jika tidak ada IdTpq, tampilkan halaman pilih TPQ
+        if (($isAdmin || $isPanitiaUmum) && (empty($IdTpq) || $IdTpq == 0)) {
+            // Ambil semua data TPQ untuk dipilih
+            $dataTpq = $this->helpFunction->getDataTpq(0);
+            
+            // Hitung jumlah santri per TPQ
+            $santriPerTpq = $this->DataSantriBaru
+                ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
+                ->groupBy('tbl_tpq.IdTpq')
+                ->get()
+                ->getResultArray();
+            
+            // Gabungkan data jumlah santri ke array TPQ
+            foreach ($dataTpq as &$t) {
+                $jumlahSantri = 0;
+                foreach ($santriPerTpq as $count) {
+                    if ($count['IdTpq'] == $t['IdTpq']) {
+                        $jumlahSantri = $count['JumlahSantri'];
+                        break;
+                    }
+                }
+                $t['JumlahSantri'] = $jumlahSantri;
+            }
+            
+            // Tampilkan halaman pilih TPQ
+            $data = [
+                'page_title' => 'Pilih TPQ - Daftar Santri Per Kelas',
+                'dataTpq' => $dataTpq,
+                'isAdmin' => $isAdmin,
+                'isPanitiaUmum' => $isPanitiaUmum
+            ];
+            
+            return view('backend/santri/selectTpqForSantriPerKelas', $data);
+        }
+        
+        // Validasi IdTpq untuk non-admin
+        if (empty($IdTpq) || $IdTpq == 0) {
+            return redirect()->back()->with('error', 'TPQ tidak ditemukan. Silakan pilih TPQ terlebih dahulu.');
+        }
         
         $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq);
         $namaTpq = $this->helpFunction->getNamaTpqById($IdTpq);
+        
+        // Validasi jika namaTpq null
+        if (empty($namaTpq) || !is_array($namaTpq)) {
+            return redirect()->back()->with('error', 'Data TPQ tidak ditemukan.');
+        }
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santriAll) && !empty($IdTpq)) {
@@ -1505,7 +1556,8 @@ class Santri extends BaseController
             'dataSantriAll' => $santriAll,
             'santriPerKelas' => $santriPerKelas, // Array dinamis berdasarkan IdKelas
             'kelasList' => $kelasList, // List kelas yang ada untuk membuat tab
-            'namaTpq' => $namaTpq,
+            'namaTpq' => $namaTpq ?? ['NamaTpq' => 'TPQ', 'Alamat' => ''],
+            'IdTpq' => $IdTpq,
         ];
 
         return view('backend/santri/listSantriBaruPerKelasTpq', $data);

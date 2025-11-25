@@ -2546,7 +2546,7 @@ class HelpFunctionModel extends Model
                          COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
                          COUNT(*) as Total');
         $builder->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'inner');
-        $builder->where('s.Active', 1);
+        $builder->where('s.Active <', 2);
         $builder->groupBy('t.IdTpq, t.NamaTpq');
         $builder->orderBy('t.NamaTpq', 'ASC');
 

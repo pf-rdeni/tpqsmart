@@ -574,14 +574,12 @@
                                     <p>Data Emis</p>
                                 </a>
                             </li>
-                            <?php if ($isActiveOperator): ?>
-                                <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Santri Per Kelas</p>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Santri Per Kelas</p>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                     <!--  Raport-->
