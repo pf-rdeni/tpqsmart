@@ -3615,28 +3615,25 @@ class Munaqosah extends BaseController
         }
 
         // Hitung statistik status verifikasi peserta
+        // Hanya mengambil dari tabel peserta, tidak join dengan tabel registrasi
         // Status Valid (valid atau dikonfirmasi)
         if ($shouldFilterByTpq) {
             // Filter berdasarkan IdTpq untuk Operator dan Panitia TPQ
             $query = $this->db->query("
                 SELECT COUNT(DISTINCT p.id) as total 
                 FROM tbl_munaqosah_peserta p
-                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
                 WHERE p.IdTahunAjaran = ? 
                 AND p.IdTpq = ?
-                AND r.TypeUjian = ?
                 AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
-            ", [$tahunAjaran, $idTpq, $typeUjian]);
+            ", [$tahunAjaran, $idTpq]);
         } else {
             // Untuk admin atau panitia umum, tidak filter IdTpq
             $query = $this->db->query("
                 SELECT COUNT(DISTINCT p.id) as total 
                 FROM tbl_munaqosah_peserta p
-                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
                 WHERE p.IdTahunAjaran = ? 
-                AND r.TypeUjian = ?
                 AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
-            ", [$tahunAjaran, $typeUjian]);
+            ", [$tahunAjaran]);
         }
         $result = $query->getRow();
         $totalStatusValid = $result ? (int)$result->total : 0;
@@ -3646,21 +3643,17 @@ class Munaqosah extends BaseController
             $query = $this->db->query("
                 SELECT COUNT(DISTINCT p.id) as total 
                 FROM tbl_munaqosah_peserta p
-                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
                 WHERE p.IdTahunAjaran = ? 
                 AND p.IdTpq = ?
-                AND r.TypeUjian = ?
                 AND p.status_verifikasi = 'perlu_perbaikan'
-            ", [$tahunAjaran, $idTpq, $typeUjian]);
+            ", [$tahunAjaran, $idTpq]);
         } else {
             $query = $this->db->query("
                 SELECT COUNT(DISTINCT p.id) as total 
                 FROM tbl_munaqosah_peserta p
-                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
                 WHERE p.IdTahunAjaran = ? 
-                AND r.TypeUjian = ?
                 AND p.status_verifikasi = 'perlu_perbaikan'
-            ", [$tahunAjaran, $typeUjian]);
+            ", [$tahunAjaran]);
         }
         $result = $query->getRow();
         $totalStatusPerbaikan = $result ? (int)$result->total : 0;
@@ -3670,21 +3663,17 @@ class Munaqosah extends BaseController
             $query = $this->db->query("
                 SELECT COUNT(DISTINCT p.id) as total 
                 FROM tbl_munaqosah_peserta p
-                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
                 WHERE p.IdTahunAjaran = ? 
                 AND p.IdTpq = ?
-                AND r.TypeUjian = ?
                 AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
-            ", [$tahunAjaran, $idTpq, $typeUjian]);
+            ", [$tahunAjaran, $idTpq]);
         } else {
             $query = $this->db->query("
                 SELECT COUNT(DISTINCT p.id) as total 
                 FROM tbl_munaqosah_peserta p
-                INNER JOIN tbl_munaqosah_registrasi_uji r ON r.IdSantri = p.IdSantri AND r.IdTahunAjaran = p.IdTahunAjaran
                 WHERE p.IdTahunAjaran = ? 
-                AND r.TypeUjian = ?
                 AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
-            ", [$tahunAjaran, $typeUjian]);
+            ", [$tahunAjaran]);
         }
         $result = $query->getRow();
         $totalStatusBelumDikonfirmasi = $result ? (int)$result->total : 0;
@@ -5313,6 +5302,273 @@ class Munaqosah extends BaseController
                 ],
                 'user_message' => 'Gagal memuat data santri. Silakan coba lagi atau hubungi administrator jika masalah berlanjut.'
             ]);
+        }
+    }
+
+    /**
+     * Get list TPQ dengan jumlah peserta terdaftar
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getListTpqWithPeserta()
+    {
+        try {
+            $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+            $typeUjian = $this->request->getGet('typeUjian') ?? 'munaqosah';
+
+            // Check if user is admin (IdTpq = 0 or null means Admin)
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = empty($sessionIdTpq) || $sessionIdTpq == 0;
+            $isPanitia = in_groups('Panitia');
+            $isPanitiaTpq = false;
+            $idTpqPanitia = null;
+
+            // Jika user adalah Panitia, ambil IdTpq dari username
+            if ($isPanitia) {
+                $usernamePanitia = user()->username;
+                $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+                // Jika panitia memiliki IdTpq (bukan 0), maka hanya melihat Pra-munaqosah
+                if ($idTpqPanitia && $idTpqPanitia != 0) {
+                    $isPanitiaTpq = true;
+                    $typeUjian = 'pra-munaqosah';
+                } else {
+                    // Panitia umum (IdTpq = 0), melihat Munaqosah
+                    $typeUjian = 'munaqosah';
+                }
+            } elseif (!$isAdmin) {
+                // Force Pra-Munaqosah for non-admin users (selain panitia)
+                $typeUjian = 'pra-munaqosah';
+            }
+
+            // Query untuk mendapatkan list TPQ dengan jumlah peserta terdaftar
+            $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+            $builder->select('r.IdTpq, t.NamaTpq, t.KelurahanDesa, COUNT(DISTINCT r.NoPeserta) as jumlah_peserta');
+            $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
+            $builder->where('r.IdTahunAjaran', $tahunAjaran);
+            $builder->where('r.TypeUjian', $typeUjian);
+
+            // Filter berdasarkan role user
+            if ($isPanitiaTpq) {
+                // Panitia TPQ hanya melihat TPQ sendiri
+                $builder->where('r.IdTpq', $idTpqPanitia);
+            } elseif (!$isAdmin && !$isPanitia) {
+                // User TPQ hanya melihat TPQ sendiri
+                $builder->where('r.IdTpq', $sessionIdTpq);
+            }
+            // Admin dan Panitia umum melihat semua TPQ
+
+            $builder->groupBy('r.IdTpq, t.NamaTpq, t.KelurahanDesa');
+            $builder->orderBy('t.NamaTpq', 'ASC');
+
+            $result = $builder->get()->getResultArray();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getListTpqWithPeserta: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data TPQ',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Print kartu ujian per TPQ
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function printKartuUjianPerTpq()
+    {
+        try {
+            // Set memory limit dan timeout
+            ini_set('memory_limit', '256M');
+            set_time_limit(300);
+            mb_internal_encoding('UTF-8');
+
+            // Ambil data dari POST request
+            $idTpq = $this->request->getPost('idTpq');
+            $typeUjian = $this->request->getPost('typeUjian') ?? 'munaqosah';
+            $tahunAjaran = $this->request->getPost('tahunAjaran');
+
+            // Validasi input
+            if (empty($idTpq)) {
+                throw new \Exception('ID TPQ harus diisi');
+            }
+
+            if (empty($tahunAjaran)) {
+                $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+            }
+
+            // Ambil data TPQ untuk filename
+            $tpqData = $this->tpqModel->find($idTpq);
+            if (!$tpqData) {
+                throw new \Exception('Data TPQ tidak ditemukan');
+            }
+
+            // Ambil data peserta munaqosah dengan relasi
+            $builder = $this->db->table('tbl_munaqosah_peserta mp');
+            $builder->select('mp.*, s.*, t.NamaTpq, k.NamaKelas, 
+                            mn.NoPeserta, mn.TypeUjian');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
+            $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
+            $builder->join('tbl_munaqosah_registrasi_uji mn', 'mn.IdSantri = mp.IdSantri AND mn.IdTahunAjaran = mp.IdTahunAjaran AND mn.TypeUjian = "' . $typeUjian . '"', 'left');
+            $builder->where('mp.IdTpq', $idTpq);
+            $builder->where('mp.IdTahunAjaran', $tahunAjaran);
+            $builder->where('mn.NoPeserta IS NOT NULL'); // Hanya ambil yang sudah ada nomor peserta
+
+            $builder->groupBy('mp.IdSantri');
+            $builder->orderBy('s.NamaSantri', 'ASC');
+
+            $pesertaData = $builder->get()->getResultArray();
+
+            if (empty($pesertaData)) {
+                throw new \Exception('Tidak ada data peserta yang ditemukan untuk TPQ ini');
+            }
+
+            // check HasKey IdSantri di tabel tbl_munaqosah_peserta dari data pesertaData
+            $hasKey = $this->db->table('tbl_munaqosah_peserta')
+                ->whereIn('IdSantri', array_column($pesertaData, 'IdSantri'))
+                ->get()
+                ->getResultArray();
+
+            // Buat mapping IdSantri -> HasKey
+            $hasKeyMap = [];
+            foreach ($hasKey as $hk) {
+                $hasKeyMap[$hk['IdSantri']] = $hk['HasKey'];
+            }
+
+            // Tambahkan HasKey ke data peserta
+            foreach ($pesertaData as &$peserta) {
+                $peserta['HasKey'] = $hasKeyMap[$peserta['IdSantri']] ?? null;
+            }
+
+            // Siapkan array untuk batch update
+            $batchUpdateData = [];
+
+            // Tambahkan QR code ke data peserta
+            foreach ($pesertaData as &$peserta) {
+                $noPeserta = $peserta['NoPeserta'];
+
+                // Generate QR code langsung untuk nomor peserta
+                $qrOptions = new QROptions([
+                    'outputType' => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                    'eccLevel' => \chillerlan\QRCode\Common\EccLevel::L,
+                    'scale' => 2,
+                    'imageBase64' => false,
+                    'addQuietzone' => true,
+                    'quietzoneSize' => 1,
+                ]);
+
+                // QR Code untuk nomor peserta
+                $qrCode = new QRCode($qrOptions);
+                $qrContent = (string)$noPeserta;
+                $svgContent = $qrCode->render($qrContent);
+                $base64Svg = 'data:image/svg+xml;base64,' . base64_encode($svgContent);
+                $peserta['qrCode'] = '<img src="' . $base64Svg . '" style="width: 30px; height: 30px;" />';
+
+                // QR Code footer untuk link
+                $footerQrOptions = new QROptions([
+                    'outputType' => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                    'eccLevel' => \chillerlan\QRCode\Common\EccLevel::L,
+                    'scale' => 2,
+                    'imageBase64' => false,
+                    'addQuietzone' => true,
+                    'quietzoneSize' => 1,
+                ]);
+
+                // Jika HasKey sudah ada, gunakan HasKey yang sudah ada
+                if ($peserta['HasKey'] != null && $peserta['HasKey'] != '') {
+                    $hash = $peserta['HasKey'];
+                } else {
+                    // Generate unique key yang aman
+                    $hash = $this->generateUniqueHasKey();
+                    $batchUpdateData[] = [
+                        'IdSantri' => $peserta['IdSantri'],
+                        'HasKey' => $hash
+                    ];
+                }
+
+                // QR Code footer untuk link hasil ujian
+                $footerQrCode = new QRCode($footerQrOptions);
+                $footerSvgContent = $footerQrCode->render('https://tpqsmart.simpedis.com/cek-status/' . $hash);
+                $footerBase64Svg = 'data:image/svg+xml;base64,' . base64_encode($footerSvgContent);
+                $peserta['footerQrCode'] = '<img src="' . $footerBase64Svg . '" style="width: 50px; height: 50px;" />';
+            }
+
+            // Batch update HasKey setelah loop selesai
+            if (!empty($batchUpdateData)) {
+                $this->db->table('tbl_munaqosah_peserta')->updateBatch($batchUpdateData, 'IdSantri');
+                log_message('info', 'Batch update HasKey for ' . count($batchUpdateData) . ' participants');
+            }
+
+            // Siapkan data untuk view
+            $data = [
+                'peserta' => $pesertaData,
+                'typeUjian' => $typeUjian,
+                'tahunAjaran' => $tahunAjaran
+            ];
+
+            // Load view untuk PDF
+            $html = view('backend/Munaqosah/printKartuUjian', $data);
+
+            // Setup Dompdf
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', false);
+            $options->set('defaultFont', 'Arial');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+            $options->set('isCssFloatEnabled', true);
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('debugPng', false);
+            $options->set('debugKeepTemp', false);
+            $options->set('debugCss', false);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('F4', 'portrait');
+            $dompdf->render();
+
+            // Format filename: NamaLembaga_KelurahanDesa_TahunAjaran.pdf
+            // Contoh: Al-Amin_TelukSasah_20252026.pdf
+            $namaLembaga = $tpqData['NamaTpq'] ?? '';
+            // Hapus karakter khusus kecuali dash dan huruf/angka, lalu hapus spasi
+            $namaLembaga = preg_replace('/[^a-zA-Z0-9\-]/', '', $namaLembaga);
+            $namaLembaga = str_replace(' ', '', $namaLembaga);
+            
+            $kelurahanDesa = $tpqData['KelurahanDesa'] ?? '';
+            // Hapus karakter khusus kecuali huruf/angka, lalu hapus spasi
+            $kelurahanDesa = preg_replace('/[^a-zA-Z0-9]/', '', $kelurahanDesa);
+            $kelurahanDesa = str_replace(' ', '', $kelurahanDesa);
+            
+            // Format tahun ajaran: 2025/2026 -> 20252026
+            $tahunAjaranFormatted = str_replace('/', '', $tahunAjaran);
+            
+            $filename = $namaLembaga . '_' . $kelurahanDesa . '_' . $tahunAjaranFormatted . '.pdf';
+
+            // Hapus semua output sebelumnya
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set header
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printKartuUjianPerTpq - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
 

@@ -226,6 +226,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     // Routes untuk registrasi peserta munaqosah
     $routes->get('munaqosah/registrasi-peserta', 'Munaqosah::registrasiPesertaMunaqosah');
     $routes->get('munaqosah/get-santri-for-registrasi', 'Munaqosah::getSantriForRegistrasi');
+    $routes->get('munaqosah/get-list-tpq-with-peserta', 'Munaqosah::getListTpqWithPeserta');
+    $routes->post('munaqosah/print-kartu-ujian-per-tpq', 'Munaqosah::printKartuUjianPerTpq');
     $routes->post('munaqosah/process-registrasi-peserta', 'Munaqosah::processRegistrasiPeserta');
     $routes->post('munaqosah/print-kartu-ujian', 'Munaqosah::printKartuUjian');
 

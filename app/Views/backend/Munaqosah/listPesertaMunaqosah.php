@@ -27,9 +27,24 @@
                                 <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-edit"></i> Tambah Peserta Munaqosah</span> di header card</li>
                                 <li>Modal akan muncul dengan 3 langkah:
                                     <ul>
-                                        <li><strong>Langkah 1:</strong> Pilih Filter (TPQ, Kelas) untuk memfilter santri yang tersedia</li>
-                                        <li><strong>Langkah 2:</strong> Pilih Santri dari daftar yang muncul (dapat pilih beberapa dengan checkbox)</li>
-                                        <li><strong>Langkah 3:</strong> Konfirmasi dan simpan peserta yang dipilih</li>
+                                        <li><strong>Langkah 1:</strong> Pilih Filter (TPQ, Kelas) untuk memfilter santri yang tersedia
+                                            <ul>
+                                                <li>Nama kelas akan otomatis dikonversi ke format MDA jika TPQ memiliki mapping MDA yang sesuai</li>
+                                                <li>Lihat info di bawah langkah untuk penjelasan lebih detail</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Langkah 2:</strong> Pilih Santri dari daftar yang muncul (dapat pilih beberapa dengan checkbox)
+                                            <ul>
+                                                <li>Gunakan checkbox "Select All" di header untuk memilih semua santri sekaligus</li>
+                                                <li>Lihat info di bawah langkah untuk penjelasan lebih detail</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Langkah 3:</strong> Konfirmasi dan simpan peserta yang dipilih
+                                            <ul>
+                                                <li>Review daftar santri yang telah dipilih sebelum menyimpan</li>
+                                                <li>Lihat info di bawah langkah untuk penjelasan lebih detail</li>
+                                            </ul>
+                                        </li>
                                     </ul>
                                 </li>
                                 <li>Peserta yang berhasil ditambahkan akan muncul di tabel</li>
@@ -38,23 +53,41 @@
                         <li class="mb-2">
                             <strong>Lihat Daftar Peserta:</strong>
                             <ul class="mt-2">
+                                <li>Peserta ditampilkan dalam 3 tabel terpisah berdasarkan status verifikasi:
+                                    <ul>
+                                        <li><strong>Peserta Perlu Perbaikan:</strong> Peserta yang data mereka perlu diperbaiki (hanya tombol Review)</li>
+                                        <li><strong>Peserta Valid:</strong> Peserta yang data mereka sudah valid (hanya tombol Edit)</li>
+                                        <li><strong>Peserta Belum Dikonfirmasi:</strong> Peserta yang belum melakukan konfirmasi (tombol Edit dan Hapus)</li>
+                                    </ul>
+                                </li>
+                                <li>Setiap tabel memiliki informasi penjelasan di bagian atas untuk membantu memahami perbedaan tabel</li>
                                 <li>Tabel menampilkan semua peserta munaqosah dengan informasi:
                                     <ul>
+                                        <li><strong>No:</strong> Nomor urut</li>
+                                        <li><strong>Aksi:</strong> Tombol aksi (Review/Edit/Hapus) - berada di kolom pertama setelah No</li>
                                         <li><strong>ID Santri:</strong> Identitas santri</li>
                                         <li><strong>Nama Santri:</strong> Nama lengkap peserta</li>
                                         <li><strong>Tempat/Tanggal Lahir:</strong> Data kelahiran peserta</li>
                                         <li><strong>Jenis Kelamin:</strong> Gender peserta</li>
                                         <li><strong>Nama Ayah:</strong> Nama ayah peserta</li>
                                         <li><strong>TPQ:</strong> Nama TPQ peserta</li>
+                                        <li><strong>Alamat:</strong> Alamat peserta</li>
+                                        <li><strong>Tahun Ajaran:</strong> Tahun ajaran peserta</li>
                                         <li><strong>Status Verifikasi:</strong> Status verifikasi data peserta</li>
                                     </ul>
                                 </li>
-                                <li>Gunakan fitur search dan filter DataTable untuk mencari peserta tertentu</li>
+                                <li>Gunakan fitur search dan filter DataTable dengan scroll horizontal untuk mencari peserta tertentu</li>
                             </ul>
                         </li>
                         <li class="mb-2">
                             <strong>Edit Data Peserta:</strong>
                             <ul class="mt-2">
+                                <li>Tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> tersedia pada:
+                                    <ul>
+                                        <li><strong>Peserta Valid:</strong> Untuk mengubah data peserta yang sudah valid</li>
+                                        <li><strong>Peserta Belum Dikonfirmasi:</strong> Untuk mengubah data peserta yang belum dikonfirmasi</li>
+                                    </ul>
+                                </li>
                                 <li>Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span> pada baris peserta yang ingin diedit</li>
                                 <li>Modal edit akan muncul dengan form data peserta</li>
                                 <li>Ubah data yang diperlukan dan klik <strong>Simpan Perubahan</strong></li>
@@ -81,9 +114,11 @@
                         <li class="mb-2">
                             <strong>Hapus Peserta:</strong>
                             <ul class="mt-2">
-                                <li>Klik tombol <span class="badge badge-danger"><i class="fas fa-trash"></i></span> pada baris peserta yang ingin dihapus</li>
+                                <li>Tombol <span class="badge badge-danger"><i class="fas fa-trash"></i> Hapus</span> hanya tersedia pada <strong>Peserta Belum Dikonfirmasi</strong></li>
+                                <li>Klik tombol <span class="badge badge-danger"><i class="fas fa-trash"></i> Hapus</span> pada baris peserta yang ingin dihapus</li>
                                 <li>Konfirmasi penghapusan di popup yang muncul</li>
                                 <li>Sistem akan mengecek data terkait sebelum menghapus</li>
+                                <li><strong>Catatan:</strong> Peserta Valid dan Peserta Perlu Perbaikan tidak dapat dihapus untuk menjaga integritas data</li>
                             </ul>
                         </li>
                     </ol>
@@ -98,11 +133,16 @@
                                     <li><span class="badge badge-secondary">Belum Dikonfirmasi</span> = Data belum diverifikasi</li>
                                 </ul>
                             </li>
-                            <li><strong>Peserta Perlu Perbaikan:</strong> Card khusus di bagian atas menampilkan peserta yang memerlukan review dan konfirmasi</li>
+                            <li><strong>Tiga Tabel Terpisah:</strong> Peserta ditampilkan dalam 3 tabel berdasarkan status verifikasi dengan informasi penjelasan di atas setiap tabel</li>
+                            <li><strong>Peserta Perlu Perbaikan:</strong> Tabel khusus menampilkan peserta yang memerlukan review dan konfirmasi, hanya memiliki tombol Review</li>
+                            <li><strong>Peserta Valid:</strong> Tabel menampilkan peserta yang data mereka sudah valid, hanya memiliki tombol Edit</li>
+                            <li><strong>Peserta Belum Dikonfirmasi:</strong> Tabel menampilkan peserta yang belum dikonfirmasi, memiliki tombol Edit dan Hapus</li>
                             <li><strong>Review Perbaikan:</strong> Baca keterangan user dan gunakan tabel perbaikan untuk review cepat</li>
                             <li><strong>Toggle Switch:</strong> Gunakan toggle "Terima" untuk menerima usulan perbaikan dengan satu klik</li>
+                            <li><strong>Mapping MDA:</strong> Nama kelas akan otomatis dikonversi ke format MDA jika TPQ memiliki mapping MDA yang sesuai</li>
                             <li><strong>Data Utama:</strong> Perubahan data akan tersimpan di data utama santri, bukan hanya di data peserta munaqosah</li>
-                            <li><strong>Filter & Search:</strong> Gunakan fitur DataTable untuk mencari peserta tertentu dengan cepat</li>
+                            <li><strong>Filter & Search:</strong> Gunakan fitur DataTable dengan scroll horizontal untuk mencari peserta tertentu dengan cepat</li>
+                            <li><strong>Statistik:</strong> Statistik di bagian atas hanya mengambil data dari tabel peserta, tidak join dengan tabel registrasi</li>
                             <li><strong>Informasi KK:</strong> Informasi Kartu Keluarga ditampilkan di modal edit untuk referensi</li>
                             <li><strong>Validasi Data:</strong> Pastikan data peserta lengkap dan valid sebelum menyimpan</li>
                         </ul>
@@ -198,152 +238,184 @@
         <div class="card-body">
             <!-- Tabel Peserta Perlu Perbaikan -->
             <?php if (!empty($pesertaPerluPerbaikan) && count($pesertaPerluPerbaikan) > 0): ?>
-            <div class="mb-4">
-                <h5 class="mb-3"><i class="fas fa-exclamation-triangle text-warning"></i> Peserta Perlu Perbaikan</h5>
-                <table id="tabelPesertaPerluPerbaikan" class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>ID Santri</th>
-                            <th>Nama Santri</th>
-                            <th>Tempat Lahir</th>
-                            <th>Tanggal Lahir</th>
-                            <th>Jenis Kelamin</th>
-                            <th>Nama Ayah</th>
-                            <th>TPQ</th>
-                            <th>Alamat</th>
-                            <th>Tahun Ajaran</th>
-                            <th>Status Verifikasi</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php $no = 1; ?>
-                        <?php foreach ($pesertaPerluPerbaikan as $row): ?>
+                <div class="mb-4">
+                    <h5 class="mb-3"><i class="fas fa-exclamation-triangle text-warning"></i> Peserta Perlu Perbaikan</h5>
+                    <div class="alert alert-warning mb-3">
+                        <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                        <span class="text-dark ml-2">Tabel ini menampilkan peserta yang data mereka perlu diperbaiki. Peserta dengan status ini telah diverifikasi oleh orang tua/wali, namun terdapat data yang perlu diperbaiki. Gunakan tombol <strong>Review</strong> untuk melihat detail perbaikan yang diminta dan melakukan konfirmasi perbaikan data.</span>
+                    </div>
+                    <table id="tabelPesertaPerluPerbaikan" class="table table-bordered table-striped">
+                        <thead>
                             <tr>
-                                <td><?= $no++ ?></td>
-                                <td><?= $row->IdSantri ?? '-' ?></td>
-                                <td><?= $row->NamaSantri ?? '-' ?></td>
-                                <td><?= $row->TempatLahirSantri ?? '-' ?></td>
-                                <td><?= $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '-' ?></td>
-                                <td><?= $row->JenisKelamin ?? '-' ?></td>
-                                <td><?= $row->NamaAyah ?? '-' ?></td>
-                                <td><?= $row->NamaTpq ?? '-' ?></td>
-                                <td><?= $row->KelurahanDesa ?? '-' ?></td>
-                                <td><?= $row->IdTahunAjaran ?? '-' ?></td>
-                                <td><span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span></td>
-                                <td>
-                                    <button type="button" class="btn btn-info btn-sm mr-1"
-                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', 'perlu_perbaikan')"
-                                        title="Review & Konfirmasi Perbaikan">
-                                        <i class="fas fa-check-double"></i> Review
-                                    </button>
-                                    <button type="button" class="btn btn-danger btn-sm"
-                                        onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
+                                <th>No</th>
+                                <th>Aksi</th>
+                                <th>ID Santri</th>
+                                <th>Nama Santri</th>
+                                <th>Tempat/Tanggal Lahir</th>
+                                <th>Jenis Kelamin</th>
+                                <th>Nama Ayah</th>
+                                <th>TPQ/Alamat</th>
+                                <th>Tahun Ajaran</th>
+                                <th>Status Verifikasi</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            <?php $no = 1; ?>
+                            <?php foreach ($pesertaPerluPerbaikan as $row): ?>
+                                <?php
+                                $tempatLahir = $row->TempatLahirSantri ?? '';
+                                $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
+                                $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
+                                
+                                $namaTpq = $row->NamaTpq ?? '';
+                                $alamat = $row->KelurahanDesa ?? '';
+                                $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
+                                ?>
+                                <tr>
+                                    <td><?= $no++ ?></td>
+                                    <td>
+                                        <button type="button" class="btn btn-info btn-sm"
+                                            onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', 'perlu_perbaikan')"
+                                            title="Review & Konfirmasi Perbaikan">
+                                            <i class="fas fa-check-double"></i> Review
+                                        </button>
+                                    </td>
+                                    <td><?= $row->IdSantri ?? '-' ?></td>
+                                    <td><?= $row->NamaSantri ?? '-' ?></td>
+                                    <td><?= $tempatTanggalLahir ?></td>
+                                    <td><?= $row->JenisKelamin ?? '-' ?></td>
+                                    <td><?= $row->NamaAyah ?? '-' ?></td>
+                                    <td><?= $tpqAlamat ?></td>
+                                    <td><?= $row->IdTahunAjaran ?? '-' ?></td>
+                                    <td><span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php endif; ?>
 
             <!-- Tabel Peserta Valid -->
             <?php if (!empty($pesertaValid) && count($pesertaValid) > 0): ?>
-            <div class="mb-4">
-                <h5 class="mb-3"><i class="fas fa-check-circle text-success"></i> Peserta Valid</h5>
-                <table id="tabelPesertaValid" class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>ID Santri</th>
-                            <th>Nama Santri</th>
-                            <th>Tempat Lahir</th>
-                            <th>Tanggal Lahir</th>
-                            <th>Jenis Kelamin</th>
-                            <th>Nama Ayah</th>
-                            <th>TPQ</th>
-                            <th>Alamat</th>
-                            <th>Tahun Ajaran</th>
-                            <th>Status Verifikasi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php $no = 1; ?>
-                        <?php foreach ($pesertaValid as $row): ?>
+                <div class="mb-4">
+                    <h5 class="mb-3"><i class="fas fa-check-circle text-success"></i> Peserta Valid</h5>
+                    <div class="alert alert-success mb-3">
+                        <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                        <span class="text-dark ml-2">Tabel ini menampilkan peserta yang data mereka sudah valid dan telah dikonfirmasi. Peserta dengan status ini telah diverifikasi oleh orang tua/wali dan data dinyatakan benar. Anda dapat menggunakan tombol <strong>Edit</strong> untuk mengubah data peserta jika diperlukan.</span>
+                    </div>
+                    <table id="tabelPesertaValid" class="table table-bordered table-striped">
+                        <thead>
                             <tr>
-                                <td><?= $no++ ?></td>
-                                <td><?= $row->IdSantri ?? '-' ?></td>
-                                <td><?= $row->NamaSantri ?? '-' ?></td>
-                                <td><?= $row->TempatLahirSantri ?? '-' ?></td>
-                                <td><?= $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '-' ?></td>
-                                <td><?= $row->JenisKelamin ?? '-' ?></td>
-                                <td><?= $row->NamaAyah ?? '-' ?></td>
-                                <td><?= $row->NamaTpq ?? '-' ?></td>
-                                <td><?= $row->KelurahanDesa ?? '-' ?></td>
-                                <td><?= $row->IdTahunAjaran ?? '-' ?></td>
-                                <td><span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span></td>
+                                <th>No</th>
+                                <th>Aksi</th>
+                                <th>ID Santri</th>
+                                <th>Nama Santri</th>
+                                <th>Tempat/Tanggal Lahir</th>
+                                <th>Jenis Kelamin</th>
+                                <th>Nama Ayah</th>
+                                <th>TPQ/Alamat</th>
+                                <th>Tahun Ajaran</th>
+                                <th>Status Verifikasi</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            <?php $no = 1; ?>
+                            <?php foreach ($pesertaValid as $row): ?>
+                                <?php
+                                $tempatLahir = $row->TempatLahirSantri ?? '';
+                                $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
+                                $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
+                                
+                                $namaTpq = $row->NamaTpq ?? '';
+                                $alamat = $row->KelurahanDesa ?? '';
+                                $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
+                                ?>
+                                <tr>
+                                    <td><?= $no++ ?></td>
+                                    <td>
+                                        <button type="button" class="btn btn-warning btn-sm"
+                                            onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
+                                            title="Edit">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                    </td>
+                                    <td><?= $row->IdSantri ?? '-' ?></td>
+                                    <td><?= $row->NamaSantri ?? '-' ?></td>
+                                    <td><?= $tempatTanggalLahir ?></td>
+                                    <td><?= $row->JenisKelamin ?? '-' ?></td>
+                                    <td><?= $row->NamaAyah ?? '-' ?></td>
+                                    <td><?= $tpqAlamat ?></td>
+                                    <td><?= $row->IdTahunAjaran ?? '-' ?></td>
+                                    <td><span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php endif; ?>
 
             <!-- Tabel Peserta Belum Dikonfirmasi -->
             <?php if (!empty($pesertaBelumDikonfirmasi) && count($pesertaBelumDikonfirmasi) > 0): ?>
-            <div>
-                <h5 class="mb-3"><i class="fas fa-clock text-secondary"></i> Peserta Belum Dikonfirmasi</h5>
-                <table id="tabelPesertaBelumDikonfirmasi" class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>ID Santri</th>
-                            <th>Nama Santri</th>
-                            <th>Tempat Lahir</th>
-                            <th>Tanggal Lahir</th>
-                            <th>Jenis Kelamin</th>
-                            <th>Nama Ayah</th>
-                            <th>TPQ</th>
-                            <th>Alamat</th>
-                            <th>Tahun Ajaran</th>
-                            <th>Status Verifikasi</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php $no = 1; ?>
-                        <?php foreach ($pesertaBelumDikonfirmasi as $row): ?>
+                <div>
+                    <h5 class="mb-3"><i class="fas fa-clock text-secondary"></i> Peserta Belum Dikonfirmasi</h5>
+                    <div class="alert alert-secondary mb-3">
+                        <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                        <span class="text-white ml-2">Tabel ini menampilkan peserta yang belum melakukan konfirmasi data. Peserta dengan status ini belum diverifikasi oleh orang tua/wali santri. Anda dapat menggunakan tombol <strong>Edit</strong> untuk mengubah data peserta, atau tombol <strong>Hapus</strong> untuk menghapus peserta dari daftar munaqosah.</span>
+                    </div>
+                    <table id="tabelPesertaBelumDikonfirmasi" class="table table-bordered table-striped">
+                        <thead>
                             <tr>
-                                <td><?= $no++ ?></td>
-                                <td><?= $row->IdSantri ?? '-' ?></td>
-                                <td><?= $row->NamaSantri ?? '-' ?></td>
-                                <td><?= $row->TempatLahirSantri ?? '-' ?></td>
-                                <td><?= $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '-' ?></td>
-                                <td><?= $row->JenisKelamin ?? '-' ?></td>
-                                <td><?= $row->NamaAyah ?? '-' ?></td>
-                                <td><?= $row->NamaTpq ?? '-' ?></td>
-                                <td><?= $row->KelurahanDesa ?? '-' ?></td>
-                                <td><?= $row->IdTahunAjaran ?? '-' ?></td>
-                                <td><span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span></td>
-                                <td>
-                                    <button type="button" class="btn btn-warning btn-sm mr-1"
-                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
-                                        title="Edit">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <button type="button" class="btn btn-danger btn-sm"
-                                        onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
+                                <th>No</th>
+                                <th>Aksi</th>
+                                <th>ID Santri</th>
+                                <th>Nama Santri</th>
+                                <th>Tempat/Tanggal Lahir</th>
+                                <th>Jenis Kelamin</th>
+                                <th>Nama Ayah</th>
+                                <th>TPQ/Alamat</th>
+                                <th>Tahun Ajaran</th>
+                                <th>Status Verifikasi</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            <?php $no = 1; ?>
+                            <?php foreach ($pesertaBelumDikonfirmasi as $row): ?>
+                                <?php
+                                $tempatLahir = $row->TempatLahirSantri ?? '';
+                                $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
+                                $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
+                                
+                                $namaTpq = $row->NamaTpq ?? '';
+                                $alamat = $row->KelurahanDesa ?? '';
+                                $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
+                                ?>
+                                <tr>
+                                    <td><?= $no++ ?></td>
+                                    <td>
+                                        <button type="button" class="btn btn-warning btn-sm mr-1" style="min-width: 80px;"
+                                            onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
+                                            title="Edit">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm" style="min-width: 80px;"
+                                            onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')"
+                                            title="Hapus">
+                                            <i class="fas fa-trash"></i> Hapus
+                                        </button>
+                                    </td>
+                                    <td><?= $row->IdSantri ?? '-' ?></td>
+                                    <td><?= $row->NamaSantri ?? '-' ?></td>
+                                    <td><?= $tempatTanggalLahir ?></td>
+                                    <td><?= $row->JenisKelamin ?? '-' ?></td>
+                                    <td><?= $row->NamaAyah ?? '-' ?></td>
+                                    <td><?= $tpqAlamat ?></td>
+                                    <td><?= $row->IdTahunAjaran ?? '-' ?></td>
+                                    <td><span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php endif; ?>
         </div>
     </div>
@@ -395,11 +467,32 @@
                                         <label for="IdKelas">Kelas</label>
                                         <select class="form-control select2" id="IdKelas" name="IdKelas">
                                             <option value="">Semua Kelas</option>
-                                            <?php foreach ($dataKelas as $kelas): ?>
-                                                <?php if ($kelas['NamaKelas'] !== 'ALUMNI' && $kelas['NamaKelas'] !== 'NA'): ?>
-                                                    <option value="<?= $kelas['IdKelas'] ?>"><?= $kelas['NamaKelas'] ?></option>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
+                                            <?php
+                                            // Ambil IdTpq default untuk mapping MDA
+                                            $defaultIdTpq = session()->get('IdTpq');
+                                            if (count($dataTpq) == 1 && !empty($dataTpq[0]['IdTpq'])) {
+                                                $defaultIdTpq = $dataTpq[0]['IdTpq'];
+                                            }
+
+                                            // Helper untuk mapping MDA
+                                            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+
+                                            foreach ($dataKelas as $kelas):
+                                                if ($kelas['NamaKelas'] !== 'ALUMNI' && $kelas['NamaKelas'] !== 'NA'):
+                                                    $namaKelasOriginal = $kelas['NamaKelas'];
+
+                                                    // Check MDA mapping dan convert nama kelas jika sesuai
+                                                    $mdaCheckResult = $helpFunctionModel->checkMdaKelasMapping($defaultIdTpq ?? 0, $namaKelasOriginal);
+                                                    $namaKelasDisplay = $helpFunctionModel->convertKelasToMda(
+                                                        $namaKelasOriginal,
+                                                        $mdaCheckResult['mappedMdaKelas']
+                                                    );
+                                            ?>
+                                                    <option value="<?= $kelas['IdKelas'] ?>"><?= esc($namaKelasDisplay) ?></option>
+                                            <?php
+                                                endif;
+                                            endforeach;
+                                            ?>
                                         </select>
                                     </div>
                                 </div>
@@ -408,6 +501,10 @@
                                 <button type="button" class="btn btn-info" id="btnLoadSantri">
                                     <i class="fas fa-search"></i> Tampilkan Data Santri
                                 </button>
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                                <span class="text-primary small ml-2">Pilih TPQ dan/atau Kelas untuk memfilter daftar santri yang tersedia. Setelah memilih filter, klik tombol "Tampilkan Data Santri" untuk memuat daftar santri sesuai filter yang dipilih.</span>
                             </div>
                         </div>
                     </div>
@@ -450,6 +547,10 @@
                                     </table>
                                 </div>
                             </div>
+                            <div class="mt-3">
+                                <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                                <span class="text-primary small ml-2">Centang checkbox pada santri yang ingin ditambahkan sebagai peserta munaqosah. Anda dapat memilih beberapa santri sekaligus dengan mencentang checkbox di setiap baris, atau gunakan checkbox "Select All" di header tabel untuk memilih semua santri yang ditampilkan.</span>
+                            </div>
                         </div>
                     </div>
 
@@ -461,6 +562,10 @@
                         <div class="card-body">
                             <div id="selectedSantriList">
                                 <!-- Daftar santri yang dipilih akan muncul di sini -->
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                                <span class="text-primary small ml-2">Review daftar santri yang telah dipilih. Pastikan semua data sudah benar sebelum menyimpan. Setelah yakin, klik tombol "Simpan Peserta" di bagian bawah modal untuk menyimpan peserta munaqosah yang dipilih.</span>
                             </div>
                         </div>
                     </div>
@@ -525,7 +630,7 @@
                                     </ul>
                                 </li>
                                 <li class="mb-2">
-                                    <strong>Lakukan Perbaikan:</strong> 
+                                    <strong>Lakukan Perbaikan:</strong>
                                     <ul style="margin-top: 5px; padding-left: 20px;">
                                         <li>Gunakan toggle switch <strong>"Terima"</strong> pada tabel untuk menerima usulan perbaikan</li>
                                         <li>Atau edit manual di form fields di bawah tabel</li>
@@ -533,12 +638,12 @@
                                     </ul>
                                 </li>
                                 <li class="mb-2">
-                                    <strong>Konfirmasi Perbaikan:</strong> Setelah selesai review, klik tombol 
-                                    <span class="badge badge-success badge-sm"><i class="fas fa-check"></i> Konfirmasi Perbaikan</span> 
+                                    <strong>Konfirmasi Perbaikan:</strong> Setelah selesai review, klik tombol
+                                    <span class="badge badge-success badge-sm"><i class="fas fa-check"></i> Konfirmasi Perbaikan</span>
                                     di bagian bawah modal untuk menyetujui perbaikan.
                                 </li>
                                 <li class="mb-2">
-                                    <strong>Hasil:</strong> Status akan berubah menjadi <span class="badge badge-success badge-sm">Valid</span> 
+                                    <strong>Hasil:</strong> Status akan berubah menjadi <span class="badge badge-success badge-sm">Valid</span>
                                     dan data tersimpan di data utama santri.
                                 </li>
                             </ol>
@@ -1013,11 +1118,11 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
-    .toggle-switch-input:checked + .toggle-switch-slider {
+    .toggle-switch-input:checked+.toggle-switch-slider {
         background-color: #28a745;
     }
 
-    .toggle-switch-input:checked + .toggle-switch-slider:before {
+    .toggle-switch-input:checked+.toggle-switch-slider:before {
         transform: translateX(45px);
     }
 
@@ -1039,11 +1144,11 @@
         opacity: 1;
     }
 
-    .toggle-switch-input:checked + .toggle-switch-slider .toggle-switch-label-on {
+    .toggle-switch-input:checked+.toggle-switch-slider .toggle-switch-label-on {
         opacity: 1;
     }
 
-    .toggle-switch-input:checked + .toggle-switch-slider .toggle-switch-label-off {
+    .toggle-switch-input:checked+.toggle-switch-slider .toggle-switch-label-off {
         opacity: 0;
     }
 
@@ -1324,56 +1429,58 @@
     .os-scrollbar-handle:hover {
         background: #a8a8a8 !important;
     }
+
+    /* Konsistensi ukuran tombol Edit dan Hapus */
+    #tabelPesertaBelumDikonfirmasi .btn-sm,
+    #tabelPesertaValid .btn-sm,
+    #tabelPesertaPerluPerbaikan .btn-sm {
+        min-width: 80px;
+        padding: 0.25rem 0.5rem;
+    }
 </style>
 <script>
     $(document).ready(function() {
         console.log('Document ready - initializing...');
 
-        // Inisialisasi DataTables untuk Tabel Peserta Valid
+        // Inisialisasi DataTables untuk Tabel Peserta Valid dengan scrollX
         if ($('#tabelPesertaValid').length > 0) {
             try {
-                var tableValid = $('#tabelPesertaValid').DataTable({
-                    "responsive": true,
-                    "lengthChange": false,
-                    "autoWidth": false,
+                var buttonsValid = [{
+                        extend: 'pdf',
+                        text: 'PDF',
+                        className: 'btn btn-danger btn-sm',
+                        title: 'Data Peserta Valid',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    },
+                    {
+                        extend: 'excel',
+                        text: 'Excel',
+                        className: 'btn btn-success btn-sm',
+                        title: 'Data Peserta Valid',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        text: 'Print',
+                        className: 'btn btn-info btn-sm',
+                        title: 'Data Peserta Valid',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    }
+                ];
+
+                var tableValid = initializeDataTableScrollX('#tabelPesertaValid', buttonsValid, {
                     "dom": 'Bfrtip',
                     "language": {
                         "emptyTable": "Tidak ada data peserta valid",
                         "zeroRecords": "Tidak ada data yang cocok"
-                    },
-                    // munculkan menu untuk export data ke pdf,excel,print
-                    "buttons": [{
-                            extend: 'pdf',
-                            text: 'PDF',
-                            className: 'btn btn-danger btn-sm',
-                            title: 'Data Peserta Valid',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // All columns except action
-                            }
-                        },
-                        {
-                            extend: 'excel',
-                            text: 'Excel',
-                            className: 'btn btn-success btn-sm',
-                            title: 'Data Peserta Valid',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // All columns except action
-                            }
-                        },
-                        {
-                            extend: 'print',
-                            text: 'Print',
-                            className: 'btn btn-info btn-sm',
-                            title: 'Data Peserta Valid',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // All columns except action
-                            }
-                        }
-                    ]
+                    }
                 });
-
-                // Pastikan button container ditambahkan ke wrapper
-                tableValid.buttons().container().appendTo('#tabelPesertaValid_wrapper .col-md-6:eq(0)');
                 console.log('DataTables for Valid table initialized successfully');
             } catch (error) {
                 console.error('DataTables initialization error for Valid table:', error);
@@ -1382,51 +1489,45 @@
             }
         }
 
-        // Inisialisasi DataTables untuk Tabel Peserta Perlu Perbaikan
+        // Inisialisasi DataTables untuk Tabel Peserta Perlu Perbaikan dengan scrollX
         if ($('#tabelPesertaPerluPerbaikan').length > 0) {
             try {
-                var tablePerluPerbaikan = $('#tabelPesertaPerluPerbaikan').DataTable({
-                    "responsive": true,
-                    "lengthChange": false,
-                    "autoWidth": false,
+                var buttonsPerbaikan = [{
+                        extend: 'pdf',
+                        text: 'PDF',
+                        className: 'btn btn-danger btn-sm',
+                        title: 'Data Peserta Perlu Perbaikan',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    },
+                    {
+                        extend: 'excel',
+                        text: 'Excel',
+                        className: 'btn btn-success btn-sm',
+                        title: 'Data Peserta Perlu Perbaikan',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        text: 'Print',
+                        className: 'btn btn-info btn-sm',
+                        title: 'Data Peserta Perlu Perbaikan',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    }
+                ];
+
+                var tablePerluPerbaikan = initializeDataTableScrollX('#tabelPesertaPerluPerbaikan', buttonsPerbaikan, {
                     "dom": 'Bfrtip',
                     "language": {
                         "emptyTable": "Tidak ada data peserta perlu perbaikan",
                         "zeroRecords": "Tidak ada data yang cocok"
-                    },
-                    // munculkan menu untuk export data ke pdf,excel,print
-                    "buttons": [{
-                            extend: 'pdf',
-                            text: 'PDF',
-                            className: 'btn btn-danger btn-sm',
-                            title: 'Data Peserta Perlu Perbaikan',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
-                            }
-                        },
-                        {
-                            extend: 'excel',
-                            text: 'Excel',
-                            className: 'btn btn-success btn-sm',
-                            title: 'Data Peserta Perlu Perbaikan',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
-                            }
-                        },
-                        {
-                            extend: 'print',
-                            text: 'Print',
-                            className: 'btn btn-info btn-sm',
-                            title: 'Data Peserta Perlu Perbaikan',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
-                            }
-                        }
-                    ]
+                    }
                 });
-
-                // Pastikan button container ditambahkan ke wrapper
-                tablePerluPerbaikan.buttons().container().appendTo('#tabelPesertaPerluPerbaikan_wrapper .col-md-6:eq(0)');
                 console.log('DataTables for Perlu Perbaikan table initialized successfully');
             } catch (error) {
                 console.error('DataTables initialization error for Perlu Perbaikan table:', error);
@@ -1435,51 +1536,45 @@
             }
         }
 
-        // Inisialisasi DataTables untuk Tabel Peserta Belum Dikonfirmasi
+        // Inisialisasi DataTables untuk Tabel Peserta Belum Dikonfirmasi dengan scrollX
         if ($('#tabelPesertaBelumDikonfirmasi').length > 0) {
             try {
-                var tableBelumDikonfirmasi = $('#tabelPesertaBelumDikonfirmasi').DataTable({
-                    "responsive": true,
-                    "lengthChange": false,
-                    "autoWidth": false,
+                var buttonsBelumDikonfirmasi = [{
+                        extend: 'pdf',
+                        text: 'PDF',
+                        className: 'btn btn-danger btn-sm',
+                        title: 'Data Peserta Belum Dikonfirmasi',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    },
+                    {
+                        extend: 'excel',
+                        text: 'Excel',
+                        className: 'btn btn-success btn-sm',
+                        title: 'Data Peserta Belum Dikonfirmasi',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        text: 'Print',
+                        className: 'btn btn-info btn-sm',
+                        title: 'Data Peserta Belum Dikonfirmasi',
+                        exportOptions: {
+                            columns: [0, 2, 3, 4, 5, 6, 7, 8, 9] // All columns except action (column 1)
+                        }
+                    }
+                ];
+
+                var tableBelumDikonfirmasi = initializeDataTableScrollX('#tabelPesertaBelumDikonfirmasi', buttonsBelumDikonfirmasi, {
                     "dom": 'Bfrtip',
                     "language": {
                         "emptyTable": "Tidak ada data peserta belum dikonfirmasi",
                         "zeroRecords": "Tidak ada data yang cocok"
-                    },
-                    // munculkan menu untuk export data ke pdf,excel,print
-                    "buttons": [{
-                            extend: 'pdf',
-                            text: 'PDF',
-                            className: 'btn btn-danger btn-sm',
-                            title: 'Data Peserta Belum Dikonfirmasi',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
-                            }
-                        },
-                        {
-                            extend: 'excel',
-                            text: 'Excel',
-                            className: 'btn btn-success btn-sm',
-                            title: 'Data Peserta Belum Dikonfirmasi',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
-                            }
-                        },
-                        {
-                            extend: 'print',
-                            text: 'Print',
-                            className: 'btn btn-info btn-sm',
-                            title: 'Data Peserta Belum Dikonfirmasi',
-                            exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Include status verifikasi, exclude action column
-                            }
-                        }
-                    ]
+                    }
                 });
-
-                // Pastikan button container ditambahkan ke wrapper
-                tableBelumDikonfirmasi.buttons().container().appendTo('#tabelPesertaBelumDikonfirmasi_wrapper .col-md-6:eq(0)');
                 console.log('DataTables for Belum Dikonfirmasi table initialized successfully');
             } catch (error) {
                 console.error('DataTables initialization error for Belum Dikonfirmasi table:', error);

@@ -132,6 +132,50 @@
                 </div>
             <?php endif; ?>
 
+            <!-- Tabel List TPQ dengan Jumlah Peserta -->
+            <?php
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = empty($sessionIdTpq) || $sessionIdTpq == 0;
+            $isPanitia = in_groups('Panitia');
+            $isPanitiaTpq = isset($is_panitia_tpq) && $is_panitia_tpq;
+            // Tampilkan tabel hanya untuk Admin atau Panitia munaqosah umum (bukan panitia TPQ)
+            $showTpqList = ($isAdmin || ($isPanitia && !$isPanitiaTpq));
+            ?>
+            <?php if ($showTpqList): ?>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-list"></i> Daftar TPQ dengan Peserta Terdaftar
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="tpqListTable">
+                                    <thead>
+                                        <tr>
+                                            <th width="5%">No</th>
+                                            <th width="50%">TPQ</th>
+                                            <th width="20%">Jumlah Peserta</th>
+                                            <th width="25%">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tpqListTableBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center">
+                                                <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="row">
                 <div class="col-12">
                     <div class="card">
@@ -286,6 +330,163 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<script>
+    // Load TPQ List Data
+    <?php if ($showTpqList): ?>
+    function loadTpqListData() {
+        const typeUjian = $('#typeUjian').val();
+        
+        $.ajax({
+            url: '<?= base_url('backend/munaqosah/getListTpqWithPeserta') ?>',
+            type: 'GET',
+            data: {
+                typeUjian: typeUjian
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    populateTpqListTable(response.data);
+                } else {
+                    $('#tpqListTableBody').html('<tr><td colspan="4" class="text-center text-danger">Gagal memuat data TPQ</td></tr>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading TPQ list:', error);
+                $('#tpqListTableBody').html('<tr><td colspan="4" class="text-center text-danger">Terjadi kesalahan saat memuat data</td></tr>');
+            }
+        });
+    }
+
+    function populateTpqListTable(tpqData) {
+        const tbody = $('#tpqListTableBody');
+        tbody.empty();
+
+        if (tpqData.length === 0) {
+            tbody.html('<tr><td colspan="4" class="text-center text-muted">Tidak ada data TPQ dengan peserta terdaftar</td></tr>');
+            return;
+        }
+
+        tpqData.forEach(function(tpq, index) {
+            const row = `
+                <tr>
+                    <td class="text-center">${index + 1}</td>
+                    <td>${tpq.NamaTpq || '-'}</td>
+                    <td class="text-center">
+                        <span class="badge badge-info">${tpq.jumlah_peserta || 0}</span>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-primary print-tpq-btn" 
+                                data-id-tpq="${tpq.IdTpq}" 
+                                data-nama-tpq="${tpq.NamaTpq || ''}"
+                                data-kelurahan-desa="${tpq.KelurahanDesa || ''}">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    // Handle print button click per TPQ
+    $(document).on('click', '.print-tpq-btn', function() {
+        const idTpq = $(this).data('id-tpq');
+        const namaTpq = $(this).data('nama-tpq');
+        const kelurahanDesa = $(this).data('kelurahan-desa');
+        const typeUjian = $('#typeUjian').val();
+        const tahunAjaran = $('#tahunAjaran').val();
+        const typeUjianText = typeUjian === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
+
+        Swal.fire({
+            title: 'Print Kartu Ujian per TPQ',
+            html: `
+                <div class="text-left">
+                    <p><strong>TPQ:</strong> ${namaTpq}</p>
+                    <p><strong>Kelurahan/Desa:</strong> ${kelurahanDesa || '-'}</p>
+                    <p><strong>Type Ujian:</strong> ${typeUjianText}</p>
+                    <p><strong>Tahun Ajaran:</strong> ${tahunAjaran}</p>
+                    <p class="text-info"><strong>Format File:</strong> NamaLembaga_KelurahanDesa_TahunAjaran.pdf</p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#17a2b8',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Print Sekarang',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                printKartuUjianPerTpq(idTpq, namaTpq, typeUjian, tahunAjaran);
+            }
+        });
+    });
+
+    function printKartuUjianPerTpq(idTpq, namaTpq, typeUjian, tahunAjaran) {
+        // Show loading
+        Swal.fire({
+            title: 'Menyiapkan Kartu Ujian...',
+            text: `Sedang memproses kartu ujian untuk ${namaTpq}`,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Prepare data for print
+        const printData = {
+            idTpq: idTpq,
+            typeUjian: typeUjian,
+            tahunAjaran: tahunAjaran
+        };
+
+        // Create form for POST request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '<?= base_url('backend/munaqosah/printKartuUjianPerTpq') ?>';
+        form.target = '_blank';
+
+        // Add form fields
+        Object.keys(printData).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = printData[key];
+            form.appendChild(input);
+        });
+
+        // Add CSRF token if available
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '<?= csrf_token() ?>';
+            csrfInput.value = csrfToken.getAttribute('content');
+            form.appendChild(csrfInput);
+        }
+
+        // Submit form
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+
+        // Close loading
+        Swal.close();
+
+        // Show success message
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Kartu Ujian Dibuka!',
+            text: `Kartu ujian untuk ${namaTpq} telah dibuka dalam tab baru`,
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+    }
+    <?php endif; ?>
+</script>
 <style>
     /* Checkbox alignment fixes */
     #santriTable th:first-child,
@@ -539,6 +740,13 @@
             console.log('Final Kelas value before loadSantriData:', $('#filterKelas').val());
             console.log('Final Type Ujian value before loadSantriData:', $('#typeUjian').val());
             loadSantriData();
+
+            // Load TPQ list data if table is shown
+            <?php if ($showTpqList): ?>
+            if (typeof loadTpqListData === 'function') {
+                loadTpqListData();
+            }
+            <?php endif; ?>
         }, 100);
 
         // Add clear preferences button functionality (only for admin users)
@@ -575,6 +783,13 @@
 
             // Load data with loading indicator
             loadSantriData();
+
+            // Reload TPQ list if table is shown
+            <?php if ($showTpqList): ?>
+            if (typeof loadTpqListData === 'function') {
+                loadTpqListData();
+            }
+            <?php endif; ?>
         });
 
 
