@@ -353,6 +353,12 @@
                                         <p>Jadwal Peserta Ujian</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/export-hasil-munaqosah') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Nilai Kelulusan</p>
+                                    </a>
+                                </li>
                             <?php endif; ?>
                             <?php if ($hasOperatorRole): ?>
                                 <li class="nav-item">

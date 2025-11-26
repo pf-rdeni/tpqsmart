@@ -9164,6 +9164,68 @@ class Munaqosah extends BaseController
         return view('backend/Munaqosah/kelulusanUjian', $data);
     }
 
+    public function exportHasilMunaqosah()
+    {
+        helper('munaqosah');
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $idTpq = session()->get('IdTpq');
+        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+
+        $statistik = getStatistikMunaqosah();
+
+        // Cek setting AktiveTombolKelulusan dengan IdTpq == 0 (setting global/admin)
+        // Operator/Kepala TPQ hanya bisa memilih munaqosah jika setting ini aktif
+        $aktiveTombolKelulusan = false;
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+
+        // Cek apakah user adalah Operator
+        $isOperator = in_groups('Operator');
+
+        // Cek apakah user adalah Kepala TPQ
+        $isKepalaTpq = false;
+        $idGuru = session()->get('IdGuru');
+        if (!empty($idGuru) && !empty($idTpq)) {
+            try {
+                $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                foreach ($strukturLembaga as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaTpq = true;
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore error
+            }
+        }
+
+        if (!$isAdmin) {
+            // Cek setting dengan IdTpq == 0 terlebih dahulu (setting global)
+            // Hanya Operator atau Kepala TPQ yang bisa melihat filter Munaqosah jika setting aktif
+            if ($isOperator || $isKepalaTpq) {
+                $aktiveTombolKelulusan = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+            }
+        } else {
+            // Admin selalu bisa melihat semua Type Ujian
+            $aktiveTombolKelulusan = true;
+        }
+
+        $data = [
+            'page_title' => 'Export Hasil Munaqosah',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'tpqDropdown' => $dataTpq,
+            'statistik' => $statistik,
+            'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+            'isKepalaTpq' => $isKepalaTpq,
+        ];
+
+        return view('backend/Munaqosah/exportHasilMunaqosah', $data);
+    }
+
     private function buildMonitoringDataset(string $idTahunAjaran, ?int $idTpq = 0, ?string $typeParam = null, bool $includeBobot = false, ?string $targetNoPeserta = null): array
     {
         try {
@@ -9490,6 +9552,300 @@ class Munaqosah extends BaseController
             ];
         } catch (\Throwable $e) {
             log_message('error', 'Error in buildMonitoringDataset: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ];
+        }
+    }
+
+    private function buildExportHasilMunaqosahDataset(string $idTahunAjaran, ?int $idTpq = 0, ?string $typeParam = null, bool $includeBobot = false, ?string $targetNoPeserta = null): array
+    {
+        try {
+            $idTahunAjaran = trim($idTahunAjaran);
+            if ($idTahunAjaran === '') {
+                return [
+                    'success' => false,
+                    'message' => 'IdTahunAjaran harus diisi'
+                ];
+            }
+
+            $idTpq = (int)($idTpq ?? 0);
+            $allowedTypes = ['munaqosah', 'pra-munaqosah'];
+            $typeParam = $typeParam !== null ? strtolower($typeParam) : null;
+            $typeUjian = in_array($typeParam, $allowedTypes, true)
+                ? $typeParam
+                : (($idTpq !== 0) ? 'pra-munaqosah' : 'munaqosah');
+
+            $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+            $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.IdKategoriMateri,r.IdGrupMateriUjian,r.TypeUjian, s.NamaSantri, s.JenisKelamin, s.TanggalLahirSantri, s.TempatLahirSantri, s.NamaAyah, t.NamaTpq, t.Alamat AS KelurahanDesaTpq, km.NamaKategoriMateri');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
+            $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
+            $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
+            $builder->where('r.IdTahunAjaran', $idTahunAjaran);
+            $builder->where('r.TypeUjian', $typeUjian);
+            if (!empty($idTpq)) {
+                $builder->where('r.IdTpq', $idTpq);
+            }
+            if (!empty($targetNoPeserta)) {
+                $builder->where('r.NoPeserta', $targetNoPeserta);
+            }
+
+            $registrasiRows = $builder->get()->getResultArray();
+
+            if (empty($registrasiRows)) {
+                return [
+                    'success' => $targetNoPeserta ? false : true,
+                    'message' => $targetNoPeserta ? 'Peserta tidak ditemukan untuk parameter yang diberikan' : null,
+                    'data' => [
+                        'categories' => [],
+                        'rows' => [],
+                        'meta' => [
+                            'IdTahunAjaran' => $idTahunAjaran,
+                            'TypeUjian' => $typeUjian,
+                            'IdTpq' => $idTpq,
+                            'bobot_source' => $includeBobot ? $idTahunAjaran : null,
+                            'has_bobot' => false,
+                            'requested_no_peserta' => $targetNoPeserta,
+                        ]
+                    ]
+                ];
+            }
+
+            $bobotData = ['map' => [], 'source' => $idTahunAjaran];
+            if ($includeBobot) {
+                $bobotData = $this->getBobotWeightData($idTahunAjaran);
+            }
+            $bobotMap = $bobotData['map'];
+            $bobotSource = $bobotData['source'];
+
+            $categoriesMap = [];
+            $grupMateriMap = [];
+
+            foreach ($registrasiRows as $row) {
+                $catId = $row['IdKategoriMateri'];
+                if (empty($catId)) {
+                    continue;
+                }
+                if (!isset($categoriesMap[$catId])) {
+                    $idGrupMateriUjian = $row['IdGrupMateriUjian'] ?? null;
+                    $grupMateriMap[$catId] = $idGrupMateriUjian;
+
+                    $categoriesMap[$catId] = [
+                        'id' => $catId,
+                        'name' => $row['NamaKategoriMateri'] ?? $catId,
+                        'weight' => isset($bobotMap[$catId]) ? (float)$bobotMap[$catId] : 0.0,
+                        'IdGrupMateriUjian' => $idGrupMateriUjian,
+                    ];
+                }
+            }
+
+            // Ambil konfigurasi MaxJuriPerRoom untuk setiap kategori
+            foreach ($categoriesMap as $catId => $catData) {
+                $idGrupMateriUjian = $catData['IdGrupMateriUjian'] ?? null;
+                $maxJuri = 2; // Default 2 juri
+
+                if (!empty($idGrupMateriUjian)) {
+                    $configIdTpq = ($idTpq != 0 && !empty($idTpq)) ? (string)$idTpq : 'default';
+                    $settingKey = 'MaxJuriPerRoom_' . $idGrupMateriUjian;
+                    $maxJuriSetting = $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, $settingKey);
+
+                    if ($maxJuriSetting !== null && is_numeric($maxJuriSetting)) {
+                        $maxJuri = (int)$maxJuriSetting;
+                    }
+                }
+
+                $categoriesMap[$catId]['maxJuri'] = $maxJuri;
+            }
+
+            ksort($categoriesMap);
+            $categories = array_values($categoriesMap);
+
+            // Ambil HasKey dari tbl_munaqosah_peserta untuk semua IdSantri
+            $idSantriList = array_unique(array_column($registrasiRows, 'IdSantri'));
+            $hasKeyMap = [];
+            if (!empty($idSantriList)) {
+                $hasKeyRows = $this->db->table('tbl_munaqosah_peserta')
+                    ->select('IdSantri, HasKey')
+                    ->whereIn('IdSantri', $idSantriList)
+                    ->where('IdTahunAjaran', $idTahunAjaran)
+                    ->get()
+                    ->getResultArray();
+
+                foreach ($hasKeyRows as $hkRow) {
+                    $hasKeyMap[$hkRow['IdSantri']] = $hkRow['HasKey'] ?? null;
+                }
+            }
+
+            $pesertaInfo = [];
+            helper('nilai');
+            foreach ($registrasiRows as $row) {
+                $np = $row['NoPeserta'];
+                if (!isset($pesertaInfo[$np])) {
+                    // Format tanggal lahir ke format Indonesia
+                    $tanggalLahir = $row['TanggalLahirSantri'] ?? null;
+                    $tanggalLahirFormatted = '-';
+                    if (!empty($tanggalLahir) && $tanggalLahir !== '-') {
+                        try {
+                            $tanggalLahirFormatted = formatTanggalIndonesia($tanggalLahir, 'd F Y');
+                        } catch (\Exception $e) {
+                            $tanggalLahirFormatted = $tanggalLahir;
+                        }
+                    }
+
+                    $pesertaInfo[$np] = [
+                        'NoPeserta' => $np,
+                        'IdSantri' => $row['IdSantri'],
+                        'IdTpq' => $row['IdTpq'],
+                        'NamaSantri' => $row['NamaSantri'] ?? '-',
+                        'JenisKelamin' => $row['JenisKelamin'] ?? '-',
+                        'NamaTpq' => $row['NamaTpq'] ?? '-',
+                        'KelurahanDesaTpq' => $row['KelurahanDesaTpq'] ?? '-',
+                        'TypeUjian' => $row['TypeUjian'],
+                        'IdTahunAjaran' => $row['IdTahunAjaran'],
+                        'HasKey' => $hasKeyMap[$row['IdSantri']] ?? null,
+                        'TanggalLahirSantri' => $tanggalLahirFormatted,
+                        'TempatLahirSantri' => $row['TempatLahirSantri'] ?? '-',
+                        'NamaAyah' => $row['NamaAyah'] ?? '-',
+                    ];
+                }
+            }
+
+            $noPesertaList = array_keys($pesertaInfo);
+
+            $nilaiBuilder = $this->db->table('tbl_munaqosah_nilai n');
+            $nilaiBuilder->select('n.NoPeserta,n.IdKategoriMateri,n.Nilai,n.RoomId,j.UsernameJuri');
+            $nilaiBuilder->join('tbl_munaqosah_juri j', 'j.IdJuri = n.IdJuri', 'left');
+            $nilaiBuilder->where('n.IdTahunAjaran', $idTahunAjaran);
+            $nilaiBuilder->where('n.TypeUjian', $typeUjian);
+            $nilaiBuilder->whereIn('n.NoPeserta', $noPesertaList);
+            $nilaiRows = $nilaiBuilder->get()->getResultArray();
+
+            $extractJuriNumber = function ($username) {
+                if (empty($username)) return 0;
+                $parts = explode('.', $username);
+                $lastPart = end($parts);
+                return is_numeric($lastPart) ? (int)$lastPart : 0;
+            };
+
+            $normalizeJuriNumber = function ($juriNumber, $maxJuri) {
+                if ($juriNumber < 1 || $maxJuri < 1) {
+                    return 0;
+                }
+                return (($juriNumber - 1) % $maxJuri) + 1;
+            };
+
+            $nilaiIndex = [];
+
+            foreach ($nilaiRows as $row) {
+                $np = $row['NoPeserta'];
+                $catId = $row['IdKategoriMateri'];
+                if ($catId === null) {
+                    continue;
+                }
+
+                $configuredMaxJuri = isset($categoriesMap[$catId]['maxJuri']) ? (int)$categoriesMap[$catId]['maxJuri'] : 2;
+                $juriNumberAbsolute = $extractJuriNumber($row['UsernameJuri'] ?? '');
+
+                if ($juriNumberAbsolute < 1) {
+                    continue;
+                }
+
+                $normalizedJuriNumber = $normalizeJuriNumber($juriNumberAbsolute, $configuredMaxJuri);
+
+                if ($normalizedJuriNumber < 1 || $normalizedJuriNumber > $configuredMaxJuri) {
+                    continue;
+                }
+
+                if (!isset($nilaiIndex[$np])) {
+                    $nilaiIndex[$np] = [];
+                }
+                if (!isset($nilaiIndex[$np][$catId])) {
+                    $nilaiIndex[$np][$catId] = [];
+                }
+
+                $index = $normalizedJuriNumber - 1;
+                $nilaiIndex[$np][$catId][$index] = (float)$row['Nilai'];
+            }
+
+            $rows = [];
+            foreach ($pesertaInfo as $np => $info) {
+                $row = $info;
+                $row['nilai'] = [];
+                if ($includeBobot) {
+                    $row['averages'] = [];
+                    $row['weighted'] = [];
+                }
+
+                foreach ($categories as $cat) {
+                    $catId = $cat['id'];
+                    $rawScoresUnordered = $nilaiIndex[$np][$catId] ?? [];
+                    $maxJuri = $cat['maxJuri'] ?? 2;
+
+                    ksort($rawScoresUnordered);
+
+                    $scores = [];
+                    for ($i = 0; $i < $maxJuri; $i++) {
+                        $scores[$i] = isset($rawScoresUnordered[$i]) ? (float)$rawScoresUnordered[$i] : 0.0;
+                    }
+
+                    $row['nilai'][$catId] = $scores;
+
+                    if ($includeBobot) {
+                        $validScores = array_filter($scores, function ($score) {
+                            return $score > 0;
+                        });
+                        $validScores = array_values($validScores);
+
+                        if (count($validScores) === 1) {
+                            $average = (float)$validScores[0];
+                        } else if (count($validScores) > 1) {
+                            $average = $this->computeAverageScore($validScores);
+                        } else {
+                            $average = 0.0;
+                        }
+
+                        $weight = isset($bobotMap[$catId]) ? (float)$bobotMap[$catId] : 0.0;
+                        $weightedScore = round(($average * $weight) / 100, 2);
+
+                        $row['averages'][$catId] = $average;
+                        $row['weighted'][$catId] = $weightedScore;
+                    }
+                }
+
+                if ($includeBobot) {
+                    $totalWeighted = array_sum($row['weighted']);
+                    $totalWeighted = round($totalWeighted, 2);
+                    $threshold = $this->getKelulusanThresholdForTpq($row['IdTpq'] ?? null);
+
+                    $row['total_weighted'] = $totalWeighted;
+                    $row['kelulusan_threshold'] = $threshold;
+                    $row['kelulusan_met'] = $totalWeighted >= $threshold;
+                    $row['kelulusan_status'] = $row['kelulusan_met'] ? 'Lulus' : 'Belum Lulus';
+                    $row['kelulusan_difference'] = round($totalWeighted - $threshold, 2);
+                }
+
+                $rows[] = $row;
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'categories' => $categories,
+                    'rows' => $rows,
+                    'meta' => [
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'TypeUjian' => $typeUjian,
+                        'IdTpq' => $idTpq,
+                        'bobot_source' => $includeBobot ? $bobotSource : null,
+                        'has_bobot' => $includeBobot && !empty($bobotMap),
+                        'requested_no_peserta' => $targetNoPeserta,
+                    ]
+                ]
+            ];
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in buildExportHasilMunaqosahDataset: ' . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'Terjadi kesalahan sistem',
@@ -9881,6 +10237,34 @@ class Munaqosah extends BaseController
             return $this->response->setJSON($result);
         } catch (\Throwable $e) {
             log_message('error', 'Error in getKelulusanData: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getExportHasilMunaqosahData()
+    {
+        try {
+            $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
+            if (empty($idTahunAjaran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTahunAjaran harus diisi'
+                ]);
+            }
+
+            $idTpqParam = $this->request->getGet('IdTpq');
+            $idTpq = ($idTpqParam === null || $idTpqParam === '') ? 0 : (int)$idTpqParam;
+            $typeParam = $this->request->getGet('TypeUjian');
+
+            $result = $this->buildExportHasilMunaqosahDataset($idTahunAjaran, $idTpq, $typeParam, true);
+
+            return $this->response->setJSON($result);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getExportHasilMunaqosahData: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Terjadi kesalahan sistem',
