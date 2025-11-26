@@ -193,7 +193,8 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             '<th class="dt-left">Tanggal Lahir</th>' +
             '<th class="dt-left">Tempat Lahir</th>' +
             '<th class="dt-left">Nama Ayah</th>' +
-            '<th class="dt-left">TPQ</th>' +
+            '<th class="dt-left">Nama TPQ</th>' +
+            '<th class="dt-left">Kepala TPQ</th>' +
             '<th class="dt-left">Kelurahan/Desa</th>';
 
         // Urutan kategori yang diminta
@@ -298,9 +299,10 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             }
         });
 
-        // Tambahkan kolom Jumlah dan Rata-Rata
+        // Tambahkan kolom Jumlah, Rata-Rata, Total Bobot, dan Status Kelulusan
         th1 += '<th class="dt-center th-vertical">Jumlah</th>' +
             '<th class="dt-center th-vertical">Rata-Rata</th>' +
+            '<th class="dt-center th-vertical">Total Bobot</th>' +
             '<th class="dt-center th-vertical">Status Kelulusan</th>' +
             '</tr>';
 
@@ -312,13 +314,13 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
         const body = [];
         rows.forEach(row => {
-            const totalWeighted = parseFloat(row.total_weighted ?? 0).toFixed(2);
+            const totalWeighted = parseFloat(row.total_weighted ?? 0);
             const threshold = parseFloat(row.kelulusan_threshold ?? 0).toFixed(2);
             const status = row.kelulusan_status || '-';
             const diff = parseFloat(row.kelulusan_difference ?? 0).toFixed(2);
             const passed = !!row.kelulusan_met;
             const badgeClass = passed ? 'badge badge-success' : 'badge badge-danger';
-            const badgeText = `${status} (${totalWeighted} / ${threshold})`;
+            const badgeText = status; // Hanya tampilkan status tanpa nilai bobot
 
             // Format Jenis Kelamin
             const jenisKelamin = row.JenisKelamin || '-';
@@ -332,6 +334,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                 `<td class="dt-left">${row.TempatLahirSantri || '-'}</td>` +
                 `<td class="dt-left">${row.NamaAyah || '-'}</td>` +
                 `<td class="dt-left">${row.NamaTpq || '-'}</td>` +
+                `<td class="dt-left">${row.KepalaSekolah || '-'}</td>` +
                 `<td class="dt-left">${row.KelurahanDesaTpq || '-'}</td>`;
 
             // Urutan kategori yang diminta
@@ -477,10 +480,11 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const jumlah = displayedValues.reduce((sum, val) => sum + val, 0);
             const rataRata = displayedValues.length > 0 ? jumlah / displayedValues.length : 0;
 
-            // Tambahkan kolom Jumlah dan Rata-Rata
+            // Tambahkan kolom Jumlah, Rata-Rata, Total Bobot, dan Status Kelulusan
             tds += `<td class="dt-center dt-right">${fmtDecimal(jumlah)}</td>` +
                 `<td class="dt-center dt-right">${fmtDecimal(rataRata)}</td>` +
-                `<td class="dt-center" data-order="${passed ? 1 : 0}"><span class="badge badge-status ${badgeClass}" title="Selisih ${diff}">${badgeText}</span></td>`;
+                `<td class="dt-center dt-right">${fmtDecimal(totalWeighted)}</td>` +
+                `<td class="dt-center" data-order="${passed ? 1 : 0}"><span class="badge badge-status ${badgeClass}" title="Total Bobot: ${fmtDecimal(totalWeighted)} / ${threshold}">${badgeText}</span></td>`;
 
             body.push(`<tr>${tds}</tr>`);
         });
@@ -544,9 +548,9 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             buildExportHeader(categories);
             buildExportRows(categories, rows);
 
-            // Hitung total kolom: No Peserta, ID Santri, Nama Santri, Jenis Kelamin, Tanggal Lahir, Tempat Lahir, Nama Ayah, TPQ, Kelurahan/Desa (9 kolom)
-            // + Kategori (termasuk SURAH PENDEK gabungan) + Jumlah + Rata-Rata + Status Kelulusan
-            let totalCols = 9; // No Peserta, ID Santri, Nama Santri, Jenis Kelamin, Tanggal Lahir, Tempat Lahir, Nama Ayah, TPQ, Kelurahan/Desa
+            // Hitung total kolom: No Peserta, ID Santri, Nama Santri, Jenis Kelamin, Tanggal Lahir, Tempat Lahir, Nama Ayah, Nama TPQ, Kepala TPQ, Kelurahan/Desa (10 kolom)
+            // + Kategori (termasuk SURAH PENDEK gabungan) + Jumlah + Rata-Rata + Total Bobot + Status Kelulusan
+            let totalCols = 10; // No Peserta, ID Santri, Nama Santri, Jenis Kelamin, Tanggal Lahir, Tempat Lahir, Nama Ayah, Nama TPQ, Kepala TPQ, Kelurahan/Desa
 
             // Hitung kategori (termasuk SURAH PENDEK jika ada)
             let categoryCount = categories.length;
@@ -557,10 +561,11 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             }
 
             totalCols += categoryCount; // Kategori
-            totalCols += 3; // Jumlah + Rata-Rata + Status Kelulusan
+            totalCols += 4; // Jumlah + Rata-Rata + Total Bobot + Status Kelulusan
 
-            const jumlahIndex = totalCols - 3; // Kolom Jumlah
-            const rataRataIndex = totalCols - 2; // Kolom Rata-Rata
+            const jumlahIndex = totalCols - 4; // Kolom Jumlah
+            const rataRataIndex = totalCols - 3; // Kolom Rata-Rata
+            const totalBobotIndex = totalCols - 2; // Kolom Total Bobot
             const statusIndex = totalCols - 1; // Kolom Status Kelulusan
 
             exportTable = $('#tblExport').DataTable({
