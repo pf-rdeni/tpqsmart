@@ -166,7 +166,7 @@ class Dashboard extends BaseController
             IdTahunAjaran: $idTahunAjaran,
         );
 
-        // Ambil jumlah santri per kelas
+        // Ambil jumlah santri per kelas (diperlukan untuk Operator dan Kepala TPQ)
         $jumlahSantriPerKelas = $this->helpFunctionModel->getJumlahSantriPerKelas(
             IdTpq: $idTpq,
             kelasIds: array_map(function ($kelas) {
@@ -174,6 +174,7 @@ class Dashboard extends BaseController
             }, $listKelas)
         );
 
+        // Status input nilai per kelas (diperlukan untuk Operator dan Kepala TPQ)
         $statusInputNilaiPerKelasGanjil = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $listKelas, 'Ganjil');
         $statusInputNilaiPerKelasGenap = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $listKelas, 'Genap');
 
@@ -207,7 +208,7 @@ class Dashboard extends BaseController
         );
         $tahunAjaran = $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran);
 
-        // Status input nilai semester
+        // Status input nilai semester (diperlukan untuk Operator dan Kepala TPQ)
         $statusInputNilaiSemesterGanjil = $this->helpFunctionModel->getStatusInputNilai(
             IdTpq: $idTpq,
             IdTahunAjaran: $idTahunAjaran,
@@ -850,6 +851,13 @@ class Dashboard extends BaseController
         
         $data = $query->getResultArray();
         
+        // Inisialisasi total per kolom (per kelas)
+        $totalPerKelas = [];
+        foreach ($kelasList as $kelas) {
+            $totalPerKelas[$kelas['IdKelas']] = 0;
+        }
+        $grandTotal = 0;
+        
         // Organisir data per TPQ
         foreach ($tpqList as $tpq) {
             $tpqId = $tpq['IdTpq'];
@@ -874,18 +882,27 @@ class Dashboard extends BaseController
             foreach ($data as $row) {
                 if ($row['IdTpq'] == $tpqId && !empty($row['IdKelas'])) {
                     if (isset($tpqData['Kelas'][$row['IdKelas']])) {
-                        $tpqData['Kelas'][$row['IdKelas']]['Jumlah'] = (int)$row['JumlahSantri'];
-                        $tpqData['Total'] += (int)$row['JumlahSantri'];
+                        $jumlah = (int)$row['JumlahSantri'];
+                        $tpqData['Kelas'][$row['IdKelas']]['Jumlah'] = $jumlah;
+                        $tpqData['Total'] += $jumlah;
+                        
+                        // Hitung total per kolom
+                        $totalPerKelas[$row['IdKelas']] += $jumlah;
                     }
                 }
             }
+            
+            // Hitung grand total
+            $grandTotal += $tpqData['Total'];
             
             $result[] = $tpqData;
         }
         
         return [
             'data' => $result,
-            'kelasList' => $kelasList
+            'kelasList' => $kelasList,
+            'totalPerKelas' => $totalPerKelas,
+            'grandTotal' => $grandTotal
         ];
     }
 

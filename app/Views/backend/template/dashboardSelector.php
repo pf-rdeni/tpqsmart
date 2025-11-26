@@ -14,7 +14,7 @@
                     <div class="dashboard-option-wrapper">
                         <button type="button" class="btn btn-outline-primary btn-lg btn-block h-100 dashboard-option" data-dashboard="semester">
                             <i class="fas fa-book fa-3x mb-2"></i><br>
-                            <strong>Ujian Semester</strong>
+                            <strong>Default</strong>
                         </button>
                     </div>
                     <div class="dashboard-option-wrapper">
@@ -184,14 +184,29 @@
 
         // Fungsi untuk update label dashboard di navbar
         function updateDashboardLabel() {
-            const selectedDashboard = localStorage.getItem('selectedDashboard');
+            const selectedDashboard = localStorage.getItem('selectedDashboard') || 'semester';
             const labelMap = {
-                'semester': 'Ujian Semester',
+                'semester': 'Default',
                 'munaqosah': 'Munaqosah',
                 'sertifikasi': 'Sertifikasi'
             };
             const currentLabel = labelMap[selectedDashboard] || 'Dashboard';
             $('#currentDashboardLabel').text(currentLabel);
+            
+            // Update checkmark di dropdown
+            $('.switch-dashboard-btn').each(function() {
+                const $item = $(this);
+                const dashboard = $item.data('dashboard');
+                const $icon = $item.find('i.fa-check, i.fa-circle').first();
+                
+                if (dashboard === selectedDashboard) {
+                    $item.addClass('active');
+                    $icon.removeClass('far fa-circle').addClass('fas fa-check text-success');
+                } else {
+                    $item.removeClass('active');
+                    $icon.removeClass('fas fa-check text-success').addClass('far fa-circle');
+                }
+            });
         }
 
         // Fungsi untuk menampilkan modal (dengan opsi untuk bisa ditutup jika dipanggil manual)
@@ -272,7 +287,35 @@
             updateDashboardLabel();
         }
 
-        // Handle klik tombol "Pilih Dashboard" di navbar
+        // Update checkmark saat dropdown dibuka
+        $('#dashboardDropdownToggle').on('click', function() {
+            // Delay sedikit untuk memastikan dropdown sudah terbuka
+            setTimeout(function() {
+                updateDashboardLabel();
+            }, 100);
+        });
+        
+        // Handle klik dropdown item dashboard
+        $(document).on('click', '.switch-dashboard-btn', function(e) {
+            e.preventDefault();
+            const dashboard = $(this).data('dashboard');
+            const dashboardUrl = $(this).data('url');
+            
+            // Simpan ke localStorage
+            localStorage.setItem('selectedDashboard', dashboard);
+            
+            // Update label dan checkmark
+            updateDashboardLabel();
+            
+            // Redirect ke dashboard yang dipilih
+            if (dashboardUrl) {
+                window.location.href = dashboardUrl;
+            } else {
+                redirectToDashboard(dashboard);
+            }
+        });
+        
+        // Handle klik tombol "Pilih Dashboard" di navbar (jika masih ada untuk backward compatibility)
         $('#btnPilihDashboard').click(function(e) {
             e.preventDefault();
             showDashboardModal(true); // Bisa ditutup karena dipanggil manual

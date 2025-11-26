@@ -1,29 +1,6 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
 
-<?php
-function render_progress_bar($persentase, $height = 25)
-{
-    $color_class = '';
-    if ($persentase <= 40) {
-        $color_class = 'bg-danger';
-    } elseif ($persentase <= 80) {
-        $color_class = 'bg-warning';
-    } else {
-        $color_class = 'bg-success';
-    }
-
-    $html = '<div class="progress" style="height: ' . $height . 'px;">';
-    $html .= '<div class="progress-bar ' . $color_class . '" ';
-    $html .= 'style="width: ' . $persentase . '%; display: flex; align-items: center; justify-content: center; font-size: 15px;">';
-    $html .= $persentase . '%';
-    $html .= '</div>';
-    $html .= '</div>';
-
-    return $html;
-}
-?>
-
 <!-- Main content -->
 <section class="content">
     <div class="container-fluid">
@@ -321,102 +298,6 @@ function render_progress_bar($persentase, $height = 25)
                         </div>
 
                         <!-- Statistik Per TPQ (Hanya untuk Admin) -->
-                        <?php if (!empty($StatistikTpqDenganRasio)): ?>
-                            <div class="row mt-4">
-                                <!-- Tabel List TPQ dengan Rasio Guru:Santri -->
-                                <div class="col-12">
-                                    <div class="card card-info card-outline collapsed-card">
-                                        <div class="card-header">
-                                            <h3 class="card-title">
-                                                <i class="fas fa-list"></i> List TPQ dengan Rasio Guru:Santri
-                                            </h3>
-                                            <div class="card-tools">
-                                                <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="table-responsive">
-                                                <table id="tblTpqDenganRasio" class="table table-sm table-bordered table-striped table-hover">
-                                                    <thead class="thead-light">
-                                                        <tr>
-                                                            <th>Nama TPQ</th>
-                                                            <th>Alamat (Kelurahan/Desa)</th>
-                                                            <th class="text-center">Jumlah Guru</th>
-                                                            <th class="text-center">Jumlah Santri</th>
-                                                            <th class="text-center">Rasio (Guru:Santri)</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <?php foreach ($StatistikTpqDenganRasio as $tpq): ?>
-                                                            <tr>
-                                                                <td><strong><?= esc($tpq['NamaTpq']) ?></strong></td>
-                                                                <td><?= esc($tpq['KelurahanDesa']) ?></td>
-                                                                <td class="text-center">
-                                                                    <span class="badge badge-primary"><?= number_format($tpq['TotalGuru']) ?></span>
-                                                                </td>
-                                                                <td class="text-center">
-                                                                    <span class="badge badge-success"><?= number_format($tpq['TotalSantri']) ?></span>
-                                                                </td>
-                                                                <td class="text-center">
-                                                                    <?php if ($tpq['Rasio'] != '-'): ?>
-                                                                        <span class="badge badge-<?= esc($tpq['BadgeColor']) ?>"><?= esc($tpq['Rasio']) ?></span>
-                                                                        <small class="text-muted d-block">(1 guru : <?= number_format($tpq['RasioNumeric'], 1) ?> santri)</small>
-                                                                    <?php else: ?>
-                                                                        <span class="badge badge-secondary">-</span>
-                                                                    <?php endif; ?>
-                                                                </td>
-                                                            </tr>
-                                                        <?php endforeach; ?>
-                                                    </tbody>
-                                                    <tfoot class="thead-light">
-                                                        <tr>
-                                                            <th>Total</th>
-                                                            <th></th>
-                                                            <th class="text-center">
-                                                                <span class="badge badge-primary">
-                                                                    <?= number_format(array_sum(array_column($StatistikTpqDenganRasio, 'TotalGuru'))) ?>
-                                                                </span>
-                                                            </th>
-                                                            <th class="text-center">
-                                                                <span class="badge badge-success">
-                                                                    <?= number_format(array_sum(array_column($StatistikTpqDenganRasio, 'TotalSantri'))) ?>
-                                                                </span>
-                                                            </th>
-                                                            <th class="text-center">
-                                                                <?php 
-                                                                $totalGuru = array_sum(array_column($StatistikTpqDenganRasio, 'TotalGuru'));
-                                                                $totalSantri = array_sum(array_column($StatistikTpqDenganRasio, 'TotalSantri'));
-                                                                if ($totalSantri > 0 && $totalGuru > 0) {
-                                                                    $rasioTotal = $totalSantri / $totalGuru;
-                                                                    $rasioTotalCeil = (int)ceil($rasioTotal);
-                                                                    // Tentukan warna badge untuk total
-                                                                    $badgeColorTotal = 'secondary';
-                                                                    if ($rasioTotalCeil < 9) {
-                                                                        $badgeColorTotal = 'danger'; // Merah - rasio < 9
-                                                                    } else if ($rasioTotalCeil >= 9 && $rasioTotalCeil <= 11) {
-                                                                        $badgeColorTotal = 'success'; // Hijau - rasio >= 9 dan <= 11
-                                                                    } else {
-                                                                        $badgeColorTotal = 'info'; // Biru - rasio > 11
-                                                                    }
-                                                                    echo '<span class="badge badge-' . $badgeColorTotal . '">1:' . $rasioTotalCeil . '</span>';
-                                                                } else {
-                                                                    echo '<span class="badge badge-secondary">-</span>';
-                                                                }
-                                                                ?>
-                                                            </th>
-                                                        </tr>
-                                                    </tfoot>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-
-                        <!-- Statistik Per TPQ (Hanya untuk Admin) -->
                         <?php if (!empty($StatistikSantriPerTpq) || !empty($StatistikGuruPerTpq)): ?>
                             <div class="row mt-4">
                                 <!-- Statistik Santri Per TPQ -->
@@ -561,6 +442,102 @@ function render_progress_bar($persentase, $height = 25)
                             </div>
                         <?php endif; ?>
 
+                        <!-- Statistik Per TPQ (Hanya untuk Admin) -->
+                        <?php if (!empty($StatistikTpqDenganRasio)): ?>
+                            <div class="row mt-4">
+                                <!-- Tabel List TPQ dengan Rasio Guru:Santri -->
+                                <div class="col-12">
+                                    <div class="card card-info card-outline collapsed-card">
+                                        <div class="card-header">
+                                            <h3 class="card-title">
+                                                <i class="fas fa-list"></i> List TPQ dengan Rasio Guru:Santri
+                                            </h3>
+                                            <div class="card-tools">
+                                                <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table id="tblTpqDenganRasio" class="table table-sm table-bordered table-striped table-hover">
+                                                    <thead class="thead-light">
+                                                        <tr>
+                                                            <th>Nama TPQ</th>
+                                                            <th>Alamat (Kelurahan/Desa)</th>
+                                                            <th class="text-center">Jumlah Guru</th>
+                                                            <th class="text-center">Jumlah Santri</th>
+                                                            <th class="text-center">Rasio (Guru:Santri)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php foreach ($StatistikTpqDenganRasio as $tpq): ?>
+                                                            <tr>
+                                                                <td><strong><?= esc($tpq['NamaTpq']) ?></strong></td>
+                                                                <td><?= esc($tpq['KelurahanDesa']) ?></td>
+                                                                <td class="text-center">
+                                                                    <span class="badge badge-primary"><?= number_format($tpq['TotalGuru']) ?></span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <span class="badge badge-success"><?= number_format($tpq['TotalSantri']) ?></span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <?php if ($tpq['Rasio'] != '-'): ?>
+                                                                        <span class="badge badge-<?= esc($tpq['BadgeColor']) ?>"><?= esc($tpq['Rasio']) ?></span>
+                                                                        <small class="text-muted d-block">(1 guru : <?= number_format($tpq['RasioNumeric'], 1) ?> santri)</small>
+                                                                    <?php else: ?>
+                                                                        <span class="badge badge-secondary">-</span>
+                                                                    <?php endif; ?>
+                                                                </td>
+                                                            </tr>
+                                                        <?php endforeach; ?>
+                                                    </tbody>
+                                                    <tfoot class="thead-light">
+                                                        <tr>
+                                                            <th>Total</th>
+                                                            <th></th>
+                                                            <th class="text-center">
+                                                                <span class="badge badge-primary">
+                                                                    <?= number_format(array_sum(array_column($StatistikTpqDenganRasio, 'TotalGuru'))) ?>
+                                                                </span>
+                                                            </th>
+                                                            <th class="text-center">
+                                                                <span class="badge badge-success">
+                                                                    <?= number_format(array_sum(array_column($StatistikTpqDenganRasio, 'TotalSantri'))) ?>
+                                                                </span>
+                                                            </th>
+                                                            <th class="text-center">
+                                                                <?php
+                                                                $totalGuru = array_sum(array_column($StatistikTpqDenganRasio, 'TotalGuru'));
+                                                                $totalSantri = array_sum(array_column($StatistikTpqDenganRasio, 'TotalSantri'));
+                                                                if ($totalSantri > 0 && $totalGuru > 0) {
+                                                                    $rasioTotal = $totalSantri / $totalGuru;
+                                                                    $rasioTotalCeil = (int)ceil($rasioTotal);
+                                                                    // Tentukan warna badge untuk total
+                                                                    $badgeColorTotal = 'secondary';
+                                                                    if ($rasioTotalCeil < 9) {
+                                                                        $badgeColorTotal = 'danger'; // Merah - rasio < 9
+                                                                    } else if ($rasioTotalCeil >= 9 && $rasioTotalCeil <= 11) {
+                                                                        $badgeColorTotal = 'success'; // Hijau - rasio >= 9 dan <= 11
+                                                                    } else {
+                                                                        $badgeColorTotal = 'info'; // Biru - rasio > 11
+                                                                    }
+                                                                    echo '<span class="badge badge-' . $badgeColorTotal . '">1:' . $rasioTotalCeil . '</span>';
+                                                                } else {
+                                                                    echo '<span class="badge badge-secondary">-</span>';
+                                                                }
+                                                                ?>
+                                                            </th>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                         <!-- Statistik Santri Per TPQ dan Per Kelas -->
                         <?php if (!empty($StatistikSantriPerTpqPerKelas) && !empty($StatistikSantriPerTpqPerKelas['data'])): ?>
                             <div class="row mt-4">
@@ -588,27 +565,21 @@ function render_progress_bar($persentase, $height = 25)
                                                             <?php endforeach; ?>
                                                             <th rowspan="2" class="align-middle text-center bg-info" style="min-width: 80px;">Total</th>
                                                         </tr>
+                                                        <tr>
+                                                            <?php foreach ($StatistikSantriPerTpqPerKelas['kelasList'] as $kelas): ?>
+                                                                <th></th>
+                                                            <?php endforeach; ?>
+                                                        </tr>
                                                     </thead>
                                                     <tbody>
-                                                        <?php 
-                                                        $totalPerKelas = [];
-                                                        $grandTotal = 0;
-                                                        foreach ($StatistikSantriPerTpqPerKelas['kelasList'] as $kelas) {
-                                                            $totalPerKelas[$kelas['IdKelas']] = 0;
-                                                        }
-                                                        ?>
                                                         <?php foreach ($StatistikSantriPerTpqPerKelas['data'] as $tpq): ?>
                                                             <tr>
                                                                 <td><strong><?= esc($tpq['NamaTpq']) ?></strong></td>
                                                                 <td><?= esc($tpq['KelurahanDesa']) ?></td>
                                                                 <?php foreach ($StatistikSantriPerTpqPerKelas['kelasList'] as $kelas): ?>
-                                                                    <?php 
-                                                                    $jumlah = $tpq['Kelas'][$kelas['IdKelas']]['Jumlah'] ?? 0;
-                                                                    $totalPerKelas[$kelas['IdKelas']] += $jumlah;
-                                                                    ?>
+                                                                    <?php $jumlah = $tpq['Kelas'][$kelas['IdKelas']]['Jumlah'] ?? 0; ?>
                                                                     <td class="text-center"><?= $jumlah > 0 ? number_format($jumlah) : '-' ?></td>
                                                                 <?php endforeach; ?>
-                                                                <?php $grandTotal += $tpq['Total']; ?>
                                                                 <td class="text-center bg-light"><strong><?= number_format($tpq['Total']) ?></strong></td>
                                                             </tr>
                                                         <?php endforeach; ?>
@@ -618,9 +589,9 @@ function render_progress_bar($persentase, $height = 25)
                                                             <th class="bg-info text-white"><strong>Total</strong></th>
                                                             <th class="bg-info text-white"></th>
                                                             <?php foreach ($StatistikSantriPerTpqPerKelas['kelasList'] as $kelas): ?>
-                                                                <th class="text-center bg-info text-white"><strong><?= number_format($totalPerKelas[$kelas['IdKelas']]) ?></strong></th>
+                                                                <th class="text-center bg-info text-white"><strong><?= number_format($StatistikSantriPerTpqPerKelas['totalPerKelas'][$kelas['IdKelas']] ?? 0) ?></strong></th>
                                                             <?php endforeach; ?>
-                                                            <th class="text-center bg-info text-white"><strong><?= number_format($grandTotal) ?></strong></th>
+                                                            <th class="text-center bg-info text-white"><strong><?= number_format($StatistikSantriPerTpqPerKelas['grandTotal'] ?? 0) ?></strong></th>
                                                         </tr>
                                                     </tfoot>
                                                 </table>
@@ -630,119 +601,6 @@ function render_progress_bar($persentase, $height = 25)
                                 </div>
                             </div>
                         <?php endif; ?>
-
-                        <!-- Semester Progress -->
-                        <div class="row mt-4">
-                            <!-- Semester Ganjil -->
-                            <div class="col-md-6">
-                                <div class="card card-warning card-outline">
-                                    <div class="card-header">
-                                        <h3 class="card-title">
-                                            <i class="fas fa-book-reader"></i> Semester Ganjil TA <?= esc($TahunAjaran ?? '') ?>
-                                        </h3>
-                                        <div class="card-tools">
-                                            <button type="button" class="btn btn-warning btn-sm" data-card-widget="collapse">
-                                                <i class="fas fa-minus"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="info-box bg-gradient-warning">
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Total Kelas</span>
-                                                <span class="info-box-number"><?= $TotalKelas ?? 0 ?> Kelas</span>
-                                                <?= render_progress_bar($StatusInputNilaiSemesterGanjil->persentasiSudah ?? 0) ?>
-                                                <span class="progress-description">
-                                                    Input nilai (<?= $StatusInputNilaiSemesterGanjil->countSudah ?? 0 ?>/<?= $StatusInputNilaiSemesterGanjil->countTotal ?? 0 ?>)
-                                                </span>
-
-                                                <!-- Progress per Kelas -->
-                                                <div class="row mt-3">
-                                                    <?php foreach ($StatusInputNilaiPerKelasGanjil ?? [] as $item): ?>
-                                                        <div class="col-md-6 mb-2">
-                                                            <span class="info-box-text"><?= esc($item['NamaKelas']) ?>
-                                                                <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small>
-                                                            </span>
-                                                            <?= render_progress_bar($item['StatusInputNilai']->persentasiSudah ?? 0, 20) ?>
-                                                            <small>Input nilai (<?= $item['StatusInputNilai']->countSudah ?? 0 ?>/<?= $item['StatusInputNilai']->countTotal ?? 0 ?>)</small>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-
-                                                <!-- Action Buttons -->
-                                                <div class="row mt-3">
-                                                    <div class="col-12 mb-2">
-                                                        <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-success btn-sm">
-                                                            <i class="fas fa-eye"></i> Detail Nilai
-                                                        </a>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <a href="<?= base_url('backend/rapor/index/Ganjil') ?>" class="btn btn-block btn-primary btn-sm">
-                                                            <i class="fas fa-file-alt"></i> Raport Nilai
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Semester Genap -->
-                            <div class="col-md-6">
-                                <div class="card card-info card-outline">
-                                    <div class="card-header">
-                                        <h3 class="card-title">
-                                            <i class="fas fa-book-reader"></i> Semester Genap TA <?= esc($TahunAjaran ?? '') ?>
-                                        </h3>
-                                        <div class="card-tools">
-                                            <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse">
-                                                <i class="fas fa-minus"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="info-box bg-gradient-info">
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Total Kelas</span>
-                                                <span class="info-box-number"><?= $TotalKelas ?? 0 ?> Kelas</span>
-                                                <?= render_progress_bar($StatusInputNilaiSemesterGenap->persentasiSudah ?? 0) ?>
-                                                <span class="progress-description">
-                                                    Input nilai (<?= $StatusInputNilaiSemesterGenap->countSudah ?? 0 ?>/<?= $StatusInputNilaiSemesterGenap->countTotal ?? 0 ?>)
-                                                </span>
-
-                                                <!-- Progress per Kelas -->
-                                                <div class="row mt-3">
-                                                    <?php foreach ($StatusInputNilaiPerKelasGenap ?? [] as $item): ?>
-                                                        <div class="col-md-6 mb-2">
-                                                            <span class="info-box-text"><?= esc($item['NamaKelas']) ?>
-                                                                <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small>
-                                                            </span>
-                                                            <?= render_progress_bar($item['StatusInputNilai']->persentasiSudah ?? 0, 20) ?>
-                                                            <small>Input nilai (<?= $item['StatusInputNilai']->countSudah ?? 0 ?>/<?= $item['StatusInputNilai']->countTotal ?? 0 ?>)</small>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-
-                                                <!-- Action Buttons -->
-                                                <div class="row mt-3">
-                                                    <div class="col-12 mb-2">
-                                                        <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Genap') ?>" class="btn btn-block btn-success btn-sm">
-                                                            <i class="fas fa-eye"></i> Detail Nilai
-                                                        </a>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <a href="<?= base_url('backend/rapor/index/Genap') ?>" class="btn btn-block btn-primary btn-sm">
-                                                            <i class="fas fa-file-alt"></i> Raport Nilai
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -767,7 +625,7 @@ function render_progress_bar($persentase, $height = 25)
         vertical-align: middle;
         text-align: center;
     }
-    
+
     /* Pastikan sel data juga memiliki lebar yang sesuai dengan header */
     #tblStatistikSantriPerTpqPerKelas tbody td {
         width: 35px;
@@ -776,7 +634,7 @@ function render_progress_bar($persentase, $height = 25)
         padding: 5px 2px;
         text-align: center;
     }
-    
+
     /* Style untuk footer kolom kelas */
     #tblStatistikSantriPerTpqPerKelas tfoot th {
         width: 35px;
@@ -785,7 +643,7 @@ function render_progress_bar($persentase, $height = 25)
         padding: 5px 2px;
         text-align: center;
     }
-    
+
     /* Style untuk kolom Nama TPQ dan Alamat tetap normal */
     #tblStatistikSantriPerTpqPerKelas th:first-child,
     #tblStatistikSantriPerTpqPerKelas th:nth-child(2),
@@ -799,7 +657,7 @@ function render_progress_bar($persentase, $height = 25)
         writing-mode: horizontal-tb;
         padding: 8px;
     }
-    
+
     /* Style untuk kolom Total */
     #tblStatistikSantriPerTpqPerKelas th:last-child,
     #tblStatistikSantriPerTpqPerKelas td:last-child,
@@ -810,11 +668,26 @@ function render_progress_bar($persentase, $height = 25)
         writing-mode: horizontal-tb;
         padding: 8px 5px;
     }
-    
+
     /* Pastikan semua kolom memiliki alignment yang sama */
     #tblStatistikSantriPerTpqPerKelas th,
-    #tblStatistikSantriPerTpqPerKelas td {
+    #tblStatistikSantriPerTpqPerKelas td,
+    #tblStatistikSantriPerTpqPerKelas tfoot th {
         vertical-align: middle;
+    }
+
+    /* Pastikan tfoot memiliki width yang sama dengan body */
+    #tblStatistikSantriPerTpqPerKelas_wrapper .dataTables_scrollFoot {
+        width: 100% !important;
+    }
+
+    #tblStatistikSantriPerTpqPerKelas_wrapper .dataTables_scrollFootInner {
+        width: 100% !important;
+    }
+
+    #tblStatistikSantriPerTpqPerKelas_wrapper .dataTables_scrollFootInner table {
+        width: 100% !important;
+        margin: 0 !important;
     }
 </style>
 <?= $this->endSection(); ?>
@@ -824,39 +697,25 @@ function render_progress_bar($persentase, $height = 25)
     $(document).ready(function() {
         // Initialize DataTable for List TPQ dengan Rasio
         if ($('#tblTpqDenganRasio').length > 0) {
-            $('#tblTpqDenganRasio').DataTable({
-                "responsive": true,
-                "lengthChange": true,
-                "autoWidth": false,
+            initializeDataTableUmum('#tblTpqDenganRasio', true, true, [], {
                 "pageLength": 25,
-                "order": [[3, "asc"]], // Sort by rasio
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json"
-                },
-                "columnDefs": [
-                    {
-                        "targets": [2, 3, 4], // Jumlah Guru, Jumlah Santri, Rasio
-                        "className": "text-center"
-                    }
-                ]
+                "order": [
+                    [3, "asc"]
+                ], // Sort by rasio
+                "columnDefs": [{
+                    "targets": [2, 3, 4], // Jumlah Guru, Jumlah Santri, Rasio
+                    "className": "text-center"
+                }]
             });
         }
 
         // Initialize DataTable for Statistik Santri Per TPQ Per Kelas
         if ($('#tblStatistikSantriPerTpqPerKelas').length > 0) {
-            $('#tblStatistikSantriPerTpqPerKelas').DataTable({
-                "responsive": true,
-                "lengthChange": true,
-                "autoWidth": false,
+            var tableSantriPerKelas = initializeDataTableScrollX('#tblStatistikSantriPerTpqPerKelas', [], {
                 "pageLength": 25,
-                "scrollX": true,
-                "scrollCollapse": true,
+                "lengthChange": true,
                 "order": [],
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json"
-                },
-                "columnDefs": [
-                    {
+                "columnDefs": [{
                         "targets": [0, 1], // Nama TPQ dan Alamat
                         "orderable": true
                     },
@@ -866,24 +725,66 @@ function render_progress_bar($persentase, $height = 25)
                     }
                 ]
             });
+
+            // Fix alignment setelah init - pastikan columns di-adjust
+            $('#tblStatistikSantriPerTpqPerKelas').on('init.dt', function() {
+                // Multiple attempts untuk memastikan alignment benar
+                setTimeout(function() {
+                    if ($.fn.DataTable.isDataTable('#tblStatistikSantriPerTpqPerKelas')) {
+                        tableSantriPerKelas.columns.adjust();
+                    }
+                }, 100);
+
+                setTimeout(function() {
+                    if ($.fn.DataTable.isDataTable('#tblStatistikSantriPerTpqPerKelas')) {
+                        tableSantriPerKelas.columns.adjust();
+                    }
+                }, 300);
+            });
+
+            // Fix alignment setelah draw
+            $('#tblStatistikSantriPerTpqPerKelas').on('draw.dt', function() {
+                setTimeout(function() {
+                    if ($.fn.DataTable.isDataTable('#tblStatistikSantriPerTpqPerKelas')) {
+                        tableSantriPerKelas.columns.adjust();
+                    }
+                }, 50);
+            });
+
+            // Fix alignment ketika card di-expand (karena card ini collapsed-card)
+            var statistikSantriCard = $('#tblStatistikSantriPerTpqPerKelas').closest('.card');
+            statistikSantriCard.on('expanded.lte.cardwidget', function() {
+                setTimeout(function() {
+                    if ($.fn.DataTable.isDataTable('#tblStatistikSantriPerTpqPerKelas')) {
+                        tableSantriPerKelas.columns.adjust();
+                    }
+                }, 350);
+
+                // Double check setelah card fully expanded
+                setTimeout(function() {
+                    if ($.fn.DataTable.isDataTable('#tblStatistikSantriPerTpqPerKelas')) {
+                        tableSantriPerKelas.columns.adjust();
+                    }
+                }, 600);
+            });
         }
 
         let guruChart = null;
 
-    function initGuruPieChart() {
-        const ctxGuru = document.getElementById('guruPieChart');
-        if (ctxGuru) {
-            // Destroy existing chart if it exists
-            if (guruChart) {
-                guruChart.destroy();
-                guruChart = null;
-            }
+        function initGuruPieChart() {
+            const ctxGuru = document.getElementById('guruPieChart');
+            if (ctxGuru) {
+                // Destroy existing chart if it exists
+                if (guruChart) {
+                    guruChart.destroy();
+                    guruChart = null;
+                }
 
-            const guruLaki = <?= $StatistikGuru['laki_laki'] ?? 0 ?>;
-            const guruPerempuan = <?= $StatistikGuru['perempuan'] ?? 0 ?>;
-            const guruTotal = <?= $StatistikGuru['total'] ?? 0 ?>;
+                const guruLaki = <?= $StatistikGuru['laki_laki'] ?? 0 ?>;
+                const guruPerempuan = <?= $StatistikGuru['perempuan'] ?? 0 ?>;
+                const guruTotal = <?= $StatistikGuru['total'] ?? 0 ?>;
 
-            guruChart = new Chart(ctxGuru, {
+                guruChart = new Chart(ctxGuru, {
                     type: 'pie',
                     data: {
                         labels: ['Laki-Laki', 'Perempuan'],
@@ -933,7 +834,7 @@ function render_progress_bar($persentase, $height = 25)
 
         // Initialize chart when card is expanded (using AdminLTE card widget events)
         const statistikGuruCard = $('#guruPieChart').closest('.card');
-        
+
         // Listen for expanded event
         statistikGuruCard.on('expanded.lte.cardwidget', function() {
             setTimeout(function() {

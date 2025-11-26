@@ -301,22 +301,30 @@ function render_progress_bar($persentase, $height = 25)
                         </div>
 
                         <!-- Semester Progress -->
+                        <?php
+                        // Tentukan semester saat ini berdasarkan bulan
+                        // Semester Ganjil: Juli-Desember (bulan 7-12)
+                        // Semester Genap: Januari-Juni (bulan 1-6)
+                        $currentMonth = date('n');
+                        $isSemesterGanjil = ($currentMonth >= 7 && $currentMonth <= 12);
+                        $isSemesterGenap = ($currentMonth >= 1 && $currentMonth <= 6);
+                        ?>
                         <div class="row mt-4">
                             <!-- Semester Ganjil -->
-                            <div class="col-md-6">
-                                <div class="card card-warning card-outline">
+                            <div class="col-12 mb-3">
+                                <div class="card card-secondary card-outline <?= !$isSemesterGanjil ? 'collapsed-card' : '' ?>">
                                     <div class="card-header">
                                         <h3 class="card-title">
                                             <i class="fas fa-book-reader"></i> Semester Ganjil TA <?= esc($TahunAjaran ?? '') ?>
                                         </h3>
                                         <div class="card-tools">
-                                            <button type="button" class="btn btn-warning btn-sm" data-card-widget="collapse">
-                                                <i class="fas fa-minus"></i>
+                                            <button type="button" class="btn btn-secondary btn-sm" data-card-widget="collapse">
+                                                <i class="fas <?= !$isSemesterGanjil ? 'fa-plus' : 'fa-minus' ?>"></i>
                                             </button>
                                         </div>
                                     </div>
                                     <div class="card-body">
-                                        <div class="info-box bg-gradient-warning">
+                                        <div class="info-box bg-gradient-secondary">
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Total Kelas</span>
                                                 <span class="info-box-number"><?= $TotalKelas ?? 0 ?> Kelas</span>
@@ -340,6 +348,19 @@ function render_progress_bar($persentase, $height = 25)
 
                                                 <!-- Action Buttons -->
                                                 <div class="row mt-3">
+                                                    <?php if ($isSemesterGanjil): ?>
+                                                        <div class="col-12 mb-2">
+                                                            <a href="<?= base_url('backend/nilai/showSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-primary btn-sm">
+                                                                <i class="fas fa-edit"></i> Input Nilai
+                                                            </a>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <div class="col-12 mb-2">
+                                                            <button class="btn btn-block btn-secondary btn-sm" disabled>
+                                                                <i class="fas fa-edit"></i> Input Nilai
+                                                            </button>
+                                                        </div>
+                                                    <?php endif; ?>
                                                     <div class="col-12 mb-2">
                                                         <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-success btn-sm">
                                                             <i class="fas fa-eye"></i> Detail Nilai
@@ -358,15 +379,15 @@ function render_progress_bar($persentase, $height = 25)
                             </div>
 
                             <!-- Semester Genap -->
-                            <div class="col-md-6">
-                                <div class="card card-info card-outline">
+                            <div class="col-12">
+                                <div class="card card-info card-outline <?= !$isSemesterGenap ? 'collapsed-card' : '' ?>">
                                     <div class="card-header">
                                         <h3 class="card-title">
                                             <i class="fas fa-book-reader"></i> Semester Genap TA <?= esc($TahunAjaran ?? '') ?>
                                         </h3>
                                         <div class="card-tools">
                                             <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse">
-                                                <i class="fas fa-minus"></i>
+                                                <i class="fas <?= !$isSemesterGenap ? 'fa-plus' : 'fa-minus' ?>"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -395,6 +416,19 @@ function render_progress_bar($persentase, $height = 25)
 
                                                 <!-- Action Buttons -->
                                                 <div class="row mt-3">
+                                                    <?php if ($isSemesterGenap): ?>
+                                                        <div class="col-12 mb-2">
+                                                            <a href="<?= base_url('backend/nilai/showSantriPerKelas/Genap') ?>" class="btn btn-block btn-primary btn-sm">
+                                                                <i class="fas fa-edit"></i> Input Nilai
+                                                            </a>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <div class="col-12 mb-2">
+                                                            <button class="btn btn-block btn-secondary btn-sm" disabled>
+                                                                <i class="fas fa-edit"></i> Input Nilai
+                                                            </button>
+                                                        </div>
+                                                    <?php endif; ?>
                                                     <div class="col-12 mb-2">
                                                         <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Genap') ?>" class="btn btn-block btn-success btn-sm">
                                                             <i class="fas fa-eye"></i> Detail Nilai

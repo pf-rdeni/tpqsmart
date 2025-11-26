@@ -374,9 +374,32 @@ endforeach;
 <script>
     initializeDataTableUmum('#tabelPrestasiPerKelas', true, true);
 
-    //looping untuk inisialisasi data table detail
+    // Inisialisasi DataTable untuk tabel detail hanya ketika modal dibuka
     <?php foreach ($dataSantri as $santri) : ?>
-        initializeDataTableUmum('#tabelPrestasiPerKelasDetail<?= $santri->IdSantri ?>');
+            (function(santriId) {
+                const tableId = '#tabelPrestasiPerKelasDetail' + santriId;
+                const modalId = '#PrestasiDetail' + santriId;
+
+                // Event handler untuk ketika modal dibuka
+                $(modalId).on('shown.bs.modal', function() {
+                    // Cek apakah DataTable sudah diinisialisasi
+                    if ($.fn.DataTable.isDataTable(tableId)) {
+                        // Jika sudah ada, hancurkan instance sebelumnya
+                        $(tableId).DataTable().destroy();
+                    }
+
+                    // Inisialisasi DataTable baru
+                    initializeDataTableUmum(tableId);
+                });
+
+                // Event handler untuk ketika modal ditutup (opsional: untuk cleanup)
+                $(modalId).on('hidden.bs.modal', function() {
+                    // Hancurkan DataTable ketika modal ditutup untuk menghemat memori
+                    if ($.fn.DataTable.isDataTable(tableId)) {
+                        $(tableId).DataTable().destroy();
+                    }
+                });
+            })(<?= $santri->IdSantri ?>);
     <?php endforeach; ?>
 
     function closeDetailAndOpenEdit(id) {

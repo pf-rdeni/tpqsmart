@@ -178,13 +178,66 @@
                 </div>
             </li>
         <?php endif; ?>
-        <!-- Dashboard Selector Toggle (hanya untuk Admin dan Operator) -->
+        <!-- Dashboard Selector Dropdown (hanya untuk Admin dan Operator) -->
         <?php if (in_groups('Admin') || in_groups('Operator')): ?>
-            <li class="nav-item">
-                <a class="nav-link" href="#" id="btnPilihDashboard" role="button" title="Ganti Dashboard" style="cursor: pointer;">
-                    <i class="fas fa-exchange-alt"></i>
+            <?php
+            // Daftar dashboard yang tersedia
+            $availableDashboards = [
+                'semester' => [
+                    'label' => 'Default',
+                    'icon' => 'fas fa-book',
+                    'url' => base_url('backend/dashboard/admin')
+                ],
+                'munaqosah' => [
+                    'label' => 'Munaqosah',
+                    'icon' => 'fas fa-graduation-cap',
+                    'url' => base_url('backend/munaqosah/dashboard-munaqosah')
+                ]
+            ];
+            
+            // Tambahkan Sertifikasi jika Admin
+            if (in_groups('Admin')) {
+                $availableDashboards['sertifikasi'] = [
+                    'label' => 'Sertifikasi',
+                    'icon' => 'fas fa-certificate',
+                    'url' => base_url('backend/sertifikasi/dashboard-admin')
+                ];
+            }
+            
+            // Tentukan dashboard aktif berdasarkan URL atau localStorage (akan diupdate via JS)
+            $currentUrl = current_url(true);
+            $uriString = uri_string();
+            $activeDashboard = 'semester'; // default
+            
+            if (strpos($uriString, 'munaqosah') !== false) {
+                $activeDashboard = 'munaqosah';
+            } elseif (strpos($uriString, 'sertifikasi') !== false) {
+                $activeDashboard = 'sertifikasi';
+            }
+            ?>
+            <li class="nav-item dropdown">
+                <a class="nav-link" href="#" data-toggle="dropdown" title="Ganti Dashboard" id="dashboardDropdownToggle">
+                    <i class="fas fa-tachometer-alt"></i>
                     <span class="d-none d-md-inline ml-1" id="currentDashboardLabel">Dashboard</span>
+                    <i class="fas fa-angle-down ml-1"></i>
                 </a>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <span class="dropdown-header">Pilih Dashboard</span>
+                    <div class="dropdown-divider"></div>
+                    <?php foreach ($availableDashboards as $dashboardKey => $dashboard): ?>
+                        <a href="#" class="dropdown-item switch-dashboard-btn <?= $dashboardKey === $activeDashboard ? 'active' : '' ?>" 
+                           data-dashboard="<?= esc($dashboardKey) ?>" 
+                           data-url="<?= esc($dashboard['url']) ?>">
+                            <?php if ($dashboardKey === $activeDashboard): ?>
+                                <i class="fas fa-check text-success"></i>
+                            <?php else: ?>
+                                <i class="far fa-circle"></i>
+                            <?php endif; ?>
+                            <i class="<?= esc($dashboard['icon']) ?> ml-2"></i>
+                            <span class="ml-2"><?= esc($dashboard['label']) ?></span>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
             </li>
         <?php endif; ?>
         <!-- Navbar Search -->
@@ -207,30 +260,6 @@
                         </div>
                     </div>
                 </form>
-            </div>
-        </li>
-        <!-- Messages Dropdown Menu -->
-        <li class="nav-item dropdown">
-            <a class="nav-link" data-toggle="dropdown" href="#">
-                <i class="far fa-comments"></i>
-                <span class="badge badge-Light navbar-badge">0</span>
-            </a>
-            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-
-                <div class="dropdown-divider"></div>
-                <a href="#" class="dropdown-item dropdown-footer">See All Messages</a>
-            </div>
-        </li>
-        <!-- Notifications Dropdown Menu -->
-        <li class="nav-item dropdown">
-            <a class="nav-link" data-toggle="dropdown" href="#">
-                <i class="far fa-bell"></i>
-                <span class="badge badge-Light navbar-badge">0</span>
-            </a>
-            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                <span class="dropdown-item dropdown-header">0 Notifications</span>
-                <div class="dropdown-divider"></div>
-
             </div>
         </li>
         <!-- Theme Switcher -->
