@@ -9579,7 +9579,7 @@ class Munaqosah extends BaseController
                 : (($idTpq !== 0) ? 'pra-munaqosah' : 'munaqosah');
 
             $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
-            $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.IdKategoriMateri,r.IdGrupMateriUjian,r.TypeUjian, s.NamaSantri, s.JenisKelamin, s.TanggalLahirSantri, s.TempatLahirSantri, s.NamaAyah, t.NamaTpq, t.Alamat AS KelurahanDesaTpq, km.NamaKategoriMateri');
+            $builder->select('r.NoPeserta,r.IdSantri,r.IdTpq,r.IdTahunAjaran,r.IdKategoriMateri,r.IdGrupMateriUjian,r.TypeUjian, s.NamaSantri, s.JenisKelamin, s.TanggalLahirSantri, s.TempatLahirSantri, s.NamaAyah, t.NamaTpq, t.KelurahanDesa AS KelurahanDesaTpq, km.NamaKategoriMateri');
             $builder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
             $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = r.IdKategoriMateri', 'left');
