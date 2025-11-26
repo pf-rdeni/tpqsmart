@@ -179,6 +179,16 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('rapor/printPdf/(:num)/(:segment)', 'Rapor::printPdf/$1/$2');
     $routes->get('rapor/printPdfBulk/(:num)/(:segment)', 'Rapor::printPdfBulk/$1/$2');
 
+    // Absensi Routes
+    $routes->get('absensi', 'Absensi::index');
+    $routes->post('absensi/simpanAbsensi', 'Absensi::simpanAbsensi');
+    $routes->get('absensi/getSantriByKelasDanTanggal', 'Absensi::getSantriByKelasDanTanggal');
+    $routes->get('absensi/statistikKehadiran', 'Absensi::statistikKehadiran');
+    $routes->get('absensi/getStatistikData', 'Absensi::getStatistikData');
+    $routes->get('absensi/getStatistikPerSemester', 'Absensi::getStatistikPerSemester');
+    $routes->get('absensi/getListSantriStatistik', 'Absensi::getListSantriStatistik');
+    $routes->get('absensi/getKehadiranPerKelasPerHari', 'Absensi::getKehadiranPerKelasPerHari');
+
     // QR Routes
     $routes->get('qr', 'Qr::index');
     $routes->get('qr/generate', 'Qr::generate');

@@ -114,6 +114,43 @@ function render_progress_bar($persentase, $height = 25)
                             </div>
                         </div>
 
+                        <!-- Statistik Kehadiran Per Kelas (2 Minggu) -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card card-success card-outline">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="fas fa-chart-line"></i> Fluktuasi Kehadiran Per Kelas (2 Minggu)
+                                        </h3>
+                                        <div class="card-tools">
+                                            <a href="<?= base_url('backend/absensi/statistikKehadiran') ?>" class="btn btn-success btn-sm mr-2">
+                                                <i class="fas fa-chart-bar"></i> <span class="d-none d-sm-inline">Detail Statistik</span>
+                                            </a>
+                                            <button type="button" class="btn btn-success btn-sm" data-card-widget="collapse">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row mb-3">
+                                            <div class="col-12">
+                                                <p class="text-muted mb-2">
+                                                    <i class="fas fa-info-circle"></i> 
+                                                    Grafik ini menampilkan fluktuasi kehadiran (Hadir) per kelas selama 2 minggu terakhir 
+                                                    (1 minggu sebelum + 1 minggu saat ini). Setiap garis mewakili satu kelas.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <canvas id="kehadiranPerKelasChart" style="max-height: 400px;"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Quick Actions -->
                         <div class="row mt-4">
                             <div class="col-md-12">
@@ -470,9 +507,11 @@ function render_progress_bar($persentase, $height = 25)
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
     $(document).ready(function() {
         let guruChart = null;
+        let kehadiranPerKelasChart = null;
 
         function initGuruPieChart() {
             const ctxGuru = document.getElementById('guruPieChart');
@@ -557,6 +596,221 @@ function render_progress_bar($persentase, $height = 25)
                 initGuruPieChart();
             }, 100);
         }
+
+        // ===== Multi-Line Chart untuk Kehadiran Per Kelas =====
+        function loadKehadiranPerKelasChart() {
+            // Hitung periode 2 minggu: 1 minggu sebelum + 1 minggu saat ini
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0 = Minggu, 1 = Senin, dst
+            const mondayOffset = (dayOfWeek == 0) ? -6 : (1 - dayOfWeek);
+            
+            // Minggu saat ini (Senin - Minggu)
+            const currentWeekMonday = new Date(today);
+            currentWeekMonday.setDate(today.getDate() + mondayOffset);
+            const currentWeekSunday = new Date(currentWeekMonday);
+            currentWeekSunday.setDate(currentWeekMonday.getDate() + 6);
+            
+            // Minggu sebelumnya (7 hari sebelum Senin minggu ini)
+            const previousWeekMonday = new Date(currentWeekMonday);
+            previousWeekMonday.setDate(currentWeekMonday.getDate() - 7);
+            const previousWeekSunday = new Date(previousWeekMonday);
+            previousWeekSunday.setDate(previousWeekMonday.getDate() + 6);
+            
+            // Start date: Senin minggu sebelumnya
+            // End date: Minggu minggu saat ini
+            const startDate = previousWeekMonday.toISOString().split('T')[0];
+            const endDate = currentWeekSunday.toISOString().split('T')[0];
+
+            // Load data via AJAX
+            $.ajax({
+                url: '<?= base_url("backend/absensi/getKehadiranPerKelasPerHari") ?>',
+                type: 'GET',
+                data: {
+                    startDate: startDate,
+                    endDate: endDate
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response && response.success) {
+                        updateKehadiranPerKelasChart(response);
+                    } else {
+                        console.error('[KEPALA TPQ] Error loading kehadiran per kelas:', response);
+                        // Tampilkan chart kosong dengan pesan error
+                        showEmptyChart('Data tidak tersedia');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('[KEPALA TPQ] AJAX Error:', error);
+                    showEmptyChart('Terjadi kesalahan saat memuat data');
+                }
+            });
+        }
+
+        function updateKehadiranPerKelasChart(data) {
+            const canvasId = 'kehadiranPerKelasChart';
+            const ctx = document.getElementById(canvasId);
+
+            if (!ctx) {
+                console.error('[KEPALA TPQ] Canvas not found:', canvasId);
+                return;
+            }
+
+            // Hancurkan chart lama jika ada
+            if (kehadiranPerKelasChart) {
+                kehadiranPerKelasChart.destroy();
+            }
+
+            // Generate warna untuk setiap kelas
+            const colors = [
+                '#28a745', // Hijau
+                '#007bff', // Biru
+                '#ffc107', // Kuning
+                '#dc3545', // Merah
+                '#6f42c1', // Ungu
+                '#20c997', // Teal
+                '#fd7e14', // Orange
+                '#e83e8c', // Pink
+                '#17a2b8', // Cyan
+                '#6c757d'  // Gray
+            ];
+
+            // Siapkan datasets untuk chart
+            const datasets = data.datasets.map(function(dataset, index) {
+                const colorIndex = index % colors.length;
+                const color = colors[colorIndex];
+                
+                return {
+                    label: dataset.label,
+                    data: dataset.data,
+                    borderColor: color,
+                    backgroundColor: color + '20', // Tambahkan opacity
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1, // Smooth line
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: color,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                };
+            });
+
+            kehadiranPerKelasChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y || 0;
+                                    return label + ': ' + value + ' santri';
+                                }
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Tanggal'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Jumlah Kehadiran (Hadir)'
+                            },
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showEmptyChart(message) {
+            const canvasId = 'kehadiranPerKelasChart';
+            const ctx = document.getElementById(canvasId);
+
+            if (!ctx) {
+                return;
+            }
+
+            if (kehadiranPerKelasChart) {
+                kehadiranPerKelasChart.destroy();
+            }
+
+            kehadiranPerKelasChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: message,
+                            font: {
+                                size: 14
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load chart saat page ready
+        loadKehadiranPerKelasChart();
+
+        // Reload chart saat card di-expand (jika collapsed)
+        const kehadiranCard = $('#kehadiranPerKelasChart').closest('.card');
+        kehadiranCard.on('expanded.lte.cardwidget', function() {
+            setTimeout(function() {
+                if (!kehadiranPerKelasChart || kehadiranPerKelasChart.data.datasets.length === 0) {
+                    loadKehadiranPerKelasChart();
+                } else {
+                    kehadiranPerKelasChart.resize();
+                }
+            }, 350);
+        });
     });
 </script>
 <?= $this->endSection(); ?>

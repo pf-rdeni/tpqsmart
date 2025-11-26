@@ -42,6 +42,7 @@ class SantriModel extends Model
             s.IdSantri,
             s.NamaSantri,
             s.JenisKelamin,
+            s.PhotoProfil,
             t.IdTpq,
             t.NamaTpq,
             t.Alamat,
@@ -56,6 +57,9 @@ class SantriModel extends Model
 
         // Menambahkan filter Active=1
         $builder->where('s.Active', 1);
+        
+        // Tambahkan filter Status = 1 untuk tbl_kelas_santri (hanya record aktif)
+        $builder->where('ks.Status', 1);
 
         if (!empty($IdTahunAjaran)) {
             if (is_array($IdTahunAjaran)) {
@@ -85,20 +89,22 @@ class SantriModel extends Model
             }
         }
 
+        // Gunakan DISTINCT untuk menghindari duplikasi
+        $builder->distinct();
+        
+        // GroupBy dengan s.IdSantri sebagai kolom utama untuk menghindari duplikasi
         $builder->groupBy([
+            's.IdSantri',  // Group by IdSantri sebagai kolom utama
             'ks.Id',
             'ks.IdTahunAjaran',
             'k.IdKelas',
             'k.NamaKelas',
-            'g.IdGuru',
-            'g.Nama',
-            's.IdSantri',
             's.NamaSantri',
             's.JenisKelamin',
+            's.PhotoProfil',
             't.IdTpq',
             't.NamaTpq',
-            't.Alamat',
-            'w.IdJabatan'
+            't.Alamat'
         ]);
 
         $builder->orderBy('k.NamaKelas', 'ASC');
