@@ -3786,10 +3786,21 @@ class Munaqosah extends BaseController
             ]);
         }
 
+        // Normalisasi tahun ajaran - hapus garis miring jika ada (2025/2026 -> 20252026)
+        try {
+            $idTahunAjaran = $this->helpFunction->normalizeTahunAjaran($this->request->getPost('IdTahunAjaran'));
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Format tahun ajaran tidak valid',
+                'errors' => ['IdTahunAjaran' => $e->getMessage()]
+            ]);
+        }
+
         // Cek apakah santri sudah terdaftar
         if ($this->pesertaMunaqosahModel->isPesertaExists(
             $this->request->getPost('IdSantri'),
-            $this->request->getPost('IdTahunAjaran')
+            $idTahunAjaran
         )) {
             return $this->response->setJSON([
                 'success' => false,
@@ -3803,7 +3814,7 @@ class Munaqosah extends BaseController
         $data = [
             'IdSantri' => $this->request->getPost('IdSantri'),
             'IdTpq' => $this->request->getPost('IdTpq'),
-            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
+            'IdTahunAjaran' => $idTahunAjaran,
             'HasKey' => $hasKey
         ];
 
@@ -3862,7 +3873,19 @@ class Munaqosah extends BaseController
 
         $santriIds = $this->request->getPost('santri_ids');
         $idTpqList = $this->request->getPost('IdTpq'); // Sekarang berupa array
-        $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
+
+        // Normalisasi tahun ajaran - hapus garis miring jika ada (2025/2026 -> 20252026)
+        try {
+            $idTahunAjaran = $this->helpFunction->normalizeTahunAjaran($this->request->getPost('IdTahunAjaran'));
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Format tahun ajaran tidak valid',
+                'errors' => ['IdTahunAjaran' => $e->getMessage()],
+                'detailed_errors' => [$e->getMessage()],
+                'error_count' => 1
+            ]);
+        }
 
         $successCount = 0;
         $errorCount = 0;
@@ -5598,6 +5621,19 @@ class Munaqosah extends BaseController
             // Validasi input data
             $santriIds = json_decode($this->request->getPost('santri_ids'), true);
             $tahunAjaran = $this->request->getPost('tahunAjaran');
+
+            // Normalisasi tahun ajaran - hapus garis miring jika ada (2025/2026 -> 20252026)
+            try {
+                $tahunAjaran = $this->helpFunction->normalizeTahunAjaran($tahunAjaran);
+            } catch (\Exception $e) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Format tahun ajaran tidak valid',
+                    'detailed_errors' => [$e->getMessage()],
+                    'error_count' => 1
+                ]);
+            }
+
             $typeUjian = $this->request->getPost('typeUjian') ?? 'munaqosah';
 
             // Check if user is admin (IdTpq = 0 or null means Admin)
@@ -5642,12 +5678,9 @@ class Munaqosah extends BaseController
             } elseif (count($santriIds) === 0) {
                 $validationErrors[] = "Minimal harus memilih satu santri";
             }
-            
-            if (empty($tahunAjaran)) {
-                $validationErrors[] = "Parameter 'tahunAjaran' tidak boleh kosong";
-            } elseif (!is_numeric($tahunAjaran)) {
-                $validationErrors[] = "Parameter 'tahunAjaran' harus berupa angka";
-            }
+
+            // Validasi tahun ajaran sudah dilakukan di normalisasi di atas
+            // Tidak perlu validasi lagi karena sudah dinormalisasi
 
             // Validasi: Panitia TPQ hanya bisa registrasi pra-munaqosah
             if ($isPanitiaTpq && $typeUjian !== 'pra-munaqosah') {

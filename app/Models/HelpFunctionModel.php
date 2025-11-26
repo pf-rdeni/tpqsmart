@@ -492,6 +492,31 @@ class HelpFunctionModel extends Model
     }
 
     /**
+     * Normalisasi tahun ajaran dengan menghapus karakter non-numeric
+     * Mengkonversi format "2025/2026" menjadi "20252026"
+     * @param mixed $tahunAjaran Tahun ajaran yang akan dinormalisasi
+     * @return string Tahun ajaran dalam format 8 digit (contoh: 20252026)
+     * @throws \Exception Jika format tahun ajaran tidak valid
+     */
+    public function normalizeTahunAjaran($tahunAjaran)
+    {
+        // Jika array, ambil index 0
+        if (is_array($tahunAjaran)) {
+            $tahunAjaran = $tahunAjaran[0];
+        }
+        
+        // Hapus semua karakter non-numeric (termasuk garis miring, spasi, dll)
+        $normalized = preg_replace('/\D/', '', (string)$tahunAjaran);
+        
+        // Validasi: harus 8 digit
+        if (strlen($normalized) !== 8) {
+            throw new \Exception("Format tahun ajaran tidak valid. Harus 8 digit (contoh: 20252026). Nilai yang diterima: " . $tahunAjaran);
+        }
+        
+        return $normalized;
+    }
+
+    /**
      * Mendapatkan tahun ajaran saat ini berdasarkan bulan berjalan
      * @return string
      */
