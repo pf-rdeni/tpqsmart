@@ -260,7 +260,8 @@ class SantriBaruModel extends Model
             ->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas')
             ->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri')
             ->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq')
-            ->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq', 'left')
+            // Tambahkan filter IdTahunAjaran di JOIN untuk menghindari duplikasi saat guru memiliki multiple kelas
+            ->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq AND w.IdTahunAjaran = ks.IdTahunAjaran', 'left')
             ->join('tbl_guru g', 'w.IdGuru = g.IdGuru', 'left')
             ->join('tbl_jabatan j', 'w.IdJabatan = j.IdJabatan', 'left')
             ->where('s.Active', 1);
