@@ -620,6 +620,14 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/kelas/showCheckDuplikasiKelasSantri') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Cek Duplikasi Kelas Santri</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
                     </li>
                     <!--  Raport-->

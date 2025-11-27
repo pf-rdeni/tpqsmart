@@ -133,28 +133,9 @@ class Kelas extends BaseController
         $previousAcademicYear = ($currentMonth >= 7) ? ($currentYear - 1) . $currentYear : ($currentYear - 2) . ($currentYear - 1);
         $currentAcademicYear = ($currentMonth >= 7) ? $currentYear . ($currentYear + 1) : ($currentYear - 1) . $currentYear;
 
-        // mengambil data query berdasarkan filter tahun ajaran tabel tbl_kelas_santri dan filter IdTpq
-        // jika IdTpq ada maka ambil data berdasarkan IdTpq
-        if ($IdTpq != 0) {
-            $this->kelasModel->select('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas, tbl_kelas.NamaKelas, COUNT(tbl_kelas_santri.IdSantri) AS SumIdKelas')
-            ->join('tbl_kelas', 'tbl_kelas_santri.IdKelas = tbl_kelas.IdKelas')
-            ->groupBy('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas')
-            ->orderBy('tbl_kelas_santri.IdTahunAjaran', 'ASC')
-            ->orderBy('tbl_kelas_santri.IdKelas', 'ASC')
-            ->where('tbl_kelas_santri.IdTpq', $IdTpq)
-            ->where('tbl_kelas_santri.status', true)
-            ->whereIn('tbl_kelas_santri.IdTahunAjaran', [$previousAcademicYear, $currentAcademicYear]);
-        } else {
-            $this->kelasModel->select('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas, tbl_kelas.NamaKelas, COUNT(tbl_kelas_santri.IdSantri) AS SumIdKelas')
-            ->join('tbl_kelas', 'tbl_kelas_santri.IdKelas = tbl_kelas.IdKelas')
-            ->groupBy('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas')
-            ->orderBy('tbl_kelas_santri.IdTahunAjaran', 'ASC')
-            ->orderBy('tbl_kelas_santri.IdKelas', 'ASC')
-            ->where('tbl_kelas_santri.status', true)
-            ->whereIn('tbl_kelas_santri.IdTahunAjaran', [$previousAcademicYear, $currentAcademicYear]);
-        }
-
-        $dataKelas = $this->kelasModel->get()->getResultArray();
+        // Ambil data kelas per tahun ajaran dari model
+        $IdTpqForQuery = ($IdTpq != 0) ? $IdTpq : null;
+        $dataKelas = $this->kelasModel->getKelasPerTahunAjaran($IdTpqForQuery, [$previousAcademicYear, $currentAcademicYear]);
 
         // Pisahkan data dari tahun ajaran sebelumnya dan saat ini
         $kelas_previous = array_filter($dataKelas, function($item) use ($previousAcademicYear) {
@@ -190,13 +171,8 @@ class Kelas extends BaseController
 
         //Step 2 ambil list santri tbl_kelas_santri
         //tabel ini informasi penyimmpanan santri berdasarkan tahun ajaran, kelas, tpq dan status active = 1
-        $builder = $this->kelasModel->where('IdTahunAjaran', $idTahunAjaran)
-            ->where('IdKelas', $idKelas)
-            ->where('Status', 1);
-        if (!empty($IdTpq) && $IdTpq != 0) {
-            $builder = $builder->where('IdTpq', $IdTpq);
-        }
-        $santriList = $builder->findAll();
+        $IdTpqForQuery = (!empty($IdTpq) && $IdTpq != 0) ? $IdTpq : null;
+        $santriList = $this->kelasModel->getSantriByTahunAjaranDanKelas($idTahunAjaran, $idKelas, $IdTpqForQuery);
 
         $dataKelasBaru = [];
         $dataNilaiBaru = [];
@@ -268,12 +244,12 @@ class Kelas extends BaseController
 
         // Insert semua santri naik kelas sekaligus
         if (!empty($dataKelasBaru)) {
-            $this->kelasModel->insertBatch($dataKelasBaru);
+            $this->kelasModel->insertKelasBaruBatch($dataKelasBaru);
         }
 
         // Update status kelas lama sekaligus
         if (!empty($idsKelasLama)) {
-            $this->kelasModel->whereIn('Id', $idsKelasLama)->set(['Status' => 0])->update();
+            $this->kelasModel->updateStatusKelasLama($idsKelasLama);
         }
 
         // Insert semua nilai sekaligus
@@ -391,5 +367,81 @@ class Kelas extends BaseController
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>');
+    }
+
+    /**
+     * Menampilkan halaman untuk mengecek duplikasi IdSantri di tbl_kelas_santri
+     * @return view
+     */
+    public function showCheckDuplikasiKelasSantri()
+    {
+        $data = [
+            'page_title' => 'Cek Duplikasi Kelas Santri'
+        ];
+
+        return view('backend/kelas/checkDuplikasiKelasSantri', $data);
+    }
+
+    /**
+     * Mengecek duplikasi IdSantri di tbl_kelas_santri
+     * Duplikasi terjadi jika IdSantri yang sama memiliki IdKelas yang sama pada IdTahunAjaran yang sama dan IdTpq yang sama
+     * @return json
+     */
+    public function checkDuplikasiKelasSantri()
+    {
+        $IdTpq = session()->get('IdTpq');
+
+        try {
+            // Ambil data duplikasi dari model
+            $duplikasi = $this->kelasModel->getDuplikasiKelasSantri($IdTpq);
+
+            // Ambil detail duplikasi dengan informasi santri, kelas, dan TPQ
+            $result = $this->kelasModel->getDetailDuplikasiKelasSantri($duplikasi);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $result,
+                'total_duplikasi' => count($result)
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Menormalisasi duplikasi dengan menghapus record duplikasi
+     * Menyisakan 1 record per kombinasi IdSantri, IdKelas, IdTahunAjaran, IdTpq
+     * Menyisakan record dengan Id terkecil (terlama)
+     * @return json
+     */
+    public function normalisasiDuplikasiKelasSantri()
+    {
+        $IdTpq = session()->get('IdTpq');
+        $selectedData = $this->request->getPost('selectedData');
+
+        try {
+            // Jika ada data yang dipilih, hanya normalisasi yang dipilih
+            if (!empty($selectedData) && is_array($selectedData)) {
+                $result = $this->kelasModel->normalisasiDuplikasiKelasSantriSelected($selectedData);
+            } else {
+                // Jika tidak ada data yang dipilih, normalisasi semua
+                $result = $this->kelasModel->normalisasiDuplikasiKelasSantri($IdTpq);
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => "Berhasil menormalisasi {$result['total_groups']} grup duplikasi. Total {$result['total_deleted']} record dihapus.",
+                'total_groups' => $result['total_groups'],
+                'total_deleted' => $result['total_deleted']
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
     }
 }

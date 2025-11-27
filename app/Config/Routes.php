@@ -109,6 +109,9 @@ $routes->get('kelas/delete/(:num)', 'Kelas::delete/$1');  // Delete a specific r
 $routes->get('backend/kelas/showListSantriPerKelas/(:any)', 'Backend\Kelas::showListSantriPerKelas/$1');
 $routes->get('backend/kelas/updateNaikKelas/(:num)/(:num)', 'Backend\Kelas::updateNaikKelas/$1/$2');
 $routes->get('backend/kelas/showSantriPerKelas/(:any)', 'Backend\Kelas::showSantriPerKelas/$1');
+$routes->get('backend/kelas/showCheckDuplikasiKelasSantri', 'Backend\Kelas::showCheckDuplikasiKelasSantri');
+$routes->post('backend/kelas/checkDuplikasiKelasSantri', 'Backend\Kelas::checkDuplikasiKelasSantri');
+$routes->post('backend/kelas/normalisasiDuplikasiKelasSantri', 'Backend\Kelas::normalisasiDuplikasiKelasSantri');
 $routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'Backend\Santri::showSuccessEmisStep/$1');
 
 //Tabel Materi
