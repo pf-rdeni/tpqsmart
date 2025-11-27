@@ -554,6 +554,14 @@
                                     <p>Rekening Bank</p>
                                 </a>
                             </li>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Setting Guru Kelas</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
                     </li>
                     <!--  Data Santri -->
@@ -572,6 +580,14 @@
                                     <p>Santri Baru</p>
                                 </a>
                             </li>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Registrasi Santri Baru</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
@@ -596,6 +612,14 @@
                                     <p>Santri Per Kelas</p>
                                 </a>
                             </li>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/kelas/showListSantriPerKelas') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Kenaikan Kelas</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
                     </li>
                     <!--  Raport-->
@@ -763,24 +787,6 @@
                                 <a href=<?php echo base_url('backend/kelasMateriPelajaran/showMateriKelas') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Materi Kelas</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Kelas Baru</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/kelas/showListSantriPerKelas') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Kenaikan Kelas</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Guru Kelas</p>
                                 </a>
                             </li>
                             <li class="nav-item">
