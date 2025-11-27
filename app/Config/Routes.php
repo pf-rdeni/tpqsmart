@@ -168,6 +168,12 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('rapor/getCatatanDefaultByNilai', 'Rapor::getCatatanDefaultByNilai');
     $routes->post('rapor/getAbsensiFromTable', 'Rapor::getAbsensiFromTable');
 
+    // Routes untuk Mapping Wali Kelas
+    $routes->get('rapor/settingMappingWaliKelas', 'Rapor::settingMappingWaliKelas');
+    $routes->get('rapor/settingMappingWaliKelas/(:num)', 'Rapor::settingMappingWaliKelas/$1');
+    $routes->post('rapor/saveMappingWaliKelas', 'Rapor::saveMappingWaliKelas');
+    $routes->post('rapor/deleteMappingWaliKelas', 'Rapor::deleteMappingWaliKelas');
+
     // Routes untuk Rapor (route umum harus setelah route spesifik)
     // Route untuk semester Ganjil dan Genap
     $routes->get('rapor/Ganjil', 'Rapor::index/Ganjil');

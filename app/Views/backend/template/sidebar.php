@@ -640,6 +640,66 @@
                                     <p>Kriteria Catatan</p>
                                 </a>
                             </li>
+                            <?php
+                            // Cek apakah setting MappingWaliKelas aktif
+                            // Menu ini muncul untuk:
+                            // 1. Admin atau Operator (selalu muncul jika setting aktif)
+                            // 2. Guru/Wali Kelas (hanya muncul jika setting aktif DAN user adalah Wali Kelas)
+                            $toolsModel = new \App\Models\ToolsModel();
+                            $idTpq = session()->get('IdTpq');
+                            $idGuru = session()->get('IdGuru');
+                            $mappingEnabled = false;
+                            $isWaliKelas = false;
+                            $showMappingMenu = false;
+
+                            // Cek apakah user adalah Admin atau Operator
+                            $isAdmin = in_groups('Admin');
+                            $isOperator = in_groups('Operator');
+
+                            if (!empty($idTpq)) {
+                                $mappingEnabled = $toolsModel->getSetting($idTpq, 'MappingWaliKelas');
+
+                                // Jika Admin atau Operator, langsung tampilkan jika setting aktif
+                                if (($isAdmin || $isOperator) && $mappingEnabled) {
+                                    $showMappingMenu = true;
+                                }
+                                // Jika bukan Admin/Operator, cek apakah user adalah Wali Kelas
+                                elseif (!empty($idGuru) && $mappingEnabled) {
+                                    $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                                    $idTahunAjaran = session()->get('IdTahunAjaran');
+                                    if (empty($idTahunAjaran)) {
+                                        $idTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+                                    }
+
+                                    // Cek apakah user adalah Wali Kelas
+                                    $guruKelasData = $helpFunctionModel->getDataGuruKelas(
+                                        IdGuru: $idGuru,
+                                        IdTpq: $idTpq,
+                                        IdTahunAjaran: $idTahunAjaran
+                                    );
+
+                                    foreach ($guruKelasData as $gk) {
+                                        $gkArray = is_object($gk) ? (array)$gk : $gk;
+                                        if (($gkArray['NamaJabatan'] ?? '') === 'Wali Kelas') {
+                                            $isWaliKelas = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if ($isWaliKelas) {
+                                        $showMappingMenu = true;
+                                    }
+                                }
+                            }
+                            ?>
+                            <?php if ($showMappingMenu): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/rapor/settingMappingWaliKelas') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Mapping Wali Kelas</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
 
                     </li>
@@ -931,6 +991,59 @@
                                         <p>Kriteria Catatan</p>
                                     </a>
                                 </li>
+                                <?php
+                                // Cek apakah setting MappingWaliKelas aktif untuk Guru
+                                // Menu ini muncul hanya jika setting aktif DAN user adalah Wali Kelas
+                                if (!isset($toolsModel)) {
+                                    $toolsModel = new \App\Models\ToolsModel();
+                                }
+                                $idTpqGuru = session()->get('IdTpq');
+                                $idGuruGuru = session()->get('IdGuru');
+                                $mappingEnabledGuru = false;
+                                $isWaliKelasGuru = false;
+                                $showMappingMenuGuru = false;
+
+                                if (!empty($idTpqGuru) && !empty($idGuruGuru)) {
+                                    $mappingEnabledGuru = $toolsModel->getSetting($idTpqGuru, 'MappingWaliKelas');
+
+                                    if ($mappingEnabledGuru) {
+                                        if (!isset($helpFunctionModel)) {
+                                            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                                        }
+                                        $idTahunAjaranGuru = session()->get('IdTahunAjaran');
+                                        if (empty($idTahunAjaranGuru)) {
+                                            $idTahunAjaranGuru = $helpFunctionModel->getTahunAjaranSaatIni();
+                                        }
+
+                                        // Cek apakah user adalah Wali Kelas
+                                        $guruKelasDataGuru = $helpFunctionModel->getDataGuruKelas(
+                                            IdGuru: $idGuruGuru,
+                                            IdTpq: $idTpqGuru,
+                                            IdTahunAjaran: $idTahunAjaranGuru
+                                        );
+
+                                        foreach ($guruKelasDataGuru as $gk) {
+                                            $gkArray = is_object($gk) ? (array)$gk : $gk;
+                                            if (($gkArray['NamaJabatan'] ?? '') === 'Wali Kelas') {
+                                                $isWaliKelasGuru = true;
+                                                break;
+                                            }
+                                        }
+
+                                        if ($isWaliKelasGuru) {
+                                            $showMappingMenuGuru = true;
+                                        }
+                                    }
+                                }
+                                ?>
+                                <?php if ($showMappingMenuGuru): ?>
+                                    <li class="nav-item">
+                                        <a href=<?php echo base_url('backend/rapor/settingMappingWaliKelas') ?> class="nav-link">
+                                            <i class="far fa-circle nav-icon"></i>
+                                            <p>Mapping Wali Kelas</p>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
                             </ul>
                         </li>
                     <?php endif; ?>

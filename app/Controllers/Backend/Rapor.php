@@ -30,6 +30,7 @@ class Rapor extends BaseController
     protected $kriteriaCatatanRaporModel;
     protected $raportSettingModel;
     protected $absensiModel;
+    protected $rombelWalikelasModel;
 
     public function __construct()
     {
@@ -44,6 +45,7 @@ class Rapor extends BaseController
         $this->kriteriaCatatanRaporModel = new KriteriaCatatanRaporModel();
         $this->raportSettingModel = new RaportSettingModel();
         $this->absensiModel = new AbsensiModel();
+        $this->rombelWalikelasModel = new \App\Models\RombelWalikelasModel();
         ini_set('memory_limit', '256M');
         set_time_limit(300);
         mb_internal_encoding('UTF-8');
@@ -147,10 +149,63 @@ class Rapor extends BaseController
             }
         }
 
-        // Ambil Nama Wali Kelas dari IdKelas data nilai ke tbl_guru_kelas
+        // Ambil Nama Wali Kelas dengan mapping dari tbl_rombel
         $IdKelas = $santri['IdKelas'];
-        $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(IdKelas: $IdKelas, IdTpq: $IdTpq, IdTahunAjaran: $IdTahunAjaran);
-        $santri['WaliKelas'] = $waliKelas->Nama;
+
+        // Cek setting MappingWaliKelas dari tbl_tools
+        $mappingEnabled = $this->toolsModel->getSetting($IdTpq, 'MappingWaliKelas');
+
+        if ($mappingEnabled) {
+            // Cek apakah ada mapping di tbl_rombel
+            $mapping = $this->rombelWalikelasModel->getMappingBySantri(
+                $santri['IdSantri'],
+                $IdTahunAjaran,
+                $IdKelas,
+                $IdTpq
+            );
+
+            // Convert mapping ke array jika object
+            $mappingArray = is_object($mapping) ? (array)$mapping : $mapping;
+
+            if ($mapping && !empty($mappingArray['IdGuru'])) {
+                // Ambil nama guru dari mapping
+                $guru = $this->helpFunctionModel->getDataGuruKelas(
+                    IdGuru: $mappingArray['IdGuru'],
+                    IdTpq: $IdTpq,
+                    IdKelas: $IdKelas,
+                    IdTahunAjaran: $IdTahunAjaran
+                );
+                // getDataGuruKelas mengembalikan array of objects
+                if (!empty($guru) && isset($guru[0]) && isset($guru[0]->Nama)) {
+                    $santri['WaliKelas'] = $guru[0]->Nama;
+                } else {
+                    // Fallback ke wali kelas asli
+                    $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(
+                        IdKelas: $IdKelas,
+                        IdTpq: $IdTpq,
+                        IdTahunAjaran: $IdTahunAjaran
+                    );
+                    $santri['WaliKelas'] = $waliKelas ? $waliKelas->Nama : '';
+                }
+            } else {
+                // Tidak ada mapping, gunakan wali kelas asli
+                $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(
+                    IdKelas: $IdKelas,
+                    IdTpq: $IdTpq,
+                    IdTahunAjaran: $IdTahunAjaran
+                );
+                $santri['WaliKelas'] = $waliKelas ? $waliKelas->Nama : '';
+            }
+        } else {
+            // Setting tidak aktif, gunakan wali kelas asli
+            $waliKelas = $this->helpFunctionModel->getWaliKelasByIdKelas(
+                IdKelas: $IdKelas,
+                IdTpq: $IdTpq,
+                IdTahunAjaran: $IdTahunAjaran
+            );
+            $santri['WaliKelas'] = $waliKelas ? $waliKelas->Nama : '';
+        }
+
         // Ambil guru pendamping dari tbl_guru_kelas
         $guruPendamping = $this->helpFunctionModel->getGuruPendampingByIdKelas($IdKelas, $IdTpq, $IdTahunAjaran);
         $santri['GuruPendamping'] = !empty($guruPendamping) ? $guruPendamping : [];
@@ -1725,5 +1780,334 @@ class Rapor extends BaseController
                 ]
             ]
         ]);
+    }
+
+    /**
+     * Halaman setting mapping wali kelas
+     */
+    public function settingMappingWaliKelas($IdKelas = null)
+    {
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdGuru = session()->get('IdGuru');
+
+        // Cek apakah user adalah Wali Kelas
+        if (!empty($IdKelas)) {
+            $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission(
+                $IdTpq,
+                $IdGuru,
+                $IdKelas,
+                $IdTahunAjaran
+            );
+
+            if (!$guruKelasPermission || $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
+                return redirect()->back()->with('error', 'Hanya Wali Kelas yang dapat mengakses halaman ini.');
+            }
+        }
+
+        // Cek setting MappingWaliKelas
+        $mappingEnabled = $this->toolsModel->getSetting($IdTpq, 'MappingWaliKelas');
+        if (!$mappingEnabled) {
+            return redirect()->back()->with('error', 'Fitur mapping wali kelas belum diaktifkan. Silakan hubungi admin/operator untuk mengaktifkan setting MappingWaliKelas di Tools.');
+        }
+
+        // Ambil list kelas untuk dropdown (jika Wali Kelas)
+        $listKelas = [];
+        if (!empty($IdGuru)) {
+            $guruKelasData = $this->helpFunctionModel->getDataGuruKelas(
+                IdGuru: $IdGuru,
+                IdTpq: $IdTpq,
+                IdTahunAjaran: $IdTahunAjaran
+            );
+
+            foreach ($guruKelasData as $gk) {
+                $gkArray = is_object($gk) ? (array)$gk : $gk;
+                if (($gkArray['NamaJabatan'] ?? '') === 'Wali Kelas') {
+                    $listKelas[] = [
+                        'IdKelas' => $gkArray['IdKelas'],
+                        'NamaKelas' => $gkArray['NamaKelas'] ?? ''
+                    ];
+                }
+            }
+        }
+
+        // Jika IdKelas tidak dipilih, gunakan kelas pertama
+        if (empty($IdKelas) && !empty($listKelas)) {
+            $IdKelas = $listKelas[0]['IdKelas'];
+        }
+
+        // Ambil data santri di kelas
+        $santriList = [];
+        $guruPendampingList = [];
+        $mappingData = [];
+
+        if (!empty($IdKelas)) {
+            // Ambil santri di kelas
+            $santriList = $this->santriBaruModel->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->where([
+                    'tbl_santri_baru.IdTpq' => $IdTpq,
+                    'tbl_santri_baru.IdKelas' => $IdKelas,
+                    'tbl_santri_baru.Active' => 1
+                ])
+                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas')
+                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+                ->findAll();
+
+            // Ambil semua guru yang mengajar di kelas yang sama dengan wali kelas
+            // Ini termasuk Wali Kelas, Guru Pendamping, dan guru lain yang mengajar di kelas tersebut
+            $allGuruKelas = $this->helpFunctionModel->getDataGuruKelas(
+                IdTpq: $IdTpq,
+                IdKelas: $IdKelas,
+                IdTahunAjaran: $IdTahunAjaran
+            );
+
+            $guruPendampingList = [];
+            $addedGuruIds = []; // Untuk menghindari duplikasi
+
+            // Tambahkan semua guru yang mengajar di kelas ini
+            foreach ($allGuruKelas as $gk) {
+                $gkArray = is_object($gk) ? (array)$gk : $gk;
+                $idGuru = $gkArray['IdGuru'] ?? null;
+                $namaGuru = $gkArray['Nama'] ?? '';
+                $namaJabatan = $gkArray['NamaJabatan'] ?? '';
+
+                // Pastikan IdGuru valid dan belum ditambahkan
+                if (!empty($idGuru) && !in_array($idGuru, $addedGuruIds)) {
+                    // Terapkan ucwords pada nama guru
+                    $namaGuruFormatted = ucwords(strtolower($namaGuru));
+                    $guruPendampingList[] = [
+                        'IdGuru' => $idGuru,
+                        'Nama' => $namaGuruFormatted . ($namaJabatan ? ' (' . $namaJabatan . ')' : '')
+                    ];
+                    $addedGuruIds[] = $idGuru;
+                }
+            }
+
+            // Ambil mapping yang sudah ada
+            $mappingList = $this->rombelWalikelasModel->getMappingByKelas(
+                $IdKelas,
+                $IdTahunAjaran,
+                $IdTpq
+            );
+
+            // Buat array mapping dengan key IdSantri
+            foreach ($mappingList as $mapping) {
+                $mappingData[$mapping['IdSantri']] = $mapping['IdGuru'];
+            }
+
+            // Ambil Wali Kelas asli untuk kelas ini (IdGuru dengan IdJabatan = 3)
+            $waliKelasAsli = null;
+            $waliKelasIdGuru = null;
+            $db = \Config\Database::connect();
+            $builder = $db->table('tbl_guru_kelas');
+            $builder->select('tbl_guru_kelas.IdGuru, g.Nama');
+            $builder->join('tbl_guru g', 'g.IdGuru = tbl_guru_kelas.IdGuru');
+            $builder->where('tbl_guru_kelas.IdKelas', $IdKelas);
+            $builder->where('tbl_guru_kelas.IdTpq', $IdTpq);
+            $builder->where('tbl_guru_kelas.IdTahunAjaran', $IdTahunAjaran);
+            $builder->where('tbl_guru_kelas.IdJabatan', 3); // Wali Kelas
+            $builder->limit(1);
+            $waliKelasAsli = $builder->get()->getRowArray();
+
+            if (!empty($waliKelasAsli) && !empty($waliKelasAsli['IdGuru'])) {
+                $waliKelasIdGuru = $waliKelasAsli['IdGuru'];
+            }
+        }
+
+        $data = [
+            'page_title' => 'Setting Mapping Wali Kelas',
+            'IdKelas' => $IdKelas,
+            'listKelas' => $listKelas,
+            'santriList' => $santriList,
+            'guruPendampingList' => $guruPendampingList,
+            'mappingData' => $mappingData,
+            'waliKelasIdGuru' => $waliKelasIdGuru ?? null,
+            'mappingEnabled' => $mappingEnabled
+        ];
+
+        return view('backend/rapor/settingMappingWaliKelas', $data);
+    }
+
+    /**
+     * Simpan mapping wali kelas (mass update)
+     */
+    public function saveMappingWaliKelas()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdGuru = session()->get('IdGuru');
+
+        // Ambil array mappings dari request
+        $mappings = $this->request->getPost('mappings');
+        $IdKelas = $this->request->getPost('IdKelas');
+
+        // Log untuk debugging
+        log_message('debug', 'Rapor: saveMappingWaliKelas - Request data: ' . json_encode([
+            'mappings_count' => is_array($mappings) ? count($mappings) : 0,
+            'IdKelas' => $IdKelas,
+            'IdTpq' => $IdTpq,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'IdGuru' => $IdGuru
+        ]));
+
+        // Validasi
+        if (empty($mappings) || !is_array($mappings) || empty($IdKelas)) {
+            log_message('error', 'Rapor: saveMappingWaliKelas - Data tidak lengkap');
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        // Cek permission: hanya Wali Kelas, Admin, atau Operator yang bisa save
+        $isAdmin = in_groups('Admin');
+        $isOperator = in_groups('Operator');
+
+        if (!$isAdmin && !$isOperator) {
+            // Untuk Guru, cek apakah adalah Wali Kelas
+            $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission(
+                $IdTpq,
+                $IdGuru,
+                $IdKelas,
+                $IdTahunAjaran
+            );
+
+            if (!$guruKelasPermission || $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki permission untuk melakukan mapping wali kelas.'
+                ]);
+            }
+        }
+
+        // Cek setting MappingWaliKelas
+        $mappingEnabled = $this->toolsModel->getSetting($IdTpq, 'MappingWaliKelas');
+        if (!$mappingEnabled) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Fitur mapping wali kelas belum diaktifkan.'
+            ]);
+        }
+
+        // Validasi dan siapkan data untuk mass update
+        $dataToSave = [];
+        foreach ($mappings as $mapping) {
+            $IdSantri = $mapping['IdSantri'] ?? null;
+            $IdGuruMapping = $mapping['IdGuru'] ?? null;
+
+            // Skip jika IdSantri tidak ada
+            if (empty($IdSantri)) {
+                continue;
+            }
+
+            // Jika IdGuru null atau kosong, berarti mapping dihapus (akan di-handle di model)
+            $dataToSave[] = [
+                'IdSantri' => $IdSantri,
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'IdGuru' => $IdGuruMapping, // bisa null untuk delete
+                'IdKelas' => $IdKelas,
+                'IdTpq' => $IdTpq
+            ];
+        }
+
+        if (empty($dataToSave)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tidak ada data mapping yang valid untuk disimpan'
+            ]);
+        }
+
+        try {
+            // Mass save ke model
+            $result = $this->rombelWalikelasModel->saveMappingBatch($dataToSave);
+
+            if ($result['success']) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data' => [
+                        'saved' => $result['saved'],
+                        'updated' => $result['updated'],
+                        'deleted' => $result['deleted']
+                    ]
+                ]);
+            } else {
+                log_message('error', 'Rapor: saveMappingWaliKelas - Error: ' . $result['message']);
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $result['message'],
+                    'errors' => $result['errors'] ?? []
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: saveMappingWaliKelas - Exception: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Hapus mapping wali kelas
+     */
+    public function deleteMappingWaliKelas()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdGuru = session()->get('IdGuru');
+
+        $IdSantri = $this->request->getPost('IdSantri');
+        $IdKelas = $this->request->getPost('IdKelas');
+
+        // Validasi
+        if (empty($IdSantri) || empty($IdKelas)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        // Cek permission: hanya Wali Kelas yang bisa delete
+        $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission(
+            $IdTpq,
+            $IdGuru,
+            $IdKelas,
+            $IdTahunAjaran
+        );
+
+        if (!$guruKelasPermission || $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki permission untuk menghapus mapping wali kelas.'
+            ]);
+        }
+
+        // Hapus mapping
+        if ($this->rombelWalikelasModel->deleteMapping($IdSantri, $IdTahunAjaran, $IdKelas, $IdTpq)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Mapping wali kelas berhasil dihapus'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menghapus mapping'
+            ]);
+        }
     }
 }

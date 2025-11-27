@@ -96,6 +96,33 @@
                                         <button type="button" class="btn btn-primary btn-sm btn-print-all" data-kelas="<?= $kelas->IdKelas ?>" data-semester="<?= $semester ?>">
                                             <i class="fas fa-print"></i> Cetak Semua Rapor Kelas <?= $kelas->NamaKelas ?>
                                         </button>
+                                        <?php
+                                        // Tampilkan tombol setting mapping hanya untuk Wali Kelas dan jika setting aktif
+                                        $isWaliKelas = false;
+                                        $mappingEnabled = false;
+                                        
+                                        if (!empty($guruKelasPermissions)) {
+                                            foreach ($guruKelasPermissions as $perm) {
+                                                if (isset($perm['IdKelas']) && $perm['IdKelas'] == $kelas->IdKelas && 
+                                                    isset($perm['NamaJabatan']) && $perm['NamaJabatan'] === 'Wali Kelas') {
+                                                    $isWaliKelas = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        
+                                        if ($isWaliKelas) {
+                                            $toolsModel = new \App\Models\ToolsModel();
+                                            $idTpq = session()->get('IdTpq');
+                                            $mappingEnabled = $toolsModel->getSetting($idTpq, 'MappingWaliKelas');
+                                        }
+                                        ?>
+                                        <?php if ($isWaliKelas && $mappingEnabled): ?>
+                                            <a href="<?= base_url('backend/rapor/settingMappingWaliKelas/' . $kelas->IdKelas) ?>" 
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-users-cog"></i> Setting Mapping Wali Kelas
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                     <table class="table table-bordered table-striped" id="tableSantri-<?= $kelas->IdKelas ?>">
                                         <thead>
