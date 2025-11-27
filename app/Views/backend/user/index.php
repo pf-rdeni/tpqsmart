@@ -3,6 +3,102 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
+            <!-- Informasi Proses Flow -->
+            <div class="card card-info card-outline collapsed-card mb-3">
+                <div class="card-header bg-info">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle"></i> Informasi Proses Data User
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-list-ol"></i> Cara Menggunakan Halaman Data User:</h5>
+                            <ol class="mb-3">
+                                <li class="mb-2">
+                                    <strong>Memahami Tampilan Halaman</strong>
+                                    <ul class="mt-1">
+                                        <li>Halaman ini menampilkan <strong>daftar semua user/akun</strong> yang terdaftar di sistem</li>
+                                        <li>Tabel menampilkan informasi: Status (aktif/tidak aktif), Nama, Username, Password, TPQ, Kelurahan/Desa, Kategori, dan Aksi</li>
+                                        <li>Kolom <strong>Password</strong> menampilkan password terenkripsi (klik ikon mata untuk melihat)</li>
+                                        <li>Gunakan fitur <strong>search</strong> pada tabel untuk mencari user tertentu</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Menambah User Baru</strong>
+                                    <ul class="mt-1">
+                                        <li>Klik tombol <strong>"Tambah User"</strong> di bagian atas halaman</li>
+                                        <li>Pilih <strong>Group</strong> dari dropdown (Admin, Operator, Guru, dll)</li>
+                                        <li>Untuk <strong>Admin</strong>: bisa input nama manual atau pilih dari daftar guru</li>
+                                        <li>Untuk <strong>non-Admin</strong>: wajib pilih nama dari daftar guru</li>
+                                        <li>Jika memilih guru, <strong>Username</strong> akan otomatis terisi</li>
+                                        <li>Masukkan <strong>Password</strong> atau centang <strong>"Gunakan Default Password: TpqSmart123"</strong></li>
+                                        <li>Masukkan <strong>Konfirmasi Password</strong> (harus sama dengan password)</li>
+                                        <li>Klik <strong>"Simpan"</strong> untuk membuat akun baru</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Mengubah Password User</strong>
+                                    <ul class="mt-1">
+                                        <li>Klik tombol <strong>"Edit"</strong> pada baris user yang ingin diubah passwordnya</li>
+                                        <li>Nama dan Username <strong>tidak bisa diubah</strong> (sudah terkunci)</li>
+                                        <li>Masukkan <strong>Password Baru</strong> atau centang <strong>"Gunakan Default Password"</strong></li>
+                                        <li>Masukkan <strong>Konfirmasi Password Baru</strong> (harus sama dengan password baru)</li>
+                                        <li>Jika tidak ingin mengubah password, <strong>biarkan kosong</strong></li>
+                                        <li>Klik <strong>"Update"</strong> untuk menyimpan perubahan</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Mengaktifkan/Menonaktifkan User</strong>
+                                    <ul class="mt-1">
+                                        <li>Gunakan <strong>checkbox</strong> pada kolom "Status" untuk mengaktifkan/nonaktifkan user</li>
+                                        <li>Jika checkbox <strong>dicentang</strong>, user bisa login ke sistem</li>
+                                        <li>Jika checkbox <strong>tidak dicentang</strong>, user tidak bisa login (dinonaktifkan)</li>
+                                        <li>Sistem akan meminta <strong>konfirmasi</strong> sebelum mengubah status</li>
+                                        <li>Perubahan status akan langsung terupdate</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Menghapus User</strong>
+                                    <ul class="mt-1">
+                                        <li>Klik tombol <strong>"Hapus"</strong> (ikon tempat sampah) pada baris user yang ingin dihapus</li>
+                                        <li>Sistem akan meminta <strong>konfirmasi</strong> sebelum menghapus</li>
+                                        <li>Setelah dihapus, user tidak bisa login lagi dan data akan dihapus permanen</li>
+                                        <li>Pastikan user tidak sedang digunakan untuk proses penting sebelum menghapus</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Tips dan Saran</strong>
+                                    <ul class="mt-1">
+                                        <li>Gunakan <strong>Default Password</strong> untuk memudahkan, user bisa mengubahnya nanti</li>
+                                        <li>Jika guru sudah memiliki akun, sistem akan <strong>memberi peringatan</strong> saat mencoba membuat akun baru</li>
+                                        <li>Username biasanya dibuat <strong>otomatis</strong> dari nama guru (huruf pertama nama depan + nama belakang)</li>
+                                        <li>Jika username sudah ada, sistem akan <strong>menambahkan angka</strong> secara otomatis</li>
+                                        <li>Gunakan fitur <strong>search</strong> pada tabel untuk mencari user dengan cepat</li>
+                                    </ul>
+                                </li>
+                            </ol>
+
+                            <div class="alert alert-warning mb-0">
+                                <h5><i class="icon fas fa-exclamation-triangle"></i> Catatan Penting:</h5>
+                                <ul class="mb-0">
+                                    <li>Password default adalah <strong>TpqSmart123</strong> (disarankan untuk diubah setelah login pertama)</li>
+                                    <li>User yang <strong>dinonaktifkan</strong> tidak bisa login, tapi data tetap tersimpan</li>
+                                    <li>User yang <strong>dihapus</strong> akan hilang permanen dan tidak bisa dikembalikan</li>
+                                    <li>Pastikan <strong>password dan konfirmasi password</strong> sama sebelum menyimpan</li>
+                                    <li>Halaman ini hanya bisa diakses oleh <strong>Admin</strong> dan <strong>Operator</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-tambah">
@@ -338,7 +434,6 @@
         }
 
         const namaGuru = $('#IdNikGuru').find(':selected').text();
-        const namaParts = namaGuru.split(' ');
         let username = '';
 
         //check idNikGuru sudah ada atau belum di user show swal popup 
@@ -358,12 +453,78 @@
                     return;
                 }
 
-                // Pindahkan logika pembuatan username ke sini
-                if (namaParts.length > 1) {
-                    username = namaParts[0].charAt(0).toLowerCase() + namaParts[1].toLowerCase();
-                } else {
-                    username = namaParts[0].toLowerCase();
+                // Fungsi untuk generate username dari nama
+                // Bersihkan nama dari gelar di depan, tanda koma/titik, dan gelar di belakang
+                
+                // Daftar gelar di depan (dengan atau tanpa titik)
+                const gelarDepan = ['dr', 'dr.', 'dr ', 'Dr', 'Dr.', 'Dr ', 'prof', 'prof.', 'Prof', 'Prof.', 'ust', 'ust.', 'Ust', 'Ust.'];
+                
+                // Daftar gelar di belakang (dengan atau tanpa titik)
+                const gelarBelakang = ['s.pd', 's.pd.i', 's.ag', 's.ag.i', 'm.pd', 'm.pd.i', 'm.ag', 'm.ag.i', 's.kom', 'm.kom', 's.si', 'm.si'];
+                
+                let namaBersih = namaGuru.trim();
+                
+                // Hapus gelar di depan
+                for (const gelar of gelarDepan) {
+                    const regex = new RegExp('^' + gelar.replace(/\./g, '\\.') + '\\s+', 'i');
+                    namaBersih = namaBersih.replace(regex, '').trim();
                 }
+                
+                // Split nama menjadi bagian-bagian
+                let namaParts = namaBersih.split(/\s+/);
+                
+                // Filter out gelar di belakang dan tanda koma/titik
+                namaParts = namaParts.map(part => {
+                    // Hapus tanda koma dan titik
+                    part = part.replace(/[.,]/g, '').trim();
+                    return part;
+                }).filter(part => {
+                    // Filter out gelar di belakang
+                    if (part.length === 0) return false;
+                    const partLower = part.toLowerCase();
+                    return !gelarBelakang.some(gelar => partLower === gelar || partLower.includes(gelar));
+                });
+                
+                // Jika masih ada bagian nama yang valid
+                if (namaParts.length > 0) {
+                    // Hapus karakter khusus dari setiap bagian (tanda hubung, underscore, dll)
+                    namaParts = namaParts.map(part => part.replace(/[.,\-_]/g, '').trim()).filter(part => part.length > 0);
+                    
+                    if (namaParts.length > 1) {
+                        // Ambil huruf pertama nama depan + nama belakang (tanpa gelar)
+                        const firstPart = namaParts[0].charAt(0).toLowerCase();
+                        const lastPart = namaParts[namaParts.length - 1].toLowerCase();
+                        username = firstPart + lastPart;
+                    } else if (namaParts.length === 1) {
+                        // Jika hanya satu kata, gunakan kata tersebut
+                        username = namaParts[0].toLowerCase();
+                    }
+                } else {
+                    // Fallback: gunakan nama asli jika semua dianggap gelar
+                    const originalParts = namaGuru.trim().split(/\s+/);
+                    // Hapus gelar di depan
+                    let fallbackParts = originalParts;
+                    if (originalParts.length > 0) {
+                        const firstPartLower = originalParts[0].toLowerCase().replace(/[.,]/g, '');
+                        if (gelarDepan.some(gelar => firstPartLower === gelar.replace(/[.\s]/g, ''))) {
+                            fallbackParts = originalParts.slice(1);
+                        }
+                    }
+                    
+                    if (fallbackParts.length > 1) {
+                        const firstPart = fallbackParts[0].charAt(0).toLowerCase();
+                        const secondPart = fallbackParts[1].toLowerCase().replace(/[.,\-_]/g, '');
+                        username = firstPart + secondPart;
+                    } else if (fallbackParts.length === 1) {
+                        username = fallbackParts[0].toLowerCase().replace(/[.,\-_]/g, '');
+                    } else {
+                        // Jika semua dianggap gelar, gunakan nama asli dengan pembersihan minimal
+                        username = namaGuru.trim().toLowerCase().replace(/[^a-z]/g, '').substring(0, 8);
+                    }
+                }
+                
+                // Bersihkan username dari karakter khusus yang tersisa (hanya huruf dan angka)
+                username = username.replace(/[^a-z0-9]/g, '');
 
                 // Check ketersediaan username
                 return fetch(`<?= site_url('backend/user/checkUsername/'); ?>${username}`);

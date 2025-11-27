@@ -1,6 +1,99 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content') ?>
 <div class="col-12">
+    <!-- Informasi Proses Flow -->
+    <div class="card card-info card-outline collapsed-card mb-3">
+        <div class="card-header bg-info">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i> Informasi Proses Daftar Kelas Materi Pelajaran
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body" style="display: none;">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5><i class="fas fa-list-ol"></i> Cara Menggunakan Halaman Daftar Kelas Materi Pelajaran:</h5>
+                    <ol class="mb-3">
+                        <li class="mb-2">
+                            <strong>Memahami Tampilan Halaman</strong>
+                            <ul class="mt-1">
+                                <li>Halaman ini menampilkan <strong>materi pelajaran yang sudah diatur untuk setiap kelas</strong></li>
+                                <li>Data ditampilkan dalam bentuk <strong>tab</strong>, setiap tab mewakili satu kelas</li>
+                                <li>Setiap tab menampilkan tabel materi dengan kolom: ID Materi, Kategori, Materi, Urutan, Semester Ganjil, Semester Genap, dan Aksi</li>
+                                <li>Gunakan tombol <strong>"Daftar Materi"</strong> untuk kembali ke halaman daftar semua materi</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Menambahkan Materi ke Kelas</strong>
+                            <ul class="mt-1">
+                                <li>Klik tombol <strong>"Atur Materi"</strong> di bagian atas halaman</li>
+                                <li>Pilih <strong>Tingkat Kelas</strong> dari dropdown</li>
+                                <li>Pilih <strong>Nama TPQ</strong> (jika ada lebih dari satu TPQ)</li>
+                                <li>Pilih materi yang ingin ditambahkan dengan <strong>centang checkbox</strong> pada kolom ID Materi</li>
+                                <li>Tentukan <strong>Semester</strong> untuk setiap materi (GANJIL, GENAP, atau keduanya)</li>
+                                <li>Materi dikelompokkan berdasarkan <strong>Kategori</strong> dalam tab terpisah</li>
+                                <li>Klik <strong>"Simpan Data"</strong> untuk menyimpan pengaturan</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Mengatur Urutan Materi di Raport</strong>
+                            <ul class="mt-1">
+                                <li>Pada kolom <strong>"Urutan Materi di Raport"</strong>, ubah angka sesuai urutan yang diinginkan</li>
+                                <li>Angka <strong>1</strong> berarti materi akan muncul pertama di raport</li>
+                                <li>Angka yang lebih besar berarti urutan lebih bawah</li>
+                                <li>Sistem akan meminta <strong>konfirmasi</strong> sebelum menyimpan perubahan urutan</li>
+                                <li>Setelah disimpan, urutan akan langsung terupdate</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Mengatur Semester (Ganjil/Genap)</strong>
+                            <ul class="mt-1">
+                                <li>Gunakan <strong>checkbox</strong> pada kolom "S.Ganjil" dan "S.Genap" untuk mengaktifkan/nonaktifkan</li>
+                                <li>Jika checkbox <strong>dicentang</strong>, materi akan muncul di semester tersebut</li>
+                                <li>Jika checkbox <strong>tidak dicentang</strong>, materi tidak akan muncul di semester tersebut</li>
+                                <li>Sistem akan meminta <strong>konfirmasi</strong> sebelum menyimpan perubahan</li>
+                                <li>Materi bisa aktif di <strong>kedua semester</strong> (Ganjil dan Genap) sekaligus</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Menghapus Materi dari Kelas</strong>
+                            <ul class="mt-1">
+                                <li>Klik tombol <strong>"Hapus"</strong> (ikon tempat sampah) pada baris materi yang ingin dihapus</li>
+                                <li>Sistem akan meminta <strong>konfirmasi</strong> sebelum menghapus</li>
+                                <li>Setelah dihapus, materi tidak akan muncul lagi di kelas tersebut</li>
+                                <li>Pastikan materi tidak sedang digunakan untuk penilaian sebelum menghapus</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Memperbarui Materi Penilaian</strong>
+                            <ul class="mt-1">
+                                <li>Klik tombol <strong>"Perbarui Materi"</strong> untuk menyelaraskan materi dengan data nilai</li>
+                                <li>Sistem akan memeriksa perubahan materi yang telah dilakukan</li>
+                                <li>Materi yang <strong>tidak valid</strong> (sudah dihapus dari kelas) akan ditampilkan untuk dihapus</li>
+                                <li>Materi yang <strong>baru ditambahkan</strong> akan ditampilkan untuk ditambahkan ke data nilai</li>
+                                <li>Gunakan tombol <strong>"Hapus Materi"</strong> atau <strong>"Tambah Materi"</strong> untuk menyelaraskan</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-warning mb-0">
+                        <h5><i class="icon fas fa-exclamation-triangle"></i> Catatan Penting:</h5>
+                        <ul class="mb-0">
+                            <li>Pastikan <strong>urutan materi</strong> sudah benar karena akan mempengaruhi tampilan di raport</li>
+                            <li>Materi yang sudah digunakan untuk <strong>penilaian</strong> sebaiknya tidak dihapus</li>
+                            <li>Gunakan fitur <strong>"Perbarui Materi"</strong> secara berkala untuk menjaga konsistensi data</li>
+                            <li>Perubahan urutan dan semester akan langsung mempengaruhi <strong>tampilan raport</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">

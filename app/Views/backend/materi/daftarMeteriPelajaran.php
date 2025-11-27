@@ -5,6 +5,85 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
+            <!-- Informasi Proses Flow -->
+            <div class="card card-info card-outline collapsed-card mb-3">
+                <div class="card-header bg-info">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle"></i> Informasi Proses Data Materi Pelajaran
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-list-ol"></i> Cara Menggunakan Halaman Data Materi Pelajaran:</h5>
+                            <ol class="mb-3">
+                                <li class="mb-2">
+                                    <strong>Memahami Tampilan Halaman</strong>
+                                    <ul class="mt-1">
+                                        <li>Halaman ini menampilkan <strong>daftar semua materi pelajaran</strong> yang tersedia di sistem</li>
+                                        <li>Tabel menampilkan informasi: Materi (TPQ/FKPQ), ID Materi, Nama Materi, Kategori, dan Aksi</li>
+                                        <li>Materi yang berasal dari <strong>FKPQ</strong> (pusat) tidak bisa diubah atau dihapus</li>
+                                        <li>Materi yang berasal dari <strong>TPQ</strong> Anda bisa diubah atau dihapus</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Menambah Materi Pelajaran Baru</strong>
+                                    <ul class="mt-1">
+                                        <li>Klik tombol <strong>"Tambah Materi"</strong> di bagian atas halaman</li>
+                                        <li>Pilih <strong>Kategori</strong> dari dropdown (misalnya: Al-Quran, Aqidah, dll)</li>
+                                        <li>ID Materi akan <strong>otomatis terisi</strong> setelah memilih kategori</li>
+                                        <li>Masukkan <strong>Nama Materi</strong> yang ingin ditambahkan</li>
+                                        <li>Klik <strong>"Simpan"</strong> untuk menyimpan materi baru</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Mengubah Materi Pelajaran</strong>
+                                    <ul class="mt-1">
+                                        <li>Klik tombol <strong>"Edit"</strong> (ikon pensil) pada baris materi yang ingin diubah</li>
+                                        <li>Hanya materi dari <strong>TPQ Anda</strong> yang bisa diubah</li>
+                                        <li>Kategori dan ID Materi <strong>tidak bisa diubah</strong> (sudah terkunci)</li>
+                                        <li>Anda hanya bisa mengubah <strong>Nama Materi</strong></li>
+                                        <li>Klik <strong>"Update"</strong> untuk menyimpan perubahan</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Menghapus Materi Pelajaran</strong>
+                                    <ul class="mt-1">
+                                        <li>Klik tombol <strong>"Hapus"</strong> (ikon tempat sampah) pada baris materi yang ingin dihapus</li>
+                                        <li>Hanya materi dari <strong>TPQ Anda</strong> yang bisa dihapus</li>
+                                        <li>Sistem akan meminta <strong>konfirmasi</strong> sebelum menghapus</li>
+                                        <li>Pastikan materi tidak sedang digunakan di kelas sebelum menghapus</li>
+                                    </ul>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Mengatur Materi ke Kelas</strong>
+                                    <ul class="mt-1">
+                                        <li>Klik tombol <strong>"Daftar Materi Kelas"</strong> untuk mengatur materi ke kelas tertentu</li>
+                                        <li>Di halaman tersebut, Anda bisa menentukan materi mana yang digunakan di setiap kelas</li>
+                                        <li>Anda juga bisa mengatur urutan materi dan semester (Ganjil/Genap)</li>
+                                    </ul>
+                                </li>
+                            </ol>
+
+                            <div class="alert alert-warning mb-0">
+                                <h5><i class="icon fas fa-exclamation-triangle"></i> Catatan Penting:</h5>
+                                <ul class="mb-0">
+                                    <li>Materi dari <strong>FKPQ</strong> adalah materi standar yang tidak bisa diubah atau dihapus</li>
+                                    <li>Materi dari <strong>TPQ</strong> adalah materi khusus TPQ Anda yang bisa dikelola</li>
+                                    <li>Pastikan <strong>ID Materi</strong> unik untuk setiap kategori</li>
+                                    <li>Sebelum menghapus materi, pastikan materi tersebut <strong>tidak sedang digunakan</strong> di kelas manapun</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-tambah">
