@@ -37,6 +37,8 @@
                 <?php
                 // Ambil foto profil user yang sedang login
                 $userImage = null;
+                $hasValidImage = false;
+
                 if (function_exists('user') && user()) {
                     $userModel = new \App\Models\UserModel();
                     $userId = null;
@@ -48,20 +50,28 @@
                     if ($userId) {
                         $userData = $userModel->getUser($userId);
                         $userImage = $userData['user_image'] ?? null;
+
+                        // Cek apakah file benar-benar ada dan bukan default.svg
+                        if (!empty($userImage) && $userImage !== 'default.svg') {
+                            $imagePath = FCPATH . 'uploads/profil/user/' . $userImage;
+                            if (file_exists($imagePath)) {
+                                $hasValidImage = true;
+                            }
+                        }
                     }
                 }
-
-                // Set URL foto profil atau fallback
-                if (!empty($userImage)) {
-                    $photoUrl = base_url('uploads/profil/user/' . $userImage);
-                } else {
-                    $photoUrl = base_url('images/no-photo.jpg');
-                }
                 ?>
-                <img src="<?= $photoUrl ?>"
-                    class="img-circle elevation-2" alt="User Image"
-                    style="width: 40px; height: 40px; object-fit: cover;"
-                    onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
+                <?php if ($hasValidImage): ?>
+                    <img src="<?= base_url('uploads/profil/user/' . $userImage) ?>"
+                        class="img-circle elevation-2" alt="User Image"
+                        style="width: 40px; height: 40px; object-fit: cover;"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <i class="fas fa-user-circle elevation-2"
+                        style="display: none; font-size: 40px; color: #6c757d; width: 40px; height: 40px; line-height: 40px; text-align: center;"></i>
+                <?php else: ?>
+                    <i class="fas fa-user-circle elevation-2"
+                        style="font-size: 40px; color: #6c757d; width: 40px; height: 40px; line-height: 40px; text-align: center;"></i>
+                <?php endif; ?>
             </div>
             <div class="info">
                 <?php if (in_groups('Juri')): ?>
