@@ -27,19 +27,21 @@ class NilaiModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    public function getDataNilaiDetail($IdSantri = null, $IdSemester = null, $IdTahunAjaran = null, $IdKelas = null)
+    public function getDataNilaiDetail($IdSantri = null, $IdSemester = null, $IdTahunAjaran = null, $IdKelas = null, $IdTpq = null)
     {
         log_message('info', "getDataNilaiDetail START - Parameters: " . json_encode([
             'IdSantri' => $IdSantri,
             'IdSemester' => $IdSemester,
             'IdTahunAjaran' => $IdTahunAjaran,
-            'IdKelas' => $IdKelas
+            'IdKelas' => $IdKelas,
+            'IdTpq' => $IdTpq
         ]));
 
         $builder = $this->db->table('tbl_nilai n');
         $builder->select('n.Id, n.IdTahunAjaran, n.IdTpq, ks.IdKelas, k.NamaKelas, s.IdSantri, s.NamaSantri, n.IdMateri, m.Kategori, m.NamaMateri, n.Semester, n.Nilai');
         $builder->join('tbl_santri_baru s', 'n.IdSantri = s.IdSantri');
-        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
+        // TAMBAHKAN FILTER IdTpq di join condition untuk menghindari double saat ada kelas yang sama di tahun yang sama dengan IdTpq berbeda
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran AND ks.IdTpq = n.IdTpq');
         $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
         $builder->join('tbl_materi_pelajaran m', 'n.IdMateri = m.IdMateri');
 
@@ -61,6 +63,14 @@ class NilaiModel extends Model
                 $builder->whereIn('ks.IdKelas', $IdKelas);
             } else {
                 $builder->where('ks.IdKelas', $IdKelas);
+            }
+        }
+        // TAMBAHKAN FILTER IdTpq untuk memastikan hanya data dari TPQ yang sesuai
+        if ($IdTpq !== null) {
+            if (is_array($IdTpq)) {
+                $builder->whereIn('n.IdTpq', $IdTpq);
+            } else {
+                $builder->where('n.IdTpq', $IdTpq);
             }
         }
         $builder->orderBy('n.IdMateri', 'ASC');
@@ -88,9 +98,10 @@ class NilaiModel extends Model
      * @param string|null $IdSemester
      * @param string|null $IdTahunAjaran
      * @param string|null $IdKelas
+     * @param string|null $IdTpq
      * @return object
      */
-    public function getDataNilaiDetailOptimized($IdSantri = null, $IdSemester = null, $IdTahunAjaran = null, $IdKelas = null)
+    public function getDataNilaiDetailOptimized($IdSantri = null, $IdSemester = null, $IdTahunAjaran = null, $IdKelas = null, $IdTpq = null)
     {
         // Start database transaction for consistency
         $this->db->transStart();
@@ -113,7 +124,8 @@ class NilaiModel extends Model
                     n.Nilai
                 FROM tbl_nilai n
                 INNER JOIN tbl_santri_baru s ON n.IdSantri = s.IdSantri
-                INNER JOIN tbl_kelas_santri ks ON ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran
+                -- TAMBAHKAN FILTER IdTpq di join condition untuk menghindari double saat ada kelas yang sama di tahun yang sama dengan IdTpq berbeda
+                INNER JOIN tbl_kelas_santri ks ON ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran AND ks.IdTpq = n.IdTpq
                 INNER JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas
                 INNER JOIN tbl_materi_pelajaran m ON n.IdMateri = m.IdMateri
                 WHERE 1=1
@@ -154,6 +166,18 @@ class NilaiModel extends Model
                 }
             }
 
+            // TAMBAHKAN FILTER IdTpq untuk memastikan hanya data dari TPQ yang sesuai
+            if ($IdTpq !== null) {
+                if (is_array($IdTpq)) {
+                    $placeholders = str_repeat('?,', count($IdTpq) - 1) . '?';
+                    $query .= " AND n.IdTpq IN ($placeholders)";
+                    $params = array_merge($params, $IdTpq);
+                } else {
+                    $query .= " AND n.IdTpq = ?";
+                    $params[] = $IdTpq;
+                }
+            }
+
             $query .= " ORDER BY n.IdMateri ASC";
 
             // Log query dengan parameters
@@ -166,7 +190,8 @@ class NilaiModel extends Model
                 'IdSantri' => $IdSantri,
                 'IdSemester' => $IdSemester,
                 'IdTahunAjaran' => $IdTahunAjaran,
-                'IdKelas' => $IdKelas
+                'IdKelas' => $IdKelas,
+                'IdTpq' => $IdTpq
             ]));
 
             // Execute query
@@ -204,7 +229,7 @@ class NilaiModel extends Model
             log_message('error', 'Error in getDataNilaiDetailOptimized Stack Trace: ' . $e->getTraceAsString());
 
             // Fallback to original method
-            return $this->getDataNilaiDetail($IdSantri, $IdSemester, $IdTahunAjaran, $IdKelas);
+            return $this->getDataNilaiDetail($IdSantri, $IdSemester, $IdTahunAjaran, $IdKelas, $IdTpq);
         }
     }
 

@@ -35,7 +35,8 @@ class Nilai extends BaseController
         // ambil settingan nilai minimun dan maksimal dari session
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $IdKelas = session()->get('IdKelas');
-        log_message('info', 'showDetail Session Data - IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas));
+        $IdTpq = $this->IdTpq; // Ambil IdTpq dari session untuk filter query
+        log_message('info', 'showDetail Session Data - IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas) . ', IdTpq: ' . json_encode($IdTpq));
 
         $settingNilai = (object)[
             'NilaiMin' => session()->get('SettingNilaiMin'),
@@ -63,10 +64,11 @@ class Nilai extends BaseController
 
         try {
             // Gunakan method yang dioptimasi dengan caching
-            log_message('info', 'showDetail Query 2: getDataNilaiDetailOptimized START - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter) . ', IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas));
+            log_message('info', 'showDetail Query 2: getDataNilaiDetailOptimized START - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter) . ', IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas) . ', IdTpq: ' . json_encode($IdTpq));
             $queryStartTime = microtime(true);
 
-            $datanilai = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas);
+            // TAMBAHKAN IdTpq sebagai parameter untuk menghindari double materi saat ada kelas yang sama di tahun yang sama dengan IdTpq berbeda
+            $datanilai = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas, $IdTpq);
 
             $queryEndTime = microtime(true);
             $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
@@ -75,10 +77,11 @@ class Nilai extends BaseController
         } catch (\Exception $e) {
             // Log error dan fallback ke method lama
             log_message('error', 'Error in showDetail optimized method: ' . $e->getMessage());
-            log_message('info', 'showDetail Query 2 (FALLBACK): GetDataNilaiDetail START - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter) . ', IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas));
+            log_message('info', 'showDetail Query 2 (FALLBACK): GetDataNilaiDetail START - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter) . ', IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas) . ', IdTpq: ' . json_encode($IdTpq));
             $queryStartTime = microtime(true);
 
-            $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas);
+            // TAMBAHKAN IdTpq sebagai parameter untuk menghindari double materi saat ada kelas yang sama di tahun yang sama dengan IdTpq berbeda
+            $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, $IdSemseter, $IdTahunAjaran, $IdKelas, $IdTpq);
 
             $queryEndTime = microtime(true);
             $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
@@ -253,13 +256,18 @@ class Nilai extends BaseController
 
     public function showNilaiProfilDetail($IdSantri)
     {
+        // Ambil IdTpq dari session untuk filter query
+        $IdTpq = $this->IdTpq;
+        
         try {
             // Gunakan method yang dioptimasi dengan caching
-            $datanilai = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, 1);
+            // TAMBAHKAN IdTpq sebagai parameter untuk menghindari double materi saat ada kelas yang sama di tahun yang sama dengan IdTpq berbeda
+            $datanilai = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, 1, null, null, $IdTpq);
         } catch (\Exception $e) {
             // Log error dan fallback ke method lama
             log_message('error', 'Error in showNilaiProfilDetail optimized method: ' . $e->getMessage());
-            $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, 1);
+            // TAMBAHKAN IdTpq sebagai parameter untuk menghindari double materi saat ada kelas yang sama di tahun yang sama dengan IdTpq berbeda
+            $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, 1, null, null, $IdTpq);
         }
 
         return view('backend/nilai/nilaiSantriDetailPersonal', [

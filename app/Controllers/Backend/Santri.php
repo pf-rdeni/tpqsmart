@@ -1353,6 +1353,21 @@ class Santri extends BaseController
             $db = \Config\Database::connect();
             $db->transStart();
 
+            /**
+             * PROSES PINDAH TPQ:
+             * 1. Update IdTpq di tbl_santri_baru ke TPQ baru
+             * 2. Set Active = 0 agar santri muncul sebagai santri baru di TPQ tujuan
+             * 
+             * CATATAN PENTING:
+             * - Data lama di tbl_kelas_santri tetap ada dengan IdTpq lama (hak milik TPQ lama)
+             * - Data lama di tbl_nilai tetap ada dengan IdTpq lama (hak milik TPQ lama)
+             * - Data lama di tbl_absensi_santri tetap ada dengan IdTpq lama (hak milik TPQ lama)
+             * - Saat santri diaktifkan di TPQ baru (via setKelasSantriBaru), akan generate:
+             *   - Record baru di tbl_kelas_santri dengan IdTpq baru
+             *   - Record baru di tbl_nilai dengan IdTpq baru
+             *   - Semua data baru menggunakan IdTpq baru untuk konsistensi query
+             */
+            
             // 1. Update IdTpq dan set Active = 0 di tbl_santri_baru
             $this->DataSantriBaru->where('IdSantri', $IdSantri)
                 ->set([
@@ -1369,7 +1384,7 @@ class Santri extends BaseController
 
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'TPQ santri berhasil diubah. Status Active diubah menjadi 0.'
+                'message' => 'TPQ santri berhasil diubah. Status Active diubah menjadi 0. Santri perlu diaktifkan di TPQ baru melalui menu Set Santri Baru.'
             ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([

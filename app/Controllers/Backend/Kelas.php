@@ -295,14 +295,37 @@ class Kelas extends BaseController
         // Data ini diambildari data satri yang sudah registarasi tapi belum dimasukan ke kelas
         $idKelasArray = $this->request->getVar('IdKelas');
         $idTpqArray = $this->request->getVar('IdTpq');
+        
+        /**
+         * PENTING: Validasi IdTpq dari form dengan IdTpq di tbl_santri_baru
+         * Untuk memastikan konsistensi data, terutama untuk santri yang pindah TPQ
+         */
         $dataSantriBaru = [];
         foreach ($idKelasArray as $idSantri => $idKelas) {
             // Memastikan bahwa IdTpq untuk IdSantri yang sama juga tersedia
             if (isset($idTpqArray[$idSantri])) {
+                // Ambil IdTpq aktual dari database untuk validasi
+                $santriData = $this->santriBaruModel->where('IdSantri', $idSantri)->first();
+                
+                if (!$santriData) {
+                    log_message('warning', "Santri dengan IdSantri {$idSantri} tidak ditemukan");
+                    continue;
+                }
+                
+                // Gunakan IdTpq dari database (bukan dari form) untuk keamanan
+                // Ini memastikan IdTpq yang digunakan sesuai dengan data aktual di tbl_santri_baru
+                $idTpqAktual = $santriData['IdTpq'];
+                
+                // Validasi: pastikan IdTpq dari form sama dengan di database
+                if ($idTpqArray[$idSantri] != $idTpqAktual) {
+                    log_message('warning', "IdTpq tidak konsisten untuk IdSantri {$idSantri}. Form: {$idTpqArray[$idSantri]}, DB: {$idTpqAktual}");
+                    // Gunakan IdTpq dari database untuk keamanan
+                }
+                
                 $dataSantriBaru[] = [
                     'IdSantri' => $idSantri,
                     'IdKelas' => $idKelas,
-                    'IdTpq' => $idTpqArray[$idSantri],
+                    'IdTpq' => $idTpqAktual, // Gunakan IdTpq dari database
                     'IdTahunAjaran' => $idTahunAjaran
                 ];
             }
@@ -321,7 +344,11 @@ class Kelas extends BaseController
             $this->santriModel->updateBatch($dataUpdateSantri, 'IdSantri');
         }
 
-        // Step 4 ambil individual santri dari POST IdKelas
+        // Step 4 Generate nilai dan kelas santri dengan IdTpq yang baru
+        // Fungsi ini akan:
+        // - Insert ke tbl_kelas_santri dengan IdTpq baru
+        // - Generate nilai di tbl_nilai dengan IdTpq baru
+        // - Semua menggunakan IdTpq dari dataSantriBaru (yang sudah valid)
         try {
             // Gunakan method yang dioptimasi dengan bulk operations
             $result = $this->helpFunction->saveDataSantriDanMateriDiTabelNilaiOptimized(0, $dataSantriBaru);

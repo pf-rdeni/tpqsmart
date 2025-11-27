@@ -1484,7 +1484,19 @@ class HelpFunctionModel extends Model
 
     /**
      * OPTIMIZED: Bulk process materi dan nilai
-     * @param array $santriList
+     * 
+     * PENTING untuk proses pindah TPQ:
+     * - Menggunakan IdTpq dari $santriList (yang sudah sesuai dengan IdTpq di tbl_santri_baru)
+     * - Generate nilai dengan IdTpq baru untuk konsistensi query
+     * - Data lama dengan IdTpq lama tetap ada (tidak dihapus)
+     * 
+     * @param array $santriList Array dengan struktur:
+     *   [
+     *     'IdSantri' => ...,
+     *     'IdKelas' => ...,
+     *     'IdTpq' => ..., // IdTpq baru (untuk santri pindah TPQ)
+     *     'IdTahunAjaran' => ...
+     *   ]
      * @param string $tahunAjaran
      * @return void
      */
@@ -1500,23 +1512,25 @@ class HelpFunctionModel extends Model
             $key = $santri['IdTpq'] . '_' . $santri['IdKelas'];
             if (!isset($tpqKelasMap[$key])) {
                 $tpqKelasMap[$key] = [
-                    'IdTpq' => $santri['IdTpq'],
+                    'IdTpq' => $santri['IdTpq'], // IdTpq baru untuk santri pindah TPQ
                     'IdKelas' => $santri['IdKelas']
                 ];
             }
         }
 
         // Get all materi for all unique TPQ-Kelas combinations
+        // Menggunakan IdTpq baru untuk mengambil materi dari TPQ baru
         $allMateri = [];
         foreach ($tpqKelasMap as $tpqKelas) {
             $materi = $this->getKelasMateriPelajaran(
                 $tpqKelas['IdKelas'],
-                $tpqKelas['IdTpq']
+                $tpqKelas['IdTpq'] // IdTpq baru
             );
             $allMateri = array_merge($allMateri, $materi);
         }
 
         // Prepare bulk data for nilai table
+        // Semua nilai yang di-generate menggunakan IdTpq baru
         $nilaiData = [];
         foreach ($santriList as $santri) {
             foreach ($allMateri as $materi) {
@@ -1525,7 +1539,7 @@ class HelpFunctionModel extends Model
                     // Process semester ganjil
                     if ($materi->SemesterGanjil == 1) {
                         $nilaiData[] = [
-                            'IdTpq' => $santri['IdTpq'],
+                            'IdTpq' => $santri['IdTpq'], // IdTpq baru
                             'IdSantri' => $santri['IdSantri'],
                             'IdKelas' => $materi->IdKelas,
                             'IdMateri' => $materi->IdMateri,
@@ -1540,7 +1554,7 @@ class HelpFunctionModel extends Model
                     // Process semester genap
                     if ($materi->SemesterGenap == 1) {
                         $nilaiData[] = [
-                            'IdTpq' => $santri['IdTpq'],
+                            'IdTpq' => $santri['IdTpq'], // IdTpq baru
                             'IdSantri' => $santri['IdSantri'],
                             'IdKelas' => $materi->IdKelas,
                             'IdMateri' => $materi->IdMateri,
@@ -1555,7 +1569,7 @@ class HelpFunctionModel extends Model
             }
         }
 
-        // Bulk insert nilai data
+        // Bulk insert nilai data dengan IdTpq baru
         if (!empty($nilaiData)) {
             $this->db->table('tbl_nilai')->insertBatch($nilaiData);
         }
