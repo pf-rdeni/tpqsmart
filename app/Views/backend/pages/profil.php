@@ -20,14 +20,37 @@
                                     <!-- Foto Profil -->
                                     <div class="col-md-3 text-center mb-3">
                                         <?php
-                                        $photoUrl = !empty($user['user_image']) 
-                                            ? base_url('uploads/profil/user/' . $user['user_image']) 
-                                            : base_url('images/no-photo.jpg');
+                                        // Cek apakah ada foto profil yang valid
+                                        $hasValidPhoto = false;
+                                        $photoUrl = '';
+                                        
+                                        if (!empty($user['user_image']) && $user['user_image'] !== 'default.svg') {
+                                            $imagePath = FCPATH . 'uploads/profil/user/' . $user['user_image'];
+                                            if (file_exists($imagePath)) {
+                                                $hasValidPhoto = true;
+                                                $photoUrl = base_url('uploads/profil/user/' . $user['user_image']);
+                                            }
+                                        }
+                                        
+                                        // Jika tidak ada foto valid, gunakan icon Font Awesome
+                                        if (!$hasValidPhoto) {
+                                            $photoUrl = ''; // Kosongkan untuk trigger icon
+                                        }
                                         ?>
                                         <label class="text-center w-100">Photo Profil</label>
                                         <div class="text-center">
-                                            <img id="previewPhoto" src="<?= $photoUrl ?>" alt="Preview Photo"
-                                                class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover;">
+                                            <?php if ($hasValidPhoto): ?>
+                                                <img id="previewPhoto" src="<?= $photoUrl ?>" alt="Preview Photo"
+                                                    class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover;"
+                                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                                <i id="previewPhotoIcon" class="fas fa-user-circle mx-auto d-block" 
+                                                   style="display: none; font-size: 215px; color: #6c757d; max-width: 215px; height: auto; min-height: 280px;"></i>
+                                            <?php else: ?>
+                                                <i id="previewPhotoIcon" class="fas fa-user-circle mx-auto d-block" 
+                                                   style="font-size: 215px; color: #6c757d; max-width: 215px; height: auto; min-height: 280px;"></i>
+                                                <img id="previewPhoto" src="" alt="Preview Photo"
+                                                    class="img-thumbnail mx-auto d-block" style="display: none; width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover;">
+                                            <?php endif; ?>
                                             <div class="mt-2 d-flex justify-content-between" style="width: 215px; margin: 0 auto; flex-wrap: wrap; gap: 5px;">
                                                 <button type="button" class="btn btn-sm btn-primary flex-grow-1" onclick="document.getElementById('photo_profil').click()" style="min-width: 70px;">
                                                     <i class="fas fa-upload"></i> Upload
@@ -314,12 +337,17 @@ function ensureCropperLoaded(callback) {
 // Fungsi untuk mengecek dan menampilkan/menyembunyikan button Edit
 function toggleEditButton() {
     const previewPhoto = document.getElementById('previewPhoto');
+    const previewPhotoIcon = document.getElementById('previewPhotoIcon');
     const btnEditPhoto = document.getElementById('btnEditPhoto');
     const editPhotoHint = document.getElementById('editPhotoHint');
-    const currentPhotoUrl = previewPhoto.src;
     
-    // Cek apakah foto bukan default no-photo
-    if (currentPhotoUrl && !currentPhotoUrl.includes('no-photo.jpg')) {
+    // Cek apakah ada foto yang valid (bukan icon)
+    const hasValidPhoto = previewPhoto && previewPhoto.src && 
+                         previewPhoto.style.display !== 'none' && 
+                         !previewPhoto.src.includes('no-photo.jpg') &&
+                         previewPhoto.src.trim() !== '';
+    
+    if (hasValidPhoto) {
         // Tampilkan button Edit dan hint
         if (btnEditPhoto) {
             btnEditPhoto.style.display = 'block';
@@ -517,10 +545,15 @@ function initializeCropper(imageUrl) {
 // Fungsi untuk edit foto yang sudah ada
 function editExistingPhoto() {
     const previewPhoto = document.getElementById('previewPhoto');
-    const currentPhotoUrl = previewPhoto.src;
+    const currentPhotoUrl = previewPhoto ? previewPhoto.src : '';
     
-    // Cek apakah foto bukan default no-photo
-    if (currentPhotoUrl && !currentPhotoUrl.includes('no-photo.jpg')) {
+    // Cek apakah foto valid dan bukan icon
+    const hasValidPhoto = currentPhotoUrl && 
+                         currentPhotoUrl.trim() !== '' &&
+                         !currentPhotoUrl.includes('no-photo.jpg') &&
+                         previewPhoto.style.display !== 'none';
+    
+    if (hasValidPhoto) {
         // Load foto yang sudah ada ke modal crop
         showCropModalProfil(null, currentPhotoUrl);
     } else {
@@ -579,8 +612,13 @@ function uploadPhoto() {
             const photoInput = document.getElementById('photo_profil');
             const errorDiv = document.getElementById('photo_profilError');
 
-            // Update preview
+            // Update preview - sembunyikan icon dan tampilkan gambar
+            const previewIcon = document.getElementById('previewPhotoIcon');
+            if (previewIcon) {
+                previewIcon.style.display = 'none';
+            }
             preview.src = base64Image;
+            preview.style.display = 'block';
             preview.style.border = '2px solid #28a745';
             if (errorDiv) {
                 errorDiv.style.display = 'none';
