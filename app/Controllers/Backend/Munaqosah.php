@@ -9212,9 +9212,20 @@ class Munaqosah extends BaseController
             $aktiveTombolKelulusan = true;
         }
 
+        // Ambil daftar tahun ajaran dari tbl_nilai
+        $builder = $this->db->table('tbl_nilai');
+        $builder->select('IdTahunAjaran');
+        $builder->distinct();
+        $builder->where('IdTahunAjaran IS NOT NULL');
+        $builder->where('IdTahunAjaran !=', '');
+        $builder->orderBy('IdTahunAjaran', 'DESC');
+        $tahunAjaranResult = $builder->get()->getResultArray();
+        $tahunAjaranDropdown = array_column($tahunAjaranResult, 'IdTahunAjaran');
+
         $data = [
             'page_title' => 'Export Hasil Munaqosah',
             'current_tahun_ajaran' => $currentTahunAjaran,
+            'tahunAjaranDropdown' => $tahunAjaranDropdown,
             'tpqDropdown' => $dataTpq,
             'statistik' => $statistik,
             'aktiveTombolKelulusan' => $aktiveTombolKelulusan,

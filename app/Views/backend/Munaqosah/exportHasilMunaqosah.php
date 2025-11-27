@@ -10,7 +10,14 @@
                         <div class="d-flex">
                             <div class="mr-2">
                                 <label class="mb-0 small">Tahun Ajaran</label>
-                                <input type="text" id="filterTahunAjaran" class="form-control form-control-sm" value="<?= esc($current_tahun_ajaran) ?>">
+                                <select id="filterTahunAjaran" class="form-control form-control-sm">
+                                    <?php if (!empty($tahunAjaranDropdown)) : foreach ($tahunAjaranDropdown as $tahun): ?>
+                                            <option value="<?= esc($tahun) ?>" <?= ($tahun === $current_tahun_ajaran) ? 'selected' : '' ?>><?= esc($tahun) ?></option>
+                                        <?php endforeach;
+                                    else: ?>
+                                        <option value="<?= esc($current_tahun_ajaran) ?>"><?= esc($current_tahun_ajaran) ?></option>
+                                    <?php endif; ?>
+                                </select>
                             </div>
                             <div class="mr-2">
                                 <label class="mb-0 small">TPQ</label>
@@ -29,6 +36,14 @@
                                         <option value="munaqosah">Munaqosah</option>
                                     <?php endif; ?>
                                     <option value="pra-munaqosah">Pra-Munaqosah</option>
+                                </select>
+                            </div>
+                            <div class="mr-2">
+                                <label class="mb-0 small">Status</label>
+                                <select id="filterStatus" class="form-control form-control-sm">
+                                    <option value="all">Semua Status</option>
+                                    <option value="lulus">Lulus</option>
+                                    <option value="belum-lulus">Belum Lulus</option>
                                 </select>
                             </div>
                             <div class="align-self-end">
@@ -493,7 +508,16 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
     }
 
     function loadExport() {
-        const tahun = $('#filterTahunAjaran').val().trim();
+        // Ambil tahun ajaran dari filter, fallback ke tahun ajaran saat ini
+        let tahun = $('#filterTahunAjaran').val() || '';
+        const currentTahunAjaran = '<?= esc($current_tahun_ajaran) ?>';
+
+        // Jika tahun ajaran kosong, gunakan tahun ajaran saat ini sebagai fallback
+        if (!tahun && currentTahunAjaran) {
+            tahun = currentTahunAjaran;
+            $('#filterTahunAjaran').val(tahun);
+        }
+
         const tpq = $('#filterTpq').val();
         const type = $('#filterTypeUjian').val();
 
@@ -531,7 +555,21 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                 meta: {}
             };
             const categories = data.categories || [];
-            const rows = data.rows || [];
+            let rows = data.rows || [];
+
+            // Filter berdasarkan status
+            const statusFilter = $('#filterStatus').val();
+            if (statusFilter !== 'all') {
+                rows = rows.filter(row => {
+                    const status = (row.kelulusan_status || '').toLowerCase();
+                    if (statusFilter === 'lulus') {
+                        return status === 'lulus';
+                    } else if (statusFilter === 'belum-lulus') {
+                        return status === 'belum lulus';
+                    }
+                    return true;
+                });
+            }
 
             if (exportTable) {
                 exportTable.destroy();
@@ -641,7 +679,8 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
         const filters = {
             tahunAjaran: $('#filterTahunAjaran').val(),
             tpq: $('#filterTpq').val(),
-            typeUjian: $('#filterTypeUjian').val()
+            typeUjian: $('#filterTypeUjian').val(),
+            status: $('#filterStatus').val()
         };
         localStorage.setItem('exportHasilMunaqosah_filters', JSON.stringify(filters));
     }
@@ -722,6 +761,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                 } else if (isOperator && (!hasMunaqosahOption || !aktiveTombolKelulusan)) {
                     $typeUjianSelect.val('pra-munaqosah');
                 }
+
             } else {
                 // Jika ada multiple TPQ, pastikan default sesuai dengan setting
                 if (isOperator && (!hasMunaqosahOption || !aktiveTombolKelulusan)) {
@@ -730,9 +770,25 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             }
         }
 
-        // Terapkan filter Tahun Ajaran dari localStorage jika ada
+        // Terapkan filter Tahun Ajaran dari localStorage jika ada, atau gunakan tahun ajaran saat ini sebagai fallback
+        const currentTahunAjaran = '<?= esc($current_tahun_ajaran) ?>';
         if (savedFilters && savedFilters.tahunAjaran) {
-            $tahunAjaranInput.val(savedFilters.tahunAjaran);
+            // Cek apakah tahun ajaran dari localStorage masih valid (ada di dropdown)
+            const optionExists = $tahunAjaranInput.find(`option[value="${savedFilters.tahunAjaran}"]`).length > 0;
+            if (optionExists) {
+                $tahunAjaranInput.val(savedFilters.tahunAjaran);
+            } else if (currentTahunAjaran) {
+                // Jika tidak valid, gunakan tahun ajaran saat ini
+                $tahunAjaranInput.val(currentTahunAjaran);
+            }
+        } else if (currentTahunAjaran) {
+            // Jika tidak ada di localStorage, gunakan tahun ajaran saat ini
+            $tahunAjaranInput.val(currentTahunAjaran);
+        }
+
+        // Load filter status dari localStorage jika ada
+        if (savedFilters && savedFilters.status) {
+            $('#filterStatus').val(savedFilters.status);
         }
 
         // Event listener untuk menyimpan filter saat berubah dan memuat data
@@ -748,6 +804,13 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
         $typeUjianSelect.on('change', function() {
             saveFiltersToLocalStorage();
+            loadExport();
+        });
+
+        // Event listener untuk filter status
+        $('#filterStatus').on('change', function() {
+            saveFiltersToLocalStorage();
+            // Reload data dengan filter status yang baru
             loadExport();
         });
 
