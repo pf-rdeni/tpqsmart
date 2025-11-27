@@ -128,7 +128,7 @@ class Nilai extends BaseController
         // Optimasi pengecekan nilai dengan single query
         $allNilai = $this->DataNilai->getAllNilaiPerKelas($IdTahunAjaran, $semester, $this->IdTpq, $IdKelas);
 
-        // Buat array untuk tracking nilai per santri
+        // Set status penilaian sementara (akan diupdate setelah progressData dihitung)
         $nilaiStatus = [];
         foreach ($allNilai as $nilai) {
             if ($nilai->Nilai == 0) {
@@ -138,7 +138,7 @@ class Nilai extends BaseController
             }
         }
 
-        // Set status penilaian untuk setiap santri
+        // Set status penilaian sementara untuk setiap santri
         foreach ($dataSantri as $key => $value) {
             $dataSantri[$key]->StatusPenilaian = $nilaiStatus[$value->IdSantri] ?? 0;
         }
@@ -225,6 +225,28 @@ class Nilai extends BaseController
             ];
         }
 
+        // Update StatusPenilaian berdasarkan progress - hanya 1 jika semua materi sudah terisi (100%)
+        foreach ($dataSantri as $key => $santri) {
+            if (isset($progressData[$santri->IdSantri])) {
+                $persentase = $progressData[$santri->IdSantri]['persentase'];
+                // StatusPenilaian = 1 hanya jika persentase = 100% (semua materi sudah terisi)
+                $dataSantri[$key]->StatusPenilaian = ($persentase >= 100) ? 1 : 0;
+            } else {
+                // Jika tidak ada progress data, tetap gunakan status sebelumnya
+                $dataSantri[$key]->StatusPenilaian = $dataSantri[$key]->StatusPenilaian ?? 0;
+            }
+        }
+
+        // Ambil jabatan user yang login untuk menentukan permission
+        $userJabatanList = session()->get('IdJabatan') ?? [];
+        $isWaliKelas = false;
+        if (is_array($userJabatanList)) {
+            // IdJabatan = 3 adalah Wali Kelas
+            $isWaliKelas = in_array(3, $userJabatanList);
+        } else {
+            $isWaliKelas = ($userJabatanList == 3);
+        }
+
         $data = [
             'page_title' => 'Data Santri Per Semester ' . $semester,
             'dataSantri' => $dataSantri,
@@ -234,6 +256,7 @@ class Nilai extends BaseController
             'progressData' => $progressData,
             'semester' => $semester,
             'settingNilai' => $settingNilai,
+            'isWaliKelas' => $isWaliKelas, // Flag untuk menentukan apakah user login sebagai Wali Kelas
         ];
 
         return view('backend/santri/santriPerKelas', $data);

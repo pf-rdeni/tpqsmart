@@ -65,7 +65,7 @@
                             <strong>View Nilai:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-eye"></i> View</span>
                             pada baris santri untuk melihat nilai yang sudah diisi. Tombol ini muncul untuk:
                             <ul class="mt-2">
-                                <li>Guru Kelas</li>
+                                <li>Guru Kelas atau Wali Kelas</li>
                                 <li>Santri yang sudah selesai dinilai (StatusPenilaian = 1)</li>
                             </ul>
                         </li>
@@ -151,11 +151,42 @@
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex justify-content-start align-items-center">
-                                                            <?php if ($santri->StatusPenilaian == 0 && ($santri->NamaJabatan == "Guru Kelas" || $santri->NamaJabatan == "Wali Kelas")) : ?>
+                                                            <?php 
+                                                            // Logika tombol Edit/View:
+                                                            // 1. Jika login sebagai Wali Kelas → selalu bisa Edit (tidak peduli status nilai)
+                                                            // 2. Jika login sebagai Guru Pendamping/Guru Kelas → 
+                                                            //    - Jika nilai sudah 100% → hanya View
+                                                            //    - Jika nilai belum 100% → bisa Edit
+                                                            $showEdit = false;
+                                                            $showView = false;
+                                                            
+                                                            // Cek apakah user login sebagai Wali Kelas
+                                                            $isUserWaliKelas = isset($isWaliKelas) && $isWaliKelas;
+                                                            
+                                                            // Cek apakah user memiliki jabatan yang berhak mengakses (Guru Kelas, Wali Kelas, atau Guru Pendamping)
+                                                            $hasAccess = ($santri->NamaJabatan == "Guru Kelas" || $santri->NamaJabatan == "Wali Kelas" || $santri->NamaJabatan == "Guru Pendamping");
+                                                            
+                                                            if ($hasAccess) {
+                                                                if ($isUserWaliKelas) {
+                                                                    // Wali Kelas: selalu bisa Edit (tidak peduli status nilai)
+                                                                    $showEdit = true;
+                                                                } else {
+                                                                    // Guru Pendamping/Guru Kelas: tergantung status nilai
+                                                                    if ($santri->StatusPenilaian == 0) {
+                                                                        // Nilai belum 100% → bisa Edit
+                                                                        $showEdit = true;
+                                                                    } elseif ($santri->StatusPenilaian == 1) {
+                                                                        // Nilai sudah 100% → hanya View
+                                                                        $showView = true;
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            if ($showEdit) : ?>
                                                                 <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn btn-warning me-2">
                                                                     <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Edit&nbsp;
                                                                 </a>
-                                                            <?php elseif ($santri->StatusPenilaian == 1 && $santri->NamaJabatan == "Guru Kelas"): ?>
+                                                            <?php elseif ($showView) : ?>
                                                                 <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 0 . '/' . $santri->IdJabatan) ?>" class="btn btn-primary me-2">
                                                                     <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
                                                                 </a>
