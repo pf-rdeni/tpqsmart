@@ -1804,7 +1804,42 @@ class HelpFunctionModel extends Model
     public function getMateriBaruUntukDitambahkan($IdTpq, $IdTahunAjaran)
     {
         // Step1: Ambil Data Santri Actif di tbl_santri_baru filter by IdTpq
-        $santriList = $this->santriBaruModel->where(['IdTpq' => $IdTpq, 'Active' => 1])->findAll();
+        $santriListFromSantriBaru = $this->santriBaruModel->where(['IdTpq' => $IdTpq, 'Active' => 1])->findAll();
+
+        // Step1b: Ambil Data Santri dari tbl_kelas_santri untuk tahun ajaran tertentu
+        $builder = $this->db->table('tbl_kelas_santri ks');
+        $builder->select('ks.IdSantri, ks.IdKelas, s.Active');
+        $builder->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri', 'inner');
+        $builder->where('ks.IdTpq', $IdTpq);
+        $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        $builder->where('ks.Status', 1); // Hanya status aktif
+        $builder->where('s.Active', 1); // Hanya santri aktif
+        $santriListFromKelasSantri = $builder->get()->getResultArray();
+
+        // Step1c: Gabungkan kedua sumber data dan hapus duplikasi
+        $santriMap = [];
+
+        // Tambahkan dari tbl_santri_baru
+        foreach ($santriListFromSantriBaru as $santri) {
+            $key = $santri['IdSantri'];
+            if (!isset($santriMap[$key])) {
+                $santriMap[$key] = [
+                    'IdSantri' => $santri['IdSantri'],
+                    'IdKelas' => $santri['IdKelas'] // IdKelas dari tbl_santri_baru
+                ];
+            }
+        }
+
+        // Tambahkan/update dari tbl_kelas_santri (prioritas lebih tinggi karena lebih spesifik per tahun ajaran)
+        foreach ($santriListFromKelasSantri as $santri) {
+            $key = $santri['IdSantri'];
+            $santriMap[$key] = [
+                'IdSantri' => $santri['IdSantri'],
+                'IdKelas' => $santri['IdKelas'] // IdKelas dari tbl_kelas_santri (lebih akurat untuk tahun ajaran)
+            ];
+        }
+
+        $santriList = array_values($santriMap);
 
         // Step2: Ambil semua nilai yang sudah ada dalam satu query
         $existingNilai = $this->nilaiModel->where([
@@ -1812,10 +1847,11 @@ class HelpFunctionModel extends Model
             'IdTahunAjaran' => $IdTahunAjaran
         ])->findAll();
 
-        // Step3: Buat array untuk pengecekan cepat
+        // Step3: Buat array untuk pengecekan cepat (per santri, per materi, per semester)
         $existingNilaiMap = [];
         foreach ($existingNilai as $nilai) {
-            $key = $nilai['IdMateri'] . '_' . $nilai['IdKelas'] . '_' . $nilai['Semester'];
+            // Key: IdSantri_IdMateri_IdKelas_Semester untuk pengecekan per santri
+            $key = $nilai['IdSantri'] . '_' . $nilai['IdMateri'] . '_' . $nilai['IdKelas'] . '_' . $nilai['Semester'];
             $existingNilaiMap[$key] = true;
         }
 
@@ -1835,7 +1871,8 @@ class HelpFunctionModel extends Model
             foreach ($kelasMateriList as $materi) {
                 // Cek semester ganjil
                 if ($materi->SemesterGanjil == 1) {
-                    $key = $materi->IdMateri . '_' . $materi->IdKelas . '_Ganjil';
+                    // Key untuk pengecekan: IdSantri_IdMateri_IdKelas_Semester
+                    $key = $santri['IdSantri'] . '_' . $materi->IdMateri . '_' . $materi->IdKelas . '_Ganjil';
                     if (!isset($existingNilaiMap[$key])) {
                         $materiBaru[] = [
                             'IdKelas' => $materi->IdKelas,
@@ -1851,7 +1888,8 @@ class HelpFunctionModel extends Model
 
                 // Cek semester genap
                 if ($materi->SemesterGenap == 1) {
-                    $key = $materi->IdMateri . '_' . $materi->IdKelas . '_Genap';
+                    // Key untuk pengecekan: IdSantri_IdMateri_IdKelas_Semester
+                    $key = $santri['IdSantri'] . '_' . $materi->IdMateri . '_' . $materi->IdKelas . '_Genap';
                     if (!isset($existingNilaiMap[$key])) {
                         $materiBaru[] = [
                             'IdKelas' => $materi->IdKelas,
