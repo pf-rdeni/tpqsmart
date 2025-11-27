@@ -1920,6 +1920,9 @@ class HelpFunctionModel extends Model
     {
         $builder = $this->buildNilaiQuery($IdTpq, $IdTahunAjaran, $IdKelas, $Semester);
 
+        // Pastikan hanya menghitung santri yang Active = 1
+        $builder->where('tbl_santri_baru.Active', 1);
+
         // Menggunakan GROUP BY untuk mendapatkan status per kelas
         $result = $builder->select('
             tbl_nilai.IdKelas,
