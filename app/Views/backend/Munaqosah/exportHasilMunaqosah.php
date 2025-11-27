@@ -24,7 +24,7 @@
                                 <select id="filterTpq" class="form-control form-control-sm">
                                     <option value="0">Semua TPQ</option>
                                     <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
-                                            <option value="<?= esc($tpq['IdTpq']) ?>"><?= esc($tpq['NamaTpq']) ?></option>
+                                            <option value="<?= esc($tpq['IdTpq']) ?>"><?= esc($tpq['NamaTpq']) ?><?= !empty($tpq['KelurahanDesa']) ? ' - ' . esc($tpq['KelurahanDesa']) : '' ?></option>
                                     <?php endforeach;
                                     endif; ?>
                                 </select>

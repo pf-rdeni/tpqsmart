@@ -9172,7 +9172,15 @@ class Munaqosah extends BaseController
         $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
 
         $idTpq = session()->get('IdTpq');
-        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+
+        // Ambil data TPQ dengan KelurahanDesa, diurutkan ASC berdasarkan NamaTpq
+        $builder = $this->db->table('tbl_tpq');
+        $builder->select('IdTpq, NamaTpq, KelurahanDesa');
+        if ($idTpq) {
+            $builder->where('IdTpq', $idTpq);
+        }
+        $builder->orderBy('NamaTpq', 'ASC');
+        $dataTpq = $builder->get()->getResultArray();
 
         $statistik = getStatistikMunaqosah();
 
