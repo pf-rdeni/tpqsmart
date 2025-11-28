@@ -96,26 +96,61 @@
 
     <div class="card">
         <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h3 class="card-title">
-                    Daftar Kelas Materi Pelajaran
-                </h3>
-
-                <div class="card-tools d-flex flex-column flex-md-row gap-3">
-                    <a href="<?php echo base_url('backend/materiPelajaran/showMateriPelajaran') ?>" class="btn btn-info btn-sm w-100 flex-fill">
-                        <i class="fas fa-list"></i> Daftar Materi
-                    </a>
-
-                    <a href="#" class="btn btn-primary btn-sm w-100 flex-fill" data-toggle="modal" data-target="#modalTambahData">
-                        <i class="fas fa-gear"></i> Atur Materi
-                    </a>
-                    <a href="#" class="btn btn-warning btn-sm w-100 flex-fill" onclick="updateDataMateriPenilaian()">
-                        <i class="fas fa-sync"></i> Perbarui Materi
-                    </a>
-                </div>
-            </div>
+            <h3 class="card-title">
+                Daftar Kelas Materi Pelajaran
+            </h3>
         </div>
         <div class="card-body">
+            <!-- Statistik Card -->
+            <div class="row mb-3">
+                <!-- Card Perbarui Materi -->
+                <div class="col-md-4 col-sm-6 col-12 mb-3">
+                    <div class="info-box bg-gradient-warning cursor-pointer" onclick="updateDataMateriPenilaian()" style="cursor: pointer;">
+                        <span class="info-box-icon"><i class="fas fa-sync"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Perbarui Materi</span>
+                            <span class="info-box-number">
+                                <span id="statPerbaruiHapus">0</span> Hapus / <span id="statPerbaruiTambah">0</span> Tambah
+                            </span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: 0%" id="progressPerbarui"></div>
+                            </div>
+                            <span class="progress-description">
+                                <small>Klik untuk menyelaraskan materi dengan data nilai</small>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Daftar Materi -->
+                <div class="col-md-4 col-sm-6 col-12 mb-3">
+                    <a href="<?php echo base_url('backend/materiPelajaran/showMateriPelajaran') ?>" style="text-decoration: none; color: inherit;">
+                        <div class="info-box bg-gradient-info">
+                            <span class="info-box-icon"><i class="fas fa-list"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Daftar Materi</span>
+                                <span class="progress-description">
+                                    <small>Klik untuk melihat semua materi pelajaran</small>
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Card Atur Materi -->
+                <div class="col-md-4 col-sm-6 col-12 mb-3">
+                    <div class="info-box bg-gradient-primary cursor-pointer" data-toggle="modal" data-target="#modalTambahData" style="cursor: pointer;">
+                        <span class="info-box-icon"><i class="fas fa-gear"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Atur Materi</span>
+                            <span class="progress-description">
+                                <small>Klik untuk menambahkan materi ke kelas</small>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card card-primary card-tabs">
                 <!-- Tab Navigation -->
                 <div class="card-header p-0 pt-1">
@@ -166,7 +201,8 @@
                                                     <input type="number"
                                                         class="form-control form-control-sm"
                                                         value="<?= $materi['UrutanMateri'] ?>"
-                                                        onchange="updateUrutanMateri(this, '<?= $materi['Id'] ?>', '<?= addslashes($materi['NamaMateri']) ?>')"
+                                                        onblur="updateUrutanMateri(this, '<?= $materi['Id'] ?>', '<?= addslashes($materi['NamaMateri']) ?>')"
+                                                        onkeypress="if(event.key === 'Enter') { this.blur(); }"
                                                         min="1">
                                                 </td>
                                                 <td data-order="<?= $materi['SemesterGanjil'] ? '1' : '0' ?>">
@@ -396,6 +432,54 @@
 
 <?= $this->section('scripts') ?>
 <script>
+    // Simpan dan restore tab terakhir dari localStorage
+    const STORAGE_KEY = 'showMateriKelas_activeTab';
+
+    // Simpan tab aktif ke localStorage saat tab berubah
+    $('#kelasTab a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+        const activeTabId = $(e.target).attr('href'); // Mendapatkan href seperti #kelas-123
+        localStorage.setItem(STORAGE_KEY, activeTabId);
+    });
+
+    // Restore tab aktif dari localStorage saat halaman dimuat
+    $(document).ready(function() {
+        const savedTab = localStorage.getItem(STORAGE_KEY);
+        if (savedTab) {
+            // Cek apakah tab yang disimpan masih ada di halaman
+            const tabExists = $(savedTab).length > 0;
+            if (tabExists) {
+                // Aktifkan tab yang disimpan
+                $('#kelasTab a[href="' + savedTab + '"]').tab('show');
+            }
+        }
+
+        // Load statistik saat halaman dimuat
+        loadStatistik();
+    });
+
+    // Fungsi untuk memuat statistik
+    function loadStatistik() {
+        $.ajax({
+            url: '<?= base_url('backend/kelasMateriPelajaran/getStatistik') ?>',
+            type: 'GET',
+            success: function(response) {
+                if (response.status === 'success') {
+                    const data = response.data;
+
+                    // Update statistik Perbarui Materi
+                    $('#statPerbaruiHapus').text(data.perbaruiMateri.jumlahHapus);
+                    $('#statPerbaruiTambah').text(data.perbaruiMateri.jumlahTambah);
+                    const totalPerbarui = data.perbaruiMateri.jumlahHapus + data.perbaruiMateri.jumlahTambah;
+                    const progressPerbarui = totalPerbarui > 0 ? 100 : 0;
+                    $('#progressPerbarui').css('width', progressPerbarui + '%');
+                }
+            },
+            error: function() {
+                console.error('Error loading statistik');
+            }
+        });
+    }
+
     // Initial datatabel untuk lihat list materi per kelas
     <?php foreach ($dataMateriPerKelas as $kelasId => $kelas): ?>
         initializeDataTableUmum("#tblKelas-<?= $kelasId ?>", true, true, {
@@ -500,7 +584,11 @@
                         }).then(() => {
                             if (response.status === 'success') {
                                 $('#modalTambahData').modal('hide');
-                                location.reload();
+                                // Update statistik sebelum reload
+                                loadStatistik();
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 500);
                             }
                         });
                     },
@@ -589,6 +677,8 @@
                             timer: 500,
                             showConfirmButton: false
                         });
+                        // Update statistik setelah checkbox berubah
+                        loadStatistik();
                     },
                     error: function(response) {
                         Swal.fire(
@@ -684,6 +774,8 @@
                     // Tampilkan modal dengan data perubahan
                     displayChanges(response.data);
                     $('#modalUpdateData').modal('show');
+                    // Update statistik setelah mendapatkan data
+                    loadStatistik();
                     // jika sudah berhasil di load, hapus loading
                     Swal.close();
                 } else {
@@ -859,7 +951,8 @@
                             if (response.status === 'success') {
                                 // Panggil updateDataMateriPenilaian untuk refresh tampilan modal
                                 updateDataMateriPenilaian();
-                                //location.reload(); // Refresh halaman setelah konfirmasi
+                                // Update statistik
+                                loadStatistik();
                             }
                         });
                     },
@@ -910,7 +1003,8 @@
                             if (response.status === 'success') {
                                 // Panggil updateDataMateriPenilaian untuk refresh tampilan modal
                                 updateDataMateriPenilaian();
-                                //location.reload();
+                                // Update statistik
+                                loadStatistik();
                             }
                         });
                     },
@@ -925,45 +1019,131 @@
     // Fungsi untuk update urutan materi
     function updateUrutanMateri(input, id, namaMateri) {
         const newUrutan = input.value;
+        const oldValue = input.defaultValue;
 
-        Swal.fire({
-            title: 'Konfirmasi Perubahan',
-            text: `Apakah Anda yakin ingin mengubah urutan materi ${namaMateri} menjadi ${newUrutan}?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Ya, simpan!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Kirim data ke controller
-                $.ajax({
-                    url: '<?= base_url('backend/KelasMateriPelajaran/updateUrutan') ?>',
-                    type: 'POST',
-                    data: {
-                        Id: id,
-                        UrutanMateri: newUrutan
-                    },
-                    success: function(response) {
+        // Validasi: jika nilai sama dengan nilai lama, tidak perlu update
+        if (newUrutan == oldValue) {
+            return;
+        }
+
+        // Validasi: cek apakah urutan sudah digunakan
+        $.ajax({
+            url: '<?= base_url('backend/kelasMateriPelajaran/checkUrutanMateri') ?>',
+            type: 'POST',
+            data: {
+                Id: id,
+                UrutanMateri: newUrutan
+            },
+            success: function(response) {
+                if (response.status === 'conflict') {
+                    // Tampilkan popup konflik dengan opsi untuk mengganti atau cancel
+                    const existingData = response.data;
+                    Swal.fire({
+                        title: 'Urutan Materi Sudah Digunakan',
+                        html: `
+                            <p style="text-align: left; font-size: 16px; line-height: 1.6;">
+                                Urutan no <strong>${newUrutan}</strong> yang Anda saat ini set untuk materi <strong style="color: #ffc107; font-weight: bold;">${namaMateri}</strong> sudah digunakan oleh ID Materi <strong>${existingData.existingIdMateri}</strong> (<strong style="color: #007bff; font-weight: bold;">${existingData.existingNamaMateri}</strong>).
+                            </p>
+                            <p style="text-align: left; font-size: 16px; line-height: 1.6; margin-top: 15px;">
+                                Apakah Anda mau menukar no tersebut dan ID Materi <strong>${existingData.existingIdMateri}</strong> set ke null?
+                            </p>
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Tukar',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Ganti yang lama (set ke null) dan update yang baru
+                            proceedUpdateUrutan(id, newUrutan, true, input, true);
+                        } else {
+                            // Batal - kembalikan nilai input
+                            input.value = oldValue;
+                        }
+                    });
+                } else if (response.status === 'success') {
+                    // Urutan tersedia, langsung simpan tanpa konfirmasi
+                    proceedUpdateUrutan(id, newUrutan, false, input, false);
+                } else {
+                    Swal.fire('Error!', response.message || 'Terjadi kesalahan saat validasi', 'error');
+                    input.value = oldValue;
+                }
+            },
+            error: function() {
+                Swal.fire('Error!', 'Terjadi kesalahan saat validasi urutan materi', 'error');
+                input.value = oldValue;
+            }
+        });
+    }
+
+    // Fungsi untuk melakukan update urutan materi
+    function proceedUpdateUrutan(id, newUrutan, replaceExisting, input, showSuccessMessage = true) {
+        $.ajax({
+            url: '<?= base_url('backend/KelasMateriPelajaran/updateUrutan') ?>',
+            type: 'POST',
+            data: {
+                Id: id,
+                UrutanMateri: newUrutan,
+                replaceExisting: replaceExisting
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Update input value dan default value
+                    input.value = newUrutan;
+                    input.defaultValue = newUrutan;
+
+                    // Update data-order attribute pada td parent
+                    const tdElement = $(input).closest('td');
+                    tdElement.attr('data-order', newUrutan);
+
+                    // Jika replaceExisting = true, cari dan update input yang menggunakan urutan yang sama
+                    if (replaceExisting) {
+                        // Cari semua input di tabel yang sama dengan nilai urutan yang baru (kecuali input yang sedang diupdate)
+                        const table = $(input).closest('table');
+                        table.find('input[type="number"]').each(function() {
+                            const otherInput = $(this);
+                            // Skip input yang sedang diupdate (cek berdasarkan element yang sama)
+                            if (otherInput[0] !== input && otherInput.val() == newUrutan) {
+                                // Set ke null/kosong karena urutannya sudah diambil oleh materi yang baru
+                                otherInput.val('');
+                                otherInput[0].defaultValue = '';
+                                // Update data-order ke empty string untuk sorting
+                                otherInput.closest('td').attr('data-order', '');
+                            }
+                        });
+                    }
+
+                    // Update DataTable jika ada
+                    const tableId = $(input).closest('table').attr('id');
+                    if (tableId && $.fn.DataTable.isDataTable('#' + tableId)) {
+                        const dataTable = $('#' + tableId).DataTable();
+                        // Re-draw tabel untuk update sorting
+                        dataTable.draw();
+                    }
+
+                    // Tampilkan pesan sukses hanya jika diminta
+                    if (showSuccessMessage) {
                         Swal.fire({
-                            title: response.status === 'success' ? 'Sukses!' : 'Gagal!',
+                            title: 'Sukses!',
                             text: response.message,
-                            icon: response.status === 'success' ? 'success' : 'error',
+                            icon: 'success',
                             timer: 500,
                             showConfirmButton: false
-                        }).then(() => {
-                            if (response.status === 'success') {}
                         });
-                    },
-                    error: function() {
-                        Swal.fire('Error!', 'Terjadi kesalahan saat mengubah urutan materi', 'error');
-                        // Kembalikan nilai input ke nilai sebelumnya
-                        input.value = input.defaultValue;
                     }
-                });
-            } else {
-                // Kembalikan nilai input ke nilai sebelumnya jika dibatalkan
+                } else {
+                    // Tampilkan pesan error jika gagal
+                    Swal.fire('Gagal!', response.message || 'Terjadi kesalahan saat mengubah urutan materi', 'error');
+                    // Kembalikan nilai input jika gagal
+                    input.value = input.defaultValue;
+                }
+            },
+            error: function() {
+                Swal.fire('Error!', 'Terjadi kesalahan saat mengubah urutan materi', 'error');
+                // Kembalikan nilai input ke nilai sebelumnya
                 input.value = input.defaultValue;
             }
         });

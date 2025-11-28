@@ -348,6 +348,10 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->delete('kategori-materi/deleteKategoriMateri/(:num)', 'KategoriMateri::deleteKategoriMateri/$1');
     $routes->get('kategori-materi/get-kategori-materi-dropdown', 'KategoriMateri::getKategoriMateriForDropdown');
 
+    // Kelas Materi Pelajaran Routes
+    $routes->get('kelasMateriPelajaran/getStatistik', 'KelasMateriPelajaran::getStatistik');
+    $routes->post('kelasMateriPelajaran/checkUrutanMateri', 'KelasMateriPelajaran::checkUrutanMateri');
+
     // Kategori Kesalahan Routes
     $routes->get('munaqosah/list-kategori-kesalahan', 'Munaqosah::listKategoriKesalahan');
     $routes->get('munaqosah/get-kategori-kesalahan', 'Munaqosah::getKategoriKesalahan');

@@ -5,6 +5,7 @@ namespace App\Controllers\Backend;
 use App\Controllers\BaseController;
 use App\Models\KelasMateriPelajaranModel;
 use App\Models\HelpFunctionModel;
+use App\Models\MateriPelajaranModel;
 
 class KelasMateriPelajaran extends BaseController
 {
@@ -256,7 +257,7 @@ class KelasMateriPelajaran extends BaseController
         ]);
     }
 
-    public function updateUrutan()
+    public function checkUrutanMateri()
     {
         try {
             $model = new KelasMateriPelajaranModel();
@@ -271,6 +272,88 @@ class KelasMateriPelajaran extends BaseController
                 ])->setStatusCode(400);
             }
 
+            // Ambil data materi yang akan diupdate
+            $currentData = $model->find($id);
+            if (!$currentData) {
+                return $this->response->setJSON([
+                    'status' => 'fail',
+                    'message' => 'Data tidak ditemukan'
+                ])->setStatusCode(404);
+            }
+
+            // Cek apakah urutan sudah digunakan oleh materi lain di kelas dan TPQ yang sama
+            $existingData = $model->select('tbl_kelas_materi_pelajaran.Id, tbl_kelas_materi_pelajaran.IdMateri, tbl_materi_pelajaran.NamaMateri')
+                ->join('tbl_materi_pelajaran', 'tbl_materi_pelajaran.IdMateri = tbl_kelas_materi_pelajaran.IdMateri', 'left')
+                ->where('tbl_kelas_materi_pelajaran.IdKelas', $currentData['IdKelas'])
+                ->where('tbl_kelas_materi_pelajaran.IdTpq', $currentData['IdTpq'])
+                ->where('tbl_kelas_materi_pelajaran.UrutanMateri', $urutanMateri)
+                ->where('tbl_kelas_materi_pelajaran.Id !=', $id)
+                ->first();
+
+            if ($existingData) {
+                return $this->response->setJSON([
+                    'status' => 'conflict',
+                    'message' => 'Urutan materi sudah digunakan',
+                    'data' => [
+                        'existingId' => $existingData['Id'],
+                        'existingIdMateri' => $existingData['IdMateri'],
+                        'existingNamaMateri' => $existingData['NamaMateri']
+                    ]
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Urutan materi tersedia'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'fail',
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
+    public function updateUrutan()
+    {
+        try {
+            $model = new KelasMateriPelajaranModel();
+            $id = $this->request->getPost('Id');
+            $urutanMateri = $this->request->getPost('UrutanMateri');
+            $replaceExisting = $this->request->getPost('replaceExisting'); // true jika ingin mengganti yang lama
+
+            // Validasi input
+            if (!$id || !$urutanMateri) {
+                return $this->response->setJSON([
+                    'status' => 'fail',
+                    'message' => 'Data tidak lengkap'
+                ])->setStatusCode(400);
+            }
+
+            // Ambil data materi yang akan diupdate
+            $currentData = $model->find($id);
+            if (!$currentData) {
+                return $this->response->setJSON([
+                    'status' => 'fail',
+                    'message' => 'Data tidak ditemukan'
+                ])->setStatusCode(404);
+            }
+
+            // Jika replaceExisting = true, set urutan yang lama ke null
+            if ($replaceExisting) {
+                $existingData = $model->where('IdKelas', $currentData['IdKelas'])
+                    ->where('IdTpq', $currentData['IdTpq'])
+                    ->where('UrutanMateri', $urutanMateri)
+                    ->where('Id !=', $id)
+                    ->first();
+
+                if ($existingData) {
+                    $model->update($existingData['Id'], [
+                        'UrutanMateri' => null
+                    ]);
+                }
+            }
+
             // Update urutan materi
             $model->update($id, [
                 'UrutanMateri' => $urutanMateri
@@ -279,6 +362,34 @@ class KelasMateriPelajaran extends BaseController
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Urutan materi berhasil diperbarui'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'fail',
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
+    public function getStatistik()
+    {
+        try {
+            $helpModel = new HelpFunctionModel();
+            $IdTpq = session()->get('IdTpq');
+            
+            // Statistik Perbarui Materi (jumlah yang perlu ditambah dan dihapus)
+            $tahunAjaran = $helpModel->getTahunAjaranSaatIni();
+            $materiToDelete = $helpModel->getMateriPelajaranYangSudahTidakAda($IdTpq, $tahunAjaran);
+            $materiToAdd = $helpModel->getMateriBaruUntukDitambahkan($IdTpq, $tahunAjaran);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => [
+                    'perbaruiMateri' => [
+                        'jumlahHapus' => count($materiToDelete),
+                        'jumlahTambah' => count($materiToAdd)
+                    ]
+                ]
             ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
