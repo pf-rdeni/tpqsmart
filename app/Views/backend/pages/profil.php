@@ -233,6 +233,8 @@
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
+<!-- Image Upload Helper -->
+<script src="<?= base_url('helpers/js/image-upload-helper.js') ?>"></script>
 <style>
     .img-container-crop {
         width: 100%;
@@ -284,31 +286,10 @@
     let cropper = null;
     let selectedFile = null;
 
-    // Pastikan Cropper.js sudah dimuat
-    function ensureCropperLoaded(callback) {
-        // Cek langsung apakah sudah tersedia
-        if (typeof Cropper !== 'undefined' && typeof Cropper === 'function') {
-            callback();
-            return;
-        }
-
-        // Jika belum, tunggu dengan polling
-        let attempts = 0;
-        const maxAttempts = 50; // 50 x 100ms = 5 detik
-        const checkInterval = setInterval(function() {
-            attempts++;
-            if (typeof Cropper !== 'undefined' && typeof Cropper === 'function') {
-                clearInterval(checkInterval);
-                callback();
-            } else if (attempts >= maxAttempts) {
-                clearInterval(checkInterval);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Gagal memuat library Cropper.js. Pastikan koneksi internet stabil atau refresh halaman.'
-                });
-            }
-        }, 100);
+    // Menggunakan helper dari image-upload-helper.js
+    // Pastikan ImageUploadHelper sudah dimuat sebelum menggunakan fungsi-fungsi ini
+    if (!window.ImageUploadHelper) {
+        console.error('ImageUploadHelper tidak ditemukan. Pastikan image-upload-helper.js sudah di-include.');
     }
 
     // Fungsi untuk mengecek dan menampilkan/menyembunyikan button Edit
@@ -387,15 +368,6 @@
 
         // Validasi file jika ada
         if (file) {
-            // Validasi ukuran (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                if (errorDiv) {
-                    errorDiv.innerHTML = 'Ukuran file ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(5) + ' MB) terlalu besar (maksimal 5MB)';
-                    errorDiv.style.display = 'block';
-                }
-                return;
-            }
-
             // Validasi tipe file
             const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
             if (!validTypes.includes(file.type)) {
@@ -406,32 +378,100 @@
                 return;
             }
 
-            selectedFile = file;
-        } else {
-            selectedFile = null;
-        }
-
-        ensureCropperLoaded(function() {
-            const imageElement = document.getElementById('imageToCrop');
-
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
+            // Validasi ukuran maksimal (diperbesar menjadi 50MB untuk memungkinkan proses resize)
+            const maxFileSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxFileSize) {
+                if (errorDiv) {
+                    errorDiv.innerHTML = 'Ukuran file ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB) terlalu besar (maksimal 50MB). Silakan kompres gambar terlebih dahulu.';
+                    errorDiv.style.display = 'block';
+                }
+                return;
             }
 
-            // Jika ada file, baca sebagai data URL
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const finalImageUrl = e.target.result;
-                    initializeCropper(finalImageUrl);
-                };
-                reader.readAsDataURL(file);
-            } else if (imageUrl) {
-                // Jika menggunakan URL yang sudah ada, langsung gunakan
+            // Tampilkan loading indicator jika file besar
+            const isLargeFile = file.size > 2 * 1024 * 1024; // > 2MB
+            if (isLargeFile) {
+                Swal.fire({
+                    title: 'Memproses gambar...',
+                    text: 'Sedang mengoptimalkan ukuran gambar, harap tunggu...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            }
+
+            // Resize gambar jika terlalu besar sebelum ditampilkan di cropper
+            // Max dimensi 2000x2000 untuk performa cropper yang lebih baik
+            const maxDimension = 2000;
+            const resizeQuality = 0.85; // Quality untuk resize awal
+
+            // Gunakan helper untuk resize sebelum crop
+            if (!window.ImageUploadHelper || !window.ImageUploadHelper.resizeImageBeforeCrop) {
+                if (isLargeFile) {
+                    Swal.close();
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'ImageUploadHelper tidak ditemukan. Pastikan image-upload-helper.js sudah di-include.'
+                });
+                return;
+            }
+
+            window.ImageUploadHelper.resizeImageBeforeCrop(file, maxDimension, maxDimension, resizeQuality, function(processedFile) {
+                selectedFile = processedFile;
+
+                // Tutup loading jika ada
+                if (isLargeFile) {
+                    Swal.close();
+                }
+
+                // Gunakan helper untuk memastikan Cropper.js sudah dimuat
+                if (!window.ImageUploadHelper || !window.ImageUploadHelper.ensureCropperLoaded) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'ImageUploadHelper tidak ditemukan. Pastikan image-upload-helper.js sudah di-include.'
+                    });
+                    return;
+                }
+
+                window.ImageUploadHelper.ensureCropperLoaded(function() {
+                    const imageElement = document.getElementById('imageToCrop');
+
+                    if (cropper) {
+                        cropper.destroy();
+                        cropper = null;
+                    }
+
+                    // Baca file yang sudah di-resize sebagai data URL
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const finalImageUrl = e.target.result;
+                        initializeCropper(finalImageUrl);
+                    };
+                    reader.readAsDataURL(processedFile);
+                });
+            });
+        } else if (imageUrl) {
+            // Jika menggunakan URL yang sudah ada, langsung gunakan
+            // Gunakan helper untuk memastikan Cropper.js sudah dimuat
+            if (!window.ImageUploadHelper || !window.ImageUploadHelper.ensureCropperLoaded) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'ImageUploadHelper tidak ditemukan. Pastikan image-upload-helper.js sudah di-include.'
+                });
+                return;
+            }
+
+            window.ImageUploadHelper.ensureCropperLoaded(function() {
                 initializeCropper(imageUrl);
-            }
-        });
+            });
+        }
     }
 
     // Fungsi untuk inisialisasi cropper
@@ -543,15 +583,32 @@
             return;
         }
 
+        // Tampilkan loading
+        Swal.fire({
+            title: 'Memproses foto...',
+            text: 'Sedang memotong dan mengoptimalkan foto profil...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Dimensi target untuk foto profil (300x400 dengan rasio 3:4)
+        const targetWidth = 300;
+        const targetHeight = 400;
+
         // Get cropped canvas
         const canvas = cropper.getCroppedCanvas({
-            width: 300,
-            height: 400,
+            width: targetWidth,
+            height: targetHeight,
             imageSmoothingEnabled: true,
             imageSmoothingQuality: 'high',
         });
 
         if (!canvas) {
+            Swal.close();
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -560,94 +617,129 @@
             return;
         }
 
-        // Convert canvas to blob
-        canvas.toBlob(function(blob) {
-            if (!blob) {
+        // Cek apakah helper tersedia
+        if (!window.ImageUploadHelper || !window.ImageUploadHelper.resizeImageFile) {
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'ImageUploadHelper tidak ditemukan. Pastikan image-upload-helper.js sudah di-include.'
+            });
+            return;
+        }
+
+        // Convert canvas ke blob dulu, lalu ke File untuk digunakan dengan helper
+        canvas.toBlob(function(initialBlob) {
+            if (!initialBlob) {
+                Swal.close();
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Gagal mengkonversi gambar'
+                    text: 'Gagal mengkonversi canvas ke blob'
                 });
                 return;
             }
 
-            // Convert blob to base64
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Image = e.target.result;
-                const preview = document.getElementById('previewPhoto');
-                const photoInput = document.getElementById('photo_profil');
-                const errorDiv = document.getElementById('photo_profilError');
+            // Convert blob ke File untuk digunakan dengan helper
+            const fileName = selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, '') : 'photo';
+            const initialFile = new File([initialBlob], fileName + '.jpg', {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+            });
 
-                // Update preview
-                preview.src = base64Image;
-                preview.style.border = '2px solid #28a745';
-                if (errorDiv) {
-                    errorDiv.style.display = 'none';
-                }
+            // Gunakan helper untuk resize dan optimize dengan adaptive quality
+            // Target: maksimal 500KB dengan dimensi sudah sesuai (300x400)
+            window.ImageUploadHelper.resizeImageFile(initialFile, {
+                maxWidth: targetWidth,
+                maxHeight: targetHeight,
+                quality: 0.85,
+                maxFileSize: 500 * 1024 // 500KB
+            }).then(function(optimizedFile) {
+                // Baca file yang sudah dioptimalkan untuk preview dan upload
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    const preview = document.getElementById('previewPhoto');
+                    const photoInput = document.getElementById('photo_profil');
+                    const errorDiv = document.getElementById('photo_profilError');
 
-                // Upload dengan AJAX
-                const formData = new FormData();
-                formData.append('photo_profil_cropped', base64Image);
-
-                // Show loading
-                Swal.fire({
-                    title: 'Mengupload...',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
+                    // Update preview
+                    preview.src = base64Image;
+                    preview.style.border = '2px solid #28a745';
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
                     }
-                });
 
-                $.ajax({
-                    url: '<?= base_url('backend/pages/uploadPhotoProfil') ?>',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil',
-                                text: response.message,
-                                showConfirmButton: false,
-                                timer: 2000
-                            });
-                            // Update preview dengan URL baru
-                            if (response.photo_url) {
-                                document.getElementById('previewPhoto').src = response.photo_url;
+                    // Upload dengan AJAX
+                    const formData = new FormData();
+                    formData.append('photo_profil_cropped', base64Image);
+
+                    $.ajax({
+                        url: '<?= base_url('backend/pages/uploadPhotoProfil') ?>',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Foto berhasil dioptimalkan!',
+                                    text: response.message + ' Ukuran: ' + (optimizedFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                });
+                                // Update preview dengan URL baru
+                                if (response.photo_url) {
+                                    document.getElementById('previewPhoto').src = response.photo_url;
+                                }
+                                // Tampilkan button Edit setelah foto berhasil diupload
+                                toggleEditButton();
+                                // Close modal dan reset
+                                $('#modalCropImage').modal('hide');
+                                document.getElementById('photo_profil').value = '';
+                                if (cropper) {
+                                    cropper.destroy();
+                                    cropper = null;
+                                }
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupload foto profil'
+                                });
                             }
-                            // Tampilkan button Edit setelah foto berhasil diupload
-                            toggleEditButton();
-                            // Close modal dan reset
-                            $('#modalCropImage').modal('hide');
-                            document.getElementById('photo_profil').value = '';
-                            if (cropper) {
-                                cropper.destroy();
-                                cropper = null;
-                            }
-                        } else {
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error:', error);
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Gagal',
-                                text: response.message || 'Gagal mengupload foto profil'
+                                title: 'Error',
+                                text: 'Terjadi kesalahan saat menghubungi server'
                             });
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Terjadi kesalahan saat menghubungi server'
-                        });
-                    }
+                    });
+                };
+                reader.onerror = function() {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal membaca file yang sudah dioptimalkan'
+                    });
+                };
+                reader.readAsDataURL(optimizedFile);
+            }).catch(function(error) {
+                Swal.close();
+                console.error('Error optimizing image:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Gagal mengoptimalkan gambar: ' + (error.message || 'Unknown error')
                 });
-            };
-            reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.9); // JPEG dengan quality 90%
+            });
+        }, 'image/jpeg', 0.95); // Quality awal tinggi untuk canvas to blob
     }
 
     // Fungsi untuk membuka kamera

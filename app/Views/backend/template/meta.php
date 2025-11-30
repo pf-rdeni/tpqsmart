@@ -106,17 +106,85 @@
                 display: flex !important;
                 visibility: visible !important;
                 opacity: 1 !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                -webkit-overflow-scrolling: touch;
             }
             
             .main-header.navbar .navbar-nav {
                 display: flex !important;
-                flex-direction: row;
-                align-items: center;
+                flex-direction: row !important;
+                align-items: center !important;
+                flex-wrap: nowrap !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
-            /* Memastikan tombol hamburger menu selalu terlihat */
+            /* Memastikan tombol hamburger menu selalu terlihat dan tidak terpotong */
             .main-header.navbar .navbar-nav > li:first-child {
                 display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                flex-shrink: 0 !important;
+                min-width: 50px !important;
+            }
+            
+            .main-header.navbar .navbar-nav > li:first-child .nav-link {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 50px !important;
+                padding: 0.5rem 1rem !important;
+            }
+            
+            .main-header.navbar .navbar-nav > li:first-child .nav-link i {
+                font-size: 1.2rem !important;
+                display: inline-block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+            
+            /* Pastikan icon Font Awesome ter-load dengan baik */
+            .main-header.navbar .navbar-nav .nav-link i.fas,
+            .main-header.navbar .navbar-nav .nav-link i.far,
+            .main-header.navbar .navbar-nav .nav-link i.fab {
+                font-family: "Font Awesome 5 Free", "Font Awesome 5 Brands" !important;
+                font-weight: 900 !important;
+                display: inline-block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+            
+            /* Right navbar links - pastikan tidak terpotong */
+            .main-header.navbar .navbar-nav.ml-auto {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                flex-wrap: nowrap !important;
+                flex-shrink: 0 !important;
+                margin-left: auto !important;
+            }
+            
+            .main-header.navbar .navbar-nav.ml-auto .nav-item {
+                flex-shrink: 0 !important;
+                display: block !important;
+            }
+            
+            .main-header.navbar .navbar-nav.ml-auto .nav-link {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 44px !important;
+                padding: 0.5rem 0.75rem !important;
+                white-space: nowrap !important;
+            }
+            
+            .main-header.navbar .navbar-nav.ml-auto .nav-link i {
+                font-size: 1.1rem !important;
+                display: inline-block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
             }
             
             /* Styling untuk dropdown menu mobile */
@@ -125,6 +193,8 @@
                 box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
                 margin-top: 0.5rem;
                 min-width: 200px;
+                position: absolute !important;
+                z-index: 1000 !important;
             }
             
             .main-header.navbar .navbar-nav .dropdown-item {
@@ -140,7 +210,140 @@
                 width: 20px;
                 text-align: center;
             }
+            
+            /* Pastikan navbar tidak overflow */
+            .main-header.navbar {
+                max-width: 100vw !important;
+                width: 100% !important;
+            }
+            
+            /* Fix untuk icon yang tidak ter-load */
+            .main-header.navbar .nav-link i:before {
+                content: attr(data-icon);
+            }
+        }
+        
+        /* Fix khusus untuk layar sangat kecil */
+        @media (max-width: 576px) {
+            .main-header.navbar .navbar-nav > li:first-child .nav-link {
+                min-width: 45px !important;
+                padding: 0.5rem 0.75rem !important;
+            }
+            
+            .main-header.navbar .navbar-nav.ml-auto .nav-link {
+                min-width: 40px !important;
+                padding: 0.5rem 0.5rem !important;
+            }
+            
+            .main-header.navbar .navbar-nav.ml-auto .nav-link span {
+                display: none !important;
+            }
+            
+            .main-header.navbar .navbar-nav.ml-auto .nav-link i.fa-angle-down {
+                display: none !important;
+            }
+        }
+        
+        /* Fallback untuk Font Awesome jika tidak ter-load */
+        .main-header.navbar .nav-link[data-widget="pushmenu"] i.fa-bars:before {
+            content: "\f0c9" !important;
+        }
+        
+        .main-header.navbar .nav-link[data-widget="navbar-search"] i.fa-search:before {
+            content: "\f002" !important;
+        }
+        
+        .main-header.navbar .nav-link[data-widget="fullscreen"] i.fa-expand-arrows-alt:before {
+            content: "\f31e" !important;
+        }
+        
+        /* Pastikan Font Awesome font family ter-load */
+        @font-face {
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            font-style: normal;
+        }
+        
+        /* Fallback text untuk icon jika Font Awesome tidak ter-load */
+        .main-header.navbar .nav-link[data-widget="pushmenu"]:after {
+            content: "☰";
+            display: none;
+            font-size: 1.2rem;
+        }
+        
+        .main-header.navbar .nav-link[data-widget="pushmenu"] i.fa-bars:empty:after {
+            content: "☰";
+            display: inline-block;
         }
     </style>
+    
+    <!-- Script untuk memastikan icon ter-load dengan baik -->
+    <script>
+        // Pastikan Font Awesome ter-load sebelum halaman selesai loading
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cek apakah Font Awesome sudah ter-load
+            function checkFontAwesome() {
+                var testIcon = document.createElement('i');
+                testIcon.className = 'fas fa-bars';
+                testIcon.style.position = 'absolute';
+                testIcon.style.visibility = 'hidden';
+                document.body.appendChild(testIcon);
+                
+                var computedStyle = window.getComputedStyle(testIcon, ':before');
+                var content = computedStyle.getPropertyValue('content');
+                
+                document.body.removeChild(testIcon);
+                
+                // Jika Font Awesome tidak ter-load, tambahkan fallback
+                if (!content || content === 'none' || content === '""') {
+                    console.warn('Font Awesome tidak ter-load, menggunakan fallback');
+                    var style = document.createElement('style');
+                    style.textContent = `
+                        .main-header.navbar .nav-link i.fas:before,
+                        .main-header.navbar .nav-link i.far:before,
+                        .main-header.navbar .nav-link i.fab:before {
+                            font-family: Arial, sans-serif !important;
+                        }
+                        .main-header.navbar .nav-link[data-widget="pushmenu"] i:before {
+                            content: "☰" !important;
+                        }
+                        .main-header.navbar .nav-link[data-widget="navbar-search"] i:before {
+                            content: "🔍" !important;
+                        }
+                        .main-header.navbar .nav-link[data-widget="fullscreen"] i:before {
+                            content: "⛶" !important;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
+            
+            // Tunggu sedikit untuk memastikan Font Awesome CSS sudah ter-load
+            setTimeout(checkFontAwesome, 100);
+            
+            // Pastikan hamburger menu selalu terlihat
+            var hamburgerMenu = document.querySelector('.main-header.navbar .nav-link[data-widget="pushmenu"]');
+            if (hamburgerMenu) {
+                hamburgerMenu.style.display = 'flex';
+                hamburgerMenu.style.visibility = 'visible';
+                hamburgerMenu.style.opacity = '1';
+                
+                var hamburgerIcon = hamburgerMenu.querySelector('i');
+                if (hamburgerIcon) {
+                    hamburgerIcon.style.display = 'inline-block';
+                    hamburgerIcon.style.visibility = 'visible';
+                    hamburgerIcon.style.opacity = '1';
+                }
+            }
+            
+            // Pastikan semua icon di navbar terlihat
+            var navbarIcons = document.querySelectorAll('.main-header.navbar .nav-link i');
+            navbarIcons.forEach(function(icon) {
+                icon.style.display = 'inline-block';
+                icon.style.visibility = 'visible';
+                icon.style.opacity = '1';
+            });
+        });
+    </script>
 
 </head>
