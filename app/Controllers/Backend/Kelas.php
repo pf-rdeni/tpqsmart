@@ -108,11 +108,38 @@ class Kelas extends BaseController
 
         $dataTpq = $this->helpFunction->getDataTpq($this->IdTpq);
 
+        // Ambil list tahun ajaran dari session atau buat default
+        $tahunAjaranSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
+        $tahunAjaranBerikutnya = $this->helpFunction->getTahuanAjaranBerikutnya($tahunAjaranSaatIni);
+        $tahunAjaranList = session()->get('IdTahunAjaranList');
+        
+        // Jika tidak ada di session, gunakan tahun ajaran saat ini
+        if (empty($tahunAjaranList) || !is_array($tahunAjaranList)) {
+            $tahunAjaranList = [$tahunAjaranSaatIni];
+        }
+        
+        // Pastikan tahun ajaran saat ini ada di list
+        if (!in_array($tahunAjaranSaatIni, $tahunAjaranList)) {
+            $tahunAjaranList[] = $tahunAjaranSaatIni;
+        }
+        
+        // Tambahkan tahun ajaran berikutnya ke list
+        if (!in_array($tahunAjaranBerikutnya, $tahunAjaranList)) {
+            $tahunAjaranList[] = $tahunAjaranBerikutnya;
+        }
+        
+        // Sort tahun ajaran descending
+        rsort($tahunAjaranList);
+
         $data = [
             'page_title' => 'Data Santri',
             'dataSantri' => $dataSantri,
             'dataKelas' => $dataKelas,
-            'dataTpq' => $dataTpq
+            'dataTpq' => $dataTpq,
+            'tahunAjaranList' => $tahunAjaranList,
+            'tahunAjaranSaatIni' => $tahunAjaranSaatIni,
+            'tahunAjaranBerikutnya' => $tahunAjaranBerikutnya,
+            'IdTpq' => $this->IdTpq
         ];
 
         return view('backend/kelas/kelasBaru', $data);
@@ -269,15 +296,46 @@ class Kelas extends BaseController
 
         // Step 2 ambil data yang dikirim dari proses POST masukan santri baru ke tabel tbl_kelas_santri 
         // Data ini diambildari data satri yang sudah registarasi tapi belum dimasukan ke kelas
+        
+        // Ambil array santri yang dipilih (checkbox)
+        $selectedSantri = $this->request->getVar('selectedSantri');
+        
+        // Jika tidak ada santri yang dipilih, redirect dengan pesan
+        if (empty($selectedSantri) || !is_array($selectedSantri)) {
+            $this->setFlashData('warning', 'Tidak ada santri yang dipilih untuk diproses.');
+            
+            $dataKelas = $this->helpFunction->getDataKelas();
+            $dataStatusSantriBaru = $this->helpFunction->getDataSantriStatus(IdTpq: $this->IdTpq);
+            $dataTpq = $this->helpFunction->getDataTpq($this->IdTpq);
+            
+            $data = [
+                'page_title' => 'Data Santri',
+                'dataSantri' => $dataStatusSantriBaru,
+                'dataKelas' => $dataKelas,
+                'dataTpq' => $dataTpq
+            ];
+            
+            return view('backend/kelas/kelasBaru', $data);
+        }
+        
+        // Konversi array selectedSantri menjadi array dengan key sebagai value
+        $selectedSantriArray = array_flip($selectedSantri);
+        
         $idKelasArray = $this->request->getVar('IdKelas');
         $idTpqArray = $this->request->getVar('IdTpq');
         
         /**
          * PENTING: Validasi IdTpq dari form dengan IdTpq di tbl_santri_baru
          * Untuk memastikan konsistensi data, terutama untuk santri yang pindah TPQ
+         * Hanya proses santri yang ada di array selectedSantri
          */
         $dataSantriBaru = [];
         foreach ($idKelasArray as $idSantri => $idKelas) {
+            // Hanya proses santri yang tercentang
+            if (!isset($selectedSantriArray[$idSantri])) {
+                continue;
+            }
+            
             // Memastikan bahwa IdTpq untuk IdSantri yang sama juga tersedia
             if (isset($idTpqArray[$idSantri])) {
                 // Ambil IdTpq aktual dari database untuk validasi
@@ -285,6 +343,12 @@ class Kelas extends BaseController
                 
                 if (!$santriData) {
                     log_message('warning', "Santri dengan IdSantri {$idSantri} tidak ditemukan");
+                    continue;
+                }
+                
+                // Validasi IdKelas tidak kosong
+                if (empty($idKelas)) {
+                    log_message('warning', "IdKelas kosong untuk IdSantri {$idSantri}");
                     continue;
                 }
                 
@@ -320,27 +384,47 @@ class Kelas extends BaseController
             $this->santriModel->updateBatch($dataUpdateSantri, 'IdSantri');
         }
 
+        // Validasi apakah ada data yang valid untuk diproses
+        if (empty($dataSantriBaru)) {
+            $this->setFlashData('warning', 'Tidak ada data santri yang valid untuk diproses. Pastikan semua santri yang dipilih sudah memiliki kelas yang dipilih.');
+            
+            $dataKelas = $this->helpFunction->getDataKelas();
+            $dataStatusSantriBaru = $this->helpFunction->getDataSantriStatus(IdTpq: $this->IdTpq);
+            $dataTpq = $this->helpFunction->getDataTpq($this->IdTpq);
+            
+            $data = [
+                'page_title' => 'Data Santri',
+                'dataSantri' => $dataStatusSantriBaru,
+                'dataKelas' => $dataKelas,
+                'dataTpq' => $dataTpq
+            ];
+            
+            return view('backend/kelas/kelasBaru', $data);
+        }
+
         // Step 4 Generate nilai dan kelas santri dengan IdTpq yang baru
         // Fungsi ini akan:
         // - Insert ke tbl_kelas_santri dengan IdTpq baru
         // - Generate nilai di tbl_nilai dengan IdTpq baru
         // - Semua menggunakan IdTpq dari dataSantriBaru (yang sudah valid)
+        $totalDiproses = count($dataSantriBaru);
+        
         try {
             // Gunakan method yang dioptimasi dengan bulk operations
             $result = $this->helpFunction->saveDataSantriDanMateriDiTabelNilaiOptimized(0, $dataSantriBaru);
 
             if ($result['success'] > 0) {
-                $this->setFlashData('success', "Berhasil memproses {$result['success']} santri baru.");
+                $this->setFlashData('success', "Berhasil memproses {$result['success']} dari {$totalDiproses} santri baru yang dipilih.");
             }
 
             if ($result['errors'] > 0) {
-                $this->setFlashData('warning', "Ada {$result['errors']} santri yang gagal diproses.");
+                $this->setFlashData('warning', "Ada {$result['errors']} dari {$totalDiproses} santri yang gagal diproses.");
             }
         } catch (\Exception $e) {
             // Log error dan fallback ke method lama
             log_message('error', 'Error in saveDataSantriDanMateriDiTabelNilaiOptimized: ' . $e->getMessage());
             $this->helpFunction->saveDataSantriDanMateriDiTabelNilai(0, santriList: $dataSantriBaru);
-            $this->setFlashData('info', 'Santri baru diproses dengan method fallback.');
+            $this->setFlashData('info', "Santri baru diproses dengan method fallback. Total {$totalDiproses} santri diproses.");
         }
 
         //Check kembali jika masih ada dan tampilkan

@@ -93,7 +93,7 @@
                                     <div class="icon">
                                         <i class="fas fa-user-plus"></i>
                                     </div>
-                                    <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="small-box-footer">
+                                    <a href="<?= base_url('backend/kelas/showSantriKelasBaru') ?>" class="small-box-footer">
                                         Tambah Data <i class="fas fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
