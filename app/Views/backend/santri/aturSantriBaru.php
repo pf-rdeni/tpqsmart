@@ -189,19 +189,48 @@
                         <tr>
                             <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <td data-order="<?= $santri['Active'] ?>">
-                                    <?php if ($santri['Active'] == 2): ?>
-                                        <!-- Status Alumni/Keluar - Tidak bisa diubah -->
-                                        <span class="badge badge-secondary" title="Santri Alumni/Keluar - Tidak dapat diubah">
-                                            <i class="fas fa-graduation-cap"></i> Alumni
-                                        </span>
+                                    <?php if (in_groups('Admin')): ?>
+                                        <!-- Admin bisa mengubah semua status termasuk alumni -->
+                                        <?php
+                                        $statusText = '';
+                                        $statusClass = '';
+                                        $statusIcon = '';
+                                        if ($santri['Active'] == 0) {
+                                            $statusText = 'Santri Baru';
+                                            $statusClass = 'btn-warning';
+                                            $statusIcon = 'fa-user-plus';
+                                        } elseif ($santri['Active'] == 1) {
+                                            $statusText = 'Aktif';
+                                            $statusClass = 'btn-success';
+                                            $statusIcon = 'fa-check-circle';
+                                        } elseif ($santri['Active'] == 2) {
+                                            $statusText = 'Alumni';
+                                            $statusClass = 'btn-secondary';
+                                            $statusIcon = 'fa-graduation-cap';
+                                        }
+                                        ?>
+                                        <button type="button" class="btn btn-sm <?= $statusClass ?>" 
+                                                id="statusBtn<?= $santri['id']; ?>"
+                                                onclick="showStatusPopup(<?= $santri['id']; ?>, <?= $santri['Active']; ?>)"
+                                                title="Klik untuk mengubah status">
+                                            <i class="fas <?= $statusIcon ?>"></i> <?= $statusText ?>
+                                        </button>
                                     <?php else: ?>
-                                        <!-- Status Aktif/Non-Aktif - Bisa diubah -->
-                                        <div class="form-check form-switch">
-                                            <input type="checkbox" class="form-check-input" id="status<?= $santri['id']; ?>"
-                                                <?= $santri['Active'] == 1 ? 'checked' : ''; ?>
-                                                onchange="updateStatus(<?= $santri['id']; ?>, this.checked)"
-                                                title="<?= $santri['Active'] == 1 ? 'Santri Aktif' : 'Santri Non-Aktif' ?>">
-                                        </div>
+                                        <!-- Operator hanya bisa mengubah status aktif/non-aktif (bukan alumni) -->
+                                        <?php if ($santri['Active'] == 2): ?>
+                                            <!-- Status Alumni/Keluar - Tidak bisa diubah oleh Operator -->
+                                            <span class="badge badge-secondary" title="Santri Alumni/Keluar - Tidak dapat diubah">
+                                                <i class="fas fa-graduation-cap"></i> Alumni
+                                            </span>
+                                        <?php else: ?>
+                                            <!-- Status Aktif/Non-Aktif - Bisa diubah oleh Operator -->
+                                            <div class="form-check form-switch">
+                                                <input type="checkbox" class="form-check-input" id="status<?= $santri['id']; ?>"
+                                                    <?= $santri['Active'] == 1 ? 'checked' : ''; ?>
+                                                    onchange="updateStatus(<?= $santri['id']; ?>, this.checked)"
+                                                    title="<?= $santri['Active'] == 1 ? 'Santri Aktif' : 'Santri Non-Aktif' ?>">
+                                            </div>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>
@@ -1090,6 +1119,135 @@
         });
     }
 
+    // Fungsi untuk Admin - menampilkan popup pilihan status
+    function showStatusPopup(id, currentStatus) {
+        const row = document.querySelector(`#statusBtn${id}`).closest('tr');
+        const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
+        const td = document.querySelector(`#statusBtn${id}`).closest('td');
+
+        // Tentukan status saat ini
+        let currentStatusText = '';
+        if (currentStatus == 0) {
+            currentStatusText = 'Santri Baru';
+        } else if (currentStatus == 1) {
+            currentStatusText = 'Aktif';
+        } else if (currentStatus == 2) {
+            currentStatusText = 'Alumni';
+        }
+
+        Swal.fire({
+            title: 'Pilih Status Santri',
+            html: `
+                <div class="text-left">
+                    <p><strong>Nama Santri:</strong> ${namaSantri}</p>
+                    <p><strong>Status Saat Ini:</strong> ${currentStatusText}</p>
+                    <hr>
+                    <p class="mb-3">Pilih status baru:</p>
+                    <div class="form-group text-left">
+                        <button type="button" class="btn btn-warning btn-block mb-2" onclick="selectStatus(${id}, 0, 'Santri Baru')">
+                            <i class="fas fa-user-plus"></i> Santri Baru (0)
+                        </button>
+                        <button type="button" class="btn btn-success btn-block mb-2" onclick="selectStatus(${id}, 1, 'Aktif')">
+                            <i class="fas fa-check-circle"></i> Aktif (1)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-block mb-2" onclick="selectStatus(${id}, 2, 'Alumni')">
+                            <i class="fas fa-graduation-cap"></i> Alumni (2)
+                        </button>
+                    </div>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            cancelButtonText: 'Batal',
+            showConfirmButton: false,
+            allowOutsideClick: true
+        });
+    }
+
+    // Fungsi untuk memproses pemilihan status (harus global untuk bisa dipanggil dari SweetAlert)
+    window.selectStatus = function(id, status, statusText) {
+        Swal.close();
+        
+        const row = document.querySelector(`#statusBtn${id}`).closest('tr');
+        const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
+
+        Swal.fire({
+            title: 'Konfirmasi Perubahan',
+            html: `Anda akan mengubah status santri:<br>
+                  <strong>${namaSantri}</strong><br><br>
+                  Menjadi: <strong>${statusText}</strong>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, update!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memperbarui Status...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('<?= site_url('backend/santri/updateStatusActive'); ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            id: id,
+                            active: status
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update tampilan button
+                            const btn = document.getElementById('statusBtn' + id);
+                            const td = btn.closest('td');
+                            
+                            // Update button style
+                            if (status == 0) {
+                                btn.className = 'btn btn-sm btn-warning';
+                                btn.innerHTML = '<i class="fas fa-user-plus"></i> Santri Baru';
+                            } else if (status == 1) {
+                                btn.className = 'btn btn-sm btn-success';
+                                btn.innerHTML = '<i class="fas fa-check-circle"></i> Aktif';
+                            } else if (status == 2) {
+                                btn.className = 'btn btn-sm btn-secondary';
+                                btn.innerHTML = '<i class="fas fa-graduation-cap"></i> Alumni';
+                            }
+
+                            // Update data-order untuk sorting
+                            td.setAttribute('data-order', status);
+
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Gagal!',
+                            text: error.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+            }
+        });
+    }
+
+    // Fungsi untuk Operator - update status aktif/non-aktif (checkbox)
     function updateStatus(id, status) {
         const checkbox = document.getElementById('status' + id);
         const td = checkbox.closest('td');
@@ -1141,6 +1299,9 @@
                     }
                 });
 
+                // Konversi untuk Operator: checked = 1, unchecked = 2 (non-active)
+                const activeValue = status ? 1 : 2;
+
                 fetch('<?= site_url('backend/santri/updateStatusActive'); ?>', {
                         method: 'POST',
                         headers: {
@@ -1148,7 +1309,7 @@
                         },
                         body: JSON.stringify({
                             id: id,
-                            active: status ? 1 : 0
+                            active: activeValue
                         })
                     })
                     .then(response => response.json())
@@ -1158,7 +1319,7 @@
                             checkbox.checked = status;
 
                             // Update data-order untuk sorting
-                            td.setAttribute('data-order', status ? 1 : 0);
+                            td.setAttribute('data-order', activeValue);
 
                             // Update label status
                             const label = checkbox.nextElementSibling;

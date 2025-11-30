@@ -2066,8 +2066,18 @@ class Santri extends BaseController
         try {
             $json = $this->request->getJSON();
             $id = $json->id;
-            // Info : 0 = baru daftar, 1 = aktif, 2 = no active
-            $active = $json->active == 0 ? 2 : $json->active;
+            // Info : 0 = baru daftar, 1 = aktif, 2 = alumni/no active
+            // Terima nilai langsung: 0, 1, atau 2
+            $active = (int)$json->active;
+
+            // Validasi nilai active
+            if (!in_array($active, [0, 1, 2])) {
+                log_message('error', 'Santri: updateStatusActive - Nilai active tidak valid: ' . $active);
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Nilai status tidak valid. Harus 0 (Santri Baru), 1 (Aktif), atau 2 (Alumni)'
+                ]);
+            }
 
             log_message('info', 'Santri: updateStatusActive - ID: ' . $id . ', Active: ' . $active);
 
