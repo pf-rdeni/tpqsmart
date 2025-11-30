@@ -2235,7 +2235,52 @@ if (ENVIRONMENT === 'production') {
 
 <?= $this->section('scripts'); ?>
 <!-- Image Upload Helper -->
-<script src="<?= base_url('helpers/js/image-upload-helper.js') ?>"></script>
+<script>
+    // Load ImageUploadHelper dengan error handling dan retry mechanism
+    (function() {
+        let loadAttempts = 0;
+        const maxLoadAttempts = 3;
+        
+        function loadHelper() {
+            loadAttempts++;
+            const script = document.createElement('script');
+            script.src = '<?= base_url('helpers/js/image-upload-helper.js') ?>';
+            script.async = false; // Load synchronously untuk memastikan tersedia sebelum script lain
+            
+            script.onerror = function() {
+                console.error('Gagal memuat image-upload-helper.js (attempt ' + loadAttempts + '/' + maxLoadAttempts + ') dari: ' + script.src);
+                if (loadAttempts < maxLoadAttempts) {
+                    // Retry setelah 500ms
+                    setTimeout(loadHelper, 500);
+                } else {
+                    console.error('ImageUploadHelper gagal dimuat setelah ' + maxLoadAttempts + ' attempts');
+                    console.error('Pastikan:');
+                    console.error('1. Route helpers/js/(:segment) sudah terdaftar di Routes.php');
+                    console.error('2. Controller Helpers.php sudah ter-deploy');
+                    console.error('3. File app/Helpers/js/image-upload-helper.js sudah ter-deploy');
+                }
+            };
+            
+            script.onload = function() {
+                // Tunggu sebentar untuk memastikan ImageUploadHelper sudah ter-initialize
+                setTimeout(function() {
+                    if (window.ImageUploadHelper) {
+                        console.log('ImageUploadHelper loaded successfully');
+                    } else {
+                        console.warn('Script loaded but ImageUploadHelper not found, retrying...');
+                        if (loadAttempts < maxLoadAttempts) {
+                            setTimeout(loadHelper, 500);
+                        }
+                    }
+                }, 100);
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        loadHelper();
+    })();
+</script>
 <style>
     .img-container-crop {
         width: 100%;
