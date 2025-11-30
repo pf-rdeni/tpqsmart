@@ -5,7 +5,7 @@
     <div class="card card-info card-outline collapsed-card mb-3">
         <div class="card-header bg-info">
             <h3 class="card-title">
-                <i class="fas fa-info-circle"></i> Informasi Proses Cek Duplikasi Kelas Santri
+                <i class="fas fa-info-circle"></i> Informasi Proses Normalisasi Data
             </h3>
             <div class="card-tools">
                 <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -16,49 +16,102 @@
         <div class="card-body" style="display: none;">
             <div class="row">
                 <div class="col-md-12">
-                    <h5><i class="fas fa-list-ol"></i> Cara Menggunakan Halaman Cek Duplikasi Kelas Santri:</h5>
-                    <ol class="mb-3">
-                        <li class="mb-2">
-                            <strong>Memahami Tujuan</strong>
-                            <ul class="mt-1">
-                                <li>Halaman ini digunakan untuk <strong>mendeteksi dan memperbaiki duplikasi data</strong> di tabel kelas santri</li>
-                                <li>Duplikasi terjadi ketika <strong>IdSantri yang sama</strong> memiliki <strong>IdKelas yang sama</strong> pada <strong>IdTahunAjaran yang sama</strong> dan <strong>IdTpq yang sama</strong></li>
-                                <li>Duplikasi ini dapat menyebabkan masalah dalam sistem, seperti data nilai yang tidak konsisten</li>
-                            </ul>
-                        </li>
-                        <li class="mb-2">
-                            <strong>Mengecek Duplikasi</strong>
-                            <ul class="mt-1">
-                                <li>Klik tombol <strong>"Cek Duplikasi"</strong> untuk memulai proses pengecekan</li>
-                                <li>Sistem akan memindai semua data di tabel kelas santri</li>
-                                <li>Hasil akan ditampilkan dalam bentuk tabel yang menampilkan:
-                                    <ul>
-                                        <li>Nama Santri yang duplikasi</li>
-                                        <li>Kelas yang duplikasi</li>
-                                        <li>Tahun Ajaran</li>
-                                        <li>Jumlah duplikasi</li>
-                                        <li>Detail semua record yang duplikasi</li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>
-                        <li class="mb-2">
-                            <strong>Menormalisasi Duplikasi</strong>
-                            <ul class="mt-1">
-                                <li>Setelah melihat hasil duplikasi, klik tombol <strong>"Normalisasi Duplikasi"</strong> untuk memperbaiki</li>
-                                <li>Sistem akan <strong>menyisakan 1 record</strong> per kombinasi (IdSantri, IdKelas, IdTahunAjaran, IdTpq)</li>
-                                <li>Record yang <strong>disisakan adalah yang tertua</strong> (berdasarkan Id terkecil)</li>
-                                <li>Record duplikasi lainnya akan <strong>dihapus</strong></li>
-                                <li>Pastikan untuk <strong>backup database</strong> sebelum melakukan normalisasi</li>
-                            </ul>
-                        </li>
-                    </ol>
+                    <h5><i class="fas fa-list-ol"></i> Halaman ini memiliki 2 fungsi utama:</h5>
+
+                    <div class="mb-4">
+                        <h6 class="text-primary"><i class="fas fa-users"></i> 1. Normalisasi Duplikasi Kelas Santri</h6>
+                        <ol class="mb-3">
+                            <li class="mb-2">
+                                <strong>Memahami Tujuan</strong>
+                                <ul class="mt-1">
+                                    <li>Mendeteksi dan memperbaiki <strong>duplikasi data di tabel kelas santri</strong></li>
+                                    <li>Duplikasi terjadi ketika <strong>IdSantri yang sama</strong> memiliki <strong>IdKelas yang sama</strong> pada <strong>IdTahunAjaran yang sama</strong> dan <strong>IdTpq yang sama</strong></li>
+                                    <li>Duplikasi ini dapat menyebabkan masalah dalam sistem, seperti data nilai yang tidak konsisten</li>
+                                </ul>
+                            </li>
+                            <li class="mb-2">
+                                <strong>Mengecek Duplikasi Kelas Santri</strong>
+                                <ul class="mt-1">
+                                    <li>Klik tombol <strong>"Cek Duplikasi"</strong> untuk memulai proses pengecekan</li>
+                                    <li>Sistem akan memindai semua data di tabel <code>tbl_kelas_santri</code></li>
+                                    <li>Hasil akan ditampilkan dalam bentuk tabel yang menampilkan:
+                                        <ul>
+                                            <li>Nama Santri yang duplikasi</li>
+                                            <li>Kelas yang duplikasi</li>
+                                            <li>Tahun Ajaran</li>
+                                            <li>Jumlah duplikasi</li>
+                                            <li>Detail semua record yang duplikasi</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="mb-2">
+                                <strong>Menormalisasi Duplikasi Kelas Santri</strong>
+                                <ul class="mt-1">
+                                    <li>Setelah melihat hasil duplikasi, pilih data yang akan dinormalisasi</li>
+                                    <li>Klik tombol <strong>"Normalisasi Duplikasi"</strong> untuk memperbaiki</li>
+                                    <li>Sistem akan <strong>menyisakan 1 record</strong> per kombinasi (IdSantri, IdKelas, IdTahunAjaran, IdTpq)</li>
+                                    <li>Record yang <strong>disisakan adalah yang tertua</strong> (berdasarkan Id terkecil)</li>
+                                    <li>Record duplikasi lainnya akan <strong>dihapus</strong></li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-warning"><i class="fas fa-check-double"></i> 2. Normalisasi Data Nilai</h6>
+                        <ol class="mb-3">
+                            <li class="mb-2">
+                                <strong>Memahami Tujuan</strong>
+                                <ul class="mt-1">
+                                    <li>Mendeteksi dan memperbaiki <strong>data nilai yang tidak valid dan duplikat</strong> di tabel <code>tbl_nilai</code></li>
+                                    <li>Data tidak valid: IdMateri tidak ada di <code>tbl_kelas_materi_pelajaran</code> untuk IdKelas dan IdTpq santri tersebut</li>
+                                    <li>Data duplikat: IdSantri memiliki IdMateri yang sama untuk kombinasi IdKelas, IdTpq, IdTahunAjaran, dan Semester yang sama</li>
+                                </ul>
+                            </li>
+                            <li class="mb-2">
+                                <strong>Mengecek Normalisasi Nilai</strong>
+                                <ul class="mt-1">
+                                    <li>Klik tombol <strong>"Cek Normalisasi Nilai"</strong> (hanya untuk Admin)</li>
+                                    <li>Sistem akan mengecek semua data nilai berdasarkan:
+                                        <ul>
+                                            <li>Referensi ke <code>tbl_kelas_materi_pelajaran</code> untuk setiap kelas</li>
+                                            <li>Duplikat berdasarkan kombinasi lengkap (IdSantri, IdMateri, IdKelas, IdTpq, IdTahunAjaran, Semester)</li>
+                                        </ul>
+                                    </li>
+                                    <li>Hasil akan ditampilkan dengan:
+                                        <ul>
+                                            <li><strong>Rangkuman per TPQ</strong> - menampilkan statistik ketidaksesuaian per TPQ</li>
+                                            <li><strong>Tabel detail</strong> - menampilkan data yang tidak valid dan duplikat</li>
+                                            <li><strong>Kategori duplikat</strong>:
+                                                <ul>
+                                                    <li><span class="badge badge-success">Aman</span> - Duplikat dengan nilai kosong, aman untuk dihapus</li>
+                                                    <li><span class="badge badge-warning">Perhatian</span> - Duplikat dengan nilai, perlu direview sebelum dihapus</li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="mb-2">
+                                <strong>Menormalisasi Data Nilai</strong>
+                                <ul class="mt-1">
+                                    <li>Setelah melihat hasil pengecekan, <strong>pilih data yang akan dihapus</strong> menggunakan checkbox</li>
+                                    <li>Gunakan <strong>filter TPQ</strong> untuk fokus pada TPQ tertentu (klik card rangkuman TPQ)</li>
+                                    <li>Klik tombol <strong>"Normalisasi Nilai"</strong> untuk menghapus data yang dipilih</li>
+                                    <li>Sistem akan menghapus data berdasarkan ID yang dipilih</li>
+                                    <li>Setelah selesai, data akan otomatis di-refresh untuk menampilkan status terbaru</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
 
                     <div class="alert alert-warning mb-0">
                         <h5><i class="icon fas fa-exclamation-triangle"></i> Catatan Penting:</h5>
                         <ul class="mb-0">
-                            <li>Proses normalisasi akan <strong>menghapus data</strong>, pastikan sudah melakukan backup</li>
-                            <li>Hanya record duplikasi yang akan dihapus, record yang valid tidak akan terpengaruh</li>
+                            <li>Proses normalisasi akan <strong>menghapus data</strong>, pastikan sudah melakukan backup database</li>
+                            <li>Hanya data yang dipilih yang akan dihapus, data yang valid tidak akan terpengaruh</li>
+                            <li>Untuk duplikat dengan kategori <strong>"Perhatian"</strong>, pastikan untuk review nilai sebelum menghapus</li>
                             <li>Setelah normalisasi, disarankan untuk menjalankan <strong>"Perbarui Materi"</strong> di halaman Kelas Materi Pelajaran</li>
                         </ul>
                     </div>
@@ -71,7 +124,7 @@
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
                 <h3 class="card-title">
-                    <i class="fas fa-search"></i> Cek Duplikasi Kelas Santri
+                    <i class="fas fa-sync-alt"></i> Normalisasi Data
                 </h3>
                 <div class="card-tools">
                     <?php if (in_groups('Admin')): ?>
@@ -838,29 +891,55 @@
             updateSelectedCountNilai();
         });
 
-        // Event handler untuk checkbox setelah DataTable diinisialisasi
-        $(document).on('change', 'input[type="checkbox"][name="nilaiCheckbox"]', function() {
-            updateSelectedCountNilai();
+        // Update checkbox state saat DataTable di-redraw (misalnya saat paging, search, dll)
+        dataTableNormalisasiNilai.on('draw', function() {
+            // Sync checkbox "Pilih Semua" dengan state checkbox yang terfilter
+            if (dataTableNormalisasiNilai) {
+                const filteredRows = dataTableNormalisasiNilai.rows({
+                    search: 'applied'
+                }).nodes().to$();
+                const filteredCheckboxes = filteredRows.find('input[type="checkbox"][name="nilaiCheckbox"]');
+                const checkedCount = filteredCheckboxes.filter(':checked').length;
+                const totalCount = filteredCheckboxes.length;
+
+                // Update checkbox "Pilih Semua" jika semua terpilih atau tidak ada yang terpilih
+                if (totalCount > 0) {
+                    $('#checkAllNilai').prop('checked', checkedCount === totalCount);
+                }
+                updateSelectedCountNilai();
+            }
         });
 
         $('#resultNormalisasi').show();
     }
 
     function updateSelectedCountNilai() {
-        const selected = $('input[type="checkbox"][name="nilaiCheckbox"]:checked').length;
-        const total = $('input[type="checkbox"][name="nilaiCheckbox"]').length;
-        $('#selectedCountNilai').text(`${selected} dari ${total} item dipilih`);
+        if (dataTableNormalisasiNilai) {
+            // Hitung hanya checkbox yang terfilter di DataTable
+            const filteredRows = dataTableNormalisasiNilai.rows({
+                search: 'applied'
+            }).nodes().to$();
+            const filteredCheckboxes = filteredRows.find('input[type="checkbox"][name="nilaiCheckbox"]');
+            const selected = filteredCheckboxes.filter(':checked').length;
+            const total = filteredCheckboxes.length;
+            $('#selectedCountNilai').text(`${selected} dari ${total} item dipilih`);
+        } else {
+            // Fallback jika DataTable belum diinisialisasi
+            const selected = $('input[type="checkbox"][name="nilaiCheckbox"]:checked').length;
+            const total = $('input[type="checkbox"][name="nilaiCheckbox"]').length;
+            $('#selectedCountNilai').text(`${selected} dari ${total} item dipilih`);
+        }
     }
 
     // Handler untuk select all checkbox nilai
     $('#checkAllNilai').on('change', function() {
         const isChecked = $(this).prop('checked');
-        $('input[type="checkbox"][name="nilaiCheckbox"]').prop('checked', isChecked);
+        selectAllFilteredNilai(isChecked);
         updateSelectedCountNilai();
     });
 
     $('#btnSelectAllNilai').on('click', function() {
-        $('input[type="checkbox"][name="nilaiCheckbox"]').prop('checked', true);
+        selectAllFilteredNilai(true);
         $('#checkAllNilai').prop('checked', true);
         updateSelectedCountNilai();
         $('#btnSelectAllNilai').hide();
@@ -868,12 +947,26 @@
     });
 
     $('#btnUnselectAllNilai').on('click', function() {
-        $('input[type="checkbox"][name="nilaiCheckbox"]').prop('checked', false);
+        selectAllFilteredNilai(false);
         $('#checkAllNilai').prop('checked', false);
         updateSelectedCountNilai();
         $('#btnSelectAllNilai').show();
         $('#btnUnselectAllNilai').hide();
     });
+
+    // Fungsi untuk memilih semua data yang terfilter (bukan hanya yang terlihat)
+    function selectAllFilteredNilai(isChecked) {
+        if (dataTableNormalisasiNilai) {
+            // Gunakan DataTable API untuk mendapatkan semua row yang terfilter
+            // { search: 'applied' } berarti hanya row yang sesuai dengan filter/search DataTable
+            dataTableNormalisasiNilai.rows({
+                search: 'applied'
+            }).nodes().to$().find('input[type="checkbox"][name="nilaiCheckbox"]').prop('checked', isChecked);
+        } else {
+            // Fallback jika DataTable belum diinisialisasi
+            $('input[type="checkbox"][name="nilaiCheckbox"]').prop('checked', isChecked);
+        }
+    }
 
     // Handler untuk filter TPQ
     $('#btnFilterAllTpq').on('click', function() {
@@ -891,10 +984,30 @@
     });
 
     function normalisasiNilaiSelected() {
-        // Ambil semua checkbox yang dicentang
-        const selectedCheckboxes = $('input[type="checkbox"][name="nilaiCheckbox"]:checked');
+        const selectedIds = [];
 
-        if (selectedCheckboxes.length === 0) {
+        if (dataTableNormalisasiNilai) {
+            // Gunakan DataTable API untuk mengambil semua checkbox yang terpilih dari semua halaman
+            // { search: 'applied' } untuk hanya mengambil row yang terfilter
+            dataTableNormalisasiNilai.rows({
+                search: 'applied'
+            }).every(function() {
+                const row = this.node();
+                const checkbox = $(row).find('input[type="checkbox"][name="nilaiCheckbox"]');
+
+                if (checkbox.is(':checked')) {
+                    selectedIds.push(checkbox.val());
+                }
+            });
+        } else {
+            // Fallback jika DataTable belum diinisialisasi
+            const selectedCheckboxes = $('input[type="checkbox"][name="nilaiCheckbox"]:checked');
+            selectedCheckboxes.each(function() {
+                selectedIds.push($(this).val());
+            });
+        }
+
+        if (selectedIds.length === 0) {
             Swal.fire({
                 title: 'Peringatan!',
                 text: 'Silakan pilih minimal satu data yang akan dinormalisasi.',
@@ -903,11 +1016,6 @@
             });
             return;
         }
-
-        const selectedIds = [];
-        selectedCheckboxes.each(function() {
-            selectedIds.push($(this).val());
-        });
 
         Swal.fire({
             title: 'Konfirmasi Normalisasi',

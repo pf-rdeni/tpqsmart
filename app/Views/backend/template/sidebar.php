@@ -624,7 +624,7 @@
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kelas/showCheckDuplikasiKelasSantri') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Cek Duplikasi Kelas Santri</p>
+                                        <p>Normalisasi Data</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
