@@ -2405,6 +2405,7 @@ class Santri extends BaseController
     /**
      * Fungsi untuk normalisasi data nilai
      * Menghapus data nilai berdasarkan ID yang dipilih
+     * Untuk data duplikat, hanya menghapus duplikat dan menyisakan satu record
      */
     public function normalisasiNilai()
     {
@@ -2429,27 +2430,93 @@ class Santri extends BaseController
                 ]);
             }
 
-            log_message('info', 'Santri: normalisasiNilai - Akan menghapus ' . count($idsToDelete) . ' records');
+            log_message('info', 'Santri: normalisasiNilai - Akan memproses ' . count($idsToDelete) . ' records');
+
+            // Ambil semua data yang akan dihapus untuk analisis duplikat
+            $dataToDelete = $this->nilaiModel->whereIn('Id', $idsToDelete)->findAll();
+
+            // Kelompokkan berdasarkan kombinasi duplikat
+            // Key: IdSantri_IdMateri_IdKelas_IdTpq_IdTahunAjaran_Semester
+            $duplicateGroups = [];
+            $invalidIds = [];
+            $duplicateIds = [];
+
+            foreach ($dataToDelete as $nilai) {
+                $duplicateKey = $nilai['IdSantri'] . '_' . $nilai['IdMateri'] . '_' .
+                    $nilai['IdKelas'] . '_' . $nilai['IdTpq'] . '_' .
+                    $nilai['IdTahunAjaran'] . '_' . $nilai['Semester'];
+
+                if (!isset($duplicateGroups[$duplicateKey])) {
+                    $duplicateGroups[$duplicateKey] = [];
+                }
+                $duplicateGroups[$duplicateKey][] = $nilai;
+            }
+
+            // Untuk setiap grup duplikat, tentukan mana yang harus disimpan
+            foreach ($duplicateGroups as $key => $group) {
+                if (count($group) > 1) {
+                    // Ada duplikat dalam grup ini
+                    // Urutkan: prioritaskan yang memiliki nilai, kemudian yang tertua (Id terkecil)
+                    usort($group, function ($a, $b) {
+                        $nilaiA = (float)($a['Nilai'] ?? 0);
+                        $nilaiB = (float)($b['Nilai'] ?? 0);
+
+                        // Jika salah satu memiliki nilai dan yang lain tidak, prioritaskan yang memiliki nilai
+                        if ($nilaiA > 0 && $nilaiB == 0) return -1;
+                        if ($nilaiA == 0 && $nilaiB > 0) return 1;
+
+                        // Jika keduanya memiliki nilai atau keduanya tidak, prioritaskan yang tertua (Id terkecil)
+                        return $a['Id'] <=> $b['Id'];
+                    });
+
+                    // Simpan yang pertama (terbaik), hapus yang lainnya
+                    $keepId = $group[0]['Id'];
+                    foreach ($group as $item) {
+                        if ($item['Id'] != $keepId) {
+                            $duplicateIds[] = $item['Id'];
+                        }
+                    }
+                } else {
+                    // Tidak ada duplikat, bisa langsung dihapus (ini adalah data invalid)
+                    $invalidIds[] = $group[0]['Id'];
+                }
+            }
+
+            // Gabungkan semua ID yang akan dihapus
+            $finalIdsToDelete = array_merge($invalidIds, $duplicateIds);
+
+            // Hapus duplikat dari array (jika ada)
+            $finalIdsToDelete = array_unique($finalIdsToDelete);
+
+            log_message('info', 'Santri: normalisasiNilai - Akan menghapus ' . count($finalIdsToDelete) . ' records (invalid: ' . count($invalidIds) . ', duplicate: ' . count($duplicateIds) . ')');
 
             $deletedCount = 0;
             $errors = [];
 
-            // Hapus data berdasarkan ID yang dipilih
-            try {
-                $deletedCount = $this->nilaiModel->whereIn('Id', $idsToDelete)->delete();
+            // Hapus data berdasarkan ID yang sudah difilter
+            if (!empty($finalIdsToDelete)) {
+                try {
+                    $deletedCount = $this->nilaiModel->whereIn('Id', $finalIdsToDelete)->delete();
 
-                if ($deletedCount === false) {
-                    throw new \Exception('Gagal menghapus data');
+                    if ($deletedCount === false) {
+                        throw new \Exception('Gagal menghapus data');
+                    }
+
+                    log_message('info', 'Santri: normalisasiNilai - Berhasil menghapus ' . $deletedCount . ' records');
+                } catch (\Exception $e) {
+                    $errors[] = "Gagal menghapus data: " . $e->getMessage();
+                    log_message('error', 'Santri: normalisasiNilai - Error menghapus data: ' . $e->getMessage());
                 }
-
-                log_message('info', 'Santri: normalisasiNilai - Berhasil menghapus ' . $deletedCount . ' records');
-            } catch (\Exception $e) {
-                $errors[] = "Gagal menghapus data: " . $e->getMessage();
-                log_message('error', 'Santri: normalisasiNilai - Error menghapus data: ' . $e->getMessage());
             }
 
             $message = "Normalisasi selesai. ";
-            $message .= "Data yang dihapus: {$deletedCount} dari " . count($idsToDelete) . " yang dipilih.";
+            $message .= "Data yang dihapus: {$deletedCount} dari " . count($idsToDelete) . " yang dipilih. ";
+            $message .= "(Invalid: " . count($invalidIds) . ", Duplikat: " . count($duplicateIds) . ")";
+
+            if (count($idsToDelete) > count($finalIdsToDelete)) {
+                $skipped = count($idsToDelete) - count($finalIdsToDelete);
+                $message .= " Catatan: {$skipped} data duplikat disimpan (hanya duplikat yang dihapus, menyisakan satu record per grup).";
+            }
 
             if (!empty($errors)) {
                 $message .= " Terjadi beberapa error: " . implode(', ', $errors);
@@ -2462,7 +2529,11 @@ class Santri extends BaseController
                 'message' => $message,
                 'data' => [
                     'total_selected' => count($idsToDelete),
+                    'total_to_delete' => count($finalIdsToDelete),
                     'deleted_count' => $deletedCount,
+                    'invalid_count' => count($invalidIds),
+                    'duplicate_count' => count($duplicateIds),
+                    'skipped_count' => count($idsToDelete) - count($finalIdsToDelete),
                     'errors' => $errors
                 ]
             ]);
