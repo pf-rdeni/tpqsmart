@@ -32,8 +32,8 @@ $routes->setAutoRoute(true);
 $routes->get('login', 'AuthController::login', ['as' => 'login']);
 $routes->post('login', 'AuthController::attemptLogin');
 
-// Route untuk serve JavaScript helpers dari app/Helpers/js/
-$routes->get('helpers/js/(:segment)', 'Helpers::js/$1');
+// Route untuk serve JavaScript helpers dari app/Helpers/js/ (public access)
+$routes->get('helpers/js/(:segment)', 'Helpers::js/$1/public');
 
 $routes->get('/', 'Dashboard::index');
 $routes->get('backend/dashboard/select-role', 'Dashboard::selectRole');

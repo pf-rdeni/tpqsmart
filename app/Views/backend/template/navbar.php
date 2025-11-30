@@ -1,10 +1,8 @@
-<nav class="main-header navbar navbar-expand-lg navbar-white navbar-light">
+<nav class="main-header navbar navbar-expand navbar-white navbar-light">
     <!-- Left navbar links -->
     <ul class="navbar-nav">
-        <li class="nav-item" style="flex-shrink: 0;">
-            <a class="nav-link" data-widget="pushmenu" href="#" role="button" aria-label="Toggle sidebar" style="display: flex; align-items: center; justify-content: center; min-width: 50px;">
-                <i class="fas fa-bars" style="font-size: 1.2rem; display: inline-block;"></i>
-            </a>
+        <li class="nav-item">
+            <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
         </li>
         <!-- Menu items untuk desktop (tersembunyi di mobile) -->
         <li class="nav-item d-none d-md-inline-block">
@@ -42,7 +40,7 @@
     </ul>
 
     <!-- Right navbar links -->
-    <ul class="navbar-nav ml-auto" style="flex-shrink: 0; display: flex; flex-direction: row; align-items: center;">
+    <ul class="navbar-nav ml-auto">
         <!-- Role Switcher (hanya untuk user dengan multiple peran) -->
         <?php
         // Cek apakah user memiliki multiple peran
@@ -151,11 +149,11 @@
         );
         ?>
         <?php if ($hasMultipleRoles && !in_groups('Admin') && !$isMunaqosahPage): ?>
-            <li class="nav-item dropdown" style="flex-shrink: 0;">
-                <a class="nav-link" href="#" data-toggle="dropdown" title="Ganti Peran" style="display: flex; align-items: center; justify-content: center; min-width: 44px;">
-                    <i class="fas fa-user-cog" style="font-size: 1.1rem; display: inline-block;"></i>
+            <li class="nav-item dropdown">
+                <a class="nav-link" href="#" data-toggle="dropdown" title="Ganti Peran">
+                    <i class="fas fa-user-cog"></i>
                     <span class="d-none d-md-inline ml-1"><?= esc($activeRoleLabel) ?></span>
-                    <i class="fas fa-angle-down ml-1 d-none d-md-inline"></i>
+                    <i class="fas fa-angle-down ml-1"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right">
                     <span class="dropdown-header">Pilih Peran</span>
@@ -217,11 +215,11 @@
                 $activeDashboard = 'sertifikasi';
             }
             ?>
-            <li class="nav-item dropdown" style="flex-shrink: 0;">
-                <a class="nav-link" href="#" data-toggle="dropdown" title="Ganti Dashboard" id="dashboardDropdownToggle" style="display: flex; align-items: center; justify-content: center; min-width: 44px;">
-                    <i class="fas fa-tachometer-alt" style="font-size: 1.1rem; display: inline-block;"></i>
+            <li class="nav-item dropdown">
+                <a class="nav-link" href="#" data-toggle="dropdown" title="Ganti Dashboard" id="dashboardDropdownToggle">
+                    <i class="fas fa-tachometer-alt"></i>
                     <span class="d-none d-md-inline ml-1" id="currentDashboardLabel">Dashboard</span>
-                    <i class="fas fa-angle-down ml-1 d-none d-md-inline"></i>
+                    <i class="fas fa-angle-down ml-1"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right">
                     <span class="dropdown-header">Pilih Dashboard</span>
@@ -243,9 +241,9 @@
             </li>
         <?php endif; ?>
         <!-- Navbar Search -->
-        <li class="nav-item" style="flex-shrink: 0;">
-            <a class="nav-link" data-widget="navbar-search" href="#" role="button" aria-label="Search" style="display: flex; align-items: center; justify-content: center; min-width: 44px;">
-                <i class="fas fa-search" style="font-size: 1.1rem; display: inline-block;"></i>
+        <li class="nav-item">
+            <a class="nav-link" data-widget="navbar-search" href="#" role="button">
+                <i class="fas fa-search"></i>
             </a>
             <div class="navbar-search-block">
                 <form class="form-inline" action="<?= base_url('backend/search') ?>" method="GET">
@@ -265,20 +263,20 @@
             </div>
         </li>
         <!-- Theme Switcher -->
-        <li class="nav-item" style="flex-shrink: 0;">
-            <a class="nav-link" href="#" id="themeToggle" role="button" title="Ubah Tema" style="display: flex; align-items: center; justify-content: center; min-width: 44px;">
-                <i class="fas fa-moon" id="themeIcon" style="font-size: 1.1rem; display: inline-block;"></i>
+        <li class="nav-item">
+            <a class="nav-link" href="#" id="themeToggle" role="button" title="Ubah Tema">
+                <i class="fas fa-moon" id="themeIcon"></i>
             </a>
         </li>
-        <li class="nav-item" style="flex-shrink: 0;">
-            <a class="nav-link" data-widget="fullscreen" href="#" role="button" aria-label="Fullscreen" style="display: flex; align-items: center; justify-content: center; min-width: 44px;">
-                <i class="fas fa-expand-arrows-alt" style="font-size: 1.1rem; display: inline-block;"></i>
+        <li class="nav-item d-none d-sm-inline-block">
+            <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                <i class="fas fa-expand-arrows-alt"></i>
             </a>
         </li>
         <!-- Customize AdminLTE -->
-        <li class="nav-item" style="flex-shrink: 0;">
-            <a class="nav-link" href="<?= base_url('backend/customize') ?>" role="button" title="Customize AdminLTE" style="display: flex; align-items: center; justify-content: center; min-width: 44px;">
-                <i class="fab fa-windows" style="font-size: 1.1rem; display: inline-block;"></i>
+        <li class="nav-item d-none d-sm-inline-block">
+            <a class="nav-link" href="<?= base_url('backend/customize') ?>" role="button" title="Customize AdminLTE">
+                <i class="fab fa-windows"></i>
             </a>
         </li>
     </ul>
