@@ -94,6 +94,8 @@ class Filters extends BaseFilters
                     'munaqosah/kelulusan',
                     'munaqosah/generate-surat-kelulusan',
                     'auth/logout', // untuk logout
+                    'helpers/js/*', // JavaScript helper files (public access)
+                    'helpers/js/(:segment)', // JavaScript helper files dengan segment (public access)
                 ]
             ],
         ],
