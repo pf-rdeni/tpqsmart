@@ -74,6 +74,14 @@
                     <i class="fas fa-search"></i> Cek Duplikasi Kelas Santri
                 </h3>
                 <div class="card-tools">
+                    <?php if (in_groups('Admin')): ?>
+                        <button type="button" class="btn btn-warning btn-sm mr-2" id="btnCheckNormalisasiNilai" title="Cek data nilai yang tidak valid dan duplikat">
+                            <i class="fas fa-search"></i> Cek Normalisasi Nilai
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm mr-2" id="btnNormalisasiNilai" style="display: none;" title="Hapus data nilai yang dipilih">
+                            <i class="fas fa-sync"></i> Normalisasi Nilai
+                        </button>
+                    <?php endif; ?>
                     <button type="button" class="btn btn-primary btn-sm" id="btnCheckDuplikasi">
                         <i class="fas fa-search"></i> Cek Duplikasi
                     </button>
@@ -158,6 +166,90 @@
                     <p>Data kelas santri sudah bersih, tidak ada duplikasi yang ditemukan.</p>
                 </div>
             </div>
+
+            <!-- Section untuk Normalisasi Nilai -->
+            <div id="normalisasiNilaiContainer" style="display: none;">
+                <hr class="my-4">
+                <h5 class="mb-3"><i class="fas fa-check-double"></i> Normalisasi Data Nilai</h5>
+
+                <div id="loadingNormalisasi" style="display: none;" class="text-center mb-3">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p class="mt-2">Memproses data...</p>
+                </div>
+
+                <div id="resultNormalisasi" style="display: none;">
+                    <div class="alert alert-warning" id="summaryNormalisasi">
+                        <i class="fas fa-info-circle"></i> <span id="summaryNormalisasiText"></span>
+                    </div>
+
+                    <!-- Rangkuman per TPQ -->
+                    <div class="card card-info mb-3" id="summaryTpqContainer">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-pie"></i> Rangkuman Ketidaksesuaian per TPQ
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="summaryTpqCards">
+                                <!-- Rangkuman akan diisi melalui JavaScript -->
+                            </div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-sm btn-primary" id="btnFilterAllTpq">
+                                    <i class="fas fa-filter"></i> Tampilkan Semua TPQ
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="btnClearFilterTpq" style="display: none;">
+                                    <i class="fas fa-times"></i> Hapus Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnSelectAllNilai">
+                            <i class="fas fa-check-square"></i> Pilih Semua
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnUnselectAllNilai" style="display: none;">
+                            <i class="fas fa-square"></i> Batal Pilih Semua
+                        </button>
+                        <span class="ml-3" id="selectedCountNilai">0 item dipilih</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover" id="tblNormalisasiNilai">
+                            <thead>
+                                <tr>
+                                    <th width="50">
+                                        <input type="checkbox" id="checkAllNilai" title="Pilih Semua">
+                                    </th>
+                                    <th>No</th>
+                                    <th>IdSantri</th>
+                                    <th>Nama Santri</th>
+                                    <th>Materi</th>
+                                    <th>Kelas</th>
+                                    <th>TPQ</th>
+                                    <th>Tahun Ajaran</th>
+                                    <th>Semester</th>
+                                    <th>Nilai</th>
+                                    <th>Jenis Masalah</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyNormalisasiNilai">
+                                <!-- Data akan diisi melalui JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="noDataNormalisasi" style="display: none;">
+                    <div class="alert alert-success text-center">
+                        <i class="fas fa-check-circle fa-3x mb-3"></i>
+                        <h4>Data Sudah Normal</h4>
+                        <p>Data nilai sudah bersih, tidak ada data yang tidak valid atau duplikat.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -215,11 +307,11 @@
     function updateSelectedCount() {
         const count = $('input[type="checkbox"][name="duplikasiCheckbox"]:checked').length;
         $('#selectedCount').text(count + ' item dipilih');
-        
+
         // Update checkAll status
         const total = $('input[type="checkbox"][name="duplikasiCheckbox"]').length;
         $('#checkAll').prop('checked', count === total && total > 0);
-        
+
         if (count > 0) {
             $('#btnSelectAll').hide();
             $('#btnUnselectAll').show();
@@ -263,7 +355,7 @@
             error: function(xhr, status, error) {
                 $('#loadingIndicator').hide();
                 $('#btnCheckDuplikasi').prop('disabled', false);
-                
+
                 Swal.fire({
                     title: 'Error!',
                     text: 'Terjadi kesalahan saat mengecek duplikasi: ' + error,
@@ -331,12 +423,10 @@
             "autoWidth": false,
             "responsive": true,
             "pageLength": 10,
-            "columnDefs": [
-                {
-                    "orderable": false,
-                    "targets": 0 // Kolom checkbox tidak bisa di-sort
-                }
-            ]
+            "columnDefs": [{
+                "orderable": false,
+                "targets": 0 // Kolom checkbox tidak bisa di-sort
+            }]
         });
 
         // Event handler untuk checkbox setelah DataTable diinisialisasi
@@ -401,7 +491,7 @@
     function normalisasiDuplikasi() {
         // Ambil semua checkbox yang dicentang
         const selectedCheckboxes = $('input[type="checkbox"][name="duplikasiCheckbox"]:checked');
-        
+
         if (selectedCheckboxes.length === 0) {
             Swal.fire({
                 title: 'Peringatan!',
@@ -487,6 +577,389 @@
             }
         });
     }
+
+    // Initialize DataTable untuk Normalisasi Nilai
+    let dataTableNormalisasiNilai = null;
+
+    // Handler untuk tombol Cek Normalisasi Nilai
+    $('#btnCheckNormalisasiNilai').on('click', function() {
+        checkNormalisasiNilai();
+    });
+
+    // Handler untuk tombol Normalisasi Nilai (setelah data ditampilkan)
+    $('#btnNormalisasiNilai').on('click', function() {
+        normalisasiNilaiSelected();
+    });
+
+    function checkNormalisasiNilai() {
+        // Tampilkan loading
+        $('#loadingNormalisasi').show();
+        $('#resultNormalisasi').hide();
+        $('#noDataNormalisasi').hide();
+        $('#normalisasiNilaiContainer').show();
+        $('#btnCheckNormalisasiNilai').prop('disabled', true);
+
+        $.ajax({
+            url: '<?= base_url('backend/santri/checkNormalisasiNilai') ?>',
+            type: 'POST',
+            dataType: 'json',
+            success: function(response) {
+                $('#loadingNormalisasi').hide();
+                $('#btnCheckNormalisasiNilai').prop('disabled', false);
+
+                if (response.success) {
+                    if (response.total_to_delete > 0) {
+                        displayNormalisasiData(response);
+                        $('#btnNormalisasiNilai').show();
+                    } else {
+                        $('#noDataNormalisasi').show();
+                        $('#btnNormalisasiNilai').hide();
+                    }
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message || 'Terjadi kesalahan saat mengecek data',
+                        icon: 'error'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#loadingNormalisasi').hide();
+                $('#btnCheckNormalisasiNilai').prop('disabled', false);
+
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Terjadi kesalahan saat mengecek data: ' + error,
+                    icon: 'error'
+                });
+            }
+        });
+    }
+
+    // Variable untuk menyimpan data dan filter
+    let allNormalisasiData = [];
+    let selectedTpqFilter = null;
+
+    function displayNormalisasiData(data) {
+        // Simpan data global
+        allNormalisasiData = [];
+        data.invalid_data.forEach(item => {
+            allNormalisasiData.push(item);
+        });
+        data.duplicate_data.forEach(item => {
+            allNormalisasiData.push(item);
+        });
+
+        // Update summary
+        const summaryText = `Ditemukan ${data.total_invalid} data tidak valid dan ${data.total_duplicate} data duplikat (Total: ${data.total_to_delete} data yang perlu dihapus).`;
+        $('#summaryNormalisasiText').text(summaryText);
+        $('#summaryNormalisasi').removeClass('alert-success alert-danger').addClass('alert-warning');
+
+        // Tampilkan rangkuman per TPQ
+        displaySummaryByTpq(data.summary_by_tpq || []);
+
+        // Render tabel
+        renderNormalisasiTable();
+    }
+
+    function displaySummaryByTpq(summaryByTpq) {
+        const container = $('#summaryTpqCards');
+        container.empty();
+
+        if (summaryByTpq.length === 0) {
+            container.html('<div class="col-12"><p class="text-muted">Tidak ada data rangkuman</p></div>');
+            return;
+        }
+
+        summaryByTpq.forEach(function(tpq) {
+            const card = `
+                <div class="col-md-3 mb-3">
+                    <div class="card card-tpq-summary" data-tpq-id="${tpq.IdTpq}" style="cursor: pointer; border: 2px solid #dee2e6; transition: all 0.3s; height: 100%;" onclick="filterByTpq('${tpq.IdTpq}')">
+                        <div class="card-body p-3">
+                            <h6 class="card-title mb-2 font-weight-bold" style="font-size: 1rem; line-height: 1.4;" title="${tpq.NamaTpq}">${tpq.NamaTpq}</h6>
+                            <div class="text-right mb-3">
+                                <span class="text-danger font-weight-bold" style="font-size: 2rem; line-height: 1;">${tpq.total || 0}</span>
+                            </div>
+                            <div class="pt-2 border-top">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted" style="font-size: 0.875rem;">Tidak Valid:</span>
+                                    <span class="badge badge-danger" style="font-size: 0.875rem; padding: 0.4em 0.7em; min-width: 45px;">${tpq.total_invalid || 0}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted" style="font-size: 0.875rem;">Duplikat:</span>
+                                    <span class="badge badge-warning" style="font-size: 0.875rem; padding: 0.4em 0.7em; min-width: 45px; background-color: #ffc107; color: #212529;">${tpq.total_duplicate || 0}</span>
+                                </div>
+                                <div class="pt-2 border-top mt-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted" style="font-size: 0.8rem;">
+                                            <i class="fas fa-check-circle text-success"></i> Aman:
+                                        </span>
+                                        <span class="badge badge-success" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.total_duplicate_aman || 0}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted" style="font-size: 0.8rem;">
+                                            <i class="fas fa-exclamation-triangle text-warning"></i> Perhatian:
+                                        </span>
+                                        <span class="badge badge-warning" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px; background-color: #ffc107; color: #212529;">${tpq.total_duplicate_perhatian || 0}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.append(card);
+        });
+    }
+
+    function filterByTpq(idTpq) {
+        if (selectedTpqFilter === idTpq) {
+            // Jika klik yang sama, hapus filter
+            selectedTpqFilter = null;
+            $('.card-tpq-summary').css({
+                'border': '2px solid #dee2e6',
+                'box-shadow': 'none',
+                'transform': 'scale(1)'
+            });
+            $('#btnClearFilterTpq').hide();
+        } else {
+            // Set filter baru
+            selectedTpqFilter = idTpq;
+            $('.card-tpq-summary').css({
+                'border': '2px solid #dee2e6',
+                'box-shadow': 'none',
+                'transform': 'scale(1)'
+            });
+            $(`.card-tpq-summary[data-tpq-id="${idTpq}"]`).css({
+                'border': '2px solid #007bff',
+                'box-shadow': '0 0 10px rgba(0, 123, 255, 0.3)',
+                'transform': 'scale(1.02)'
+            });
+            $('#btnClearFilterTpq').show();
+        }
+        renderNormalisasiTable();
+    }
+
+    function renderNormalisasiTable() {
+        // Destroy DataTable jika sudah ada
+        if (dataTableNormalisasiNilai) {
+            dataTableNormalisasiNilai.destroy();
+        }
+
+        // Clear tbody
+        $('#tbodyNormalisasiNilai').empty();
+
+        // Filter data berdasarkan TPQ jika ada filter
+        let filteredData = allNormalisasiData;
+        if (selectedTpqFilter) {
+            filteredData = allNormalisasiData.filter(item => item.IdTpq == selectedTpqFilter);
+        }
+
+        // Populate table
+        filteredData.forEach(function(item, index) {
+            let jenisMasalah = '';
+            let keterangan = '';
+
+            if (item.type === 'invalid') {
+                jenisMasalah = '<span class="badge badge-danger">Tidak Valid</span>';
+                keterangan = item.reason || 'IdMateri tidak ada di tbl_kelas_materi_pelajaran untuk IdKelas dan IdTpq ini, atau tidak sesuai dengan semester';
+            } else if (item.type === 'duplicate') {
+                // Tentukan badge berdasarkan kategori
+                if (item.kategori === 'aman') {
+                    jenisMasalah = '<span class="badge badge-success">Aman</span>';
+                    keterangan = item.reason + ' - Nilai kosong, aman untuk dihapus';
+                } else if (item.kategori === 'perhatian') {
+                    jenisMasalah = '<span class="badge badge-warning">Perhatian</span>';
+                    keterangan = item.reason + ' - Memiliki nilai (' + (item.Nilai || 0) + '), perlu direview sebelum dihapus';
+                } else {
+                    // Fallback jika kategori tidak ada
+                    jenisMasalah = '<span class="badge badge-warning">Duplikat</span>';
+                    keterangan = item.reason || 'Duplikat: IdMateri yang sama untuk IdSantri, IdKelas, IdTpq, IdTahunAjaran, dan Semester yang sama';
+                }
+            }
+
+            const row = `
+                <tr>
+                    <td>
+                        <input type="checkbox" 
+                               name="nilaiCheckbox" 
+                               class="nilai-checkbox" 
+                               value="${item.Id}"
+                               data-type="${item.type}"
+                               checked>
+                    </td>
+                    <td>${index + 1}</td>
+                    <td>${item.IdSantri || 'Tidak ditemukan'}</td>
+                    <td>${item.NamaSantri || 'Tidak ditemukan'}</td>
+                    <td>${item.NamaMateri || 'Tidak ditemukan'}</td>
+                    <td>${item.NamaKelas || 'Tidak ditemukan'}</td>
+                    <td>${item.NamaTpq || 'Tidak ditemukan'}</td>
+                    <td>${item.IdTahunAjaran}</td>
+                    <td>${item.Semester}</td>
+                    <td>${item.Nilai || 0}</td>
+                    <td>
+                        ${jenisMasalah}
+                        <br><small class="text-muted">${keterangan}</small>
+                    </td>
+                </tr>
+            `;
+            $('#tbodyNormalisasiNilai').append(row);
+        });
+
+        // Reset checkbox state
+        updateSelectedCountNilai();
+
+        // Initialize DataTable
+        dataTableNormalisasiNilai = $('#tblNormalisasiNilai').DataTable({
+            "paging": true,
+            "lengthChange": true,
+            "searching": true,
+            "ordering": true,
+            "info": true,
+            "autoWidth": false,
+            "responsive": true,
+            "pageLength": 10,
+            "columnDefs": [{
+                "orderable": false,
+                "targets": 0 // Kolom checkbox tidak bisa di-sort
+            }]
+        });
+
+        // Event handler untuk checkbox setelah DataTable diinisialisasi
+        $(document).on('change', 'input[type="checkbox"][name="nilaiCheckbox"]', function() {
+            updateSelectedCountNilai();
+        });
+
+        // Event handler untuk checkbox setelah DataTable diinisialisasi
+        $(document).on('change', 'input[type="checkbox"][name="nilaiCheckbox"]', function() {
+            updateSelectedCountNilai();
+        });
+
+        $('#resultNormalisasi').show();
+    }
+
+    function updateSelectedCountNilai() {
+        const selected = $('input[type="checkbox"][name="nilaiCheckbox"]:checked').length;
+        const total = $('input[type="checkbox"][name="nilaiCheckbox"]').length;
+        $('#selectedCountNilai').text(`${selected} dari ${total} item dipilih`);
+    }
+
+    // Handler untuk select all checkbox nilai
+    $('#checkAllNilai').on('change', function() {
+        const isChecked = $(this).prop('checked');
+        $('input[type="checkbox"][name="nilaiCheckbox"]').prop('checked', isChecked);
+        updateSelectedCountNilai();
+    });
+
+    $('#btnSelectAllNilai').on('click', function() {
+        $('input[type="checkbox"][name="nilaiCheckbox"]').prop('checked', true);
+        $('#checkAllNilai').prop('checked', true);
+        updateSelectedCountNilai();
+        $('#btnSelectAllNilai').hide();
+        $('#btnUnselectAllNilai').show();
+    });
+
+    $('#btnUnselectAllNilai').on('click', function() {
+        $('input[type="checkbox"][name="nilaiCheckbox"]').prop('checked', false);
+        $('#checkAllNilai').prop('checked', false);
+        updateSelectedCountNilai();
+        $('#btnSelectAllNilai').show();
+        $('#btnUnselectAllNilai').hide();
+    });
+
+    // Handler untuk filter TPQ
+    $('#btnFilterAllTpq').on('click', function() {
+        selectedTpqFilter = null;
+        $('.card-tpq-summary').css('border', '2px solid #dee2e6');
+        $('#btnClearFilterTpq').hide();
+        renderNormalisasiTable();
+    });
+
+    $('#btnClearFilterTpq').on('click', function() {
+        selectedTpqFilter = null;
+        $('.card-tpq-summary').css('border', '2px solid #dee2e6');
+        $('#btnClearFilterTpq').hide();
+        renderNormalisasiTable();
+    });
+
+    function normalisasiNilaiSelected() {
+        // Ambil semua checkbox yang dicentang
+        const selectedCheckboxes = $('input[type="checkbox"][name="nilaiCheckbox"]:checked');
+
+        if (selectedCheckboxes.length === 0) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Silakan pilih minimal satu data yang akan dinormalisasi.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        const selectedIds = [];
+        selectedCheckboxes.each(function() {
+            selectedIds.push($(this).val());
+        });
+
+        Swal.fire({
+            title: 'Konfirmasi Normalisasi',
+            html: `Anda akan menghapus <strong>${selectedIds.length}</strong> data nilai yang dipilih. Tindakan ini tidak dapat dibatalkan!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses Normalisasi...',
+                    html: 'Mohon tunggu, sedang menghapus data nilai...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '<?= base_url('backend/santri/normalisasiNilai') ?>',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        ids: selectedIds
+                    }),
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                html: response.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Refresh data
+                                checkNormalisasiNilai();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Gagal!',
+                                text: response.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat melakukan normalisasi: ' + error,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            }
+        });
+    }
 </script>
 <?= $this->endSection() ?>
-

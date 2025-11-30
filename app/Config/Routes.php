@@ -113,6 +113,8 @@ $routes->get('backend/kelas/showCheckDuplikasiKelasSantri', 'Backend\Kelas::show
 $routes->post('backend/kelas/checkDuplikasiKelasSantri', 'Backend\Kelas::checkDuplikasiKelasSantri');
 $routes->post('backend/kelas/normalisasiDuplikasiKelasSantri', 'Backend\Kelas::normalisasiDuplikasiKelasSantri');
 $routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'Backend\Santri::showSuccessEmisStep/$1');
+$routes->post('backend/santri/checkNormalisasiNilai', 'Backend\Santri::checkNormalisasiNilai');
+$routes->post('backend/santri/normalisasiNilai', 'Backend\Santri::normalisasiNilai');
 
 //Tabel Materi
 $routes->get('materipelajaran', 'MateriPelajaran::index');

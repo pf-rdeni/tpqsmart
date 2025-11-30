@@ -209,10 +209,10 @@
                                             $statusIcon = 'fa-graduation-cap';
                                         }
                                         ?>
-                                        <button type="button" class="btn btn-sm <?= $statusClass ?>" 
-                                                id="statusBtn<?= $santri['id']; ?>"
-                                                onclick="showStatusPopup(<?= $santri['id']; ?>, <?= $santri['Active']; ?>)"
-                                                title="Klik untuk mengubah status">
+                                        <button type="button" class="btn btn-sm <?= $statusClass ?>"
+                                            id="statusBtn<?= $santri['id']; ?>"
+                                            onclick="showStatusPopup(<?= $santri['id']; ?>, <?= $santri['Active']; ?>)"
+                                            title="Klik untuk mengubah status">
                                             <i class="fas <?= $statusIcon ?>"></i> <?= $statusText ?>
                                         </button>
                                     <?php else: ?>
@@ -1167,7 +1167,7 @@
     // Fungsi untuk memproses pemilihan status (harus global untuk bisa dipanggil dari SweetAlert)
     window.selectStatus = function(id, status, statusText) {
         Swal.close();
-        
+
         const row = document.querySelector(`#statusBtn${id}`).closest('tr');
         const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
 
@@ -1208,7 +1208,7 @@
                             // Update tampilan button
                             const btn = document.getElementById('statusBtn' + id);
                             const td = btn.closest('td');
-                            
+
                             // Update button style
                             if (status == 0) {
                                 btn.className = 'btn btn-sm btn-warning';
@@ -2451,6 +2451,7 @@
             e.preventDefault();
             handleDisabledButton('hapusSantri');
         });
+
     });
 </script>
 <?= $this->endSection(); ?>

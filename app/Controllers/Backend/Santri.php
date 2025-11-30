@@ -12,6 +12,7 @@ use App\Models\KelasModel;
 use App\Models\ToolsModel;
 use App\Models\MdaModel;
 use App\Models\TpqModel;
+use App\Models\KelasMateriPelajaranModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -2115,6 +2116,347 @@ class Santri extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal memperbarui status: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Fungsi untuk mengecek data nilai yang perlu dinormalisasi (tanpa menghapus)
+     * Logika:
+     * 1. Setiap IdSantri harus memiliki data nilai berdasarkan materi perkelas yang sudah disetting di tbl_kelas_materi_pelajaran
+     * 2. IdSantri memiliki IdMateri dengan mengecek per kelas dan per semester
+     * 3. IdSantri memastikan referensi ke master tbl_kelas_materi_pelajaran, dan munculkan jika memiliki double IdMateri yang sama (kelas, idTahunAjaran, idTpq, semester)
+     * 4. Check juga jika terdapat IdMateri diluar yang seharusnya ada
+     */
+    public function checkNormalisasiNilai()
+    {
+        log_message('info', 'Santri: checkNormalisasiNilai - Start');
+
+        try {
+            $kelasMateriModel = new KelasMateriPelajaranModel();
+            $invalidData = [];
+            $duplicateData = [];
+            $missingData = [];
+            $totalChecked = 0;
+
+            // 1. Ambil semua data santri dengan kelas mereka dari tbl_kelas_santri
+            $db = \Config\Database::connect();
+            $builderKelasSantri = $db->table('tbl_kelas_santri ks');
+            $builderKelasSantri->select('ks.IdSantri, ks.IdKelas, ks.IdTahunAjaran, ks.IdTpq, s.NamaSantri, k.NamaKelas, t.NamaTpq');
+            $builderKelasSantri->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'left');
+            $builderKelasSantri->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');
+            $builderKelasSantri->join('tbl_tpq t', 't.IdTpq = ks.IdTpq', 'left');
+            $builderKelasSantri->where('ks.Status', 1); // Hanya kelas santri yang aktif
+            $allKelasSantri = $builderKelasSantri->get()->getResultArray();
+
+            log_message('info', 'Santri: checkNormalisasiNilai - Total santri dengan kelas: ' . count($allKelasSantri));
+
+            // 2. Ambil semua data nilai dengan join ke tabel santri dan materi
+            $builder = $this->nilaiModel->db->table('tbl_nilai n');
+            $builder->select('n.*, s.NamaSantri, m.NamaMateri, k.NamaKelas, t.NamaTpq');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = n.IdSantri', 'left');
+            $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = n.IdKelas', 'left');
+            $builder->join('tbl_tpq t', 't.IdTpq = n.IdTpq', 'left');
+            $allNilai = $builder->get()->getResultArray();
+            $totalChecked = count($allNilai);
+
+            log_message('info', 'Santri: checkNormalisasiNilai - Total data nilai yang akan dicek: ' . $totalChecked);
+
+            // 3. Buat mapping: IdSantri -> [IdKelas, IdTahunAjaran, IdTpq]
+            $santriKelasMap = [];
+            foreach ($allKelasSantri as $ks) {
+                $key = $ks['IdSantri'] . '_' . $ks['IdTahunAjaran'] . '_' . $ks['IdTpq'];
+                if (!isset($santriKelasMap[$key])) {
+                    $santriKelasMap[$key] = [];
+                }
+                $santriKelasMap[$key][] = [
+                    'IdKelas' => $ks['IdKelas'],
+                    'IdTahunAjaran' => $ks['IdTahunAjaran'],
+                    'IdTpq' => $ks['IdTpq'],
+                    'NamaSantri' => $ks['NamaSantri'],
+                    'NamaKelas' => $ks['NamaKelas'],
+                    'NamaTpq' => $ks['NamaTpq']
+                ];
+            }
+
+            // 4. Buat mapping: [IdKelas, IdTpq] -> [IdMateri] berdasarkan tbl_kelas_materi_pelajaran
+            $kelasMateriMap = [];
+            $allKelasMateri = $kelasMateriModel->findAll();
+            foreach ($allKelasMateri as $km) {
+                $key = $km['IdKelas'] . '_' . $km['IdTpq'];
+                if (!isset($kelasMateriMap[$key])) {
+                    $kelasMateriMap[$key] = [];
+                }
+                $kelasMateriMap[$key][] = [
+                    'IdMateri' => $km['IdMateri'],
+                    'SemesterGanjil' => $km['SemesterGanjil'],
+                    'SemesterGenap' => $km['SemesterGenap']
+                ];
+            }
+
+            // 5. Array untuk tracking duplikat dan data yang sudah dicek
+            $seen = [];
+            $nilaiBySantri = [];
+
+            // 6. Kelompokkan nilai berdasarkan IdSantri
+            foreach ($allNilai as $nilai) {
+                $idSantri = $nilai['IdSantri'];
+                $key = $idSantri . '_' . $nilai['IdTahunAjaran'] . '_' . $nilai['IdTpq'];
+
+                if (!isset($nilaiBySantri[$key])) {
+                    $nilaiBySantri[$key] = [];
+                }
+                $nilaiBySantri[$key][] = $nilai;
+            }
+
+            // 7. Untuk setiap santri, cek data nilainya
+            foreach ($santriKelasMap as $santriKey => $kelasList) {
+                list($idSantri, $idTahunAjaran, $idTpq) = explode('_', $santriKey);
+                $santriInfo = $kelasList[0]; // Ambil info santri dari kelas pertama
+
+                foreach ($kelasList as $kelasInfo) {
+                    $idKelas = $kelasInfo['IdKelas'];
+                    $kelasMateriKey = $idKelas . '_' . $idTpq;
+
+                    // Ambil materi yang seharusnya ada untuk kelas ini
+                    $materiSeharusnyaAda = $kelasMateriMap[$kelasMateriKey] ?? [];
+
+                    // Ambil nilai santri untuk kelas ini
+                    $nilaiSantri = [];
+                    if (isset($nilaiBySantri[$santriKey])) {
+                        foreach ($nilaiBySantri[$santriKey] as $nilai) {
+                            if ($nilai['IdKelas'] == $idKelas) {
+                                $nilaiSantri[] = $nilai;
+                            }
+                        }
+                    }
+
+                    // Cek duplikat dan materi yang tidak valid
+                    $seenInKelas = [];
+                    foreach ($nilaiSantri as $nilai) {
+                        $nilaiId = $nilai['Id'];
+                        $idMateri = $nilai['IdMateri'];
+                        $semester = $nilai['Semester'];
+
+                        // Buat key untuk tracking duplikat
+                        $duplicateKey = $idSantri . '_' . $idMateri . '_' . $idKelas . '_' . $idTpq . '_' . $idTahunAjaran . '_' . $semester;
+
+                        // Cek duplikat
+                        if (isset($seenInKelas[$duplicateKey])) {
+                            // Ini duplikat
+                            $nilaiValue = $nilai['Nilai'] ?? 0;
+                            $nilaiValue = (float)$nilaiValue;
+
+                            // Tentukan kategori berdasarkan nilai
+                            $kategori = 'aman'; // Default
+                            $kategoriLabel = 'Aman';
+                            $kategoriColor = 'success'; // Hijau
+
+                            if ($nilaiValue > 0) {
+                                $kategori = 'perhatian';
+                                $kategoriLabel = 'Perhatian';
+                                $kategoriColor = 'warning'; // Kuning
+                            }
+
+                            $duplicateData[] = [
+                                'Id' => $nilaiId,
+                                'NamaSantri' => $nilai['NamaSantri'] ?? $santriInfo['NamaSantri'],
+                                'NamaMateri' => $nilai['NamaMateri'] ?? 'Tidak ditemukan',
+                                'NamaKelas' => $nilai['NamaKelas'] ?? $kelasInfo['NamaKelas'],
+                                'NamaTpq' => $nilai['NamaTpq'] ?? $santriInfo['NamaTpq'],
+                                'IdSantri' => $idSantri,
+                                'IdMateri' => $idMateri,
+                                'IdKelas' => $idKelas,
+                                'IdTpq' => $idTpq,
+                                'IdTahunAjaran' => $idTahunAjaran,
+                                'Semester' => $semester,
+                                'Nilai' => $nilaiValue,
+                                'created_at' => $nilai['created_at'] ?? '',
+                                'updated_at' => $nilai['updated_at'] ?? '',
+                                'type' => 'duplicate',
+                                'kategori' => $kategori,
+                                'kategori_label' => $kategoriLabel,
+                                'kategori_color' => $kategoriColor,
+                                'reason' => 'Duplikat: IdMateri yang sama untuk IdSantri, IdKelas, IdTpq, IdTahunAjaran, dan Semester yang sama'
+                            ];
+                        } else {
+                            $seenInKelas[$duplicateKey] = $nilaiId;
+                        }
+
+                        // Cek apakah IdMateri ada di tbl_kelas_materi_pelajaran untuk kelas ini
+                        $materiValid = false;
+                        foreach ($materiSeharusnyaAda as $materi) {
+                            if ($materi['IdMateri'] == $idMateri) {
+                                // Cek semester
+                                if (($semester == 'Ganjil' && $materi['SemesterGanjil'] == 1) ||
+                                    ($semester == 'Genap' && $materi['SemesterGenap'] == 1)
+                                ) {
+                                    $materiValid = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!$materiValid) {
+                            // Materi tidak valid untuk kelas dan semester ini
+                            $invalidData[] = [
+                                'Id' => $nilaiId,
+                                'NamaSantri' => $nilai['NamaSantri'] ?? $santriInfo['NamaSantri'],
+                                'NamaMateri' => $nilai['NamaMateri'] ?? 'Tidak ditemukan',
+                                'NamaKelas' => $nilai['NamaKelas'] ?? $kelasInfo['NamaKelas'],
+                                'NamaTpq' => $nilai['NamaTpq'] ?? $santriInfo['NamaTpq'],
+                                'IdSantri' => $idSantri,
+                                'IdMateri' => $idMateri,
+                                'IdKelas' => $idKelas,
+                                'IdTpq' => $idTpq,
+                                'IdTahunAjaran' => $idTahunAjaran,
+                                'Semester' => $semester,
+                                'Nilai' => $nilai['Nilai'] ?? 0,
+                                'created_at' => $nilai['created_at'] ?? '',
+                                'updated_at' => $nilai['updated_at'] ?? '',
+                                'type' => 'invalid',
+                                'reason' => 'IdMateri tidak ada di tbl_kelas_materi_pelajaran untuk IdKelas dan IdTpq ini, atau tidak sesuai dengan semester'
+                            ];
+                        }
+                    }
+                }
+            }
+
+            $totalInvalid = count($invalidData);
+            $totalDuplicate = count($duplicateData);
+            $totalToDelete = $totalInvalid + $totalDuplicate;
+
+            // Hitung rangkuman per TPQ
+            $summaryByTpq = [];
+            $allDataForSummary = array_merge($invalidData, $duplicateData);
+
+            foreach ($allDataForSummary as $data) {
+                $idTpq = $data['IdTpq'];
+                $namaTpq = $data['NamaTpq'] ?? 'Tidak ditemukan';
+
+                if (!isset($summaryByTpq[$idTpq])) {
+                    $summaryByTpq[$idTpq] = [
+                        'IdTpq' => $idTpq,
+                        'NamaTpq' => $namaTpq,
+                        'total_invalid' => 0,
+                        'total_duplicate' => 0,
+                        'total_duplicate_aman' => 0,      // Duplikat dengan nilai kosong
+                        'total_duplicate_perhatian' => 0, // Duplikat dengan nilai > 0
+                        'total' => 0
+                    ];
+                }
+
+                if ($data['type'] == 'invalid') {
+                    $summaryByTpq[$idTpq]['total_invalid']++;
+                } else if ($data['type'] == 'duplicate') {
+                    $summaryByTpq[$idTpq]['total_duplicate']++;
+
+                    // Hitung kategori duplikat
+                    if (isset($data['kategori'])) {
+                        if ($data['kategori'] == 'aman') {
+                            $summaryByTpq[$idTpq]['total_duplicate_aman']++;
+                        } else if ($data['kategori'] == 'perhatian') {
+                            $summaryByTpq[$idTpq]['total_duplicate_perhatian']++;
+                        }
+                    }
+                }
+                $summaryByTpq[$idTpq]['total']++;
+            }
+
+            // Convert to array untuk JSON
+            $summaryByTpqArray = array_values($summaryByTpq);
+
+            log_message('info', "Santri: checkNormalisasiNilai - Ditemukan {$totalInvalid} data tidak valid dan {$totalDuplicate} duplikat");
+
+            return $this->response->setJSON([
+                'success' => true,
+                'total_checked' => $totalChecked,
+                'total_invalid' => $totalInvalid,
+                'total_duplicate' => $totalDuplicate,
+                'total_to_delete' => $totalToDelete,
+                'invalid_data' => $invalidData,
+                'duplicate_data' => $duplicateData,
+                'summary_by_tpq' => $summaryByTpqArray
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: checkNormalisasiNilai - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengecek data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Fungsi untuk normalisasi data nilai
+     * Menghapus data nilai berdasarkan ID yang dipilih
+     */
+    public function normalisasiNilai()
+    {
+        log_message('info', 'Santri: normalisasiNilai - Start');
+
+        try {
+            $json = $this->request->getJSON();
+            $idsToDelete = $json->ids ?? [];
+
+            if (empty($idsToDelete)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada data yang dipilih untuk dihapus'
+                ]);
+            }
+
+            // Validasi bahwa ids adalah array
+            if (!is_array($idsToDelete)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Format data tidak valid'
+                ]);
+            }
+
+            log_message('info', 'Santri: normalisasiNilai - Akan menghapus ' . count($idsToDelete) . ' records');
+
+            $deletedCount = 0;
+            $errors = [];
+
+            // Hapus data berdasarkan ID yang dipilih
+            try {
+                $deletedCount = $this->nilaiModel->whereIn('Id', $idsToDelete)->delete();
+
+                if ($deletedCount === false) {
+                    throw new \Exception('Gagal menghapus data');
+                }
+
+                log_message('info', 'Santri: normalisasiNilai - Berhasil menghapus ' . $deletedCount . ' records');
+            } catch (\Exception $e) {
+                $errors[] = "Gagal menghapus data: " . $e->getMessage();
+                log_message('error', 'Santri: normalisasiNilai - Error menghapus data: ' . $e->getMessage());
+            }
+
+            $message = "Normalisasi selesai. ";
+            $message .= "Data yang dihapus: {$deletedCount} dari " . count($idsToDelete) . " yang dipilih.";
+
+            if (!empty($errors)) {
+                $message .= " Terjadi beberapa error: " . implode(', ', $errors);
+            }
+
+            log_message('info', 'Santri: normalisasiNilai - ' . $message);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'total_selected' => count($idsToDelete),
+                    'deleted_count' => $deletedCount,
+                    'errors' => $errors
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: normalisasiNilai - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal melakukan normalisasi: ' . $e->getMessage()
             ]);
         }
     }
