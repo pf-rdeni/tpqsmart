@@ -620,14 +620,6 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin')): ?>
-                                <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/kelas/showCheckDuplikasiKelasSantri') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Normalisasi Data</p>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
                         </ul>
                     </li>
                     <!--  Raport-->
@@ -826,6 +818,12 @@
                                     <a href=<?php echo base_url('backend/logviewer') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Log Viewer</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/kelas/showCheckDuplikasiKelasSantri') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Normalisasi Data</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
