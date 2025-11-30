@@ -673,7 +673,7 @@
 
         summaryByTpq.forEach(function(tpq) {
             const card = `
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4 mb-3">
                     <div class="card card-tpq-summary" data-tpq-id="${tpq.IdTpq}" style="cursor: pointer; border: 2px solid #dee2e6; transition: all 0.3s; height: 100%;" onclick="filterByTpq('${tpq.IdTpq}')">
                         <div class="card-body p-3">
                             <h6 class="card-title mb-2 font-weight-bold" style="font-size: 1rem; line-height: 1.4;" title="${tpq.NamaTpq}">${tpq.NamaTpq}</h6>
@@ -696,11 +696,19 @@
                                         </span>
                                         <span class="badge badge-success" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.total_duplicate_aman || 0}</span>
                                     </div>
-                                    <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
                                         <span class="text-muted" style="font-size: 0.8rem;">
                                             <i class="fas fa-exclamation-triangle text-warning"></i> Perhatian:
                                         </span>
                                         <span class="badge badge-warning" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px; background-color: #ffc107; color: #212529;">${tpq.total_duplicate_perhatian || 0}</span>
+                                    </div>
+                                </div>
+                                <div class="pt-2 border-top mt-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted" style="font-size: 0.8rem;">
+                                            <i class="fas fa-users text-info"></i> Santri Terkena:
+                                        </span>
+                                        <span class="badge badge-info" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.jumlah_santri_terkena || 0}</span>
                                     </div>
                                 </div>
                             </div>

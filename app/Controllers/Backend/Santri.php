@@ -2343,7 +2343,8 @@ class Santri extends BaseController
                         'total_duplicate' => 0,
                         'total_duplicate_aman' => 0,      // Duplikat dengan nilai kosong
                         'total_duplicate_perhatian' => 0, // Duplikat dengan nilai > 0
-                        'total' => 0
+                        'total' => 0,
+                        'santri_terkena' => []  // Array untuk menyimpan IdSantri unik
                     ];
                 }
 
@@ -2361,7 +2362,20 @@ class Santri extends BaseController
                         }
                     }
                 }
+
+                // Kumpulkan IdSantri yang terkena (unik)
+                if (isset($data['IdSantri']) && !in_array($data['IdSantri'], $summaryByTpq[$idTpq]['santri_terkena'])) {
+                    $summaryByTpq[$idTpq]['santri_terkena'][] = $data['IdSantri'];
+                }
+
                 $summaryByTpq[$idTpq]['total']++;
+            }
+
+            // Hitung jumlah santri yang terkena per TPQ
+            foreach ($summaryByTpq as $key => $tpq) {
+                $summaryByTpq[$key]['jumlah_santri_terkena'] = count($tpq['santri_terkena']);
+                // Hapus array santri_terkena dari output (tidak perlu dikirim ke frontend)
+                unset($summaryByTpq[$key]['santri_terkena']);
             }
 
             // Convert to array untuk JSON
