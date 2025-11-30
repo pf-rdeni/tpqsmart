@@ -12,16 +12,6 @@ deployment:
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Config/Routes.php $DEPLOYPATH/Config/
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Config/Autoload.php $DEPLOYPATH/Config/
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Config/Filters.php $DEPLOYPATH/Config/
-    # Pastikan Helpers/js folder dan file helper ter-deploy (line 9 sudah menyalin Helpers, tapi pastikan file helper ada)
-    - /bin/mkdir -p $DEPLOYPATH/Helpers/js
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Helpers/js/image-upload-helper.js $DEPLOYPATH/Helpers/js/
-    # Controller Helpers.php diperlukan untuk route helpers/js/(:segment)
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Controllers/Helpers.php $DEPLOYPATH/Controllers/
 
-
-    # Daftar Santri Baru deployment
-    - export DEPLOYPATH=/home/u1525344/daftarsantribaru/app
-    - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Views/backend/santri $DEPLOYPATH/Views/backend
-    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Views/backend/template/scripts.php $DEPLOYPATH/Views/backend/template
-    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Controllers/Backend/Santri.php $DEPLOYPATH/Controllers/Backend/
-    - /bin/cp /home/u1525344/repositories/tpqsmart/app/Models/SantriBaruModel.php $DEPLOYPATH/Models/

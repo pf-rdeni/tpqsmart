@@ -359,4 +359,56 @@
             if (settings.legacyStyle) body.classList.add('legacy-style');
         })();
     });
+
+    // Fix untuk dropdown menu di navbar mobile
+    $(document).ready(function() {
+        // Fungsi untuk toggle dropdown
+        function toggleDropdown($toggle) {
+            var $dropdown = $toggle.closest('.dropdown');
+            var $menu = $dropdown.find('.dropdown-menu');
+            var isOpen = $dropdown.hasClass('show');
+
+            // Tutup semua dropdown lain
+            $('.main-header.navbar .dropdown').not($dropdown).removeClass('show');
+            $('.main-header.navbar .dropdown-menu').not($menu).removeClass('show');
+            $('.main-header.navbar [data-toggle="dropdown"]').not($toggle).attr('aria-expanded', 'false');
+
+            // Toggle dropdown ini
+            if (isOpen) {
+                $dropdown.removeClass('show');
+                $menu.removeClass('show');
+                $toggle.attr('aria-expanded', 'false');
+            } else {
+                $dropdown.addClass('show');
+                $menu.addClass('show');
+                $toggle.attr('aria-expanded', 'true');
+            }
+        }
+
+        // Event handler untuk dropdown toggle di mobile
+        $(document).on('click', '.main-header.navbar [data-toggle="dropdown"]', function(e) {
+            // Hanya handle di mobile view
+            if ($(window).width() <= 991.98) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleDropdown($(this));
+            }
+        });
+
+        // Tutup dropdown saat klik di luar
+        $(document).on('click', function(e) {
+            if ($(window).width() <= 991.98) {
+                if (!$(e.target).closest('.main-header.navbar .dropdown').length) {
+                    $('.main-header.navbar .dropdown').removeClass('show');
+                    $('.main-header.navbar .dropdown-menu').removeClass('show');
+                    $('.main-header.navbar [data-toggle="dropdown"]').attr('aria-expanded', 'false');
+                }
+            }
+        });
+
+        // Prevent dropdown item click dari menutup dropdown terlalu cepat
+        $(document).on('click', '.main-header.navbar .dropdown-item', function(e) {
+            e.stopPropagation();
+        });
+    });
 </script>

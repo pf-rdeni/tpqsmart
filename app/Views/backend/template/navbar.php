@@ -194,7 +194,7 @@
                     'url' => base_url('backend/munaqosah/dashboard-munaqosah')
                 ]
             ];
-            
+
             // Tambahkan Sertifikasi jika Admin
             if (in_groups('Admin')) {
                 $availableDashboards['sertifikasi'] = [
@@ -203,12 +203,12 @@
                     'url' => base_url('backend/sertifikasi/dashboard-admin')
                 ];
             }
-            
+
             // Tentukan dashboard aktif berdasarkan URL atau localStorage (akan diupdate via JS)
             $currentUrl = current_url(true);
             $uriString = uri_string();
             $activeDashboard = 'semester'; // default
-            
+
             if (strpos($uriString, 'munaqosah') !== false) {
                 $activeDashboard = 'munaqosah';
             } elseif (strpos($uriString, 'sertifikasi') !== false) {
@@ -225,9 +225,9 @@
                     <span class="dropdown-header">Pilih Dashboard</span>
                     <div class="dropdown-divider"></div>
                     <?php foreach ($availableDashboards as $dashboardKey => $dashboard): ?>
-                        <a href="#" class="dropdown-item switch-dashboard-btn <?= $dashboardKey === $activeDashboard ? 'active' : '' ?>" 
-                           data-dashboard="<?= esc($dashboardKey) ?>" 
-                           data-url="<?= esc($dashboard['url']) ?>">
+                        <a href="#" class="dropdown-item switch-dashboard-btn <?= $dashboardKey === $activeDashboard ? 'active' : '' ?>"
+                            data-dashboard="<?= esc($dashboardKey) ?>"
+                            data-url="<?= esc($dashboard['url']) ?>">
                             <?php if ($dashboardKey === $activeDashboard): ?>
                                 <i class="fas fa-check text-success"></i>
                             <?php else: ?>
@@ -281,3 +281,191 @@
         </li>
     </ul>
 </nav>
+
+<!-- Custom CSS untuk optimasi navbar di mobile sesuai AdminLTE -->
+<style>
+    /* Memastikan navbar selalu terlihat dan berfungsi dengan baik di semua ukuran layar */
+    @media (max-width: 991.98px) {
+        .main-header.navbar {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Navbar nav menggunakan flex row untuk layout horizontal */
+        .main-header.navbar>.navbar-nav {
+            display: flex !important;
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+        }
+
+        /* Memastikan tombol hamburger menu selalu terlihat */
+        .main-header.navbar .navbar-nav>li:first-child {
+            display: block !important;
+            flex-shrink: 0;
+        }
+
+        /* Optimasi spacing untuk item navbar di mobile */
+        .main-header.navbar .navbar-nav .nav-item {
+            flex-shrink: 0;
+            margin: 0 0.125rem;
+        }
+
+        /* Sembunyikan text label di mobile untuk menghemat ruang */
+        .main-header.navbar .navbar-nav .nav-link span.d-none.d-md-inline,
+        .main-header.navbar .navbar-nav .nav-link span.d-md-inline {
+            display: none !important;
+        }
+
+        /* Pastikan icon tetap terlihat */
+        .main-header.navbar .navbar-nav .nav-link i {
+            display: inline-block !important;
+        }
+
+        /* Styling untuk dropdown menu mobile */
+        .main-header.navbar .navbar-nav .dropdown-menu {
+            border-radius: 0.25rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            margin-top: 0.5rem;
+            min-width: 200px;
+            position: absolute !important;
+            top: 100% !important;
+            z-index: 9999 !important;
+            display: none !important;
+            background-color: #fff !important;
+            border: 1px solid rgba(0, 0, 0, .15) !important;
+            max-width: calc(100vw - 20px);
+            white-space: nowrap;
+        }
+
+        /* Dropdown menu di sebelah kanan (default untuk right navbar) */
+        .main-header.navbar .navbar-nav.ml-auto .dropdown-menu,
+        .main-header.navbar .navbar-nav .dropdown-menu-right {
+            right: 0 !important;
+            left: auto !important;
+        }
+
+        /* Dropdown menu di sebelah kiri (untuk left navbar seperti Home, Profil) */
+        .main-header.navbar .navbar-nav:not(.ml-auto) .dropdown-menu-left,
+        .main-header.navbar .navbar-nav .dropdown-menu-left {
+            left: 0 !important;
+            right: auto !important;
+            margin-left: 0 !important;
+            transform: none !important;
+        }
+
+        /* Pastikan dropdown menu muncul saat show */
+        .main-header.navbar .navbar-nav .dropdown.show .dropdown-menu,
+        .main-header.navbar .navbar-nav .dropdown-menu.show {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Pastikan nav-item dropdown memiliki position relative */
+        .main-header.navbar .navbar-nav .nav-item.dropdown {
+            position: relative !important;
+        }
+
+        /* Pastikan dropdown toggle bisa diklik di mobile */
+        .main-header.navbar .navbar-nav .nav-item.dropdown>.nav-link {
+            cursor: pointer !important;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            touch-action: manipulation;
+            pointer-events: auto !important;
+            user-select: none;
+        }
+
+        /* Pastikan dropdown menu tidak terpotong */
+        .main-header.navbar .navbar-nav .nav-item.dropdown {
+            overflow: visible !important;
+        }
+
+        .main-header.navbar .navbar-nav .dropdown-item {
+            padding: 0.75rem 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .main-header.navbar .navbar-nav .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .main-header.navbar .navbar-nav .dropdown-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Pastikan navbar search block tidak overflow */
+        .main-header.navbar .navbar-search-block {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: white;
+            padding: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Pastikan navbar tidak terlalu tinggi */
+        .main-header.navbar {
+            min-height: 57px;
+            max-height: 57px;
+        }
+    }
+
+    /* Untuk layar sangat kecil, optimasi tambahan */
+    @media (max-width: 576px) {
+
+        /* Kurangi padding untuk menghemat ruang */
+        .main-header.navbar .navbar-nav .nav-link {
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Pastikan icon tidak terlalu besar */
+        .main-header.navbar .navbar-nav .nav-link i {
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Pastikan dropdown tidak terpotong */
+    @media (max-width: 991.98px) {
+        .main-header.navbar .navbar-nav .dropdown.show .dropdown-menu {
+            display: block !important;
+        }
+
+        /* Pastikan dropdown menu tidak terpotong oleh overflow */
+        .main-header.navbar {
+            overflow: visible !important;
+        }
+
+        .main-header.navbar>.navbar-nav {
+            overflow: visible !important;
+        }
+
+        /* Pastikan dropdown menu bisa keluar dari container */
+        .main-header.navbar .navbar-nav .nav-item.dropdown {
+            overflow: visible !important;
+        }
+
+        /* Pastikan dropdown menu kiri terlihat dengan baik */
+        .main-header.navbar .navbar-nav:not(.ml-auto) .dropdown-menu-left {
+            left: 0 !important;
+            right: auto !important;
+            margin-left: 0 !important;
+            transform: none !important;
+            min-width: 180px;
+        }
+
+        /* Pastikan dropdown menu tidak terpotong oleh viewport */
+        .main-header.navbar .navbar-nav .dropdown-menu {
+            max-width: calc(100vw - 20px);
+        }
+    }
+</style>
