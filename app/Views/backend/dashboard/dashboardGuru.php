@@ -49,7 +49,7 @@ function render_progress_bar($persentase, $height = 25)
                                 <div class="alert alert-info alert-dismissible">
                                     <h5 class="mb-2 mb-md-3"><i class="icon fas fa-info-circle"></i> Bismillahirrahmanirrahim</h5>
                                     <p class="mb-0 small-text-mobile">Assalamu'alaikum, <strong><?= esc(($SapaanLogin ?? 'Ustadz') . ' ' . ($NamaLogin ?? 'Pengguna')) ?></strong>...!
-                                        Selamat datang di dashboard ujian semester, Anda login sebagai <strong><?= esc($PeranLogin ?? 'Guru') ?></strong>
+                                        Selamat datang di aplikasi TPQ Smart, Anda login sebagai <strong><?= esc($PeranLogin ?? 'Guru') ?></strong>
                                         <?php if (($PeranLogin ?? '') === 'Wali Kelas' && !empty($WaliKelasNamaKelas ?? '')): ?>
                                             - <strong><?= esc($WaliKelasNamaKelas) ?></strong>
                                             <span class="d-none d-sm-inline">(Tahun Ajaran <?= esc($TahunAjaran ?? '') ?>)</span>
@@ -73,7 +73,7 @@ function render_progress_bar($persentase, $height = 25)
                                         <i class="fas fa-users"></i>
                                     </div>
                                     <a href="<?= base_url('backend/absensi/index') ?>" class="small-box-footer">
-                                        <span class="d-none d-sm-inline">Absensi </span><i class="fas fa-arrow-circle-right"></i>
+                                        <span>Absensi </span><i class="fas fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
                             </div>
@@ -91,7 +91,7 @@ function render_progress_bar($persentase, $height = 25)
                                         <i class="fas fa-piggy-bank"></i>
                                     </div>
                                     <a href="<?= base_url('backend/tabungan/showPerkelas') ?>" class="small-box-footer">
-                                        <span class="d-none d-sm-inline">Lihat Detail </span><i class="fas fa-arrow-circle-right"></i>
+                                        <span>Lihat Detail </span><i class="fas fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
                             </div>
@@ -105,7 +105,7 @@ function render_progress_bar($persentase, $height = 25)
                                         <i class="fas fa-calendar-alt"></i>
                                     </div>
                                     <a href="<?= base_url('backend/iuranBulanan/showPerKelas') ?>" class="small-box-footer">
-                                        <span class="d-none d-sm-inline">Lihat Detail </span><i class="fas fa-arrow-circle-right"></i>
+                                        <span>Lihat Detail </span><i class="fas fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
                             </div>
@@ -119,7 +119,7 @@ function render_progress_bar($persentase, $height = 25)
                                         <i class="fas fa-trophy"></i>
                                     </div>
                                     <a href="<?= base_url('backend/prestasi/showPerKelas') ?>" class="small-box-footer">
-                                        <span class="d-none d-sm-inline">Lihat Detail </span><i class="fas fa-arrow-circle-right"></i>
+                                        <span>Lihat Detail </span><i class="fas fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
                             </div>
@@ -693,6 +693,31 @@ function render_progress_bar($persentase, $height = 25)
         .small-box .icon {
             font-size: 3rem !important;
         }
+
+        /* Small box footer untuk mobile - prevent overflow */
+        .small-box-footer {
+            padding: 0.4rem 0.5rem !important;
+            font-size: 0.8rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            overflow: hidden !important;
+            min-height: 2.5rem;
+        }
+
+        .small-box-footer span {
+            flex: 1 !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            margin-right: 0.4rem !important;
+            max-width: calc(100% - 2rem);
+        }
+
+        .small-box-footer i {
+            flex-shrink: 0 !important;
+            font-size: 0.9rem !important;
+        }
     }
 
     /* Tablet adjustments */
@@ -746,6 +771,21 @@ function render_progress_bar($persentase, $height = 25)
         .card-header {
             padding: 0.5rem 0.75rem !important;
         }
+
+        /* Small box footer untuk layar sangat kecil */
+        .small-box-footer {
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.4rem !important;
+        }
+
+        .small-box-footer span {
+            font-size: 0.75rem !important;
+            margin-right: 0.3rem !important;
+        }
+
+        .small-box-footer i {
+            font-size: 0.85rem !important;
+        }
     }
 
     /* Perbaikan spacing umum untuk mobile */
@@ -771,6 +811,22 @@ function render_progress_bar($persentase, $height = 25)
         .small-box-footer {
             padding: 0.5rem;
             font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .small-box-footer span {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 0.5rem;
+        }
+
+        .small-box-footer i {
+            flex-shrink: 0;
         }
 
         /* Card spacing */

@@ -257,6 +257,13 @@ class Search extends BaseController
                 'description' => 'Kelola jadwal peserta ujian',
             ];
             $menus[] = [
+                'title' => 'Nilai Kelulusan',
+                'url' => base_url('backend/munaqosah/export-hasil-munaqosah'),
+                'icon' => 'fas fa-check-circle',
+                'category' => 'Munaqosah',
+                'description' => 'Nilai kelulusan munaqosah',
+            ];
+            $menus[] = [
                 'title' => 'Monitoring Munaqosah',
                 'url' => base_url('backend/munaqosah/monitoring'),
                 'icon' => 'fas fa-chart-line',
@@ -324,6 +331,13 @@ class Search extends BaseController
                 'category' => 'Setting',
                 'description' => 'View log sistem',
             ];
+            $menus[] = [
+                'title' => 'Normalisasi Data',
+                'url' => base_url('backend/kelas/showCheckDuplikasiKelasSantri'),
+                'icon' => 'fas fa-database',
+                'category' => 'Setting',
+                'description' => 'Normalisasi data kelas santri',
+            ];
         }
 
         // Menu untuk Admin dan Operator
@@ -350,6 +364,13 @@ class Search extends BaseController
                 'category' => 'Guru',
                 'description' => 'Rekening bank guru',
             ];
+            $menus[] = [
+                'title' => 'Setting Guru Kelas',
+                'url' => base_url('backend/guruKelas/show'),
+                'icon' => 'fas fa-chalkboard-teacher',
+                'category' => 'Guru',
+                'description' => 'Kelola guru kelas',
+            ];
 
             // Santri
             $menus[] = [
@@ -359,6 +380,15 @@ class Search extends BaseController
                 'category' => 'Santri',
                 'description' => 'Input data santri baru',
             ];
+            if (in_groups('Admin') || $isActiveOperator) {
+                $menus[] = [
+                    'title' => 'Registrasi Santri Baru',
+                    'url' => base_url('backend/kelas/showSantriKelasBaru'),
+                    'icon' => 'fas fa-user-plus',
+                    'category' => 'Santri',
+                    'description' => 'Registrasi santri baru ke kelas',
+                ];
+            }
             $menus[] = [
                 'title' => 'Profil Santri',
                 'url' => base_url('backend/santri/showProfilSantri'),
@@ -380,14 +410,20 @@ class Search extends BaseController
                 'category' => 'Santri',
                 'description' => 'Data EMIS santri',
             ];
-
-            if ($isActiveOperator) {
+            $menus[] = [
+                'title' => 'Santri Per Kelas',
+                'url' => base_url('backend/santri/showSantriBaruPerkelasTpq'),
+                'icon' => 'fas fa-users',
+                'category' => 'Santri',
+                'description' => 'Daftar santri per kelas',
+            ];
+            if (in_groups('Admin') || $isActiveOperator) {
                 $menus[] = [
-                    'title' => 'Santri Per Kelas',
-                    'url' => base_url('backend/santri/showSantriBaruPerkelasTpq'),
-                    'icon' => 'fas fa-users',
+                    'title' => 'Kenaikan Kelas',
+                    'url' => base_url('backend/kelas/showListSantriPerKelas'),
+                    'icon' => 'fas fa-arrow-up',
                     'category' => 'Santri',
-                    'description' => 'Daftar santri per kelas',
+                    'description' => 'Kenaikan kelas santri',
                 ];
             }
 
@@ -452,6 +488,59 @@ class Search extends BaseController
                 'category' => 'Raport',
                 'description' => 'Kriteria catatan rapor',
             ];
+            
+            // Mapping Wali Kelas (conditional - hanya jika setting aktif)
+            $toolsModel = new \App\Models\ToolsModel();
+            $idTpq = session()->get('IdTpq');
+            $idGuru = session()->get('IdGuru');
+            $mappingEnabled = false;
+            $isWaliKelas = false;
+            $showMappingMenu = false;
+
+            $isAdmin = in_groups('Admin');
+            $isOperator = in_groups('Operator');
+
+            if (!empty($idTpq)) {
+                $mappingEnabled = $toolsModel->getSetting($idTpq, 'MappingWaliKelas');
+
+                if (($isAdmin || $isOperator) && $mappingEnabled) {
+                    $showMappingMenu = true;
+                } elseif (!empty($idGuru) && $mappingEnabled) {
+                    $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                    $idTahunAjaran = session()->get('IdTahunAjaran');
+                    if (empty($idTahunAjaran)) {
+                        $idTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+                    }
+
+                    $guruKelasData = $helpFunctionModel->getDataGuruKelas(
+                        IdGuru: $idGuru,
+                        IdTpq: $idTpq,
+                        IdTahunAjaran: $idTahunAjaran
+                    );
+
+                    foreach ($guruKelasData as $gk) {
+                        $gkArray = is_object($gk) ? (array)$gk : $gk;
+                        if (($gkArray['NamaJabatan'] ?? '') === 'Wali Kelas') {
+                            $isWaliKelas = true;
+                            break;
+                        }
+                    }
+
+                    if ($isWaliKelas) {
+                        $showMappingMenu = true;
+                    }
+                }
+            }
+
+            if ($showMappingMenu) {
+                $menus[] = [
+                    'title' => 'Mapping Wali Kelas',
+                    'url' => base_url('backend/rapor/settingMappingWaliKelas'),
+                    'icon' => 'fas fa-map',
+                    'category' => 'Raport',
+                    'description' => 'Mapping wali kelas untuk rapor',
+                ];
+            }
 
             // Extra
             $menus[] = [
@@ -490,27 +579,6 @@ class Search extends BaseController
                 'icon' => 'fas fa-book-reader',
                 'category' => 'Setting',
                 'description' => 'Materi per kelas',
-            ];
-            $menus[] = [
-                'title' => 'Kelas Baru',
-                'url' => base_url('backend/kelas/showSantriKelasBaru'),
-                'icon' => 'fas fa-plus-circle',
-                'category' => 'Setting',
-                'description' => 'Tambah kelas baru',
-            ];
-            $menus[] = [
-                'title' => 'Kenaikan Kelas',
-                'url' => base_url('backend/kelas/showListSantriPerKelas'),
-                'icon' => 'fas fa-arrow-up',
-                'category' => 'Setting',
-                'description' => 'Kenaikan kelas santri',
-            ];
-            $menus[] = [
-                'title' => 'Guru Kelas',
-                'url' => base_url('backend/guruKelas/show'),
-                'icon' => 'fas fa-chalkboard-teacher',
-                'category' => 'Setting',
-                'description' => 'Kelola guru kelas',
             ];
             $menus[] = [
                 'title' => 'Daftar Akun',
@@ -704,6 +772,54 @@ class Search extends BaseController
                 'category' => 'Penilaian',
                 'description' => 'Rapor nilai semester genap',
             ];
+            
+            // Mapping Wali Kelas untuk Guru (conditional - hanya jika setting aktif dan user adalah Wali Kelas)
+            $toolsModelGuru = new \App\Models\ToolsModel();
+            $idTpqGuru = session()->get('IdTpq');
+            $idGuruGuru = session()->get('IdGuru');
+            $mappingEnabledGuru = false;
+            $isWaliKelasGuru = false;
+            $showMappingMenuGuru = false;
+
+            if (!empty($idTpqGuru) && !empty($idGuruGuru)) {
+                $mappingEnabledGuru = $toolsModelGuru->getSetting($idTpqGuru, 'MappingWaliKelas');
+
+                if ($mappingEnabledGuru) {
+                    $helpFunctionModelGuru = new \App\Models\HelpFunctionModel();
+                    $idTahunAjaranGuru = session()->get('IdTahunAjaran');
+                    if (empty($idTahunAjaranGuru)) {
+                        $idTahunAjaranGuru = $helpFunctionModelGuru->getTahunAjaranSaatIni();
+                    }
+
+                    $guruKelasDataGuru = $helpFunctionModelGuru->getDataGuruKelas(
+                        IdGuru: $idGuruGuru,
+                        IdTpq: $idTpqGuru,
+                        IdTahunAjaran: $idTahunAjaranGuru
+                    );
+
+                    foreach ($guruKelasDataGuru as $gk) {
+                        $gkArray = is_object($gk) ? (array)$gk : $gk;
+                        if (($gkArray['NamaJabatan'] ?? '') === 'Wali Kelas') {
+                            $isWaliKelasGuru = true;
+                            break;
+                        }
+                    }
+
+                    if ($isWaliKelasGuru) {
+                        $showMappingMenuGuru = true;
+                    }
+                }
+            }
+
+            if ($showMappingMenuGuru) {
+                $menus[] = [
+                    'title' => 'Mapping Wali Kelas',
+                    'url' => base_url('backend/rapor/settingMappingWaliKelas'),
+                    'icon' => 'fas fa-map',
+                    'category' => 'Penilaian',
+                    'description' => 'Mapping wali kelas untuk rapor',
+                ];
+            }
         }
 
         // Menu untuk Juri
@@ -926,6 +1042,63 @@ class Search extends BaseController
                 'category' => 'Penilaian',
                 'description' => 'Kriteria catatan rapor',
             ];
+            
+            // Mapping Wali Kelas untuk Operator (conditional - hanya jika setting aktif)
+            if (!isset($toolsModel)) {
+                $toolsModel = new \App\Models\ToolsModel();
+            }
+            $idTpqOp = session()->get('IdTpq');
+            $idGuruOp = session()->get('IdGuru');
+            $mappingEnabledOp = false;
+            $isWaliKelasOp = false;
+            $showMappingMenuOp = false;
+
+            $isAdminOp = in_groups('Admin');
+            $isOperatorOp = in_groups('Operator');
+
+            if (!empty($idTpqOp)) {
+                $mappingEnabledOp = $toolsModel->getSetting($idTpqOp, 'MappingWaliKelas');
+
+                if (($isAdminOp || $isOperatorOp) && $mappingEnabledOp) {
+                    $showMappingMenuOp = true;
+                } elseif (!empty($idGuruOp) && $mappingEnabledOp) {
+                    if (!isset($helpFunctionModel)) {
+                        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                    }
+                    $idTahunAjaranOp = session()->get('IdTahunAjaran');
+                    if (empty($idTahunAjaranOp)) {
+                        $idTahunAjaranOp = $helpFunctionModel->getTahunAjaranSaatIni();
+                    }
+
+                    $guruKelasDataOp = $helpFunctionModel->getDataGuruKelas(
+                        IdGuru: $idGuruOp,
+                        IdTpq: $idTpqOp,
+                        IdTahunAjaran: $idTahunAjaranOp
+                    );
+
+                    foreach ($guruKelasDataOp as $gk) {
+                        $gkArray = is_object($gk) ? (array)$gk : $gk;
+                        if (($gkArray['NamaJabatan'] ?? '') === 'Wali Kelas') {
+                            $isWaliKelasOp = true;
+                            break;
+                        }
+                    }
+
+                    if ($isWaliKelasOp) {
+                        $showMappingMenuOp = true;
+                    }
+                }
+            }
+
+            if ($showMappingMenuOp) {
+                $menus[] = [
+                    'title' => 'Mapping Wali Kelas',
+                    'url' => base_url('backend/rapor/settingMappingWaliKelas'),
+                    'icon' => 'fas fa-map',
+                    'category' => 'Penilaian',
+                    'description' => 'Mapping wali kelas untuk rapor',
+                ];
+            }
         }
 
         // Menu umum untuk semua user

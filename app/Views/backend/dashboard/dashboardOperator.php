@@ -47,7 +47,7 @@ function render_progress_bar($persentase, $height = 25)
                                 <div class="alert alert-success alert-dismissible">
                                     <h5><i class="icon fas fa-info-circle"></i> Bismillahirrahmanirrahim</h5>
                                     <p class="mb-0">Assalamu'alaikum, <strong><?= esc(($SapaanLogin ?? 'Ustadz') . ' ' . ($NamaLogin ?? 'Pengguna')) ?></strong>...!
-                                        Selamat datang di dashboard ujian semester untuk Operator TPQ.</p>
+                                        Selamat datang di dashboard aplikasi TPQ Smart untuk Operator TPQ.</p>
                                 </div>
                             </div>
                         </div>
@@ -460,20 +460,20 @@ function render_progress_bar($persentase, $height = 25)
     $(document).ready(function() {
         let guruChart = null;
 
-    function initGuruPieChart() {
-        const ctxGuru = document.getElementById('guruPieChart');
-        if (ctxGuru) {
-            // Destroy existing chart if it exists
-            if (guruChart) {
-                guruChart.destroy();
-                guruChart = null;
-            }
+        function initGuruPieChart() {
+            const ctxGuru = document.getElementById('guruPieChart');
+            if (ctxGuru) {
+                // Destroy existing chart if it exists
+                if (guruChart) {
+                    guruChart.destroy();
+                    guruChart = null;
+                }
 
-            const guruLaki = <?= $StatistikGuru['laki_laki'] ?? 0 ?>;
-            const guruPerempuan = <?= $StatistikGuru['perempuan'] ?? 0 ?>;
-            const guruTotal = <?= $StatistikGuru['total'] ?? 0 ?>;
+                const guruLaki = <?= $StatistikGuru['laki_laki'] ?? 0 ?>;
+                const guruPerempuan = <?= $StatistikGuru['perempuan'] ?? 0 ?>;
+                const guruTotal = <?= $StatistikGuru['total'] ?? 0 ?>;
 
-            guruChart = new Chart(ctxGuru, {
+                guruChart = new Chart(ctxGuru, {
                     type: 'pie',
                     data: {
                         labels: ['Laki-Laki', 'Perempuan'],
@@ -523,7 +523,7 @@ function render_progress_bar($persentase, $height = 25)
 
         // Initialize chart when card is expanded (using AdminLTE card widget events)
         const statistikGuruCard = $('#guruPieChart').closest('.card');
-        
+
         // Listen for expanded event
         statistikGuruCard.on('expanded.lte.cardwidget', function() {
             setTimeout(function() {

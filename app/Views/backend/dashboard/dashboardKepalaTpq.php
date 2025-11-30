@@ -47,7 +47,7 @@ function render_progress_bar($persentase, $height = 25)
                                 <div class="alert alert-purple alert-dismissible">
                                     <h5><i class="icon fas fa-user-shield"></i> Bismillahirrahmanirrahim</h5>
                                     <p class="mb-0">Assalamu'alaikum, <strong><?= esc(($SapaanLogin ?? 'Ustadz') . ' ' . ($NamaLogin ?? 'Pengguna')) ?></strong>...!
-                                        Selamat datang di dashboard ujian semester sebagai <strong>Kepala TPQ</strong>.
+                                        Selamat datang di dashboard aplikasi TPQ Smart sebagai <strong>Kepala TPQ</strong>.
                                         Dashboard ini memberikan overview lengkap tentang kondisi akademik dan administrasi TPQ Anda.</p>
                                 </div>
                             </div>
@@ -135,8 +135,8 @@ function render_progress_bar($persentase, $height = 25)
                                         <div class="row mb-3">
                                             <div class="col-12">
                                                 <p class="text-muted mb-2">
-                                                    <i class="fas fa-info-circle"></i> 
-                                                    Grafik ini menampilkan fluktuasi kehadiran (Hadir) per kelas selama 2 minggu terakhir 
+                                                    <i class="fas fa-info-circle"></i>
+                                                    Grafik ini menampilkan fluktuasi kehadiran (Hadir) per kelas selama 2 minggu terakhir
                                                     (1 minggu sebelum + 1 minggu saat ini). Setiap garis mewakili satu kelas.
                                                 </p>
                                             </div>
@@ -603,19 +603,19 @@ function render_progress_bar($persentase, $height = 25)
             const today = new Date();
             const dayOfWeek = today.getDay(); // 0 = Minggu, 1 = Senin, dst
             const mondayOffset = (dayOfWeek == 0) ? -6 : (1 - dayOfWeek);
-            
+
             // Minggu saat ini (Senin - Minggu)
             const currentWeekMonday = new Date(today);
             currentWeekMonday.setDate(today.getDate() + mondayOffset);
             const currentWeekSunday = new Date(currentWeekMonday);
             currentWeekSunday.setDate(currentWeekMonday.getDate() + 6);
-            
+
             // Minggu sebelumnya (7 hari sebelum Senin minggu ini)
             const previousWeekMonday = new Date(currentWeekMonday);
             previousWeekMonday.setDate(currentWeekMonday.getDate() - 7);
             const previousWeekSunday = new Date(previousWeekMonday);
             previousWeekSunday.setDate(previousWeekMonday.getDate() + 6);
-            
+
             // Start date: Senin minggu sebelumnya
             // End date: Minggu minggu saat ini
             const startDate = previousWeekMonday.toISOString().split('T')[0];
@@ -671,14 +671,14 @@ function render_progress_bar($persentase, $height = 25)
                 '#fd7e14', // Orange
                 '#e83e8c', // Pink
                 '#17a2b8', // Cyan
-                '#6c757d'  // Gray
+                '#6c757d' // Gray
             ];
 
             // Siapkan datasets untuk chart
             const datasets = data.datasets.map(function(dataset, index) {
                 const colorIndex = index % colors.length;
                 const color = colors[colorIndex];
-                
+
                 return {
                     label: dataset.label,
                     data: dataset.data,
