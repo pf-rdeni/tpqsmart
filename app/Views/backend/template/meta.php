@@ -150,10 +150,30 @@
                 box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
                 margin-top: 0.5rem;
                 min-width: 200px;
-                position: absolute;
-                right: 0;
-                left: auto;
-                z-index: 1000;
+                position: absolute !important;
+                right: 0 !important;
+                left: auto !important;
+                top: 100% !important;
+                z-index: 1050 !important;
+                display: none;
+            }
+            
+            /* Pastikan dropdown menu muncul saat show */
+            .main-header.navbar .navbar-nav .dropdown.show .dropdown-menu,
+            .main-header.navbar .navbar-nav .dropdown-menu.show {
+                display: block !important;
+            }
+            
+            /* Pastikan nav-item dropdown memiliki position relative */
+            .main-header.navbar .navbar-nav .nav-item.dropdown {
+                position: relative !important;
+            }
+            
+            /* Pastikan dropdown toggle bisa diklik di mobile */
+            .main-header.navbar .navbar-nav .nav-item.dropdown > .nav-link {
+                cursor: pointer;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+                touch-action: manipulation;
             }
             
             .main-header.navbar .navbar-nav .dropdown-item {
@@ -207,7 +227,99 @@
             .main-header.navbar .navbar-nav .dropdown.show .dropdown-menu {
                 display: block !important;
             }
+            
+            /* Pastikan dropdown menu tidak terpotong oleh overflow */
+            .main-header.navbar {
+                overflow: visible !important;
+            }
+            
+            .main-header.navbar > .navbar-nav {
+                overflow: visible !important;
+            }
+            
+            /* Pastikan dropdown menu bisa keluar dari container */
+            .main-header.navbar .navbar-nav .nav-item.dropdown {
+                overflow: visible !important;
+            }
         }
     </style>
+    
+    <!-- Script untuk memastikan dropdown Bootstrap berfungsi di mobile -->
+    <script>
+        // Fix untuk dropdown menu di mobile
+        (function() {
+            function initNavbarDropdowns() {
+                if (typeof $ === 'undefined' || !$.fn.dropdown) {
+                    // Retry jika jQuery belum ready
+                    setTimeout(initNavbarDropdowns, 100);
+                    return;
+                }
+                
+                // Pastikan semua dropdown di navbar ter-initialize
+                $('.main-header.navbar [data-toggle="dropdown"]').each(function() {
+                    var $toggle = $(this);
+                    // Bootstrap 4 menggunakan data('bs.dropdown'), Bootstrap 5 menggunakan data('bs.dropdown')
+                    if (!$toggle.data('bs.dropdown')) {
+                        try {
+                            $toggle.dropdown();
+                        } catch(e) {
+                            console.warn('Error initializing dropdown:', e);
+                        }
+                    }
+                });
+                
+                // Fix khusus untuk mobile: pastikan dropdown bisa diklik
+                $('.main-header.navbar [data-toggle="dropdown"]').on('click', function(e) {
+                    var $toggle = $(this);
+                    var $dropdown = $toggle.closest('.dropdown');
+                    
+                    // Pastikan event tidak di-prevent oleh elemen lain
+                    e.stopPropagation();
+                    
+                    // Jika dropdown sudah terbuka, tutup
+                    if ($dropdown.hasClass('show')) {
+                        $dropdown.removeClass('show');
+                        $dropdown.find('.dropdown-menu').removeClass('show');
+                        $toggle.attr('aria-expanded', 'false');
+                    } else {
+                        // Tutup dropdown lain yang terbuka
+                        $('.main-header.navbar .dropdown.show').not($dropdown).each(function() {
+                            $(this).removeClass('show');
+                            $(this).find('.dropdown-menu').removeClass('show');
+                            $(this).find('[data-toggle="dropdown"]').attr('aria-expanded', 'false');
+                        });
+                        
+                        // Buka dropdown ini
+                        $dropdown.addClass('show');
+                        $dropdown.find('.dropdown-menu').addClass('show');
+                        $toggle.attr('aria-expanded', 'true');
+                    }
+                });
+                
+                // Tutup dropdown saat klik di luar
+                $(document).on('click', function(e) {
+                    if (!$(e.target).closest('.main-header.navbar .dropdown').length) {
+                        $('.main-header.navbar .dropdown.show').removeClass('show');
+                        $('.main-header.navbar .dropdown-menu.show').removeClass('show');
+                        $('.main-header.navbar [data-toggle="dropdown"]').attr('aria-expanded', 'false');
+                    }
+                });
+            }
+            
+            // Initialize saat DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initNavbarDropdowns);
+            } else {
+                initNavbarDropdowns();
+            }
+            
+            // Re-initialize setelah jQuery ready (jika jQuery dimuat setelah DOM)
+            if (typeof $ !== 'undefined') {
+                $(document).ready(function() {
+                    setTimeout(initNavbarDropdowns, 100);
+                });
+            }
+        })();
+    </script>
 
 </head>
