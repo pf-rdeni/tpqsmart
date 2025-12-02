@@ -103,73 +103,121 @@
         </div>
     </div>
 </div>
+<?= $this->endSection(); ?>
 
+<?= $this->section('scripts'); ?>
 <script>
-$(document).ready(function() {
-    // Initialize DataTable
-    $('#usersTable').DataTable({
-        "responsive": true,
-        "lengthChange": true,
-        "autoWidth": false,
-        "pageLength": 25,
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/id.json"
-        }
-    });
+(function($) {
+    'use strict';
+    
+    $(document).ready(function() {
+        // Initialize DataTable dengan scroll horizontal
+        initializeDataTableScrollX('#usersTable', [], {
+            "pageLength": 25,
+            "lengthChange": true,
+            "language": {
+                "decimal": "",
+                "emptyTable": "Tidak ada data yang tersedia pada tabel",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "infoPostFix": "",
+                "thousands": ",",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "loadingRecords": "Sedang memuat...",
+                "processing": "Sedang memproses...",
+                "search": "Cari:",
+                "zeroRecords": "Tidak ditemukan data yang sesuai",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                },
+                "aria": {
+                    "sortAscending": ": aktifkan untuk mengurutkan kolom naik",
+                    "sortDescending": ": aktifkan untuk mengurutkan kolom turun"
+                }
+            }
+        });
 
-    // Edit user groups
-    $('.edit-user-groups').on('click', function() {
-        const userId = $(this).data('user-id');
-        const username = $(this).data('username');
-        
-        $('#modalUsername').text(username);
-        $('#userId').val(userId);
-        
-        // Reset checkboxes
-        $('input[name="group_ids[]"]').prop('checked', false);
-        
-        // Load user groups
-        $.ajax({
-            url: '<?= base_url('backend/auth/getUser') ?>/' + userId,
-            method: 'GET',
-            success: function(response) {
-                if (response.success && response.user.groups) {
-                    response.user.groups.forEach(function(group) {
-                        $('#group_' + group.id).prop('checked', true);
+        // Edit user groups
+        $('.edit-user-groups').on('click', function() {
+            const userId = $(this).data('user-id');
+            const username = $(this).data('username');
+            
+            $('#modalUsername').text(username);
+            $('#userId').val(userId);
+            
+            // Reset checkboxes
+            $('input[name="group_ids[]"]').prop('checked', false);
+            
+            // Load user groups
+            $.ajax({
+                url: '<?= base_url('backend/auth/getUser') ?>/' + userId,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success && response.user.groups) {
+                        response.user.groups.forEach(function(group) {
+                            $('#group_' + group.id).prop('checked', true);
+                        });
+                    }
+                    $('#editUserGroupsModal').modal('show');
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal memuat data user',
+                        confirmButtonText: 'OK'
                     });
                 }
-                $('#editUserGroupsModal').modal('show');
-            },
-            error: function() {
-                alert('Gagal memuat data user');
-            }
+            });
         });
-    });
 
-    // Submit form
-    $('#editUserGroupsForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = $(this).serialize();
-        
-        $.ajax({
-            url: '<?= base_url('backend/auth/updateUserGroups') ?>',
-            method: 'POST',
-            data: formData,
-            success: function(response) {
-                if (response.success) {
-                    alert(response.message);
-                    location.reload();
-                } else {
-                    alert(response.message);
+        // Submit form
+        $('#editUserGroupsForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = $(this).serialize();
+            
+            $.ajax({
+                url: '<?= base_url('backend/auth/updateUserGroups') ?>',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message || 'Group user berhasil diupdate',
+                            confirmButtonText: 'OK',
+                            timer: 2000,
+                            timerProgressBar: true
+                        }).then(function() {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'Gagal mengupdate group user',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal mengupdate groups user',
+                        confirmButtonText: 'OK'
+                    });
                 }
-            },
-            error: function() {
-                alert('Gagal mengupdate groups user');
-            }
+            });
         });
     });
-});
+})(jQuery);
 </script>
 <?= $this->endSection(); ?>
 

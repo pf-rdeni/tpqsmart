@@ -99,12 +99,26 @@
             $dashboardParam === 'munaqosah'
         );
 
+        // Cek apakah sedang di halaman MyAuth (untuk menyembunyikan menu lain)
+        $isMyAuthPage = (
+            strpos($uriString, 'backend/auth') !== false ||
+            strpos($currentUri->getPath(), 'backend/auth') !== false ||
+            $dashboardParam === 'myauth'
+        );
+
+        // Cek apakah sedang di halaman Sertifikasi
+        $isSertifikasiPage = (
+            strpos($uriString, 'sertifikasi') !== false ||
+            strpos($currentUri->getPath(), 'sertifikasi') !== false ||
+            $dashboardParam === 'sertifikasi'
+        );
+
         // Cek apakah user memiliki peran operator
         $hasOperatorRole = ($activeRole === 'operator' || (empty($activeRole) && in_groups('Operator')));
 
-        // Menu operator (Kelembagaan, Guru, Santri, dll) tidak ditampilkan jika sedang di halaman Munaqosah
+        // Menu operator (Kelembagaan, Guru, Santri, dll) tidak ditampilkan jika sedang di halaman Munaqosah, MyAuth, atau Sertifikasi
         // Tapi menu Munaqosah tetap muncul untuk operator
-        $isActiveOperator = $hasOperatorRole && !$isMunaqosahPage;
+        $isActiveOperator = $hasOperatorRole && !$isMunaqosahPage && !$isMyAuthPage && !$isSertifikasiPage;
 
         // Cek apakah user memiliki peran guru (dari active_role atau available_roles)
         // Peran guru bisa dari: 'guru', 'wali_kelas', atau 'kepala_tpq' (kepala TPQ juga memiliki akses menu guru)
@@ -166,7 +180,7 @@
                     </a>
                 </li>
                 <!-- Jadwal Sholat & Al-Qur'an -->
-                <?php if (in_groups('Admin')): ?>
+                <?php if (in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage): ?>
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-mosque"></i>
@@ -203,7 +217,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if (in_groups('JuriSertifikasi') || in_groups('Admin') || in_groups('PanitiaSertifikasi')): ?>
+                <?php if ((in_groups('JuriSertifikasi') || in_groups('Admin') || in_groups('PanitiaSertifikasi')) && $isSertifikasiPage): ?>
                     <!-- Sertifikasi -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -277,7 +291,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if (in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $hasOperatorRole): ?>
+                <?php if ((in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $hasOperatorRole) && $isMunaqosahPage): ?>
                     <!-- Munaqosah -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -480,7 +494,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                <?php if ((in_groups('Admin') || $isActiveOperator) && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage): ?>
                     <!--  Kelembagaan -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -768,7 +782,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if (in_groups('Admin')): ?>
+                <?php if (in_groups('Admin') && $isMyAuthPage): ?>
                     <!--  MyAuth Management -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -824,6 +838,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
+                <?php if ((in_groups('Admin') || $isActiveOperator) && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage): ?>
                     <!--  General Setting -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -886,7 +901,8 @@
                             <?php endif; ?>
                         </ul>
                     </li>
-                <?php if ($isActiveGuru): ?>
+                <?php endif; ?>
+                <?php if ($isActiveGuru && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage): ?>
                     <li class="nav-item">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>
@@ -1126,7 +1142,7 @@
                         </li>
                     <?php endif; ?>
                 <?php endif; ?>
-                <?php if (in_groups('Santri')): ?>
+                <?php if (in_groups('Santri') && !$isSertifikasiPage && !$isMunaqosahPage): ?>
                     <!-- Kesantrian -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">

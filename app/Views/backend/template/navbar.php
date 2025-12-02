@@ -195,12 +195,17 @@
                 ]
             ];
 
-            // Tambahkan Sertifikasi jika Admin
+            // Tambahkan Sertifikasi dan MyAuth jika Admin
             if (in_groups('Admin')) {
                 $availableDashboards['sertifikasi'] = [
                     'label' => 'Sertifikasi',
                     'icon' => 'fas fa-certificate',
                     'url' => base_url('backend/sertifikasi/dashboard-admin')
+                ];
+                $availableDashboards['myauth'] = [
+                    'label' => 'MyAuth',
+                    'icon' => 'fas fa-shield-alt',
+                    'url' => base_url('backend/auth')
                 ];
             }
 
@@ -213,6 +218,8 @@
                 $activeDashboard = 'munaqosah';
             } elseif (strpos($uriString, 'sertifikasi') !== false) {
                 $activeDashboard = 'sertifikasi';
+            } elseif (strpos($uriString, 'auth') !== false && strpos($uriString, 'backend/auth') !== false) {
+                $activeDashboard = 'myauth';
             }
             ?>
             <li class="nav-item dropdown">
@@ -237,6 +244,11 @@
                             <span class="ml-2"><?= esc($dashboard['label']) ?></span>
                         </a>
                     <?php endforeach; ?>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item" id="btnPilihDashboard">
+                        <i class="fas fa-tachometer-alt ml-2"></i>
+                        <span class="ml-2">Buka Pilihan Dashboard</span>
+                    </a>
                 </div>
             </li>
         <?php endif; ?>

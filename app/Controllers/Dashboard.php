@@ -498,6 +498,9 @@ class Dashboard extends BaseController
             if ($dashboardParam === 'sertifikasi' && in_groups('Admin')) {
                 return redirect()->to(base_url('backend/sertifikasi/dashboard-admin'));
             }
+            if ($dashboardParam === 'myauth' && in_groups('Admin')) {
+                return redirect()->to(base_url('backend/auth'));
+            }
         }
 
         // Inisialisasi session tahun ajaran

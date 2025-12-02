@@ -30,6 +30,12 @@
                                 <strong>Sertifikasi</strong>
                             </button>
                         </div>
+                        <div class="dashboard-option-wrapper">
+                            <button type="button" class="btn btn-outline-danger btn-lg btn-block h-100 dashboard-option" data-dashboard="myauth">
+                                <i class="fas fa-shield-alt fa-3x mb-2"></i><br>
+                                <strong>MyAuth</strong>
+                            </button>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -188,7 +194,8 @@
             const labelMap = {
                 'semester': 'Default',
                 'munaqosah': 'Munaqosah',
-                'sertifikasi': 'Sertifikasi'
+                'sertifikasi': 'Sertifikasi',
+                'myauth': 'MyAuth'
             };
             const currentLabel = labelMap[selectedDashboard] || 'Dashboard';
             $('#currentDashboardLabel').text(currentLabel);
@@ -247,6 +254,10 @@
                 window.location.href = '<?= base_url("backend/sertifikasi/dashboard-admin") ?>';
                 return;
             }
+            if (dashboardParam === 'myauth' && isAdmin) {
+                window.location.href = '<?= base_url("backend/auth") ?>';
+                return;
+            }
             // Jika dashboard=semester, biarkan halaman tetap tampil
         }
 
@@ -262,7 +273,8 @@
                 currentPath.includes('/backend/dashboard/guru') ||
                 (currentUrl.includes('dashboard') &&
                     !currentUrl.includes('munaqosah') &&
-                    !currentUrl.includes('sertifikasi'));
+                    !currentUrl.includes('sertifikasi') &&
+                    !currentUrl.includes('auth'));
 
             // Jika user berada di dashboard default dan pilihan bukan semester,
             // redirect ke dashboard yang dipilih (langsung, tidak melalui query parameter)
@@ -273,6 +285,10 @@
                 }
                 if (selectedDashboard === 'sertifikasi' && isAdmin) {
                     window.location.href = '<?= base_url("backend/sertifikasi/dashboard-admin") ?>';
+                    return;
+                }
+                if (selectedDashboard === 'myauth' && isAdmin) {
+                    window.location.href = '<?= base_url("backend/auth") ?>';
                     return;
                 }
             }
@@ -335,7 +351,8 @@
             // Jika user sudah di dashboard yang dipilih, tidak perlu redirect
             if ((dashboard === 'semester' && (currentPath === '/' || currentPath.includes('/dashboard/index'))) ||
                 (dashboard === 'munaqosah' && currentUrl.includes('munaqosah')) ||
-                (dashboard === 'sertifikasi' && currentUrl.includes('sertifikasi'))) {
+                (dashboard === 'sertifikasi' && currentUrl.includes('sertifikasi')) ||
+                (dashboard === 'myauth' && currentUrl.includes('auth'))) {
                 // Sudah di dashboard yang dipilih, tidak perlu redirect
                 return;
             }
@@ -353,6 +370,10 @@
                 case 'sertifikasi':
                     // Redirect melalui query parameter untuk server-side redirect yang lebih cepat
                     url = '<?= base_url("/") ?>?dashboard=sertifikasi';
+                    break;
+                case 'myauth':
+                    // Redirect langsung ke MyAuth dashboard
+                    url = '<?= base_url("backend/auth") ?>';
                     break;
                 case 'semester':
                 default:

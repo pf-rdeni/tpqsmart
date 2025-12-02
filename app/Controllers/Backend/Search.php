@@ -110,12 +110,19 @@ class Search extends BaseController
             $dashboardParam === 'munaqosah'
         );
         
+        // Cek apakah sedang di halaman MyAuth
+        $isMyAuthPage = (
+            strpos($uriString, 'backend/auth') !== false ||
+            strpos($currentUri->getPath(), 'backend/auth') !== false ||
+            $dashboardParam === 'myauth'
+        );
+        
         // Cek apakah user memiliki peran operator
         $hasOperatorRole = ($activeRole === 'operator' || (empty($activeRole) && in_groups('Operator')));
         
-        // Menu operator (Kelembagaan, Guru, Santri, dll) tidak ditampilkan jika sedang di halaman Munaqosah
+        // Menu operator (Kelembagaan, Guru, Santri, dll) tidak ditampilkan jika sedang di halaman Munaqosah atau MyAuth
         // Tapi menu Munaqosah tetap muncul untuk operator
-        $isActiveOperator = $hasOperatorRole && !$isMunaqosahPage;
+        $isActiveOperator = $hasOperatorRole && !$isMunaqosahPage && !$isMyAuthPage;
         
         // Cek apakah user memiliki peran guru
         $hasGuruRole = in_array('guru', $availableRoles) || in_groups('Guru');
@@ -337,6 +344,57 @@ class Search extends BaseController
                 'icon' => 'fas fa-database',
                 'category' => 'Setting',
                 'description' => 'Normalisasi data kelas santri',
+            ];
+
+            // MyAuth Management
+            $menus[] = [
+                'title' => 'Dashboard MyAuth',
+                'url' => base_url('backend/auth'),
+                'icon' => 'fas fa-shield-alt',
+                'category' => 'MyAuth',
+                'description' => 'Dashboard pengaturan MyAuth',
+            ];
+            $menus[] = [
+                'title' => 'Manajemen User',
+                'url' => base_url('backend/auth/users'),
+                'icon' => 'fas fa-users',
+                'category' => 'MyAuth',
+                'description' => 'Manajemen user MyAuth',
+            ];
+            $menus[] = [
+                'title' => 'Manajemen Group',
+                'url' => base_url('backend/auth/groups'),
+                'icon' => 'fas fa-users-cog',
+                'category' => 'MyAuth',
+                'description' => 'Manajemen group MyAuth',
+            ];
+            $menus[] = [
+                'title' => 'Manajemen Permission',
+                'url' => base_url('backend/auth/permissions'),
+                'icon' => 'fas fa-key',
+                'category' => 'MyAuth',
+                'description' => 'Manajemen permission MyAuth',
+            ];
+            $menus[] = [
+                'title' => 'Riwayat Login',
+                'url' => base_url('backend/auth/loginAttempts'),
+                'icon' => 'fas fa-history',
+                'category' => 'MyAuth',
+                'description' => 'Riwayat login attempt',
+            ];
+            $menus[] = [
+                'title' => 'Token Reset Password',
+                'url' => base_url('backend/auth/passwordResets'),
+                'icon' => 'fas fa-key',
+                'category' => 'MyAuth',
+                'description' => 'Token reset password',
+            ];
+            $menus[] = [
+                'title' => 'User Online',
+                'url' => base_url('backend/auth/onlineUsers'),
+                'icon' => 'fas fa-user-check',
+                'category' => 'MyAuth',
+                'description' => 'Daftar user yang sedang online',
             ];
         }
 
