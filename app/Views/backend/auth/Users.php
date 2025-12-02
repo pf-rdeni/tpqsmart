@@ -50,9 +50,14 @@
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <button class="btn btn-sm btn-primary edit-user-groups" data-user-id="<?= esc($user['id']) ?>" data-username="<?= esc($user['username']) ?>">
-                                                <i class="fas fa-edit"></i> Edit Groups
-                                            </button>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-primary edit-user-groups" data-user-id="<?= esc($user['id']) ?>" data-username="<?= esc($user['username']) ?>">
+                                                    <i class="fas fa-edit"></i> Edit Groups
+                                                </button>
+                                                <button class="btn btn-sm btn-danger reset-password" data-user-id="<?= esc($user['id']) ?>" data-username="<?= esc($user['username']) ?>">
+                                                    <i class="fas fa-redo"></i> Reset Password
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -98,6 +103,40 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reset Password -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reset Password untuk User: <span id="resetPasswordUsername"></span></h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="resetPasswordForm">
+                <div class="modal-body">
+                    <input type="hidden" id="resetPasswordUserId" name="user_id">
+                    <div class="form-group">
+                        <label>Default Password:</label>
+                        <input type="text" class="form-control" id="defaultPassword" name="default_password" value="TpqSmart123" required>
+                        <small class="form-text text-muted">Password default yang akan digunakan untuk user ini</small>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="forceResetOnReset" name="force_reset" value="1" checked>
+                        <label class="form-check-label" for="forceResetOnReset">
+                            Wajibkan user mengganti password saat login berikutnya
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Reset Password</button>
                 </div>
             </form>
         </div>
@@ -212,6 +251,74 @@
                         title: 'Error',
                         text: 'Gagal mengupdate groups user',
                         confirmButtonText: 'OK'
+                    });
+                }
+            });
+        });
+
+        // Reset Password
+        $('.reset-password').on('click', function() {
+            const userId = $(this).data('user-id');
+            const username = $(this).data('username');
+            
+            $('#resetPasswordUsername').text(username);
+            $('#resetPasswordUserId').val(userId);
+            $('#defaultPassword').val('TpqSmart123');
+            $('#forceResetOnReset').prop('checked', true);
+            $('#resetPasswordModal').modal('show');
+        });
+
+        // Submit Reset Password Form
+        $('#resetPasswordForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = $(this).serialize();
+            
+            Swal.fire({
+                title: 'Konfirmasi Reset Password',
+                text: 'Password user akan direset ke password default. Apakah Anda yakin?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Reset Password',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '<?= base_url('backend/auth/resetPassword') ?>',
+                        method: 'POST',
+                        data: formData,
+                        success: function(response) {
+                            if (response.success) {
+                                $('#resetPasswordModal').modal('hide');
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    html: response.message + '<br><br><strong>Password Default: ' + response.default_password + '</strong>',
+                                    confirmButtonText: 'OK',
+                                    timer: 3000,
+                                    timerProgressBar: true
+                                }).then(function() {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message,
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Gagal reset password',
+                                confirmButtonText: 'OK'
+                            });
+                        }
                     });
                 }
             });

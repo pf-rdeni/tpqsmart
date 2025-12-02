@@ -26,7 +26,14 @@ class AuthModel extends Model
         $builder->groupBy('u.id');
         $builder->orderBy('u.id', 'DESC');
         
-        return $builder->get()->getResultArray();
+        $users = $builder->get()->getResultArray();
+        
+        // Convert force_pass_reset to integer for easier handling
+        foreach ($users as &$user) {
+            $user['force_pass_reset'] = isset($user['force_pass_reset']) ? (int)$user['force_pass_reset'] : 0;
+        }
+        
+        return $users;
     }
 
     /**

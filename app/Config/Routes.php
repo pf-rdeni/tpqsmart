@@ -459,6 +459,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('auth/getUser/(:num)', 'Auth::getUser/$1');
     $routes->get('auth/getGroup/(:num)', 'Auth::getGroup/$1');
     $routes->post('auth/updateUserGroups', 'Auth::updateUserGroups');
+    $routes->post('auth/resetPassword', 'Auth::resetPassword');
     $routes->post('auth/createGroup', 'Auth::createGroup');
     $routes->post('auth/updateGroup', 'Auth::updateGroup');
     $routes->get('auth/deleteGroup/(:num)', 'Auth::deleteGroup/$1');

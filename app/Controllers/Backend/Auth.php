@@ -23,7 +23,9 @@ class Auth extends BaseController
     protected function checkAdmin()
     {
         if (!in_groups('Admin')) {
-            return redirect()->to(base_url())->with('error', 'Akses ditolak. Hanya Admin yang dapat mengakses halaman ini.');
+            session()->setFlashdata('error', 'Akses ditolak. Hanya Admin yang dapat mengakses halaman ini.');
+            redirect()->to(base_url())->send();
+            exit;
         }
     }
 
@@ -135,6 +137,78 @@ class Auth extends BaseController
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Gagal mengupdate group user: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Reset user password to default
+     */
+    public function resetPassword()
+    {
+        $this->checkAdmin();
+
+        $userId = $this->request->getPost('user_id');
+        $defaultPassword = $this->request->getPost('default_password') ?? 'TpqSmart123';
+        $forceReset = $this->request->getPost('force_reset') === '1' || $this->request->getPost('force_reset') === true;
+
+        if (empty($userId)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'User ID tidak boleh kosong'
+            ]);
+        }
+
+        try {
+            // Get user
+            $user = $this->db->table('users')->where('id', $userId)->get()->getRowArray();
+            
+            if (!$user) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'User tidak ditemukan'
+                ]);
+            }
+
+            // Hash the new password
+            $passwordHash = Password::hash($defaultPassword);
+
+            // Generate reset hash if force reset is true
+            $resetHash = null;
+            if ($forceReset) {
+                $resetHash = bin2hex(random_bytes(16));
+            }
+
+            // Update user password
+            $updateData = [
+                'password_hash' => $passwordHash,
+                'force_pass_reset' => $forceReset ? 1 : 0
+            ];
+
+            if ($forceReset && $resetHash) {
+                $updateData['reset_hash'] = $resetHash;
+                $updateData['reset_expires'] = date('Y-m-d H:i:s', strtotime('+1 hour'));
+            } else {
+                $updateData['reset_hash'] = null;
+                $updateData['reset_expires'] = null;
+            }
+
+            $this->db->table('users')->where('id', $userId)->update($updateData);
+
+            $message = 'Password berhasil direset ke: ' . $defaultPassword;
+            if ($forceReset) {
+                $message .= ' dan user akan diwajibkan mengganti password saat login berikutnya';
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message,
+                'default_password' => $defaultPassword
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal reset password: ' . $e->getMessage()
             ]);
         }
     }
