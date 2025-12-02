@@ -115,6 +115,8 @@ $routes->get('backend/kelas/showSantriPerKelas/(:any)', 'Backend\Kelas::showSant
 $routes->get('backend/kelas/showCheckDuplikasiKelasSantri', 'Backend\Kelas::showCheckDuplikasiKelasSantri');
 $routes->post('backend/kelas/checkDuplikasiKelasSantri', 'Backend\Kelas::checkDuplikasiKelasSantri');
 $routes->post('backend/kelas/normalisasiDuplikasiKelasSantri', 'Backend\Kelas::normalisasiDuplikasiKelasSantri');
+$routes->post('backend/kelas/checkNilaiTanpaKelasSantri', 'Backend\Kelas::checkNilaiTanpaKelasSantri');
+$routes->post('backend/kelas/normalisasiNilaiTanpaKelasSantri', 'Backend\Kelas::normalisasiNilaiTanpaKelasSantri');
 $routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'Backend\Santri::showSuccessEmisStep/$1');
 $routes->post('backend/santri/checkNormalisasiNilai', 'Backend\Santri::checkNormalisasiNilai');
 $routes->post('backend/santri/normalisasiNilai', 'Backend\Santri::normalisasiNilai');

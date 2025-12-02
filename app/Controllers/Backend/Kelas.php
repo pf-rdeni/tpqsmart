@@ -528,4 +528,330 @@ class Kelas extends BaseController
             ])->setStatusCode(500);
         }
     }
+
+    /**
+     * Mengecek data nilai yang memiliki IdSantri, IdTpq, IdTahunAjaran 
+     * tetapi IdSantri tersebut tidak ada di tabel KelasSantri
+     * @return json
+     */
+    public function checkNilaiTanpaKelasSantri()
+    {
+        $IdTpq = session()->get('IdTpq');
+
+        try {
+            $db = \Config\Database::connect();
+
+            // Query untuk mendapatkan data nilai yang tidak ada di tbl_kelas_santri
+            // dengan kombinasi IdSantri, IdTpq, IdTahunAjaran yang sama
+            $builder = $db->table('tbl_nilai n');
+            $builder->select('n.*, s.NamaSantri, m.NamaMateri, k.NamaKelas, t.NamaTpq');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = n.IdSantri', 'left');
+            $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = n.IdKelas', 'left');
+            $builder->join('tbl_tpq t', 't.IdTpq = n.IdTpq', 'left');
+
+            // Left join dengan tbl_kelas_santri untuk menemukan yang tidak ada
+            // PENTING: Cek semua record di kelas_santri (aktif dan tidak aktif) 
+            // untuk kombinasi IdSantri, IdTpq, IdTahunAjaran yang sama
+            // Jika tidak ada sama sekali, berarti santri sudah pindah TPQ atau tidak ada di kelas tersebut
+            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTpq = n.IdTpq AND ks.IdTahunAjaran = n.IdTahunAjaran', 'left');
+
+            // Hanya ambil yang tidak ada di tbl_kelas_santri (ks.Id IS NULL)
+            // Ini berarti untuk kombinasi IdSantri, IdTpq, IdTahunAjaran tersebut
+            // TIDAK ADA record sama sekali di tbl_kelas_santri (baik aktif maupun tidak aktif)
+            $builder->where('ks.Id', null);
+
+            // Filter berdasarkan IdTpq jika ada
+            if ($IdTpq != null && $IdTpq != 0) {
+                $builder->where('n.IdTpq', $IdTpq);
+            }
+
+            $builder->orderBy('n.IdSantri', 'ASC');
+            $builder->orderBy('n.IdTahunAjaran', 'ASC');
+            $builder->orderBy('n.IdTpq', 'ASC');
+
+            $result = $builder->get()->getResultArray();
+
+            // Hitung rangkuman per TPQ dengan detail lebih lengkap
+            $summaryByTpq = [];
+
+            // Format data untuk response dengan informasi detail
+            $formattedData = [];
+            foreach ($result as $item) {
+                $idSantri = $item['IdSantri'];
+                $idTpqNilai = $item['IdTpq'];
+                $idTahunAjaran = $item['IdTahunAjaran'];
+
+                // Cek apakah santri masih ada di tbl_santri_baru
+                $santriInfo = $db->table('tbl_santri_baru')
+                    ->select('IdTpq, Active, Status')
+                    ->where('IdSantri', $idSantri)
+                    ->get()
+                    ->getRowArray();
+
+                // Cek apakah santri ada di kelas_santri dengan TPQ lain
+                $kelasSantriLain = $db->table('tbl_kelas_santri')
+                    ->select('IdTpq, Status')
+                    ->where('IdSantri', $idSantri)
+                    ->where('IdTahunAjaran', $idTahunAjaran)
+                    ->where('IdTpq !=', $idTpqNilai)
+                    ->get()
+                    ->getResultArray();
+
+                // Tentukan jenis masalah dan alasan
+                $jenisMasalah = 'Tidak Ada di Kelas Santri';
+                $reason = 'IdSantri tidak ada di tbl_kelas_santri untuk kombinasi IdTpq dan IdTahunAjaran ini';
+                $kategori = 'tidak_diketahui';
+
+                if ($santriInfo) {
+                    // Santri masih ada di database
+                    if ($santriInfo['IdTpq'] != $idTpqNilai) {
+                        // Santri pindah ke TPQ lain
+                        $tpqBaru = $db->table('tbl_tpq')
+                            ->select('NamaTpq')
+                            ->where('IdTpq', $santriInfo['IdTpq'])
+                            ->get()
+                            ->getRowArray();
+
+                        $namaTpqBaru = $tpqBaru['NamaTpq'] ?? 'TPQ Lain';
+                        $jenisMasalah = 'Pindah ke TPQ Lain';
+                        $reason = "Santri sudah pindah ke TPQ: {$namaTpqBaru} (IdTpq: {$santriInfo['IdTpq']}). Data nilai di TPQ lama perlu dihapus.";
+                        $kategori = 'pindah_tpq';
+                    } else if (!empty($kelasSantriLain)) {
+                        // Ada record di kelas_santri dengan TPQ lain untuk tahun ajaran yang sama
+                        $tpqLain = $db->table('tbl_tpq')
+                            ->select('NamaTpq')
+                            ->whereIn('IdTpq', array_column($kelasSantriLain, 'IdTpq'))
+                            ->get()
+                            ->getResultArray();
+
+                        $namaTpqLain = !empty($tpqLain) ? $tpqLain[0]['NamaTpq'] : 'TPQ Lain';
+                        $jenisMasalah = 'Pindah ke TPQ Lain';
+                        $reason = "Santri memiliki record di kelas_santri dengan TPQ lain ({$namaTpqLain}) untuk tahun ajaran yang sama. Data nilai di TPQ ini perlu dihapus.";
+                        $kategori = 'pindah_tpq';
+                    } else if ($santriInfo['Active'] == 0) {
+                        // Santri tidak aktif
+                        $jenisMasalah = 'Santri Tidak Aktif';
+                        $reason = "Santri masih ada di database tetapi status Active = 0 (tidak aktif). Data nilai perlu dihapus.";
+                        $kategori = 'tidak_aktif';
+                    } else {
+                        // Santri ada tapi tidak ada di kelas_santri untuk kombinasi ini
+                        $jenisMasalah = 'Tidak Terdaftar di Kelas';
+                        $reason = "Santri masih ada di TPQ ini tetapi tidak terdaftar di kelas_santri untuk tahun ajaran {$idTahunAjaran}. Kemungkinan belum di-assign ke kelas atau data kelas_santri terhapus.";
+                        $kategori = 'tidak_terdaftar';
+                    }
+                } else {
+                    // Santri tidak ada sama sekali di database
+                    $jenisMasalah = 'Santri Tidak Ditemukan';
+                    $reason = "Santri tidak ditemukan di tbl_santri_baru. Kemungkinan data santri sudah dihapus atau pindah luar daerah (belum terdefinisikan di status santri).";
+                    $kategori = 'tidak_ditemukan';
+                }
+
+                $formattedItem = [
+                    'Id' => $item['Id'],
+                    'IdSantri' => $idSantri,
+                    'NamaSantri' => $item['NamaSantri'] ?? 'Tidak ditemukan',
+                    'IdMateri' => $item['IdMateri'],
+                    'NamaMateri' => $item['NamaMateri'] ?? 'Tidak ditemukan',
+                    'IdKelas' => $item['IdKelas'],
+                    'NamaKelas' => $item['NamaKelas'] ?? 'Tidak ditemukan',
+                    'IdTpq' => $idTpqNilai,
+                    'NamaTpq' => $item['NamaTpq'] ?? 'Tidak ditemukan',
+                    'IdTahunAjaran' => $idTahunAjaran,
+                    'Semester' => $item['Semester'],
+                    'Nilai' => $item['Nilai'] ?? 0,
+                    'type' => 'tanpa_kelas_santri',
+                    'jenis_masalah' => $jenisMasalah,
+                    'kategori' => $kategori,
+                    'reason' => $reason
+                ];
+
+                $formattedData[] = $formattedItem;
+
+                // Hitung rangkuman per TPQ
+                $idTpq = $formattedItem['IdTpq'];
+                $namaTpq = $formattedItem['NamaTpq'] ?? 'Tidak ditemukan';
+
+                if (!isset($summaryByTpq[$idTpq])) {
+                    $summaryByTpq[$idTpq] = [
+                        'IdTpq' => $idTpq,
+                        'NamaTpq' => $namaTpq,
+                        'total' => 0,
+                        'total_dengan_nilai' => 0,      // Data yang memiliki nilai > 0
+                        'total_tanpa_nilai' => 0,        // Data yang tidak memiliki nilai (0 atau null)
+                        'santri_pindah_tpq' => [],        // Array IdSantri unik dengan kategori pindah_tpq
+                        'santri_tidak_aktif' => [],       // Array IdSantri unik dengan kategori tidak_aktif
+                        'santri_tidak_terdaftar' => [],  // Array IdSantri unik dengan kategori tidak_terdaftar
+                        'santri_tidak_ditemukan' => [],   // Array IdSantri unik dengan kategori tidak_ditemukan
+                        'santri_tidak_diketahui' => [],   // Array IdSantri unik dengan kategori tidak_diketahui
+                        'santri_terkena' => [],
+                        'tahun_ajaran_terkena' => []     // Tahun ajaran yang terkena
+                    ];
+                }
+
+                $summaryByTpq[$idTpq]['total']++;
+
+                // Hitung data dengan nilai dan tanpa nilai
+                $nilai = (float)($formattedItem['Nilai'] ?? 0);
+                if ($nilai > 0) {
+                    $summaryByTpq[$idTpq]['total_dengan_nilai']++;
+                } else {
+                    $summaryByTpq[$idTpq]['total_tanpa_nilai']++;
+                }
+
+                // Kumpulkan IdSantri berdasarkan kategori jenis masalah (unik per kategori)
+                $idSantri = $formattedItem['IdSantri'];
+                if (isset($idSantri)) {
+                    switch ($kategori) {
+                        case 'pindah_tpq':
+                            if (!in_array($idSantri, $summaryByTpq[$idTpq]['santri_pindah_tpq'])) {
+                                $summaryByTpq[$idTpq]['santri_pindah_tpq'][] = $idSantri;
+                            }
+                            break;
+                        case 'tidak_aktif':
+                            if (!in_array($idSantri, $summaryByTpq[$idTpq]['santri_tidak_aktif'])) {
+                                $summaryByTpq[$idTpq]['santri_tidak_aktif'][] = $idSantri;
+                            }
+                            break;
+                        case 'tidak_terdaftar':
+                            if (!in_array($idSantri, $summaryByTpq[$idTpq]['santri_tidak_terdaftar'])) {
+                                $summaryByTpq[$idTpq]['santri_tidak_terdaftar'][] = $idSantri;
+                            }
+                            break;
+                        case 'tidak_ditemukan':
+                            if (!in_array($idSantri, $summaryByTpq[$idTpq]['santri_tidak_ditemukan'])) {
+                                $summaryByTpq[$idTpq]['santri_tidak_ditemukan'][] = $idSantri;
+                            }
+                            break;
+                        default:
+                            if (!in_array($idSantri, $summaryByTpq[$idTpq]['santri_tidak_diketahui'])) {
+                                $summaryByTpq[$idTpq]['santri_tidak_diketahui'][] = $idSantri;
+                            }
+                    }
+                }
+
+                // Kumpulkan IdSantri yang terkena (unik)
+                if (isset($formattedItem['IdSantri']) && !in_array($formattedItem['IdSantri'], $summaryByTpq[$idTpq]['santri_terkena'])) {
+                    $summaryByTpq[$idTpq]['santri_terkena'][] = $formattedItem['IdSantri'];
+                }
+
+                // Kumpulkan tahun ajaran yang terkena (unik)
+                if (isset($formattedItem['IdTahunAjaran']) && !in_array($formattedItem['IdTahunAjaran'], $summaryByTpq[$idTpq]['tahun_ajaran_terkena'])) {
+                    $summaryByTpq[$idTpq]['tahun_ajaran_terkena'][] = $formattedItem['IdTahunAjaran'];
+                }
+            }
+
+            // Hitung jumlah santri dan tahun ajaran yang terkena per TPQ
+            foreach ($summaryByTpq as $key => $tpq) {
+                $summaryByTpq[$key]['jumlah_santri_terkena'] = count($tpq['santri_terkena']);
+                $summaryByTpq[$key]['jumlah_tahun_ajaran_terkena'] = count($tpq['tahun_ajaran_terkena']);
+
+                // Hitung jumlah santri unik per kategori (bukan jumlah record)
+                $summaryByTpq[$key]['total_pindah_tpq'] = count($tpq['santri_pindah_tpq']);
+                $summaryByTpq[$key]['total_tidak_aktif'] = count($tpq['santri_tidak_aktif']);
+                $summaryByTpq[$key]['total_tidak_terdaftar'] = count($tpq['santri_tidak_terdaftar']);
+                $summaryByTpq[$key]['total_tidak_ditemukan'] = count($tpq['santri_tidak_ditemukan']);
+                $summaryByTpq[$key]['total_tidak_diketahui'] = count($tpq['santri_tidak_diketahui']);
+
+                // Hapus array dari output (tidak perlu dikirim ke frontend)
+                unset($summaryByTpq[$key]['santri_terkena']);
+                unset($summaryByTpq[$key]['tahun_ajaran_terkena']);
+                unset($summaryByTpq[$key]['santri_pindah_tpq']);
+                unset($summaryByTpq[$key]['santri_tidak_aktif']);
+                unset($summaryByTpq[$key]['santri_tidak_terdaftar']);
+                unset($summaryByTpq[$key]['santri_tidak_ditemukan']);
+                unset($summaryByTpq[$key]['santri_tidak_diketahui']);
+            }
+
+            // Convert to array untuk JSON
+            $summaryByTpqArray = array_values($summaryByTpq);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'total_checked' => count($result),
+                'total_to_delete' => count($result),
+                'data' => $formattedData,
+                'summary_by_tpq' => $summaryByTpqArray
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Kelas: checkNilaiTanpaKelasSantri - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Menormalisasi data nilai yang tidak memiliki referensi di tbl_kelas_santri
+     * Menghapus data nilai berdasarkan ID yang dipilih
+     * @return json
+     */
+    public function normalisasiNilaiTanpaKelasSantri()
+    {
+        try {
+            $json = $this->request->getJSON();
+            $idsToDelete = $json->ids ?? [];
+
+            if (empty($idsToDelete)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada data yang dipilih untuk dihapus'
+                ]);
+            }
+
+            // Validasi bahwa ids adalah array
+            if (!is_array($idsToDelete)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Format data tidak valid'
+                ]);
+            }
+
+            log_message('info', 'Kelas: normalisasiNilaiTanpaKelasSantri - Akan menghapus ' . count($idsToDelete) . ' records');
+
+            $deletedCount = 0;
+            $errors = [];
+
+            // Hapus data berdasarkan ID
+            if (!empty($idsToDelete)) {
+                try {
+                    $deletedCount = $this->nilaiModel->whereIn('Id', $idsToDelete)->delete();
+
+                    if ($deletedCount === false) {
+                        throw new \Exception('Gagal menghapus data');
+                    }
+
+                    log_message('info', 'Kelas: normalisasiNilaiTanpaKelasSantri - Berhasil menghapus ' . $deletedCount . ' records');
+                } catch (\Exception $e) {
+                    $errors[] = "Gagal menghapus data: " . $e->getMessage();
+                    log_message('error', 'Kelas: normalisasiNilaiTanpaKelasSantri - Error menghapus data: ' . $e->getMessage());
+                }
+            }
+
+            $message = "Normalisasi selesai. Data yang dihapus: {$deletedCount} dari " . count($idsToDelete) . " yang dipilih.";
+
+            if (!empty($errors)) {
+                $message .= " Terjadi beberapa error: " . implode(', ', $errors);
+            }
+
+            log_message('info', 'Kelas: normalisasiNilaiTanpaKelasSantri - ' . $message);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'total_selected' => count($idsToDelete),
+                    'deleted_count' => $deletedCount,
+                    'errors' => $errors
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Kelas: normalisasiNilaiTanpaKelasSantri - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal melakukan normalisasi: ' . $e->getMessage()
+            ]);
+        }
+    }
 }
