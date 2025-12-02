@@ -16,7 +16,7 @@
         <div class="card-body" style="display: none;">
             <div class="row">
                 <div class="col-md-12">
-                    <h5><i class="fas fa-list-ol"></i> Halaman ini memiliki 3 fungsi normalisasi data:</h5>
+                    <h5><i class="fas fa-list-ol"></i> Halaman ini memiliki 3 fungsi normalisasi data (urutkan sesuai rekomendasi):</h5>
 
                     <div class="mb-4">
                         <h6 class="text-primary"><i class="fas fa-users"></i> 1. Normalisasi Duplikasi Kelas Santri</h6>
@@ -31,26 +31,7 @@
                     </div>
 
                     <div class="mb-4">
-                        <h6 class="text-warning"><i class="fas fa-check-double"></i> 2. Normalisasi Data Nilai</h6>
-                        <div class="alert alert-light border">
-                            <strong><i class="fas fa-info-circle"></i> Fungsi:</strong> Membersihkan data nilai yang tidak valid atau duplikat untuk santri yang TERDAFTAR di kelas
-                            <br><strong><i class="fas fa-mouse-pointer"></i> Tombol:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li><strong>"Cek Normalisasi Nilai"</strong> - Menampilkan data nilai yang:
-                                    <ul>
-                                        <li><span class="badge badge-danger">Tidak Valid</span> - Materi tidak sesuai dengan kelas (IdMateri tidak ada di tbl_kelas_materi_pelajaran)</li>
-                                        <li><span class="badge badge-success">Duplikat Aman</span> - Ada duplikat dengan nilai kosong (aman dihapus)</li>
-                                        <li><span class="badge badge-warning">Duplikat Perhatian</span> - Ada duplikat dengan nilai (perlu review)</li>
-                                    </ul>
-                                </li>
-                                <li><strong>"Normalisasi Nilai"</strong> - Menghapus data nilai yang dipilih (tidak valid atau duplikat)</li>
-                            </ul>
-                            <small class="text-muted"><i class="fas fa-lightbulb"></i> <strong>Catatan:</strong> Hanya mengecek data nilai untuk santri yang sudah terdaftar di tbl_kelas_santri</small>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <h6 class="text-info"><i class="fas fa-exclamation-triangle"></i> 3. Normalisasi Nilai Tanpa Kelas Santri</h6>
+                        <h6 class="text-info"><i class="fas fa-exclamation-triangle"></i> 2. Normalisasi Nilai Tanpa Kelas Santri</h6>
                         <div class="alert alert-light border">
                             <strong><i class="fas fa-info-circle"></i> Fungsi:</strong> Membersihkan data nilai untuk santri yang TIDAK TERDAFTAR di kelas (tidak ada di tbl_kelas_santri)
                             <br><strong><i class="fas fa-mouse-pointer"></i> Tombol:</strong>
@@ -66,6 +47,25 @@
                                 <li><strong>"Normalisasi Nilai Tanpa Kelas Santri"</strong> - Menghapus data nilai yang dipilih (data tanpa referensi kelas santri)</li>
                             </ul>
                             <small class="text-muted"><i class="fas fa-lightbulb"></i> <strong>Catatan:</strong> Mengecek data nilai untuk santri yang TIDAK ada di tbl_kelas_santri. Gunakan ini untuk membersihkan data nilai santri yang sudah pindah TPQ atau tidak terdaftar.</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-warning"><i class="fas fa-check-double"></i> 3. Normalisasi Data Nilai</h6>
+                        <div class="alert alert-light border">
+                            <strong><i class="fas fa-info-circle"></i> Fungsi:</strong> Membersihkan data nilai yang tidak valid atau duplikat untuk santri yang TERDAFTAR di kelas
+                            <br><strong><i class="fas fa-mouse-pointer"></i> Tombol:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>"Cek Normalisasi Nilai"</strong> - Menampilkan data nilai yang:
+                                    <ul>
+                                        <li><span class="badge badge-danger">Tidak Valid</span> - Materi tidak sesuai dengan kelas (IdMateri tidak ada di tbl_kelas_materi_pelajaran)</li>
+                                        <li><span class="badge badge-success">Duplikat Aman</span> - Ada duplikat dengan nilai kosong (aman dihapus)</li>
+                                        <li><span class="badge badge-warning">Duplikat Perhatian</span> - Ada duplikat dengan nilai (perlu review)</li>
+                                    </ul>
+                                </li>
+                                <li><strong>"Normalisasi Nilai"</strong> - Menghapus data nilai yang dipilih (tidak valid atau duplikat)</li>
+                            </ul>
+                            <small class="text-muted"><i class="fas fa-lightbulb"></i> <strong>Catatan:</strong> Hanya mengecek data nilai untuk santri yang sudah terdaftar di tbl_kelas_santri</small>
                         </div>
                     </div>
 
@@ -99,26 +99,27 @@
                     <i class="fas fa-sync-alt"></i> Normalisasi Data
                 </h3>
                 <div class="card-tools">
+                    <!-- Urutan sesuai rekomendasi: 1. Duplikasi Kelas Santri, 2. Nilai Tanpa Kelas Santri, 3. Normalisasi Nilai -->
+                    <button type="button" class="btn btn-primary btn-sm mr-2" id="btnCheckDuplikasi" title="Cek duplikasi data di tabel kelas santri">
+                        <i class="fas fa-search"></i> Cek Duplikasi
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm mr-2" id="btnNormalisasi" style="display: none;" title="Hapus duplikasi kelas santri">
+                        <i class="fas fa-sync"></i> Normalisasi Duplikasi
+                    </button>
                     <?php if (in_groups('Admin')): ?>
-                        <button type="button" class="btn btn-warning btn-sm mr-2" id="btnCheckNormalisasiNilai" title="Cek data nilai yang tidak valid dan duplikat">
-                            <i class="fas fa-search"></i> Cek Normalisasi Nilai
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm mr-2" id="btnNormalisasiNilai" style="display: none;" title="Hapus data nilai yang dipilih">
-                            <i class="fas fa-sync"></i> Normalisasi Nilai
-                        </button>
                         <button type="button" class="btn btn-info btn-sm mr-2" id="btnCheckNilaiTanpaKelasSantri" title="Cek data nilai yang tidak ada di tabel kelas santri">
                             <i class="fas fa-search"></i> Cek Nilai Tanpa Kelas Santri
                         </button>
                         <button type="button" class="btn btn-danger btn-sm mr-2" id="btnNormalisasiNilaiTanpaKelasSantri" style="display: none;" title="Hapus data nilai yang tidak ada di kelas santri">
                             <i class="fas fa-sync"></i> Normalisasi Nilai Tanpa Kelas Santri
                         </button>
+                        <button type="button" class="btn btn-warning btn-sm mr-2" id="btnCheckNormalisasiNilai" title="Cek data nilai yang tidak valid dan duplikat">
+                            <i class="fas fa-search"></i> Cek Normalisasi Nilai
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm mr-2" id="btnNormalisasiNilai" style="display: none;" title="Hapus data nilai yang dipilih">
+                            <i class="fas fa-sync"></i> Normalisasi Nilai
+                        </button>
                     <?php endif; ?>
-                    <button type="button" class="btn btn-primary btn-sm" id="btnCheckDuplikasi">
-                        <i class="fas fa-search"></i> Cek Duplikasi
-                    </button>
-                    <button type="button" class="btn btn-danger btn-sm" id="btnNormalisasi" style="display: none;">
-                        <i class="fas fa-sync"></i> Normalisasi Duplikasi
-                    </button>
                 </div>
             </div>
         </div>
