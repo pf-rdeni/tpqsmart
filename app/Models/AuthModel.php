@@ -336,64 +336,49 @@ class AuthModel extends Model
             if (!$sessionData) {
                 continue;
             }
-            
+
             // Extract user_id from session data
-            // CodeIgniter stores session as serialized PHP data
+            // Myth Auth stores: session()->set('logged_in', $this->user->id);
+            // CodeIgniter stores session as serialized PHP array
             $userId = null;
-            
-            // Try multiple patterns to extract user_id
-            // Pattern 1: Look for "logged_in" key with user ID (Myth Auth format)
-            if (preg_match('/logged_in["\']?\s*[;:]\s*[iO]:\d+:[:"]([^";]+)[";]/', $sessionData, $matches)) {
-                // This might be a serialized object/array, try to extract ID
-                if (preg_match('/"id"[;:]\s*(\d+)/', $sessionData, $idMatch)) {
-                    $userId = (int)$idMatch[1];
+
+            // Method 1: Try to unserialize session data properly (most accurate)
+            // CodeIgniter session format: a:1:{s:10:"logged_in";i:123;}
+            $sessionArray = @unserialize($sessionData);
+            if ($sessionArray && is_array($sessionArray)) {
+                // Check for logged_in key directly (Myth Auth format)
+                if (isset($sessionArray['logged_in']) && is_numeric($sessionArray['logged_in'])) {
+                    $userId = (int)$sessionArray['logged_in'];
+                }
+                // Fallback: check for user_id key
+                elseif (isset($sessionArray['user_id']) && is_numeric($sessionArray['user_id'])) {
+                    $userId = (int)$sessionArray['user_id'];
                 }
             }
-            
-            // Pattern 2: Look for direct user_id in session
-            if (!$userId && preg_match('/user_id["\']?\s*[;:]\s*[is]:\d+:[:"]([^";]+)[";]/', $sessionData, $matches)) {
+
+            // Method 2: If unserialize fails, use precise regex patterns
+            // Pattern for: "logged_in";i:123; (integer format - most common)
+            if (!$userId && preg_match('/"logged_in"[;:]\s*i:(\d+);/', $sessionData, $matches)) {
                 $userId = (int)$matches[1];
             }
-            
-            // Pattern 3: Look for numeric patterns that might be user IDs
-            // Myth Auth typically stores user object with id field
-            if (!$userId) {
-                // Try to find serialized object with id field
-                if (preg_match('/"id"[;:]\s*[is]:\d+:[:"]([^";]+)[";]/', $sessionData, $matches)) {
-                    $potentialId = trim($matches[1], '"');
-                    if (is_numeric($potentialId) && $potentialId > 0) {
-                        $userId = (int)$potentialId;
-                    }
-                }
+
+            // Pattern for: "logged_in";s:3:"123"; (string format)
+            if (!$userId && preg_match('/"logged_in"[;:]\s*s:\d+:"(\d+)";/', $sessionData, $matches)) {
+                $userId = (int)$matches[1];
             }
-            
-            // Pattern 4: Fallback - look for any numeric value after common auth keys
-            if (!$userId) {
-                $authKeys = ['logged_in', 'user_id', 'auth_user_id', 'ci_user_id'];
-                foreach ($authKeys as $key) {
-                    if (preg_match('/' . preg_quote($key, '/') . '["\']?\s*[;:]\s*(\d+)/', $sessionData, $matches)) {
-                        $userId = (int)$matches[1];
-                        break;
-                    }
-                }
+
+            // Pattern for: 'logged_in';i:123; (single quotes)
+            if (!$userId && preg_match("/'logged_in'[;:]\s*i:(\d+);/", $sessionData, $matches)) {
+                $userId = (int)$matches[1];
             }
-            
-            // Pattern 5: Last resort - try to unserialize and search
-            if (!$userId) {
-                // Try to extract serialized data and search for user ID
-                // Look for patterns like: i:123; or s:3:"123";
-                if (preg_match_all('/[is]:\d+:[:"]([0-9]{1,6})[";]/', $sessionData, $allMatches)) {
-                    // Get the largest reasonable number (likely user ID)
-                    $numbers = array_map('intval', $allMatches[1]);
-                    $numbers = array_filter($numbers, function($n) { return $n > 0 && $n < 1000000; });
-                    if (!empty($numbers)) {
-                        // Prefer numbers that look like user IDs (not too small, not too large)
-                        $filtered = array_filter($numbers, function($n) { return $n >= 1 && $n <= 999999; });
-                        if (!empty($filtered)) {
-                            $userId = max($filtered);
-                        }
-                    }
-                }
+
+            // Method 3: Fallback - look for user_id key (less common)
+            if (!$userId && preg_match('/"user_id"[;:]\s*i:(\d+);/', $sessionData, $matches)) {
+                $userId = (int)$matches[1];
+            }
+
+            if (!$userId && preg_match('/"user_id"[;:]\s*s:\d+:"(\d+)";/', $sessionData, $matches)) {
+                $userId = (int)$matches[1];
             }
             
             if (!$userId || isset($seenUsers[$userId])) {
@@ -576,6 +561,108 @@ class AuthModel extends Model
     {
         $onlineUsers = $this->getOnlineUsers($maxIdleMinutes);
         return count($onlineUsers);
+    }
+
+    /**
+     * Get users with most frequent logins
+     * 
+     * @param int $limit Number of users to return
+     * @param string $period Period filter: 'all', 'today', 'week', 'month', 'year'
+     * @return array
+     */
+    public function getMostFrequentLoginUsers($limit = 10, $period = 'all')
+    {
+        $builder = $this->db->table('auth_logins al');
+        $builder->select('al.user_id, COUNT(al.id) as login_count, u.username, u.email, u.fullname, u.user_image, u.active, MAX(al.date) as last_login, MIN(al.date) as first_login');
+        $builder->join('users u', 'al.user_id = u.id', 'inner');
+        $builder->where('al.success', 1);
+        $builder->where('al.user_id IS NOT NULL');
+
+        // Apply period filter
+        if ($period !== 'all') {
+            $dateFilter = $this->getPeriodDateFilter($period);
+            if ($dateFilter) {
+                $builder->where('al.date >=', $dateFilter);
+            }
+        }
+
+        $builder->groupBy('al.user_id');
+        $builder->orderBy('login_count', 'DESC');
+        $builder->limit($limit);
+
+        $users = $builder->get()->getResultArray();
+
+        // Get user groups for each user
+        foreach ($users as &$user) {
+            $groups = $this->db->table('auth_groups_users agu')
+                ->select('ag.name')
+                ->join('auth_groups ag', 'agu.group_id = ag.id')
+                ->where('agu.user_id', $user['user_id'])
+                ->groupBy('ag.id, ag.name')
+                ->get()
+                ->getResultArray();
+
+            // Remove duplicates using array_unique on the name column (double safety)
+            $groupNames = array_unique(array_column($groups, 'name'));
+            $user['user_groups'] = implode(', ', $groupNames);
+        }
+
+        return $users;
+    }
+
+    /**
+     * Get statistics for most frequent login users
+     * 
+     * @param string $period Period filter: 'all', 'today', 'week', 'month', 'year'
+     * @return array
+     */
+    public function getFrequentLoginStatistics($period = 'all')
+    {
+        $builder = $this->db->table('auth_logins al');
+        $builder->select('COUNT(DISTINCT al.user_id) as total_active_users, COUNT(al.id) as total_logins');
+        $builder->where('al.success', 1);
+        $builder->where('al.user_id IS NOT NULL');
+
+        // Apply period filter
+        if ($period !== 'all') {
+            $dateFilter = $this->getPeriodDateFilter($period);
+            if ($dateFilter) {
+                $builder->where('al.date >=', $dateFilter);
+            }
+        }
+
+        $stats = $builder->get()->getRowArray();
+
+        // Get top 5 users
+        $topUsers = $this->getMostFrequentLoginUsers(5, $period);
+
+        return [
+            'total_active_users' => (int)($stats['total_active_users'] ?? 0),
+            'total_logins' => (int)($stats['total_logins'] ?? 0),
+            'top_users' => $topUsers
+        ];
+    }
+
+    /**
+     * Get date filter for period
+     * 
+     * @param string $period
+     * @return string|null
+     */
+    private function getPeriodDateFilter($period)
+    {
+        switch ($period) {
+            case 'today':
+                return date('Y-m-d 00:00:00');
+            case 'week':
+                return date('Y-m-d 00:00:00', strtotime('-7 days'));
+            case 'month':
+                return date('Y-m-d 00:00:00', strtotime('-30 days'));
+            case 'year':
+                return date('Y-m-d 00:00:00', strtotime('-365 days'));
+            default:
+                return null;
+        }
     }
 }
 

@@ -38,6 +38,7 @@ class Auth extends BaseController
 
         $stats = $this->authModel->getStatistics();
         $onlineUsers = $this->authModel->getOnlineUsers(null);
+        $frequentLoginStats = $this->authModel->getFrequentLoginStatistics('all');
         
         $sessionConfig = config('Session');
         $sessionExpiration = $sessionConfig->expiration ?? 7200;
@@ -47,6 +48,7 @@ class Auth extends BaseController
             'page_title' => 'Pengaturan MyAuth',
             'stats' => $stats,
             'online_users' => $onlineUsers,
+            'frequent_login_stats' => $frequentLoginStats,
             'session_expiration_minutes' => $sessionExpirationMinutes
         ];
 
@@ -680,6 +682,41 @@ class Auth extends BaseController
         ];
 
         return view('backend/auth/OnlineUsers', $data);
+    }
+
+    /**
+     * Frequent login users page - shows users who login most frequently
+     */
+    public function frequentLoginUsers()
+    {
+        $this->checkAdmin();
+
+        $period = $this->request->getGet('period') ?? 'all';
+        $limit = (int)($this->request->getGet('limit') ?? 50);
+        
+        // Validate period
+        $validPeriods = ['all', 'today', 'week', 'month', 'year'];
+        if (!in_array($period, $validPeriods)) {
+            $period = 'all';
+        }
+        
+        // Validate limit
+        if ($limit < 1 || $limit > 500) {
+            $limit = 50;
+        }
+
+        $users = $this->authModel->getMostFrequentLoginUsers($limit, $period);
+        $stats = $this->authModel->getFrequentLoginStatistics($period);
+
+        $data = [
+            'page_title' => 'User yang Sering Login',
+            'users' => $users,
+            'stats' => $stats,
+            'period' => $period,
+            'limit' => $limit
+        ];
+
+        return view('backend/auth/FrequentLoginUsers', $data);
     }
 }
 

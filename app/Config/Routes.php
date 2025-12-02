@@ -456,6 +456,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('auth/loginAttempts', 'Auth::loginAttempts');
     $routes->get('auth/passwordResets', 'Auth::passwordResets');
     $routes->get('auth/onlineUsers', 'Auth::onlineUsers');
+    $routes->get('auth/frequentLoginUsers', 'Auth::frequentLoginUsers');
     $routes->get('auth/getUser/(:num)', 'Auth::getUser/$1');
     $routes->get('auth/getGroup/(:num)', 'Auth::getGroup/$1');
     $routes->post('auth/updateUserGroups', 'Auth::updateUserGroups');
