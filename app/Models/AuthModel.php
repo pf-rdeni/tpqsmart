@@ -140,8 +140,10 @@ class AuthModel extends Model
      */
     public function getLoginAttempts($limit = 100)
     {
-        return $this->db->table('auth_logins')
-            ->orderBy('date', 'DESC')
+        return $this->db->table('auth_logins al')
+            ->select('al.*, u.username, u.fullname')
+            ->join('users u', 'al.user_id = u.id', 'left')
+            ->orderBy('al.date', 'DESC')
             ->limit($limit)
             ->get()
             ->getResultArray();
@@ -372,6 +374,11 @@ class AuthModel extends Model
                 $userId = (int)$matches[1];
             }
 
+            // Pattern for: logged_in without quotes: logged_in;i:123;
+            if (!$userId && preg_match('/logged_in[;:]\s*i:(\d+);/', $sessionData, $matches)) {
+                $userId = (int)$matches[1];
+            }
+
             // Method 3: Fallback - look for user_id key (less common)
             if (!$userId && preg_match('/"user_id"[;:]\s*i:(\d+);/', $sessionData, $matches)) {
                 $userId = (int)$matches[1];
@@ -379,6 +386,47 @@ class AuthModel extends Model
 
             if (!$userId && preg_match('/"user_id"[;:]\s*s:\d+:"(\d+)";/', $sessionData, $matches)) {
                 $userId = (int)$matches[1];
+            }
+
+            // Method 4: More flexible pattern - look for logged_in followed by any integer
+            if (!$userId && preg_match('/logged_in["\']?\s*[;:]\s*[is]:\d+:[:"]([0-9]+)[";]/', $sessionData, $matches)) {
+                $userId = (int)$matches[1];
+            }
+
+            // Method 5: Look for any numeric value after logged_in (with more flexible spacing)
+            if (!$userId && preg_match('/logged_in["\']?\s*[;:]\s*(\d+)/', $sessionData, $matches)) {
+                $userId = (int)$matches[1];
+            }
+
+            // Method 6: Try to find any integer after "logged_in" with various formats
+            // This is a more permissive pattern as last resort
+            if (!$userId) {
+                // Look for pattern: s:10:"logged_in" followed by i:123 or s:3:"123"
+                if (preg_match('/s:\d+:"logged_in"[;:]\s*[is]:\d+:[:"]([0-9]+)[";]/', $sessionData, $matches)) {
+                    $userId = (int)$matches[1];
+                }
+            }
+
+            // Method 7: Very permissive - find any occurrence of logged_in and extract nearby number
+            // This handles edge cases where format might be slightly different
+            if (!$userId) {
+                // Find position of logged_in
+                $pos = stripos($sessionData, 'logged_in');
+                if ($pos !== false) {
+                    // Extract substring after logged_in (up to 100 chars)
+                    $substring = substr($sessionData, $pos, 100);
+                    // Look for first integer in this substring
+                    if (preg_match('/[is]:(\d+):[:"]([0-9]+)[";]/', $substring, $matches)) {
+                        // Try the second match (the actual value)
+                        if (isset($matches[2]) && is_numeric($matches[2])) {
+                            $userId = (int)$matches[2];
+                        }
+                        // Or try the first match if it looks like a user ID
+                        elseif (isset($matches[1]) && is_numeric($matches[1]) && $matches[1] > 0 && $matches[1] < 1000000) {
+                            $userId = (int)$matches[1];
+                        }
+                    }
+                }
             }
             
             if (!$userId || isset($seenUsers[$userId])) {
@@ -398,7 +446,7 @@ class AuthModel extends Model
         // Step 2: Bulk query - Get all user info with groups in one query
         $userIds = array_keys($userSessions);
         $usersData = $this->db->table('users')
-            ->select('users.*, GROUP_CONCAT(ag.name SEPARATOR ", ") as user_groups')
+            ->select('users.*, GROUP_CONCAT(DISTINCT ag.name ORDER BY ag.name SEPARATOR ", ") as user_groups')
             ->join('auth_groups_users agu', 'users.id = agu.user_id', 'left')
             ->join('auth_groups ag', 'agu.group_id = ag.id', 'left')
             ->whereIn('users.id', $userIds)
@@ -489,7 +537,7 @@ class AuthModel extends Model
             $timeThreshold = date('Y-m-d H:i:s', strtotime("-{$fallbackMinutes} minutes"));
             
             $builder = $this->db->table('auth_logins al');
-            $builder->select('al.*, u.id as user_id, u.username, u.email, u.fullname, u.user_image, GROUP_CONCAT(ag.name SEPARATOR ", ") as user_groups');
+            $builder->select('al.*, u.id as user_id, u.username, u.email, u.fullname, u.user_image, GROUP_CONCAT(DISTINCT ag.name ORDER BY ag.name SEPARATOR ", ") as user_groups');
             $builder->join('users u', 'al.user_id = u.id', 'inner');
             $builder->join('auth_groups_users agu', 'u.id = agu.user_id', 'left');
             $builder->join('auth_groups ag', 'agu.group_id = ag.id', 'left');

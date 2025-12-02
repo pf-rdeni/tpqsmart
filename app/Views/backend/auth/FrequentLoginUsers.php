@@ -1,5 +1,47 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
+<?php
+// Function to get badge color for group
+function getGroupBadgeColor($groupName)
+{
+    $groupColors = [
+        'Admin' => 'danger',
+        'Operator' => 'primary',
+        'Guru' => 'success',
+        'Kepala TPQ' => 'warning',
+        'Santri' => 'info',
+        'default' => 'secondary'
+    ];
+
+    $groupName = trim($groupName);
+    foreach ($groupColors as $key => $color) {
+        if (stripos($groupName, $key) !== false) {
+            return $color;
+        }
+    }
+    return $groupColors['default'];
+}
+
+// Function to render groups as badges
+function renderGroupsAsBadges($groupsString)
+{
+    if (empty($groupsString)) {
+        return '<span class="text-muted">-</span>';
+    }
+
+    $groups = array_map('trim', explode(',', $groupsString));
+    $badges = [];
+
+    foreach ($groups as $group) {
+        if (!empty($group)) {
+            $color = getGroupBadgeColor($group);
+            $badges[] = '<span class="badge badge-' . $color . '">' . esc($group) . '</span>';
+        }
+    }
+
+    return !empty($badges) ? implode(' ', $badges) : '<span class="text-muted">-</span>';
+}
+?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -146,11 +188,11 @@
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <?php if (!empty($user['user_image']) && $user['user_image'] !== 'default.svg'): ?>
-                                                        <img src="<?= base_url('uploads/profil/user/' . $user['user_image']) ?>" 
-                                                             class="img-circle elevation-2" 
-                                                             alt="User Image"
-                                                             style="width: 40px; height: 40px; object-fit: cover; margin-right: 10px;"
-                                                             onerror="this.style.display='none';">
+                                                        <img src="<?= base_url('uploads/profil/user/' . $user['user_image']) ?>"
+                                                            class="img-circle elevation-2"
+                                                            alt="User Image"
+                                                            style="width: 40px; height: 40px; object-fit: cover; margin-right: 10px;"
+                                                            onerror="this.style.display='none';">
                                                     <?php else: ?>
                                                         <i class="fas fa-user-circle" style="font-size: 40px; color: #6c757d; margin-right: 10px;"></i>
                                                     <?php endif; ?>
@@ -160,11 +202,7 @@
                                             <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
                                             <td><?= esc($user['email'] ?? '-') ?></td>
                                             <td>
-                                                <?php if (!empty($user['user_groups'])): ?>
-                                                    <span class="badge badge-info"><?= esc($user['user_groups']) ?></span>
-                                                <?php else: ?>
-                                                    <span class="text-muted">-</span>
-                                                <?php endif; ?>
+                                                <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>
                                             </td>
                                             <td>
                                                 <span class="badge badge-success" style="font-size: 14px;">
@@ -207,59 +245,60 @@
 
 <?= $this->section('scripts'); ?>
 <script>
-(function($) {
-    'use strict';
-    
-    $(document).ready(function() {
-        // Wait for table to be fully rendered
-        setTimeout(function() {
-            const $table = $('#frequentLoginUsersTable');
-            
-            // Check if table exists and has tbody with rows
-            if ($table.length && $table.find('tbody').length) {
-                const tbody = $table.find('tbody')[0];
-                
-                // Only initialize if tbody exists and has content
-                if (tbody && (tbody.rows.length > 0 || $table.find('tbody tr').length > 0)) {
-                    try {
-                        // Initialize DataTable dengan scroll horizontal
-                        initializeDataTableScrollX('#frequentLoginUsersTable', [], {
-                            "pageLength": <?= $limit ?>,
-                            "lengthChange": true,
-                            "order": [[6, "desc"]], // Sort by Jumlah Login
-                            "language": {
-                                "decimal": "",
-                                "emptyTable": "Tidak ada data yang tersedia pada tabel",
-                                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
-                                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
-                                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
-                                "infoPostFix": "",
-                                "thousands": ".",
-                                "lengthMenu": "Tampilkan _MENU_ entri",
-                                "loadingRecords": "Sedang memuat...",
-                                "processing": "Sedang memproses...",
-                                "search": "Cari:",
-                                "zeroRecords": "Tidak ditemukan data yang sesuai",
-                                "paginate": {
-                                    "first": "Pertama",
-                                    "last": "Terakhir",
-                                    "next": "Selanjutnya",
-                                    "previous": "Sebelumnya"
-                                },
-                                "aria": {
-                                    "sortAscending": ": aktifkan untuk mengurutkan kolom naik",
-                                    "sortDescending": ": aktifkan untuk mengurutkan kolom turun"
+    (function($) {
+        'use strict';
+
+        $(document).ready(function() {
+            // Wait for table to be fully rendered
+            setTimeout(function() {
+                const $table = $('#frequentLoginUsersTable');
+
+                // Check if table exists and has tbody with rows
+                if ($table.length && $table.find('tbody').length) {
+                    const tbody = $table.find('tbody')[0];
+
+                    // Only initialize if tbody exists and has content
+                    if (tbody && (tbody.rows.length > 0 || $table.find('tbody tr').length > 0)) {
+                        try {
+                            // Initialize DataTable dengan scroll horizontal
+                            initializeDataTableScrollX('#frequentLoginUsersTable', [], {
+                                "pageLength": <?= $limit ?>,
+                                "lengthChange": true,
+                                "order": [
+                                    [6, "desc"]
+                                ], // Sort by Jumlah Login
+                                "language": {
+                                    "decimal": "",
+                                    "emptyTable": "Tidak ada data yang tersedia pada tabel",
+                                    "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                                    "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                                    "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                                    "infoPostFix": "",
+                                    "thousands": ".",
+                                    "lengthMenu": "Tampilkan _MENU_ entri",
+                                    "loadingRecords": "Sedang memuat...",
+                                    "processing": "Sedang memproses...",
+                                    "search": "Cari:",
+                                    "zeroRecords": "Tidak ditemukan data yang sesuai",
+                                    "paginate": {
+                                        "first": "Pertama",
+                                        "last": "Terakhir",
+                                        "next": "Selanjutnya",
+                                        "previous": "Sebelumnya"
+                                    },
+                                    "aria": {
+                                        "sortAscending": ": aktifkan untuk mengurutkan kolom naik",
+                                        "sortDescending": ": aktifkan untuk mengurutkan kolom turun"
+                                    }
                                 }
-                            }
-                        });
-                    } catch (e) {
-                        console.error('Error initializing DataTable:', e);
+                            });
+                        } catch (e) {
+                            console.error('Error initializing DataTable:', e);
+                        }
                     }
                 }
-            }
-        }, 100);
-    });
-})(jQuery);
+            }, 100);
+        });
+    })(jQuery);
 </script>
 <?= $this->endSection(); ?>
-

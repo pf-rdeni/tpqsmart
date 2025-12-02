@@ -1,5 +1,45 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
+<?php
+// Function to get badge color for group
+function getGroupBadgeColor($groupName) {
+    $groupColors = [
+        'Admin' => 'danger',
+        'Operator' => 'primary',
+        'Guru' => 'success',
+        'Kepala TPQ' => 'warning',
+        'Santri' => 'info',
+        'default' => 'secondary'
+    ];
+    
+    $groupName = trim($groupName);
+    foreach ($groupColors as $key => $color) {
+        if (stripos($groupName, $key) !== false) {
+            return $color;
+        }
+    }
+    return $groupColors['default'];
+}
+
+// Function to render groups as badges
+function renderGroupsAsBadges($groupsString) {
+    if (empty($groupsString)) {
+        return '<span class="text-muted">-</span>';
+    }
+    
+    $groups = array_map('trim', explode(',', $groupsString));
+    $badges = [];
+    
+    foreach ($groups as $group) {
+        if (!empty($group)) {
+            $color = getGroupBadgeColor($group);
+            $badges[] = '<span class="badge badge-' . $color . '">' . esc($group) . '</span>';
+        }
+    }
+    
+    return !empty($badges) ? implode(' ', $badges) : '<span class="text-muted">-</span>';
+}
+?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -124,11 +164,7 @@
                                             <td><?= esc($user['username']) ?></td>
                                             <td><?= esc($user['fullname'] ?? '-') ?></td>
                                             <td>
-                                                <?php if (!empty($user['user_groups'])): ?>
-                                                    <?= esc($user['user_groups']) ?>
-                                                <?php else: ?>
-                                                    <span class="text-muted">-</span>
-                                                <?php endif; ?>
+                                                <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>
                                             </td>
                                             <td>
                                                 <?php 

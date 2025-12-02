@@ -20,7 +20,7 @@
                             <thead>
                                 <tr>
                                     <th>IP Address</th>
-                                    <th>Email/Username</th>
+                                    <th>Username / Nama</th>
                                     <th>User ID</th>
                                     <th>Status</th>
                                     <th>Tanggal</th>
@@ -35,7 +35,16 @@
                                     <?php foreach ($attempts as $attempt): ?>
                                         <tr>
                                             <td><?= esc($attempt['ip_address'] ?? '-') ?></td>
-                                            <td><?= esc($attempt['email'] ?? '-') ?></td>
+                                            <td>
+                                                <?php if (!empty($attempt['username'])): ?>
+                                                    <strong><?= esc($attempt['username']) ?></strong>
+                                                    <?php if (!empty($attempt['fullname'])): ?>
+                                                        <br><small class="text-muted"><?= esc(ucwords(strtolower($attempt['fullname']))) ?></small>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <?= esc($attempt['email'] ?? '-') ?>
+                                                <?php endif; ?>
+                                            </td>
                                             <td><?= esc($attempt['user_id'] ?? '-') ?></td>
                                             <td>
                                                 <?php if ($attempt['success'] ?? 0): ?>

@@ -1,5 +1,45 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
+<?php
+// Function to get badge color for group
+function getGroupBadgeColor($groupName) {
+    $groupColors = [
+        'Admin' => 'danger',
+        'Operator' => 'primary',
+        'Guru' => 'success',
+        'Kepala TPQ' => 'warning',
+        'Santri' => 'info',
+        'default' => 'secondary'
+    ];
+    
+    $groupName = trim($groupName);
+    foreach ($groupColors as $key => $color) {
+        if (stripos($groupName, $key) !== false) {
+            return $color;
+        }
+    }
+    return $groupColors['default'];
+}
+
+// Function to render groups as badges
+function renderGroupsAsBadges($groupsString) {
+    if (empty($groupsString)) {
+        return '<span class="text-muted">-</span>';
+    }
+    
+    $groups = array_map('trim', explode(',', $groupsString));
+    $badges = [];
+    
+    foreach ($groups as $group) {
+        if (!empty($group)) {
+            $color = getGroupBadgeColor($group);
+            $badges[] = '<span class="badge badge-' . $color . '">' . esc($group) . '</span>';
+        }
+    }
+    
+    return !empty($badges) ? implode(' ', $badges) : '<span class="text-muted">-</span>';
+}
+?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -197,82 +237,6 @@
                     </div>
 
                     <!-- Top 5 Frequent Login Users -->
-                    <?php if (!empty($frequent_login_stats['top_users'])): ?>
-                        <div class="row mt-4">
-                            <div class="col-md-12">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h3 class="card-title">
-                                            <i class="fas fa-trophy"></i> Top 5 User yang Sering Login
-                                        </h3>
-                                        <div class="card-tools">
-                                            <a href="<?= base_url('backend/auth/frequentLoginUsers') ?>" class="btn btn-sm btn-primary">
-                                                <i class="fas fa-external-link-alt"></i> Lihat Semua
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div class="card-body p-0">
-                                        <table class="table table-striped">
-                                            <thead>
-                                                <tr>
-                                                    <th style="width: 10px">#</th>
-                                                    <th>User</th>
-                                                    <th>Username</th>
-                                                    <th>Nama</th>
-                                                    <th>Groups</th>
-                                                    <th>Jumlah Login</th>
-                                                    <th>Login Terakhir</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php $no = 1; ?>
-                                                <?php foreach ($frequent_login_stats['top_users'] as $user): ?>
-                                                    <tr>
-                                                        <td><?= $no++ ?></td>
-                                                        <td>
-                                                            <div class="d-flex align-items-center">
-                                                                <?php if (!empty($user['user_image']) && $user['user_image'] !== 'default.svg'): ?>
-                                                                    <img src="<?= base_url('uploads/profil/user/' . $user['user_image']) ?>"
-                                                                        class="img-circle elevation-2"
-                                                                        alt="User Image"
-                                                                        style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;"
-                                                                        onerror="this.style.display='none';">
-                                                                <?php else: ?>
-                                                                    <i class="fas fa-user-circle" style="font-size: 30px; color: #6c757d; margin-right: 8px;"></i>
-                                                                <?php endif; ?>
-                                                            </div>
-                                                        </td>
-                                                        <td><?= esc($user['username']) ?></td>
-                                                        <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
-                                                        <td>
-                                                            <?php if (!empty($user['user_groups'])): ?>
-                                                                <span class="badge badge-info"><?= esc($user['user_groups']) ?></span>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td>
-                                                            <span class="badge badge-success">
-                                                                <i class="fas fa-sign-in-alt"></i> <?= number_format($user['login_count'], 0, ',', '.') ?>
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <?php if (!empty($user['last_login'])): ?>
-                                                                <small><?= date('d/m/Y H:i', strtotime($user['last_login'])) ?></small>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
                     <!-- Quick Links -->
                     <div class="row mt-4">
                         <div class="col-md-12">
@@ -321,6 +285,79 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Top 5 User yang Sering Login -->
+                    <?php if (!empty($frequent_login_stats['top_users'])): ?>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <i class="fas fa-trophy"></i> Top 5 User yang Sering Login
+                                    </h3>
+                                    <div class="card-tools">
+                                        <a href="<?= base_url('backend/auth/frequentLoginUsers') ?>" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-external-link-alt"></i> Lihat Semua
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 10px">#</th>
+                                                <th>User</th>
+                                                <th>Username</th>
+                                                <th>Nama</th>
+                                                <th>Groups</th>
+                                                <th>Jumlah Login</th>
+                                                <th>Login Terakhir</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php $no = 1; ?>
+                                            <?php foreach ($frequent_login_stats['top_users'] as $user): ?>
+                                                <tr>
+                                                    <td><?= $no++ ?></td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <?php if (!empty($user['user_image']) && $user['user_image'] !== 'default.svg'): ?>
+                                                                <img src="<?= base_url('uploads/profil/user/' . $user['user_image']) ?>"
+                                                                    class="img-circle elevation-2"
+                                                                    alt="User Image"
+                                                                    style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;"
+                                                                    onerror="this.style.display='none';">
+                                                            <?php else: ?>
+                                                                <i class="fas fa-user-circle" style="font-size: 30px; color: #6c757d; margin-right: 8px;"></i>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </td>
+                                                    <td><?= esc($user['username']) ?></td>
+                                                    <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
+                                                    <td>
+                                                        <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-success">
+                                                            <i class="fas fa-sign-in-alt"></i> <?= number_format($user['login_count'], 0, ',', '.') ?>
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <?php if (!empty($user['last_login'])): ?>
+                                                            <small><?= date('d/m/Y H:i', strtotime($user['last_login'])) ?></small>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">-</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                     <!-- Online Users -->
                     <div class="row mt-4">
@@ -378,11 +415,7 @@
                                                         <td><?= esc($user['username']) ?></td>
                                                         <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
                                                         <td>
-                                                            <?php if (!empty($user['user_groups'])): ?>
-                                                                <?= esc($user['user_groups']) ?>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php endif; ?>
+                                                            <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>
                                                         </td>
                                                         <td>
                                                             <?php
