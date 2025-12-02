@@ -37,12 +37,17 @@ class Auth extends BaseController
         $this->checkAdmin();
 
         $stats = $this->authModel->getStatistics();
-        $recentLogins = $this->authModel->getLoginAttempts(10);
+        $onlineUsers = $this->authModel->getOnlineUsers(null);
+        
+        $sessionConfig = config('Session');
+        $sessionExpiration = $sessionConfig->expiration ?? 7200;
+        $sessionExpirationMinutes = round($sessionExpiration / 60);
 
         $data = [
             'page_title' => 'Pengaturan MyAuth',
             'stats' => $stats,
-            'recent_logins' => $recentLogins
+            'online_users' => $onlineUsers,
+            'session_expiration_minutes' => $sessionExpirationMinutes
         ];
 
         return view('backend/auth/Index', $data);
