@@ -179,26 +179,68 @@
         </div>
     </div>
 </div>
+<?= $this->endSection(); ?>
 
+<?= $this->section('scripts'); ?>
 <script>
-$(document).ready(function() {
-    // Initialize DataTable
-    $('#onlineUsersTable').DataTable({
-        "responsive": true,
-        "lengthChange": true,
-        "autoWidth": false,
-        "pageLength": 25,
-        "order": [[5, "desc"]], // Sort by Last Activity
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/id.json"
-        }
-    });
+(function($) {
+    'use strict';
+    
+    $(document).ready(function() {
+        // Wait for table to be fully rendered
+        setTimeout(function() {
+            const $table = $('#onlineUsersTable');
+            
+            // Check if table exists and has tbody with rows
+            if ($table.length && $table.find('tbody').length) {
+                const tbody = $table.find('tbody')[0];
+                
+                // Only initialize if tbody exists and has content
+                if (tbody && (tbody.rows.length > 0 || $table.find('tbody tr').length > 0)) {
+                    try {
+                        // Initialize DataTable dengan scroll horizontal
+                        initializeDataTableScrollX('#onlineUsersTable', [], {
+                            "pageLength": 25,
+                            "lengthChange": true,
+                            "order": [[5, "desc"]], // Sort by Last Activity
+                            "language": {
+                                "decimal": "",
+                                "emptyTable": "Tidak ada data yang tersedia pada tabel",
+                                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                                "infoPostFix": "",
+                                "thousands": ",",
+                                "lengthMenu": "Tampilkan _MENU_ entri",
+                                "loadingRecords": "Sedang memuat...",
+                                "processing": "Sedang memproses...",
+                                "search": "Cari:",
+                                "zeroRecords": "Tidak ditemukan data yang sesuai",
+                                "paginate": {
+                                    "first": "Pertama",
+                                    "last": "Terakhir",
+                                    "next": "Selanjutnya",
+                                    "previous": "Sebelumnya"
+                                },
+                                "aria": {
+                                    "sortAscending": ": aktifkan untuk mengurutkan kolom naik",
+                                    "sortDescending": ": aktifkan untuk mengurutkan kolom turun"
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Error initializing DataTable:', e);
+                    }
+                }
+            }
+        }, 100);
 
-    // Auto refresh every 30 seconds
-    setInterval(function() {
-        location.reload();
-    }, 30000);
-});
+        // Auto refresh every 30 seconds
+        setInterval(function() {
+            location.reload();
+        }, 30000);
+    });
+})(jQuery);
 </script>
 <?= $this->endSection(); ?>
 
