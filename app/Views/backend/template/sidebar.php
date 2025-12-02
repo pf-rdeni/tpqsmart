@@ -767,6 +767,63 @@
                             </li>
                         </ul>
                     </li>
+                <?php endif; ?>
+                <?php if (in_groups('Admin')): ?>
+                    <!--  MyAuth Management -->
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-shield-alt"></i>
+                            <p>
+                                MyAuth
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/auth') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Dashboard</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/auth/users') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Manajemen User</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/auth/groups') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Manajemen Group</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/auth/permissions') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Manajemen Permission</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/auth/loginAttempts') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Riwayat Login</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/auth/passwordResets') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Token Reset Password</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/auth/onlineUsers') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>User Online</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                <?php endif; ?>
                     <!--  General Setting -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -829,7 +886,6 @@
                             <?php endif; ?>
                         </ul>
                     </li>
-                <?php endif; ?>
                 <?php if ($isActiveGuru): ?>
                     <li class="nav-item">
                         <a href="#" class="nav-link">

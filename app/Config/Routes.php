@@ -446,6 +446,25 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('search', 'Search::index');
     $routes->get('search/index', 'Search::index');
 
+    // MyAuth Management Routes (Admin only)
+    $routes->get('auth', 'Auth::index');
+    $routes->get('auth/users', 'Auth::users');
+    $routes->get('auth/groups', 'Auth::groups');
+    $routes->get('auth/permissions', 'Auth::permissions');
+    $routes->get('auth/loginAttempts', 'Auth::loginAttempts');
+    $routes->get('auth/passwordResets', 'Auth::passwordResets');
+    $routes->get('auth/onlineUsers', 'Auth::onlineUsers');
+    $routes->get('auth/getUser/(:num)', 'Auth::getUser/$1');
+    $routes->get('auth/getGroup/(:num)', 'Auth::getGroup/$1');
+    $routes->post('auth/updateUserGroups', 'Auth::updateUserGroups');
+    $routes->post('auth/createGroup', 'Auth::createGroup');
+    $routes->post('auth/updateGroup', 'Auth::updateGroup');
+    $routes->get('auth/deleteGroup/(:num)', 'Auth::deleteGroup/$1');
+    $routes->post('auth/updateGroupPermissions', 'Auth::updateGroupPermissions');
+    $routes->post('auth/createPermission', 'Auth::createPermission');
+    $routes->post('auth/updatePermission', 'Auth::updatePermission');
+    $routes->get('auth/deletePermission/(:num)', 'Auth::deletePermission/$1');
+
     // Islamic API Routes (Jadwal Sholat & Al-Qur'an)
     $routes->get('jadwal-sholat', 'IslamicController::jadwalSholatByCity');
     $routes->get('jadwal-sholat/(:segment)', 'IslamicController::jadwalSholatByCity/$1');
