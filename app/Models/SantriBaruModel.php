@@ -131,11 +131,6 @@ class SantriBaruModel extends Model
     protected $afterDelete    = [];
 
     // Custom Methods
-    public function getSantriByNIK($nikSantri)
-    {
-        return $this->where('NikSantri', $nikSantri)->first();
-    }
-
     public function getDetailSantri($IdSantri)
     {
         return $this->where('IdSantri', $IdSantri)->first();
@@ -289,5 +284,284 @@ class SantriBaruModel extends Model
         $builder->orderBy('k.NamaKelas ASC, s.NamaSantri ASC');
 
         return $builder->get()->getResultObject();
+    }
+
+    /**
+     * Mendapatkan data profil santri dengan filter berdasarkan TPQ dan kelas
+     * @param mixed $IdTpq ID TPQ (null untuk semua TPQ)
+     * @param mixed $IdKelas ID Kelas atau array ID Kelas (null untuk semua kelas)
+     * @param array $idKelasArray Array ID Kelas untuk filter whereIn (untuk Operator)
+     * @return array
+     */
+    public function getProfilSantri($IdTpq = null, $IdKelas = null, $idKelasArray = null)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        if ($IdTpq == null) {
+            // Jika tidak ada filter TPQ, ambil semua data
+            $builder->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC');
+        } else {
+            // Filter berdasarkan TPQ
+            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+
+            // Filter berdasarkan kelas
+            if (!empty($idKelasArray)) {
+                // Untuk Operator: filter berdasarkan array kelas dari TPQ
+                $builder->whereIn('tbl_santri_baru.IdKelas', $idKelasArray);
+            } elseif ($IdKelas !== null) {
+                // Untuk role lain: filter berdasarkan IdKelas dari session
+                if (is_array($IdKelas)) {
+                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                } else {
+                    $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+                }
+            }
+
+            $builder->orderBy('tbl_santri_baru.IdKelas', 'ASC')
+                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+                ->orderBy('tbl_santri_baru.Status', 'DESC');
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Mendapatkan detail santri berdasarkan IdSantri dengan join kelas dan TPQ
+     * @param string $IdSantri
+     * @return array|null
+     */
+    public function getDetailSantriById($IdSantri)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+
+        $result = $builder->get()->getRowArray();
+        return $result ?: null;
+    }
+
+    /**
+     * Mendapatkan detail santri untuk profil dengan join kelas dan TPQ
+     * @param string $IdSantri
+     * @return array|null
+     */
+    public function getProfilDetailSantri($IdSantri)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa as KelurahanDesaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+
+        $result = $builder->get()->getRowArray();
+        return $result ?: null;
+    }
+
+    /**
+     * Mendapatkan santri berdasarkan NIK
+     * @param string $NikSantri
+     * @return array|null
+     */
+    public function getSantriByNik($NikSantri)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.NikSantri', $NikSantri);
+
+        $result = $builder->get()->getRowArray();
+        return $result ?: null;
+    }
+
+    /**
+     * Mendapatkan list santri baru dengan filter TPQ dan kelas
+     * @param mixed $IdTpq ID TPQ (null untuk semua TPQ)
+     * @param mixed $IdKelas ID Kelas atau array ID Kelas (null untuk semua kelas)
+     * @return array
+     */
+    public function getListSantriBaru($IdTpq = null, $IdKelas = null)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        if ($IdTpq == null) {
+            $builder->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC');
+        } else {
+            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+
+            if ($IdKelas !== null) {
+                if (is_array($IdKelas)) {
+                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                } else {
+                    $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+                }
+            }
+
+            $builder->orderBy('tbl_santri_baru.IdKelas', 'ASC')
+                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+                ->orderBy('tbl_santri_baru.Status', 'DESC');
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Mendapatkan jumlah santri per TPQ
+     * @return array
+     */
+    public function getJumlahSantriPerTpq()
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
+            ->groupBy('tbl_tpq.IdTpq');
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Mendapatkan list santri untuk atur santri baru dengan filter kompleks
+     * @param mixed $IdTpq ID TPQ
+     * @param mixed $IdKelas ID Kelas atau array ID Kelas
+     * @param bool $isGuru Apakah user adalah Guru (filter Active=1)
+     * @return array
+     */
+    public function getListAturSantriBaru($IdTpq = null, $IdKelas = null, $isGuru = false)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select([
+            'tbl_santri_baru.*',
+            'tbl_kelas.NamaKelas',
+            'tbl_tpq.NamaTpq',
+            'tbl_tpq.KelurahanDesa'
+        ])
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        if ($IdTpq) {
+            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+        }
+
+        if ($isGuru) {
+            $builder->where('tbl_santri_baru.Active', 1);
+        }
+
+        if ($IdKelas !== null) {
+            if (is_array($IdKelas)) {
+                if (!empty($IdKelas)) {
+                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                }
+            } else if (!empty($IdKelas)) {
+                $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+            }
+        }
+
+        $builder->orderBy('tbl_santri_baru.IdKelas', 'ASC')
+            ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+            ->orderBy('tbl_santri_baru.Status', 'DESC');
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Mendapatkan list santri untuk EMIS dengan filter TPQ
+     * @param mixed $IdTpq ID TPQ (null untuk semua TPQ)
+     * @return array
+     */
+    public function getListSantriEmis($IdTpq = null)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+        if ($IdTpq == null) {
+            $builder->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC');
+        } else {
+            $builder->where('tbl_santri_baru.IdTpq', $IdTpq)
+                ->orderBy('tbl_santri_baru.Status', 'DESC')
+                ->orderBy('tbl_santri_baru.updated_at', 'DESC');
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Mendapatkan detail santri untuk edit dengan join kelas dan TPQ
+     * @param string $IdSantri
+     * @return array|null
+     */
+    public function getDetailSantriForEdit($IdSantri)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa as KelurahanDesaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+
+        $result = $builder->get()->getRowArray();
+        return $result ?: null;
+    }
+
+    /**
+     * Mendapatkan detail santri untuk ubah kelas dengan join kelas dan TPQ
+     * @param string $IdSantri
+     * @return array|null
+     */
+    public function getDetailSantriForUbahKelas($IdSantri)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+
+        $result = $builder->get()->getRowArray();
+        return $result ?: null;
+    }
+
+    /**
+     * Mendapatkan detail santri untuk ubah TPQ dengan join kelas dan TPQ
+     * @param string $IdSantri
+     * @return array|null
+     */
+    public function getDetailSantriForUbahTpq($IdSantri)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+
+        $result = $builder->get()->getRowArray();
+        return $result ?: null;
+    }
+
+    /**
+     * Mendapatkan detail santri untuk konfirmasi delete dengan join kelas dan TPQ
+     * @param string $IdSantri
+     * @return array|null
+     */
+    public function getDetailSantriForDelete($IdSantri)
+    {
+        $builder = $this->db->table('tbl_santri_baru');
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+
+        $result = $builder->get()->getRowArray();
+        return $result ?: null;
     }
 }

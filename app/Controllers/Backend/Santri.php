@@ -542,13 +542,7 @@ class Santri extends BaseController
     // Endpoint untuk cek NIK santri baru
     public function getNikSantri($NikSantri)
     {
-        $santriModel = new SantriBaruModel();
-        $santri = $santriModel
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.NikSantri', $NikSantri)
-            ->first();
+        $santri = $this->DataSantriBaru->getSantriByNik($NikSantri);
 
         // Set response dengan properti exists
         return $this->response->setJSON([
@@ -560,12 +554,7 @@ class Santri extends BaseController
     // Endpoint untuk mendapatkan detail santri baru
     public function getDetailSantri($IdSantri)
     {
-        $santri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri)
-            ->first();
+        $santri = $this->DataSantriBaru->getDetailSantriById($IdSantri);
         
         return $this->response->setJSON([
             'success' => !empty($santri),
@@ -591,56 +580,18 @@ class Santri extends BaseController
     {
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
+        $IdKelas = session()->get('IdKelas');
 
-        // Mulai membangun query dasar
-        $query = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
-
-        // Jika IdTpq tidak ada, ambil semua data santri dengan pengurutan khusus
-        if ($IdTpq == null) {
-            $santri = $query
-                ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->get()
-                ->getResultArray();
-        } else {
-            // Jika IdTpq ada, terapkan filter IdTpq dan cek filter IdKelas
-            $IdKelas = session()->get('IdKelas');
-
-            // Terapkan filter IdKelas jika ada
-            if ($IdKelas !== null) {
-                // check jika IdKelas adalah array, maka filter where in
-                if (is_array($IdKelas)) {
-                    $query->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
-                } else {
-                    $query->where('tbl_santri_baru.IdKelas', $IdKelas);
-                }
-            }
-
-            // Tambahkan filter IdTpq dan pengurutan untuk kasus IdTpq tidak null
-            $santri = $query
-                ->where('tbl_santri_baru.IdTpq', $IdTpq)
-                ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
-                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
-                ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->get()
-                ->getResultArray();
-        }
+        // Ambil data santri menggunakan method dari model
+        $santri = $this->DataSantriBaru->getListSantriBaru($IdTpq, $IdKelas);
 
         $tpq = $this->helpFunction->getDataTpq();
         usort($tpq, function ($a, $b) {
             return strcmp($a['NamaTpq'], $b['NamaTpq']);
         });
 
-        // Tambahkan query untuk menghitung jumlah santri per TPQ
-        $santriPerTpq = $this->DataSantriBaru
-            ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
-            ->groupBy('tbl_tpq.IdTpq')
-            ->get()
-            ->getResultArray();
+        // Ambil jumlah santri per TPQ menggunakan method dari model
+        $santriPerTpq = $this->DataSantriBaru->getJumlahSantriPerTpq();
 
         // Gabungkan data jumlah santri ke array TPQ
         foreach ($tpq as &$t) {
@@ -679,37 +630,68 @@ class Santri extends BaseController
     // Page: Profil Data Santri - List
     public function showProfilSantri()
     {
-        $IdTpq = session()->get('IdTpq');
+        // Ambil filter dari request atau session
+        $filterIdTpq = $this->request->getGet('filterIdTpq');
+        $filterIdKelas = $this->request->getGet('filterIdKelas');
 
-        $query = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+        $sessionIdTpq = session()->get('IdTpq');
+        $sessionIdKelas = session()->get('IdKelas');
+        $isOperator = in_groups('Operator');
+        $isAdmin = in_groups('Admin');
+        $isGuru = in_groups('Guru');
+        $isKepalaTpq = in_groups('Kepala TPQ');
 
-        if ($IdTpq == null) {
-            $santri = $query
-                ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->get()
-                ->getResultArray();
+        // Tentukan IdTpq yang akan digunakan
+        $IdTpq = null;
+        if ($isAdmin) {
+            $IdTpq = $filterIdTpq ?: $sessionIdTpq;
         } else {
-            $IdKelas = session()->get('IdKelas');
-            if ($IdKelas !== null) {
-                if (is_array($IdKelas)) {
-                    $query->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+            $IdTpq = $sessionIdTpq;
+        }
+
+        // Tentukan IdKelas yang akan digunakan
+        $IdKelas = null;
+        $idKelasArray = null;
+
+        if ($isOperator && $IdTpq !== null) {
+            // Jika Operator login, ambil semua kelas dari TPQ yang memiliki santri aktif
+            $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq);
+
+            // Jika ada filter kelas dari request, gunakan filter tersebut
+            if ($filterIdKelas && $filterIdKelas !== '') {
+                // Handle single value atau string dengan koma
+                if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                    $filterArray = array_filter(explode(',', $filterIdKelas));
+                    $IdKelas = array_intersect($filterArray, $idKelasArray);
                 } else {
-                    $query->where('tbl_santri_baru.IdKelas', $IdKelas);
+                    if (in_array($filterIdKelas, $idKelasArray)) {
+                        $IdKelas = $filterIdKelas;
+                    }
                 }
             }
-
-            $santri = $query
-                ->where('tbl_santri_baru.IdTpq', $IdTpq)
-                ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
-                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
-                ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->get()
-                ->getResultArray();
+        } else {
+            // Untuk role lain, gunakan filter dari request atau session
+            if ($filterIdKelas && $filterIdKelas !== '') {
+                // Handle single value atau string dengan koma
+                if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                    $IdKelas = array_filter(explode(',', $filterIdKelas));
+                } else {
+                    $IdKelas = $filterIdKelas;
+                }
+            } else {
+                $IdKelas = $sessionIdKelas;
+            }
         }
+
+        // Jika ada idKelasArray untuk Operator, gunakan itu, jika tidak gunakan IdKelas
+        if ($idKelasArray !== null && $IdKelas === null) {
+            // Gunakan semua kelas dari TPQ
+        } else if ($IdKelas !== null) {
+            $idKelasArray = null; // Override dengan filter yang dipilih
+        }
+
+        // Ambil data profil santri menggunakan method dari model
+        $santri = $this->DataSantriBaru->getProfilSantri($IdTpq, $IdKelas, $idKelasArray);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santri) && !empty($IdTpq)) {
@@ -725,9 +707,53 @@ class Santri extends BaseController
             }
         }
 
+        // Get data TPQ untuk filter dropdown
+        $dataTpq = $this->helpFunction->getDataTpq();
+        // Urutkan berdasarkan NamaTpq ASC (case-insensitive)
+        usort($dataTpq, function ($a, $b) {
+            return strcasecmp($a['NamaTpq'] ?? '', $b['NamaTpq'] ?? '');
+        });
+
+        // Get data Kelas untuk filter dropdown
+        $dataKelas = [];
+        if ($isAdmin || $isOperator || $isKepalaTpq) {
+            $dataKelas = $this->helpFunction->getDataKelas();
+        } else if ($isGuru) {
+            if ($sessionIdKelas && is_array($sessionIdKelas)) {
+                $allKelas = $this->helpFunction->getDataKelas();
+                $dataKelas = array_filter($allKelas, function ($kelas) use ($sessionIdKelas) {
+                    return in_array($kelas['IdKelas'], $sessionIdKelas);
+                });
+                $dataKelas = array_values($dataKelas);
+            }
+        }
+
+        // Terapkan mapping MDA pada nama kelas di filter dropdown
+        if (!empty($dataKelas) && !empty($IdTpq)) {
+            foreach ($dataKelas as $key => $kelas) {
+                if (isset($kelas['NamaKelas']) && !empty($kelas['NamaKelas'])) {
+                    $namaKelasOriginal = $kelas['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $dataKelas[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                    $dataKelas[$key]['NamaKelasOriginal'] = $namaKelasOriginal;
+                }
+            }
+        }
+
         $data = [
             'page_title' => 'Profil Data Santri',
             'dataSantri' => $santri,
+            'dataTpq' => $dataTpq,
+            'dataKelas' => $dataKelas,
+            'currentIdTpq' => $IdTpq,
+            'currentIdKelas' => $IdKelas ?: $idKelasArray,
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+            'isGuru' => $isGuru,
+            'isKepalaTpq' => $isKepalaTpq,
         ];
         return view('backend/santri/listDataProfilSantri', $data);
     }
@@ -735,12 +761,7 @@ class Santri extends BaseController
     // Page: Profil Data Santri - Detail
     public function profilDetailSantri($IdSantri)
     {
-        $santri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa as KelurahanDesaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri)
-            ->first();
+        $santri = $this->DataSantriBaru->getProfilDetailSantri($IdSantri);
 
         if (!$santri) {
             return redirect()->back()->with('error', 'Data santri tidak ditemukan');
@@ -820,27 +841,6 @@ class Santri extends BaseController
             }
         }
 
-        // Mulai membangun query dengan builder pattern
-        $builder = $this->DataSantriBaru
-            ->select([
-                'tbl_santri_baru.*',
-                'tbl_kelas.NamaKelas',
-                'tbl_tpq.NamaTpq',
-                'tbl_tpq.KelurahanDesa'
-            ])
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
-
-        // Terapkan filter IdTpq
-        if ($IdTpq) {
-            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
-        }
-
-        // Tambahkan filter Active=1 jika user adalah Guru
-        if ($isGuru) {
-            $builder->where('tbl_santri_baru.Active', 1);
-        }
-
         // Terapkan filter IdKelas
         $IdKelas = null;
         if ($isAdmin || $isOperator || $isKepalaTpq) {
@@ -891,23 +891,8 @@ class Santri extends BaseController
             }
         }
 
-        if ($IdKelas !== null) {
-            if (is_array($IdKelas)) {
-                if (!empty($IdKelas)) {
-                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
-                }
-            } else if (!empty($IdKelas)) {
-                $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
-            }
-        }
-
-        // Tambahkan pengurutan
-        $santri = $builder
-            ->orderBy('tbl_santri_baru.IdKelas', 'ASC')
-            ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
-            ->orderBy('tbl_santri_baru.Status', 'DESC')
-            ->get()
-            ->getResultArray();
+        // Ambil data santri menggunakan method dari model
+        $santri = $this->DataSantriBaru->getListAturSantriBaru($IdTpq, $IdKelas, $isGuru);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santri) && !empty($IdTpq)) {
@@ -1028,39 +1013,16 @@ class Santri extends BaseController
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
 
-        // jika IdTpq tidak ada, maka tampilkan semua data santri
-        if ($IdTpq == null) {
-            $santri = $this->DataSantriBaru
-                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-                ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->get()
-                ->getResultArray();
-        } else {
-            $santri = $this->DataSantriBaru
-                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-                ->where('tbl_santri_baru.IdTpq', $IdTpq)
-                ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->orderBy('tbl_santri_baru.updated_at', 'DESC')
-                ->get()
-                ->getResultArray();
-        }
+        // Ambil data santri menggunakan method dari model
+        $santri = $this->DataSantriBaru->getListSantriEmis($IdTpq);
 
         $tpq = $this->helpFunction->getDataTpq();
         usort($tpq, function ($a, $b) {
             return strcmp($a['NamaTpq'], $b['NamaTpq']);
         });
 
-        // Tambahkan query untuk menghitung jumlah santri per TPQ
-        $santriPerTpq = $this->DataSantriBaru
-            ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
-            ->groupBy('tbl_tpq.IdTpq')
-            ->findAll();
+        // Ambil jumlah santri per TPQ menggunakan method dari model
+        $santriPerTpq = $this->DataSantriBaru->getJumlahSantriPerTpq();
 
         // Gabungkan data jumlah santri ke array TPQ
         foreach ($tpq as &$t) {
@@ -1104,12 +1066,7 @@ class Santri extends BaseController
 
     public function editSantri($IdSantri = null)
     {
-        $santri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa as KelurahanDesaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri)
-            ->first();
+        $santri = $this->DataSantriBaru->getDetailSantriForEdit($IdSantri);
 
         $data = [
             'page_title' => 'Edit Data Santri',
@@ -1123,13 +1080,8 @@ class Santri extends BaseController
 
     public function ubahKelas($IdSantri = null)
     {
-        // Ambil data santri
-        $santri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri)
-            ->first();
+        // Ambil data santri menggunakan method dari model
+        $santri = $this->DataSantriBaru->getDetailSantriForUbahKelas($IdSantri);
 
         if (!$santri) {
             return redirect()->back()->with('error', 'Data santri tidak ditemukan');
@@ -1300,13 +1252,8 @@ class Santri extends BaseController
 
     public function ubahTpq($IdSantri = null)
     {
-        // Ambil data santri
-        $santri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri)
-            ->first();
+        // Ambil data santri menggunakan method dari model
+        $santri = $this->DataSantriBaru->getDetailSantriForUbahTpq($IdSantri);
 
         if (!$santri) {
             return redirect()->back()->with('error', 'Data santri tidak ditemukan');
@@ -1477,14 +1424,9 @@ class Santri extends BaseController
         if (($isAdmin || $isPanitiaUmum) && (empty($IdTpq) || $IdTpq == 0)) {
             // Ambil semua data TPQ untuk dipilih
             $dataTpq = $this->helpFunction->getDataTpq(0);
-            
-            // Hitung jumlah santri per TPQ
-            $santriPerTpq = $this->DataSantriBaru
-                ->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
-                ->groupBy('tbl_tpq.IdTpq')
-                ->get()
-                ->getResultArray();
+
+            // Ambil jumlah santri per TPQ menggunakan method dari model
+            $santriPerTpq = $this->DataSantriBaru->getJumlahSantriPerTpq();
             
             // Gabungkan data jumlah santri ke array TPQ
             foreach ($dataTpq as &$t) {
@@ -1670,12 +1612,7 @@ class Santri extends BaseController
     {
         log_message('info', 'Santri: getDataSantri - Mengambil data santri dari database');
 
-        $dataSantri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri)
-            ->first();
+        $dataSantri = $this->DataSantriBaru->getDetailSantriById($IdSantri);
 
         if (!$dataSantri) {
             log_message('error', 'Santri: getDataSantri - Data santri tidak ditemukan');
@@ -1944,6 +1881,298 @@ class Santri extends BaseController
                 ->setBody($dompdf->output());
         } catch (\Exception $e) {
             log_message('error', 'Santri: generatePDFprofilSantriRaport - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Print All Profil Santri berdasarkan filter
+    public function generatePDFAllProfilSantri()
+    {
+        log_message('info', 'Santri: generatePDFAllProfilSantri - Header');
+        try {
+            // Ambil filter dari request
+            $filterIdTpq = $this->request->getGet('filterIdTpq');
+            $filterIdKelas = $this->request->getGet('filterIdKelas');
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $sessionIdKelas = session()->get('IdKelas');
+            $isOperator = in_groups('Operator');
+            $isAdmin = in_groups('Admin');
+
+            // Tentukan IdTpq yang akan digunakan
+            $IdTpq = null;
+            if ($isAdmin) {
+                $IdTpq = $filterIdTpq ?: $sessionIdTpq;
+            } else {
+                $IdTpq = $sessionIdTpq;
+            }
+
+            // Tentukan IdKelas yang akan digunakan
+            $IdKelas = null;
+            $idKelasArray = null;
+
+            if ($isOperator && $IdTpq !== null) {
+                $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq);
+
+                if ($filterIdKelas && $filterIdKelas !== '') {
+                    // Handle single value atau string dengan koma
+                    if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                        $filterArray = array_filter(explode(',', $filterIdKelas));
+                        $IdKelas = array_intersect($filterArray, $idKelasArray);
+                    } else {
+                        if (in_array($filterIdKelas, $idKelasArray)) {
+                            $IdKelas = $filterIdKelas;
+                        }
+                    }
+                }
+            } else {
+                if ($filterIdKelas && $filterIdKelas !== '') {
+                    // Handle single value atau string dengan koma
+                    if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                        $IdKelas = array_filter(explode(',', $filterIdKelas));
+                    } else {
+                        $IdKelas = $filterIdKelas;
+                    }
+                } else {
+                    $IdKelas = $sessionIdKelas;
+                }
+            }
+
+            if ($idKelasArray !== null && $IdKelas === null) {
+                // Gunakan semua kelas dari TPQ
+            } else if ($IdKelas !== null) {
+                $idKelasArray = null;
+            }
+
+            // Ambil data profil santri menggunakan method dari model
+            $santriList = $this->DataSantriBaru->getProfilSantri($IdTpq, $IdKelas, $idKelasArray);
+
+            if (empty($santriList)) {
+                return redirect()->back()->with('error', 'Tidak ada data santri untuk dicetak');
+            }
+
+            // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+            if (!empty($santriList) && !empty($IdTpq)) {
+                foreach ($santriList as $key => $santriItem) {
+                    if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
+                        $namaKelasOriginal = $santriItem['NamaKelas'];
+                        $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                        $santriList[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                            $namaKelasOriginal,
+                            $mdaCheckResult['mappedMdaKelas']
+                        );
+                    }
+                }
+            }
+
+            // Generate PDF untuk semua santri
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $dompdf = new Dompdf($options);
+
+            // Ambil template pertama untuk mendapatkan struktur HTML dan CSS
+            $firstSantri = $santriList[0];
+            $firstDataSantri = $this->getDataSantri($firstSantri['IdSantri']);
+            $firstTpqRow = $this->helpFunction->getNamaTpqById($firstDataSantri['IdTpq']);
+
+            $idTpq = $firstDataSantri['IdTpq'];
+            $namaKelasSantri = $firstDataSantri['NamaKelas'];
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($idTpq, $namaKelasSantri);
+            $useMdaData = $mdaCheckResult['useMdaData'];
+            $mappedMdaKelas = $mdaCheckResult['mappedMdaKelas'];
+            $mdaRow = null;
+
+            if ($useMdaData) {
+                $mdaData = $this->mdaModel->GetData($idTpq);
+                if (!empty($mdaData) && !empty($mdaData[0])) {
+                    $mdaRow = $mdaData[0];
+                } else {
+                    $useMdaData = false;
+                    $mappedMdaKelas = null;
+                }
+            }
+
+            $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+            $kopLembaga = $useMdaData && $mdaRow ? ($mdaRow['KopLembaga'] ?? $firstTpqRow['KopLembaga'] ?? '') : ($firstTpqRow['KopLembaga'] ?? '');
+            $kepalaSekolah = $useMdaData && $mdaRow ? ($mdaRow['KepalaSekolah'] ?? $firstTpqRow['KepalaSekolah'] ?? '') : ($firstTpqRow['KepalaSekolah'] ?? '');
+            $alamatLembaga = $useMdaData && $mdaRow ? ($mdaRow['Alamat'] ?? $firstTpqRow['Alamat'] ?? '') : ($firstTpqRow['Alamat'] ?? '');
+            $namaLembaga = $useMdaData && $mdaRow ? ($mdaRow['NamaTpq'] ?? $firstDataSantri['NamaTpq']) : $firstDataSantri['NamaTpq'];
+            $printNamaKelas = $this->helpFunction->convertKelasToMda($namaKelasSantri, $mappedMdaKelas);
+
+            // Render template pertama untuk mendapatkan struktur HTML
+            $firstData = [
+                'printNamaTpq' => $namaLembaga,
+                'printNamaKelas' => $printNamaKelas,
+                'printNamaSantri' => $firstDataSantri['NamaSantri'],
+                'printNikSantri' => $firstDataSantri['NikSantri'],
+                'printTempatTTL' => $firstDataSantri['TempatLahirSantri'] . ', ' . formatTanggalIndonesia($firstDataSantri['TanggalLahirSantri'], 'd F Y'),
+                'printJenisKelamin' => $firstDataSantri['JenisKelamin'],
+                'printAlamatSantri' => $firstDataSantri['AlamatSantri'],
+                'printRtSantri' => $firstDataSantri['RtSantri'] ?? '',
+                'printRwSantri' => $firstDataSantri['RwSantri'] ?? '',
+                'printKelurahanDesaSantri' => $firstDataSantri['KelurahanDesaSantri'] ?? '',
+                'printKecamatanSantri' => $firstDataSantri['KecamatanSantri'] ?? '',
+                'printKabupatenKotaSantri' => $firstDataSantri['KabupatenKotaSantri'] ?? '',
+                'printProvinsiSantri' => $firstDataSantri['ProvinsiSantri'] ?? '',
+                'printNamaAyah' => $firstDataSantri['NamaAyah'],
+                'printNamaIbu' => $firstDataSantri['NamaIbu'],
+                'printTelp' => $firstDataSantri['NoHpSantri'] ?: ($firstDataSantri['NoHpAyah'] ?: $firstDataSantri['NoHpIbu']),
+                'printPekerjaanAyah' => $firstDataSantri['PekerjaanUtamaAyah'],
+                'printPekerjaanIbu' => $firstDataSantri['PekerjaanUtamaIbu'],
+                'printTanggalDiterima' => formatTanggalIndonesia($firstDataSantri['created_at'], 'd F Y'),
+                'printFotoSantri' => null,
+                'printKepalaTpq' => $kepalaSekolah,
+                'printKopLembaga' => $kopLembaga,
+                'printAlamatTpq' => $alamatLembaga,
+                'printKelurahanDesaTpq' => $firstTpqRow['KelurahanDesa'] ?? '',
+                'printKecamatanTpq' => $firstTpqRow['Kecamatan'] ?? 'Seri Kuala Lobam',
+                'printKabupatenKotaTpq' => $firstTpqRow['KabupatenKota'] ?? 'Bintan',
+                'printProvinsiTpq' => $firstTpqRow['Provinsi'] ?? 'Kepulauan Riau',
+                'printKodePosTpq' => $firstTpqRow['KodePos'] ?? '29152',
+                'printTelpTpq' => $useMdaData && $mdaRow ? ($mdaRow['NoHp'] ?? $firstTpqRow['NoHp'] ?? '081234567890') : ($firstTpqRow['NoHp'] ?? '081234567890'),
+                'printEmailTpq' => $firstTpqRow['Email'] ?? $namaLembaga . '@TpqSmart.simpedis.com',
+                'printLembagaType' => $lembagaType,
+            ];
+
+            if (!empty($firstDataSantri['PhotoProfil'])) {
+                if (ENVIRONMENT === 'production') {
+                    $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
+                } else {
+                    $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                }
+                $fotoPath = $uploadPath . $firstDataSantri['PhotoProfil'];
+                $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
+                if ($fotoData) {
+                    $firstData['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
+                }
+            }
+
+            $templateHtml = view('backend/santri/pdftemplateprofileraport', ['data' => $firstData]);
+
+            // Ekstrak head dan body dari template pertama
+            preg_match('/<head>(.*?)<\/head>/s', $templateHtml, $headMatches);
+            preg_match('/<body>(.*?)<\/body>/s', $templateHtml, $bodyMatches);
+
+            $headContent = $headMatches[1] ?? '';
+            $firstBodyContent = $bodyMatches[1] ?? '';
+
+            // Mulai HTML dengan head dari template pertama
+            $htmlContent = '<html><head>' . $headContent . '</head><body>';
+
+            // Tambahkan body content pertama dengan page break
+            $htmlContent .= '<div style="page-break-after: always; page-break-inside: avoid; min-height: 100vh;">' . $firstBodyContent . '</div>';
+
+            // Proses santri berikutnya
+            $totalSantri = count($santriList);
+            for ($i = 1; $i < $totalSantri; $i++) {
+                $santri = $santriList[$i];
+                $isLast = ($i === $totalSantri - 1);
+
+                $dataSantri = $this->getDataSantri($santri['IdSantri']);
+                $tpqRow = $this->helpFunction->getNamaTpqById($dataSantri['IdTpq']);
+
+                $idTpq = $dataSantri['IdTpq'];
+                $namaKelasSantri = $dataSantri['NamaKelas'];
+                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($idTpq, $namaKelasSantri);
+                $useMdaData = $mdaCheckResult['useMdaData'];
+                $mappedMdaKelas = $mdaCheckResult['mappedMdaKelas'];
+                $mdaRow = null;
+
+                if ($useMdaData) {
+                    $mdaData = $this->mdaModel->GetData($idTpq);
+                    if (!empty($mdaData) && !empty($mdaData[0])) {
+                        $mdaRow = $mdaData[0];
+                    } else {
+                        $useMdaData = false;
+                        $mappedMdaKelas = null;
+                    }
+                }
+
+                $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+                $kopLembaga = $useMdaData && $mdaRow ? ($mdaRow['KopLembaga'] ?? $tpqRow['KopLembaga'] ?? '') : ($tpqRow['KopLembaga'] ?? '');
+                $kepalaSekolah = $useMdaData && $mdaRow ? ($mdaRow['KepalaSekolah'] ?? $tpqRow['KepalaSekolah'] ?? '') : ($tpqRow['KepalaSekolah'] ?? '');
+                $alamatLembaga = $useMdaData && $mdaRow ? ($mdaRow['Alamat'] ?? $tpqRow['Alamat'] ?? '') : ($tpqRow['Alamat'] ?? '');
+                $namaLembaga = $useMdaData && $mdaRow ? ($mdaRow['NamaTpq'] ?? $dataSantri['NamaTpq']) : $dataSantri['NamaTpq'];
+                $printNamaKelas = $this->helpFunction->convertKelasToMda($namaKelasSantri, $mappedMdaKelas);
+
+                $data = [
+                    'printNamaTpq' => $namaLembaga,
+                    'printNamaKelas' => $printNamaKelas,
+                    'printNamaSantri' => $dataSantri['NamaSantri'],
+                    'printNikSantri' => $dataSantri['NikSantri'],
+                    'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . formatTanggalIndonesia($dataSantri['TanggalLahirSantri'], 'd F Y'),
+                    'printJenisKelamin' => $dataSantri['JenisKelamin'],
+                    'printAlamatSantri' => $dataSantri['AlamatSantri'],
+                    'printRtSantri' => $dataSantri['RtSantri'] ?? '',
+                    'printRwSantri' => $dataSantri['RwSantri'] ?? '',
+                    'printKelurahanDesaSantri' => $dataSantri['KelurahanDesaSantri'] ?? '',
+                    'printKecamatanSantri' => $dataSantri['KecamatanSantri'] ?? '',
+                    'printKabupatenKotaSantri' => $dataSantri['KabupatenKotaSantri'] ?? '',
+                    'printProvinsiSantri' => $dataSantri['ProvinsiSantri'] ?? '',
+                    'printNamaAyah' => $dataSantri['NamaAyah'],
+                    'printNamaIbu' => $dataSantri['NamaIbu'],
+                    'printTelp' => $dataSantri['NoHpSantri'] ?: ($dataSantri['NoHpAyah'] ?: $dataSantri['NoHpIbu']),
+                    'printPekerjaanAyah' => $dataSantri['PekerjaanUtamaAyah'],
+                    'printPekerjaanIbu' => $dataSantri['PekerjaanUtamaIbu'],
+                    'printTanggalDiterima' => formatTanggalIndonesia($dataSantri['created_at'], 'd F Y'),
+                    'printFotoSantri' => null,
+                    'printKepalaTpq' => $kepalaSekolah,
+                    'printKopLembaga' => $kopLembaga,
+                    'printAlamatTpq' => $alamatLembaga,
+                    'printKelurahanDesaTpq' => $tpqRow['KelurahanDesa'] ?? '',
+                    'printKecamatanTpq' => $tpqRow['Kecamatan'] ?? 'Seri Kuala Lobam',
+                    'printKabupatenKotaTpq' => $tpqRow['KabupatenKota'] ?? 'Bintan',
+                    'printProvinsiTpq' => $tpqRow['Provinsi'] ?? 'Kepulauan Riau',
+                    'printKodePosTpq' => $tpqRow['KodePos'] ?? '29152',
+                    'printTelpTpq' => $useMdaData && $mdaRow ? ($mdaRow['NoHp'] ?? $tpqRow['NoHp'] ?? '081234567890') : ($tpqRow['NoHp'] ?? '081234567890'),
+                    'printEmailTpq' => $tpqRow['Email'] ?? $namaLembaga . '@TpqSmart.simpedis.com',
+                    'printLembagaType' => $lembagaType,
+                ];
+
+                if (!empty($dataSantri['PhotoProfil'])) {
+                    if (ENVIRONMENT === 'production') {
+                        $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
+                    } else {
+                        $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                    }
+                    $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
+                    $fotoData = file_exists($fotoPath) ? file_get_contents($fotoPath) : null;
+                    if ($fotoData) {
+                        $data['printFotoSantri'] = 'data:image/jpeg;base64,' . base64_encode($fotoData);
+                    }
+                }
+
+                // Render template dan ekstrak body content
+                $profilTemplate = view('backend/santri/pdftemplateprofileraport', ['data' => $data]);
+                preg_match('/<body>(.*?)<\/body>/s', $profilTemplate, $bodyMatches);
+                $bodyContent = $bodyMatches[1] ?? '';
+
+                // Tambahkan body content dengan page break jika bukan yang terakhir
+                // Gunakan page-break-before untuk menghindari blank page di halaman genap
+                if (!$isLast) {
+                    $htmlContent .= '<div style="page-break-before: always; page-break-inside: avoid; min-height: 100vh;">' . $bodyContent . '</div>';
+                } else {
+                    $htmlContent .= '<div style="page-break-inside: avoid;">' . $bodyContent . '</div>';
+                }
+            }
+
+            // Tutup HTML
+            $htmlContent .= '</body></html>';
+
+            $dompdf->loadHtml($htmlContent);
+            $dompdf->setPaper('folio', 'portrait');
+            $dompdf->render();
+
+            $filename = 'Profil_Santri_All_' . date('YmdHis') . '.pdf';
+            log_message('info', 'Santri: generatePDFAllProfilSantri - Footer');
+            return $this->response
+                ->setHeader('Content-Type', 'application/pdf')
+                ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+                ->setBody($dompdf->output());
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: generatePDFAllProfilSantri - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
@@ -2589,13 +2818,8 @@ class Santri extends BaseController
             return redirect()->to('backend/santri/showAturSantriBaru')->with('error', 'ID Santri tidak ditemukan');
         }
 
-        // Ambil data santri dengan join ke tabel kelas dan TPQ
-        $santri = $this->DataSantriBaru
-            ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri)
-            ->first();
+        // Ambil data santri menggunakan method dari model
+        $santri = $this->DataSantriBaru->getDetailSantriForDelete($IdSantri);
 
         if (!$santri) {
             return redirect()->to('backend/santri/showAturSantriBaru')->with('error', 'Data santri tidak ditemukan');

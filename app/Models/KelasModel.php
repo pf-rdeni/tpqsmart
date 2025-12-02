@@ -276,4 +276,21 @@ class KelasModel extends Model
 
         return $this->insertBatch($data);
     }
+
+    /**
+     * Mendapatkan semua IdKelas yang memiliki santri aktif di TPQ tertentu
+     * @param mixed $IdTpq
+     * @return array Array of IdKelas
+     */
+    public function getAllKelasAktifByTpq($IdTpq)
+    {
+        $builder = $this->db->table('tbl_kelas_santri');
+        $builder->select('IdKelas')
+            ->distinct()
+            ->where('IdTpq', $IdTpq)
+            ->where('status', true);
+
+        $result = $builder->get()->getResultArray();
+        return array_column($result, 'IdKelas');
+    }
 }
