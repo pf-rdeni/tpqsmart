@@ -296,14 +296,16 @@ class AuthModel extends Model
         
         $onlineUsers = [];
         $seenUsers = [];
-        
+        $userSessions = []; // Store user_id => lastModified mapping
+
         // Get all session files
         $sessionFiles = glob($sessionPath . 'ci_session*');
         
         if (empty($sessionFiles)) {
             return $onlineUsers;
         }
-        
+
+        // Step 1: Collect all user IDs from session files
         foreach ($sessionFiles as $sessionFile) {
             // Skip index.html and directories
             $basename = basename($sessionFile);
@@ -399,30 +401,66 @@ class AuthModel extends Model
             }
             
             $seenUsers[$userId] = true;
-            
-            // Get user info from database
-            $user = $this->db->table('users')
-                ->select('users.*, GROUP_CONCAT(ag.name SEPARATOR ", ") as user_groups')
-                ->join('auth_groups_users agu', 'users.id = agu.user_id', 'left')
-                ->join('auth_groups ag', 'agu.group_id = ag.id', 'left')
-                ->where('users.id', $userId)
-                ->where('users.active', 1)
-                ->groupBy('users.id')
-                ->get()
-                ->getRowArray();
-            
-            if (!$user) {
+            // Store user_id with their last activity time
+            $userSessions[$userId] = $lastModified;
+        }
+
+        // If no users found, return empty array
+        if (empty($userSessions)) {
+            return $onlineUsers;
+        }
+
+        // Step 2: Bulk query - Get all user info with groups in one query
+        $userIds = array_keys($userSessions);
+        $usersData = $this->db->table('users')
+            ->select('users.*, GROUP_CONCAT(ag.name SEPARATOR ", ") as user_groups')
+            ->join('auth_groups_users agu', 'users.id = agu.user_id', 'left')
+            ->join('auth_groups ag', 'agu.group_id = ag.id', 'left')
+            ->whereIn('users.id', $userIds)
+            ->where('users.active', 1)
+            ->groupBy('users.id')
+            ->get()
+            ->getResultArray();
+
+        // Create user data map for quick lookup
+        $usersMap = [];
+        foreach ($usersData as $user) {
+            $usersMap[$user['id']] = $user;
+        }
+
+        // Step 3: Bulk query - Get all last logins in one query
+        // Use a subquery to get the latest login for each user
+        $subquery = $this->db->table('auth_logins')
+            ->select('user_id, MAX(date) as max_date')
+            ->whereIn('user_id', $userIds)
+            ->where('success', 1)
+            ->groupBy('user_id')
+            ->getCompiledSelect();
+
+        $lastLoginsData = $this->db->table('auth_logins al')
+            ->select('al.user_id, al.date, al.ip_address')
+            ->join("({$subquery}) latest", 'al.user_id = latest.user_id AND al.date = latest.max_date', 'inner')
+            ->whereIn('al.user_id', $userIds)
+            ->where('al.success', 1)
+            ->get()
+            ->getResultArray();
+
+        // Create last login map for quick lookup
+        $lastLoginsMap = [];
+        foreach ($lastLoginsData as $login) {
+            $lastLoginsMap[$login['user_id']] = $login;
+        }
+
+        // Step 4: Combine data and build result array
+        foreach ($userSessions as $userId => $lastModified) {
+            if (!isset($usersMap[$userId])) {
                 continue;
             }
-            
-            // Get last login from auth_logins
-            $lastLogin = $this->db->table('auth_logins')
-                ->where('user_id', $userId)
-                ->where('success', 1)
-                ->orderBy('date', 'DESC')
-                ->limit(1)
-                ->get()
-                ->getRowArray();
+
+            $user = $usersMap[$userId];
+            $lastLogin = $lastLoginsMap[$userId] ?? null;
+
+            $idleTime = $currentTime - $lastModified;
             
             // Determine status based on idle time
             $status = 'away';
@@ -452,7 +490,6 @@ class AuthModel extends Model
                 'idle_seconds' => $idleTime,
                 'last_login' => $lastLogin['date'] ?? null,
                 'ip_address' => $lastLogin['ip_address'] ?? null,
-                'user_agent' => $lastLogin['user_agent'] ?? null,
                 'status' => $status,
                 'status_label' => $statusLabel,
                 'status_badge' => $statusBadge
@@ -516,7 +553,6 @@ class AuthModel extends Model
                         'idle_seconds' => $idleTime,
                         'last_login' => $login['date'],
                         'ip_address' => $login['ip_address'],
-                        'user_agent' => $login['user_agent'] ?? null,
                         'status' => $status,
                         'status_label' => $statusLabel,
                         'status_badge' => $statusBadge
