@@ -16,130 +16,65 @@
         <div class="card-body" style="display: none;">
             <div class="row">
                 <div class="col-md-12">
-                    <h5><i class="fas fa-list-ol"></i> Halaman ini memiliki 2 fungsi utama:</h5>
+                    <h5><i class="fas fa-list-ol"></i> Halaman ini memiliki 3 fungsi normalisasi data:</h5>
 
                     <div class="mb-4">
                         <h6 class="text-primary"><i class="fas fa-users"></i> 1. Normalisasi Duplikasi Kelas Santri</h6>
-                        <ol class="mb-3">
-                            <li class="mb-2">
-                                <strong>Memahami Tujuan</strong>
-                                <ul class="mt-1">
-                                    <li>Mendeteksi dan memperbaiki <strong>duplikasi data di tabel kelas santri</strong></li>
-                                    <li>Duplikasi terjadi ketika <strong>IdSantri yang sama</strong> memiliki <strong>IdKelas yang sama</strong> pada <strong>IdTahunAjaran yang sama</strong> dan <strong>IdTpq yang sama</strong></li>
-                                    <li>Duplikasi ini dapat menyebabkan masalah dalam sistem, seperti data nilai yang tidak konsisten</li>
-                                </ul>
-                            </li>
-                            <li class="mb-2">
-                                <strong>Mengecek Duplikasi Kelas Santri</strong>
-                                <ul class="mt-1">
-                                    <li>Klik tombol <strong>"Cek Duplikasi"</strong> untuk memulai proses pengecekan</li>
-                                    <li>Sistem akan memindai semua data di tabel <code>tbl_kelas_santri</code></li>
-                                    <li>Hasil akan ditampilkan dalam bentuk tabel yang menampilkan:
-                                        <ul>
-                                            <li>Nama Santri yang duplikasi</li>
-                                            <li>Kelas yang duplikasi</li>
-                                            <li>Tahun Ajaran</li>
-                                            <li>Jumlah duplikasi</li>
-                                            <li>Detail semua record yang duplikasi</li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="mb-2">
-                                <strong>Menormalisasi Duplikasi Kelas Santri</strong>
-                                <ul class="mt-1">
-                                    <li>Setelah melihat hasil duplikasi, pilih data yang akan dinormalisasi</li>
-                                    <li>Klik tombol <strong>"Normalisasi Duplikasi"</strong> untuk memperbaiki</li>
-                                    <li>Sistem akan <strong>menyisakan 1 record</strong> per kombinasi (IdSantri, IdKelas, IdTahunAjaran, IdTpq)</li>
-                                    <li>Record yang <strong>disisakan adalah yang tertua</strong> (berdasarkan Id terkecil)</li>
-                                    <li>Record duplikasi lainnya akan <strong>dihapus</strong></li>
-                                </ul>
-                            </li>
-                        </ol>
+                        <div class="alert alert-light border">
+                            <strong><i class="fas fa-info-circle"></i> Fungsi:</strong> Membersihkan data duplikat di tabel kelas santri
+                            <br><strong><i class="fas fa-mouse-pointer"></i> Tombol:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>"Cek Duplikasi"</strong> - Menampilkan santri yang memiliki duplikasi (santri yang sama di kelas yang sama, tahun ajaran yang sama, TPQ yang sama)</li>
+                                <li><strong>"Normalisasi Duplikasi"</strong> - Menghapus duplikasi, menyisakan 1 record tertua per kombinasi</li>
+                            </ul>
+                        </div>
                     </div>
 
                     <div class="mb-4">
                         <h6 class="text-warning"><i class="fas fa-check-double"></i> 2. Normalisasi Data Nilai</h6>
-                        <ol class="mb-3">
-                            <li class="mb-2">
-                                <strong>Memahami Tujuan</strong>
-                                <ul class="mt-1">
-                                    <li>Mendeteksi dan memperbaiki <strong>data nilai yang tidak valid dan duplikat</strong> di tabel <code>tbl_nilai</code></li>
-                                    <li>Data tidak valid: IdMateri tidak ada di <code>tbl_kelas_materi_pelajaran</code> untuk IdKelas dan IdTpq santri tersebut</li>
-                                    <li>Data duplikat: IdSantri memiliki IdMateri yang sama untuk kombinasi IdKelas, IdTpq, IdTahunAjaran, dan Semester yang sama</li>
-                                </ul>
-                            </li>
-                            <li class="mb-2">
-                                <strong>Mengecek Normalisasi Nilai</strong>
-                                <ul class="mt-1">
-                                    <li>Klik tombol <strong>"Cek Normalisasi Nilai"</strong> (hanya untuk Admin)</li>
-                                    <li>Sistem akan mengecek semua data nilai berdasarkan:
-                                        <ul>
-                                            <li>Referensi ke <code>tbl_kelas_materi_pelajaran</code> untuk setiap kelas</li>
-                                            <li>Duplikat berdasarkan kombinasi lengkap (IdSantri, IdMateri, IdKelas, IdTpq, IdTahunAjaran, Semester)</li>
-                                        </ul>
-                                    </li>
-                                    <li>Hasil akan ditampilkan dengan:
-                                        <ul>
-                                            <li><strong>Rangkuman per TPQ</strong> - menampilkan statistik ketidaksesuaian per TPQ</li>
-                                            <li><strong>Tabel detail</strong> - menampilkan data yang tidak valid dan duplikat</li>
-                                            <li><strong>Kategori duplikat</strong>:
-                                                <ul>
-                                                    <li><span class="badge badge-success">Aman</span> - Duplikat dengan nilai kosong, aman untuk dihapus</li>
-                                                    <li><span class="badge badge-warning">Perhatian</span> - Duplikat dengan nilai, perlu direview sebelum dihapus</li>
-                                                </ul>
-                                            </li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="mb-2">
-                                <strong>Menormalisasi Data Nilai</strong>
-                                <ul class="mt-1">
-                                    <li>Setelah melihat hasil pengecekan, <strong>pilih data yang akan dihapus</strong> menggunakan checkbox</li>
-                                    <li>Gunakan <strong>filter TPQ</strong> untuk fokus pada TPQ tertentu (klik card rangkuman TPQ)</li>
-                                    <li>Klik tombol <strong>"Normalisasi Nilai"</strong> untuk menghapus data yang dipilih</li>
-                                    <li>Sistem akan menghapus data berdasarkan ID yang dipilih</li>
-                                    <li>Setelah selesai, data akan otomatis di-refresh untuk menampilkan status terbaru</li>
-                                </ul>
-                            </li>
-                        </ol>
+                        <div class="alert alert-light border">
+                            <strong><i class="fas fa-info-circle"></i> Fungsi:</strong> Membersihkan data nilai yang tidak valid atau duplikat untuk santri yang TERDAFTAR di kelas
+                            <br><strong><i class="fas fa-mouse-pointer"></i> Tombol:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>"Cek Normalisasi Nilai"</strong> - Menampilkan data nilai yang:
+                                    <ul>
+                                        <li><span class="badge badge-danger">Tidak Valid</span> - Materi tidak sesuai dengan kelas (IdMateri tidak ada di tbl_kelas_materi_pelajaran)</li>
+                                        <li><span class="badge badge-success">Duplikat Aman</span> - Ada duplikat dengan nilai kosong (aman dihapus)</li>
+                                        <li><span class="badge badge-warning">Duplikat Perhatian</span> - Ada duplikat dengan nilai (perlu review)</li>
+                                    </ul>
+                                </li>
+                                <li><strong>"Normalisasi Nilai"</strong> - Menghapus data nilai yang dipilih (tidak valid atau duplikat)</li>
+                            </ul>
+                            <small class="text-muted"><i class="fas fa-lightbulb"></i> <strong>Catatan:</strong> Hanya mengecek data nilai untuk santri yang sudah terdaftar di tbl_kelas_santri</small>
+                        </div>
                     </div>
 
                     <div class="mb-4">
                         <h6 class="text-info"><i class="fas fa-exclamation-triangle"></i> 3. Normalisasi Nilai Tanpa Kelas Santri</h6>
-                        <ol class="mb-3">
-                            <li class="mb-2">
-                                <strong>Memahami Tujuan</strong>
-                                <ul class="mt-1">
-                                    <li>Mendeteksi dan memperbaiki <strong>data nilai yang tidak memiliki referensi di tabel kelas santri</strong></li>
-                                    <li>Data tidak valid: IdSantri, IdTpq, IdTahunAjaran ada di tabel <code>tbl_nilai</code> tetapi IdSantri tersebut tidak ada di tabel <code>tbl_kelas_santri</code> untuk kombinasi IdTpq dan IdTahunAjaran yang sama</li>
-                                    <li>Data ini dapat menyebabkan inkonsistensi dalam sistem</li>
-                                </ul>
-                            </li>
-                            <li class="mb-2">
-                                <strong>Mengecek Nilai Tanpa Kelas Santri</strong>
-                                <ul class="mt-1">
-                                    <li>Klik tombol <strong>"Cek Nilai Tanpa Kelas Santri"</strong> (hanya untuk Admin)</li>
-                                    <li>Sistem akan mengecek semua data nilai yang tidak memiliki referensi di tabel kelas santri</li>
-                                    <li>Hasil akan ditampilkan dengan:
-                                        <ul>
-                                            <li><strong>Rangkuman per TPQ</strong> - menampilkan statistik per TPQ</li>
-                                            <li><strong>Tabel detail</strong> - menampilkan data nilai yang tidak memiliki referensi</li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="mb-2">
-                                <strong>Menormalisasi Data Nilai</strong>
-                                <ul class="mt-1">
-                                    <li>Setelah melihat hasil pengecekan, <strong>pilih data yang akan dihapus</strong> menggunakan checkbox</li>
-                                    <li>Gunakan <strong>filter TPQ</strong> untuk fokus pada TPQ tertentu (klik card rangkuman TPQ)</li>
-                                    <li>Klik tombol <strong>"Normalisasi Nilai Tanpa Kelas Santri"</strong> untuk menghapus data yang dipilih</li>
-                                    <li>Sistem akan menghapus data berdasarkan ID yang dipilih</li>
-                                    <li>Setelah selesai, data akan otomatis di-refresh untuk menampilkan status terbaru</li>
-                                </ul>
-                            </li>
+                        <div class="alert alert-light border">
+                            <strong><i class="fas fa-info-circle"></i> Fungsi:</strong> Membersihkan data nilai untuk santri yang TIDAK TERDAFTAR di kelas (tidak ada di tbl_kelas_santri)
+                            <br><strong><i class="fas fa-mouse-pointer"></i> Tombol:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>"Cek Nilai Tanpa Kelas Santri"</strong> - Menampilkan data nilai yang tidak memiliki referensi di tbl_kelas_santri, dengan kategori:
+                                    <ul>
+                                        <li><span class="badge badge-warning">Pindah TPQ</span> - Santri sudah pindah ke TPQ lain</li>
+                                        <li><span class="badge badge-secondary">Tidak Aktif</span> - Santri tidak aktif (Active = 0)</li>
+                                        <li><span class="badge badge-info">Tidak Terdaftar</span> - Santri ada di TPQ tapi tidak terdaftar di kelas untuk tahun ajaran tersebut</li>
+                                        <li><span class="badge badge-danger">Tidak Ditemukan</span> - Santri tidak ada di database (kemungkinan pindah luar daerah)</li>
+                                    </ul>
+                                </li>
+                                <li><strong>"Normalisasi Nilai Tanpa Kelas Santri"</strong> - Menghapus data nilai yang dipilih (data tanpa referensi kelas santri)</li>
+                            </ul>
+                            <small class="text-muted"><i class="fas fa-lightbulb"></i> <strong>Catatan:</strong> Mengecek data nilai untuk santri yang TIDAK ada di tbl_kelas_santri. Gunakan ini untuk membersihkan data nilai santri yang sudah pindah TPQ atau tidak terdaftar.</small>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-sync-alt"></i> Urutan Normalisasi yang Disarankan:</h6>
+                        <ol class="mb-0">
+                            <li><strong>Normalisasi Duplikasi Kelas Santri</strong> - Bersihkan duplikasi kelas santri terlebih dahulu</li>
+                            <li><strong>Normalisasi Nilai Tanpa Kelas Santri</strong> - Hapus data nilai untuk santri yang tidak terdaftar di kelas</li>
+                            <li><strong>Normalisasi Data Nilai</strong> - Bersihkan data nilai yang tidak valid atau duplikat untuk santri yang terdaftar</li>
                         </ol>
                     </div>
 
