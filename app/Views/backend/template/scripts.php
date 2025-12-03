@@ -159,16 +159,97 @@
             }, 100);
         });
 
-        // Fix: Adjust columns setelah init complete untuk memastikan scrollX bekerja dari awal
-        table.on('init.dt', function() {
-            setTimeout(function() {
-                if ($.fn.DataTable.isDataTable(selector)) {
-                    table.columns.adjust();
-                }
-            }, 100);
-        });
-
         return table;
+    }
+
+    /**
+     * Initialize DataTable dengan CSS overflow untuk scroll horizontal (tanpa scrollX DataTable)
+     * Cocok untuk tabel yang perlu scroll horizontal tanpa error sorting dan tanpa expand responsive
+     * @param {string} tableId - CSS selector untuk tabel
+     * @param {number} pageLength - Jumlah data per halaman
+     * @param {boolean} lengthChange - Apakah bisa mengubah jumlah data
+     * @param {number} orderColumn - Index kolom untuk sorting default
+     * @param {string} errorMessage - Pesan error untuk logging
+     */
+    function initDataTableWithOverflowScroll(tableId, pageLength, lengthChange, orderColumn, errorMessage) {
+        setTimeout(function() {
+            try {
+                const $table = $(tableId);
+
+                // Check if table exists
+                if (!$table.length) {
+                    return;
+                }
+
+                // Check if DataTable is already initialized
+                if ($.fn.DataTable.isDataTable(tableId)) {
+                    return;
+                }
+
+                // Get native DOM element and verify structure
+                const tableElement = $table[0];
+                if (!tableElement) {
+                    return;
+                }
+
+                // Ensure tbody exists
+                if (!$table.find('tbody').length) {
+                    $table.append('<tbody></tbody>');
+                }
+
+                // Verify table has valid structure before initialization
+                if (!tableElement.tHead) {
+                    console.warn('Table missing thead:', tableId);
+                    return;
+                }
+
+                const tBodies = tableElement.tBodies;
+                if (!tBodies || tBodies.length === 0) {
+                    console.warn('Table missing tbody:', tableId);
+                    return;
+                }
+
+                // Initialize DataTable tanpa scrollX (menggunakan CSS overflow untuk scroll horizontal)
+                $table.DataTable({
+                    "pageLength": pageLength,
+                    "lengthChange": lengthChange,
+                    "order": [
+                        [orderColumn, "desc"]
+                    ],
+                    "responsive": false, // Nonaktifkan responsive untuk menghindari expand
+                    "scrollX": false, // Nonaktifkan scrollX untuk menghindari error sorting
+                    "autoWidth": false,
+                    "deferRender": false,
+                    "language": {
+                        "decimal": "",
+                        "emptyTable": "Tidak ada data yang tersedia pada tabel",
+                        "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                        "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                        "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                        "infoPostFix": "",
+                        "thousands": ",",
+                        "lengthMenu": "Tampilkan _MENU_ entri",
+                        "loadingRecords": "Sedang memuat...",
+                        "processing": "Sedang memproses...",
+                        "search": "Cari:",
+                        "zeroRecords": "Tidak ditemukan data yang sesuai",
+                        "paginate": {
+                            "first": "Pertama",
+                            "last": "Terakhir",
+                            "next": "Selanjutnya",
+                            "previous": "Sebelumnya"
+                        },
+                        "aria": {
+                            "sortAscending": ": aktifkan untuk mengurutkan kolom naik",
+                            "sortDescending": ": aktifkan untuk mengurutkan kolom turun"
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error(errorMessage, e);
+            }
+        }, 300);
     }
 
     // Tambahkan event listener untuk tab changes
