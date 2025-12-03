@@ -238,6 +238,149 @@ function renderGroupsAsBadges($groupsString)
                         </div>
                     </div>
 
+                    <!-- Login Attempts Statistics -->
+                    <div class="row mt-3">
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-info">
+                                <div class="inner">
+                                    <h3><?= number_format($login_attempts_stats['total_attempts'] ?? 0, 0, ',', '.') ?></h3>
+                                    <p>Total Attempts</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-list-alt"></i>
+                                </div>
+                                <a href="<?= base_url('backend/auth/loginAttempts') ?>" class="small-box-footer">
+                                    Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-success">
+                                <div class="inner">
+                                    <h3><?= number_format($login_attempts_stats['successful_logins'] ?? 0, 0, ',', '.') ?></h3>
+                                    <p>Login Berhasil</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <a href="<?= base_url('backend/auth/loginAttempts') ?>" class="small-box-footer">
+                                    Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-danger">
+                                <div class="inner">
+                                    <h3><?= number_format($login_attempts_stats['failed_logins'] ?? 0, 0, ',', '.') ?></h3>
+                                    <p>Login Gagal</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <a href="<?= base_url('backend/auth/loginAttempts') ?>" class="small-box-footer">
+                                    Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-primary">
+                                <div class="inner">
+                                    <h3><?= number_format($login_attempts_stats['today_attempts'] ?? 0, 0, ',', '.') ?></h3>
+                                    <p>Attempts Hari Ini</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                                <a href="<?= base_url('backend/auth/loginAttempts') ?>" class="small-box-footer">
+                                    Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Device & Browser Statistics -->
+                    <?php if (!empty($device_browser_stats) && $device_browser_stats['total_with_user_agent'] > 0): ?>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="fas fa-mobile-alt"></i> Statistik Device
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <?php foreach ($device_browser_stats['device_stats'] as $device => $count): ?>
+                                            <?php if ($count > 0): ?>
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span>
+                                                            <i class="fas fa-<?= strtolower($device) === 'mobile' ? 'mobile-alt' : (strtolower($device) === 'tablet' ? 'tablet-alt' : (strtolower($device) === 'bot' ? 'robot' : 'desktop')) ?>"></i>
+                                                            <strong><?= esc($device) ?></strong>
+                                                        </span>
+                                                        <span>
+                                                            <strong><?= number_format($count, 0, ',', '.') ?></strong>
+                                                            <small class="text-muted">(<?= $device_browser_stats['device_percentages'][$device] ?>%)</small>
+                                                        </span>
+                                                    </div>
+                                                    <div class="progress" style="height: 20px;">
+                                                        <div class="progress-bar bg-<?= strtolower($device) === 'mobile' ? 'info' : (strtolower($device) === 'tablet' ? 'warning' : (strtolower($device) === 'bot' ? 'secondary' : 'primary')) ?>" 
+                                                             role="progressbar" 
+                                                             style="width: <?= $device_browser_stats['device_percentages'][$device] ?>%"
+                                                             aria-valuenow="<?= $device_browser_stats['device_percentages'][$device] ?>" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100">
+                                                            <?= $device_browser_stats['device_percentages'][$device] ?>%
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="fas fa-globe"></i> Top Browser
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <?php if (!empty($device_browser_stats['top_browsers'])): ?>
+                                            <?php $browserColors = ['Chrome' => 'success', 'Firefox' => 'warning', 'Safari' => 'info', 'Edge' => 'primary', 'Opera' => 'danger']; ?>
+                                            <?php foreach ($device_browser_stats['top_browsers'] as $browser => $count): ?>
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span>
+                                                            <i class="fas fa-globe"></i>
+                                                            <strong><?= esc($browser) ?></strong>
+                                                        </span>
+                                                        <span>
+                                                            <strong><?= number_format($count, 0, ',', '.') ?></strong>
+                                                            <small class="text-muted">(<?= $device_browser_stats['browser_percentages'][$browser] ?? 0 ?>%)</small>
+                                                        </span>
+                                                    </div>
+                                                    <div class="progress" style="height: 20px;">
+                                                        <div class="progress-bar bg-<?= $browserColors[$browser] ?? 'secondary' ?>" 
+                                                             role="progressbar" 
+                                                             style="width: <?= $device_browser_stats['browser_percentages'][$browser] ?? 0 ?>%"
+                                                             aria-valuenow="<?= $device_browser_stats['browser_percentages'][$browser] ?? 0 ?>" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100">
+                                                            <?= $device_browser_stats['browser_percentages'][$browser] ?? 0 ?>%
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <p class="text-muted">Tidak ada data browser</p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <!-- Top 5 Frequent Login Users -->
                     <!-- Quick Links -->
                     <div class="row mt-4">
@@ -487,6 +630,7 @@ function renderGroupsAsBadges($groupsString)
                                                 <th style="width: 10px">No</th>
                                                 <th>Username / Nama</th>
                                                 <th>IP Address</th>
+                                                <th>Device & Browser</th>
                                                 <th>Status</th>
                                                 <th>Tanggal & Waktu</th>
                                             </tr>
@@ -494,7 +638,7 @@ function renderGroupsAsBadges($groupsString)
                                         <tbody>
                                             <?php if (empty($login_attempts)): ?>
                                                 <tr>
-                                                    <td colspan="5" class="text-center">Tidak ada data</td>
+                                                    <td colspan="6" class="text-center">Tidak ada data</td>
                                                 </tr>
                                             <?php else: ?>
                                                 <?php $no = 1; ?>
@@ -525,6 +669,22 @@ function renderGroupsAsBadges($groupsString)
                                                             </div>
                                                         </td>
                                                         <td><?= esc($attempt['ip_address'] ?? '-') ?></td>
+                                                        <td>
+                                                            <?php if (!empty($attempt['device_info']) && $attempt['device_info'] !== '-'): ?>
+                                                                <span class="badge badge-info">
+                                                                    <i class="fas fa-<?= strtolower($attempt['device_info']) === 'mobile' ? 'mobile-alt' : (strtolower($attempt['device_info']) === 'tablet' ? 'tablet-alt' : 'desktop') ?>"></i> <?= esc($attempt['device_info']) ?>
+                                                                </span>
+                                                                <br>
+                                                                <small class="text-muted">
+                                                                    <i class="fas fa-globe"></i> <?= esc($attempt['browser_info']) ?>
+                                                                    <?php if (!empty($attempt['browser_version']) && $attempt['browser_version'] !== '-'): ?>
+                                                                        v<?= esc($attempt['browser_version']) ?>
+                                                                    <?php endif; ?>
+                                                                </small>
+                                                            <?php else: ?>
+                                                                <span class="text-muted">-</span>
+                                                            <?php endif; ?>
+                                                        </td>
                                                         <td>
                                                             <?php if ($attempt['success'] ?? 0): ?>
                                                                 <span class="badge badge-success">
@@ -572,8 +732,8 @@ function renderGroupsAsBadges($groupsString)
             // Initialize Top 5 Frequent Login Users Table (order by Jumlah Login - column index 3)
             initDataTableWithOverflowScroll('#top5FrequentLoginTable', 5, false, 3, 'Error initializing Top 5 DataTable:');
 
-            // Initialize Login Attempts Table (order by Tanggal & Waktu - column index 4)
-            initDataTableWithOverflowScroll('#loginAttemptsTable', 10, true, 4, 'Error initializing Login Attempts DataTable:');
+            // Initialize Login Attempts Table (order by Tanggal & Waktu - column index 5)
+            initDataTableWithOverflowScroll('#loginAttemptsTable', 10, true, 5, 'Error initializing Login Attempts DataTable:');
         });
     })(jQuery);
 </script>

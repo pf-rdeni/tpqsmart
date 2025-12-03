@@ -3,6 +3,9 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseService;
+use Myth\Auth\Config\Auth as AuthConfig;
+use App\Models\LoginModel;
+use App\Authentication\LocalAuthenticator;
 
 /**
  * Services Configuration file.
@@ -19,14 +22,36 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
-     *
-     *     return new \CodeIgniter\Example();
-     * }
+    /**
+     * Override authentication service untuk menggunakan custom LocalAuthenticator
+     * yang support user_agent
      */
+    public static function authentication(string $lib = 'local', ?\CodeIgniter\Model $userModel = null, ?\CodeIgniter\Model $loginModel = null, bool $getShared = true)
+    {
+        if ($getShared) {
+            return static::getSharedInstance('authentication', $lib, $userModel, $loginModel);
+        }
+
+        // Use custom LoginModel yang support user_agent
+        $loginModel ??= model(LoginModel::class);
+
+        // Use default UserModel dari Myth Auth
+        $userModel ??= model(\Myth\Auth\Models\UserModel::class);
+
+        /** @var AuthConfig $config */
+        $config = config('Auth');
+
+        // Use custom LocalAuthenticator untuk lib 'local'
+        if ($lib === 'local') {
+            $instance = new LocalAuthenticator($config);
+        } else {
+            // Fallback ke default class untuk lib lain
+            $class = $config->authenticationLibs[$lib] ?? \Myth\Auth\Authentication\LocalAuthenticator::class;
+            $instance = new $class($config);
+        }
+
+        return $instance
+            ->setUserModel($userModel)
+            ->setLoginModel($loginModel);
+    }
 }

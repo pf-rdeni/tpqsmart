@@ -40,6 +40,8 @@ class Auth extends BaseController
         $onlineUsers = $this->authModel->getOnlineUsers(null);
         $frequentLoginStats = $this->authModel->getFrequentLoginStatistics('all');
         $loginAttempts = $this->authModel->getLoginAttempts(100);
+        $loginAttemptsStats = $this->authModel->getLoginAttemptsStatistics();
+        $deviceBrowserStats = $this->authModel->getDeviceBrowserStatistics();
         
         $sessionConfig = config('Session');
         $sessionExpiration = $sessionConfig->expiration ?? 7200;
@@ -51,6 +53,8 @@ class Auth extends BaseController
             'online_users' => $onlineUsers,
             'frequent_login_stats' => $frequentLoginStats,
             'login_attempts' => $loginAttempts,
+            'login_attempts_stats' => $loginAttemptsStats,
+            'device_browser_stats' => $deviceBrowserStats,
             'session_expiration_minutes' => $sessionExpirationMinutes
         ];
 
@@ -632,11 +636,15 @@ class Auth extends BaseController
     {
         $this->checkAdmin();
 
-        $attempts = $this->authModel->getLoginAttempts(100);
+        $attempts = $this->authModel->getLoginAttempts(1000);
+        $loginAttemptsStats = $this->authModel->getLoginAttemptsStatistics();
+        $deviceBrowserStats = $this->authModel->getDeviceBrowserStatistics();
 
         $data = [
             'page_title' => 'Riwayat Login',
-            'attempts' => $attempts
+            'attempts' => $attempts,
+            'login_attempts_stats' => $loginAttemptsStats,
+            'device_browser_stats' => $deviceBrowserStats
         ];
 
         return view('backend/auth/LoginAttempts', $data);
