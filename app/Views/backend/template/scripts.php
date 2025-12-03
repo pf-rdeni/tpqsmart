@@ -218,7 +218,7 @@
                     ],
                     "responsive": false, // Nonaktifkan responsive untuk menghindari expand
                     "scrollX": false, // Nonaktifkan scrollX untuk menghindari error sorting
-                    "autoWidth": false,
+                    "autoWidth": true,
                     "deferRender": false,
                     "language": {
                         "decimal": "",
