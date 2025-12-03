@@ -126,9 +126,9 @@ function renderGroupsAsBadges($groupsString) {
                             <thead>
                                 <tr>
                                     <th>No</th>
-                                    <th>User</th>
                                     <th>Username</th>
                                     <th>Nama</th>
+                                    <th>Email</th>
                                     <th>Groups</th>
                                     <th>Last Activity</th>
                                     <th>IP Address</th>
@@ -156,13 +156,11 @@ function renderGroupsAsBadges($groupsString) {
                                                     <?php else: ?>
                                                         <i class="fas fa-user-circle" style="font-size: 40px; color: #6c757d; margin-right: 10px;"></i>
                                                     <?php endif; ?>
-                                                    <div>
-                                                        <strong><?= esc($user['fullname'] ?? $user['username']) ?></strong>
-                                                    </div>
+                                                    <strong><?= esc($user['username']) ?></strong>
                                                 </div>
                                             </td>
-                                            <td><?= esc($user['username']) ?></td>
                                             <td><?= esc($user['fullname'] ?? '-') ?></td>
+                                            <td><?= esc($user['email'] ?? '-') ?></td>
                                             <td>
                                                 <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>
                                             </td>

@@ -306,7 +306,6 @@ function renderGroupsAsBadges($groupsString) {
                                         <thead>
                                             <tr>
                                                 <th style="width: 10px">#</th>
-                                                <th>User</th>
                                                 <th>Username</th>
                                                 <th>Nama</th>
                                                 <th>Groups</th>
@@ -330,9 +329,9 @@ function renderGroupsAsBadges($groupsString) {
                                                             <?php else: ?>
                                                                 <i class="fas fa-user-circle" style="font-size: 30px; color: #6c757d; margin-right: 8px;"></i>
                                                             <?php endif; ?>
+                                                            <strong><?= esc($user['username']) ?></strong>
                                                         </div>
                                                     </td>
-                                                    <td><?= esc($user['username']) ?></td>
                                                     <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
                                                     <td>
                                                         <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>
@@ -378,7 +377,6 @@ function renderGroupsAsBadges($groupsString) {
                                         <thead>
                                             <tr>
                                                 <th>No</th>
-                                                <th>User</th>
                                                 <th>Username</th>
                                                 <th>Nama</th>
                                                 <th>Groups</th>
@@ -389,7 +387,7 @@ function renderGroupsAsBadges($groupsString) {
                                         <tbody>
                                             <?php if (empty($online_users)): ?>
                                                 <tr>
-                                                    <td colspan="7" class="text-center">Tidak ada user yang sedang online</td>
+                                                    <td colspan="6" class="text-center">Tidak ada user yang sedang online</td>
                                                 </tr>
                                             <?php else: ?>
                                                 <?php $no = 1; ?>
@@ -407,12 +405,9 @@ function renderGroupsAsBadges($groupsString) {
                                                                 <?php else: ?>
                                                                     <i class="fas fa-user-circle" style="font-size: 30px; color: #6c757d; margin-right: 8px;"></i>
                                                                 <?php endif; ?>
-                                                                <div>
-                                                                    <strong><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : $user['username']) ?></strong>
-                                                                </div>
+                                                                <strong><?= esc($user['username']) ?></strong>
                                                             </div>
                                                         </td>
-                                                        <td><?= esc($user['username']) ?></td>
                                                         <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
                                                         <td>
                                                             <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>

@@ -164,7 +164,6 @@ function renderGroupsAsBadges($groupsString)
                             <thead>
                                 <tr>
                                     <th style="width: 10px">#</th>
-                                    <th>User</th>
                                     <th>Username</th>
                                     <th>Nama</th>
                                     <th>Email</th>
@@ -178,7 +177,7 @@ function renderGroupsAsBadges($groupsString)
                             <tbody>
                                 <?php if (empty($users)): ?>
                                     <tr>
-                                        <td colspan="10" class="text-center">Tidak ada data</td>
+                                        <td colspan="9" class="text-center">Tidak ada data</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php $no = 1; ?>
@@ -196,9 +195,9 @@ function renderGroupsAsBadges($groupsString)
                                                     <?php else: ?>
                                                         <i class="fas fa-user-circle" style="font-size: 40px; color: #6c757d; margin-right: 10px;"></i>
                                                     <?php endif; ?>
+                                                    <strong><?= esc($user['username']) ?></strong>
                                                 </div>
                                             </td>
-                                            <td><?= esc($user['username']) ?></td>
                                             <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
                                             <td><?= esc($user['email'] ?? '-') ?></td>
                                             <td>
@@ -265,7 +264,7 @@ function renderGroupsAsBadges($groupsString)
                                 "pageLength": <?= $limit ?>,
                                 "lengthChange": true,
                                 "order": [
-                                    [6, "desc"]
+                                    [5, "desc"]
                                 ], // Sort by Jumlah Login
                                 "language": {
                                     "decimal": "",
