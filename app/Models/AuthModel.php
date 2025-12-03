@@ -157,10 +157,18 @@ class AuthModel extends Model
                 $attempt['device_info'] = $parsed['device'];
                 $attempt['browser_info'] = $parsed['browser'];
                 $attempt['browser_version'] = $parsed['version'];
+                $attempt['device_detail'] = $parsed['device_detail'];
+                $attempt['os_version'] = $parsed['os_version'];
+                $attempt['device_brand'] = $parsed['device_brand'];
+                $attempt['device_model'] = $parsed['device_model'];
             } else {
                 $attempt['device_info'] = 'Unknown';
                 $attempt['browser_info'] = 'Unknown';
                 $attempt['browser_version'] = '';
+                $attempt['device_detail'] = '';
+                $attempt['os_version'] = '';
+                $attempt['device_brand'] = '';
+                $attempt['device_model'] = '';
             }
         }
 
@@ -742,15 +750,18 @@ class AuthModel extends Model
         $weekAgo = date('Y-m-d 00:00:00', strtotime('-7 days'));
         $monthAgo = date('Y-m-d 00:00:00', strtotime('-30 days'));
 
+        // Get today's stats
+        $todayTotal = $this->db->table('auth_logins')->where('date >=', $today)->countAllResults();
+        $todaySuccessful = $this->db->table('auth_logins')->where('date >=', $today)->where('success', 1)->countAllResults();
+        $todayFailed = $this->db->table('auth_logins')->where('date >=', $today)->where('success', 0)->countAllResults();
+
         $stats = [
-            'total' => $this->db->table('auth_logins')->countAllResults(),
-            'successful' => $this->db->table('auth_logins')->where('success', 1)->countAllResults(),
-            'failed' => $this->db->table('auth_logins')->where('success', 0)->countAllResults(),
-            'today' => [
-                'total' => $this->db->table('auth_logins')->where('date >=', $today)->countAllResults(),
-                'successful' => $this->db->table('auth_logins')->where('date >=', $today)->where('success', 1)->countAllResults(),
-                'failed' => $this->db->table('auth_logins')->where('date >=', $today)->where('success', 0)->countAllResults(),
-            ],
+            'total_attempts' => $this->db->table('auth_logins')->countAllResults(),
+            'successful_logins' => $this->db->table('auth_logins')->where('success', 1)->countAllResults(),
+            'failed_logins' => $this->db->table('auth_logins')->where('success', 0)->countAllResults(),
+            'today_attempts' => $todayTotal,
+            'today_successful' => $todaySuccessful,
+            'today_failed' => $todayFailed,
             'week' => [
                 'total' => $this->db->table('auth_logins')->where('date >=', $weekAgo)->countAllResults(),
                 'successful' => $this->db->table('auth_logins')->where('date >=', $weekAgo)->where('success', 1)->countAllResults(),
@@ -838,6 +849,7 @@ class AuthModel extends Model
 
     /**
      * Parse user agent string to extract device, browser, and version
+     * Includes detailed device information for Android (version, brand, model)
      * 
      * @param string $userAgent
      * @return array
@@ -848,26 +860,118 @@ class AuthModel extends Model
             return [
                 'device' => 'Unknown',
                 'browser' => 'Unknown',
-                'version' => ''
+                'version' => '',
+                'device_detail' => '',
+                'os_version' => '',
+                'device_brand' => '',
+                'device_model' => ''
             ];
         }
 
         $device = 'Desktop';
         $browser = 'Unknown';
         $version = '';
+        $deviceDetail = '';
+        $osVersion = '';
+        $deviceBrand = '';
+        $deviceModel = '';
 
-        // Detect device
-        if (preg_match('/(android|iphone|ipad|ipod|blackberry|windows phone|mobile)/i', $userAgent)) {
-            if (preg_match('/android/i', $userAgent)) {
-                $device = 'Android';
-            } elseif (preg_match('/iphone|ipod/i', $userAgent)) {
-                $device = 'iPhone';
-            } elseif (preg_match('/ipad/i', $userAgent)) {
-                $device = 'iPad';
-            } elseif (preg_match('/blackberry/i', $userAgent)) {
+        // Detect Android and extract detailed info
+        if (preg_match('/android/i', $userAgent)) {
+            $device = 'Android';
+
+            // Extract Android version (e.g., "Android 11", "Android 12")
+            if (preg_match('/android\s+([0-9.]+)/i', $userAgent, $matches)) {
+                $osVersion = 'Android ' . $matches[1];
+            } elseif (preg_match('/android\s+([a-z0-9.]+)/i', $userAgent, $matches)) {
+                // Handle codenames like "Android 10" or "Android 11"
+                $osVersion = 'Android ' . $matches[1];
+            }
+
+            // Extract device model/brand from common patterns
+            // Pattern 1: Samsung (SM-XXXXX)
+            if (preg_match('/SM-([A-Z0-9]+)/i', $userAgent, $matches)) {
+                $deviceBrand = 'Samsung';
+                $deviceModel = 'SM-' . $matches[1];
+            }
+            // Pattern 2: Xiaomi (Mi, Redmi, POCO)
+            elseif (preg_match('/(?:Mi|Redmi|POCO)\s+([A-Z0-9\s]+)/i', $userAgent, $matches)) {
+                $deviceBrand = 'Xiaomi';
+                $deviceModel = trim($matches[1]);
+            }
+            // Pattern 3: Oppo
+            elseif (preg_match('/OPPO\s+([A-Z0-9]+)/i', $userAgent, $matches)) {
+                $deviceBrand = 'Oppo';
+                $deviceModel = $matches[1];
+            }
+            // Pattern 4: Vivo
+            elseif (preg_match('/Vivo\s+([A-Z0-9]+)/i', $userAgent, $matches)) {
+                $deviceBrand = 'Vivo';
+                $deviceModel = $matches[1];
+            }
+            // Pattern 5: Realme
+            elseif (preg_match('/RMX([0-9]+)/i', $userAgent, $matches)) {
+                $deviceBrand = 'Realme';
+                $deviceModel = 'RMX' . $matches[1];
+            }
+            // Pattern 6: OnePlus
+            elseif (preg_match('/OnePlus\s+([A-Z0-9]+)/i', $userAgent, $matches)) {
+                $deviceBrand = 'OnePlus';
+                $deviceModel = $matches[1];
+            }
+            // Pattern 7: Huawei/Honor
+            elseif (preg_match('/(?:Huawei|Honor)\s+([A-Z0-9\s]+)/i', $userAgent, $matches)) {
+                $deviceBrand = preg_match('/honor/i', $userAgent) ? 'Honor' : 'Huawei';
+                $deviceModel = trim($matches[1]);
+            }
+            // Pattern 8: Generic model number in parentheses (Linux; Android X; Model)
+            elseif (preg_match('/\(Linux; Android [^;]+; ([^)]+)\)/i', $userAgent, $matches)) {
+                $modelInfo = trim($matches[1]);
+                // Try to extract brand from model
+                if (preg_match('/^([A-Za-z]+)[\s\-]/', $modelInfo, $brandMatch)) {
+                    $deviceBrand = ucfirst(strtolower($brandMatch[1]));
+                    $deviceModel = $modelInfo;
+                } else {
+                    $deviceModel = $modelInfo;
+                }
+            }
+
+            // Build device detail string
+            $detailParts = [];
+            if (!empty($deviceBrand)) {
+                $detailParts[] = $deviceBrand;
+            }
+            if (!empty($deviceModel)) {
+                $detailParts[] = $deviceModel;
+            }
+            if (!empty($osVersion)) {
+                $detailParts[] = $osVersion;
+            }
+            $deviceDetail = !empty($detailParts) ? implode(' | ', $detailParts) : '';
+        } elseif (preg_match('/iphone|ipod/i', $userAgent)) {
+            $device = 'iPhone';
+            // Extract iOS version
+            if (preg_match('/OS\s+([0-9_]+)/i', $userAgent, $matches)) {
+                $osVersion = 'iOS ' . str_replace('_', '.', $matches[1]);
+                $deviceDetail = $osVersion;
+            }
+        } elseif (preg_match('/ipad/i', $userAgent)) {
+            $device = 'iPad';
+            // Extract iOS version
+            if (preg_match('/OS\s+([0-9_]+)/i', $userAgent, $matches)) {
+                $osVersion = 'iOS ' . str_replace('_', '.', $matches[1]);
+                $deviceDetail = $osVersion;
+            }
+        } elseif (preg_match('/(blackberry|windows phone|mobile)/i', $userAgent)) {
+            if (preg_match('/blackberry/i', $userAgent)) {
                 $device = 'BlackBerry';
             } elseif (preg_match('/windows phone/i', $userAgent)) {
                 $device = 'Windows Phone';
+                // Extract Windows Phone version
+                if (preg_match('/Windows Phone\s+([0-9.]+)/i', $userAgent, $matches)) {
+                    $osVersion = 'Windows Phone ' . $matches[1];
+                    $deviceDetail = $osVersion;
+                }
             } else {
                 $device = 'Mobile';
             }
@@ -877,8 +981,27 @@ class AuthModel extends Model
             $device = 'Linux';
         } elseif (preg_match('/macintosh|mac os x/i', $userAgent)) {
             $device = 'Mac';
+            // Extract macOS version
+            if (preg_match('/Mac OS X\s+([0-9_]+)/i', $userAgent, $matches)) {
+                $osVersion = 'macOS ' . str_replace('_', '.', $matches[1]);
+                $deviceDetail = $osVersion;
+            }
         } elseif (preg_match('/windows/i', $userAgent)) {
             $device = 'Windows';
+            // Extract Windows version
+            if (preg_match('/Windows NT\s+([0-9.]+)/i', $userAgent, $matches)) {
+                $winVersion = $matches[1];
+                $winVersions = [
+                    '10.0' => 'Windows 10/11',
+                    '6.3' => 'Windows 8.1',
+                    '6.2' => 'Windows 8',
+                    '6.1' => 'Windows 7',
+                    '6.0' => 'Windows Vista',
+                    '5.1' => 'Windows XP'
+                ];
+                $osVersion = $winVersions[$winVersion] ?? 'Windows ' . $winVersion;
+                $deviceDetail = $osVersion;
+            }
         }
 
         // Detect browser
@@ -917,7 +1040,11 @@ class AuthModel extends Model
         return [
             'device' => $device,
             'browser' => $browser,
-            'version' => $version
+            'version' => $version,
+            'device_detail' => $deviceDetail,
+            'os_version' => $osVersion,
+            'device_brand' => $deviceBrand,
+            'device_model' => $deviceModel
         ];
     }
 }

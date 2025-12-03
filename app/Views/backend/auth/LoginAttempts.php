@@ -166,6 +166,54 @@
                                     <h3 class="card-title">
                                         <i class="fas fa-table"></i> Daftar Riwayat Login
                                     </h3>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-sm btn-primary" id="resetFilters">
+                                            <i class="fas fa-redo"></i> Reset Filter
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Filters -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-3">
+                                            <label for="filterDevice">Filter Device:</label>
+                                            <select id="filterDevice" class="form-control form-control-sm">
+                                                <option value="">Semua Device</option>
+                                                <?php if (!empty($device_browser_stats['device_stats'])): ?>
+                                                    <?php foreach ($device_browser_stats['device_stats'] as $device => $count): ?>
+                                                        <option value="<?= esc($device) ?>"><?= esc($device) ?> (<?= number_format($count, 0, ',', '.') ?>)</option>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="filterBrowser">Filter Browser:</label>
+                                            <select id="filterBrowser" class="form-control form-control-sm">
+                                                <option value="">Semua Browser</option>
+                                                <?php if (!empty($device_browser_stats['top_browsers'])): ?>
+                                                    <?php foreach ($device_browser_stats['top_browsers'] as $browser => $count): ?>
+                                                        <option value="<?= esc($browser) ?>"><?= esc($browser) ?> (<?= number_format($count, 0, ',', '.') ?>)</option>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="filterStatus">Filter Status:</label>
+                                            <select id="filterStatus" class="form-control form-control-sm">
+                                                <option value="">Semua Status</option>
+                                                <option value="1">Berhasil</option>
+                                                <option value="0">Gagal</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>&nbsp;</label>
+                                            <div>
+                                                <button type="button" class="btn btn-sm btn-secondary" id="applyFilters">
+                                                    <i class="fas fa-filter"></i> Terapkan Filter
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="card-body p-0">
                                     <div style="overflow-x: auto;">
@@ -175,7 +223,11 @@
                                                     <th style="width: 10px">No</th>
                                                     <th>Username / Nama</th>
                                                     <th>IP Address</th>
-                                                    <th>Device & Browser</th>
+                                                    <th>Device</th>
+                                                    <th>OS Version</th>
+                                                    <th>Brand/Merek</th>
+                                                    <th>Browser</th>
+                                                    <th>Web Version</th>
                                                     <th>Status</th>
                                                     <th>Tanggal & Waktu</th>
                                                 </tr>
@@ -183,7 +235,7 @@
                                             <tbody>
                                                 <?php if (empty($attempts)): ?>
                                                     <tr>
-                                                        <td colspan="6" class="text-center">Tidak ada data</td>
+                                                        <td colspan="10" class="text-center">Tidak ada data</td>
                                                     </tr>
                                                 <?php else: ?>
                                                     <?php $no = 1; ?>
@@ -214,23 +266,62 @@
                                                                 </div>
                                                             </td>
                                                             <td><?= esc($attempt['ip_address'] ?? '-') ?></td>
-                                                            <td>
-                                                                <?php if (!empty($attempt['device_info']) && $attempt['device_info'] !== '-'): ?>
-                                                                    <span class="badge badge-info">
-                                                                        <i class="fas fa-<?= strtolower($attempt['device_info']) === 'mobile' ? 'mobile-alt' : (strtolower($attempt['device_info']) === 'tablet' ? 'tablet-alt' : 'desktop') ?>"></i> <?= esc($attempt['device_info']) ?>
+                                                            <td data-device="<?= esc($attempt['device_info'] ?? 'Unknown') ?>">
+                                                                <?php if (!empty($attempt['device_info']) && $attempt['device_info'] !== 'Unknown' && $attempt['device_info'] !== '-'): ?>
+                                                                    <span class="badge badge-info"
+                                                                        <?php if (!empty($attempt['device_detail'])): ?>
+                                                                        data-toggle="tooltip"
+                                                                        data-placement="top"
+                                                                        title="<?= esc($attempt['device_detail']) ?>"
+                                                                        <?php endif; ?>>
+                                                                        <i class="fas fa-<?= strtolower($attempt['device_info']) === 'mobile' || strtolower($attempt['device_info']) === 'android' || strtolower($attempt['device_info']) === 'iphone' ? 'mobile-alt' : (strtolower($attempt['device_info']) === 'tablet' || strtolower($attempt['device_info']) === 'ipad' ? 'tablet-alt' : 'desktop') ?>"></i> <?= esc($attempt['device_info']) ?>
                                                                     </span>
-                                                                    <br>
-                                                                    <small class="text-muted">
-                                                                        <i class="fas fa-globe"></i> <?= esc($attempt['browser_info']) ?>
-                                                                        <?php if (!empty($attempt['browser_version']) && $attempt['browser_version'] !== '-'): ?>
-                                                                            v<?= esc($attempt['browser_version']) ?>
-                                                                        <?php endif; ?>
-                                                                    </small>
                                                                 <?php else: ?>
                                                                     <span class="text-muted">-</span>
                                                                 <?php endif; ?>
                                                             </td>
                                                             <td>
+                                                                <?php if (!empty($attempt['os_version'])): ?>
+                                                                    <span class="badge badge-warning">
+                                                                        <i class="fas fa-code-branch"></i> <?= esc($attempt['os_version']) ?>
+                                                                    </span>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">-</span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td>
+                                                                <?php if (!empty($attempt['device_brand']) || !empty($attempt['device_model'])): ?>
+                                                                    <?php if (!empty($attempt['device_brand'])): ?>
+                                                                        <span class="badge badge-secondary">
+                                                                            <i class="fas fa-tag"></i> <?= esc($attempt['device_brand']) ?>
+                                                                        </span>
+                                                                    <?php endif; ?>
+                                                                    <?php if (!empty($attempt['device_model'])): ?>
+                                                                        <br><small class="text-muted" style="font-size: 0.75rem;">
+                                                                            <i class="fas fa-mobile-alt"></i> <?= esc($attempt['device_model']) ?>
+                                                                        </small>
+                                                                    <?php endif; ?>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">-</span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td data-browser="<?= esc($attempt['browser_info'] ?? 'Unknown') ?>">
+                                                                <?php if (!empty($attempt['browser_info']) && $attempt['browser_info'] !== 'Unknown' && $attempt['browser_info'] !== '-'): ?>
+                                                                    <span class="badge badge-primary">
+                                                                        <i class="fas fa-globe"></i> <?= esc($attempt['browser_info']) ?>
+                                                                    </span>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">-</span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td>
+                                                                <?php if (!empty($attempt['browser_version']) && $attempt['browser_version'] !== '-'): ?>
+                                                                    <small class="text-muted">v<?= esc($attempt['browser_version']) ?></small>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">-</span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td data-status="<?= ($attempt['success'] ?? 0) ? '1' : '0' ?>">
                                                                 <?php if ($attempt['success'] ?? 0): ?>
                                                                     <span class="badge badge-success">
                                                                         <i class="fas fa-check-circle"></i> Berhasil
@@ -270,9 +361,118 @@
     (function($) {
         'use strict';
 
+        let table;
+        let customFilterFunction = null;
+
         $(document).ready(function() {
-            // Initialize Login Attempts Table (order by Tanggal & Waktu - column index 5)
-            initDataTableWithOverflowScroll('#loginAttemptsTable', 25, true, 5, 'Error initializing Login Attempts DataTable:');
+            // Initialize Login Attempts Table (order by Tanggal & Waktu - column index 9)
+            initDataTableWithOverflowScroll('#loginAttemptsTable', 25, true, 9, 'Error initializing Login Attempts DataTable:')
+                .then(function(dataTable) {
+                    table = dataTable;
+                })
+                .catch(function(error) {
+                    console.error('Error initializing table:', error);
+                    // Fallback: try to get existing DataTable instance
+                    if ($.fn.DataTable.isDataTable('#loginAttemptsTable')) {
+                        table = $('#loginAttemptsTable').DataTable();
+                    }
+                });
+
+            // Apply filters function
+            function applyFilters() {
+                if (!table) {
+                    console.warn('Table not initialized yet');
+                    return;
+                }
+
+                const deviceFilter = $('#filterDevice').val();
+                const browserFilter = $('#filterBrowser').val();
+                const statusFilter = $('#filterStatus').val();
+
+                // Remove existing custom filter if any
+                if (customFilterFunction !== null) {
+                    $.fn.dataTable.ext.search.pop();
+                    customFilterFunction = null;
+                }
+
+                // Create new custom filter function
+                customFilterFunction = function(settings, data, dataIndex) {
+                    const row = table.row(dataIndex).node();
+
+                    // Device filter
+                    if (deviceFilter) {
+                        const deviceValue = $(row).find('td[data-device]').attr('data-device');
+                        if (deviceValue !== deviceFilter) {
+                            return false;
+                        }
+                    }
+
+                    // Browser filter
+                    if (browserFilter) {
+                        const browserValue = $(row).find('td[data-browser]').attr('data-browser');
+                        if (browserValue !== browserFilter) {
+                            return false;
+                        }
+                    }
+
+                    // Status filter
+                    if (statusFilter !== '') {
+                        const statusValue = $(row).find('td[data-status]').attr('data-status');
+                        if (statusValue !== statusFilter) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                };
+
+                // Add custom filter
+                $.fn.dataTable.ext.search.push(customFilterFunction);
+
+                // Redraw table
+                table.draw();
+            }
+
+            // Remove all filters function
+            function removeFilters() {
+                if (!table) {
+                    return;
+                }
+
+                // Remove custom filter
+                if (customFilterFunction !== null) {
+                    $.fn.dataTable.ext.search.pop();
+                    customFilterFunction = null;
+                }
+
+                // Reset filter dropdowns
+                $('#filterDevice').val('');
+                $('#filterBrowser').val('');
+                $('#filterStatus').val('');
+
+                // Redraw table
+                table.draw();
+            }
+
+            // Apply filters button
+            $('#applyFilters').on('click', function() {
+                applyFilters();
+            });
+
+            // Reset filters button
+            $('#resetFilters').on('click', function() {
+                removeFilters();
+            });
+
+            // Apply filter on Enter key in dropdowns
+            $('#filterDevice, #filterBrowser, #filterStatus').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    applyFilters();
+                }
+            });
+
+            // Initialize tooltips for device details
+            $('[data-toggle="tooltip"]').tooltip();
         });
     })(jQuery);
 </script>

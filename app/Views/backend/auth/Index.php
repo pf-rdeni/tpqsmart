@@ -292,7 +292,7 @@ function renderGroupsAsBadges($groupsString)
                                     <i class="fas fa-calendar-day"></i>
                                 </div>
                                 <a href="<?= base_url('backend/auth/loginAttempts') ?>" class="small-box-footer">
-                                    Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                                    Berhasil: <?= number_format($login_attempts_stats['today_successful'] ?? 0, 0, ',', '.') ?> | Gagal: <?= number_format($login_attempts_stats['today_failed'] ?? 0, 0, ',', '.') ?> <i class="fas fa-arrow-circle-right"></i>
                                 </a>
                             </div>
                         </div>
@@ -669,22 +669,42 @@ function renderGroupsAsBadges($groupsString)
                                                             </div>
                                                         </td>
                                                         <td><?= esc($attempt['ip_address'] ?? '-') ?></td>
-                                                        <td>
-                                                            <?php if (!empty($attempt['device_info']) && $attempt['device_info'] !== '-'): ?>
-                                                                <span class="badge badge-info">
-                                                                    <i class="fas fa-<?= strtolower($attempt['device_info']) === 'mobile' ? 'mobile-alt' : (strtolower($attempt['device_info']) === 'tablet' ? 'tablet-alt' : 'desktop') ?>"></i> <?= esc($attempt['device_info']) ?>
-                                                                </span>
-                                                                <br>
-                                                                <small class="text-muted">
-                                                                    <i class="fas fa-globe"></i> <?= esc($attempt['browser_info']) ?>
-                                                                    <?php if (!empty($attempt['browser_version']) && $attempt['browser_version'] !== '-'): ?>
-                                                                        v<?= esc($attempt['browser_version']) ?>
+                                                            <td>
+                                                                <?php if (!empty($attempt['device_info']) && $attempt['device_info'] !== '-'): ?>
+                                                                    <span class="badge badge-info" 
+                                                                          <?php if (!empty($attempt['device_detail'])): ?>
+                                                                              data-toggle="tooltip" 
+                                                                              data-placement="top" 
+                                                                              title="<?= esc($attempt['device_detail']) ?>"
+                                                                          <?php endif; ?>>
+                                                                        <i class="fas fa-<?= strtolower($attempt['device_info']) === 'mobile' || strtolower($attempt['device_info']) === 'android' || strtolower($attempt['device_info']) === 'iphone' ? 'mobile-alt' : (strtolower($attempt['device_info']) === 'tablet' || strtolower($attempt['device_info']) === 'ipad' ? 'tablet-alt' : 'desktop') ?>"></i> <?= esc($attempt['device_info']) ?>
+                                                                    </span>
+                                                                    <?php if (!empty($attempt['device_detail'])): ?>
+                                                                        <br><small class="text-muted" style="font-size: 0.7rem;">
+                                                                            <?php if (!empty($attempt['device_brand'])): ?>
+                                                                                <i class="fas fa-mobile-alt"></i> <?= esc($attempt['device_brand']) ?>
+                                                                                <?php if (!empty($attempt['device_model'])): ?>
+                                                                                    <?= esc($attempt['device_model']) ?>
+                                                                                <?php endif; ?>
+                                                                                <?php if (!empty($attempt['os_version'])): ?>
+                                                                                    <br><i class="fas fa-code-branch"></i> <?= esc($attempt['os_version']) ?>
+                                                                                <?php endif; ?>
+                                                                            <?php elseif (!empty($attempt['os_version'])): ?>
+                                                                                <i class="fas fa-code-branch"></i> <?= esc($attempt['os_version']) ?>
+                                                                            <?php endif; ?>
+                                                                        </small>
                                                                     <?php endif; ?>
-                                                                </small>
-                                                            <?php else: ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php endif; ?>
-                                                        </td>
+                                                                    <br>
+                                                                    <small class="text-muted">
+                                                                        <i class="fas fa-globe"></i> <?= esc($attempt['browser_info']) ?>
+                                                                        <?php if (!empty($attempt['browser_version']) && $attempt['browser_version'] !== '-'): ?>
+                                                                            v<?= esc($attempt['browser_version']) ?>
+                                                                        <?php endif; ?>
+                                                                    </small>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">-</span>
+                                                                <?php endif; ?>
+                                                            </td>
                                                         <td>
                                                             <?php if ($attempt['success'] ?? 0): ?>
                                                                 <span class="badge badge-success">
@@ -734,6 +754,9 @@ function renderGroupsAsBadges($groupsString)
 
             // Initialize Login Attempts Table (order by Tanggal & Waktu - column index 5)
             initDataTableWithOverflowScroll('#loginAttemptsTable', 10, true, 5, 'Error initializing Login Attempts DataTable:');
+
+            // Initialize tooltips for device details
+            $('[data-toggle="tooltip"]').tooltip();
         });
     })(jQuery);
 </script>
