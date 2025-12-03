@@ -6,6 +6,7 @@ use CodeIgniter\Model;
 
 class AuthModel extends Model
 {
+    protected $table = ''; // Not using Model's table, using direct db queries
     protected $db;
 
     public function __construct()
@@ -140,7 +141,7 @@ class AuthModel extends Model
      */
     public function getLoginAttempts($limit = 100)
     {
-        return $this->db->table('auth_logins al')
+        $attempts = $this->db->table('auth_logins al')
             ->select('al.*, u.username, u.fullname, u.user_image')
             ->join('users u', 'al.user_id = u.id', 'left')
             ->orderBy('al.date', 'DESC')
@@ -148,6 +149,22 @@ class AuthModel extends Model
             ->limit($limit)
             ->get()
             ->getResultArray();
+
+        // Parse user_agent for each attempt
+        foreach ($attempts as &$attempt) {
+            if (!empty($attempt['user_agent'])) {
+                $parsed = $this->parseUserAgent($attempt['user_agent']);
+                $attempt['device_info'] = $parsed['device'];
+                $attempt['browser_info'] = $parsed['browser'];
+                $attempt['browser_version'] = $parsed['version'];
+            } else {
+                $attempt['device_info'] = 'Unknown';
+                $attempt['browser_info'] = 'Unknown';
+                $attempt['browser_version'] = '';
+            }
+        }
+
+        return $attempts;
     }
 
     /**
@@ -712,6 +729,196 @@ class AuthModel extends Model
             default:
                 return null;
         }
+    }
+
+    /**
+     * Get login attempts statistics
+     * 
+     * @return array
+     */
+    public function getLoginAttemptsStatistics()
+    {
+        $today = date('Y-m-d 00:00:00');
+        $weekAgo = date('Y-m-d 00:00:00', strtotime('-7 days'));
+        $monthAgo = date('Y-m-d 00:00:00', strtotime('-30 days'));
+
+        $stats = [
+            'total' => $this->db->table('auth_logins')->countAllResults(),
+            'successful' => $this->db->table('auth_logins')->where('success', 1)->countAllResults(),
+            'failed' => $this->db->table('auth_logins')->where('success', 0)->countAllResults(),
+            'today' => [
+                'total' => $this->db->table('auth_logins')->where('date >=', $today)->countAllResults(),
+                'successful' => $this->db->table('auth_logins')->where('date >=', $today)->where('success', 1)->countAllResults(),
+                'failed' => $this->db->table('auth_logins')->where('date >=', $today)->where('success', 0)->countAllResults(),
+            ],
+            'week' => [
+                'total' => $this->db->table('auth_logins')->where('date >=', $weekAgo)->countAllResults(),
+                'successful' => $this->db->table('auth_logins')->where('date >=', $weekAgo)->where('success', 1)->countAllResults(),
+                'failed' => $this->db->table('auth_logins')->where('date >=', $weekAgo)->where('success', 0)->countAllResults(),
+            ],
+            'month' => [
+                'total' => $this->db->table('auth_logins')->where('date >=', $monthAgo)->countAllResults(),
+                'successful' => $this->db->table('auth_logins')->where('date >=', $monthAgo)->where('success', 1)->countAllResults(),
+                'failed' => $this->db->table('auth_logins')->where('date >=', $monthAgo)->where('success', 0)->countAllResults(),
+            ],
+        ];
+
+        return $stats;
+    }
+
+    /**
+     * Get device and browser statistics from login attempts
+     * 
+     * @return array
+     */
+    public function getDeviceBrowserStatistics()
+    {
+        // Get all login attempts with user_agent
+        $attempts = $this->db->table('auth_logins')
+            ->select('user_agent')
+            ->where('user_agent IS NOT NULL')
+            ->where('user_agent !=', '')
+            ->get()
+            ->getResultArray();
+
+        $deviceStats = [];
+        $browserStats = [];
+        $total = count($attempts);
+
+        foreach ($attempts as $attempt) {
+            if (empty($attempt['user_agent'])) {
+                continue;
+            }
+
+            $parsed = $this->parseUserAgent($attempt['user_agent']);
+            $device = $parsed['device'];
+            $browser = $parsed['browser'];
+            // Use browser name only (without version) for top browsers
+            $browserName = $browser;
+
+            // Count devices
+            if (!isset($deviceStats[$device])) {
+                $deviceStats[$device] = 0;
+            }
+            $deviceStats[$device]++;
+
+            // Count browsers (by name only, not version)
+            if (!isset($browserStats[$browserName])) {
+                $browserStats[$browserName] = 0;
+            }
+            $browserStats[$browserName]++;
+        }
+
+        // Sort by count (descending)
+        arsort($deviceStats);
+        arsort($browserStats);
+
+        // Calculate percentages
+        $devicePercentages = [];
+        foreach ($deviceStats as $device => $count) {
+            $devicePercentages[$device] = $total > 0 ? round(($count / $total) * 100, 1) : 0;
+        }
+
+        $browserPercentages = [];
+        foreach ($browserStats as $browser => $count) {
+            $browserPercentages[$browser] = $total > 0 ? round(($count / $total) * 100, 1) : 0;
+        }
+
+        // Get top 5 browsers
+        $topBrowsers = array_slice($browserStats, 0, 5, true);
+
+        return [
+            'total_with_user_agent' => $total,
+            'device_stats' => $deviceStats,
+            'device_percentages' => $devicePercentages,
+            'top_browsers' => $topBrowsers,
+            'browser_percentages' => $browserPercentages
+        ];
+    }
+
+    /**
+     * Parse user agent string to extract device, browser, and version
+     * 
+     * @param string $userAgent
+     * @return array
+     */
+    public function parseUserAgent($userAgent)
+    {
+        if (empty($userAgent)) {
+            return [
+                'device' => 'Unknown',
+                'browser' => 'Unknown',
+                'version' => ''
+            ];
+        }
+
+        $device = 'Desktop';
+        $browser = 'Unknown';
+        $version = '';
+
+        // Detect device
+        if (preg_match('/(android|iphone|ipad|ipod|blackberry|windows phone|mobile)/i', $userAgent)) {
+            if (preg_match('/android/i', $userAgent)) {
+                $device = 'Android';
+            } elseif (preg_match('/iphone|ipod/i', $userAgent)) {
+                $device = 'iPhone';
+            } elseif (preg_match('/ipad/i', $userAgent)) {
+                $device = 'iPad';
+            } elseif (preg_match('/blackberry/i', $userAgent)) {
+                $device = 'BlackBerry';
+            } elseif (preg_match('/windows phone/i', $userAgent)) {
+                $device = 'Windows Phone';
+            } else {
+                $device = 'Mobile';
+            }
+        } elseif (preg_match('/tablet/i', $userAgent)) {
+            $device = 'Tablet';
+        } elseif (preg_match('/linux/i', $userAgent)) {
+            $device = 'Linux';
+        } elseif (preg_match('/macintosh|mac os x/i', $userAgent)) {
+            $device = 'Mac';
+        } elseif (preg_match('/windows/i', $userAgent)) {
+            $device = 'Windows';
+        }
+
+        // Detect browser
+        if (preg_match('/edg/i', $userAgent)) {
+            $browser = 'Edge';
+            if (preg_match('/edg\/([0-9.]+)/i', $userAgent, $matches)) {
+                $version = $matches[1];
+            }
+        } elseif (preg_match('/chrome/i', $userAgent) && !preg_match('/edg/i', $userAgent)) {
+            $browser = 'Chrome';
+            if (preg_match('/chrome\/([0-9.]+)/i', $userAgent, $matches)) {
+                $version = $matches[1];
+            }
+        } elseif (preg_match('/firefox/i', $userAgent)) {
+            $browser = 'Firefox';
+            if (preg_match('/firefox\/([0-9.]+)/i', $userAgent, $matches)) {
+                $version = $matches[1];
+            }
+        } elseif (preg_match('/safari/i', $userAgent) && !preg_match('/chrome/i', $userAgent)) {
+            $browser = 'Safari';
+            if (preg_match('/version\/([0-9.]+)/i', $userAgent, $matches)) {
+                $version = $matches[1];
+            }
+        } elseif (preg_match('/opera|opr/i', $userAgent)) {
+            $browser = 'Opera';
+            if (preg_match('/(?:opera|opr)\/([0-9.]+)/i', $userAgent, $matches)) {
+                $version = $matches[1];
+            }
+        } elseif (preg_match('/msie|trident/i', $userAgent)) {
+            $browser = 'IE';
+            if (preg_match('/(?:msie |rv:)([0-9.]+)/i', $userAgent, $matches)) {
+                $version = $matches[1];
+            }
+        }
+
+        return [
+            'device' => $device,
+            'browser' => $browser,
+            'version' => $version
+        ];
     }
 }
 
