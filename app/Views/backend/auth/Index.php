@@ -2,7 +2,8 @@
 <?= $this->section('content'); ?>
 <?php
 // Function to get badge color for group
-function getGroupBadgeColor($groupName) {
+function getGroupBadgeColor($groupName)
+{
     $groupColors = [
         'Admin' => 'danger',
         'Operator' => 'primary',
@@ -11,7 +12,7 @@ function getGroupBadgeColor($groupName) {
         'Santri' => 'info',
         'default' => 'secondary'
     ];
-    
+
     $groupName = trim($groupName);
     foreach ($groupColors as $key => $color) {
         if (stripos($groupName, $key) !== false) {
@@ -22,21 +23,22 @@ function getGroupBadgeColor($groupName) {
 }
 
 // Function to render groups as badges
-function renderGroupsAsBadges($groupsString) {
+function renderGroupsAsBadges($groupsString)
+{
     if (empty($groupsString)) {
         return '<span class="text-muted">-</span>';
     }
-    
+
     $groups = array_map('trim', explode(',', $groupsString));
     $badges = [];
-    
+
     foreach ($groups as $group) {
         if (!empty($group)) {
             $color = getGroupBadgeColor($group);
             $badges[] = '<span class="badge badge-' . $color . '">' . esc($group) . '</span>';
         }
     }
-    
+
     return !empty($badges) ? implode(' ', $badges) : '<span class="text-muted">-</span>';
 }
 ?>
@@ -288,74 +290,76 @@ function renderGroupsAsBadges($groupsString) {
 
                     <!-- Top 5 User yang Sering Login -->
                     <?php if (!empty($frequent_login_stats['top_users'])): ?>
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3 class="card-title">
-                                        <i class="fas fa-trophy"></i> Top 5 User yang Sering Login
-                                    </h3>
-                                    <div class="card-tools">
-                                        <a href="<?= base_url('backend/auth/frequentLoginUsers') ?>" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-external-link-alt"></i> Lihat Semua
-                                        </a>
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="fas fa-trophy"></i> Top 5 User yang Sering Login
+                                        </h3>
+                                        <div class="card-tools">
+                                            <a href="<?= base_url('backend/auth/frequentLoginUsers') ?>" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-external-link-alt"></i> Lihat Semua
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="card-body p-0">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th style="width: 10px">#</th>
-                                                <th>Username</th>
-                                                <th>Nama</th>
-                                                <th>Groups</th>
-                                                <th>Jumlah Login</th>
-                                                <th>Login Terakhir</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php $no = 1; ?>
-                                            <?php foreach ($frequent_login_stats['top_users'] as $user): ?>
+                                    <div class="card-body p-0">
+                                        <div style="overflow-x: auto;">
+                                            <table id="top5FrequentLoginTable" class="table table-bordered table-striped">
+                                            <thead>
                                                 <tr>
-                                                    <td><?= $no++ ?></td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <?php if (!empty($user['user_image']) && $user['user_image'] !== 'default.svg'): ?>
-                                                                <img src="<?= base_url('uploads/profil/user/' . $user['user_image']) ?>"
-                                                                    class="img-circle elevation-2"
-                                                                    alt="User Image"
-                                                                    style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;"
-                                                                    onerror="this.style.display='none';">
-                                                            <?php else: ?>
-                                                                <i class="fas fa-user-circle" style="font-size: 30px; color: #6c757d; margin-right: 8px;"></i>
-                                                            <?php endif; ?>
-                                                            <strong><?= esc($user['username']) ?></strong>
-                                                        </div>
-                                                    </td>
-                                                    <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
-                                                    <td>
-                                                        <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge badge-success">
-                                                            <i class="fas fa-sign-in-alt"></i> <?= number_format($user['login_count'], 0, ',', '.') ?>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <?php if (!empty($user['last_login'])): ?>
-                                                            <small><?= date('d/m/Y H:i', strtotime($user['last_login'])) ?></small>
-                                                        <?php else: ?>
-                                                            <span class="text-muted">-</span>
-                                                        <?php endif; ?>
-                                                    </td>
+                                                    <th style="width: 10px">No</th>
+                                                    <th>Username</th>
+                                                    <th>Nama</th>
+                                                    <th>Groups</th>
+                                                    <th>Jumlah Login</th>
+                                                    <th>Login Terakhir</th>
                                                 </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                <?php $no = 1; ?>
+                                                <?php foreach ($frequent_login_stats['top_users'] as $user): ?>
+                                                    <tr>
+                                                        <td><?= $no++ ?></td>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <?php if (!empty($user['user_image']) && $user['user_image'] !== 'default.svg'): ?>
+                                                                    <img src="<?= base_url('uploads/profil/user/' . $user['user_image']) ?>"
+                                                                        class="img-circle elevation-2"
+                                                                        alt="User Image"
+                                                                        style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;"
+                                                                        onerror="this.style.display='none';">
+                                                                <?php else: ?>
+                                                                    <i class="fas fa-user-circle" style="font-size: 30px; color: #6c757d; margin-right: 8px;"></i>
+                                                                <?php endif; ?>
+                                                                <strong><?= esc($user['username']) ?></strong>
+                                                            </div>
+                                                        </td>
+                                                        <td><?= esc($user['fullname'] ? ucwords(strtolower($user['fullname'])) : '-') ?></td>
+                                                        <td>
+                                                            <?= renderGroupsAsBadges($user['user_groups'] ?? '') ?>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge badge-success">
+                                                                <i class="fas fa-sign-in-alt"></i> <?= number_format($user['login_count'], 0, ',', '.') ?>
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <?php if (!empty($user['last_login'])): ?>
+                                                                <small><?= date('d/m/Y H:i', strtotime($user['last_login'])) ?></small>
+                                                            <?php else: ?>
+                                                                <span class="text-muted">-</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                     <?php endif; ?>
 
                     <!-- Online Users -->
@@ -372,11 +376,12 @@ function renderGroupsAsBadges($groupsString) {
                                         </a>
                                     </div>
                                 </div>
-                                <div class="card-body table-responsive p-0">
-                                    <table id="onlineUsersTable" class="table table-hover">
+                                <div class="card-body p-0">
+                                    <div style="overflow-x: auto;">
+                                        <table id="onlineUsersTable" class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
-                                                <th>No</th>
+                                                <th style="width: 10px">No</th>
                                                 <th>Username</th>
                                                 <th>Nama</th>
                                                 <th>Groups</th>
@@ -448,6 +453,7 @@ function renderGroupsAsBadges($groupsString) {
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -464,56 +470,94 @@ function renderGroupsAsBadges($groupsString) {
     (function($) {
         'use strict';
 
-        $(document).ready(function() {
-            // Wait for table to be fully rendered
+        // Helper function to initialize DataTable
+        function initDataTable(tableId, pageLength, lengthChange, orderColumn, errorMessage) {
             setTimeout(function() {
-                const $table = $('#onlineUsersTable');
+                try {
+                    const $table = $(tableId);
 
-                // Check if table exists and has tbody with rows
-                if ($table.length && $table.find('tbody').length) {
-                    const tbody = $table.find('tbody')[0];
-
-                    // Only initialize if tbody exists and has content
-                    if (tbody && (tbody.rows.length > 0 || $table.find('tbody tr').length > 0)) {
-                        try {
-                            // Initialize DataTable dengan scroll horizontal
-                            initializeDataTableScrollX('#onlineUsersTable', [], {
-                                "pageLength": 10,
-                                "lengthChange": true,
-                                "order": [
-                                    [5, "desc"]
-                                ], // Sort by Last Activity
-                                "language": {
-                                    "decimal": "",
-                                    "emptyTable": "Tidak ada data yang tersedia pada tabel",
-                                    "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
-                                    "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
-                                    "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
-                                    "infoPostFix": "",
-                                    "thousands": ",",
-                                    "lengthMenu": "Tampilkan _MENU_ entri",
-                                    "loadingRecords": "Sedang memuat...",
-                                    "processing": "Sedang memproses...",
-                                    "search": "Cari:",
-                                    "zeroRecords": "Tidak ditemukan data yang sesuai",
-                                    "paginate": {
-                                        "first": "Pertama",
-                                        "last": "Terakhir",
-                                        "next": "Selanjutnya",
-                                        "previous": "Sebelumnya"
-                                    },
-                                    "aria": {
-                                        "sortAscending": ": aktifkan untuk mengurutkan kolom naik",
-                                        "sortDescending": ": aktifkan untuk mengurutkan kolom turun"
-                                    }
-                                }
-                            });
-                        } catch (e) {
-                            console.error('Error initializing DataTable:', e);
-                        }
+                    // Check if table exists
+                    if (!$table.length) {
+                        return;
                     }
+
+                    // Check if DataTable is already initialized
+                    if ($.fn.DataTable.isDataTable(tableId)) {
+                        return;
+                    }
+
+                    // Get native DOM element and verify structure
+                    const tableElement = $table[0];
+                    if (!tableElement) {
+                        return;
+                    }
+
+                    // Ensure tbody exists
+                    if (!$table.find('tbody').length) {
+                        $table.append('<tbody></tbody>');
+                    }
+
+                    // Verify table has valid structure before initialization
+                    if (!tableElement.tHead) {
+                        console.warn('Table missing thead:', tableId);
+                        return;
+                    }
+
+                    const tBodies = tableElement.tBodies;
+                    if (!tBodies || tBodies.length === 0) {
+                        console.warn('Table missing tbody:', tableId);
+                        return;
+                    }
+
+                    // Initialize DataTable tanpa scrollX (menggunakan CSS overflow untuk scroll horizontal)
+                    $table.DataTable({
+                        "pageLength": pageLength,
+                        "lengthChange": lengthChange,
+                        "order": [
+                            [orderColumn, "desc"]
+                        ],
+                        "responsive": false, // Nonaktifkan responsive untuk menghindari expand
+                        "scrollX": false, // Nonaktifkan scrollX untuk menghindari error sorting
+                        "autoWidth": false,
+                        "deferRender": false,
+                        "language": {
+                            "decimal": "",
+                            "emptyTable": "Tidak ada data yang tersedia pada tabel",
+                            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                            "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                            "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                            "infoPostFix": "",
+                            "thousands": ",",
+                            "lengthMenu": "Tampilkan _MENU_ entri",
+                            "loadingRecords": "Sedang memuat...",
+                            "processing": "Sedang memproses...",
+                            "search": "Cari:",
+                            "zeroRecords": "Tidak ditemukan data yang sesuai",
+                            "paginate": {
+                                "first": "Pertama",
+                                "last": "Terakhir",
+                                "next": "Selanjutnya",
+                                "previous": "Sebelumnya"
+                            },
+                            "aria": {
+                                "sortAscending": ": aktifkan untuk mengurutkan kolom naik",
+                                "sortDescending": ": aktifkan untuk mengurutkan kolom turun"
+                            }
+                        }
+                    });
+
+                } catch (e) {
+                    console.error(errorMessage, e);
                 }
-            }, 100);
+            }, 300);
+        }
+
+        $(document).ready(function() {
+            // Initialize Online Users Table
+            initDataTable('#onlineUsersTable', 10, true, 5, 'Error initializing Online Users DataTable:');
+
+            // Initialize Top 5 Frequent Login Users Table dengan scroll horizontal
+            initDataTable('#top5FrequentLoginTable', 5, false, 4, 'Error initializing Top 5 DataTable:');
         });
     })(jQuery);
 </script>
