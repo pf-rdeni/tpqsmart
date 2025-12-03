@@ -141,9 +141,10 @@ class AuthModel extends Model
     public function getLoginAttempts($limit = 100)
     {
         return $this->db->table('auth_logins al')
-            ->select('al.*, u.username, u.fullname')
+            ->select('al.*, u.username, u.fullname, u.user_image')
             ->join('users u', 'al.user_id = u.id', 'left')
             ->orderBy('al.date', 'DESC')
+            ->orderBy('al.id', 'DESC') // Secondary sort untuk memastikan urutan konsisten
             ->limit($limit)
             ->get()
             ->getResultArray();

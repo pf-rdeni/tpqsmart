@@ -39,6 +39,7 @@ class Auth extends BaseController
         $stats = $this->authModel->getStatistics();
         $onlineUsers = $this->authModel->getOnlineUsers(null);
         $frequentLoginStats = $this->authModel->getFrequentLoginStatistics('all');
+        $loginAttempts = $this->authModel->getLoginAttempts(100);
         
         $sessionConfig = config('Session');
         $sessionExpiration = $sessionConfig->expiration ?? 7200;
@@ -49,6 +50,7 @@ class Auth extends BaseController
             'stats' => $stats,
             'online_users' => $onlineUsers,
             'frequent_login_stats' => $frequentLoginStats,
+            'login_attempts' => $loginAttempts,
             'session_expiration_minutes' => $sessionExpirationMinutes
         ];
 
