@@ -880,6 +880,16 @@
                                         <p>Pengaturan Umum</p>
                                     </a>
                                 </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/raporGroupKategori/index') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Nama Group</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/nilai/resetNilaiIndex') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>

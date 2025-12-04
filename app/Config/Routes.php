@@ -184,6 +184,13 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('rapor/saveMappingWaliKelas', 'Rapor::saveMappingWaliKelas');
     $routes->post('rapor/deleteMappingWaliKelas', 'Rapor::deleteMappingWaliKelas');
 
+    // Routes untuk Group Kategori Rapor
+    $routes->get('raporGroupKategori', 'RaporGroupKategori::index');
+    $routes->get('raporGroupKategori/index', 'RaporGroupKategori::index');
+    $routes->post('raporGroupKategori/save', 'RaporGroupKategori::save');
+    $routes->post('raporGroupKategori/update/(:num)', 'RaporGroupKategori::update/$1');
+    $routes->post('raporGroupKategori/delete/(:num)', 'RaporGroupKategori::delete/$1');
+
     // Routes untuk Rapor (route umum harus setelah route spesifik)
     // Route untuk semester Ganjil dan Genap
     $routes->get('rapor/Ganjil', 'Rapor::index/Ganjil');

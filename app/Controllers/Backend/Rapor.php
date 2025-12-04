@@ -220,6 +220,254 @@ class Rapor extends BaseController
     }
 
     /**
+     * Group nilai berdasarkan kategori sesuai konfigurasi
+     * RataKelas juga dihitung dari nilai yang sudah digabungkan
+     */
+    private function groupNilaiByKategori($nilai, $IdTpq, $IdKelas = null, $IdTahunAjaran = null, $semester = null)
+    {
+        // Cek apakah fitur grouping aktif
+        $isGroupingEnabled = $this->toolsModel->getSettingAsBool($IdTpq, 'GroupKategoriNilai', false);
+
+        if (!$isGroupingEnabled) {
+            return $nilai; // Return as is jika tidak aktif
+        }
+
+        // Cek apakah kelas ini termasuk dalam daftar kelas yang menggunakan grouping
+        $kelasGroupingString = $this->toolsModel->getSettingAsString($IdTpq, 'GroupKategoriNilaiKelas', '');
+        $kelasGrouping = [];
+        if (!empty($kelasGroupingString)) {
+            // Explode string yang dipisahkan koma menjadi array
+            $kelasGrouping = array_map('trim', explode(',', $kelasGroupingString));
+            $kelasGrouping = array_filter($kelasGrouping, function ($item) {
+                return !empty($item); // Hapus elemen kosong
+            });
+            $kelasGrouping = array_values($kelasGrouping); // Re-index array
+        }
+
+        if (!empty($kelasGrouping)) {
+            // Ambil nama kelas
+            $namaKelas = null;
+            if ($IdKelas) {
+                $kelasData = $this->helpFunctionModel->getNamaKelasBulk([$IdKelas]);
+                $namaKelas = $kelasData[$IdKelas] ?? null;
+            }
+
+            // Jika ada daftar kelas spesifik, cek apakah kelas ini termasuk
+            if ($namaKelas) {
+                $isKelasInGroup = false;
+                $namaKelasNormalized = strtoupper(trim($namaKelas));
+
+                // Cek setiap kelas di grouping
+                foreach ($kelasGrouping as $kelasGroup) {
+                    $kelasGroupNormalized = strtoupper(trim($kelasGroup));
+
+                    // 1. Exact match
+                    if ($namaKelasNormalized === $kelasGroupNormalized) {
+                        $isKelasInGroup = true;
+                        break;
+                    }
+
+                    // 2. Contains match - untuk handle "TPQ3/SD3" dengan "TPQ3"
+                    // Contoh: "TPQ3/SD3" mengandung "TPQ3" -> match
+                    if (stripos($namaKelasNormalized, $kelasGroupNormalized) !== false) {
+                        $isKelasInGroup = true;
+                        break;
+                    }
+
+                    // 3. Reverse contains - untuk handle "TPQ3" dengan "TPQ3/SD3" di grouping
+                    if (stripos($kelasGroupNormalized, $namaKelasNormalized) !== false) {
+                        $isKelasInGroup = true;
+                        break;
+                    }
+
+                    // 4. Pattern match untuk TPQ + angka
+                    // Contoh: "TPQ3" di grouping bisa match dengan "TPQ3/SD3"
+                    if (strpos($kelasGroupNormalized, 'TPQ') !== false) {
+                        $tpqKelasWithoutPrefix = str_replace('TPQ', '', $kelasGroupNormalized);
+                        if (!empty($tpqKelasWithoutPrefix)) {
+                            // Pattern: TPQ diikuti angka dari grouping (bisa ada spasi atau karakter lain setelahnya)
+                            if (preg_match('/TPQ\s*' . preg_quote($tpqKelasWithoutPrefix, '/') . '/i', $namaKelasNormalized)) {
+                                $isKelasInGroup = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Jika kelas ini tidak ada di daftar grouping, return as is
+                if (!$isKelasInGroup) {
+                    return $nilai;
+                }
+            }
+        }
+
+        // Ambil konfigurasi grouping kategori
+        $groupKategoriModel = new \App\Models\RaporGroupKategoriModel();
+        $groupConfigs = $groupKategoriModel->getActiveByTpq($IdTpq);
+
+        if (empty($groupConfigs)) {
+            return $nilai; // Tidak ada konfigurasi, return as is
+        }
+
+        // Buat mapping kategori -> nama materi baru
+        $kategoriMapping = [];
+        foreach ($groupConfigs as $config) {
+            $kategoriMapping[$config['KategoriAsal']] = [
+                'NamaMateriBaru' => $config['NamaMateriBaru'],
+                'Urutan' => $config['Urutan']
+            ];
+        }
+
+        // ===== HITUNG RATA KELAS DARI NILAI YANG SUDAH DIGABUNGKAN =====
+        // Ambil semua nilai dari semua santri di kelas yang sama untuk menghitung rata-rata kelas
+        $rataKelasGrouped = [];
+
+        if ($IdKelas && $IdTahunAjaran && $semester) {
+            // Ambil semua nilai dari semua santri di kelas
+            $db = \Config\Database::connect();
+            $builder = $db->table('tbl_nilai n');
+            $builder->select('n.IdSantri, n.IdMateri, n.Nilai, m.Kategori');
+            $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
+            $builder->where('n.IdTpq', $IdTpq);
+            $builder->where('n.IdKelas', $IdKelas);
+            $builder->where('n.IdTahunAjaran', $IdTahunAjaran);
+            $builder->where('n.Semester', $semester);
+
+            $allNilaiKelas = $builder->get()->getResult();
+
+            // Kelompokkan nilai per santri dan kategori
+            $nilaiPerSantri = [];
+            foreach ($allNilaiKelas as $nilaiKelas) {
+                $idSantri = $nilaiKelas->IdSantri;
+                $kategori = $nilaiKelas->Kategori ?? '';
+
+                if (!isset($nilaiPerSantri[$idSantri])) {
+                    $nilaiPerSantri[$idSantri] = [];
+                }
+
+                if (!isset($nilaiPerSantri[$idSantri][$kategori])) {
+                    $nilaiPerSantri[$idSantri][$kategori] = [];
+                }
+
+                $nilaiPerSantri[$idSantri][$kategori][] = floatval($nilaiKelas->Nilai);
+            }
+
+            // Hitung rata-rata per kategori untuk setiap santri (setelah grouping)
+            $rataPerSantriPerKategori = [];
+            foreach ($nilaiPerSantri as $idSantri => $kategoriNilai) {
+                foreach ($kategoriNilai as $kategori => $nilaiList) {
+                    if (isset($kategoriMapping[$kategori])) {
+                        // Kategori ini perlu di-group
+                        $count = count($nilaiList);
+                        $rata = $count > 0 ? array_sum($nilaiList) / $count : 0;
+
+                        if (!isset($rataPerSantriPerKategori[$kategori])) {
+                            $rataPerSantriPerKategori[$kategori] = [];
+                        }
+
+                        $rataPerSantriPerKategori[$kategori][] = $rata;
+                    }
+                }
+            }
+
+            // Hitung rata-rata kelas untuk setiap kategori yang di-group
+            foreach ($rataPerSantriPerKategori as $kategori => $rataList) {
+                $count = count($rataList);
+                $rataKelasGrouped[$kategori] = $count > 0 ? round(array_sum($rataList) / $count, 2) : 0;
+            }
+        }
+
+        // ===== GROUP NILAI SANTRI YANG SEDANG DITAMPILKAN =====
+        // Group nilai berdasarkan kategori
+        $groupedNilai = [];
+        $ungroupedNilai = [];
+
+        foreach ($nilai as $n) {
+            $kategori = $n->Kategori ?? '';
+
+            if (isset($kategoriMapping[$kategori])) {
+                // Kategori ini perlu di-group
+                $key = $kategori;
+                if (!isset($groupedNilai[$key])) {
+                    $groupedNilai[$key] = [
+                        'kategori' => $kategori,
+                        'nama_materi_baru' => $kategoriMapping[$kategori]['NamaMateriBaru'],
+                        'urutan' => $kategoriMapping[$kategori]['Urutan'],
+                        'nilai_list' => [],
+                        'rata_kelas' => $rataKelasGrouped[$kategori] ?? 0 // Gunakan rata kelas yang sudah dihitung
+                    ];
+                }
+
+                $groupedNilai[$key]['nilai_list'][] = floatval($n->Nilai);
+            } else {
+                // Kategori ini tidak perlu di-group, tetap tampilkan individual
+                // Untuk ungrouped, kita tetap perlu hitung rata kelas dari semua santri
+                if ($IdKelas && $IdTahunAjaran && $semester) {
+                    // Ambil rata kelas untuk materi ini (dari query terpisah)
+                    $db = \Config\Database::connect();
+                    $builderRata = $db->table('tbl_nilai n');
+                    $builderRata->select('ROUND(AVG(n.Nilai), 2) as RataKelas');
+                    $builderRata->where('n.IdTpq', $IdTpq);
+                    $builderRata->where('n.IdKelas', $IdKelas);
+                    $builderRata->where('n.IdTahunAjaran', $IdTahunAjaran);
+                    $builderRata->where('n.Semester', $semester);
+                    $builderRata->where('n.IdMateri', $n->IdMateri ?? '');
+
+                    $rataResult = $builderRata->get()->getRow();
+                    $n->RataKelas = $rataResult ? floatval($rataResult->RataKelas) : ($n->RataKelas ?? 0);
+                }
+
+                $ungroupedNilai[] = $n;
+            }
+        }
+
+        // Hitung rata-rata untuk setiap group
+        $groupedResults = [];
+        foreach ($groupedNilai as $key => $group) {
+            $count = count($group['nilai_list']);
+            $rataNilai = $count > 0 ? array_sum($group['nilai_list']) / $count : 0;
+
+            // Buat object mirip dengan struktur $nilai asli
+            $groupedObj = (object)[
+                'NamaMateri' => $group['nama_materi_baru'],
+                'Kategori' => $group['kategori'],
+                'Nilai' => round($rataNilai, 2),
+                'RataKelas' => $group['rata_kelas'], // Gunakan rata kelas yang sudah dihitung dari nilai gabungan
+                'UrutanMateri' => $group['urutan']
+            ];
+
+            // Copy property lain dari nilai pertama yang memiliki kategori ini untuk kompatibilitas
+            $firstNilai = null;
+            foreach ($nilai as $n) {
+                if (($n->Kategori ?? '') === $group['kategori']) {
+                    $firstNilai = $n;
+                    break;
+                }
+            }
+
+            if ($firstNilai) {
+                foreach (get_object_vars($firstNilai) as $prop => $val) {
+                    if (!isset($groupedObj->$prop) && $prop !== 'Nilai' && $prop !== 'RataKelas' && $prop !== 'NamaMateri') {
+                        $groupedObj->$prop = $val;
+                    }
+                }
+            }
+
+            $groupedResults[] = $groupedObj;
+        }
+
+        // Gabungkan grouped results dengan ungrouped, urutkan berdasarkan UrutanMateri
+        $allResults = array_merge($groupedResults, $ungroupedNilai);
+        usort($allResults, function ($a, $b) {
+            $urutanA = $a->UrutanMateri ?? 999;
+            $urutanB = $b->UrutanMateri ?? 999;
+            return $urutanA <=> $urutanB;
+        });
+
+        return $allResults;
+    }
+
+    /**
      * Siapkan data untuk view rapor
      */
     private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester)
@@ -296,9 +544,6 @@ class Rapor extends BaseController
             semester: $semester
         );
 
-        // Hitung rata-rata nilai untuk generate catatan raport
-        $nilaiRataRata = $this->hitungRataRataNilai($santriData['nilai']);
-
         // Ambil IdKelas dari data santri (pastikan ada dan valid)
         $idKelas = null;
         if (isset($santriData['santri']['IdKelas']) && !empty($santriData['santri']['IdKelas'])) {
@@ -307,6 +552,19 @@ class Rapor extends BaseController
 
         // Log untuk debugging
         log_message('debug', 'Rapor: prepareRaporData - idKelas dari santri: ' . ($idKelas ?? 'null'));
+
+        // Group nilai berdasarkan kategori jika setting aktif
+        // Pass parameter tambahan untuk menghitung RataKelas
+        $nilaiGrouped = $this->groupNilaiByKategori(
+            $santriData['nilai'],
+            $IdTpq,
+            $idKelas,
+            $IdTahunAjaran,
+            $semester
+        );
+
+        // Hitung rata-rata nilai untuk generate catatan raport (dari nilai yang sudah di-group)
+        $nilaiRataRata = $this->hitungRataRataNilai($nilaiGrouped);
 
         // Generate catatan raport berdasarkan nilai rata-rata
         $catatanRaport = $this->generateKriteriaCatatanRapor($nilaiRataRata, $IdTahunAjaran, $IdTpq, $idKelas);
@@ -320,7 +578,7 @@ class Rapor extends BaseController
 
         return [
             'santri' => $santriData['santri'],
-            'nilai' => $santriData['nilai'],
+            'nilai' => $nilaiGrouped, // Gunakan nilai yang sudah di-group
             'tpq' => $tpq,
             'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
             'semester' => $semester,
