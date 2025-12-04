@@ -284,7 +284,7 @@ class NilaiModel extends Model
         $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
         $builder->join('tbl_kelas k', 'k.IdKelas = n.IdKelas');
         // Gunakan LEFT JOIN agar data nilai santri tetap muncul meskipun belum dimapping di kmp
-        $builder->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas', 'left');
+        $builder->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas AND kmp.IdTpq = n.IdTpq', 'left');
 
         // Handle IdTpq jika array
         if (is_array($IdTpq)) {
@@ -318,7 +318,7 @@ class NilaiModel extends Model
         $builderRataKelas = $this->db->table('tbl_nilai n');
         $builderRataKelas->select('n.IdMateri, m.NamaMateri, m.Kategori, ROUND(AVG(n.Nilai), 2) as RataKelas');
         $builderRataKelas->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
-        $builderRataKelas->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas');
+        $builderRataKelas->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas AND kmp.IdTpq = n.IdTpq');
 
         // Handle IdTpq jika array
         if (is_array($IdTpq)) {
