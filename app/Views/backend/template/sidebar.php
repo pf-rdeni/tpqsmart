@@ -874,6 +874,8 @@
                                         <p>Auth Group</p>
                                     </a>
                                 </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/tools/index') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>

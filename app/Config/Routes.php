@@ -194,6 +194,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('raporGroupKategori/save', 'RaporGroupKategori::save');
     $routes->post('raporGroupKategori/update/(:num)', 'RaporGroupKategori::update/$1');
     $routes->post('raporGroupKategori/delete/(:num)', 'RaporGroupKategori::delete/$1');
+    $routes->post('raporGroupKategori/saveSetting', 'RaporGroupKategori::saveSetting');
 
     // Routes untuk Rapor (route umum harus setelah route spesifik)
     // Route untuk semester Ganjil dan Genap

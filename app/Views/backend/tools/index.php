@@ -57,9 +57,16 @@
                                                 <?php
                                                 // Cek apakah user adalah admin (IdTpq = 0)
                                                 $isAdmin = ($idTpq === '0' || $idTpq === 0 || empty($idTpq));
+                                    $isOperator = in_groups('Operator');
 
-                                                // Untuk row dengan IdTpq = 'default', hanya admin yang bisa edit/delete
-                                                $canEditDelete = ($tool['IdTpq'] !== 'default') || $isAdmin;
+                                    // Untuk row dengan IdTpq = 'default', hanya admin yang bisa edit/delete
+                                    // Operator hanya bisa edit/delete untuk TPQ mereka sendiri
+                                    $canEditDelete = false;
+                                    if ($isAdmin) {
+                                                    $canEditDelete = ($tool['IdTpq'] !== 'default') || $isAdmin;
+                                                } elseif ($isOperator) {
+                                                    $canEditDelete = ($tool['IdTpq'] === $idTpq && $tool['IdTpq'] !== 'default');
+                                                }
                                                 ?>
 
                                                 <?php if ($canEditDelete) : ?>

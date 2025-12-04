@@ -197,6 +197,17 @@ class Tools extends BaseController
 
             $sessionIdTpq = session()->get('IdTpq');
             $isAdmin = ($sessionIdTpq === '0' || $sessionIdTpq === 0 || empty($sessionIdTpq));
+            $isOperator = in_groups('Operator');
+
+            // Validasi permission: Operator hanya bisa edit setting untuk TPQ mereka sendiri
+            if ($isOperator && !$isAdmin) {
+                if ($existing['IdTpq'] !== $sessionIdTpq || $existing['IdTpq'] === 'default') {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Anda hanya dapat mengubah setting untuk TPQ Anda sendiri'
+                    ]);
+                }
+            }
 
             $rules = [
                 'SettingKey' => $isAdmin ? 'required|min_length[3]' : 'required',
@@ -409,6 +420,20 @@ class Tools extends BaseController
                     'success' => false,
                     'message' => 'Data tools setting tidak ditemukan'
                 ]);
+            }
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = ($sessionIdTpq === '0' || $sessionIdTpq === 0 || empty($sessionIdTpq));
+            $isOperator = in_groups('Operator');
+
+            // Validasi permission: Operator hanya bisa delete setting untuk TPQ mereka sendiri
+            if ($isOperator && !$isAdmin) {
+                if ($existing['IdTpq'] !== $sessionIdTpq || $existing['IdTpq'] === 'default') {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Anda hanya dapat menghapus setting untuk TPQ Anda sendiri'
+                    ]);
+                }
             }
 
             if ($this->toolsModel->delete($id)) {
