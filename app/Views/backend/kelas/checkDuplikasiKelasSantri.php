@@ -94,36 +94,112 @@
 
     <div class="card">
         <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h3 class="card-title">
-                    <i class="fas fa-sync-alt"></i> Normalisasi Data
-                </h3>
-                <div class="card-tools">
-                    <!-- Urutan sesuai rekomendasi: 1. Duplikasi Kelas Santri, 2. Nilai Tanpa Kelas Santri, 3. Normalisasi Nilai -->
-                    <button type="button" class="btn btn-primary btn-sm mr-2" id="btnCheckDuplikasi" title="Cek duplikasi data di tabel kelas santri">
-                        <i class="fas fa-search"></i> Cek Duplikasi
-                    </button>
-                    <button type="button" class="btn btn-danger btn-sm mr-2" id="btnNormalisasi" style="display: none;" title="Hapus duplikasi kelas santri">
-                        <i class="fas fa-sync"></i> Normalisasi Duplikasi
-                    </button>
-                    <?php if (in_groups('Admin')): ?>
-                        <button type="button" class="btn btn-info btn-sm mr-2" id="btnCheckNilaiTanpaKelasSantri" title="Cek data nilai yang tidak ada di tabel kelas santri">
-                            <i class="fas fa-search"></i> Cek Nilai Tanpa Kelas Santri
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm mr-2" id="btnNormalisasiNilaiTanpaKelasSantri" style="display: none;" title="Hapus data nilai yang tidak ada di kelas santri">
-                            <i class="fas fa-sync"></i> Normalisasi Nilai Tanpa Kelas Santri
-                        </button>
-                        <button type="button" class="btn btn-warning btn-sm mr-2" id="btnCheckNormalisasiNilai" title="Cek data nilai yang tidak valid dan duplikat">
-                            <i class="fas fa-search"></i> Cek Normalisasi Nilai
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm mr-2" id="btnNormalisasiNilai" style="display: none;" title="Hapus data nilai yang dipilih">
-                            <i class="fas fa-sync"></i> Normalisasi Nilai
-                        </button>
-                    <?php endif; ?>
-                </div>
-            </div>
+            <h3 class="card-title">
+                <i class="fas fa-sync-alt"></i> Normalisasi Data
+            </h3>
         </div>
         <div class="card-body">
+            <!-- Dashboard Style Buttons -->
+            <div class="row mb-4">
+                <!-- 1. Normalisasi Duplikasi Kelas Santri -->
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card border-primary h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title text-primary">Duplikasi Kelas Santri</h5>
+                            <p class="card-text text-muted small mb-3">
+                                Membersihkan data duplikat di tabel kelas santri. Menyisakan 1 record tertua per kombinasi.
+                            </p>
+                            <button type="button" class="btn btn-primary btn-sm mb-2" id="btnCheckDuplikasi">
+                                <i class="fas fa-search"></i> Cek Duplikasi
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm mb-2" id="btnNormalisasi" style="display: none;">
+                                <i class="fas fa-sync"></i> Normalisasi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if (in_groups('Admin')): ?>
+                    <!-- 2. Santri Aktif Tanpa Kelas -->
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-success h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-user-plus fa-3x text-success mb-3"></i>
+                                <h5 class="card-title text-success">Santri Aktif Tanpa Kelas</h5>
+                                <p class="card-text text-muted small mb-3">
+                                    Menambahkan santri aktif ke kelas_santri dan generate nilai sesuai kelasnya.
+                                </p>
+                                <button type="button" class="btn btn-success btn-sm mb-2" id="btnCheckSantriAktifTanpaKelas">
+                                    <i class="fas fa-search"></i> Cek Santri
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm mb-2" id="btnUpdateSantriAktifTanpaKelas" style="display: none;">
+                                    <i class="fas fa-sync"></i> Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Kelas Tidak Sesuai -->
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-purple h-100" style="border-color: #6f42c1 !important;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-exchange-alt fa-3x mb-3" style="color: #6f42c1;"></i>
+                                <h5 class="card-title" style="color: #6f42c1;">Kelas Tidak Sesuai</h5>
+                                <p class="card-text text-muted small mb-3">
+                                    Sinkronisasi kelas antara tbl_santri_baru dan tbl_kelas_santri. Update nilai sesuai kelas baru.
+                                </p>
+                                <button type="button" class="btn btn-sm mb-2" id="btnCheckSantriKelasTidakSesuai" style="background-color: #6f42c1; color: white;">
+                                    <i class="fas fa-search"></i> Cek Kelas
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm mb-2" id="btnUpdateSantriKelasTidakSesuai" style="display: none;">
+                                    <i class="fas fa-sync"></i> Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Nilai Tanpa Kelas Santri -->
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-info h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-exclamation-triangle fa-3x text-info mb-3"></i>
+                                <h5 class="card-title text-info">Nilai Tanpa Kelas Santri</h5>
+                                <p class="card-text text-muted small mb-3">
+                                    Membersihkan data nilai untuk santri yang tidak terdaftar di kelas (pindah TPQ, tidak aktif, dll).
+                                </p>
+                                <button type="button" class="btn btn-info btn-sm mb-2" id="btnCheckNilaiTanpaKelasSantri">
+                                    <i class="fas fa-search"></i> Cek Nilai
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm mb-2" id="btnNormalisasiNilaiTanpaKelasSantri" style="display: none;">
+                                    <i class="fas fa-sync"></i> Normalisasi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Normalisasi Data Nilai -->
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-warning h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-check-double fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title text-warning">Normalisasi Data Nilai</h5>
+                                <p class="card-text text-muted small mb-3">
+                                    Membersihkan data nilai tidak valid atau duplikat untuk santri yang terdaftar di kelas.
+                                </p>
+                                <button type="button" class="btn btn-warning btn-sm mb-2" id="btnCheckNormalisasiNilai">
+                                    <i class="fas fa-search"></i> Cek Nilai
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm mb-2" id="btnNormalisasiNilai" style="display: none;">
+                                    <i class="fas fa-sync"></i> Normalisasi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <hr class="my-4">
             <div id="loadingIndicator" style="display: none;" class="text-center mb-3">
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only">Loading...</span>
@@ -279,6 +355,154 @@
                         <i class="fas fa-check-circle fa-3x mb-3"></i>
                         <h4>Data Sudah Normal</h4>
                         <p>Data nilai sudah bersih, tidak ada data yang tidak valid atau duplikat.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section untuk Santri Aktif Tanpa Kelas -->
+            <div id="santriAktifTanpaKelasContainer" style="display: none;">
+                <hr class="my-4">
+                <h5 class="mb-3"><i class="fas fa-user-plus"></i> Santri Aktif Tanpa Kelas Santri</h5>
+
+                <div id="loadingSantriAktifTanpaKelas" style="display: none;" class="text-center mb-3">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p class="mt-2">Memproses data...</p>
+                </div>
+
+                <div id="resultSantriAktifTanpaKelas" style="display: none;">
+                    <div class="alert alert-success" id="summarySantriAktifTanpaKelas">
+                        <i class="fas fa-info-circle"></i> <span id="summarySantriAktifTanpaKelasText"></span>
+                    </div>
+
+                    <!-- Rangkuman per TPQ -->
+                    <div class="card card-success mb-3" id="summaryTpqSantriAktifContainer">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-pie"></i> Rangkuman Santri Aktif Tanpa Kelas per TPQ
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="summaryTpqSantriAktifCards">
+                                <!-- Rangkuman akan diisi melalui JavaScript -->
+                            </div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-sm btn-primary" id="btnFilterAllTpqSantriAktif">
+                                    <i class="fas fa-filter"></i> Tampilkan Semua TPQ
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="btnClearFilterTpqSantriAktif" style="display: none;">
+                                    <i class="fas fa-times"></i> Hapus Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnSelectAllSantriAktif">
+                            <i class="fas fa-check-square"></i> Pilih Semua
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnUnselectAllSantriAktif" style="display: none;">
+                            <i class="fas fa-square"></i> Batal Pilih Semua
+                        </button>
+                        <span class="ml-3" id="selectedCountSantriAktif">0 item dipilih</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="tableSantriAktifTanpaKelas" class="table table-bordered table-striped table-hover" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th width="30">
+                                        <input type="checkbox" id="checkAllSantriAktif" title="Pilih Semua">
+                                    </th>
+                                    <th>No</th>
+                                    <th>IdSantri</th>
+                                    <th>Nama Santri</th>
+                                    <th>TPQ</th>
+                                    <th>Kelas</th>
+                                    <th>Tahun Ajaran</th>
+                                    <th>Status</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodySantriAktifTanpaKelas">
+                                <!-- Data akan diisi melalui JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section untuk Santri Kelas Tidak Sesuai -->
+            <div id="santriKelasTidakSesuaiContainer" style="display: none;">
+                <hr class="my-4">
+                <h5 class="mb-3"><i class="fas fa-exchange-alt"></i> Santri Kelas Tidak Sesuai</h5>
+
+                <div id="loadingSantriKelasTidakSesuai" style="display: none;" class="text-center mb-3">
+                    <div class="spinner-border text-purple" role="status" style="color: #6f42c1;">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p class="mt-2">Memproses data...</p>
+                </div>
+
+                <div id="resultSantriKelasTidakSesuai" style="display: none;">
+                    <div class="alert alert-purple" id="summarySantriKelasTidakSesuai" style="background-color: #e7d4ff; border-color: #6f42c1; color: #6f42c1;">
+                        <i class="fas fa-info-circle"></i> <span id="summarySantriKelasTidakSesuaiText"></span>
+                    </div>
+
+                    <!-- Rangkuman per TPQ -->
+                    <div class="card mb-3" id="summaryTpqSantriKelasTidakSesuaiContainer" style="border-color: #6f42c1;">
+                        <div class="card-header" style="background-color: #6f42c1; color: white;">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-pie"></i> Rangkuman Santri Kelas Tidak Sesuai per TPQ
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="summaryTpqSantriKelasTidakSesuaiCards">
+                                <!-- Rangkuman akan diisi melalui JavaScript -->
+                            </div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-sm btn-primary" id="btnFilterAllTpqSantriKelasTidakSesuai">
+                                    <i class="fas fa-filter"></i> Tampilkan Semua TPQ
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="btnClearFilterTpqSantriKelasTidakSesuai" style="display: none;">
+                                    <i class="fas fa-times"></i> Hapus Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnSelectAllSantriKelasTidakSesuai">
+                            <i class="fas fa-check-square"></i> Pilih Semua
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnUnselectAllSantriKelasTidakSesuai" style="display: none;">
+                            <i class="fas fa-square"></i> Batal Pilih Semua
+                        </button>
+                        <span class="ml-3" id="selectedCountSantriKelasTidakSesuai">0 item dipilih</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="tableSantriKelasTidakSesuai" class="table table-bordered table-striped table-hover" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th width="30">
+                                        <input type="checkbox" id="checkAllSantriKelasTidakSesuai" title="Pilih Semua">
+                                    </th>
+                                    <th>No</th>
+                                    <th>IdSantri</th>
+                                    <th>Nama Santri</th>
+                                    <th>TPQ</th>
+                                    <th>Kelas di tbl_santri_baru</th>
+                                    <th>Kelas di tbl_kelas_santri</th>
+                                    <th>Tahun Ajaran</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodySantriKelasTidakSesuai">
+                                <!-- Data akan diisi melalui JavaScript -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -539,6 +763,19 @@
             "autoWidth": false,
             "responsive": true,
             "pageLength": 10,
+            "language": {
+                "search": "Cari:",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                }
+            },
             "columnDefs": [{
                 "orderable": false,
                 "targets": 0 // Kolom checkbox tidak bisa di-sort
@@ -946,7 +1183,20 @@
             "columnDefs": [{
                 "orderable": false,
                 "targets": 0 // Kolom checkbox tidak bisa di-sort
-            }]
+            }],
+            "language": {
+                "search": "Cari:",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                }
+            }
         });
 
         // Event handler untuk checkbox setelah DataTable diinisialisasi
@@ -1147,6 +1397,742 @@
     let selectedTpqFilterNilaiTanpaKelasSantri = null;
 
     // Handler untuk tombol Cek Nilai Tanpa Kelas Santri
+    // Handler untuk Santri Aktif Tanpa Kelas
+    let allSantriAktifData = [];
+    let dataTableSantriAktif = null;
+    let selectedTpqFilterSantriAktif = null;
+
+    $('#btnCheckSantriAktifTanpaKelas').on('click', function() {
+        checkSantriAktifTanpaKelas();
+    });
+
+    $('#btnUpdateSantriAktifTanpaKelas').on('click', function() {
+        updateSantriAktifTanpaKelasSelected();
+    });
+
+    function checkSantriAktifTanpaKelas() {
+        $('#loadingSantriAktifTanpaKelas').show();
+        $('#resultSantriAktifTanpaKelas').hide();
+        $('#santriAktifTanpaKelasContainer').show();
+        $('#btnCheckSantriAktifTanpaKelas').prop('disabled', true);
+
+        $.ajax({
+            url: '<?= base_url('backend/kelas/checkSantriAktifTanpaKelas') ?>',
+            type: 'POST',
+            dataType: 'json',
+            success: function(response) {
+                $('#loadingSantriAktifTanpaKelas').hide();
+                $('#btnCheckSantriAktifTanpaKelas').prop('disabled', false);
+
+                if (response.success) {
+                    allSantriAktifData = response.data || [];
+                    displaySummaryByTpqSantriAktif(response.summary_by_tpq || []);
+                    renderSantriAktifTanpaKelasTable();
+                    $('#resultSantriAktifTanpaKelas').show();
+                    $('#btnUpdateSantriAktifTanpaKelas').show();
+
+                    let summaryText = `Ditemukan <strong>${response.total_checked}</strong> santri aktif yang tidak terdaftar di kelas santri untuk tahun ajaran <strong>${response.id_tahun_ajaran}</strong>.`;
+                    $('#summarySantriAktifTanpaKelasText').html(summaryText);
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message || 'Terjadi kesalahan saat mengecek data',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#loadingSantriAktifTanpaKelas').hide();
+                $('#btnCheckSantriAktifTanpaKelas').prop('disabled', false);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Terjadi kesalahan saat mengecek data: ' + error,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+    }
+
+    function displaySummaryByTpqSantriAktif(summaryByTpq) {
+        const container = $('#summaryTpqSantriAktifCards');
+        container.empty();
+
+        if (summaryByTpq.length === 0) {
+            container.html('<div class="col-12"><p class="text-muted">Tidak ada data</p></div>');
+            return;
+        }
+
+        summaryByTpq.forEach(function(tpq) {
+            const card = `
+                <div class="col-md-4 mb-3 card-tpq-summary-santri-aktif" data-tpq="${tpq.IdTpq}" style="cursor: pointer;">
+                    <div class="card border-success" style="border: 2px solid #dee2e6;">
+                        <div class="card-body">
+                            <h6 class="card-title text-success">
+                                <i class="fas fa-school"></i> ${tpq.NamaTpq || 'Tidak ditemukan'}
+                            </h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted" style="font-size: 0.9rem;">Total Santri:</span>
+                                <span class="badge badge-success" style="font-size: 0.9rem; padding: 0.4em 0.7em; min-width: 50px;">${tpq.total || 0}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted" style="font-size: 0.8rem;">
+                                    <i class="fas fa-user-check text-success"></i> Dengan Kelas:
+                                </span>
+                                <span class="badge badge-info" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.total_dengan_kelas || 0}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted" style="font-size: 0.8rem;">
+                                    <i class="fas fa-user-times text-warning"></i> Tanpa Kelas:
+                                </span>
+                                <span class="badge badge-warning" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.total_tanpa_kelas || 0}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted" style="font-size: 0.8rem;">
+                                    <i class="fas fa-users text-primary"></i> Jumlah Santri Terkena:
+                                </span>
+                                <span class="badge badge-primary" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.jumlah_santri_terkena || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.append(card);
+        });
+
+        // Handler untuk filter TPQ
+        $('.card-tpq-summary-santri-aktif').on('click', function() {
+            selectedTpqFilterSantriAktif = $(this).data('tpq');
+            $('.card-tpq-summary-santri-aktif').css('border', '2px solid #dee2e6');
+            $(this).css('border', '2px solid #28a745');
+            $('#btnClearFilterTpqSantriAktif').show();
+            renderSantriAktifTanpaKelasTable();
+        });
+    }
+
+    function renderSantriAktifTanpaKelasTable() {
+        // Destroy DataTable jika sudah ada
+        if (dataTableSantriAktif) {
+            dataTableSantriAktif.destroy();
+        }
+
+        // Clear tbody
+        $('#tbodySantriAktifTanpaKelas').empty();
+
+        // Filter data berdasarkan TPQ jika ada filter
+        let filteredData = allSantriAktifData;
+        if (selectedTpqFilterSantriAktif) {
+            filteredData = allSantriAktifData.filter(item => item.IdTpq == selectedTpqFilterSantriAktif);
+        }
+
+        // Populate table
+        filteredData.forEach(function(item, index) {
+            const kelasBadge = item.IdKelas ?
+                `<span class="badge badge-info">${item.NamaKelas || 'Tidak ditemukan'}</span>` :
+                `<span class="badge badge-warning">Belum ada kelas</span>`;
+
+            const row = `
+                <tr>
+                    <td>
+                        <input type="checkbox" name="santriAktifCheckbox" value="${item.IdSantri}" class="santri-aktif-checkbox">
+                    </td>
+                    <td>${index + 1}</td>
+                    <td><code>${item.IdSantri || 'Tidak ditemukan'}</code></td>
+                    <td>${item.NamaSantri || 'Tidak ditemukan'}</td>
+                    <td>${item.NamaTpq || 'Tidak ditemukan'}</td>
+                    <td>${kelasBadge}</td>
+                    <td>${item.IdTahunAjaran || ''}</td>
+                    <td>
+                        <span class="badge badge-success">Aktif</span>
+                    </td>
+                    <td>
+                        <small class="text-muted">${item.reason || ''}</small>
+                    </td>
+                </tr>
+            `;
+            $('#tbodySantriAktifTanpaKelas').append(row);
+        });
+
+        // Initialize DataTable
+        dataTableSantriAktif = $('#tableSantriAktifTanpaKelas').DataTable({
+            order: [
+                [1, 'asc']
+            ],
+            pageLength: 25,
+            responsive: true,
+            autoWidth: false,
+            language: {
+                "search": "Cari:",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                }
+            }
+        });
+
+        // Update checkbox state saat DataTable di-redraw
+        dataTableSantriAktif.on('draw', function() {
+            if (dataTableSantriAktif) {
+                const filteredRows = dataTableSantriAktif.rows({
+                    search: 'applied'
+                }).nodes().to$();
+                const filteredCheckboxes = filteredRows.find('input[type="checkbox"][name="santriAktifCheckbox"]');
+                const checkedCount = filteredCheckboxes.filter(':checked').length;
+                const totalCount = filteredCheckboxes.length;
+
+                if (totalCount > 0) {
+                    $('#checkAllSantriAktif').prop('checked', checkedCount === totalCount);
+                }
+                updateSelectedCountSantriAktif();
+            }
+        });
+
+        $('#resultSantriAktifTanpaKelas').show();
+    }
+
+    function updateSelectedCountSantriAktif() {
+        if (dataTableSantriAktif) {
+            const filteredRows = dataTableSantriAktif.rows({
+                search: 'applied'
+            }).nodes().to$();
+            const filteredCheckboxes = filteredRows.find('input[type="checkbox"][name="santriAktifCheckbox"]');
+            const selected = filteredCheckboxes.filter(':checked').length;
+            const total = filteredCheckboxes.length;
+            $('#selectedCountSantriAktif').text(`${selected} dari ${total} item dipilih`);
+        } else {
+            const selected = $('input[type="checkbox"][name="santriAktifCheckbox"]:checked').length;
+            const total = $('input[type="checkbox"][name="santriAktifCheckbox"]').length;
+            $('#selectedCountSantriAktif').text(`${selected} dari ${total} item dipilih`);
+        }
+    }
+
+    // Handler untuk checkbox change (menggunakan event delegation)
+    $(document).on('change', 'input[type="checkbox"][name="santriAktifCheckbox"]', function() {
+        updateSelectedCountSantriAktif();
+        if (dataTableSantriAktif) {
+            const filteredRows = dataTableSantriAktif.rows({
+                search: 'applied'
+            }).nodes().to$();
+            const filteredCheckboxes = filteredRows.find('input[type="checkbox"][name="santriAktifCheckbox"]');
+            const checkedCount = filteredCheckboxes.filter(':checked').length;
+            const totalCount = filteredCheckboxes.length;
+            $('#checkAllSantriAktif').prop('checked', totalCount > 0 && checkedCount === totalCount);
+        }
+    });
+
+    // Handler untuk select all checkbox santri aktif
+    $('#checkAllSantriAktif').on('change', function() {
+        const isChecked = $(this).prop('checked');
+        selectAllFilteredSantriAktif(isChecked);
+        updateSelectedCountSantriAktif();
+    });
+
+    $('#btnSelectAllSantriAktif').on('click', function() {
+        selectAllFilteredSantriAktif(true);
+        $('#checkAllSantriAktif').prop('checked', true);
+        updateSelectedCountSantriAktif();
+        $('#btnSelectAllSantriAktif').hide();
+        $('#btnUnselectAllSantriAktif').show();
+    });
+
+    $('#btnUnselectAllSantriAktif').on('click', function() {
+        selectAllFilteredSantriAktif(false);
+        $('#checkAllSantriAktif').prop('checked', false);
+        updateSelectedCountSantriAktif();
+        $('#btnSelectAllSantriAktif').show();
+        $('#btnUnselectAllSantriAktif').hide();
+    });
+
+    function selectAllFilteredSantriAktif(isChecked) {
+        if (dataTableSantriAktif) {
+            dataTableSantriAktif.rows({
+                search: 'applied'
+            }).nodes().to$().find('input[type="checkbox"][name="santriAktifCheckbox"]').prop('checked', isChecked);
+        } else {
+            $('input[type="checkbox"][name="santriAktifCheckbox"]').prop('checked', isChecked);
+        }
+    }
+
+    // Handler untuk filter TPQ santri aktif
+    $('#btnFilterAllTpqSantriAktif').on('click', function() {
+        selectedTpqFilterSantriAktif = null;
+        $('.card-tpq-summary-santri-aktif').css('border', '2px solid #dee2e6');
+        $('#btnClearFilterTpqSantriAktif').hide();
+        renderSantriAktifTanpaKelasTable();
+    });
+
+    $('#btnClearFilterTpqSantriAktif').on('click', function() {
+        selectedTpqFilterSantriAktif = null;
+        $('.card-tpq-summary-santri-aktif').css('border', '2px solid #dee2e6');
+        $('#btnClearFilterTpqSantriAktif').hide();
+        renderSantriAktifTanpaKelasTable();
+    });
+
+    function updateSantriAktifTanpaKelasSelected() {
+        const selectedIds = [];
+
+        if (dataTableSantriAktif) {
+            dataTableSantriAktif.rows({
+                search: 'applied'
+            }).every(function() {
+                const row = this.node();
+                const checkbox = $(row).find('input[type="checkbox"][name="santriAktifCheckbox"]');
+
+                if (checkbox.is(':checked')) {
+                    selectedIds.push(checkbox.val());
+                }
+            });
+        } else {
+            const selectedCheckboxes = $('input[type="checkbox"][name="santriAktifCheckbox"]:checked');
+            selectedCheckboxes.each(function() {
+                selectedIds.push($(this).val());
+            });
+        }
+
+        if (selectedIds.length === 0) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Silakan pilih minimal satu santri yang akan diproses.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Konfirmasi Update',
+            html: `Anda akan menambahkan <strong>${selectedIds.length}</strong> santri aktif ke tabel kelas_santri dan generate nilai sesuai kelasnya. Tindakan ini akan memproses seperti memproses santri baru.`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Proses!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses Update...',
+                    html: 'Mohon tunggu, sedang memproses santri aktif...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '<?= base_url('backend/kelas/updateSantriAktifTanpaKelas') ?>',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        santri: selectedIds
+                    }),
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                html: response.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Refresh data
+                                checkSantriAktifTanpaKelas();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Gagal!',
+                                text: response.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat memproses: ' + error,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // Handler untuk Santri Kelas Tidak Sesuai
+    let allSantriKelasTidakSesuaiData = [];
+    let dataTableSantriKelasTidakSesuai = null;
+    let selectedTpqFilterSantriKelasTidakSesuai = null;
+
+    $('#btnCheckSantriKelasTidakSesuai').on('click', function() {
+        checkSantriKelasTidakSesuai();
+    });
+
+    $('#btnUpdateSantriKelasTidakSesuai').on('click', function() {
+        updateSantriKelasTidakSesuaiSelected();
+    });
+
+    function checkSantriKelasTidakSesuai() {
+        $('#loadingSantriKelasTidakSesuai').show();
+        $('#resultSantriKelasTidakSesuai').hide();
+        $('#santriKelasTidakSesuaiContainer').show();
+        $('#btnCheckSantriKelasTidakSesuai').prop('disabled', true);
+
+        $.ajax({
+            url: '<?= base_url('backend/kelas/checkSantriKelasTidakSesuai') ?>',
+            type: 'POST',
+            dataType: 'json',
+            success: function(response) {
+                $('#loadingSantriKelasTidakSesuai').hide();
+                $('#btnCheckSantriKelasTidakSesuai').prop('disabled', false);
+
+                if (response.success) {
+                    allSantriKelasTidakSesuaiData = response.data || [];
+                    displaySummaryByTpqSantriKelasTidakSesuai(response.summary_by_tpq || []);
+                    renderSantriKelasTidakSesuaiTable();
+                    $('#resultSantriKelasTidakSesuai').show();
+                    $('#btnUpdateSantriKelasTidakSesuai').show();
+
+                    let summaryText = `Ditemukan <strong>${response.total_checked}</strong> santri yang kelas di tbl_santri_baru tidak sesuai dengan tbl_kelas_santri untuk tahun ajaran <strong>${response.id_tahun_ajaran}</strong>.`;
+                    $('#summarySantriKelasTidakSesuaiText').html(summaryText);
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message || 'Terjadi kesalahan saat mengecek data',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#loadingSantriKelasTidakSesuai').hide();
+                $('#btnCheckSantriKelasTidakSesuai').prop('disabled', false);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Terjadi kesalahan saat mengecek data: ' + error,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+    }
+
+    function displaySummaryByTpqSantriKelasTidakSesuai(summaryByTpq) {
+        const container = $('#summaryTpqSantriKelasTidakSesuaiCards');
+        container.empty();
+
+        if (summaryByTpq.length === 0) {
+            container.html('<div class="col-12"><p class="text-muted">Tidak ada data</p></div>');
+            return;
+        }
+
+        summaryByTpq.forEach(function(tpq) {
+            const card = `
+                <div class="col-md-4 mb-3 card-tpq-summary-santri-kelas-tidak-sesuai" data-tpq="${tpq.IdTpq}" style="cursor: pointer;">
+                    <div class="card" style="border: 2px solid #dee2e6; border-color: #6f42c1;">
+                        <div class="card-body">
+                            <h6 class="card-title" style="color: #6f42c1;">
+                                <i class="fas fa-school"></i> ${tpq.NamaTpq || 'Tidak ditemukan'}
+                            </h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted" style="font-size: 0.9rem;">Total Santri:</span>
+                                <span class="badge" style="font-size: 0.9rem; padding: 0.4em 0.7em; min-width: 50px; background-color: #6f42c1; color: white;">${tpq.total || 0}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted" style="font-size: 0.8rem;">
+                                    <i class="fas fa-users text-primary"></i> Jumlah Santri Terkena:
+                                </span>
+                                <span class="badge badge-primary" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.jumlah_santri_terkena || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.append(card);
+        });
+
+        // Handler untuk filter TPQ
+        $('.card-tpq-summary-santri-kelas-tidak-sesuai').on('click', function() {
+            selectedTpqFilterSantriKelasTidakSesuai = $(this).data('tpq');
+            $('.card-tpq-summary-santri-kelas-tidak-sesuai').css('border-color', '#6f42c1');
+            $(this).css('border-color', '#28a745');
+            $(this).css('border-width', '3px');
+            $('#btnClearFilterTpqSantriKelasTidakSesuai').show();
+            renderSantriKelasTidakSesuaiTable();
+        });
+    }
+
+    function renderSantriKelasTidakSesuaiTable() {
+        // Destroy DataTable jika sudah ada
+        if (dataTableSantriKelasTidakSesuai) {
+            dataTableSantriKelasTidakSesuai.destroy();
+        }
+
+        // Clear tbody
+        $('#tbodySantriKelasTidakSesuai').empty();
+
+        // Filter data berdasarkan TPQ jika ada filter
+        let filteredData = allSantriKelasTidakSesuaiData;
+        if (selectedTpqFilterSantriKelasTidakSesuai) {
+            filteredData = allSantriKelasTidakSesuaiData.filter(item => item.IdTpq == selectedTpqFilterSantriKelasTidakSesuai);
+        }
+
+        // Populate table
+        filteredData.forEach(function(item, index) {
+            const kelasSantriBaru = item.IdKelasSantriBaru ?
+                `<span class="badge badge-info">${item.NamaKelasSantriBaru || 'Tidak ditemukan'}</span>` :
+                `<span class="badge badge-warning">Belum ada kelas</span>`;
+
+            const kelasKelasSantri = item.IdKelasKelasSantri ?
+                `<span class="badge badge-danger">${item.NamaKelasKelasSantri || 'Tidak ditemukan'}</span>` :
+                `<span class="badge badge-secondary">Tidak ditemukan</span>`;
+
+            const row = `
+                <tr>
+                    <td>
+                        <input type="checkbox" name="santriKelasTidakSesuaiCheckbox" value="${item.IdSantri}" class="santri-kelas-tidak-sesuai-checkbox">
+                    </td>
+                    <td>${index + 1}</td>
+                    <td><code>${item.IdSantri || 'Tidak ditemukan'}</code></td>
+                    <td>${item.NamaSantri || 'Tidak ditemukan'}</td>
+                    <td>${item.NamaTpq || 'Tidak ditemukan'}</td>
+                    <td>${kelasSantriBaru}</td>
+                    <td>${kelasKelasSantri}</td>
+                    <td>${item.IdTahunAjaran || ''}</td>
+                    <td>
+                        <small class="text-muted">${item.reason || ''}</small>
+                    </td>
+                </tr>
+            `;
+            $('#tbodySantriKelasTidakSesuai').append(row);
+        });
+
+        // Initialize DataTable
+        dataTableSantriKelasTidakSesuai = $('#tableSantriKelasTidakSesuai').DataTable({
+            order: [
+                [1, 'asc']
+            ],
+            pageLength: 25,
+            responsive: true,
+            autoWidth: false,
+            language: {
+                "search": "Cari:",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                }
+            }
+        });
+
+        // Update checkbox state saat DataTable di-redraw
+        dataTableSantriKelasTidakSesuai.on('draw', function() {
+            if (dataTableSantriKelasTidakSesuai) {
+                const filteredRows = dataTableSantriKelasTidakSesuai.rows({
+                    search: 'applied'
+                }).nodes().to$();
+                const filteredCheckboxes = filteredRows.find('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]');
+                const checkedCount = filteredCheckboxes.filter(':checked').length;
+                const totalCount = filteredCheckboxes.length;
+
+                if (totalCount > 0) {
+                    $('#checkAllSantriKelasTidakSesuai').prop('checked', checkedCount === totalCount);
+                }
+                updateSelectedCountSantriKelasTidakSesuai();
+            }
+        });
+
+        $('#resultSantriKelasTidakSesuai').show();
+    }
+
+    function updateSelectedCountSantriKelasTidakSesuai() {
+        if (dataTableSantriKelasTidakSesuai) {
+            const filteredRows = dataTableSantriKelasTidakSesuai.rows({
+                search: 'applied'
+            }).nodes().to$();
+            const filteredCheckboxes = filteredRows.find('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]');
+            const selected = filteredCheckboxes.filter(':checked').length;
+            const total = filteredCheckboxes.length;
+            $('#selectedCountSantriKelasTidakSesuai').text(`${selected} dari ${total} item dipilih`);
+        } else {
+            const selected = $('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]:checked').length;
+            const total = $('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]').length;
+            $('#selectedCountSantriKelasTidakSesuai').text(`${selected} dari ${total} item dipilih`);
+        }
+    }
+
+    // Handler untuk checkbox change (menggunakan event delegation)
+    $(document).on('change', 'input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]', function() {
+        updateSelectedCountSantriKelasTidakSesuai();
+        if (dataTableSantriKelasTidakSesuai) {
+            const filteredRows = dataTableSantriKelasTidakSesuai.rows({
+                search: 'applied'
+            }).nodes().to$();
+            const filteredCheckboxes = filteredRows.find('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]');
+            const checkedCount = filteredCheckboxes.filter(':checked').length;
+            const totalCount = filteredCheckboxes.length;
+            $('#checkAllSantriKelasTidakSesuai').prop('checked', totalCount > 0 && checkedCount === totalCount);
+        }
+    });
+
+    // Handler untuk select all checkbox santri kelas tidak sesuai
+    $('#checkAllSantriKelasTidakSesuai').on('change', function() {
+        const isChecked = $(this).prop('checked');
+        selectAllFilteredSantriKelasTidakSesuai(isChecked);
+        updateSelectedCountSantriKelasTidakSesuai();
+    });
+
+    $('#btnSelectAllSantriKelasTidakSesuai').on('click', function() {
+        selectAllFilteredSantriKelasTidakSesuai(true);
+        $('#checkAllSantriKelasTidakSesuai').prop('checked', true);
+        updateSelectedCountSantriKelasTidakSesuai();
+        $('#btnSelectAllSantriKelasTidakSesuai').hide();
+        $('#btnUnselectAllSantriKelasTidakSesuai').show();
+    });
+
+    $('#btnUnselectAllSantriKelasTidakSesuai').on('click', function() {
+        selectAllFilteredSantriKelasTidakSesuai(false);
+        $('#checkAllSantriKelasTidakSesuai').prop('checked', false);
+        updateSelectedCountSantriKelasTidakSesuai();
+        $('#btnSelectAllSantriKelasTidakSesuai').show();
+        $('#btnUnselectAllSantriKelasTidakSesuai').hide();
+    });
+
+    function selectAllFilteredSantriKelasTidakSesuai(isChecked) {
+        if (dataTableSantriKelasTidakSesuai) {
+            dataTableSantriKelasTidakSesuai.rows({
+                search: 'applied'
+            }).nodes().to$().find('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]').prop('checked', isChecked);
+        } else {
+            $('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]').prop('checked', isChecked);
+        }
+    }
+
+    // Handler untuk filter TPQ santri kelas tidak sesuai
+    $('#btnFilterAllTpqSantriKelasTidakSesuai').on('click', function() {
+        selectedTpqFilterSantriKelasTidakSesuai = null;
+        $('.card-tpq-summary-santri-kelas-tidak-sesuai').css('border-color', '#6f42c1');
+        $('.card-tpq-summary-santri-kelas-tidak-sesuai').css('border-width', '2px');
+        $('#btnClearFilterTpqSantriKelasTidakSesuai').hide();
+        renderSantriKelasTidakSesuaiTable();
+    });
+
+    $('#btnClearFilterTpqSantriKelasTidakSesuai').on('click', function() {
+        selectedTpqFilterSantriKelasTidakSesuai = null;
+        $('.card-tpq-summary-santri-kelas-tidak-sesuai').css('border-color', '#6f42c1');
+        $('.card-tpq-summary-santri-kelas-tidak-sesuai').css('border-width', '2px');
+        $('#btnClearFilterTpqSantriKelasTidakSesuai').hide();
+        renderSantriKelasTidakSesuaiTable();
+    });
+
+    function updateSantriKelasTidakSesuaiSelected() {
+        const selectedIds = [];
+
+        if (dataTableSantriKelasTidakSesuai) {
+            dataTableSantriKelasTidakSesuai.rows({
+                search: 'applied'
+            }).every(function() {
+                const row = this.node();
+                const checkbox = $(row).find('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]');
+
+                if (checkbox.is(':checked')) {
+                    selectedIds.push(checkbox.val());
+                }
+            });
+        } else {
+            const selectedCheckboxes = $('input[type="checkbox"][name="santriKelasTidakSesuaiCheckbox"]:checked');
+            selectedCheckboxes.each(function() {
+                selectedIds.push($(this).val());
+            });
+        }
+
+        if (selectedIds.length === 0) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Silakan pilih minimal satu santri yang akan diproses.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Konfirmasi Update',
+            html: `Anda akan mengupdate <strong>${selectedIds.length}</strong> santri untuk:<br>
+                   - Update IdKelas di tbl_kelas_santri sesuai dengan tbl_santri_baru<br>
+                   - Hapus nilai lama yang tidak sesuai<br>
+                   - Generate nilai baru sesuai kelas yang benar`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#6f42c1',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Update!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses Update...',
+                    html: 'Mohon tunggu, sedang mengupdate kelas santri dan nilai...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '<?= base_url('backend/kelas/updateSantriKelasTidakSesuai') ?>',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        santri: selectedIds
+                    }),
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                html: response.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Refresh data
+                                checkSantriKelasTidakSesuai();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Gagal!',
+                                text: response.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat memproses: ' + error,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
     $('#btnCheckNilaiTanpaKelasSantri').on('click', function() {
         checkNilaiTanpaKelasSantri();
     });
@@ -1427,7 +2413,20 @@
             "columnDefs": [{
                 "orderable": false,
                 "targets": 0 // Kolom checkbox tidak bisa di-sort
-            }]
+            }],
+            "language": {
+                "search": "Cari:",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                }
+            }
         });
 
         // Event handler untuk checkbox setelah DataTable diinisialisasi

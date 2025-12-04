@@ -117,6 +117,10 @@ $routes->post('backend/kelas/checkDuplikasiKelasSantri', 'Backend\Kelas::checkDu
 $routes->post('backend/kelas/normalisasiDuplikasiKelasSantri', 'Backend\Kelas::normalisasiDuplikasiKelasSantri');
 $routes->post('backend/kelas/checkNilaiTanpaKelasSantri', 'Backend\Kelas::checkNilaiTanpaKelasSantri');
 $routes->post('backend/kelas/normalisasiNilaiTanpaKelasSantri', 'Backend\Kelas::normalisasiNilaiTanpaKelasSantri');
+$routes->post('backend/kelas/checkSantriAktifTanpaKelas', 'Backend\Kelas::checkSantriAktifTanpaKelas');
+$routes->post('backend/kelas/updateSantriAktifTanpaKelas', 'Backend\Kelas::updateSantriAktifTanpaKelas');
+$routes->post('backend/kelas/checkSantriKelasTidakSesuai', 'Backend\Kelas::checkSantriKelasTidakSesuai');
+$routes->post('backend/kelas/updateSantriKelasTidakSesuai', 'Backend\Kelas::updateSantriKelasTidakSesuai');
 $routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'Backend\Santri::showSuccessEmisStep/$1');
 $routes->post('backend/santri/checkNormalisasiNilai', 'Backend\Santri::checkNormalisasiNilai');
 $routes->post('backend/santri/normalisasiNilai', 'Backend\Santri::normalisasiNilai');
