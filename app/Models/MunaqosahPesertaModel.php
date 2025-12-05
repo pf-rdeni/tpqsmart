@@ -47,15 +47,25 @@ class MunaqosahPesertaModel extends Model
         ]
     ];
 
-    public function getPesertaWithRelations($idTpq = null)
+    public function getPesertaWithRelations($idTpq = null, $idKelas = null, $idTahunAjaran = null)
     {
         $builder = $this->db->table($this->table . ' pm');
-        $builder->select('pm.*, s.*, t.*');
+        $builder->select('pm.*, s.*, t.*, k.NamaKelas, k.IdKelas');
         $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
         $builder->join('tbl_tpq t', 't.IdTpq = pm.IdTpq', 'left');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1', 'left');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');
 
         if ($idTpq) {
             $builder->where('pm.IdTpq', $idTpq);
+        }
+
+        if ($idKelas) {
+            $builder->where('ks.IdKelas', $idKelas);
+        }
+
+        if ($idTahunAjaran) {
+            $builder->where('pm.IdTahunAjaran', $idTahunAjaran);
         }
 
         $builder->orderBy('pm.IdTpq', 'ASC');

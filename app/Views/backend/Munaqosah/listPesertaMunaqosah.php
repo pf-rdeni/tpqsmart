@@ -171,8 +171,155 @@
                 <strong>Informasi:</strong> Statistik ini menampilkan jumlah peserta berdasarkan status verifikasi data mereka.
                 Status verifikasi ditentukan setelah orang tua santri melakukan verifikasi data di halaman konfirmasi data santri.
             </p>
+
+            <!-- Filter Statistik -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="filterTpqStatistik">TPQ <small class="text-muted">(Bisa pilih lebih dari satu)</small></label>
+                        <select class="form-control select2" id="filterTpqStatistik" name="filterTpqStatistik[]" multiple="multiple" <?= ($isOperator ?? false) ? 'disabled' : '' ?>>
+                            <?php
+                            $sessionIdTpq = session()->get('IdTpq');
+                            $filterTpqValues = [];
+                            if (isset($_GET['filter_tpq'])) {
+                                if (is_array($_GET['filter_tpq'])) {
+                                    $filterTpqValues = $_GET['filter_tpq'];
+                                } else {
+                                    $filterTpqValues = [$_GET['filter_tpq']];
+                                }
+                            } elseif (($isOperator ?? false) && $sessionIdTpq) {
+                                $filterTpqValues = [$sessionIdTpq];
+                            }
+
+                            if (($isOperator ?? false) && $sessionIdTpq): ?>
+                                <option value="<?= $sessionIdTpq ?>" selected>
+                                    <?php
+                                    $selectedTpq = array_filter($dataTpq, function ($t) use ($sessionIdTpq) {
+                                        return $t['IdTpq'] == $sessionIdTpq;
+                                    });
+                                    echo !empty($selectedTpq) ? reset($selectedTpq)['NamaTpq'] : 'TPQ';
+                                    ?>
+                                </option>
+                            <?php else: ?>
+                                <?php foreach ($dataTpq as $tpq): ?>
+                                    <option value="<?= $tpq['IdTpq'] ?>" <?= in_array($tpq['IdTpq'], $filterTpqValues) ? 'selected' : '' ?>>
+                                        <?= $tpq['NamaTpq'] ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <?php if ($isOperator ?? false): ?>
+                            <small class="form-text text-muted">TPQ di-set otomatis sesuai TPQ Anda</small>
+                        <?php else: ?>
+                            <small class="form-text text-muted">Pilih satu atau lebih TPQ untuk difilter</small>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="filterTahunAjaranStatistik">Tahun Ajaran <small class="text-muted">(Bisa pilih lebih dari satu)</small></label>
+                        <select class="form-control select2" id="filterTahunAjaranStatistik" name="filterTahunAjaranStatistik[]" multiple="multiple">
+                            <?php
+                            $currentTahunAjaran = $tahunAjaran;
+                            $filterTahunValues = [];
+                            if (isset($_GET['filter_tahun'])) {
+                                if (is_array($_GET['filter_tahun'])) {
+                                    $filterTahunValues = $_GET['filter_tahun'];
+                                } else {
+                                    $filterTahunValues = [$_GET['filter_tahun']];
+                                }
+                            } else {
+                                $filterTahunValues = [$currentTahunAjaran];
+                            }
+
+                            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                            // Normalize tahun ajaran values
+                            $normalizedTahunValues = [];
+                            foreach ($filterTahunValues as $ta) {
+                                try {
+                                    $normalizedTahunValues[] = $helpFunctionModel->normalizeTahunAjaran($ta);
+                                } catch (\Exception $e) {
+                                    // Skip invalid values
+                                }
+                            }
+                            if (empty($normalizedTahunValues)) {
+                                $normalizedTahunValues = [$currentTahunAjaran];
+                            }
+                            ?>
+                            <?php if (!empty($listTahunAjaran ?? [])): ?>
+                                <?php foreach ($listTahunAjaran as $ta): ?>
+                                    <option value="<?= $ta ?>" <?= in_array($ta, $normalizedTahunValues) ? 'selected' : '' ?>>
+                                        <?= convertTahunAjaran($ta) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="<?= $currentTahunAjaran ?>" selected><?= convertTahunAjaran($currentTahunAjaran) ?></option>
+                            <?php endif; ?>
+                        </select>
+                        <small class="form-text text-muted">Pilih satu atau lebih tahun ajaran untuk difilter</small>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="filterKelurahanDesaStatistik">Kelurahan/Desa <small class="text-muted">(Bisa pilih lebih dari satu)</small></label>
+                        <select class="form-control select2" id="filterKelurahanDesaStatistik" name="filterKelurahanDesaStatistik[]" multiple="multiple">
+                            <?php
+                            $filterKelurahanValues = [];
+                            if (isset($_GET['filter_kelurahan'])) {
+                                if (is_array($_GET['filter_kelurahan'])) {
+                                    $filterKelurahanValues = $_GET['filter_kelurahan'];
+                                } else {
+                                    $filterKelurahanValues = [$_GET['filter_kelurahan']];
+                                }
+                            }
+                            ?>
+                            <?php if (!empty($listKelurahanDesa ?? [])): ?>
+                                <?php foreach ($listKelurahanDesa as $kelurahan): ?>
+                                    <option value="<?= $kelurahan ?>" <?= in_array($kelurahan, $filterKelurahanValues) ? 'selected' : '' ?>>
+                                        <?= $kelurahan ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="">Tidak ada data Kelurahan/Desa</option>
+                            <?php endif; ?>
+                        </select>
+                        <small class="form-text text-muted">Pilih satu atau lebih Kelurahan/Desa untuk difilter</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <div class="d-flex justify-content-end align-items-end" style="height: 100%;">
+                            <button type="button" class="btn btn-primary mr-2" id="btnApplyFilterStatistik">
+                                <i class="fas fa-filter"></i> Terapkan Filter
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="btnResetFilterStatistik">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row">
-                <div class="col-lg-4 col-6">
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3><?= number_format($total_santri_terdaftar) ?></h3>
+                            <p>Total Terdaftar</p>
+                            <small style="font-size: 0.85em; opacity: 0.9;">Semua Santri Peserta Munaqosah</small>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <a href="#" class="small-box-footer" onclick="return false;">
+                            Total Peserta <i class="fas fa-info-circle"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
                     <div class="small-box bg-success">
                         <div class="inner">
                             <h3><?= number_format($total_status_valid) ?></h3>
@@ -182,12 +329,18 @@
                         <div class="icon">
                             <i class="fas fa-check-circle"></i>
                         </div>
-                        <a href="#peserta-valid" class="small-box-footer" onclick="filterByStatus('valid')">
-                            Lihat Detail <i class="fas fa-arrow-circle-right"></i>
-                        </a>
+                        <?php if ($total_status_valid > 0): ?>
+                            <a href="#peserta-valid" class="small-box-footer" onclick="filterByStatus('valid'); return false;">
+                                Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                            </a>
+                        <?php else: ?>
+                            <a href="#" class="small-box-footer" style="opacity: 0.5; cursor: not-allowed;" onclick="return false;" title="Tidak ada data">
+                                Tidak Ada Data <i class="fas fa-info-circle"></i>
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
-                <div class="col-lg-4 col-6">
+                <div class="col-lg-3 col-6">
                     <div class="small-box bg-warning">
                         <div class="inner">
                             <h3><?= number_format($total_status_perbaikan) ?></h3>
@@ -197,12 +350,18 @@
                         <div class="icon">
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
-                        <a href="#peserta-perbaikan" class="small-box-footer" onclick="filterByStatus('perlu_perbaikan')">
-                            Lihat Detail <i class="fas fa-arrow-circle-right"></i>
-                        </a>
+                        <?php if ($total_status_perbaikan > 0): ?>
+                            <a href="#peserta-perbaikan" class="small-box-footer" onclick="filterByStatus('perlu_perbaikan'); return false;">
+                                Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                            </a>
+                        <?php else: ?>
+                            <a href="#" class="small-box-footer" style="opacity: 0.5; cursor: not-allowed;" onclick="return false;" title="Tidak ada data">
+                                Tidak Ada Data <i class="fas fa-info-circle"></i>
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
-                <div class="col-lg-4 col-6">
+                <div class="col-lg-3 col-6">
                     <div class="small-box bg-secondary">
                         <div class="inner">
                             <h3><?= number_format($total_status_belum_dikonfirmasi) ?></h3>
@@ -212,11 +371,142 @@
                         <div class="icon">
                             <i class="fas fa-clock"></i>
                         </div>
-                        <a href="#peserta-belum-dikonfirmasi" class="small-box-footer" onclick="filterByStatus('belum_dikonfirmasi')">
-                            Lihat Detail <i class="fas fa-arrow-circle-right"></i>
-                        </a>
+                        <?php if ($total_status_belum_dikonfirmasi > 0): ?>
+                            <a href="#peserta-belum-dikonfirmasi" class="small-box-footer" onclick="filterByStatus('belum_dikonfirmasi'); return false;">
+                                Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+                            </a>
+                        <?php else: ?>
+                            <a href="#" class="small-box-footer" style="opacity: 0.5; cursor: not-allowed;" onclick="return false;" title="Tidak ada data">
+                                Tidak Ada Data <i class="fas fa-info-circle"></i>
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistik Jumlah Peserta per Tahun Ajaran dan TPQ -->
+<div class="col-12 mb-3">
+    <div class="card card-outline card-primary">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-chart-bar"></i> Statistik Jumlah Peserta Munaqosah per Tahun Ajaran
+            </h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta munaqosah per tahun ajaran dan per TPQ">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">
+                <i class="fas fa-info-circle"></i>
+                <strong>Informasi:</strong> Tabel ini menampilkan jumlah peserta munaqosah yang terdaftar per tahun ajaran. Klik pada baris tahun ajaran untuk melihat detail per TPQ.
+            </p>
+            <div class="table-responsive">
+                <table id="tabelStatistikPesertaPerTahun" class="table table-bordered table-striped table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">No</th>
+                            <th style="width: 50px;"></th>
+                            <th>Tahun Ajaran</th>
+                            <?php if (empty($hideTpqColumn)): ?>
+                                <th>Nama TPQ</th>
+                                <th>Kelurahan/Desa</th>
+                            <?php endif; ?>
+                            <th class="text-center">Jumlah Peserta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($statistikGroupedByTahun) && count($statistikGroupedByTahun) > 0): ?>
+                            <?php $no = 1; ?>
+                            <?php foreach ($statistikGroupedByTahun as $tahunData): ?>
+                                <?php
+                                $tahunAjaranKey = md5($tahunData['IdTahunAjaran']); // Unique key untuk tahun ajaran
+                                $hasDetail = !empty($tahunData['detail_tpq']) && count($tahunData['detail_tpq']) > 0;
+                                ?>
+                                <!-- Row Tahun Ajaran (Parent) -->
+                                <tr class="tahun-row" data-tahun-key="<?= $tahunAjaranKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
+                                    <td class="text-center"><?= $no++ ?></td>
+                                    <td class="text-center">
+                                        <?php if ($hasDetail): ?>
+                                            <i class="fas fa-chevron-right expand-icon" style="transition: transform 0.3s;"></i>
+                                        <?php else: ?>
+                                            <i class="fas fa-minus" style="color: #ccc;"></i>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <strong><?= convertTahunAjaran($tahunData['IdTahunAjaran']) ?></strong>
+                                    </td>
+                                    <?php if (empty($hideTpqColumn)): ?>
+                                        <td>
+                                            <span class="badge badge-info">Total Semua TPQ</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-secondary">-</span>
+                                        </td>
+                                    <?php endif; ?>
+                                    <td class="text-center">
+                                        <span class="badge badge-primary badge-lg" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                                            <?= number_format($tahunData['total_peserta']) ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <!-- Detail TPQ (Child rows - hidden by default) -->
+                                <?php if ($hasDetail): ?>
+                                    <?php $detailNo = 1; ?>
+                                    <?php foreach ($tahunData['detail_tpq'] as $detail): ?>
+                                        <tr class="detail-row detail-<?= $tahunAjaranKey ?>" style="display: none; background-color: #ffffff;">
+                                            <td></td>
+                                            <td class="text-center">
+                                                <i class="fas fa-angle-right text-muted"></i>
+                                            </td>
+                                            <td style="padding-left: 40px;">
+                                                <span class="text-muted small"><i class="fas fa-building text-info mr-1"></i>TPQ</span>
+                                            </td>
+                                            <?php if (empty($hideTpqColumn)): ?>
+                                                <td>
+                                                    <strong><?= $detail['NamaTpq'] ?? '-' ?></strong>
+                                                </td>
+                                                <td>
+                                                    <?= $detail['KelurahanDesa'] ?? '-' ?>
+                                                </td>
+                                            <?php endif; ?>
+                                            <td class="text-center">
+                                                <span class="badge badge-secondary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
+                                                    <?= number_format($detail['jumlah_peserta']) ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="<?= empty($hideTpqColumn) ? '6' : '4' ?>" class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle"></i> Tidak ada data statistik
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                    <?php if (!empty($statistikGroupedByTahun) && count($statistikGroupedByTahun) > 0): ?>
+                        <tfoot class="thead-light">
+                            <tr>
+                                <th colspan="<?= empty($hideTpqColumn) ? '5' : '3' ?>" class="text-right">Grand Total:</th>
+                                <th class="text-center">
+                                    <span class="badge badge-success badge-lg" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                                        <?= number_format(array_sum(array_column($statistikGroupedByTahun, 'total_peserta'))) ?>
+                                    </span>
+                                </th>
+                            </tr>
+                        </tfoot>
+                    <?php endif; ?>
+                </table>
             </div>
         </div>
     </div>
@@ -242,217 +532,271 @@
         <div class="card-body">
             <!-- Tabel Peserta Perlu Perbaikan -->
             <?php if (!empty($pesertaPerluPerbaikan) && count($pesertaPerluPerbaikan) > 0): ?>
-                <div class="mb-4">
-                    <h5 class="mb-3"><i class="fas fa-exclamation-triangle text-warning"></i> Peserta Perlu Perbaikan <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span></h5>
-                    <div class="alert alert-warning mb-3">
-                        <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
-                        <span class="text-dark ml-2">Tabel ini menampilkan peserta yang data mereka perlu diperbaiki. Peserta dengan status ini telah diverifikasi oleh orang tua/wali, namun terdapat data yang perlu diperbaiki. Gunakan tombol <strong>Review</strong> untuk melihat detail perbaikan yang diminta dan melakukan konfirmasi perbaikan data.</span>
+                <div class="card card-warning card-outline collapsed-card mb-4" id="peserta-perbaikan">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-exclamation-triangle text-warning"></i> Peserta Perlu Perbaikan
+                            <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span>
+                            <span class="badge badge-warning ml-2"><?= count($pesertaPerluPerbaikan) ?> Peserta</span>
+                            <small class="text-muted ml-2" style="font-size: 0.85rem;">
+                                <i class="fas fa-info-circle text-info"></i> Tekan tanda <i class="fas fa-plus text-primary font-weight-bold"></i> di kanan untuk membuka list
+                            </small>
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Klik untuk membuka/menutup list">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
-                    <table id="tabelPesertaPerluPerbaikan" class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Aksi</th>
-                                <th>ID Santri</th>
-                                <th>Nama Santri</th>
-                                <th>Tempat/Tanggal Lahir</th>
-                                <th>Jenis Kelamin</th>
-                                <th>Nama Ayah</th>
-                                <?php if (empty($hideTpqColumn)): ?>
-                                    <th>TPQ/Alamat</th>
-                                <?php endif; ?>
-                                <th>Status Verifikasi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php $no = 1; ?>
-                            <?php foreach ($pesertaPerluPerbaikan as $row): ?>
-                                <?php
-                                $tempatLahir = $row->TempatLahirSantri ?? '';
-                                $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
-                                $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
-
-                                $namaTpq = $row->NamaTpq ?? '';
-                                $alamat = $row->KelurahanDesa ?? '';
-                                $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
-                                ?>
+                    <div class="card-body" style="display: none;">
+                        <div class="alert alert-warning mb-3">
+                            <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                            <span class="text-dark ml-2">Tabel ini menampilkan peserta yang data mereka perlu diperbaiki. Peserta dengan status ini telah diverifikasi oleh orang tua/wali, namun terdapat data yang perlu diperbaiki. Gunakan tombol <strong>Review</strong> untuk melihat detail perbaikan yang diminta dan melakukan konfirmasi perbaikan data.</span>
+                        </div>
+                        <table id="tabelPesertaPerluPerbaikan" class="table table-bordered table-striped">
+                            <thead>
                                 <tr>
-                                    <td><?= $no++ ?></td>
-                                    <td>
-                                        <button type="button" class="btn btn-info btn-sm"
-                                            onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', 'perlu_perbaikan')"
-                                            title="Review & Konfirmasi Perbaikan">
-                                            <i class="fas fa-check-double"></i> Review
-                                        </button>
-                                    </td>
-                                    <td><?= $row->IdSantri ?? '-' ?></td>
-                                    <td><?= $row->NamaSantri ?? '-' ?></td>
-                                    <td><?= $tempatTanggalLahir ?></td>
-                                    <td><?= $row->JenisKelamin ?? '-' ?></td>
-                                    <td><?= $row->NamaAyah ?? '-' ?></td>
+                                    <th>No</th>
+                                    <th>Aksi</th>
+                                    <th>ID Santri</th>
+                                    <th>Nama Santri</th>
+                                    <th>Kelas</th>
+                                    <th>Tempat/Tanggal Lahir</th>
+                                    <th>Jenis Kelamin</th>
+                                    <th>Nama Ayah</th>
                                     <?php if (empty($hideTpqColumn)): ?>
-                                        <td><?= $tpqAlamat ?></td>
+                                        <th>TPQ/Alamat</th>
                                     <?php endif; ?>
-                                    <td><span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span></td>
+                                    <th>Status Verifikasi</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php $no = 1; ?>
+                                <?php foreach ($pesertaPerluPerbaikan as $row): ?>
+                                    <?php
+                                    $tempatLahir = $row->TempatLahirSantri ?? '';
+                                    $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
+                                    $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
+
+                                    $namaTpq = $row->NamaTpq ?? '';
+                                    $alamat = $row->KelurahanDesa ?? '';
+                                    $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
+                                    ?>
+                                    <tr>
+                                        <td><?= $no++ ?></td>
+                                        <td>
+                                            <button type="button" class="btn btn-info btn-sm"
+                                                onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', 'perlu_perbaikan')"
+                                                title="Review & Konfirmasi Perbaikan">
+                                                <i class="fas fa-check-double"></i> Review
+                                            </button>
+                                        </td>
+                                        <td><?= $row->IdSantri ?? '-' ?></td>
+                                        <td><?= $row->NamaSantri ?? '-' ?></td>
+                                        <td><?= $row->NamaKelas ?? '-' ?></td>
+                                        <td><?= $tempatTanggalLahir ?></td>
+                                        <td><?= $row->JenisKelamin ?? '-' ?></td>
+                                        <td><?= $row->NamaAyah ?? '-' ?></td>
+                                        <?php if (empty($hideTpqColumn)): ?>
+                                            <td><?= $tpqAlamat ?></td>
+                                        <?php endif; ?>
+                                        <td><span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php endif; ?>
 
             <!-- Tabel Peserta Valid -->
             <?php if (!empty($pesertaValid) && count($pesertaValid) > 0): ?>
-                <div class="mb-4">
-                    <h5 class="mb-3"><i class="fas fa-check-circle text-success"></i> Peserta Valid <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span></h5>
-                    <div class="alert alert-success mb-3">
-                        <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
-                        <span class="text-dark ml-2">Tabel ini menampilkan peserta yang data mereka sudah valid dan telah dikonfirmasi. Peserta dengan status ini telah diverifikasi oleh orang tua/wali dan data dinyatakan benar. Anda dapat menggunakan tombol <strong>Edit</strong> untuk mengubah data peserta jika diperlukan.</span>
+                <div class="card card-success card-outline collapsed-card mb-4" id="peserta-valid">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-check-circle text-success"></i> Peserta Valid
+                            <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span>
+                            <span class="badge badge-success ml-2"><?= count($pesertaValid) ?> Peserta</span>
+                            <small class="text-muted ml-2" style="font-size: 0.85rem;">
+                                <i class="fas fa-info-circle text-info"></i> Tekan tanda <i class="fas fa-plus text-primary font-weight-bold"></i> di kanan untuk membuka list
+                            </small>
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Klik untuk membuka/menutup list">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
-                    <table id="tabelPesertaValid" class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Aksi</th>
-                                <th>ID Santri</th>
-                                <th>Nama Santri</th>
-                                <th>Tempat/Tanggal Lahir</th>
-                                <th>Jenis Kelamin</th>
-                                <th>Nama Ayah</th>
-                                <?php if (empty($hideTpqColumn)): ?>
-                                    <th>TPQ/Alamat</th>
-                                <?php endif; ?>
-                                <th>Status Verifikasi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php $no = 1; ?>
-                            <?php foreach ($pesertaValid as $row): ?>
-                                <?php
-                                $tempatLahir = $row->TempatLahirSantri ?? '';
-                                $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
-                                $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
-
-                                $namaTpq = $row->NamaTpq ?? '';
-                                $alamat = $row->KelurahanDesa ?? '';
-                                $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
-                                ?>
+                    <div class="card-body" style="display: none;">
+                        <div class="alert alert-success mb-3">
+                            <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                            <span class="text-dark ml-2">Tabel ini menampilkan peserta yang data mereka sudah valid dan telah dikonfirmasi. Peserta dengan status ini telah diverifikasi oleh orang tua/wali dan data dinyatakan benar. Anda dapat menggunakan tombol <strong>Edit</strong> untuk mengubah data peserta jika diperlukan.</span>
+                        </div>
+                        <table id="tabelPesertaValid" class="table table-bordered table-striped">
+                            <thead>
                                 <tr>
-                                    <td><?= $no++ ?></td>
-                                    <td>
-                                        <button type="button" class="btn btn-warning btn-sm mr-1 action-btn"
-                                            onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
-                                            title="Edit">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                        <?php if (!empty($row->HasKey)): ?>
-                                            <button type="button" class="btn btn-info btn-sm mr-1 copy-link-btn-peserta action-btn"
-                                                data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
-                                                data-haskey="<?= esc($row->HasKey) ?>"
-                                                title="Copy link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                                <i class="fas fa-copy"></i> <span class="btn-text">Copy Link</span>
-                                            </button>
-                                        <?php endif; ?>
-                                        <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
-                                            target="_blank"
-                                            class="btn btn-success btn-sm mr-1 action-btn"
-                                            title="Cetak Instruksi Verifikasi untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                            <i class="fas fa-print"></i> <span class="btn-text">Print Instruksi</span>
-                                        </a>
-                                    </td>
-                                    <td><?= $row->IdSantri ?? '-' ?></td>
-                                    <td><?= $row->NamaSantri ?? '-' ?></td>
-                                    <td><?= $tempatTanggalLahir ?></td>
-                                    <td><?= $row->JenisKelamin ?? '-' ?></td>
-                                    <td><?= $row->NamaAyah ?? '-' ?></td>
+                                    <th>No</th>
+                                    <th>Aksi</th>
+                                    <th>ID Santri</th>
+                                    <th>Nama Santri</th>
+                                    <th>Kelas</th>
+                                    <th>Tempat/Tanggal Lahir</th>
+                                    <th>Jenis Kelamin</th>
+                                    <th>Nama Ayah</th>
                                     <?php if (empty($hideTpqColumn)): ?>
-                                        <td><?= $tpqAlamat ?></td>
+                                        <th>TPQ/Alamat</th>
                                     <?php endif; ?>
-                                    <td><span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span></td>
+                                    <th>Status Verifikasi</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php $no = 1; ?>
+                                <?php foreach ($pesertaValid as $row): ?>
+                                    <?php
+                                    $tempatLahir = $row->TempatLahirSantri ?? '';
+                                    $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
+                                    $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
+
+                                    $namaTpq = $row->NamaTpq ?? '';
+                                    $alamat = $row->KelurahanDesa ?? '';
+                                    $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
+                                    ?>
+                                    <tr>
+                                        <td><?= $no++ ?></td>
+                                        <td>
+                                            <button type="button" class="btn btn-warning btn-sm mr-1 action-btn"
+                                                onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
+                                                title="Edit">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <?php if (!empty($row->HasKey)): ?>
+                                                <button type="button" class="btn btn-info btn-sm mr-1 copy-link-btn-peserta action-btn"
+                                                    data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
+                                                    data-haskey="<?= esc($row->HasKey) ?>"
+                                                    title="Copy link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
+                                                    <i class="fas fa-copy"></i> <span class="btn-text">Copy Link</span>
+                                                </button>
+                                            <?php endif; ?>
+                                            <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
+                                                target="_blank"
+                                                class="btn btn-success btn-sm mr-1 action-btn"
+                                                title="Cetak Instruksi Verifikasi untuk <?= esc($row->NamaSantri ?? '') ?>">
+                                                <i class="fas fa-print"></i> <span class="btn-text">Print Instruksi</span>
+                                            </a>
+                                        </td>
+                                        <td><?= $row->IdSantri ?? '-' ?></td>
+                                        <td><?= $row->NamaSantri ?? '-' ?></td>
+                                        <td><?= $row->NamaKelas ?? '-' ?></td>
+                                        <td><?= $tempatTanggalLahir ?></td>
+                                        <td><?= $row->JenisKelamin ?? '-' ?></td>
+                                        <td><?= $row->NamaAyah ?? '-' ?></td>
+                                        <?php if (empty($hideTpqColumn)): ?>
+                                            <td><?= $tpqAlamat ?></td>
+                                        <?php endif; ?>
+                                        <td><span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php endif; ?>
 
             <!-- Tabel Peserta Belum Dikonfirmasi -->
             <?php if (!empty($pesertaBelumDikonfirmasi) && count($pesertaBelumDikonfirmasi) > 0): ?>
-                <div>
-                    <h5 class="mb-3"><i class="fas fa-clock text-secondary"></i> Peserta Belum Dikonfirmasi <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span></h5>
-                    <div class="alert alert-secondary mb-3">
-                        <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
-                        <span class="text-white ml-2">Tabel ini menampilkan peserta yang belum melakukan konfirmasi data. Peserta dengan status ini belum diverifikasi oleh orang tua/wali santri. Anda dapat menggunakan tombol <strong>Edit</strong> untuk mengubah data peserta, atau tombol <strong>Hapus</strong> untuk menghapus peserta dari daftar munaqosah.</span>
+                <div class="card card-secondary card-outline collapsed-card mb-4" id="peserta-belum-dikonfirmasi">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-clock text-secondary"></i> Peserta Belum Dikonfirmasi
+                            <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span>
+                            <span class="badge badge-secondary ml-2"><?= count($pesertaBelumDikonfirmasi) ?> Peserta</span>
+                            <small class="text-muted ml-2" style="font-size: 0.85rem;">
+                                <i class="fas fa-info-circle text-info"></i> Tekan tanda <i class="fas fa-plus text-primary font-weight-bold"></i> di kanan untuk membuka list
+                            </small>
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Klik untuk membuka/menutup list">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
-                    <table id="tabelPesertaBelumDikonfirmasi" class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Aksi</th>
-                                <th>ID Santri</th>
-                                <th>Nama Santri</th>
-                                <th>Tempat/Tanggal Lahir</th>
-                                <th>Jenis Kelamin</th>
-                                <th>Nama Ayah</th>
-                                <?php if (empty($hideTpqColumn)): ?>
-                                    <th>TPQ/Alamat</th>
-                                <?php endif; ?>
-                                <th>Status Verifikasi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php $no = 1; ?>
-                            <?php foreach ($pesertaBelumDikonfirmasi as $row): ?>
-                                <?php
-                                $tempatLahir = $row->TempatLahirSantri ?? '';
-                                $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
-                                $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
-
-                                $namaTpq = $row->NamaTpq ?? '';
-                                $alamat = $row->KelurahanDesa ?? '';
-                                $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
-                                ?>
+                    <div class="card-body" style="display: none;">
+                        <div class="alert alert-secondary mb-3">
+                            <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
+                            <span class="text-white ml-2">Tabel ini menampilkan peserta yang belum melakukan konfirmasi data. Peserta dengan status ini belum diverifikasi oleh orang tua/wali santri. Anda dapat menggunakan tombol <strong>Edit</strong> untuk mengubah data peserta, atau tombol <strong>Hapus</strong> untuk menghapus peserta dari daftar munaqosah.</span>
+                        </div>
+                        <table id="tabelPesertaBelumDikonfirmasi" class="table table-bordered table-striped">
+                            <thead>
                                 <tr>
-                                    <td><?= $no++ ?></td>
-                                    <td>
-                                        <button type="button" class="btn btn-warning btn-sm mr-1 action-btn"
-                                            onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
-                                            title="Edit">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                        <button type="button" class="btn btn-danger btn-sm mr-1 action-btn"
-                                            onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')"
-                                            title="Hapus">
-                                            <i class="fas fa-trash"></i> <span class="btn-text">Hapus</span>
-                                        </button>
-                                        <?php if (!empty($row->HasKey)): ?>
-                                            <button type="button" class="btn btn-info btn-sm mr-1 copy-link-btn-peserta action-btn"
-                                                data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
-                                                data-haskey="<?= esc($row->HasKey) ?>"
-                                                title="Copy link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                                <i class="fas fa-copy"></i> <span class="btn-text">Copy Link</span>
-                                            </button>
-                                        <?php endif; ?>
-                                        <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
-                                            target="_blank"
-                                            class="btn btn-success btn-sm mr-1 action-btn"
-                                            title="Cetak Instruksi Verifikasi untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                            <i class="fas fa-print"></i> <span class="btn-text">Print Instruksi</span>
-                                        </a>
-                                    </td>
-                                    <td><?= $row->IdSantri ?? '-' ?></td>
-                                    <td><?= $row->NamaSantri ?? '-' ?></td>
-                                    <td><?= $tempatTanggalLahir ?></td>
-                                    <td><?= $row->JenisKelamin ?? '-' ?></td>
-                                    <td><?= $row->NamaAyah ?? '-' ?></td>
+                                    <th>No</th>
+                                    <th>Aksi</th>
+                                    <th>ID Santri</th>
+                                    <th>Nama Santri</th>
+                                    <th>Kelas</th>
+                                    <th>Tempat/Tanggal Lahir</th>
+                                    <th>Jenis Kelamin</th>
+                                    <th>Nama Ayah</th>
                                     <?php if (empty($hideTpqColumn)): ?>
-                                        <td><?= $tpqAlamat ?></td>
+                                        <th>TPQ/Alamat</th>
                                     <?php endif; ?>
-                                    <td><span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span></td>
+                                    <th>Status Verifikasi</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php $no = 1; ?>
+                                <?php foreach ($pesertaBelumDikonfirmasi as $row): ?>
+                                    <?php
+                                    $tempatLahir = $row->TempatLahirSantri ?? '';
+                                    $tanggalLahir = $row->TanggalLahirSantri ? formatTanggalIndonesia($row->TanggalLahirSantri, 'd F Y') : '';
+                                    $tempatTanggalLahir = trim($tempatLahir . ($tempatLahir && $tanggalLahir ? ', ' : '') . $tanggalLahir) ?: '-';
+
+                                    $namaTpq = $row->NamaTpq ?? '';
+                                    $alamat = $row->KelurahanDesa ?? '';
+                                    $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
+                                    ?>
+                                    <tr>
+                                        <td><?= $no++ ?></td>
+                                        <td>
+                                            <button type="button" class="btn btn-warning btn-sm mr-1 action-btn"
+                                                onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
+                                                title="Edit">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm mr-1 action-btn"
+                                                onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')"
+                                                title="Hapus">
+                                                <i class="fas fa-trash"></i> <span class="btn-text">Hapus</span>
+                                            </button>
+                                            <?php if (!empty($row->HasKey)): ?>
+                                                <button type="button" class="btn btn-info btn-sm mr-1 copy-link-btn-peserta action-btn"
+                                                    data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
+                                                    data-haskey="<?= esc($row->HasKey) ?>"
+                                                    title="Copy link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
+                                                    <i class="fas fa-copy"></i> <span class="btn-text">Copy Link</span>
+                                                </button>
+                                            <?php endif; ?>
+                                            <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
+                                                target="_blank"
+                                                class="btn btn-success btn-sm mr-1 action-btn"
+                                                title="Cetak Instruksi Verifikasi untuk <?= esc($row->NamaSantri ?? '') ?>">
+                                                <i class="fas fa-print"></i> <span class="btn-text">Print Instruksi</span>
+                                            </a>
+                                        </td>
+                                        <td><?= $row->IdSantri ?? '-' ?></td>
+                                        <td><?= $row->NamaSantri ?? '-' ?></td>
+                                        <td><?= $row->NamaKelas ?? '-' ?></td>
+                                        <td><?= $tempatTanggalLahir ?></td>
+                                        <td><?= $row->JenisKelamin ?? '-' ?></td>
+                                        <td><?= $row->NamaAyah ?? '-' ?></td>
+                                        <?php if (empty($hideTpqColumn)): ?>
+                                            <td><?= $tpqAlamat ?></td>
+                                        <?php endif; ?>
+                                        <td><span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>
@@ -573,11 +917,12 @@
                                                 <th>Nama Santri</th>
                                                 <th>Kelas</th>
                                                 <th>TPQ</th>
+                                                <th class="text-center">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbodySantri">
                                             <tr>
-                                                <td colspan="5" class="text-center text-muted py-3">
+                                                <td colspan="6" class="text-center text-muted py-3">
                                                     <i class="fas fa-info-circle"></i> Klik "Tampilkan Data Santri" untuk memuat data
                                                 </td>
                                             </tr>
@@ -1550,6 +1895,48 @@
             font-size: 0.8rem !important;
         }
     }
+
+    /* Styling untuk tabel tree/expandable statistik */
+    .tahun-row {
+        transition: background-color 0.2s ease;
+        user-select: none;
+    }
+
+    .tahun-row:hover {
+        background-color: #e9ecef !important;
+    }
+
+    .tahun-row.expanded {
+        background-color: #e9ecef;
+    }
+
+    .detail-row {
+        transition: all 0.3s ease;
+    }
+
+    .detail-row td {
+        border-top: 1px solid #dee2e6;
+    }
+
+    .expand-icon {
+        color: #007bff;
+        font-size: 0.9rem;
+        transition: transform 0.3s ease;
+    }
+
+    .tahun-row:hover .expand-icon {
+        color: #0056b3;
+    }
+
+    /* Styling untuk badge di detail row */
+    .detail-row .badge {
+        font-weight: 500;
+    }
+
+    /* Border untuk memisahkan tahun ajaran */
+    .tahun-row:not(:first-child) {
+        border-top: 2px solid #dee2e6;
+    }
 </style>
 <script>
     $(document).ready(function() {
@@ -1557,11 +1944,17 @@
 
         // Tentukan kolom untuk export berdasarkan apakah TPQ/Alamat disembunyikan
         var hideTpqColumn = <?= !empty($hideTpqColumn) ? 'true' : 'false' ?>;
-        // Kolom: No(0), Aksi(1), ID Santri(2), Nama Santri(3), Tempat/Tanggal Lahir(4), Jenis Kelamin(5), Nama Ayah(6), TPQ/Alamat(7), Status Verifikasi(8)
-        // Jika TPQ/Alamat disembunyikan: No(0), Aksi(1), ID Santri(2), Nama Santri(3), Tempat/Tanggal Lahir(4), Jenis Kelamin(5), Nama Ayah(6), Status Verifikasi(7)
-        var exportColumnsValid = hideTpqColumn ? [0, 2, 3, 4, 5, 6, 7] : [0, 2, 3, 4, 5, 6, 7, 8];
-        var exportColumnsPerbaikan = hideTpqColumn ? [0, 2, 3, 4, 5, 6, 7] : [0, 2, 3, 4, 5, 6, 7, 8];
-        var exportColumnsBelumDikonfirmasi = hideTpqColumn ? [0, 2, 3, 4, 5, 6, 7] : [0, 2, 3, 4, 5, 6, 7, 8];
+        // Kolom: No(0), Aksi(1), ID Santri(2), Nama Santri(3), Kelas(4), Tempat/Tanggal Lahir(5), Jenis Kelamin(6), Nama Ayah(7), TPQ/Alamat(8), Status Verifikasi(9)
+        // Jika TPQ/Alamat disembunyikan: No(0), Aksi(1), ID Santri(2), Nama Santri(3), Kelas(4), Tempat/Tanggal Lahir(5), Jenis Kelamin(6), Nama Ayah(7), Status Verifikasi(8)
+        // Export: skip Aksi(1), jadi untuk dengan TPQ: [0, 2, 3, 4, 5, 6, 7, 8, 9], tanpa TPQ: [0, 2, 3, 4, 5, 6, 7, 8]
+        var exportColumnsValid = hideTpqColumn ? [0, 2, 3, 4, 5, 6, 7, 8] : [0, 2, 3, 4, 5, 6, 7, 8, 9];
+        var exportColumnsPerbaikan = hideTpqColumn ? [0, 2, 3, 4, 5, 6, 7, 8] : [0, 2, 3, 4, 5, 6, 7, 8, 9];
+        var exportColumnsBelumDikonfirmasi = hideTpqColumn ? [0, 2, 3, 4, 5, 6, 7, 8] : [0, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        // Kolom untuk export tabel statistik: No(0), ExpandIcon(1), TahunAjaran(2), NamaTPQ(3), JumlahPeserta(4)
+        // Jika TPQ disembunyikan: No(0), ExpandIcon(1), TahunAjaran(2), JumlahPeserta(3)
+        // Skip ExpandIcon(1), jadi: No(0), TahunAjaran(2), NamaTPQ(3), JumlahPeserta(4)
+        var exportColumnsStatistik = hideTpqColumn ? [0, 2, 3] : [0, 2, 3, 4];
 
         // Inisialisasi DataTables untuk Tabel Peserta Valid dengan scrollX
         if ($('#tabelPesertaValid').length > 0) {
@@ -1704,6 +2097,42 @@
             }
         }
 
+        // Handler untuk expand/collapse tabel statistik per tahun ajaran
+        $(document).on('click', '.tahun-row', function() {
+            var tahunKey = $(this).data('tahun-key');
+            var detailRows = $('.detail-' + tahunKey);
+            var expandIcon = $(this).find('.expand-icon');
+
+            if (detailRows.length > 0) {
+                if (detailRows.is(':visible')) {
+                    // Collapse
+                    detailRows.slideUp(300);
+                    expandIcon.css('transform', 'rotate(0deg)');
+                    $(this).css('background-color', '#f8f9fa');
+                } else {
+                    // Expand
+                    detailRows.slideDown(300);
+                    expandIcon.css('transform', 'rotate(90deg)');
+                    $(this).css('background-color', '#e9ecef');
+                }
+            }
+        });
+
+        // Hover effect untuk tahun-row
+        $(document).on('mouseenter', '.tahun-row', function() {
+            if ($('.detail-' + $(this).data('tahun-key')).is(':visible')) {
+                $(this).css('background-color', '#e9ecef');
+            } else {
+                $(this).css('background-color', '#f0f0f0');
+            }
+        }).on('mouseleave', '.tahun-row', function() {
+            if ($('.detail-' + $(this).data('tahun-key')).is(':visible')) {
+                $(this).css('background-color', '#e9ecef');
+            } else {
+                $(this).css('background-color', '#f8f9fa');
+            }
+        });
+
         // Inisialisasi Select2 untuk dropdown
         $('.select2').select2({
             placeholder: 'Pilih opsi...',
@@ -1714,6 +2143,78 @@
             dropdownParent: $('#modalAddPeserta')
         });
         console.log('Select2 initialized');
+
+        // Inisialisasi Select2 untuk filter statistik (multiple select)
+        $('#filterTpqStatistik, #filterTahunAjaranStatistik, #filterKelurahanDesaStatistik').select2({
+            placeholder: 'Pilih opsi...',
+            allowClear: true,
+            width: '100%',
+            theme: 'bootstrap4',
+            language: 'id',
+            closeOnSelect: false // Untuk multiple select, jangan tutup dropdown setelah pilih
+        });
+
+        // Event handler untuk tombol Terapkan Filter Statistik
+        $('#btnApplyFilterStatistik').on('click', function() {
+            var filterTpq = $('#filterTpqStatistik').val() || [];
+            var filterTahun = $('#filterTahunAjaranStatistik').val() || [];
+            var filterKelurahan = $('#filterKelurahanDesaStatistik').val() || [];
+
+            // Build URL dengan parameter filter (multiple values)
+            var url = '<?= base_url('backend/munaqosah/peserta') ?>';
+            var params = [];
+
+            // Handle multiple TPQ values
+            if (filterTpq && filterTpq.length > 0) {
+                if (Array.isArray(filterTpq)) {
+                    filterTpq.forEach(function(tpq) {
+                        params.push('filter_tpq[]=' + encodeURIComponent(tpq));
+                    });
+                } else {
+                    params.push('filter_tpq[]=' + encodeURIComponent(filterTpq));
+                }
+            }
+
+            // Handle multiple Tahun Ajaran values
+            if (filterTahun && filterTahun.length > 0) {
+                if (Array.isArray(filterTahun)) {
+                    filterTahun.forEach(function(tahun) {
+                        params.push('filter_tahun[]=' + encodeURIComponent(tahun));
+                    });
+                } else {
+                    params.push('filter_tahun[]=' + encodeURIComponent(filterTahun));
+                }
+            }
+
+            // Handle multiple KelurahanDesa values
+            if (filterKelurahan && filterKelurahan.length > 0) {
+                if (Array.isArray(filterKelurahan)) {
+                    filterKelurahan.forEach(function(kelurahan) {
+                        params.push('filter_kelurahan[]=' + encodeURIComponent(kelurahan));
+                    });
+                } else {
+                    params.push('filter_kelurahan[]=' + encodeURIComponent(filterKelurahan));
+                }
+            }
+
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+
+            // Redirect dengan filter
+            window.location.href = url;
+        });
+
+        // Event handler untuk tombol Reset Filter Statistik
+        $('#btnResetFilterStatistik').on('click', function() {
+            // Reset semua filter
+            $('#filterTpqStatistik').val(null).trigger('change');
+            $('#filterTahunAjaranStatistik').val(null).trigger('change');
+            $('#filterKelurahanDesaStatistik').val(null).trigger('change');
+
+            // Redirect tanpa filter
+            window.location.href = '<?= base_url('backend/munaqosah/peserta') ?>';
+        });
 
         // Event handler untuk tombol Load Santri
         $('#btnLoadSantri').on('click', function() {
@@ -1736,13 +2237,18 @@
         // Event handler untuk Select All
         $('#selectAll').on('change', function() {
             var isChecked = $(this).is(':checked');
-            $('.santri-checkbox').prop('checked', isChecked);
+            // Hanya update checkbox yang tidak disabled (belum terdaftar)
+            $('.santri-checkbox:not(:disabled)').prop('checked', isChecked);
             updateSelectedSantri();
         });
 
         // Event handler untuk checkbox individual
         $(document).on('change', '.santri-checkbox', function() {
             updateSelectedSantri();
+            // Update selectAll checkbox state berdasarkan checkbox yang enabled
+            var totalEnabled = $('.santri-checkbox:not(:disabled)').length;
+            var checkedEnabled = $('.santri-checkbox:not(:disabled):checked').length;
+            $('#selectAll').prop('checked', totalEnabled > 0 && totalEnabled === checkedEnabled);
         });
 
         // Test apakah elemen ada
@@ -1956,7 +2462,7 @@
         });
 
         // Show table loading state
-        $('#tbodySantri').html('<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+        $('#tbodySantri').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
         $('#cardPilihSantri').show();
 
         // Handle parameter 0 untuk "semua"
@@ -2012,23 +2518,31 @@
                 // Cek apakah data adalah array
                 if (!Array.isArray(data)) {
                     console.error('Invalid data format:', data);
-                    $('#tbodySantri').html('<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Format data tidak valid</td></tr>');
+                    $('#tbodySantri').html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Format data tidak valid</td></tr>');
                     return;
                 }
 
                 if (data.length > 0) {
                     var html = '';
                     $.each(data, function(index, item) {
-                        html += '<tr>';
+                        var sudahTerdaftar = item.sudah_terdaftar || false;
+                        var statusBadge = sudahTerdaftar ?
+                            '<span class="badge badge-danger"><i class="fas fa-check-circle"></i> Sudah Terdaftar</span>' :
+                            '<span class="badge badge-success"><i class="fas fa-plus-circle"></i> Belum Terdaftar</span>';
+                        var checkboxDisabled = sudahTerdaftar ? 'disabled' : '';
+                        var rowClass = sudahTerdaftar ? 'table-secondary' : '';
+
+                        html += '<tr class="' + rowClass + '">';
                         html += '<td class="text-center">';
                         html += '<div class="d-flex justify-content-center align-items-center">';
-                        html += '<input type="checkbox" class="form-check-input santri-checkbox" value="' + item.IdSantri + '" data-nama="' + item.NamaSantri + '" data-kelas="' + (item.NamaKelas || '-') + '" data-tpq="' + (item.NamaTpq || '-') + '" data-idtpq="' + (item.IdTpq || '') + '">';
+                        html += '<input type="checkbox" class="form-check-input santri-checkbox" value="' + item.IdSantri + '" data-nama="' + item.NamaSantri + '" data-kelas="' + (item.NamaKelas || '-') + '" data-tpq="' + (item.NamaTpq || '-') + '" data-idtpq="' + (item.IdTpq || '') + '" ' + checkboxDisabled + '>';
                         html += '</div>';
                         html += '</td>';
                         html += '<td>' + item.IdSantri + '</td>';
                         html += '<td>' + item.NamaSantri + '</td>';
                         html += '<td>' + (item.NamaKelas || '-') + '</td>';
                         html += '<td>' + (item.NamaTpq || '-') + '</td>';
+                        html += '<td class="text-center">' + statusBadge + '</td>';
                         html += '</tr>';
                     });
                     $('#tbodySantri').html(html);
@@ -2061,7 +2575,7 @@
                         });
                     }
                 } else {
-                    $('#tbodySantri').html('<tr><td colspan="5" class="text-center text-muted py-3"><i class="fas fa-info-circle"></i> Tidak ada data santri</td></tr>');
+                    $('#tbodySantri').html('<tr><td colspan="6" class="text-center text-muted py-3"><i class="fas fa-info-circle"></i> Tidak ada data santri</td></tr>');
 
                     // Show info message for no data
                     Swal.fire({
@@ -2083,7 +2597,7 @@
                 Swal.close();
 
                 // Show error in table
-                $('#tbodySantri').html('<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Error memuat data</td></tr>');
+                $('#tbodySantri').html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Error memuat data</td></tr>');
 
                 // Determine error message based on status
                 var errorMessage = 'Terjadi kesalahan saat memuat data';
@@ -4009,25 +4523,99 @@
 
     // Fungsi untuk filter tabel berdasarkan status
     function filterByStatus(status) {
-        // Scroll ke bagian tabel
-        $('html, body').animate({
-            scrollTop: $('.card-body').offset().top - 100
-        }, 500);
+        var targetElement = null;
+        var scrollOffset = 120; // Offset untuk header/fixed elements
 
-        // Filter berdasarkan status di DataTable
+        // Tentukan elemen target berdasarkan status
         if (status === 'valid') {
+            targetElement = $('#peserta-valid');
+            // Cek apakah tabel ada dan memiliki data
+            if (targetElement.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Tidak Ada Data',
+                    text: 'Tidak ada peserta dengan status Valid',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+                return false;
+            }
+            // Filter berdasarkan status di DataTable
             if ($.fn.DataTable.isDataTable('#tabelPesertaValid')) {
                 $('#tabelPesertaValid').DataTable().search('').draw();
             }
         } else if (status === 'perlu_perbaikan') {
+            targetElement = $('#peserta-perbaikan');
+            // Cek apakah tabel ada dan memiliki data
+            if (targetElement.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Tidak Ada Data',
+                    text: 'Tidak ada peserta yang perlu perbaikan',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+                return false;
+            }
+            // Filter berdasarkan status di DataTable
             if ($.fn.DataTable.isDataTable('#tabelPesertaPerluPerbaikan')) {
                 $('#tabelPesertaPerluPerbaikan').DataTable().search('').draw();
             }
         } else if (status === 'belum_dikonfirmasi') {
+            targetElement = $('#peserta-belum-dikonfirmasi');
+            // Cek apakah tabel ada dan memiliki data
+            if (targetElement.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Tidak Ada Data',
+                    text: 'Tidak ada peserta yang belum dikonfirmasi',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+                return false;
+            }
+            // Filter berdasarkan status di DataTable
             if ($.fn.DataTable.isDataTable('#tabelPesertaBelumDikonfirmasi')) {
                 $('#tabelPesertaBelumDikonfirmasi').DataTable().search('').draw();
             }
         }
+
+        // Scroll ke elemen target jika ada
+        if (targetElement && targetElement.length > 0) {
+            $('html, body').animate({
+                scrollTop: targetElement.offset().top - scrollOffset
+            }, 600, 'swing', function() {
+                // Highlight tabel setelah scroll selesai
+                targetElement.css({
+                    'border-left': '4px solid #007bff',
+                    'background-color': '#f0f8ff',
+                    'padding-left': '15px',
+                    'transition': 'all 0.3s ease'
+                });
+
+                // Hapus highlight setelah 2 detik
+                setTimeout(function() {
+                    targetElement.css({
+                        'border-left': '',
+                        'background-color': '',
+                        'padding-left': ''
+                    });
+                }, 2000);
+            });
+        } else {
+            // Fallback: scroll ke card-body jika elemen tidak ditemukan
+            $('html, body').animate({
+                scrollTop: $('.card-body').offset().top - scrollOffset
+            }, 600);
+        }
+
+        return false; // Prevent default link behavior
     }
 
     // Copy link button click handler untuk peserta

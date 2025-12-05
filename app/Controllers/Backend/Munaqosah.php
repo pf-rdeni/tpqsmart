@@ -3516,14 +3516,50 @@ class Munaqosah extends BaseController
 
     public function pesertaMunaqosah()
     {
-        // ambil tahun ajaran saat ini
-        $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        // Ambil filter dari GET parameter (bisa array untuk multiple select)
+        $filterTpq = $this->request->getGet('filter_tpq');
+        $filterTahunAjaran = $this->request->getGet('filter_tahun');
+        $filterKelurahanDesa = $this->request->getGet('filter_kelurahan');
+
+        // Handle array untuk filter TPQ
+        $filterTpqArray = [];
+        if ($filterTpq) {
+            if (is_array($filterTpq)) {
+                $filterTpqArray = $filterTpq;
+            } else {
+                $filterTpqArray = [$filterTpq];
+            }
+        }
+
+        // Handle array untuk filter Tahun Ajaran
+        $filterTahunAjaranArray = [];
+        if ($filterTahunAjaran) {
+            if (is_array($filterTahunAjaran)) {
+                $filterTahunAjaranArray = $filterTahunAjaran;
+            } else {
+                $filterTahunAjaranArray = [$filterTahunAjaran];
+            }
+        }
+
+        // Normalize tahun ajaran array
+        $normalizedTahunAjaranArray = [];
+        foreach ($filterTahunAjaranArray as $ta) {
+            try {
+                $normalizedTahunAjaranArray[] = $this->helpFunction->normalizeTahunAjaran($ta);
+            } catch (\Exception $e) {
+                // Skip invalid values
+            }
+        }
+
+        // ambil tahun ajaran saat ini (gunakan yang pertama jika ada filter, atau default)
+        $tahunAjaran = !empty($normalizedTahunAjaranArray) ? $normalizedTahunAjaranArray[0] : $this->helpFunction->getTahunAjaranSaatIni();
         // IdTpq dari session
         $idTpq = session()->get('IdTpq');
 
         // Cek apakah user adalah Panitia atau Operator
         $isPanitia = in_groups('Panitia');
         $isOperator = in_groups('Operator');
+        $isAdmin = in_groups('Admin');
 
         // Jika user adalah Panitia, ambil IdTpq dari username
         if ($isPanitia) {
@@ -3542,10 +3578,75 @@ class Munaqosah extends BaseController
         // Jika Admin atau Panitia Umum, IdTpq akan 0 atau null
         $shouldFilterByTpq = ($isOperator || ($isPanitia && $idTpq && $idTpq != 0)) && $idTpq && $idTpq != 0;
 
+        // Jika admin menggunakan filter TPQ, gunakan filter tersebut (bisa multiple)
+        // Jika operator, tetap gunakan TPQ dari session (tidak bisa diubah)
+        $filterTpqFinalArray = [];
+        if ($isAdmin && !empty($filterTpqArray)) {
+            $filterTpqFinalArray = $filterTpqArray;
+        } elseif ($isOperator && $idTpq) {
+            $filterTpqFinalArray = [$idTpq]; // Operator tidak bisa mengubah TPQ
+        } elseif ($shouldFilterByTpq && $idTpq) {
+            $filterTpqFinalArray = [$idTpq];
+        } elseif (!empty($filterTpqArray)) {
+            $filterTpqFinalArray = $filterTpqArray;
+        }
+
         // DataKelas dari help function model
         $dataKelas = $this->helpFunction->getDataKelas();
-        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
-        $peserta = $this->pesertaMunaqosahModel->getPesertaWithRelations($idTpq);
+        $dataTpq = $this->helpFunction->getDataTpq($isOperator ? $idTpq : null);
+
+        // Ambil daftar KelurahanDesa dari TPQ untuk filter
+        $listKelurahanDesa = [];
+        if (!empty($dataTpq)) {
+            foreach ($dataTpq as $tpq) {
+                if (!empty($tpq['KelurahanDesa']) && !in_array($tpq['KelurahanDesa'], $listKelurahanDesa)) {
+                    $listKelurahanDesa[] = $tpq['KelurahanDesa'];
+                }
+            }
+            sort($listKelurahanDesa);
+        }
+
+        // Ambil data peserta dengan filter (handle multiple TPQ dan multiple tahun ajaran)
+        // Untuk getPesertaWithRelations, kita perlu query manual jika multiple
+        if (!empty($filterTpqFinalArray) || !empty($normalizedTahunAjaranArray) || $filterKelurahanDesa) {
+            $builder = $this->db->table('tbl_munaqosah_peserta pm');
+            $builder->select('pm.*, s.*, t.*, k.NamaKelas, k.IdKelas');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
+            $builder->join('tbl_tpq t', 't.IdTpq = pm.IdTpq', 'left');
+            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');
+
+            // Filter multiple TPQ
+            if (!empty($filterTpqFinalArray)) {
+                $builder->whereIn('pm.IdTpq', $filterTpqFinalArray);
+            }
+
+            // Filter multiple Tahun Ajaran
+            if (!empty($normalizedTahunAjaranArray)) {
+                $builder->whereIn('pm.IdTahunAjaran', $normalizedTahunAjaranArray);
+            }
+
+            // Filter KelurahanDesa
+            if ($filterKelurahanDesa) {
+                if (is_array($filterKelurahanDesa)) {
+                    $builder->whereIn('t.KelurahanDesa', $filterKelurahanDesa);
+                } else {
+                    $builder->where('t.KelurahanDesa', $filterKelurahanDesa);
+                }
+            }
+
+            $builder->orderBy('pm.IdTpq', 'ASC');
+            $builder->orderBy('s.NamaSantri', 'ASC');
+
+            $peserta = $builder->get()->getResult();
+        } else {
+            // Jika tidak ada filter, gunakan method biasa
+            $peserta = $this->pesertaMunaqosahModel->getPesertaWithRelations(
+                null,
+                null,
+                $tahunAjaran
+            );
+        }
 
         // Pisahkan peserta berdasarkan status verifikasi
         $pesertaValid = [];
@@ -3573,9 +3674,26 @@ class Munaqosah extends BaseController
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_munaqosah_peserta.IdTpq', 'left')
             ->where('tbl_munaqosah_peserta.status_verifikasi', 'perlu_perbaikan');
 
-        // Filter berdasarkan IdTpq untuk Operator dan Panitia TPQ
-        if ($shouldFilterByTpq) {
+        // Filter berdasarkan IdTpq untuk Operator dan Panitia TPQ (multiple)
+        if (!empty($filterTpqFinalArray)) {
+            $pesertaPerluPerbaikanForModal->whereIn('tbl_munaqosah_peserta.IdTpq', $filterTpqFinalArray);
+        } elseif ($shouldFilterByTpq) {
             $pesertaPerluPerbaikanForModal->where('tbl_munaqosah_peserta.IdTpq', $idTpq);
+        }
+
+        // Filter berdasarkan multiple Tahun Ajaran
+        if (!empty($normalizedTahunAjaranArray)) {
+            $pesertaPerluPerbaikanForModal->whereIn('tbl_munaqosah_peserta.IdTahunAjaran', $normalizedTahunAjaranArray);
+        }
+
+        // Filter berdasarkan KelurahanDesa
+        if ($filterKelurahanDesa) {
+            $pesertaPerluPerbaikanForModal->join('tbl_tpq t2', 't2.IdTpq = tbl_munaqosah_peserta.IdTpq', 'left');
+            if (is_array($filterKelurahanDesa)) {
+                $pesertaPerluPerbaikanForModal->whereIn('t2.KelurahanDesa', $filterKelurahanDesa);
+            } else {
+                $pesertaPerluPerbaikanForModal->where('t2.KelurahanDesa', $filterKelurahanDesa);
+            }
         }
 
         $pesertaPerluPerbaikanForModal = $pesertaPerluPerbaikanForModal->findAll();
@@ -3614,69 +3732,80 @@ class Munaqosah extends BaseController
             $typeUjian = 'pra-munaqosah'; // Operator selalu melihat pra-munaqosah
         }
 
-        // Hitung statistik status verifikasi peserta
-        // Hanya mengambil dari tabel peserta, tidak join dengan tabel registrasi
+        // Hitung statistik status verifikasi peserta dengan filter (multiple TPQ dan multiple tahun ajaran)
         // Status Valid (valid atau dikonfirmasi)
-        if ($shouldFilterByTpq) {
-            // Filter berdasarkan IdTpq untuk Operator dan Panitia TPQ
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT p.id) as total 
-                FROM tbl_munaqosah_peserta p
-                WHERE p.IdTahunAjaran = ? 
-                AND p.IdTpq = ?
-                AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
-            ", [$tahunAjaran, $idTpq]);
+        $whereConditions = [];
+        $whereParams = [];
+
+        // Filter multiple Tahun Ajaran
+        if (!empty($normalizedTahunAjaranArray)) {
+            $placeholders = implode(',', array_fill(0, count($normalizedTahunAjaranArray), '?'));
+            $whereConditions[] = "p.IdTahunAjaran IN ($placeholders)";
+            $whereParams = array_merge($whereParams, $normalizedTahunAjaranArray);
         } else {
-            // Untuk admin atau panitia umum, tidak filter IdTpq
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT p.id) as total 
-                FROM tbl_munaqosah_peserta p
-                WHERE p.IdTahunAjaran = ? 
-                AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
-            ", [$tahunAjaran]);
+            $whereConditions[] = "p.IdTahunAjaran = ?";
+            $whereParams[] = $tahunAjaran;
         }
+
+        // Filter multiple TPQ
+        if (!empty($filterTpqFinalArray)) {
+            $placeholders = implode(',', array_fill(0, count($filterTpqFinalArray), '?'));
+            $whereConditions[] = "p.IdTpq IN ($placeholders)";
+            $whereParams = array_merge($whereParams, $filterTpqFinalArray);
+        }
+
+        // Filter KelurahanDesa
+        if ($filterKelurahanDesa) {
+            if (is_array($filterKelurahanDesa)) {
+                $placeholders = implode(',', array_fill(0, count($filterKelurahanDesa), '?'));
+                $whereConditions[] = "EXISTS (SELECT 1 FROM tbl_tpq t WHERE t.IdTpq = p.IdTpq AND t.KelurahanDesa IN ($placeholders))";
+                $whereParams = array_merge($whereParams, $filterKelurahanDesa);
+            } else {
+                $whereConditions[] = "EXISTS (SELECT 1 FROM tbl_tpq t WHERE t.IdTpq = p.IdTpq AND t.KelurahanDesa = ?)";
+                $whereParams[] = $filterKelurahanDesa;
+            }
+        }
+
+        $whereClause = implode(' AND ', $whereConditions);
+
+        // Status Valid
+        $query = $this->db->query("
+            SELECT COUNT(DISTINCT p.id) as total 
+            FROM tbl_munaqosah_peserta p
+            WHERE {$whereClause}
+            AND (p.status_verifikasi = 'valid' OR p.status_verifikasi = 'dikonfirmasi')
+        ", $whereParams);
         $result = $query->getRow();
         $totalStatusValid = $result ? (int)$result->total : 0;
 
         // Status Perbaikan
-        if ($shouldFilterByTpq) {
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT p.id) as total 
-                FROM tbl_munaqosah_peserta p
-                WHERE p.IdTahunAjaran = ? 
-                AND p.IdTpq = ?
-                AND p.status_verifikasi = 'perlu_perbaikan'
-            ", [$tahunAjaran, $idTpq]);
-        } else {
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT p.id) as total 
-                FROM tbl_munaqosah_peserta p
-                WHERE p.IdTahunAjaran = ? 
-                AND p.status_verifikasi = 'perlu_perbaikan'
-            ", [$tahunAjaran]);
-        }
+        $query = $this->db->query("
+            SELECT COUNT(DISTINCT p.id) as total 
+            FROM tbl_munaqosah_peserta p
+            WHERE {$whereClause}
+            AND p.status_verifikasi = 'perlu_perbaikan'
+        ", $whereParams);
         $result = $query->getRow();
         $totalStatusPerbaikan = $result ? (int)$result->total : 0;
 
         // Status Belum Dikonfirmasi (NULL atau empty)
-        if ($shouldFilterByTpq) {
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT p.id) as total 
-                FROM tbl_munaqosah_peserta p
-                WHERE p.IdTahunAjaran = ? 
-                AND p.IdTpq = ?
-                AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
-            ", [$tahunAjaran, $idTpq]);
-        } else {
-            $query = $this->db->query("
-                SELECT COUNT(DISTINCT p.id) as total 
-                FROM tbl_munaqosah_peserta p
-                WHERE p.IdTahunAjaran = ? 
-                AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
-            ", [$tahunAjaran]);
-        }
+        $query = $this->db->query("
+            SELECT COUNT(DISTINCT p.id) as total 
+            FROM tbl_munaqosah_peserta p
+            WHERE {$whereClause}
+            AND (p.status_verifikasi IS NULL OR p.status_verifikasi = '' OR p.status_verifikasi NOT IN ('valid', 'dikonfirmasi', 'perlu_perbaikan'))
+        ", $whereParams);
         $result = $query->getRow();
         $totalStatusBelumDikonfirmasi = $result ? (int)$result->total : 0;
+
+        // Total Santri yang Didaftarkan (semua peserta tanpa filter status)
+        $query = $this->db->query("
+            SELECT COUNT(DISTINCT p.id) as total 
+            FROM tbl_munaqosah_peserta p
+            WHERE {$whereClause}
+        ", $whereParams);
+        $result = $query->getRow();
+        $totalSantriTerdaftar = $result ? (int)$result->total : 0;
 
         // Tentukan apakah kolom TPQ/Alamat harus disembunyikan
         // Hide untuk: Operator, Kepala Sekolah, Panitia TPQ (bukan panitia umum)
@@ -3684,6 +3813,79 @@ class Munaqosah extends BaseController
         $isKepalaSekolah = in_groups('Kepala Sekolah');
         $isPanitiaTpq = $isPanitia && $idTpq && $idTpq != 0;
         $hideTpqColumn = $isOperator || $isKepalaSekolah || $isPanitiaTpq;
+
+        // Ambil list tahun ajaran untuk dropdown
+        $listTahunAjaran = $this->db->table('tbl_munaqosah_peserta')
+            ->select('IdTahunAjaran')
+            ->distinct()
+            ->orderBy('IdTahunAjaran', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $tahunAjaranList = [];
+        foreach ($listTahunAjaran as $ta) {
+            if (!empty($ta['IdTahunAjaran'])) {
+                $tahunAjaranList[] = $ta['IdTahunAjaran'];
+            }
+        }
+        // Tambahkan tahun ajaran saat ini jika belum ada
+        if (!in_array($tahunAjaran, $tahunAjaranList)) {
+            array_unshift($tahunAjaranList, $tahunAjaran);
+        }
+
+        // Statistik Jumlah Peserta per Tahun Ajaran dan TPQ
+        $statistikQuery = $this->db->table('tbl_munaqosah_peserta p')
+            ->select('p.IdTahunAjaran, t.IdTpq, t.NamaTpq, t.KelurahanDesa, COUNT(DISTINCT p.id) as jumlah_peserta')
+            ->join('tbl_tpq t', 't.IdTpq = p.IdTpq', 'left')
+            ->groupBy('p.IdTahunAjaran, t.IdTpq, t.NamaTpq, t.KelurahanDesa')
+            ->orderBy('p.IdTahunAjaran', 'DESC')
+            ->orderBy('t.NamaTpq', 'ASC');
+
+        // Filter berdasarkan multiple TPQ
+        if (!empty($filterTpqFinalArray)) {
+            $statistikQuery->whereIn('p.IdTpq', $filterTpqFinalArray);
+        } elseif ($shouldFilterByTpq && $idTpq) {
+            $statistikQuery->where('p.IdTpq', $idTpq);
+        }
+
+        // Filter berdasarkan multiple Tahun Ajaran
+        if (!empty($normalizedTahunAjaranArray)) {
+            $statistikQuery->whereIn('p.IdTahunAjaran', $normalizedTahunAjaranArray);
+        }
+
+        // Filter berdasarkan KelurahanDesa
+        if ($filterKelurahanDesa) {
+            if (is_array($filterKelurahanDesa)) {
+                $statistikQuery->whereIn('t.KelurahanDesa', $filterKelurahanDesa);
+            } else {
+                $statistikQuery->where('t.KelurahanDesa', $filterKelurahanDesa);
+            }
+        }
+
+        $statistikPesertaPerTahun = $statistikQuery->get()->getResultArray();
+
+        // Kelompokkan data per tahun ajaran untuk format tree
+        $statistikGroupedByTahun = [];
+        foreach ($statistikPesertaPerTahun as $stat) {
+            $tahunAjaranKey = $stat['IdTahunAjaran'];
+            if (!isset($statistikGroupedByTahun[$tahunAjaranKey])) {
+                $statistikGroupedByTahun[$tahunAjaranKey] = [
+                    'IdTahunAjaran' => $tahunAjaranKey,
+                    'total_peserta' => 0,
+                    'detail_tpq' => []
+                ];
+            }
+            $statistikGroupedByTahun[$tahunAjaranKey]['total_peserta'] += $stat['jumlah_peserta'];
+            $statistikGroupedByTahun[$tahunAjaranKey]['detail_tpq'][] = [
+                'IdTpq' => $stat['IdTpq'],
+                'NamaTpq' => $stat['NamaTpq'],
+                'KelurahanDesa' => $stat['KelurahanDesa'] ?? '-',
+                'jumlah_peserta' => $stat['jumlah_peserta']
+            ];
+        }
+
+        // Convert ke array untuk view
+        $statistikGroupedByTahun = array_values($statistikGroupedByTahun);
 
         $data = [
             'page_title' => 'Data Peserta Munaqosah',
@@ -3695,10 +3897,17 @@ class Munaqosah extends BaseController
             'dataKelas' => $dataKelas,
             'dataTpq' => $dataTpq,
             'tahunAjaran' => $tahunAjaran,
+            'listTahunAjaran' => $tahunAjaranList,
             'total_status_valid' => $totalStatusValid,
             'total_status_perbaikan' => $totalStatusPerbaikan,
             'total_status_belum_dikonfirmasi' => $totalStatusBelumDikonfirmasi,
+            'total_santri_terdaftar' => $totalSantriTerdaftar,
+            'statistikPesertaPerTahun' => $statistikPesertaPerTahun,
+            'statistikGroupedByTahun' => $statistikGroupedByTahun,
+            'listKelurahanDesa' => $listKelurahanDesa,
             'hideTpqColumn' => $hideTpqColumn, // Flag untuk menyembunyikan kolom TPQ/Alamat
+            'isOperator' => $isOperator, // Flag untuk menonaktifkan filter TPQ untuk operator
+            'isAdmin' => $isAdmin, // Flag untuk admin
         ];
         return view('backend/Munaqosah/listPesertaMunaqosah', $data);
     }
@@ -4527,8 +4736,34 @@ class Munaqosah extends BaseController
         // Handle parameter 0 untuk "semua"
         $filterTpq = ($idTpq == 0) ? 0 : $idTpq;
         $filterKelas = ($idKelas == 0) ? 0 : $idKelas;
-        
+
+        // Ambil tahun ajaran saat ini
+        $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+
+        // Normalisasi tahun ajaran
+        $idTahunAjaran = $this->helpFunction->normalizeTahunAjaran($tahunAjaran);
+
+        // Ambil data santri
         $santri = $this->helpFunction->getDataSantriStatus(1, $filterTpq, $filterKelas);
+
+        // Ambil semua IdSantri yang sudah terdaftar sebagai peserta munaqosah
+        $pesertaTerdaftar = $this->pesertaMunaqosahModel
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->findAll();
+
+        // Buat array IdSantri yang sudah terdaftar untuk pengecekan cepat
+        $idSantriTerdaftar = [];
+        foreach ($pesertaTerdaftar as $peserta) {
+            $idSantriTerdaftar[$peserta['IdSantri']] = true;
+        }
+
+        // Tambahkan status untuk setiap santri
+        foreach ($santri as &$item) {
+            $item['sudah_terdaftar'] = isset($idSantriTerdaftar[$item['IdSantri']]);
+            $item['status_peserta'] = $item['sudah_terdaftar'] ? 'Sudah Terdaftar' : 'Belum Terdaftar';
+        }
+        unset($item); // Hapus reference
+
         return $this->response->setJSON($santri);
     }
 

@@ -107,7 +107,7 @@ function render_progress_bar($persentase, $height = 25)
                                         <i class="fas fa-user-plus"></i>
                                     </div>
                                     <a href="<?= base_url('backend/kelas/showSantriKelasBaru') ?>" class="small-box-footer">
-                                        Tambah Data <i class="fas fa-arrow-circle-right"></i>
+                                        Registrasi Santri Baru <i class="fas fa-arrow-circle-right"></i>
                                     </a>
                                 </div>
                             </div>
@@ -134,12 +134,57 @@ function render_progress_bar($persentase, $height = 25)
                                             </div>
                                             <div class="col-md-3 col-6 mb-3">
                                                 <a href="<?= base_url('backend/kelas/showSantriKelasBaru') ?>" class="btn btn-block btn-info btn-lg">
-                                                    <i class="fas fa-user-check"></i><br>Registrasi Santri
+                                                    <i class="fas fa-user-check"></i><br>Registrasi Santri Baru
                                                 </a>
                                             </div>
                                             <div class="col-md-3 col-6 mb-3">
                                                 <a href="<?= base_url('backend/santri/showSantriEmis') ?>" class="btn btn-block btn-warning btn-lg">
-                                                    <i class="fas fa-file-alt"></i><br>Data EMIS
+                                                    <i class="fas fa-file-alt"></i><br>Copy Data Santri untukEMIS
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-3">
+                                                <a href="<?= base_url('backend/guru/show') ?>" class="btn btn-block btn-secondary btn-lg">
+                                                    <i class="fas fa-user-tie"></i><br>Daftar Guru
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-3">
+                                                <a href="<?= base_url('backend/santri/showProfilSantri') ?>" class="btn btn-block btn-info btn-lg">
+                                                    <i class="fas fa-user-circle"></i><br>Profil Santri
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-3">
+                                                <a href="<?= base_url('backend/santri/showAturSantriBaru') ?>" class="btn btn-block btn-warning btn-lg">
+                                                    <i class="fas fa-user-edit"></i><br>Ubah Santri
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-3">
+                                                <a href="<?= base_url('backend/santri/showSantriBaruPerkelasTpq') ?>" class="btn btn-block btn-success btn-lg">
+                                                    <i class="fas fa-users"></i><br>Santri Per Kelas
+                                                </a>
+                                            </div>
+                                            <?php
+                                            // Tentukan semester saat ini untuk quick action
+                                            $currentMonth = date('n');
+                                            $currentSemester = ($currentMonth >= 7 && $currentMonth <= 12) ? 'Ganjil' : 'Genap';
+                                            ?>
+                                            <div class="col-md-3 col-6 mb-3">
+                                                <a href="<?= base_url('backend/nilai/showSantriPerKelas/' . $currentSemester) ?>" class="btn btn-block btn-primary btn-lg">
+                                                    <i class="fas fa-edit"></i><br>Input Nilai
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-3">
+                                                <a href="<?= base_url('backend/rapor/index/' . $currentSemester) ?>" class="btn btn-block btn-danger btn-lg">
+                                                    <i class="fas fa-book"></i><br>Rapor Nilai
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-3">
+                                                <a href="<?= base_url('backend/tpq/profilLembaga') ?>" class="btn btn-block btn-secondary btn-lg">
+                                                    <i class="fas fa-building"></i><br>Profil Lembaga
+                                                </a>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-3">
+                                                <a href="<?= base_url('backend/tools/index') ?>" class="btn btn-block btn-dark btn-lg">
+                                                    <i class="fas fa-cog"></i><br>Pengaturan Umum
                                                 </a>
                                             </div>
                                         </div>
