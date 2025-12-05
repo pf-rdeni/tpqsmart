@@ -646,18 +646,6 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
-                            <li class="=nav-item">
-                                <a href=<?php echo base_url('backend/raport/showPreviewNilai') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Preview Nilai</p>
-                                </a>
-                            </li>
-                            <li class="=nav-item">
-                                <a href=<?php echo base_url('backend/raport/showPrestasiSantri') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Prestasi Santri</p>
-                                </a>
-                            </li>
                             <li class="nav-item">
                                 <a href="#" class="nav-link no-hover">
                                     <i class="far fa-circle nav-icon"></i>
@@ -691,7 +679,7 @@
                             <?php
                             // Cek apakah setting MappingWaliKelas aktif
                             // Menu ini muncul untuk:
-                            // 1. Admin atau Operator (selalu muncul jika setting aktif)
+                            // 1. Admin atau Operator (muncul jika setting aktif)
                             // 2. Guru/Wali Kelas (hanya muncul jika setting aktif DAN user adalah Wali Kelas)
                             $toolsModel = new \App\Models\ToolsModel();
                             $idTpq = session()->get('IdTpq');
@@ -704,15 +692,18 @@
                             $isAdmin = in_groups('Admin');
                             $isOperator = in_groups('Operator');
 
-                            if (!empty($idTpq)) {
+                            // Untuk Admin atau Operator, cek setting dan tampilkan menu jika aktif
+                            if (($isAdmin || $isOperator) && !empty($idTpq)) {
                                 $mappingEnabled = $toolsModel->getSetting($idTpq, 'MappingWaliKelas');
-
-                                // Jika Admin atau Operator, langsung tampilkan jika setting aktif
-                                if (($isAdmin || $isOperator) && $mappingEnabled) {
+                                if ($mappingEnabled) {
                                     $showMappingMenu = true;
                                 }
-                                // Jika bukan Admin/Operator, cek apakah user adalah Wali Kelas
-                                elseif (!empty($idGuru) && $mappingEnabled) {
+                            }
+                            // Jika bukan Admin/Operator, cek apakah user adalah Wali Kelas
+                            elseif (!empty($idGuru) && !empty($idTpq)) {
+                                $mappingEnabled = $toolsModel->getSetting($idTpq, 'MappingWaliKelas');
+
+                                if ($mappingEnabled) {
                                     $helpFunctionModel = new \App\Models\HelpFunctionModel();
                                     $idTahunAjaran = session()->get('IdTahunAjaran');
                                     if (empty($idTahunAjaran)) {

@@ -2049,8 +2049,12 @@ class Rapor extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $IdGuru = session()->get('IdGuru');
 
-        // Cek apakah user adalah Wali Kelas
-        if (!empty($IdKelas)) {
+        // Cek apakah user adalah Admin atau Operator
+        $isAdmin = in_groups('Admin');
+        $isOperator = in_groups('Operator');
+
+        // Cek apakah user adalah Wali Kelas (hanya jika bukan Admin/Operator)
+        if (!empty($IdKelas) && !$isAdmin && !$isOperator) {
             $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission(
                 $IdTpq,
                 $IdGuru,
@@ -2069,9 +2073,33 @@ class Rapor extends BaseController
             return redirect()->back()->with('error', 'Fitur mapping wali kelas belum diaktifkan. Silakan hubungi admin/operator untuk mengaktifkan setting MappingWaliKelas di Tools.');
         }
 
-        // Ambil list kelas untuk dropdown (jika Wali Kelas)
+        // Ambil list kelas untuk dropdown
         $listKelas = [];
-        if (!empty($IdGuru)) {
+
+        // Jika Admin atau Operator, ambil semua kelas di TPQ
+        if ($isAdmin || $isOperator) {
+            $db = \Config\Database::connect();
+            $builder = $db->table('tbl_kelas_santri ks');
+            $builder->select('ks.IdKelas, k.NamaKelas');
+            $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas');
+            $builder->where('ks.IdTpq', $IdTpq);
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            $builder->where('ks.Status', 1);
+            $builder->groupBy('ks.IdKelas, k.NamaKelas');
+            $builder->orderBy('k.NamaKelas', 'ASC');
+            $allKelas = $builder->get()->getResultArray();
+
+            foreach ($allKelas as $kelas) {
+                if (!empty($kelas['IdKelas'])) {
+                    $listKelas[] = [
+                        'IdKelas' => $kelas['IdKelas'],
+                        'NamaKelas' => $kelas['NamaKelas'] ?? ''
+                    ];
+                }
+            }
+        }
+        // Jika Wali Kelas, ambil hanya kelas yang diajar
+        elseif (!empty($IdGuru)) {
             $guruKelasData = $this->helpFunctionModel->getDataGuruKelas(
                 IdGuru: $IdGuru,
                 IdTpq: $IdTpq,
@@ -2133,9 +2161,12 @@ class Rapor extends BaseController
                 if (!empty($idGuru) && !in_array($idGuru, $addedGuruIds)) {
                     // Terapkan ucwords pada nama guru
                     $namaGuruFormatted = ucwords(strtolower($namaGuru));
+                    $isWaliKelas = ($namaJabatan === 'Wali Kelas');
                     $guruPendampingList[] = [
                         'IdGuru' => $idGuru,
-                        'Nama' => $namaGuruFormatted . ($namaJabatan ? ' (' . $namaJabatan . ')' : '')
+                        'Nama' => $namaGuruFormatted,
+                        'NamaJabatan' => $namaJabatan,
+                        'IsWaliKelas' => $isWaliKelas
                     ];
                     $addedGuruIds[] = $idGuru;
                 }
