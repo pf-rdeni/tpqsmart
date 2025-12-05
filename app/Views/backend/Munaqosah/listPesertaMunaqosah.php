@@ -532,23 +532,20 @@
         <div class="card-body">
             <!-- Tabel Peserta Perlu Perbaikan -->
             <?php if (!empty($pesertaPerluPerbaikan) && count($pesertaPerluPerbaikan) > 0): ?>
-                <div class="card card-warning card-outline collapsed-card mb-4" id="peserta-perbaikan">
+                <div class="card card-warning card-outline mb-4" id="peserta-perbaikan">
                     <div class="card-header">
                         <h3 class="card-title">
                             <i class="fas fa-exclamation-triangle text-warning"></i> Peserta Perlu Perbaikan
                             <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span>
                             <span class="badge badge-warning ml-2"><?= count($pesertaPerluPerbaikan) ?> Peserta</span>
-                            <small class="text-muted ml-2" style="font-size: 0.85rem;">
-                                <i class="fas fa-info-circle text-info"></i> Tekan tanda <i class="fas fa-plus text-primary font-weight-bold"></i> di kanan untuk membuka list
-                            </small>
                         </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Klik untuk membuka/menutup list">
-                                <i class="fas fa-plus"></i>
+                                <i class="fas fa-minus"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="card-body" style="display: none;">
+                    <div class="card-body">
                         <div class="alert alert-warning mb-3">
                             <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
                             <span class="text-dark ml-2">Tabel ini menampilkan peserta yang data mereka perlu diperbaiki. Peserta dengan status ini telah diverifikasi oleh orang tua/wali, namun terdapat data yang perlu diperbaiki. Gunakan tombol <strong>Review</strong> untuk melihat detail perbaikan yang diminta dan melakukan konfirmasi perbaikan data.</span>
@@ -611,23 +608,20 @@
 
             <!-- Tabel Peserta Valid -->
             <?php if (!empty($pesertaValid) && count($pesertaValid) > 0): ?>
-                <div class="card card-success card-outline collapsed-card mb-4" id="peserta-valid">
+                <div class="card card-success card-outline mb-4" id="peserta-valid">
                     <div class="card-header">
                         <h3 class="card-title">
                             <i class="fas fa-check-circle text-success"></i> Peserta Valid
                             <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span>
                             <span class="badge badge-success ml-2"><?= count($pesertaValid) ?> Peserta</span>
-                            <small class="text-muted ml-2" style="font-size: 0.85rem;">
-                                <i class="fas fa-info-circle text-info"></i> Tekan tanda <i class="fas fa-plus text-primary font-weight-bold"></i> di kanan untuk membuka list
-                            </small>
                         </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Klik untuk membuka/menutup list">
-                                <i class="fas fa-plus"></i>
+                                <i class="fas fa-minus"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="card-body" style="display: none;">
+                    <div class="card-body">
                         <div class="alert alert-success mb-3">
                             <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
                             <span class="text-dark ml-2">Tabel ini menampilkan peserta yang data mereka sudah valid dan telah dikonfirmasi. Peserta dengan status ini telah diverifikasi oleh orang tua/wali dan data dinyatakan benar. Anda dapat menggunakan tombol <strong>Edit</strong> untuk mengubah data peserta jika diperlukan.</span>
@@ -704,23 +698,20 @@
 
             <!-- Tabel Peserta Belum Dikonfirmasi -->
             <?php if (!empty($pesertaBelumDikonfirmasi) && count($pesertaBelumDikonfirmasi) > 0): ?>
-                <div class="card card-secondary card-outline collapsed-card mb-4" id="peserta-belum-dikonfirmasi">
+                <div class="card card-secondary card-outline mb-4" id="peserta-belum-dikonfirmasi">
                     <div class="card-header">
                         <h3 class="card-title">
                             <i class="fas fa-clock text-secondary"></i> Peserta Belum Dikonfirmasi
                             <span class="badge badge-secondary"><?= convertTahunAjaran($tahunAjaran) ?></span>
                             <span class="badge badge-secondary ml-2"><?= count($pesertaBelumDikonfirmasi) ?> Peserta</span>
-                            <small class="text-muted ml-2" style="font-size: 0.85rem;">
-                                <i class="fas fa-info-circle text-info"></i> Tekan tanda <i class="fas fa-plus text-primary font-weight-bold"></i> di kanan untuk membuka list
-                            </small>
                         </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Klik untuk membuka/menutup list">
-                                <i class="fas fa-plus"></i>
+                                <i class="fas fa-minus"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="card-body" style="display: none;">
+                    <div class="card-body">
                         <div class="alert alert-secondary mb-3">
                             <span class="badge badge-info"><i class="fas fa-info-circle"></i> Info:</span>
                             <span class="text-white ml-2">Tabel ini menampilkan peserta yang belum melakukan konfirmasi data. Peserta dengan status ini belum diverifikasi oleh orang tua/wali santri. Anda dapat menggunakan tombol <strong>Edit</strong> untuk mengubah data peserta, atau tombol <strong>Hapus</strong> untuk menghapus peserta dari daftar munaqosah.</span>
@@ -1956,6 +1947,21 @@
         // Skip ExpandIcon(1), jadi: No(0), TahunAjaran(2), NamaTPQ(3), JumlahPeserta(4)
         var exportColumnsStatistik = hideTpqColumn ? [0, 2, 3] : [0, 2, 3, 4];
 
+        // Adjust DataTables columns setelah semua card ter-render (karena default terbuka)
+        $(window).on('load', function() {
+            setTimeout(function() {
+                if ($.fn.DataTable.isDataTable('#tabelPesertaValid')) {
+                    $('#tabelPesertaValid').DataTable().columns.adjust().draw();
+                }
+                if ($.fn.DataTable.isDataTable('#tabelPesertaPerluPerbaikan')) {
+                    $('#tabelPesertaPerluPerbaikan').DataTable().columns.adjust().draw();
+                }
+                if ($.fn.DataTable.isDataTable('#tabelPesertaBelumDikonfirmasi')) {
+                    $('#tabelPesertaBelumDikonfirmasi').DataTable().columns.adjust().draw();
+                }
+            }, 500);
+        });
+
         // Inisialisasi DataTables untuk Tabel Peserta Valid dengan scrollX
         if ($('#tabelPesertaValid').length > 0) {
             try {
@@ -2096,6 +2102,65 @@
                 $('#tabelPesertaBelumDikonfirmasi').hide();
             }
         }
+
+        // Handler untuk refresh DataTables ketika card dibuka (untuk memperbaiki header yang tidak sesuai)
+        $(document).on('expanded.lte.card', function(e) {
+            var card = $(e.target);
+            var cardBody = card.find('.card-body');
+
+            // Tunggu sedikit agar card-body sudah ter-render
+            setTimeout(function() {
+                // Refresh DataTables jika ada di dalam card ini
+                if (cardBody.find('#tabelPesertaValid').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaValid')) {
+                    $('#tabelPesertaValid').DataTable().columns.adjust().draw();
+                }
+                if (cardBody.find('#tabelPesertaPerluPerbaikan').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaPerluPerbaikan')) {
+                    $('#tabelPesertaPerluPerbaikan').DataTable().columns.adjust().draw();
+                }
+                if (cardBody.find('#tabelPesertaBelumDikonfirmasi').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaBelumDikonfirmasi')) {
+                    $('#tabelPesertaBelumDikonfirmasi').DataTable().columns.adjust().draw();
+                }
+            }, 300);
+        });
+
+        // Handler alternatif untuk card yang dibuka dengan cara lain
+        $(document).on('shown.bs.collapse', function(e) {
+            var target = $(e.target);
+            setTimeout(function() {
+                if (target.find('#tabelPesertaValid').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaValid')) {
+                    $('#tabelPesertaValid').DataTable().columns.adjust().draw();
+                }
+                if (target.find('#tabelPesertaPerluPerbaikan').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaPerluPerbaikan')) {
+                    $('#tabelPesertaPerluPerbaikan').DataTable().columns.adjust().draw();
+                }
+                if (target.find('#tabelPesertaBelumDikonfirmasi').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaBelumDikonfirmasi')) {
+                    $('#tabelPesertaBelumDikonfirmasi').DataTable().columns.adjust().draw();
+                }
+            }, 300);
+        });
+
+        // Handler untuk refresh DataTables ketika card dibuka (untuk memperbaiki header yang tidak sesuai)
+        // AdminLTE card collapse event
+        $('[data-card-widget="collapse"]').on('click', function() {
+            var card = $(this).closest('.card');
+            var cardBody = card.find('.card-body');
+
+            // Tunggu animasi selesai (sekitar 350ms untuk AdminLTE)
+            setTimeout(function() {
+                if (cardBody.is(':visible')) {
+                    // Refresh DataTables jika ada di dalam card ini
+                    if (cardBody.find('#tabelPesertaValid').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaValid')) {
+                        $('#tabelPesertaValid').DataTable().columns.adjust().draw();
+                    }
+                    if (cardBody.find('#tabelPesertaPerluPerbaikan').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaPerluPerbaikan')) {
+                        $('#tabelPesertaPerluPerbaikan').DataTable().columns.adjust().draw();
+                    }
+                    if (cardBody.find('#tabelPesertaBelumDikonfirmasi').length > 0 && $.fn.DataTable.isDataTable('#tabelPesertaBelumDikonfirmasi')) {
+                        $('#tabelPesertaBelumDikonfirmasi').DataTable().columns.adjust().draw();
+                    }
+                }
+            }, 400);
+        });
 
         // Handler untuk expand/collapse tabel statistik per tahun ajaran
         $(document).on('click', '.tahun-row', function() {
