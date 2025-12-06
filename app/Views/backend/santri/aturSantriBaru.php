@@ -1850,62 +1850,122 @@
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             const videoPreview = document.createElement('video');
             videoPreview.autoplay = true;
+            videoPreview.playsInline = true;
+            videoPreview.style.cssText = 'max-width: 100%; max-height: 70vh; border-radius: 8px;';
 
             const modal = document.createElement('div');
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px;';
 
-            modal.appendChild(videoPreview);
+            // Container untuk video dan controls
+            const videoContainer = document.createElement('div');
+            videoContainer.style.cssText = 'position:relative;width:100%;max-width:500px;display:flex;flex-direction:column;align-items:center;';
+            videoContainer.appendChild(videoPreview);
+
+            // Button container
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:20px;width:100%;max-width:500px;';
+
+            // Switch camera button
+            const switchCameraBtn = document.createElement('button');
+            switchCameraBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Ganti Kamera';
+            switchCameraBtn.className = 'btn btn-info';
+            switchCameraBtn.style.cssText = 'width:100%;max-width:300px;';
 
             const captureBtn = document.createElement('button');
-            captureBtn.textContent = 'Ambil Foto';
-            captureBtn.className = 'btn btn-primary mt-3';
-            modal.appendChild(captureBtn);
+            captureBtn.innerHTML = '<i class="fas fa-camera"></i> Ambil Foto';
+            captureBtn.className = 'btn btn-primary';
+            captureBtn.style.cssText = 'width:100%;max-width:300px;';
 
             const closeBtn = document.createElement('button');
-            closeBtn.textContent = 'Tutup';
-            closeBtn.className = 'btn btn-secondary mt-2';
-            modal.appendChild(closeBtn);
+            closeBtn.innerHTML = '<i class="fas fa-times"></i> Tutup';
+            closeBtn.className = 'btn btn-secondary';
+            closeBtn.style.cssText = 'width:100%;max-width:300px;';
+
+            buttonContainer.appendChild(switchCameraBtn);
+            buttonContainer.appendChild(captureBtn);
+            buttonContainer.appendChild(closeBtn);
+
+            modal.appendChild(videoContainer);
+            modal.appendChild(buttonContainer);
 
             document.body.appendChild(modal);
 
-            navigator.mediaDevices.getUserMedia({
-                    video: true
-                })
-                .then(stream => {
-                    videoPreview.srcObject = stream;
+            let currentStream = null;
+            let currentFacingMode = 'environment'; // Default: kamera belakang
 
-                    captureBtn.onclick = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = videoPreview.videoWidth;
-                        canvas.height = videoPreview.videoHeight;
-                        canvas.getContext('2d').drawImage(videoPreview, 0, 0);
+            // Fungsi untuk menghentikan stream
+            function stopStream() {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+            }
 
-                        canvas.toBlob(blob => {
-                            const file = new File([blob], "camera-photo.jpg", {
-                                type: "image/jpeg"
+            // Fungsi untuk memulai kamera
+            function startCamera(facingMode) {
+                stopStream();
+
+                const constraints = {
+                    video: {
+                        facingMode: facingMode
+                    }
+                };
+
+                navigator.mediaDevices.getUserMedia(constraints)
+                    .then(stream => {
+                        currentStream = stream;
+                        currentFacingMode = facingMode;
+                        videoPreview.srcObject = stream;
+                    })
+                    .catch(error => {
+                        console.error('Error accessing camera:', error);
+                        // Jika kamera belakang gagal, coba kamera depan
+                        if (facingMode === 'environment') {
+                            startCamera('user');
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Gagal mengakses kamera. Pastikan Anda memberikan izin akses kamera.'
                             });
-
-                            stream.getTracks().forEach(track => track.stop());
                             document.body.removeChild(modal);
-                            $('#modalUpdatePhotoProfil').modal('hide');
-                            showCropModalProfilUpdate(file);
-                        }, 'image/jpeg');
-                    };
-
-                    closeBtn.onclick = () => {
-                        stream.getTracks().forEach(track => track.stop());
-                        document.body.removeChild(modal);
-                    };
-                })
-                .catch(error => {
-                    console.error('Error accessing camera:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Gagal mengakses kamera. Pastikan Anda memberikan izin akses kamera.'
+                        }
                     });
+            }
+
+            // Mulai dengan kamera belakang (default)
+            startCamera('environment');
+
+            // Switch camera button
+            switchCameraBtn.onclick = () => {
+                const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+                startCamera(newFacingMode);
+            };
+
+            // Capture button
+            captureBtn.onclick = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = videoPreview.videoWidth;
+                canvas.height = videoPreview.videoHeight;
+                canvas.getContext('2d').drawImage(videoPreview, 0, 0);
+
+                canvas.toBlob(blob => {
+                    const file = new File([blob], "camera-photo.jpg", {
+                        type: "image/jpeg"
+                    });
+
+                    stopStream();
                     document.body.removeChild(modal);
-                });
+                    $('#modalUpdatePhotoProfil').modal('hide');
+                    showCropModalProfilUpdate(file);
+                }, 'image/jpeg');
+            };
+
+            // Close button
+            closeBtn.onclick = () => {
+                stopStream();
+                document.body.removeChild(modal);
+            };
         } else {
             Swal.fire({
                 icon: 'error',

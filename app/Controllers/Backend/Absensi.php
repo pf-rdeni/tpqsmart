@@ -809,4 +809,446 @@ class Absensi extends BaseController
             ]);
         }
     }
+
+    /**
+     * Halaman untuk mengubah absensi santri
+     */
+    public function ubahAbsensi()
+    {
+        $data = [
+            'page_title' => 'Ubah Absensi Santri'
+        ];
+
+        return view('backend/absensi/ubahAbsensi', $data);
+    }
+
+    /**
+     * AJAX endpoint untuk mendapatkan status absensi per kelas pada tanggal tertentu
+     */
+    public function getStatusAbsensiPerKelas()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ]);
+        }
+
+        $tanggal = $this->request->getGet('tanggal');
+        $IdTpq = session()->get('IdTpq');
+        $IdGuru = session()->get('IdGuru');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+        if (empty($tanggal)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tanggal harus diisi'
+            ]);
+        }
+
+        try {
+            $santriModel = new SantriModel();
+            $absensiModel = new AbsensiModel();
+            $helpFunction = new HelpFunctionModel();
+            $db = db_connect();
+
+            // Ambil daftar kelas yang diajar oleh guru ini
+            $kelasList = $helpFunction->getListKelas($IdTpq, $IdTahunAjaran, null, $IdGuru, false);
+            
+            $statusKelas = [];
+            
+            foreach ($kelasList as $kelas) {
+                $IdKelas = is_array($kelas) ? ($kelas['IdKelas'] ?? null) : ($kelas->IdKelas ?? null);
+                $NamaKelas = is_array($kelas) ? ($kelas['NamaKelas'] ?? null) : ($kelas->NamaKelas ?? null);
+                
+                if (!$IdKelas || !$NamaKelas) {
+                    continue;
+                }
+
+                // Hitung total santri di kelas ini
+                $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+                $totalSantri = count($santriList);
+
+                // Hitung jumlah santri yang sudah diabsen pada tanggal ini
+                $builder = $db->table('tbl_absensi_santri');
+                $builder->select('COUNT(DISTINCT IdSantri) as total_absen');
+                $builder->where('IdKelas', $IdKelas);
+                $builder->where('Tanggal', $tanggal);
+                $builder->where('IdTpq', $IdTpq);
+                $builder->where('IdTahunAjaran', $IdTahunAjaran);
+                $result = $builder->get()->getRowArray();
+                $totalAbsen = (int)($result['total_absen'] ?? 0);
+
+                // Hitung jumlah per kategori kehadiran
+                $builder3 = $db->table('tbl_absensi_santri');
+                $builder3->select('Kehadiran, COUNT(*) as jumlah');
+                $builder3->where('IdKelas', $IdKelas);
+                $builder3->where('Tanggal', $tanggal);
+                $builder3->where('IdTpq', $IdTpq);
+                $builder3->where('IdTahunAjaran', $IdTahunAjaran);
+                $builder3->groupBy('Kehadiran');
+                $kategoriResult = $builder3->get()->getResultArray();
+
+                // Inisialisasi jumlah per kategori
+                $jumlahHadir = 0;
+                $jumlahIzin = 0;
+                $jumlahSakit = 0;
+                $jumlahAlfa = 0;
+
+                foreach ($kategoriResult as $row) {
+                    $kehadiran = strtolower($row['Kehadiran'] ?? '');
+                    $jumlah = (int)($row['jumlah'] ?? 0);
+                    
+                    switch ($kehadiran) {
+                        case 'hadir':
+                            $jumlahHadir = $jumlah;
+                            break;
+                        case 'izin':
+                            $jumlahIzin = $jumlah;
+                            break;
+                        case 'sakit':
+                            $jumlahSakit = $jumlah;
+                            break;
+                        case 'alfa':
+                            $jumlahAlfa = $jumlah;
+                            break;
+                    }
+                }
+
+                // Ambil nama guru yang mengabsen (jika ada)
+                $builder2 = $db->table('tbl_absensi_santri a');
+                $builder2->select('g.Nama, g.JenisKelamin');
+                $builder2->join('tbl_guru g', 'g.IdGuru = a.IdGuru', 'left');
+                $builder2->where('a.IdKelas', $IdKelas);
+                $builder2->where('a.Tanggal', $tanggal);
+                $builder2->where('a.IdTpq', $IdTpq);
+                $builder2->where('a.IdTahunAjaran', $IdTahunAjaran);
+                $builder2->limit(1);
+                $guruData = $builder2->get()->getRowArray();
+
+                $namaGuru = null;
+                if ($guruData && !empty($guruData['Nama'])) {
+                    $namaGuru = ucwords(strtolower($guruData['Nama']));
+                    $jenisKelamin = strtolower($guruData['JenisKelamin'] ?? '');
+                    if (stripos($jenisKelamin, 'l') === 0 || stripos($jenisKelamin, 'laki') !== false) {
+                        $namaGuru = 'Ustadz ' . $namaGuru;
+                    } elseif (stripos($jenisKelamin, 'p') === 0 || stripos($jenisKelamin, 'perempuan') !== false) {
+                        $namaGuru = 'Ustadzah ' . $namaGuru;
+                    }
+                }
+
+                // Tentukan status
+                $status = 'belum_absen';
+                if ($totalSantri > 0 && $totalAbsen > 0) {
+                    if ($totalAbsen >= $totalSantri) {
+                        $status = 'sudah_absen_semua';
+                    } else {
+                        $status = 'sebagian_absen';
+                    }
+                }
+
+                $statusKelas[] = [
+                    'IdKelas' => $IdKelas,
+                    'NamaKelas' => $NamaKelas,
+                    'totalSantri' => $totalSantri,
+                    'totalAbsen' => $totalAbsen,
+                    'status' => $status,
+                    'namaGuru' => $namaGuru,
+                    'jumlahHadir' => $jumlahHadir,
+                    'jumlahIzin' => $jumlahIzin,
+                    'jumlahSakit' => $jumlahSakit,
+                    'jumlahAlfa' => $jumlahAlfa
+                ];
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $statusKelas,
+                'tanggal' => $tanggal
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengambil status absensi: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * AJAX endpoint untuk mencari santri berdasarkan nama
+     */
+    public function searchSantri()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ]);
+        }
+
+        $keyword = $this->request->getGet('keyword');
+        $tanggal = $this->request->getGet('tanggal');
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdGuru = session()->get('IdGuru');
+
+        if (empty($keyword) || strlen($keyword) < 2) {
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => []
+            ]);
+        }
+
+        $santriModel = new SantriModel();
+        $absensiModel = new AbsensiModel();
+        $helpFunction = new HelpFunctionModel();
+        $db = db_connect();
+        
+        // Ambil daftar kelas yang diajar oleh guru ini
+        $kelasList = $helpFunction->getListKelas($IdTpq, $IdTahunAjaran, null, $IdGuru, false);
+        
+        // Ekstrak IdKelas dari daftar kelas
+        $idKelasArray = [];
+        foreach ($kelasList as $kelas) {
+            $IdKelas = is_array($kelas) ? ($kelas['IdKelas'] ?? null) : ($kelas->IdKelas ?? null);
+            if ($IdKelas) {
+                $idKelasArray[] = $IdKelas;
+            }
+        }
+        
+        // Jika guru tidak memiliki kelas, kembalikan array kosong
+        if (empty($idKelasArray)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => []
+            ]);
+        }
+        
+        // Cari santri berdasarkan nama, hanya dari kelas yang diajar oleh guru
+        $builder = $db->table('tbl_kelas_santri ks');
+        $builder->select('
+            s.IdSantri,
+            s.NamaSantri,
+            s.JenisKelamin,
+            s.PhotoProfil,
+            k.IdKelas,
+            k.NamaKelas
+        ');
+        $builder->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri', 'left');
+        $builder->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas', 'left');
+        
+        $builder->where('s.Active', 1);
+        $builder->where('ks.Status', 1);
+        $builder->where('ks.IdTpq', $IdTpq);
+        $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        $builder->whereIn('ks.IdKelas', $idKelasArray); // Filter hanya kelas yang diajar oleh guru
+        $builder->like('s.NamaSantri', $keyword);
+        
+        $builder->orderBy('s.NamaSantri', 'ASC');
+        $builder->limit(20);
+        
+        $results = $builder->get()->getResultArray();
+
+        // Ambil data absensi untuk setiap santri jika tanggal diberikan
+        if (!empty($tanggal)) {
+            foreach ($results as &$santri) {
+                $absensi = $absensiModel
+                    ->where('IdSantri', $santri['IdSantri'])
+                    ->where('Tanggal', $tanggal)
+                    ->first();
+
+                if ($absensi) {
+                    $santri['Kehadiran'] = is_array($absensi) ? ($absensi['Kehadiran'] ?? null) : ($absensi->Kehadiran ?? null);
+                    $santri['Keterangan'] = is_array($absensi) ? ($absensi['Keterangan'] ?? null) : ($absensi->Keterangan ?? null);
+                } else {
+                    $santri['Kehadiran'] = null;
+                    $santri['Keterangan'] = null;
+                }
+            }
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $results
+        ]);
+    }
+
+    /**
+     * AJAX endpoint untuk mengambil data absensi santri pada tanggal tertentu
+     */
+    public function getAbsensiSantri()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ]);
+        }
+
+        $IdSantri = $this->request->getGet('IdSantri');
+        $tanggal = $this->request->getGet('tanggal');
+
+        if (empty($IdSantri) || empty($tanggal)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'IdSantri dan tanggal harus diisi'
+            ]);
+        }
+
+        $absensiModel = new AbsensiModel();
+        
+        // Ambil data absensi
+        $absensi = $absensiModel
+            ->where('IdSantri', $IdSantri)
+            ->where('Tanggal', $tanggal)
+            ->first();
+
+        // Ambil data santri
+        $santriModel = new SantriModel();
+        $db = db_connect();
+        $builder = $db->table('tbl_kelas_santri ks');
+        $builder->select('
+            s.IdSantri,
+            s.NamaSantri,
+            s.JenisKelamin,
+            s.PhotoProfil,
+            k.IdKelas,
+            k.NamaKelas
+        ');
+        $builder->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri', 'left');
+        $builder->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas', 'left');
+        $builder->where('s.IdSantri', $IdSantri);
+        $builder->where('ks.Status', 1);
+        $builder->where('s.Active', 1);
+        $santri = $builder->get()->getRowArray();
+
+        if (!$santri) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data santri tidak ditemukan'
+            ]);
+        }
+
+        $result = [
+            'santri' => $santri,
+            'absensi' => null
+        ];
+
+        if ($absensi) {
+            $result['absensi'] = [
+                'Id' => is_array($absensi) ? ($absensi['Id'] ?? null) : ($absensi->Id ?? null),
+                'Kehadiran' => is_array($absensi) ? ($absensi['Kehadiran'] ?? null) : ($absensi->Kehadiran ?? null),
+                'Keterangan' => is_array($absensi) ? ($absensi['Keterangan'] ?? null) : ($absensi->Keterangan ?? null),
+                'Tanggal' => is_array($absensi) ? ($absensi['Tanggal'] ?? null) : ($absensi->Tanggal ?? null)
+            ];
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $result
+        ]);
+    }
+
+    /**
+     * AJAX endpoint untuk menyimpan perubahan absensi
+     */
+    public function updateAbsensi()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ]);
+        }
+
+        $IdSantri = $this->request->getPost('IdSantri');
+        $tanggal = $this->request->getPost('tanggal');
+        $kehadiran = $this->request->getPost('kehadiran');
+        $keterangan = $this->request->getPost('keterangan');
+        $IdTpq = session()->get('IdTpq');
+        $IdGuru = session()->get('IdGuru');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+        if (empty($IdSantri) || empty($tanggal) || empty($kehadiran)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'IdSantri, tanggal, dan kehadiran harus diisi'
+            ]);
+        }
+
+        // Validasi kehadiran
+        $allowedKehadiran = ['Hadir', 'Izin', 'Sakit', 'Alfa'];
+        if (!in_array($kehadiran, $allowedKehadiran)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Status kehadiran tidak valid'
+            ]);
+        }
+
+        // Ambil data kelas santri
+        $santriModel = new SantriModel();
+        $db = db_connect();
+        $builder = $db->table('tbl_kelas_santri ks');
+        $builder->select('k.IdKelas');
+        $builder->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas', 'left');
+        $builder->where('ks.IdSantri', $IdSantri);
+        $builder->where('ks.IdTpq', $IdTpq);
+        $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        $builder->where('ks.Status', 1);
+        $kelasData = $builder->get()->getRowArray();
+
+        if (!$kelasData) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data kelas santri tidak ditemukan'
+            ]);
+        }
+
+        $IdKelas = $kelasData['IdKelas'];
+
+        try {
+            $absensiModel = new AbsensiModel();
+            
+            // Cek apakah sudah ada data absensi
+            $cekAbsensi = $absensiModel
+                ->where('IdSantri', $IdSantri)
+                ->where('Tanggal', $tanggal)
+                ->first();
+
+            $data = [
+                'IdSantri' => $IdSantri,
+                'Tanggal' => $tanggal,
+                'Kehadiran' => $kehadiran,
+                'Keterangan' => $keterangan ?? '',
+                'IdKelas' => $IdKelas,
+                'IdGuru' => $IdGuru,
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'IdTpq' => $IdTpq,
+            ];
+
+            if ($cekAbsensi) {
+                // Update jika sudah ada
+                $idAbsensi = is_array($cekAbsensi) ? ($cekAbsensi['Id'] ?? null) : ($cekAbsensi->Id ?? null);
+                if ($idAbsensi) {
+                    $absensiModel->update($idAbsensi, $data);
+                } else {
+                    // Jika Id tidak ditemukan, insert baru
+                    $absensiModel->insert($data);
+                }
+            } else {
+                // Insert jika belum ada
+                $absensiModel->insert($data);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data absensi berhasil disimpan!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan data absensi: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

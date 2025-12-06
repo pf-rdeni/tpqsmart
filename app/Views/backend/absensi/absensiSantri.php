@@ -590,6 +590,41 @@
 
     // Initialize
     $(document).ready(function() {
+        // Buka tab kelas berdasarkan parameter IdKelas dari URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const idKelasParam = urlParams.get('IdKelas');
+        
+        if (idKelasParam) {
+            // Tunggu sedikit untuk memastikan semua elemen sudah dimuat
+            setTimeout(function() {
+                // Hapus class active dari semua tab dan tab pane
+                $('#custom-tabs-one-tab .nav-link').removeClass('active').attr('aria-selected', 'false');
+                $('#custom-tabs-one-tabContent .tab-pane').removeClass('show active');
+                
+                // Aktifkan tab yang sesuai dengan IdKelas
+                const tabLink = $('#custom-tabs-one-kelas-' + idKelasParam + '-tab');
+                const tabPane = $('#custom-tabs-one-kelas-' + idKelasParam);
+                
+                if (tabLink.length && tabPane.length) {
+                    // Aktifkan tab link
+                    tabLink.addClass('active').attr('aria-selected', 'true');
+                    
+                    // Aktifkan tab pane
+                    tabPane.addClass('show active');
+                    
+                    // Scroll ke tab yang dipilih
+                    setTimeout(function() {
+                        const tabOffset = tabLink.offset();
+                        if (tabOffset) {
+                            $('html, body').animate({
+                                scrollTop: tabOffset.top - 100
+                            }, 500);
+                        }
+                    }, 200);
+                }
+            }, 200);
+        }
+        
         console.log('[DEBUG] ============================================');
         console.log('[DEBUG] Document ready - Initializing absensi page');
         console.log('[DEBUG] jQuery version:', $.fn.jquery);

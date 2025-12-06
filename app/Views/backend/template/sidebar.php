@@ -952,6 +952,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href=<?php echo base_url('backend/absensi/ubahAbsensi') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Ubah Absensi</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/absensi/statistikKehadiran') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Statistik</p>

@@ -262,21 +262,6 @@ class Nilai extends BaseController
         return view('backend/santri/santriPerKelas', $data);
     }
 
-    public function showSumaryPersemester($semester = null)
-    {
-        $datanilai = $this->DataNilai->getDataNilaiPerSemester($this->IdTpq, $this->IdKelas, $this->IdTahunAjaran, $semester);
-        $dataKelas = [];
-        foreach ($datanilai as $nilai) {
-            $dataKelas = array_column($datanilai, 'NamaKelas', 'IdKelas');
-        }
-        return view('backend/nilai/nilaiSantriPerSemester', [
-            'page_title' => 'Rank Data Nilai Semester ' . $semester,
-            'nilai' => $datanilai,
-            'dataKelas' => $dataKelas,
-            'semester' => $semester
-        ]);
-    }
-
     public function showNilaiProfilDetail($IdSantri)
     {
         // Ambil IdTpq dari session untuk filter query

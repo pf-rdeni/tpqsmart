@@ -168,11 +168,6 @@ function render_progress_bar($persentase, $height = 25)
                                                     </a>
                                                 </div>
                                                 <div class="col-md-3 col-6">
-                                                    <a href=<?php echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Ganjil') ?> class="btn btn-app bg-secondary">
-                                                        <i class="fas fa-chart-bar"></i> Ranking
-                                                    </a>
-                                                </div>
-                                                <div class="col-md-3 col-6">
                                                     <a href=<?php echo base_url('backend/rapor/index' . '/' . 'Ganjil') ?> class="btn btn-app bg-warning">
                                                         <i class="fas fa-file-alt"></i> Raport Nilai
                                                     </a>
@@ -241,11 +236,6 @@ function render_progress_bar($persentase, $height = 25)
                                                 <div class="col-md-3 col-6">
                                                     <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-app bg-success">
                                                         <i class="fas fa-eye"></i> Detail Nilai
-                                                    </a>
-                                                </div>
-                                                <div class="col-md-3 col-6">
-                                                    <a href=<?php echo base_url('backend/nilai/showSumaryPersemester' . '/' . 'Genap') ?> class="btn btn-app bg-secondary">
-                                                        <i class="fas fa-chart-bar"></i> Ranking
                                                     </a>
                                                 </div>
                                                 <div class="col-md-3 col-6">

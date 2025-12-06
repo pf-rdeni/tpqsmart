@@ -93,6 +93,53 @@
                                 aria-labelledby="tab-<?= $kelas->IdKelas ?>">
                                 <div class="table-responsive">
                                     <div class="mb-3">
+                                        <?php
+                                        // Cek apakah user adalah Kepala Sekolah atau Wali Kelas untuk tombol tanda tangan QR
+                                        $idTpqBtn = session()->get('IdTpq');
+                                        $idGuruBtn = session()->get('IdGuru');
+                                        $isKepalaSekolahBtn = false;
+                                        $isWaliKelasBtn = false;
+
+                                        if (!empty($idGuruBtn) && !empty($idTpqBtn)) {
+                                            $helpFunctionModelBtn = new \App\Models\HelpFunctionModel();
+                                            
+                                            // Cek apakah user adalah Kepala Sekolah
+                                            $jabatanDataBtn = $helpFunctionModelBtn->getStrukturLembagaJabatan($idGuruBtn, $idTpqBtn);
+                                            if (!empty($jabatanDataBtn)) {
+                                                foreach ($jabatanDataBtn as $jabatan) {
+                                                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                                                        $isKepalaSekolahBtn = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+
+                                            // Cek apakah user adalah Wali Kelas untuk kelas ini
+                                            if (!$isKepalaSekolahBtn && !empty($guruKelasPermissions)) {
+                                                foreach ($guruKelasPermissions as $perm) {
+                                                    if (isset($perm['IdKelas']) && $perm['IdKelas'] == $kelas->IdKelas && 
+                                                        isset($perm['NamaJabatan']) && $perm['NamaJabatan'] === 'Wali Kelas') {
+                                                        $isWaliKelasBtn = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        ?>
+                                        <?php if ($isWaliKelasBtn): ?>
+                                            <button type="button" class="btn btn-info btn-sm btn-ttd-bulk-walas" 
+                                                    data-kelas="<?= $kelas->IdKelas ?>" 
+                                                    data-semester="<?= $semester ?>">
+                                                <i class="fas fa-signature"></i> Tanda Tangan QR Semua Wali Kelas
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if ($isKepalaSekolahBtn): ?>
+                                            <button type="button" class="btn btn-success btn-sm btn-ttd-bulk-kepsek" 
+                                                    data-kelas="<?= $kelas->IdKelas ?>" 
+                                                    data-semester="<?= $semester ?>">
+                                                <i class="fas fa-signature"></i> Tanda Tangan QR Semua Kepala Sekolah
+                                            </button>
+                                        <?php endif; ?>
                                         <button type="button" class="btn btn-primary btn-sm btn-print-all" data-kelas="<?= $kelas->IdKelas ?>" data-semester="<?= $semester ?>">
                                             <i class="fas fa-print"></i> Cetak Semua Rapor Kelas <?= $kelas->NamaKelas ?>
                                         </button>
@@ -532,6 +579,128 @@
         });
 
         // Handle print all button click
+        // Handle tanda tangan bulk wali kelas
+        $(document).on('click', '.btn-ttd-bulk-walas', function() {
+            const IdKelas = $(this).data('kelas');
+            const semester = $(this).data('semester');
+            const btn = $(this);
+
+            Swal.fire({
+                title: 'Konfirmasi Tanda Tangan',
+                text: 'Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Wali Kelas?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Tandatangani',
+                cancelButtonText: 'Batal',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch('<?= base_url('backend/rapor/ttdBulkWalas') ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            IdKelas: IdKelas,
+                            Semester: semester
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat memproses tanda tangan',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+        });
+
+        // Handle tanda tangan bulk kepala sekolah
+        $(document).on('click', '.btn-ttd-bulk-kepsek', function() {
+            const IdKelas = $(this).data('kelas');
+            const semester = $(this).data('semester');
+            const btn = $(this);
+
+            Swal.fire({
+                title: 'Konfirmasi Tanda Tangan',
+                text: 'Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Kepala Sekolah?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Tandatangani',
+                cancelButtonText: 'Batal',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch('<?= base_url('backend/rapor/ttdBulkKepsek') ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            IdKelas: IdKelas,
+                            Semester: semester
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat memproses tanda tangan',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+        });
+
         $(document).on('click', '.btn-print-all', function() {
             const kelasId = $(this).data('kelas');
             const semester = $(this).data('semester');
