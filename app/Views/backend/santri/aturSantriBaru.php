@@ -829,17 +829,19 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    <h5 class="alert-heading"><i class="fas fa-info-circle"></i> Petunjuk Crop Foto Profil</h5>
-                    <ul class="mb-0">
-                        <li><strong>Geser dan sesuaikan posisi foto</strong> dengan mengklik dan menyeret area crop (kotak biru) atau gunakan tombol kontrol di bawah</li>
-                        <li><strong>Zoom in/out</strong> dengan menggunakan scroll mouse, pinch gesture pada touchscreen, atau tombol zoom</li>
-                        <li><strong>Rasio foto 3:4</strong> - Pastikan wajah berada di tengah dan terlihat jelas</li>
-                        <li><strong>Direkomendasikan:</strong> Foto dengan latar belakang merah, wajah menghadap ke depan, dan pencahayaan yang cukup</li>
-                    </ul>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="alert alert-info" role="alert">
+                    <h5 class="alert-heading mb-2" style="cursor: pointer;" data-toggle="collapse" data-target="#petunjukCropProfilUpdate" aria-expanded="false" aria-controls="petunjukCropProfilUpdate">
+                        <i class="fas fa-info-circle"></i> Petunjuk Crop Foto Profil 
+                        <i class="fas fa-chevron-down float-right" id="iconPetunjukCropProfilUpdate"></i>
+                    </h5>
+                    <div class="collapse" id="petunjukCropProfilUpdate">
+                        <ul class="mb-0">
+                            <li><strong>Geser dan sesuaikan posisi foto</strong> dengan mengklik dan menyeret area crop (kotak biru) atau gunakan tombol kontrol di bawah</li>
+                            <li><strong>Zoom in/out</strong> dengan menggunakan scroll mouse, pinch gesture pada touchscreen, atau tombol zoom</li>
+                            <li><strong>Rasio foto 3:4</strong> - Pastikan wajah berada di tengah dan terlihat jelas</li>
+                            <li><strong>Direkomendasikan:</strong> Foto dengan latar belakang merah, wajah menghadap ke depan, dan pencahayaan yang cukup</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="row">
                     <div class="col-md-12">
@@ -2428,6 +2430,14 @@
                 btnMove.classList.remove('active');
             }
         });
+    });
+
+    // Toggle icon chevron untuk petunjuk crop
+    $('#petunjukCropProfilUpdate').on('show.bs.collapse', function () {
+        $('#iconPetunjukCropProfilUpdate').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+    });
+    $('#petunjukCropProfilUpdate').on('hide.bs.collapse', function () {
+        $('#iconPetunjukCropProfilUpdate').removeClass('fa-chevron-up').addClass('fa-chevron-down');
     });
     /* ===== End Region: Update Photo Profil ===== */
 
