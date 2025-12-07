@@ -962,9 +962,14 @@ class Rapor extends BaseController
                 // Load view untuk setiap santri
                 $html = view('backend/rapor/print', $data);
 
-                // Tambahkan margin bottom jika bukan santri terakhir
-                if ($index < count($listSantri) - 1) {
-                    $html = '<div style="margin-bottom: 30px;">' . $html . '</div>';
+                // Wrap setiap rapor dengan div yang memaksa page break sebelum santri berikutnya
+                // Gunakan page-break-before untuk memastikan setiap santri dimulai di halaman baru
+                if ($index > 0) {
+                    // Untuk santri kedua dan seterusnya, tambahkan page break sebelum
+                    $html = '<div style="page-break-before: always;">' . $html . '</div>';
+                } else {
+                    // Untuk santri pertama, tidak perlu page break
+                    $html = '<div>' . $html . '</div>';
                 }
 
                 $combinedHtml .= $html;

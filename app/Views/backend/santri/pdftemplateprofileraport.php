@@ -262,7 +262,6 @@
         <tr>
             <td style="width:70%;">
                 <div class="brand">Profil Santri</div>
-                <div class="muted">Kelas <?= htmlspecialchars($d['printNamaKelas']); ?></div>
             </td>
         </tr>
     </table>
@@ -318,12 +317,13 @@
             <td style="width:25%; text-align:center; vertical-align:top;">
                 <div class="section">
                     <div class="section-title">Foto</div>
-                    <div class="photo-box" style="margin:auto;">
+                    <div class="photo-box" style="margin:auto; display: flex; align-items: center; justify-content: center;">
                         <?php if (!empty($d['printFotoSantri'])): ?>
                             <img src="<?= $d['printFotoSantri']; ?>" />
+                        <?php else: ?>
+                            <div class="small" style="color: #666;">Ukuran 3x4</div>
                         <?php endif; ?>
                     </div>
-                    <div class="small" style="margin-top:6px;">Ukuran 3x4</div>
                 </div>
             </td>
         </tr>

@@ -620,6 +620,28 @@
             console.log('Setting up checkbox event handlers');
         }, 500);
 
+        // Simpan tab aktif ke localStorage saat tab diklik
+        $('#kelasTab a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+            const targetTab = $(e.target).attr('href'); // e.g., #kelas-123
+            const storageKey = 'rapor_active_tab_<?= $semester ?>_<?= session()->get("IdTahunAjaran") ?>';
+            localStorage.setItem(storageKey, targetTab);
+        });
+
+        // Pulihkan tab aktif dari localStorage saat halaman dimuat
+        const storageKey = 'rapor_active_tab_<?= $semester ?>_<?= session()->get("IdTahunAjaran") ?>';
+        const savedTab = localStorage.getItem(storageKey);
+        if (savedTab) {
+            // Cek apakah tab yang disimpan masih ada di halaman
+            const tabExists = $(savedTab).length > 0;
+            if (tabExists) {
+                // Aktifkan tab yang disimpan
+                const tabLink = $('#kelasTab a[href="' + savedTab + '"]');
+                if (tabLink.length > 0) {
+                    tabLink.tab('show');
+                }
+            }
+        }
+
         // Tampilkan pesan dari session jika ada
         <?php if (session()->getFlashdata('success')): ?>
             Swal.fire({
