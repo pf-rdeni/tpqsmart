@@ -43,12 +43,7 @@
                                     <small class="text-center d-block mb-2 text-primary">
                                         <i class="fas fa-exclamation-circle"></i>
                                         Upload foto profil atau ambil foto dengan kamera. <span id="editPhotoHint" style="display: none;"><strong>Klik Edit untuk crop foto yang sudah ada</strong></span></small>
-                                    <form id="formUploadPhoto" style="display: none;">
-                                        <input type="file" id="photo_profil" name="photo_profil"
-                                            accept=".jpg,.jpeg,.png,image/*"
-                                            onchange="previewPhoto(this)"
-                                            style="display: none;">
-                                    </form>
+                                    <input class="form-control" type="file" id="photo_profil" name="photo_profil" accept=".jpg,.jpeg,.png,image/*;capture=camera" onchange="previewPhoto(this)" style="display: none;">
                                     <span id="photo_profilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
                                 </div>
                                 <!-- Informasi Akun -->
@@ -184,7 +179,7 @@
             <div class="modal-body">
                 <div class="alert alert-info" role="alert">
                     <h5 class="alert-heading mb-2" style="cursor: pointer;" data-toggle="collapse" data-target="#petunjukCropProfil" aria-expanded="false" aria-controls="petunjukCropProfil">
-                        <i class="fas fa-info-circle"></i> Petunjuk Crop Foto Profil 
+                        <i class="fas fa-info-circle"></i> Petunjuk Crop Foto Profil
                         <i class="fas fa-chevron-down float-right" id="iconPetunjukCropProfil"></i>
                     </h5>
                     <div class="collapse" id="petunjukCropProfil">
@@ -327,6 +322,23 @@
         // Cek dan tampilkan button Edit jika foto sudah ada
         toggleEditButton();
 
+        // Event listener tambahan untuk input file (untuk mobile compatibility)
+        const photoInput = document.getElementById('photo_profil');
+        if (photoInput) {
+            // Tambahkan event listener untuk change dan input (untuk mobile)
+            photoInput.addEventListener('change', function(e) {
+                console.log('Change event triggered on photo_profil');
+                previewPhoto(this);
+            }, false);
+
+            photoInput.addEventListener('input', function(e) {
+                console.log('Input event triggered on photo_profil');
+                if (this.files && this.files.length > 0) {
+                    previewPhoto(this);
+                }
+            }, false);
+        }
+
         // Cek apakah Cropper.js sudah dimuat
         setTimeout(function() {
             if (typeof Cropper === 'undefined') {
@@ -349,11 +361,15 @@
         }, 1000);
     });
 
-    // Fungsi untuk menampilkan preview foto profil (sederhana seperti di createEmisStep)
+    // Fungsi untuk menampilkan preview foto profil (sama persis seperti di createEmisStep)
     function previewPhoto(input) {
-        if (input.files && input.files[0]) {
+        console.log('previewPhoto called', input);
+        if (input && input.files && input.files[0]) {
             const file = input.files[0];
+            console.log('File selected:', file.name, file.type, file.size);
             showCropModalProfil(file);
+        } else {
+            console.warn('No file selected or input is invalid');
         }
     }
 
@@ -1077,10 +1093,10 @@
     });
 
     // Toggle icon chevron untuk petunjuk crop
-    $('#petunjukCropProfil').on('show.bs.collapse', function () {
+    $('#petunjukCropProfil').on('show.bs.collapse', function() {
         $('#iconPetunjukCropProfil').removeClass('fa-chevron-down').addClass('fa-chevron-up');
     });
-    $('#petunjukCropProfil').on('hide.bs.collapse', function () {
+    $('#petunjukCropProfil').on('hide.bs.collapse', function() {
         $('#iconPetunjukCropProfil').removeClass('fa-chevron-up').addClass('fa-chevron-down');
     });
 </script>
