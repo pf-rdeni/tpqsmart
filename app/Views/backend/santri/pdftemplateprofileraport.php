@@ -387,28 +387,46 @@
                     <div class="section-title">Kepala <?= htmlspecialchars(($d['printLembagaType'] ?? 'TPQ') === 'MDA' ? 'MDA' : 'TPQ') ?></div>
                     <div class="sign-placeholder">
                         <?php
-                        // Coba ambil QR dari folder uploads/qr, gunakan file pertama yang ditemukan
-                        $qrBase = FCPATH . 'uploads/qr/';
-                        $qrImg = null;
-                        if (is_dir($qrBase)) {
-                            $files = glob($qrBase . '*.svg');
-                            if (!$files) {
-                                $files = glob($qrBase . '*.png');
+                        // Ambil QR code dari database signature seperti di rapor/print.php
+                        $kepsekSignature = null;
+                        if (!empty($d['signatures'])) {
+                            foreach ($d['signatures'] as $signature) {
+                                if (
+                                    isset($signature['NamaJabatan']) && $signature['NamaJabatan'] == 'Kepala TPQ'
+                                    && isset($signature['QrCode']) && !empty($signature['QrCode'])
+                                ) {
+                                    $kepsekSignature = $signature;
+                                    break;
+                                }
                             }
-                            if (!$files) {
-                                $files = glob($qrBase . '*.jpg');
-                            }
-                            if ($files && file_exists($files[0])) {
-                                $ext = pathinfo($files[0], PATHINFO_EXTENSION);
+                        }
+
+                        if ($kepsekSignature && !empty($kepsekSignature['QrCode'])) {
+                            $qrPath = FCPATH . 'uploads/qr/' . $kepsekSignature['QrCode'];
+                            if (file_exists($qrPath)) {
+                                $qrContent = file_get_contents($qrPath);
+                                $ext = pathinfo($kepsekSignature['QrCode'], PATHINFO_EXTENSION);
                                 $mime = $ext === 'svg' ? 'image/svg+xml' : 'image/' . strtolower($ext);
-                                $qrContent = file_get_contents($files[0]);
-                                $qrImg = 'data:' . $mime . ';base64,' . base64_encode($qrContent);
+
+                                // Buat URL validasi dari token
+                                $validationUrl = '';
+                                if (!empty($kepsekSignature['Token'])) {
+                                    $validationUrl = base_url("signature/validateSignature/{$kepsekSignature['Token']}");
+                                }
+
+                                // Jika ada URL validasi, bungkus QR code dengan link
+                                if (!empty($validationUrl)) {
+                                    echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block;">';
+                                }
+
+                                echo '<img src="data:' . $mime . ';base64,' . base64_encode($qrContent) . '" alt="QR Code Kepala Sekolah" style="width: 80px; height: 80px; cursor: pointer;">';
+
+                                if (!empty($validationUrl)) {
+                                    echo '</a>';
+                                }
                             }
                         }
                         ?>
-                        <?php if (!empty($qrImg)): ?>
-                            <img src="<?= $qrImg; ?>" alt="QR" style="width:80px;height:80px;" />
-                        <?php endif; ?>
                     </div>
                     <div class="sign-name">( <?= htmlspecialchars($d['printKepalaTpq'] ?? (($d['printLembagaType'] ?? 'TPQ') === 'MDA' ? 'Kepala MDA' : 'Kepala TPQ')) ?> )</div>
                 </div>

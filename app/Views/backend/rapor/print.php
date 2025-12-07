@@ -366,7 +366,23 @@ helper('nilai');
                     $qrPath = FCPATH . 'uploads/qr/' . $kepsekSignature['QrCode'];
                     if (file_exists($qrPath)) {
                         $qrContent = file_get_contents($qrPath);
-                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Kepala Sekolah" style="width: 80px; height: 80px;">';
+
+                        // Buat URL validasi dari token
+                        $validationUrl = '';
+                        if (!empty($kepsekSignature['Token'])) {
+                            $validationUrl = base_url("signature/validateSignature/{$kepsekSignature['Token']}");
+                        }
+
+                        // Jika ada URL validasi, bungkus QR code dengan link
+                        if (!empty($validationUrl)) {
+                            echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block;">';
+                        }
+
+                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Kepala Sekolah" style="width: 80px; height: 80px; cursor: pointer;">';
+
+                        if (!empty($validationUrl)) {
+                            echo '</a>';
+                        }
                     }
                 }
                 ?>
@@ -387,7 +403,23 @@ helper('nilai');
                     $qrPath = FCPATH . 'uploads/qr/' . $walasSignature['QrCode'];
                     if (file_exists($qrPath)) {
                         $qrContent = file_get_contents($qrPath);
-                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Wali Kelas" style="width: 80px; height: 80px;">';
+
+                        // Buat URL validasi dari token
+                        $validationUrl = '';
+                        if (!empty($walasSignature['Token'])) {
+                            $validationUrl = base_url("signature/validateSignature/{$walasSignature['Token']}");
+                        }
+
+                        // Jika ada URL validasi, bungkus QR code dengan link
+                        if (!empty($validationUrl)) {
+                            echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block;">';
+                        }
+
+                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Wali Kelas" style="width: 80px; height: 80px; cursor: pointer;">';
+
+                        if (!empty($validationUrl)) {
+                            echo '</a>';
+                        }
                     }
                 }
                 ?>

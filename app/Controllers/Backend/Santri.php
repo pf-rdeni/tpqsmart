@@ -13,6 +13,7 @@ use App\Models\ToolsModel;
 use App\Models\MdaModel;
 use App\Models\TpqModel;
 use App\Models\KelasMateriPelajaranModel;
+use App\Models\SignatureModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -27,6 +28,7 @@ class Santri extends BaseController
     protected $toolsModel;
     protected $mdaModel;
     protected $tpqModel;
+    protected $signatureModel;
 
     public function __construct()
     {
@@ -39,6 +41,7 @@ class Santri extends BaseController
         $this->toolsModel = new ToolsModel();
         $this->mdaModel = new MdaModel();
         $this->tpqModel = new TpqModel();
+        $this->signatureModel = new SignatureModel();
     }
 
     // fungsi untuk menampilkan form tambah santri
@@ -714,7 +717,7 @@ class Santri extends BaseController
             return strcasecmp($a['NamaTpq'] ?? '', $b['NamaTpq'] ?? '');
         });
 
-        // Get data Kelas untuk filter dropdown
+        // Get data Kelas untuk filter dropdown dan tab
         $dataKelas = [];
         if ($isAdmin || $isOperator || $isKepalaTpq) {
             $dataKelas = $this->helpFunction->getDataKelas();
@@ -743,36 +746,131 @@ class Santri extends BaseController
             }
         }
 
+        // Kelompokkan santri per kelas untuk tab
+        $santriPerKelas = [];
+        $listIdKelas = [];
+        if (!empty($santri)) {
+            foreach ($santri as $santriItem) {
+                $idKelasSantri = $santriItem['IdKelas'] ?? null;
+                if ($idKelasSantri) {
+                    if (!isset($santriPerKelas[$idKelasSantri])) {
+                        $santriPerKelas[$idKelasSantri] = [];
+                        $listIdKelas[] = $idKelasSantri;
+                    }
+                    $santriPerKelas[$idKelasSantri][] = $santriItem;
+                }
+            }
+        }
+
+        // Ambil object kelas untuk tab (hanya kelas yang memiliki santri)
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdGuru = session()->get('IdGuru');
+        $guruIdForKelas = ($isOperator && empty($IdGuru)) ? null : $IdGuru;
+        $dataKelasObject = [];
+        if (!empty($listIdKelas)) {
+            $dataKelasObject = $this->helpFunction->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $guruIdForKelas, $isOperator);
+
+            // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+            foreach ($dataKelasObject as $kelas) {
+                $namaKelasOriginal = $kelas->NamaKelas;
+                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                $kelas->NamaKelas = $this->helpFunction->convertKelasToMda(
+                    $namaKelasOriginal,
+                    $mdaCheckResult['mappedMdaKelas']
+                );
+            }
+        }
+
+        // Cek apakah user adalah Kepala Sekolah
+        $IdGuru = session()->get('IdGuru');
+        $isKepalaSekolah = false;
+        if ($IdGuru && $IdTpq) {
+            $jabatanData = $this->helpFunction->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+            if (!empty($jabatanData)) {
+                foreach ($jabatanData as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaSekolah = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Ambil status signature untuk profil santri per kelas (untuk semua user, bukan hanya Kepala Sekolah)
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $bulkSignatureStatus = [];
+        if ($IdTahunAjaran && $IdTpq && !empty($dataKelasObject)) {
+            // Ambil semua signature untuk profil santri (cari berdasarkan IdTpq dan IdTahunAjaran)
+            // Untuk statistik, kita ambil semua signature Kepsek di TPQ ini, bukan hanya dari IdGuru tertentu
+            $allSignatures = [];
+            if (!empty($santri)) {
+                $santriIds = array_column($santri, 'IdSantri');
+
+                // Query untuk mengambil semua signature Kepsek di TPQ ini (tidak filter by IdGuru untuk statistik)
+                $allSignatures = $this->signatureModel->where([
+                    'IdTpq' => $IdTpq,
+                    'IdTahunAjaran' => $IdTahunAjaran,
+                    'JenisDokumen' => 'ProfilSantri',
+                    'SignatureData' => 'Kepsek',
+                    'StatusValidasi' => 'Valid'
+                ])->whereIn('IdSantri', $santriIds)->findAll();
+
+                // Debug: Log untuk memastikan data terambil
+                log_message('debug', 'ProfilSantri - Signature count: ' . count($allSignatures));
+                if (!empty($allSignatures)) {
+                    log_message('debug', 'ProfilSantri - First signature: ' . json_encode($allSignatures[0]));
+                }
+            }
+
+            // Hitung statistik per kelas
+            foreach ($dataKelasObject as $kelas) {
+                $kelasSantri = $santriPerKelas[$kelas->IdKelas] ?? [];
+                $totalSantri = count($kelasSantri);
+                $ttdKepsek = 0;
+
+                if ($totalSantri > 0) {
+                    $kelasSantriIds = array_column($kelasSantri, 'IdSantri');
+                    foreach ($allSignatures as $sig) {
+                        // Pastikan menggunakan array access yang benar
+                        $sigIdSantri = is_array($sig) ? ($sig['IdSantri'] ?? null) : ($sig->IdSantri ?? null);
+                        if ($sigIdSantri && in_array($sigIdSantri, $kelasSantriIds)) {
+                            $ttdKepsek++;
+                        }
+                    }
+                }
+
+                $belumTtdKepsek = $totalSantri - $ttdKepsek;
+                $allSignedKepsek = ($totalSantri > 0 && $ttdKepsek == $totalSantri);
+
+                $bulkSignatureStatus[$kelas->IdKelas] = [
+                    'total' => $totalSantri,
+                    'ttd_kepsek' => $ttdKepsek,
+                    'belum_ttd_kepsek' => $belumTtdKepsek,
+                    'all_signed_kepsek' => $allSignedKepsek
+                ];
+            }
+        }
+
         $data = [
             'page_title' => 'Profil Data Santri',
             'dataSantri' => $santri,
             'dataTpq' => $dataTpq,
-            'dataKelas' => $dataKelas,
+            'dataKelas' => $dataKelas, // Untuk filter dropdown
+            'dataKelasObject' => $dataKelasObject, // Untuk tab (object dengan IdKelas, NamaKelas)
+            'santriPerKelas' => $santriPerKelas, // Data santri yang sudah dikelompokkan per kelas
             'currentIdTpq' => $IdTpq,
             'currentIdKelas' => $IdKelas ?: $idKelasArray,
             'isAdmin' => $isAdmin,
             'isOperator' => $isOperator,
             'isGuru' => $isGuru,
             'isKepalaTpq' => $isKepalaTpq,
+            'isKepalaSekolah' => $isKepalaSekolah,
+            'bulkSignatureStatus' => $bulkSignatureStatus,
         ];
         return view('backend/santri/listDataProfilSantri', $data);
     }
 
     // Page: Profil Data Santri - Detail
-    public function profilDetailSantri($IdSantri)
-    {
-        $santri = $this->DataSantriBaru->getProfilDetailSantri($IdSantri);
-
-        if (!$santri) {
-            return redirect()->back()->with('error', 'Data santri tidak ditemukan');
-        }
-
-        $data = [
-            'page_title' => 'Profil Detail Santri',
-            'dataSantri' => $santri,
-        ];
-        return view('backend/santri/profilDatailSantri', $data);
-    }
 
     public function showAturSantriBaru()
     {
@@ -1846,6 +1944,32 @@ class Santri extends BaseController
                 'printLembagaType' => $lembagaType, // Untuk label di view
             ];
 
+            // Ambil data signature untuk kepala sekolah dari database
+            // Untuk profil santri, kita ambil signature dengan JenisDokumen 'ProfilSantri'
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $signatures = [];
+
+            if ($IdTahunAjaran) {
+                // Query khusus untuk profil santri
+                $builder = $this->signatureModel->db->table('tbl_tanda_tangan s');
+                $builder->select('s.*, j.NamaJabatan, g.Nama as NamaGuru, NULL as IdKelas');
+                $builder->join('tbl_struktur_lembaga sl', 'sl.IdGuru = s.IdGuru AND sl.IdTpq = s.IdTpq');
+                $builder->join('tbl_jabatan j', 'j.IdJabatan = sl.IdJabatan');
+                $builder->join('tbl_guru g', 'g.IdGuru = s.IdGuru');
+                $builder->where('j.NamaJabatan', 'Kepala TPQ');
+                $builder->where('s.IdSantri', $dataSantri['IdSantri']);
+                $builder->where('s.IdTpq', $idTpq);
+                $builder->where('s.IdTahunAjaran', $IdTahunAjaran);
+                $builder->where('s.JenisDokumen', 'ProfilSantri');
+                $builder->where('s.StatusValidasi', 'Valid');
+                $builder->orderBy('s.TanggalTtd', 'DESC');
+
+                $signatures = $builder->get()->getResultArray();
+            }
+
+            // Tambahkan signatures ke data
+            $data['signatures'] = $signatures;
+
             if (!empty($dataSantri['PhotoProfil'])) {
                 if (ENVIRONMENT === 'production') {
                     $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
@@ -2001,6 +2125,25 @@ class Santri extends BaseController
             $namaLembaga = $useMdaData && $mdaRow ? ($mdaRow['NamaTpq'] ?? $firstDataSantri['NamaTpq']) : $firstDataSantri['NamaTpq'];
             $printNamaKelas = $this->helpFunction->convertKelasToMda($namaKelasSantri, $mappedMdaKelas);
 
+            // Ambil data signature untuk kepala sekolah dari database (santri pertama)
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $firstSignatures = [];
+            if ($IdTahunAjaran) {
+                $builder = $this->signatureModel->db->table('tbl_tanda_tangan s');
+                $builder->select('s.*, j.NamaJabatan, g.Nama as NamaGuru, NULL as IdKelas');
+                $builder->join('tbl_struktur_lembaga sl', 'sl.IdGuru = s.IdGuru AND sl.IdTpq = s.IdTpq');
+                $builder->join('tbl_jabatan j', 'j.IdJabatan = sl.IdJabatan');
+                $builder->join('tbl_guru g', 'g.IdGuru = s.IdGuru');
+                $builder->where('j.NamaJabatan', 'Kepala TPQ');
+                $builder->where('s.IdSantri', $firstDataSantri['IdSantri']);
+                $builder->where('s.IdTpq', $idTpq);
+                $builder->where('s.IdTahunAjaran', $IdTahunAjaran);
+                $builder->where('s.JenisDokumen', 'ProfilSantri');
+                $builder->where('s.StatusValidasi', 'Valid');
+                $builder->orderBy('s.TanggalTtd', 'DESC');
+                $firstSignatures = $builder->get()->getResultArray();
+            }
+
             // Render template pertama untuk mendapatkan struktur HTML
             $firstData = [
                 'printNamaTpq' => $namaLembaga,
@@ -2034,6 +2177,7 @@ class Santri extends BaseController
                 'printTelpTpq' => $useMdaData && $mdaRow ? ($mdaRow['NoHp'] ?? $firstTpqRow['NoHp'] ?? '081234567890') : ($firstTpqRow['NoHp'] ?? '081234567890'),
                 'printEmailTpq' => $firstTpqRow['Email'] ?? $namaLembaga . '@TpqSmart.simpedis.com',
                 'printLembagaType' => $lembagaType,
+                'signatures' => $firstSignatures, // Tambahkan signatures untuk santri pertama
             ];
 
             if (!empty($firstDataSantri['PhotoProfil'])) {
@@ -2097,6 +2241,24 @@ class Santri extends BaseController
                 $namaLembaga = $useMdaData && $mdaRow ? ($mdaRow['NamaTpq'] ?? $dataSantri['NamaTpq']) : $dataSantri['NamaTpq'];
                 $printNamaKelas = $this->helpFunction->convertKelasToMda($namaKelasSantri, $mappedMdaKelas);
 
+                // Ambil data signature untuk kepala sekolah dari database
+                $signatures = [];
+                if ($IdTahunAjaran) {
+                    $builder = $this->signatureModel->db->table('tbl_tanda_tangan s');
+                    $builder->select('s.*, j.NamaJabatan, g.Nama as NamaGuru, NULL as IdKelas');
+                    $builder->join('tbl_struktur_lembaga sl', 'sl.IdGuru = s.IdGuru AND sl.IdTpq = s.IdTpq');
+                    $builder->join('tbl_jabatan j', 'j.IdJabatan = sl.IdJabatan');
+                    $builder->join('tbl_guru g', 'g.IdGuru = s.IdGuru');
+                    $builder->where('j.NamaJabatan', 'Kepala TPQ');
+                    $builder->where('s.IdSantri', $dataSantri['IdSantri']);
+                    $builder->where('s.IdTpq', $idTpq);
+                    $builder->where('s.IdTahunAjaran', $IdTahunAjaran);
+                    $builder->where('s.JenisDokumen', 'ProfilSantri');
+                    $builder->where('s.StatusValidasi', 'Valid');
+                    $builder->orderBy('s.TanggalTtd', 'DESC');
+                    $signatures = $builder->get()->getResultArray();
+                }
+
                 $data = [
                     'printNamaTpq' => $namaLembaga,
                     'printNamaKelas' => $printNamaKelas,
@@ -2129,6 +2291,7 @@ class Santri extends BaseController
                     'printTelpTpq' => $useMdaData && $mdaRow ? ($mdaRow['NoHp'] ?? $tpqRow['NoHp'] ?? '081234567890') : ($tpqRow['NoHp'] ?? '081234567890'),
                     'printEmailTpq' => $tpqRow['Email'] ?? $namaLembaga . '@TpqSmart.simpedis.com',
                     'printLembagaType' => $lembagaType,
+                    'signatures' => $signatures, // Tambahkan signatures untuk setiap santri
                 ];
 
                 if (!empty($dataSantri['PhotoProfil'])) {
@@ -2994,6 +3157,344 @@ class Santri extends BaseController
         } catch (\Exception $e) {
             log_message('error', '[deleteSantriFiles] Error: ' . $e->getMessage());
             // Tidak throw exception karena penghapusan file bukan critical error
+        }
+    }
+
+    /**
+     * Generate token unik untuk tanda tangan
+     */
+    private function generateUniqueToken()
+    {
+        do {
+            $token = base64_encode(random_bytes(24));
+            $token = str_replace(['+', '/', '='], ['-', '_', ''], $token); // URL-safe
+
+        } while ($this->signatureModel->where('Token', $token)->first());
+
+        return $token;
+    }
+
+    /**
+     * Generate QR Code untuk validasi tanda tangan
+     */
+    private function generateQRCode($token)
+    {
+        try {
+            // URL untuk validasi tanda tangan
+            $validationUrl = base_url("signature/validateSignature/{$token}");
+
+            // Buat direktori jika belum ada
+            if (!is_dir(FCPATH . 'uploads/qr')) {
+                mkdir(FCPATH . 'uploads/qr', 0777, true);
+            }
+
+            // Generate QR Code
+            $options = new \chillerlan\QRCode\QROptions([
+                'outputType' => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                'eccLevel' => \chillerlan\QRCode\Common\EccLevel::L,
+                'scale' => 300,
+                'imageBase64' => false,
+                'addQuietzone' => true,
+                'quietzoneSize' => 4,
+            ]);
+
+            $qrcode = new \chillerlan\QRCode\QRCode($options);
+            $qrString = $qrcode->render($validationUrl);
+
+            // Simpan QR code sebagai file SVG
+            $filename = 'signature_' . $token . '.svg';
+            file_put_contents(FCPATH . 'uploads/qr/' . $filename, $qrString);
+
+            return [
+                'filename' => $filename,
+                'url' => $validationUrl
+            ];
+        } catch (\Exception $e) {
+            log_message('error', 'QR Code generation failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Handle tanda tangan bulk kepala sekolah untuk profil santri
+     */
+    public function ttdBulkKepsekProfil()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $IdGuru = session()->get('IdGuru');
+
+            // Baca data dari JSON body
+            $jsonData = $this->request->getJSON(true);
+            $filterIdTpq = $jsonData['filterIdTpq'] ?? $this->request->getPost('filterIdTpq');
+            $filterIdKelas = $jsonData['filterIdKelas'] ?? $this->request->getPost('filterIdKelas');
+
+            // Gunakan filter atau session
+            $targetIdTpq = $filterIdTpq ?: $IdTpq;
+
+            // Cek permission: hanya Kepala Sekolah yang bisa tanda tangan
+            $jabatanData = $this->helpFunction->getStrukturLembagaJabatan($IdGuru, $targetIdTpq);
+            $isKepalaSekolah = false;
+            if (!empty($jabatanData)) {
+                foreach ($jabatanData as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaSekolah = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$isKepalaSekolah) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki permission untuk menandatangani sebagai kepala sekolah.'
+                ]);
+            }
+
+            // Ambil semua santri berdasarkan filter
+            $santriList = $this->DataSantriBaru->where([
+                'IdTpq' => $targetIdTpq,
+                'Active' => 1
+            ]);
+
+            if ($filterIdKelas) {
+                // Handle jika filterIdKelas adalah string dengan koma (multiple kelas)
+                if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                    $kelasArray = array_filter(explode(',', $filterIdKelas));
+                    $santriList->whereIn('IdKelas', $kelasArray);
+                } else {
+                    $santriList->where('IdKelas', $filterIdKelas);
+                }
+            }
+
+            $santriList = $santriList->findAll();
+
+            if (empty($santriList)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Tidak ada santri yang ditemukan'
+                ]);
+            }
+
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($santriList as $santri) {
+                $IdSantri = is_object($santri) ? $santri->IdSantri : $santri['IdSantri'];
+                $IdKelas = is_object($santri) ? $santri->IdKelas : $santri['IdKelas'];
+
+                // Cek apakah signature sudah ada untuk profil santri
+                $existingSignature = $this->signatureModel->where([
+                    'IdSantri' => $IdSantri,
+                    'IdTpq' => $targetIdTpq,
+                    'IdTahunAjaran' => $IdTahunAjaran,
+                    'IdGuru' => $IdGuru,
+                    'JenisDokumen' => 'ProfilSantri',
+                    'SignatureData' => 'Kepsek',
+                    'StatusValidasi' => 'Valid'
+                ])->first();
+
+                // Skip jika sudah ada
+                if ($existingSignature) {
+                    continue;
+                }
+
+                // Generate token unik
+                $token = $this->generateUniqueToken();
+
+                // Data untuk disimpan
+                $signatureData = [
+                    'Token' => $token,
+                    'IdSantri' => $IdSantri,
+                    'IdKelas' => $IdKelas,
+                    'IdTahunAjaran' => $IdTahunAjaran,
+                    'Semester' => '1', // Default semester 1 untuk profil santri
+                    'IdGuru' => $IdGuru,
+                    'IdTpq' => $targetIdTpq,
+                    'JenisDokumen' => 'ProfilSantri', // Pastikan ini tersimpan
+                    'SignatureData' => 'Kepsek',
+                    'StatusValidasi' => 'Valid',
+                    'TanggalTtd' => date('Y-m-d H:i:s')
+                ];
+
+                // Debug: Log data sebelum insert
+                log_message('debug', 'ProfilSantri - Inserting signature data for IdSantri: ' . $IdSantri . ' - Data: ' . json_encode($signatureData));
+
+                // Simpan data tanda tangan
+                $IdSignature = $this->signatureModel->insert($signatureData);
+
+                // Debug: Log hasil insert
+                if ($IdSignature) {
+                    log_message('debug', 'ProfilSantri - Signature inserted with ID: ' . $IdSignature);
+
+                    // Verifikasi data yang tersimpan
+                    $savedData = $this->signatureModel->find($IdSignature);
+                    if ($savedData) {
+                        log_message('debug', 'ProfilSantri - Saved signature data: ' . json_encode($savedData));
+                        // Cek apakah JenisDokumen tersimpan
+                        $savedJenisDokumen = is_array($savedData) ? ($savedData['JenisDokumen'] ?? null) : ($savedData->JenisDokumen ?? null);
+                        if (empty($savedJenisDokumen)) {
+                            log_message('error', 'ProfilSantri - WARNING: JenisDokumen is empty after insert!');
+                        }
+                    }
+
+                    // Generate QR Code
+                    $qrCodeData = $this->generateQRCode($token);
+
+                    if ($qrCodeData) {
+                        // Update data tanda tangan dengan nama file QR
+                        $this->signatureModel->where('Id', $IdSignature)
+                            ->set(['QrCode' => $qrCodeData['filename']])
+                            ->update();
+                        $successCount++;
+                    } else {
+                        $errorCount++;
+                        $errors[] = "Gagal membuat QR Code untuk santri: {$IdSantri}";
+                    }
+                } else {
+                    $errorCount++;
+                    $modelErrors = $this->signatureModel->errors();
+                    log_message('error', 'ProfilSantri - Failed to insert signature for IdSantri: ' . $IdSantri . ' - Errors: ' . json_encode($modelErrors));
+                    $errors[] = "Gagal menyimpan tanda tangan untuk santri: {$IdSantri}. " . (!empty($modelErrors) ? json_encode($modelErrors) : '');
+                }
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => "Tanda tangan kepala sekolah berhasil dibuat untuk {$successCount} profil santri" . ($errorCount > 0 ? ". {$errorCount} gagal." : "."),
+                'successCount' => $successCount,
+                'errorCount' => $errorCount,
+                'errors' => $errors
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: ttdBulkKepsekProfil - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Batalkan/hapus tanda tangan bulk kepala sekolah untuk profil santri
+     */
+    public function cancelBulkKepsekProfil()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $IdGuru = session()->get('IdGuru');
+
+            // Baca data dari JSON body
+            $jsonData = $this->request->getJSON(true);
+            $filterIdTpq = $jsonData['filterIdTpq'] ?? $this->request->getPost('filterIdTpq');
+            $filterIdKelas = $jsonData['filterIdKelas'] ?? $this->request->getPost('filterIdKelas');
+
+            // Gunakan filter atau session
+            $targetIdTpq = $filterIdTpq ?: $IdTpq;
+
+            // Cek permission: hanya Kepala Sekolah yang bisa membatalkan tanda tangan
+            $jabatanData = $this->helpFunction->getStrukturLembagaJabatan($IdGuru, $targetIdTpq);
+            $isKepalaSekolah = false;
+            if (!empty($jabatanData)) {
+                foreach ($jabatanData as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaSekolah = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$isKepalaSekolah) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki permission untuk membatalkan tanda tangan sebagai kepala sekolah.'
+                ]);
+            }
+
+            // Ambil semua santri berdasarkan filter
+            $santriList = $this->DataSantriBaru->where([
+                'IdTpq' => $targetIdTpq,
+                'Active' => 1
+            ]);
+
+            if ($filterIdKelas) {
+                // Handle jika filterIdKelas adalah string dengan koma (multiple kelas)
+                if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                    $kelasArray = array_filter(explode(',', $filterIdKelas));
+                    $santriList->whereIn('IdKelas', $kelasArray);
+                } else {
+                    $santriList->where('IdKelas', $filterIdKelas);
+                }
+            }
+
+            $santriList = $santriList->findAll();
+
+            if (empty($santriList)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Tidak ada santri yang ditemukan'
+                ]);
+            }
+
+            $santriIds = array_column($santriList, 'IdSantri');
+
+            // Ambil signature yang akan dihapus untuk mendapatkan QR code
+            $signatures = $this->signatureModel->where([
+                'IdTpq' => $targetIdTpq,
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'IdGuru' => $IdGuru,
+                'JenisDokumen' => 'ProfilSantri',
+                'SignatureData' => 'Kepsek',
+                'StatusValidasi' => 'Valid'
+            ])->whereIn('IdSantri', $santriIds)->findAll();
+
+            // Hapus file QR code yang terkait
+            foreach ($signatures as $signature) {
+                if (!empty($signature['QrCode'])) {
+                    $qrFilePath = FCPATH . 'uploads/qr/' . $signature['QrCode'];
+                    if (file_exists($qrFilePath)) {
+                        unlink($qrFilePath);
+                    }
+                }
+            }
+
+            // Hapus semua signature yang sesuai
+            $deletedCount = $this->signatureModel->where([
+                'IdTpq' => $targetIdTpq,
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'IdGuru' => $IdGuru,
+                'JenisDokumen' => 'ProfilSantri',
+                'SignatureData' => 'Kepsek',
+                'StatusValidasi' => 'Valid'
+            ])->whereIn('IdSantri', $santriIds)->delete();
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => "Tanda tangan kepala sekolah berhasil dibatalkan untuk {$deletedCount} profil santri"
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: cancelBulkKepsekProfil - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
         }
     }
 }

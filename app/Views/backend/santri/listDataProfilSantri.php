@@ -19,38 +19,44 @@
                     <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
                     <ol class="mb-4">
                         <li class="mb-2">
-                            <strong>Filter Data:</strong> Gunakan filter di atas tabel untuk menyaring data santri:
+                            <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dikelola. Setiap tab menampilkan santri dari kelas yang berbeda. Tab aktif akan tersimpan otomatis, sehingga saat refresh halaman, tab yang terakhir dipilih akan tetap aktif.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Lihat Daftar Santri:</strong> Tabel menampilkan daftar santri per kelas dengan informasi:
                             <ul class="mt-2">
-                                <li><strong>Filter TPQ:</strong> Pilih TPQ untuk menampilkan santri dari TPQ tertentu. Format tampilan: "Nama TPQ - Kelurahan/Desa" untuk memudahkan pemilihan TPQ dengan nama yang sama.</li>
-                                <li><strong>Filter Kelas:</strong> Pilih kelas untuk menampilkan santri dari kelas tertentu. Pilih "Semua Kelas" untuk menampilkan semua kelas.</li>
-                                <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-filter"></i> Filter</span> untuk menerapkan filter yang dipilih.</li>
-                                <li>Klik tombol <span class="badge badge-secondary"><i class="fas fa-redo"></i> Reset</span> untuk menghapus semua filter dan menampilkan semua data.</li>
+                                <li><strong>No:</strong> Nomor urut santri</li>
+                                <li><strong>Aksi:</strong> Tombol untuk mencetak profil individual</li>
+                                <li><strong>Nama:</strong> Nama lengkap santri dengan Id Santri di bawahnya</li>
                             </ul>
+                            Tabel dapat di-scroll horizontal jika kolom banyak.
                         </li>
                         <li class="mb-2">
-                            <strong>Lihat Daftar Santri:</strong> Tabel menampilkan daftar santri berdasarkan filter yang dipilih dengan informasi dasar
-                            (IdSantri, Nama, Kelurahan/Desa, TPQ, Kelas, Status). Tabel dapat di-scroll horizontal jika kolom banyak.
-                        </li>
-                        <li class="mb-2">
-                            <strong>Search & Sort:</strong> Gunakan search box DataTable untuk mencari santri berdasarkan nama, IdSantri, TPQ, atau kolom lainnya.
+                            <strong>Search & Sort:</strong> Gunakan search box DataTable untuk mencari santri berdasarkan nama atau Id Santri.
                             Data dapat diurutkan dengan mengklik header kolom.
                         </li>
                         <li class="mb-2">
-                            <strong>Lihat Detail Profil:</strong> Klik tombol <span class="badge badge-info"><i class="fas fa-eye"></i> Profil</span>
-                            pada kolom "Aksi" untuk melihat detail lengkap profil santri, termasuk:
+                            <strong>Card Tanda Tangan QR:</strong>
                             <ul class="mt-2">
-                                <li>Data pribadi santri lengkap</li>
-                                <li>Data orang tua/wali</li>
-                                <li>Data alamat lengkap</li>
-                                <li>Foto profil</li>
-                                <li>Riwayat pendidikan</li>
+                                <li>Card ini menampilkan statistik tanda tangan untuk setiap kelas (Sudah TTD / Belum TTD)</li>
+                                <li><strong>Untuk Kepala Sekolah:</strong> Dapat mengklik tombol <span class="badge badge-warning"><i class="fas fa-signature"></i> Tanda Tangan Semua</span> untuk menandatangani semua profil santri dalam kelas tersebut secara bulk.</li>
+                                <li>Tombol akan berubah menjadi <span class="badge badge-danger"><i class="fas fa-times-circle"></i> Batalkan TTD QR</span> jika semua profil sudah ditandatangani.</li>
+                                <li><strong>Untuk User Lain:</strong> Card tetap terlihat untuk melihat statistik, namun tombol akan terkunci dengan informasi bahwa hanya Kepala Sekolah yang dapat melakukan tanda tangan.</li>
+                            </ul>
+                            <small class="text-muted">Catatan: Tanda tangan dilakukan secara bulk untuk semua santri dalam kelas. Setiap profil yang ditandatangani akan memiliki QR code yang dapat divalidasi.</small>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Card Cetak Semua Profil:</strong>
+                            <ul class="mt-2">
+                                <li>Card ini menampilkan informasi tentang pencetakan profil untuk kelas yang dipilih</li>
+                                <li>Menampilkan status apakah profil akan dicetak <strong>dengan tandatangan QR</strong> (jika sudah ditandatangani) atau <strong>tanpa tandatangan QR</strong> (jika belum ditandatangani)</li>
+                                <li>Klik tombol <span class="badge badge-warning"><i class="fas fa-print"></i> Cetak Semua Profil</span> untuk mencetak semua profil santri dalam kelas tersebut dalam satu file PDF</li>
                             </ul>
                         </li>
                         <li class="mb-2">
                             <strong>Print Profil:</strong>
                             <ul class="mt-2">
-                                <li><strong>Print Individual:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-print"></i> Print</span> pada kolom "Aksi" untuk mencetak profil santri individual dalam format PDF.</li>
-                                <li><strong>Print All Profil:</strong> Klik tombol <span class="badge badge-success"><i class="fas fa-print"></i> Print All Profil</span> di form filter untuk mencetak semua profil santri berdasarkan filter yang dipilih dalam satu file PDF.</li>
+                                <li><strong>Print Individual:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-print"></i> Print</span> pada kolom "Aksi" untuk mencetak profil santri individual dalam format PDF. Profil akan dicetak dengan QR code jika sudah ditandatangani.</li>
+                                <li><strong>Print All Profil:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-print"></i> Cetak Semua Profil</span> di card untuk mencetak semua profil santri dalam kelas tersebut dalam satu file PDF dengan page break otomatis.</li>
                             </ul>
                         </li>
                     </ol>
@@ -58,12 +64,15 @@
                     <div class="alert alert-info mb-0">
                         <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
                         <ul class="mb-0">
-                            <li>Halaman ini menampilkan <strong>ringkasan profil</strong> santri. Untuk melihat detail lengkap, klik tombol <span class="badge badge-info"><i class="fas fa-eye"></i> Profil</span>.</li>
-                            <li>Data ditampilkan berdasarkan <strong>TPQ</strong> dan <strong>Kelas</strong> yang sesuai dengan akses user Anda. Admin dapat memilih semua TPQ, sedangkan user lain hanya melihat TPQ mereka sendiri.</li>
-                            <li>Kolom "Status" menunjukkan status verifikasi santri (<span class="badge bg-warning">Belum Diverifikasi</span>, <span class="badge bg-danger">Perlu Perbaikan</span>, <span class="badge bg-success">Terverifikasi</span>).</li>
+                            <li>Halaman ini menampilkan <strong>ringkasan profil</strong> santri yang dikelompokkan per kelas menggunakan tab. Setiap kelas memiliki tab sendiri.</li>
+                            <li>Data ditampilkan berdasarkan <strong>TPQ</strong> dan <strong>Kelas</strong> yang sesuai dengan akses user Anda.</li>
+                            <li>Tabel menampilkan informasi sederhana: <strong>No, Aksi, dan Nama</strong> (dengan Id Santri di bawahnya).</li>
                             <li>Gunakan fitur <strong>pagination</strong> di DataTable untuk navigasi halaman jika data banyak (default: 25 data per halaman).</li>
-                            <li>Filter TPQ menampilkan format "Nama TPQ - Kelurahan/Desa" untuk memudahkan pemilihan TPQ dengan nama yang sama.</li>
-                            <li>Tombol <strong>Print All Profil</strong> akan mencetak semua profil santri yang sesuai dengan filter yang dipilih dalam satu file PDF dengan page break otomatis.</li>
+                            <li>Tab aktif akan tersimpan di localStorage, sehingga saat refresh halaman, tab yang terakhir dipilih akan tetap aktif.</li>
+                            <li>Card <strong>Tanda Tangan QR</strong> dan <strong>Cetak Semua Profil</strong> menggunakan layout setengah lebar (col-md-6) dan berdampingan.</li>
+                            <li>Card statistik menampilkan informasi real-time tentang status tanda tangan untuk setiap kelas.</li>
+                            <li>QR code di PDF dapat diklik dan akan mengarah ke halaman validasi tanda tangan digital.</li>
+                            <li>Profil yang sudah ditandatangani akan memiliki QR code di PDF, sedangkan yang belum ditandatangani tidak akan memiliki QR code.</li>
                         </ul>
                     </div>
                 </div>
@@ -76,208 +85,384 @@
             <h3 class="card-title">Profil Data Santri</h3>
         </div>
         <div class="card-body">
-            <!-- Filter Form -->
-            <form id="filterForm" method="GET" action="<?= base_url('backend/santri/showProfilSantri') ?>" class="mb-3">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="filterIdTpq">Filter TPQ</label>
-                            <select class="form-control select2" id="filterIdTpq" name="filterIdTpq" style="width: 100%;" <?= !$isAdmin ? 'disabled' : '' ?>>
-                                <?php if ($isAdmin): ?>
-                                    <option value="">Semua TPQ</option>
-                                    <?php foreach ($dataTpq as $tpq): ?>
-                                        <?php
-                                        $displayText = esc($tpq['NamaTpq']);
-                                        if (!empty($tpq['KelurahanDesa'])) {
-                                            $displayText .= ' - ' . esc($tpq['KelurahanDesa']);
-                                        }
-                                        ?>
-                                        <option value="<?= $tpq['IdTpq'] ?>" <?= ($currentIdTpq == $tpq['IdTpq']) ? 'selected' : '' ?>>
-                                            <?= $displayText ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <?php
-                                    // Untuk non-Admin, tampilkan hanya TPQ mereka sendiri
-                                    $userTpq = null;
-                                    foreach ($dataTpq as $tpq) {
-                                        if ($tpq['IdTpq'] == $currentIdTpq) {
-                                            $userTpq = $tpq;
-                                            break;
-                                        }
-                                    }
-                                    if ($userTpq):
-                                        $displayText = esc($userTpq['NamaTpq']);
-                                        if (!empty($userTpq['KelurahanDesa'])) {
-                                            $displayText .= ' - ' . esc($userTpq['KelurahanDesa']);
-                                        }
-                                    ?>
-                                        <option value="<?= $userTpq['IdTpq'] ?>" selected>
-                                            <?= $displayText ?>
-                                        </option>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                            </select>
-                            <?php if (!$isAdmin): ?>
-                                <input type="hidden" name="filterIdTpq" value="<?= $currentIdTpq ?>">
-                            <?php endif; ?>
-                        </div>
+            <!-- Tab Navigation -->
+            <?php if (!empty($dataKelasObject)): ?>
+                <div class="card card-primary card-tabs">
+                    <div class="card-header p-0 pt-1">
+                        <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="kelasTab" role="tablist">
+                            <?php foreach ($dataKelasObject as $index => $kelas) : ?>
+                                <li class="nav-item flex-fill mx-1 my-md-0 my-1">
+                                    <a class="nav-link border-white text-center <?= $index === 0 ? 'active' : '' ?>"
+                                        id="tab-<?= $kelas->IdKelas ?>"
+                                        data-toggle="tab"
+                                        href="#kelas-<?= $kelas->IdKelas ?>"
+                                        role="tab"
+                                        aria-controls="kelas-<?= $kelas->IdKelas ?>"
+                                        aria-selected="<?= $index === 0 ? 'true' : 'false' ?>">
+                                        <?= esc($kelas->NamaKelas) ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
                     </div>
+                    <br>
+                    <div class="card-body">
+                        <div class="tab-content" id="kelasTabContent">
+                            <?php foreach ($dataKelasObject as $index => $kelas) : ?>
+                                <div class="tab-pane fade <?= $index === 0 ? 'show active' : '' ?>"
+                                    id="kelas-<?= $kelas->IdKelas ?>"
+                                    role="tabpanel"
+                                    aria-labelledby="tab-<?= $kelas->IdKelas ?>">
+                                    <div class="table-responsive">
+                                        <div class="mb-3">
+                                            <div class="row">
+                                                <?php
+                                                // Cek status tanda tangan bulk untuk kelas ini
+                                                $bulkStatus = $bulkSignatureStatus[$kelas->IdKelas] ?? null;
+                                                $allSignedKepsek = $bulkStatus && $bulkStatus['all_signed_kepsek'];
+                                                $totalSantri = $bulkStatus['total'] ?? 0;
+                                                $ttdKepsek = $bulkStatus['ttd_kepsek'] ?? 0;
+                                                $belumTtdKepsek = $bulkStatus['belum_ttd_kepsek'] ?? 0;
+                                                ?>
 
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="filterIdKelas">Filter Kelas</label>
-                            <select class="form-control select2" id="filterIdKelas" name="filterIdKelas" style="width: 100%;">
-                                <option value="">Semua Kelas</option>
-                                <?php foreach ($dataKelas as $kelas): ?>
-                                    <?php
-                                    $selected = false;
-                                    if (is_array($currentIdKelas)) {
-                                        // Jika array, ambil yang pertama atau cek apakah ada di array
-                                        $selected = in_array($kelas['IdKelas'], $currentIdKelas);
-                                    } else if ($currentIdKelas !== null) {
-                                        $selected = ($currentIdKelas == $kelas['IdKelas']);
-                                    }
-                                    ?>
-                                    <option value="<?= $kelas['IdKelas'] ?>" <?= $selected ? 'selected' : '' ?>>
-                                        <?= esc($kelas['NamaKelas']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="info-box <?= $allSignedKepsek ? 'bg-gradient-success' : 'bg-gradient-info' ?> shadow-sm">
+                                                        <span class="info-box-icon">
+                                                            <i class="fas fa-qrcode"></i>
+                                                        </span>
+                                                        <div class="info-box-content">
+                                                            <span class="info-box-text">
+                                                                <?= $allSignedKepsek ? 'Batalkan TTD QR' : 'Tanda Tangan QR' ?>
+                                                                <br><small>Kepala Sekolah - Kelas <?= esc($kelas->NamaKelas) ?></small>
+                                                            </span>
+                                                            <div class="row mt-2">
+                                                                <div class="col-6">
+                                                                    <div class="text-center">
+                                                                        <span class="info-box-number" style="font-size: 1.5rem;"><?= $ttdKepsek ?></span>
+                                                                        <small>Sudah TTD</small>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <div class="text-center">
+                                                                        <span class="info-box-number" style="font-size: 1.5rem;"><?= $belumTtdKepsek ?></span>
+                                                                        <small>Belum TTD</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <?php if (!$isKepalaSekolah): ?>
+                                                                    <button type="button" class="btn btn-secondary btn-sm btn-block" disabled>
+                                                                        <i class="fas fa-lock"></i> Tanda Tangan Terkunci
+                                                                    </button>
+                                                                    <div class="mt-2">
+                                                                        <small class="text-muted">
+                                                                            <i class="fas fa-info-circle"></i> Hanya Kepala Sekolah yang dapat melakukan tanda tangan QR
+                                                                        </small>
+                                                                    </div>
+                                                                <?php elseif ($allSignedKepsek): ?>
+                                                                    <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-kepsek-profil"
+                                                                        data-tpq="<?= $currentIdTpq ?>"
+                                                                        data-kelas="<?= $kelas->IdKelas ?>">
+                                                                        <i class="fas fa-times-circle"></i> Batalkan TTD QR
+                                                                    </button>
+                                                                    <div class="mt-2">
+                                                                        <small>Info: Untuk membatalkan tanda tangan semua profil, silahkan klik tombol <span class="badge badge-danger"><i class="fas fa-times-circle"></i> Batalkan TTD</span> di card</small>
+                                                                    </div>
+                                                                <?php else: ?>
+                                                                    <button type="button" class="btn btn-warning btn-sm btn-block btn-ttd-bulk-kepsek-profil"
+                                                                        data-tpq="<?= $currentIdTpq ?>"
+                                                                        data-kelas="<?= $kelas->IdKelas ?>">
+                                                                        <i class="fas fa-signature"></i> Tanda Tangan Semua
+                                                                    </button>
+                                                                    <div class="mt-2">
+                                                                        <small>Info: Untuk menandatangani semua profil, silahkan klik tombol <span class="badge badge-warning"><i class="fas fa-signature"></i> Tanda Tangan Semua</span> di card</small>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label>&nbsp;</label>
-                            <div>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-filter"></i> Filter
-                                </button>
-                                <a href="<?= base_url('backend/santri/showProfilSantri') ?>" class="btn btn-secondary">
-                                    <i class="fas fa-redo"></i> Reset
-                                </a>
-                                <button type="button" class="btn btn-success" id="btnPrintAll" onclick="printAllProfil()">
-                                    <i class="fas fa-print"></i> Print All Profil
-                                </button>
-                            </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="info-box bg-gradient-primary shadow-sm">
+                                                        <span class="info-box-icon">
+                                                            <i class="fas fa-print"></i>
+                                                        </span>
+                                                        <div class="info-box-content">
+                                                            <span class="info-box-text">
+                                                                Cetak Semua Profil
+                                                                <br><small>Kelas <?= esc($kelas->NamaKelas) ?></small>
+                                                            </span>
+                                                            <div class="mt-2">
+                                                                <?php if ($allSignedKepsek): ?>
+                                                                    <div class="alert alert-success py-2 mb-2" style="font-size: 0.85rem;">
+                                                                        <i class="fas fa-check-circle"></i> <strong>Akan dicetak dengan tandatangan QR</strong>
+                                                                    </div>
+                                                                <?php else: ?>
+                                                                    <div class="alert alert-warning py-2 mb-2" style="font-size: 0.85rem;">
+                                                                        <i class="fas fa-exclamation-triangle"></i> <strong>Akan dicetak tanpa tandatangan QR</strong>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                                <button type="button"
+                                                                    class="btn btn-warning btn-sm btn-block btn-print-all-profil"
+                                                                    data-tpq="<?= $currentIdTpq ?>"
+                                                                    data-kelas="<?= $kelas->IdKelas ?>">
+                                                                    <i class="fas fa-print"></i> Cetak Semua Profil
+                                                                </button>
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <small>Info: Untuk mencetak semua profil santri dalam kelas ini, silahkan klik tombol <span class="badge badge-warning"><i class="fas fa-print"></i> Cetak Semua Profil</span> di card. atau klik tombol <span class="badge badge-primary"><i class="fas fa-print"></i> Print</span> pada kolom Aksi untuk mencetak profil individual.</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <table class="table table-bordered table-striped" id="tableSantri-<?= $kelas->IdKelas ?>">
+                                            <thead>
+                                                <tr>
+                                                    <th>No</th>
+                                                    <th>Aksi</th>
+                                                    <th>Nama</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php
+                                                $no = 1;
+                                                $kelasSantri = $santriPerKelas[$kelas->IdKelas] ?? [];
+                                                foreach ($kelasSantri as $santri) : ?>
+                                                    <tr>
+                                                        <td><?= $no++ ?></td>
+                                                        <td>
+                                                            <a href="<?= base_url('backend/santri/generatePDFprofilSantriRaport/' . $santri['IdSantri']); ?>" target="_blank" class="btn btn-primary btn-sm">
+                                                                <i class="fas fa-print"></i><span class="d-none d-md-inline">&nbsp;Print</span>
+                                                            </a>
+                                                        </td>
+                                                        <td>
+                                                            <div>
+                                                                <strong><?= ucwords(strtolower($santri['NamaSantri'])); ?></strong>
+                                                            </div>
+                                                            <div>
+                                                                <small class="text-muted">Id Santri: <?= $santri['IdSantri']; ?></small>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>
-            </form>
-
-            <div class="table-responsive">
-                <table id="tblProfilSantri" class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Aksi</th>
-                            <th>IdSantri</th>
-                            <th>Nama</th>
-                            <th>Kelurahan/Desa</th>
-                            <th>TPQ</th>
-                            <th>Kelas</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($dataSantri as $santri) : ?>
-                            <tr>
-                                <td>
-                                    <a href="<?= base_url('backend/santri/profilDetailSantri/' . $santri['IdSantri']); ?>" class="btn btn-info btn-sm">
-                                        <i class="fas fa-eye"></i><span class="d-none d-md-inline">&nbsp;Profil</span>
-                                    </a>
-                                    <a href="<?= base_url('backend/santri/generatePDFprofilSantriRaport/' . $santri['IdSantri']); ?>" target="_blank" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-print"></i><span class="d-none d-md-inline">&nbsp;Print</span>
-                                    </a>
-                                </td>
-                                <td><?= $santri['IdSantri']; ?></td>
-                                <td><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
-                                <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
-                                <td><?= preg_replace_callback('/\b(al|el|ad|ar|at|an)-(\w+)/i', function ($matches) {
-                                        return ucfirst(strtolower($matches[1])) . '-' . ucfirst($matches[2]);
-                                    }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
-                                <td><?= $santri['NamaKelas']; ?></td>
-                                <td>
-                                    <?php if ($santri['Status'] == "Belum Diverifikasi"): ?>
-                                        <span class="badge bg-warning"><?= $santri['Status']; ?></span>
-                                    <?php elseif ($santri['Status'] == "Perlu Perbaikan"): ?>
-                                        <span class="badge bg-danger"><?= $santri['Status']; ?></span>
-                                    <?php else: ?>
-                                        <span class="badge bg-success"><?= $santri['Status']; ?></span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th>Aksi</th>
-                            <th>IdSantri</th>
-                            <th>Nama</th>
-                            <th>Kelurahan/Desa</th>
-                            <th>TPQ</th>
-                            <th>Kelas</th>
-                            <th>Status</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
+            <?php else: ?>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Tidak ada data santri untuk ditampilkan.
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
 <script>
-    // Initialize Select2 untuk filter dropdown
-    $(document).ready(function() {
-        $('.select2').select2({
-            theme: 'bootstrap4',
-            placeholder: 'Pilih...',
-            allowClear: true
-        });
+    // Initialize DataTable untuk setiap kelas
+    <?php if (!empty($dataKelasObject)): ?>
+        <?php foreach ($dataKelasObject as $kelas): ?>
+            initializeDataTableUmum("#tableSantri-<?= $kelas->IdKelas ?>", true, true);
+        <?php endforeach; ?>
+    <?php endif; ?>
 
-        // Handle disabled select untuk Select2
-        const tpqSelect = $('#filterIdTpq');
-        if (tpqSelect.prop('disabled')) {
-            tpqSelect.next('.select2-container').css('opacity', '0.6');
-        }
+    // Simpan tab aktif ke localStorage saat tab diklik
+    $('#kelasTab a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+        const targetTab = $(e.target).attr('href'); // e.g., #kelas-123
+        const storageKey = 'profil_santri_active_tab_<?= $currentIdTpq ?>';
+        localStorage.setItem(storageKey, targetTab);
     });
 
-    // Function untuk print all profil berdasarkan filter
-    function printAllProfil() {
-        // Ambil nilai filter dari form
-        // Jika select disabled, ambil dari hidden input atau select value
-        let filterIdTpq = '';
-        const tpqSelect = $('#filterIdTpq');
-        if (tpqSelect.prop('disabled')) {
-            // Jika disabled, ambil dari hidden input atau value select
-            const hiddenInput = $('input[name="filterIdTpq"]');
-            filterIdTpq = hiddenInput.length ? hiddenInput.val() : tpqSelect.val();
-        } else {
-            filterIdTpq = tpqSelect.val() || '';
+    // Pulihkan tab aktif dari localStorage saat halaman dimuat
+    const storageKey = 'profil_santri_active_tab_<?= $currentIdTpq ?>';
+    const savedTab = localStorage.getItem(storageKey);
+    if (savedTab) {
+        // Cek apakah tab yang disimpan masih ada di halaman
+        const tabExists = $(savedTab).length > 0;
+        if (tabExists) {
+            // Aktifkan tab yang disimpan
+            const tabLink = $('#kelasTab a[href="' + savedTab + '"]');
+            if (tabLink.length > 0) {
+                tabLink.tab('show');
+            }
         }
+    }
 
-        const filterIdKelas = $('#filterIdKelas').val() || '';
+    // Handle tanda tangan bulk kepala sekolah untuk profil santri
+    $(document).on('click', '.btn-ttd-bulk-kepsek-profil', function() {
+        const IdTpq = $(this).data('tpq');
+        const IdKelas = $(this).data('kelas');
+        const btn = $(this);
+
+        // Hitung jumlah santri dari tabel kelas yang sesuai
+        const tableId = '#tableSantri-' + IdKelas;
+        const jumlahSantri = $(tableId + ' tbody tr').length;
+
+        Swal.fire({
+            title: 'Konfirmasi Tanda Tangan Kepala Sekolah',
+            html: '<div class="text-left">' +
+                '<p><strong>Jenis Dokumen:</strong> Profil Santri</p>' +
+                '<p><strong>Jumlah Profil:</strong> ' + jumlahSantri + ' profil</p>' +
+                '<p class="mt-3">Apakah Anda yakin ingin menandatangani semua profil santri dalam filter ini sebagai Kepala Sekolah?</p>' +
+                '</div>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Tandatangani',
+            cancelButtonText: 'Batal',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return fetch('<?= base_url('backend/santri/ttdBulkKepsekProfil') ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            filterIdTpq: IdTpq,
+                            filterIdKelas: IdKelas
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat memproses tanda tangan',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        });
+    });
+
+    // Handle cancel tanda tangan bulk kepala sekolah untuk profil santri
+    $(document).on('click', '.btn-cancel-ttd-kepsek-profil', function() {
+        const IdTpq = $(this).data('tpq');
+        const IdKelas = $(this).data('kelas');
+        const btn = $(this);
+
+        // Hitung jumlah santri dari tabel kelas yang sesuai
+        const tableId = '#tableSantri-' + IdKelas;
+        const jumlahSantri = $(tableId + ' tbody tr').length;
+
+        Swal.fire({
+            title: 'Konfirmasi Batalkan Tanda Tangan Kepala Sekolah',
+            html: '<div class="text-left">' +
+                '<p><strong>Jenis Dokumen:</strong> Profil Santri</p>' +
+                '<p><strong>Jumlah Profil:</strong> ' + jumlahSantri + ' profil</p>' +
+                '<p class="mt-3 text-danger"><strong>Peringatan:</strong> Tanda tangan yang sudah dibuat akan dihapus dari database dan tidak dapat dikembalikan.</p>' +
+                '<p class="mt-2">Apakah Anda yakin ingin membatalkan semua tanda tangan kepala sekolah untuk profil santri ini?</p>' +
+                '</div>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Batalkan',
+            cancelButtonText: 'Tidak',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return fetch('<?= base_url('backend/santri/cancelBulkKepsekProfil') ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            filterIdTpq: IdTpq,
+                            filterIdKelas: IdKelas
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat memproses pembatalan tanda tangan',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        });
+    });
+
+    // Handle print all profil per kelas
+    $(document).on('click', '.btn-print-all-profil', function() {
+        const IdTpq = $(this).data('tpq');
+        const IdKelas = $(this).data('kelas');
+
+        // Hitung jumlah santri dari tabel kelas yang sesuai
+        const tableId = '#tableSantri-' + IdKelas;
+        const jumlahSantri = $(tableId + ' tbody tr').length;
+
+        if (jumlahSantri === 0) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Tidak ada profil santri untuk dicetak',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
 
         // Build URL dengan parameter filter
         let url = '<?= base_url('backend/santri/generatePDFAllProfilSantri') ?>?';
-
-        if (filterIdTpq) {
-            url += 'filterIdTpq=' + encodeURIComponent(filterIdTpq) + '&';
-        }
-
-        // Handle single select (bukan array)
-        if (filterIdKelas && filterIdKelas !== '') {
-            url += 'filterIdKelas=' + encodeURIComponent(filterIdKelas) + '&';
-        }
-
-        // Hapus trailing & jika ada
-        url = url.replace(/[&?]$/, '');
+        url += 'filterIdTpq=' + encodeURIComponent(IdTpq) + '&';
+        url += 'filterIdKelas=' + encodeURIComponent(IdKelas);
 
         // Show loading indicator
         Swal.fire({
             title: 'Memproses...',
-            text: 'Sedang membuat PDF untuk semua profil santri',
+            text: 'Sedang membuat PDF untuk semua profil santri kelas ini',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -301,20 +486,6 @@
                 Swal.close();
             }, 2000);
         }
-    }
-
-    // Initialize DataTable dengan scroll horizontal dan export buttons
-    initializeDataTableScrollX("#tblProfilSantri", {
-        "pageLength": 25,
-        "lengthChange": true,
-        "order": [
-            [1, 'asc']
-        ], // Sort by IdSantri
-        "columnDefs": [{
-            "targets": [0], // Kolom Aksi
-            "orderable": false,
-            "searchable": false
-        }]
     });
 </script>
 <?= $this->endSection(); ?>
