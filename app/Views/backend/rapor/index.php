@@ -23,35 +23,50 @@
                             <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dikelola.
                         </li>
                         <li class="mb-2">
-                            <strong>Atur Absensi:</strong> Klik checkbox <span class="badge badge-info">Absensi</span> pada baris santri untuk mengisi data absensi (Izin, Alfa, Sakit).
-                            Anda dapat menggunakan tombol <span class="badge badge-info"><i class="fas fa-sync-alt"></i> Generate</span> untuk mengambil data dari tabel absensi otomatis.
+                            <strong>Lihat Statistik:</strong> Di bagian atas setiap kelas, terdapat card informasi yang menampilkan:
+                            <ul class="mt-2">
+                                <li><strong>Card Tanda Tangan:</strong> Menampilkan jumlah rapor yang sudah dan belum ditandatangani oleh Wali Kelas atau Kepala Sekolah</li>
+                                <li><strong>Card Cetak:</strong> Menampilkan jumlah rapor yang akan dicetak</li>
+                                <li><strong>Card Catatan & Absensi:</strong> Menampilkan tabel statistik jumlah santri yang sudah dan belum mengisi catatan/absensi</li>
+                            </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Atur Catatan:</strong> Klik checkbox <span class="badge badge-success">Catatan</span> pada baris santri untuk mengatur catatan rapor.
+                            <strong>Atur Absensi:</strong> Klik toggle switch <span class="badge badge-info">Absensi</span> pada kolom Aksi untuk mengisi data absensi (Izin, Alfa, Sakit).
+                            Toggle switch akan berubah warna menjadi hijau saat aktif. Anda dapat menggunakan tombol <span class="badge badge-info"><i class="fas fa-sync-alt"></i> Generate</span> di modal untuk mengambil data dari tabel absensi otomatis.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Atur Catatan:</strong> Klik toggle switch <span class="badge badge-success">Catatan</span> pada kolom Aksi untuk mengatur catatan rapor.
                             Sistem akan menampilkan catatan default berdasarkan nilai rata-rata santri. Jika tersedia beberapa opsi catatan (Spesifik Kelas, Spesifik TPQ, Umum),
                             Anda dapat memilih dari dropdown. Anda juga dapat menambahkan catatan khusus dari wali kelas.
                         </li>
                         <li class="mb-2">
-                            <strong>Cetak Rapor:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-print"></i> Cetak Rapor</span> untuk mencetak rapor individual,
-                            atau <span class="badge badge-primary"><i class="fas fa-print"></i> Cetak Semua Rapor Kelas</span> untuk mencetak semua rapor dalam satu kelas sekaligus.
+                            <strong>Cetak Rapor:</strong>
+                            <ul class="mt-2">
+                                <li>Klik tombol <span class="badge badge-warning"><i class="fas fa-print"></i> Cetak Rapor</span> pada kolom Aksi untuk mencetak rapor individual</li>
+                                <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-print"></i> Cetak Semua Rapor</span> di card untuk mencetak semua rapor dalam satu kelas sekaligus</li>
+                            </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Tanda Tangan:</strong>
+                            <strong>Tanda Tangan QR:</strong>
                             <ul class="mt-2">
-                                <li><span class="badge badge-info"><i class="fas fa-signature"></i> Ttd Walas</span> - Hanya Wali Kelas yang dapat menandatangani</li>
-                                <li><span class="badge badge-success"><i class="fas fa-signature"></i> Ttd Kepsek</span> - Hanya Kepala TPQ/Kepala Sekolah yang dapat menandatangani</li>
+                                <li><strong>Wali Kelas:</strong> Klik tombol <span class="badge badge-info"><i class="fas fa-signature"></i> Tanda Tangan QR Semua Wali Kelas</span> di card untuk menandatangani semua rapor sekaligus.
+                                    Tombol akan berubah menjadi <span class="badge badge-danger"><i class="fas fa-times-circle"></i> Batalkan TTD</span> jika semua rapor sudah ditandatangani.</li>
+                                <li><strong>Kepala Sekolah:</strong> Klik tombol <span class="badge badge-success"><i class="fas fa-signature"></i> Tanda Tangan QR Semua Kepala Sekolah</span> di card untuk menandatangani semua rapor sekaligus.
+                                    Tombol akan berubah menjadi <span class="badge badge-danger"><i class="fas fa-times-circle"></i> Batalkan TTD</span> jika semua rapor sudah ditandatangani.</li>
                             </ul>
-                            Tombol akan otomatis nonaktif setelah ditandatangani atau jika Anda tidak memiliki akses.
+                            <small class="text-muted">Catatan: Tanda tangan dilakukan secara bulk untuk semua santri dalam kelas. Jika semua sudah ditandatangani, Anda dapat membatalkan dengan klik tombol "Batalkan TTD".</small>
                         </li>
                     </ol>
 
                     <div class="alert alert-info mb-0">
                         <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
                         <ul class="mb-0">
-                            <li>Checkbox <strong>Absensi</strong> dan <strong>Catatan</strong> berfungsi sebagai toggle untuk menampilkan/menyembunyikan informasi di rapor PDF.</li>
-                            <li>Data absensi dan catatan akan tersimpan secara otomatis setelah Anda klik tombol <strong>Simpan</strong> di modal.</li>
+                            <li>Toggle switch <strong>Absensi</strong> dan <strong>Catatan</strong> berfungsi untuk menampilkan/menyembunyikan informasi di rapor PDF. Warna hijau = aktif, merah = tidak aktif.</li>
+                            <li>Data absensi dan catatan akan tersimpan secara otomatis setelah Anda klik tombol <strong>Simpan</strong> di modal. Popup berhasil akan otomatis tertutup setelah 1.5 detik.</li>
+                            <li>Statistik di card akan otomatis terupdate setelah Anda menyimpan absensi atau catatan, tanpa perlu reload halaman.</li>
                             <li>Catatan default dipilih secara otomatis berdasarkan prioritas: <strong>Spesifik Kelas</strong> → <strong>Spesifik TPQ</strong> → <strong>Umum</strong>.</li>
                             <li>Jika ada beberapa opsi catatan untuk nilai yang sama, dropdown akan muncul untuk memilih sumber catatan yang diinginkan.</li>
+                            <li>Card statistik menampilkan informasi real-time tentang status pengisian absensi, catatan, dan tanda tangan untuk setiap kelas.</li>
                         </ul>
                     </div>
                 </div>
@@ -61,7 +76,7 @@
 
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title"><?= $page_title ?> - Semester <?= $semester ?></h3>
+            <h3 class="card-title"><?= $page_title ?> - Semester <?= $semester ?> - Tahun Ajaran <?= convertTahunAjaran(session()->get('IdTahunAjaran')) ?></h3>
         </div>
         <div class="card-body">
             <!-- Tab Navigation -->
@@ -103,7 +118,7 @@
 
                                             if (!empty($idGuruBtn) && !empty($idTpqBtn)) {
                                                 $helpFunctionModelBtn = new \App\Models\HelpFunctionModel();
-                                                
+
                                                 // Cek apakah user adalah Kepala Sekolah
                                                 $jabatanDataBtn = $helpFunctionModelBtn->getStrukturLembagaJabatan($idGuruBtn, $idTpqBtn);
                                                 if (!empty($jabatanDataBtn)) {
@@ -118,15 +133,17 @@
                                                 // Cek apakah user adalah Wali Kelas untuk kelas ini
                                                 if (!$isKepalaSekolahBtn && !empty($guruKelasPermissions)) {
                                                     foreach ($guruKelasPermissions as $perm) {
-                                                        if (isset($perm['IdKelas']) && $perm['IdKelas'] == $kelas->IdKelas && 
-                                                            isset($perm['NamaJabatan']) && $perm['NamaJabatan'] === 'Wali Kelas') {
+                                                        if (
+                                                            isset($perm['IdKelas']) && $perm['IdKelas'] == $kelas->IdKelas &&
+                                                            isset($perm['NamaJabatan']) && $perm['NamaJabatan'] === 'Wali Kelas'
+                                                        ) {
                                                             $isWaliKelasBtn = true;
                                                             break;
                                                         }
                                                     }
                                                 }
                                             }
-                                            
+
                                             // Cek status tanda tangan bulk untuk kelas ini
                                             $bulkStatus = $bulkSignatureStatus[$kelas->IdKelas] ?? null;
                                             $allSignedWalas = $bulkStatus && $bulkStatus['all_signed_walas'];
@@ -136,14 +153,14 @@
                                             $ttdKepsek = $bulkStatus['ttd_kepsek'] ?? 0;
                                             $belumTtdWalas = $totalSantri - $ttdWalas;
                                             $belumTtdKepsek = $totalSantri - $ttdKepsek;
-                                            
+
                                             // Statistik catatan dan absensi
                                             $jumlahCatatan = $bulkStatus['catatan'] ?? 0;
                                             $jumlahAbsensi = $bulkStatus['absensi'] ?? 0;
                                             $belumCatatan = $totalSantri - $jumlahCatatan;
                                             $belumAbsensi = $totalSantri - $jumlahAbsensi;
                                             ?>
-                                            
+
                                             <?php if ($isWaliKelasBtn): ?>
                                                 <div class="col-md-4 mb-3">
                                                     <div class="card <?= $allSignedWalas ? 'border-danger' : 'border-info' ?> shadow-sm h-100" style="background: linear-gradient(135deg, <?= $allSignedWalas ? '#fff5f5' : '#e8f4f8' ?> 0%, #ffffff 100%);">
@@ -173,17 +190,17 @@
                                                                 <div class="mt-3">
                                                                     <p class="mb-1"><strong>Total: <?= $totalSantri ?> Rapor</strong></p>
                                                                     <?php if ($allSignedWalas): ?>
-                                                                        <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-walas" 
-                                                                                data-kelas="<?= $kelas->IdKelas ?>" 
-                                                                                data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
-                                                                                data-semester="<?= $semester ?>">
+                                                                        <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-walas"
+                                                                            data-kelas="<?= $kelas->IdKelas ?>"
+                                                                            data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                            data-semester="<?= $semester ?>">
                                                                             <i class="fas fa-times-circle"></i> Batalkan TTD
                                                                         </button>
                                                                     <?php else: ?>
-                                                                        <button type="button" class="btn btn-info btn-sm btn-block btn-ttd-bulk-walas" 
-                                                                                data-kelas="<?= $kelas->IdKelas ?>" 
-                                                                                data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
-                                                                                data-semester="<?= $semester ?>">
+                                                                        <button type="button" class="btn btn-info btn-sm btn-block btn-ttd-bulk-walas"
+                                                                            data-kelas="<?= $kelas->IdKelas ?>"
+                                                                            data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                            data-semester="<?= $semester ?>">
                                                                             <i class="fas fa-signature"></i> Tanda Tangan Semua
                                                                         </button>
                                                                     <?php endif; ?>
@@ -193,7 +210,7 @@
                                                     </div>
                                                 </div>
                                             <?php endif; ?>
-                                            
+
                                             <?php if ($isKepalaSekolahBtn): ?>
                                                 <div class="col-md-4 mb-3">
                                                     <div class="card <?= $allSignedKepsek ? 'border-danger' : 'border-success' ?> shadow-sm h-100" style="background: linear-gradient(135deg, <?= $allSignedKepsek ? '#fff5f5' : '#e8f8f0' ?> 0%, #ffffff 100%);">
@@ -223,17 +240,17 @@
                                                                 <div class="mt-3">
                                                                     <p class="mb-1"><strong>Total: <?= $totalSantri ?> Rapor</strong></p>
                                                                     <?php if ($allSignedKepsek): ?>
-                                                                        <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-kepsek" 
-                                                                                data-kelas="<?= $kelas->IdKelas ?>" 
-                                                                                data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
-                                                                                data-semester="<?= $semester ?>">
+                                                                        <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-kepsek"
+                                                                            data-kelas="<?= $kelas->IdKelas ?>"
+                                                                            data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                            data-semester="<?= $semester ?>">
                                                                             <i class="fas fa-times-circle"></i> Batalkan TTD
                                                                         </button>
                                                                     <?php else: ?>
-                                                                        <button type="button" class="btn btn-success btn-sm btn-block btn-ttd-bulk-kepsek" 
-                                                                                data-kelas="<?= $kelas->IdKelas ?>" 
-                                                                                data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
-                                                                                data-semester="<?= $semester ?>">
+                                                                        <button type="button" class="btn btn-success btn-sm btn-block btn-ttd-bulk-kepsek"
+                                                                            data-kelas="<?= $kelas->IdKelas ?>"
+                                                                            data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                            data-semester="<?= $semester ?>">
                                                                             <i class="fas fa-signature"></i> Tanda Tangan Semua
                                                                         </button>
                                                                     <?php endif; ?>
@@ -243,7 +260,7 @@
                                                     </div>
                                                 </div>
                                             <?php endif; ?>
-                                            
+
                                             <div class="col-md-4 mb-3">
                                                 <div class="card border-primary shadow-sm h-100" style="background: linear-gradient(135deg, #e8f0ff 0%, #ffffff 100%);">
                                                     <div class="card-body text-center">
@@ -259,9 +276,31 @@
                                                                 <small class="text-muted">Semester <?= $semester ?></small>
                                                             </div>
                                                             <div class="mt-3">
-                                                                <button type="button" class="btn btn-primary btn-sm btn-block btn-print-all" 
-                                                                        data-kelas="<?= $kelas->IdKelas ?>" 
-                                                                        data-semester="<?= $semester ?>">
+                                                                <div class="form-group text-left">
+                                                                    <label for="tanggalCetak-<?= $kelas->IdKelas ?>" class="small mb-1"><strong>Tanggal Diserahkan:</strong></label>
+                                                                    <input type="date"
+                                                                        class="form-control form-control-sm tanggal-cetak"
+                                                                        id="tanggalCetak-<?= $kelas->IdKelas ?>"
+                                                                        data-kelas="<?= $kelas->IdKelas ?>"
+                                                                        data-semester="<?= $semester ?>"
+                                                                        data-tahun-ajaran="<?= session()->get('IdTahunAjaran') ?>"
+                                                                        value="<?= date('Y-m-d') ?>">
+                                                                </div>
+                                                                <div class="form-check text-left mb-2">
+                                                                    <input class="form-check-input checkbox-tanggal-cetak"
+                                                                        type="checkbox"
+                                                                        id="confirmTanggal-<?= $kelas->IdKelas ?>"
+                                                                        data-kelas="<?= $kelas->IdKelas ?>"
+                                                                        data-semester="<?= $semester ?>"
+                                                                        data-tahun-ajaran="<?= session()->get('IdTahunAjaran') ?>">
+                                                                    <label class="form-check-label small" for="confirmTanggal-<?= $kelas->IdKelas ?>">
+                                                                        Saya sudah mengisi tanggal
+                                                                    </label>
+                                                                </div>
+                                                                <button type="button"
+                                                                    class="btn btn-primary btn-sm btn-block btn-print-all"
+                                                                    data-kelas="<?= $kelas->IdKelas ?>"
+                                                                    data-semester="<?= $semester ?>">
                                                                     <i class="fas fa-print"></i> Cetak Semua Rapor
                                                                 </button>
                                                             </div>
@@ -269,7 +308,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             <div class="col-md-4 mb-3">
                                                 <div class="card border-secondary shadow-sm h-100" style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
                                                     <div class="card-body text-center">
@@ -290,24 +329,24 @@
                                                                 <tbody>
                                                                     <tr>
                                                                         <td class="text-left">
-                                                                            <i class="fas fa-sticky-note text-warning"></i> Catatan
+                                                                            <i class="fas fa-calendar-check text-info"></i> Absensi
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <strong class="text-success"><?= $jumlahCatatan ?></strong>
+                                                                            <strong class="text-success stat-absensi-sudah" data-kelas="<?= $kelas->IdKelas ?>"><?= $jumlahAbsensi ?></strong>
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <strong class="text-warning"><?= $belumCatatan ?></strong>
+                                                                            <strong class="text-warning stat-absensi-belum" data-kelas="<?= $kelas->IdKelas ?>"><?= $belumAbsensi ?></strong>
                                                                         </td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td class="text-left">
-                                                                            <i class="fas fa-calendar-check text-info"></i> Absensi
+                                                                            <i class="fas fa-sticky-note text-warning"></i> Catatan
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <strong class="text-success"><?= $jumlahAbsensi ?></strong>
+                                                                            <strong class="text-success stat-catatan-sudah" data-kelas="<?= $kelas->IdKelas ?>"><?= $jumlahCatatan ?></strong>
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <strong class="text-warning"><?= $belumAbsensi ?></strong>
+                                                                            <strong class="text-warning stat-catatan-belum" data-kelas="<?= $kelas->IdKelas ?>"><?= $belumCatatan ?></strong>
                                                                         </td>
                                                                     </tr>
                                                                 </tbody>
@@ -321,17 +360,19 @@
                                         // Tampilkan tombol setting mapping hanya untuk Wali Kelas dan jika setting aktif
                                         $isWaliKelas = false;
                                         $mappingEnabled = false;
-                                        
+
                                         if (!empty($guruKelasPermissions)) {
                                             foreach ($guruKelasPermissions as $perm) {
-                                                if (isset($perm['IdKelas']) && $perm['IdKelas'] == $kelas->IdKelas && 
-                                                    isset($perm['NamaJabatan']) && $perm['NamaJabatan'] === 'Wali Kelas') {
+                                                if (
+                                                    isset($perm['IdKelas']) && $perm['IdKelas'] == $kelas->IdKelas &&
+                                                    isset($perm['NamaJabatan']) && $perm['NamaJabatan'] === 'Wali Kelas'
+                                                ) {
                                                     $isWaliKelas = true;
                                                     break;
                                                 }
                                             }
                                         }
-                                        
+
                                         if ($isWaliKelas) {
                                             $toolsModel = new \App\Models\ToolsModel();
                                             $idTpq = session()->get('IdTpq');
@@ -339,8 +380,8 @@
                                         }
                                         ?>
                                         <?php if ($isWaliKelas && $mappingEnabled): ?>
-                                            <a href="<?= base_url('backend/rapor/settingMappingWaliKelas/' . $kelas->IdKelas) ?>" 
-                                               class="btn btn-info btn-sm">
+                                            <a href="<?= base_url('backend/rapor/settingMappingWaliKelas/' . $kelas->IdKelas) ?>"
+                                                class="btn btn-info btn-sm">
                                                 <i class="fas fa-users-cog"></i> Setting Mapping Wali Kelas
                                             </a>
                                         <?php endif; ?>
@@ -351,12 +392,9 @@
                                                 <th>No</th>
                                                 <th>Aksi</th>
                                                 <th>Nama Santri</th>
-                                                <th>NIS</th>
                                                 <th>Total Nilai</th>
                                                 <th>Nilai Rata-Rata</th>
                                                 <th>Rangking</th>
-                                                <th>Kelas</th>
-                                                <th>Tahun Ajaran</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -368,43 +406,46 @@
                                                     <tr>
                                                         <td><?= $no++ ?></td>
                                                         <td>
-                                                            <div class="mb-2">
-                                                                <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $nilaiDetail->IdSantri ?>" data-semester="<?= $semester ?>">
+                                                            <div class="d-flex flex-column align-items-start action-buttons-container">
+                                                                <button type="button" class="btn btn-warning btn-sm btn-print-pdf"
+                                                                    data-id="<?= $nilaiDetail->IdSantri ?>"
+                                                                    data-semester="<?= $semester ?>"
+                                                                    data-kelas="<?= $kelas->IdKelas ?>">
                                                                     <i class="fas fa-print"></i> Cetak Rapor
                                                                 </button>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input checkbox-absensi"
-                                                                    type="checkbox"
-                                                                    data-id="<?= $nilaiDetail->IdSantri ?>"
-                                                                    data-semester="<?= $semester ?>"
-                                                                    data-kelas="<?= $nilaiDetail->IdKelas ?>"
-                                                                    id="absensi-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>"
-                                                                    style="cursor: pointer;">
-                                                                <label class="form-check-label" for="absensi-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>" style="cursor: pointer;">
-                                                                    Absensi
+                                                                <label class="toggle-switch toggle-switch-absensi">
+                                                                    <input type="checkbox"
+                                                                        class="toggle-switch-input checkbox-absensi"
+                                                                        data-id="<?= $nilaiDetail->IdSantri ?>"
+                                                                        data-semester="<?= $semester ?>"
+                                                                        data-kelas="<?= $nilaiDetail->IdKelas ?>"
+                                                                        id="absensi-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>">
+                                                                    <span class="toggle-switch-slider">
+                                                                        <span class="toggle-switch-label-on">Absensi</span>
+                                                                        <span class="toggle-switch-label-off">Absensi</span>
+                                                                    </span>
                                                                 </label>
-                                                            </div>
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input checkbox-catatan"
-                                                                    type="checkbox"
-                                                                    data-id="<?= $nilaiDetail->IdSantri ?>"
-                                                                    data-semester="<?= $semester ?>"
-                                                                    data-kelas="<?= $nilaiDetail->IdKelas ?>"
-                                                                    id="catatan-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>"
-                                                                    style="cursor: pointer;">
-                                                                <label class="form-check-label" for="catatan-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>" style="cursor: pointer;">
-                                                                    Catatan
+                                                                <label class="toggle-switch toggle-switch-catatan">
+                                                                    <input type="checkbox"
+                                                                        class="toggle-switch-input checkbox-catatan"
+                                                                        data-id="<?= $nilaiDetail->IdSantri ?>"
+                                                                        data-semester="<?= $semester ?>"
+                                                                        data-kelas="<?= $nilaiDetail->IdKelas ?>"
+                                                                        id="catatan-<?= $nilaiDetail->IdSantri ?>-<?= $semester ?>">
+                                                                    <span class="toggle-switch-slider">
+                                                                        <span class="toggle-switch-label-on">Catatan</span>
+                                                                        <span class="toggle-switch-label-off">Catatan</span>
+                                                                    </span>
                                                                 </label>
                                                             </div>
                                                         </td>
-                                                        <td><?= $nilaiDetail->NamaSantri ?></td>
-                                                        <td><?= $nilaiDetail->IdSantri ?></td>
+                                                        <td>
+                                                            <div><?= $nilaiDetail->NamaSantri ?></div>
+                                                            <small class="text-muted">NIS: <?= $nilaiDetail->IdSantri ?></small>
+                                                        </td>
                                                         <td><?= $nilaiDetail->TotalNilai ?></td>
                                                         <td><?= $nilaiDetail->NilaiRataRata ?></td>
                                                         <td><?= $nilaiDetail->Rangking ?></td>
-                                                        <td><?= $nilaiDetail->NamaKelas ?></td>
-                                                        <td><?= $nilaiDetail->IdTahunAjaran ?></td>
                                                     </tr>
                                             <?php
                                                 endif;
@@ -425,6 +466,129 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<style>
+    /* Toggle Switch Container */
+    .toggle-switch-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    /* Container untuk button dan toggle switch dengan spacing yang sama */
+    .action-buttons-container>* {
+        margin-bottom: 8px;
+    }
+
+    .action-buttons-container>*:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 120px;
+        height: 38px;
+        cursor: pointer;
+    }
+
+    .toggle-switch-input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-switch-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #dc3545;
+        transition: 0.3s;
+        border-radius: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 12px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch-slider:before {
+        position: absolute;
+        content: "";
+        height: 30px;
+        width: 30px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        z-index: 2;
+    }
+
+    .toggle-switch-input:checked+.toggle-switch-slider {
+        background-color: #28a745;
+    }
+
+    .toggle-switch-input:checked+.toggle-switch-slider:before {
+        transform: translateX(82px);
+    }
+
+    .toggle-switch-label-on,
+    .toggle-switch-label-off {
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        z-index: 1;
+        transition: opacity 0.3s;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        pointer-events: none;
+    }
+
+    /* Pastikan label tidak tertutup oleh bulatan slider saat OFF */
+    .toggle-switch-label-off {
+        opacity: 1;
+        padding-left: 20px;
+        /* Memberikan ruang untuk bulatan di kiri */
+    }
+
+    /* Pastikan label tidak tertutup oleh bulatan slider saat ON */
+    .toggle-switch-label-on {
+        opacity: 0;
+        padding-right: 20px;
+        /* Memberikan ruang untuk bulatan di kanan */
+    }
+
+    .toggle-switch-input:checked+.toggle-switch-slider .toggle-switch-label-on {
+        opacity: 1;
+        padding-right: 20px;
+        padding-left: 0;
+    }
+
+    .toggle-switch-input:checked+.toggle-switch-slider .toggle-switch-label-off {
+        opacity: 0;
+    }
+
+    /* Button Cetak Rapor - Ukuran sama dengan toggle switch */
+    .btn-print-pdf {
+        width: 120px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        font-size: 0.8rem;
+        border-radius: 38px;
+    }
+</style>
 <script>
     $(document).ready(function() {
         // Inisialisasi DataTable untuk setiap kelas
@@ -478,7 +642,36 @@
         $(document).on('click', '.btn-print-pdf', function() {
             const IdSantri = $(this).data('id');
             const semester = $(this).data('semester');
-            const printWindow = window.open(`<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}`, '_blank');
+            const IdKelas = $(this).data('kelas');
+
+            // Ambil tanggal dari card "Cetak Rapor" yang sesuai dengan kelas
+            const tanggal = $(`#tanggalCetak-${IdKelas}`).val();
+            const checkbox = $(`#confirmTanggal-${IdKelas}`);
+
+            // Validasi checkbox harus tercentang
+            if (!checkbox.is(':checked')) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Silakan centang konfirmasi tanggal di card "Cetak Rapor" terlebih dahulu',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Validasi tanggal harus diisi
+            if (!tanggal) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Silakan isi tanggal diserahkan di card "Cetak Rapor" terlebih dahulu',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Panggil endpoint dengan parameter tanggal
+            const printWindow = window.open(`<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}?tanggal=${tanggal}`, '_blank');
             if (printWindow) {
                 printWindow.onload = function() {
                     printWindow.print();
@@ -493,7 +686,7 @@
             const namaKelas = $(this).data('nama-kelas');
             const semester = $(this).data('semester');
             const btn = $(this);
-            
+
             // Hitung jumlah santri di kelas ini dari tabel
             const tableId = '#tableSantri-' + IdKelas;
             const jumlahSantri = $(tableId + ' tbody tr').length;
@@ -501,11 +694,11 @@
             Swal.fire({
                 title: 'Konfirmasi Tanda Tangan Wali Kelas',
                 html: '<div class="text-left">' +
-                      '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
-                      '<p><strong>Semester:</strong> ' + semester + '</p>' +
-                      '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
-                      '<p class="mt-3">Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Wali Kelas?</p>' +
-                      '</div>',
+                    '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
+                    '<p><strong>Semester:</strong> ' + semester + '</p>' +
+                    '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
+                    '<p class="mt-3">Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Wali Kelas?</p>' +
+                    '</div>',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -515,44 +708,44 @@
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
                     return fetch('<?= base_url('backend/rapor/ttdBulkWalas') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            IdKelas: IdKelas,
-                            Semester: semester
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                IdKelas: IdKelas,
+                                Semester: semester
+                            })
                         })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            Swal.fire({
-                                title: 'Berhasil!',
-                                text: data.message,
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        })
+                        .catch(error => {
                             Swal.fire({
                                 title: 'Error!',
-                                text: data.message,
+                                text: 'Terjadi kesalahan saat memproses tanda tangan',
                                 icon: 'error',
                                 confirmButtonText: 'OK'
                             });
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'Terjadi kesalahan saat memproses tanda tangan',
-                            icon: 'error',
-                            confirmButtonText: 'OK'
                         });
-                    });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             });
@@ -564,7 +757,7 @@
             const namaKelas = $(this).data('nama-kelas');
             const semester = $(this).data('semester');
             const btn = $(this);
-            
+
             // Hitung jumlah santri di kelas ini dari tabel
             const tableId = '#tableSantri-' + IdKelas;
             const jumlahSantri = $(tableId + ' tbody tr').length;
@@ -572,11 +765,11 @@
             Swal.fire({
                 title: 'Konfirmasi Tanda Tangan Kepala Sekolah',
                 html: '<div class="text-left">' +
-                      '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
-                      '<p><strong>Semester:</strong> ' + semester + '</p>' +
-                      '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
-                      '<p class="mt-3">Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Kepala Sekolah?</p>' +
-                      '</div>',
+                    '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
+                    '<p><strong>Semester:</strong> ' + semester + '</p>' +
+                    '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
+                    '<p class="mt-3">Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Kepala Sekolah?</p>' +
+                    '</div>',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -586,44 +779,44 @@
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
                     return fetch('<?= base_url('backend/rapor/ttdBulkKepsek') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            IdKelas: IdKelas,
-                            Semester: semester
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                IdKelas: IdKelas,
+                                Semester: semester
+                            })
                         })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            Swal.fire({
-                                title: 'Berhasil!',
-                                text: data.message,
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        })
+                        .catch(error => {
                             Swal.fire({
                                 title: 'Error!',
-                                text: data.message,
+                                text: 'Terjadi kesalahan saat memproses tanda tangan',
                                 icon: 'error',
                                 confirmButtonText: 'OK'
                             });
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'Terjadi kesalahan saat memproses tanda tangan',
-                            icon: 'error',
-                            confirmButtonText: 'OK'
                         });
-                    });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             });
@@ -635,7 +828,7 @@
             const namaKelas = $(this).data('nama-kelas');
             const semester = $(this).data('semester');
             const btn = $(this);
-            
+
             // Hitung jumlah santri di kelas ini dari tabel
             const tableId = '#tableSantri-' + IdKelas;
             const jumlahSantri = $(tableId + ' tbody tr').length;
@@ -643,12 +836,12 @@
             Swal.fire({
                 title: 'Konfirmasi Batalkan Tanda Tangan Wali Kelas',
                 html: '<div class="text-left">' +
-                      '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
-                      '<p><strong>Semester:</strong> ' + semester + '</p>' +
-                      '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
-                      '<p class="mt-3 text-danger"><strong>Peringatan:</strong> Tanda tangan yang sudah dibuat akan dihapus dari database dan tidak dapat dikembalikan.</p>' +
-                      '<p class="mt-2">Apakah Anda yakin ingin membatalkan semua tanda tangan wali kelas untuk kelas ini?</p>' +
-                      '</div>',
+                    '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
+                    '<p><strong>Semester:</strong> ' + semester + '</p>' +
+                    '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
+                    '<p class="mt-3 text-danger"><strong>Peringatan:</strong> Tanda tangan yang sudah dibuat akan dihapus dari database dan tidak dapat dikembalikan.</p>' +
+                    '<p class="mt-2">Apakah Anda yakin ingin membatalkan semua tanda tangan wali kelas untuk kelas ini?</p>' +
+                    '</div>',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -658,44 +851,44 @@
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
                     return fetch('<?= base_url('backend/rapor/cancelBulkWalas') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            IdKelas: IdKelas,
-                            Semester: semester
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                IdKelas: IdKelas,
+                                Semester: semester
+                            })
                         })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            Swal.fire({
-                                title: 'Berhasil!',
-                                text: data.message,
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        })
+                        .catch(error => {
                             Swal.fire({
                                 title: 'Error!',
-                                text: data.message,
+                                text: 'Terjadi kesalahan saat memproses pembatalan tanda tangan',
                                 icon: 'error',
                                 confirmButtonText: 'OK'
                             });
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'Terjadi kesalahan saat memproses pembatalan tanda tangan',
-                            icon: 'error',
-                            confirmButtonText: 'OK'
                         });
-                    });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             });
@@ -707,7 +900,7 @@
             const namaKelas = $(this).data('nama-kelas');
             const semester = $(this).data('semester');
             const btn = $(this);
-            
+
             // Hitung jumlah santri di kelas ini dari tabel
             const tableId = '#tableSantri-' + IdKelas;
             const jumlahSantri = $(tableId + ' tbody tr').length;
@@ -715,12 +908,12 @@
             Swal.fire({
                 title: 'Konfirmasi Batalkan Tanda Tangan Kepala Sekolah',
                 html: '<div class="text-left">' +
-                      '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
-                      '<p><strong>Semester:</strong> ' + semester + '</p>' +
-                      '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
-                      '<p class="mt-3 text-danger"><strong>Peringatan:</strong> Tanda tangan yang sudah dibuat akan dihapus dari database dan tidak dapat dikembalikan.</p>' +
-                      '<p class="mt-2">Apakah Anda yakin ingin membatalkan semua tanda tangan kepala sekolah untuk kelas ini?</p>' +
-                      '</div>',
+                    '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
+                    '<p><strong>Semester:</strong> ' + semester + '</p>' +
+                    '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
+                    '<p class="mt-3 text-danger"><strong>Peringatan:</strong> Tanda tangan yang sudah dibuat akan dihapus dari database dan tidak dapat dikembalikan.</p>' +
+                    '<p class="mt-2">Apakah Anda yakin ingin membatalkan semua tanda tangan kepala sekolah untuk kelas ini?</p>' +
+                    '</div>',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -730,52 +923,133 @@
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
                     return fetch('<?= base_url('backend/rapor/cancelBulkKepsek') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            IdKelas: IdKelas,
-                            Semester: semester
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                IdKelas: IdKelas,
+                                Semester: semester
+                            })
                         })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            Swal.fire({
-                                title: 'Berhasil!',
-                                text: data.message,
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    title: 'Berhasil!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        })
+                        .catch(error => {
                             Swal.fire({
                                 title: 'Error!',
-                                text: data.message,
+                                text: 'Terjadi kesalahan saat memproses pembatalan tanda tangan',
                                 icon: 'error',
                                 confirmButtonText: 'OK'
                             });
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'Terjadi kesalahan saat memproses pembatalan tanda tangan',
-                            icon: 'error',
-                            confirmButtonText: 'OK'
                         });
-                    });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             });
         });
 
+        // Handle checkbox konfirmasi tanggal cetak
+        $(document).on('change', '.checkbox-tanggal-cetak', function() {
+            const IdKelas = $(this).data('kelas');
+            const semester = $(this).data('semester');
+            const tahunAjaran = $(this).data('tahun-ajaran');
+            const isChecked = $(this).is(':checked');
+            const storageKey = `confirmTanggalCetak_${IdKelas}_${semester}_${tahunAjaran}`;
+
+            // Simpan status checkbox ke localStorage
+            localStorage.setItem(storageKey, isChecked);
+        });
+
+        // Load tanggal dan checkbox dari localStorage saat halaman dimuat
+        $(document).ready(function() {
+            $('.tanggal-cetak').each(function() {
+                const IdKelas = $(this).data('kelas');
+                const semester = $(this).data('semester');
+                const tahunAjaran = $(this).data('tahun-ajaran');
+                const storageKeyTanggal = `tanggalCetakRapor_${IdKelas}_${semester}_${tahunAjaran}`;
+                const storageKeyCheckbox = `confirmTanggalCetak_${IdKelas}_${semester}_${tahunAjaran}`;
+
+                // Ambil tanggal dari localStorage jika ada
+                const savedTanggal = localStorage.getItem(storageKeyTanggal);
+                if (savedTanggal) {
+                    $(this).val(savedTanggal);
+                }
+
+                // Ambil status checkbox dari localStorage jika ada
+                const savedCheckbox = localStorage.getItem(storageKeyCheckbox);
+                if (savedCheckbox === 'true') {
+                    $(`#confirmTanggal-${IdKelas}`).prop('checked', true);
+                }
+            });
+        });
+
+        // Handle perubahan tanggal cetak
+        $(document).on('change', '.tanggal-cetak', function() {
+            const IdKelas = $(this).data('kelas');
+            const semester = $(this).data('semester');
+            const tahunAjaran = $(this).data('tahun-ajaran');
+            const tanggal = $(this).val();
+            const checkbox = $(`#confirmTanggal-${IdKelas}`);
+            const storageKeyCheckbox = `confirmTanggalCetak_${IdKelas}_${semester}_${tahunAjaran}`;
+
+            // Simpan tanggal ke localStorage
+            if (tanggal) {
+                const storageKey = `tanggalCetakRapor_${IdKelas}_${semester}_${tahunAjaran}`;
+                localStorage.setItem(storageKey, tanggal);
+            }
+
+            // Reset checkbox jika tanggal berubah
+            if (checkbox.is(':checked')) {
+                checkbox.prop('checked', false);
+                localStorage.setItem(storageKeyCheckbox, 'false');
+            }
+        });
+
         $(document).on('click', '.btn-print-all', function() {
             const kelasId = $(this).data('kelas');
             const semester = $(this).data('semester');
+            const tanggal = $(`#tanggalCetak-${kelasId}`).val();
+            const checkbox = $(`#confirmTanggal-${kelasId}`);
+
+            // Validasi checkbox harus tercentang
+            if (!checkbox.is(':checked')) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Silakan centang konfirmasi bahwa tanggal sudah diisi',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Validasi tanggal harus diisi
+            if (!tanggal) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Silakan isi tanggal diserahkan terlebih dahulu',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
 
             // Tampilkan loading
             Swal.fire({
@@ -787,8 +1061,8 @@
                 }
             });
 
-            // Panggil endpoint untuk menggabungkan PDF
-            const printWindow = window.open(`<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}`, '_blank');
+            // Panggil endpoint untuk menggabungkan PDF dengan parameter tanggal
+            const printWindow = window.open(`<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}?tanggal=${tanggal}`, '_blank');
 
             // Tutup loading setelah 2 detik (memberikan waktu untuk membuka PDF)
             setTimeout(() => {
@@ -1210,12 +1484,45 @@
             });
         });
 
+        // Fungsi untuk update statistik di card
+        function updateStatistikCard(IdKelas) {
+            const tableId = '#tableSantri-' + IdKelas;
+            const totalSantri = $(tableId + ' tbody tr').length;
+
+            // Hitung jumlah checkbox yang tercentang
+            let jumlahCatatan = 0;
+            let jumlahAbsensi = 0;
+
+            $(tableId + ' tbody tr').each(function() {
+                const row = $(this);
+                const checkboxCatatan = row.find('.checkbox-catatan');
+                const checkboxAbsensi = row.find('.checkbox-absensi');
+
+                if (checkboxCatatan.is(':checked')) {
+                    jumlahCatatan++;
+                }
+                if (checkboxAbsensi.is(':checked')) {
+                    jumlahAbsensi++;
+                }
+            });
+
+            const belumCatatan = totalSantri - jumlahCatatan;
+            const belumAbsensi = totalSantri - jumlahAbsensi;
+
+            // Update statistik di card
+            $(`.stat-catatan-sudah[data-kelas="${IdKelas}"]`).text(jumlahCatatan);
+            $(`.stat-catatan-belum[data-kelas="${IdKelas}"]`).text(belumCatatan);
+            $(`.stat-absensi-sudah[data-kelas="${IdKelas}"]`).text(jumlahAbsensi);
+            $(`.stat-absensi-belum[data-kelas="${IdKelas}"]`).text(belumAbsensi);
+        }
+
         // Handle save absensi
         $('#btnSaveAbsensi').on('click', function() {
             // Hitung ulang jumlah tidak masuk sebelum menyimpan
             hitungJumlahTidakMasuk();
 
             const formData = $('#formAbsensi').serialize();
+            const IdKelas = $('#absensiIdKelas').val();
 
             $.ajax({
                 url: '<?= base_url("backend/rapor/saveAbsensi") ?>',
@@ -1224,18 +1531,24 @@
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
+                        const IdSantri = $('#absensiIdSantri').val();
+                        const semester = $('#absensiSemester').val();
+                        const isChecked = $('#showAbsensi').is(':checked');
+
                         Swal.fire({
                             title: 'Berhasil!',
                             text: response.message,
                             icon: 'success',
-                            confirmButtonText: 'OK'
+                            timer: 1500,
+                            timerProgressBar: true,
+                            showConfirmButton: false
                         }).then(() => {
                             $('#modalAbsensi').modal('hide');
                             // Update checkbox status
-                            const IdSantri = $('#absensiIdSantri').val();
-                            const semester = $('#absensiSemester').val();
-                            const isChecked = $('#showAbsensi').is(':checked');
                             $(`#absensi-${IdSantri}-${semester}`).prop('checked', isChecked);
+
+                            // Update statistik di card
+                            updateStatistikCard(IdKelas);
                         });
                     } else {
                         Swal.fire({
@@ -1274,6 +1587,7 @@
             }
 
             const formData = $('#formCatatan').serialize();
+            const IdKelas = $('#catatanIdKelas').val();
 
             // Tambahkan CatatanSource ke formData
             const formDataObj = {};
@@ -1290,18 +1604,24 @@
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
+                        const IdSantri = $('#catatanIdSantri').val();
+                        const semester = $('#catatanSemester').val();
+                        const isChecked = $('#showCatatan').is(':checked');
+
                         Swal.fire({
                             title: 'Berhasil!',
                             text: response.message,
                             icon: 'success',
-                            confirmButtonText: 'OK'
+                            timer: 1500,
+                            timerProgressBar: true,
+                            showConfirmButton: false
                         }).then(() => {
                             $('#modalCatatan').modal('hide');
                             // Update checkbox status
-                            const IdSantri = $('#catatanIdSantri').val();
-                            const semester = $('#catatanSemester').val();
-                            const isChecked = $('#showCatatan').is(':checked');
                             $(`#catatan-${IdSantri}-${semester}`).prop('checked', isChecked);
+
+                            // Update statistik di card
+                            updateStatistikCard(IdKelas);
                         });
                     } else {
                         Swal.fire({
@@ -1342,11 +1662,20 @@
                     <input type="hidden" name="Semester" id="absensiSemester">
 
                     <div class="form-group">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="ShowAbsensi" id="showAbsensi">
-                            <label class="form-check-label" for="showAbsensi">
-                                Tampilkan Absensi di Rapor
-                            </label>
+                        <label class="mb-2"><strong>Tampilkan Absensi di Rapor</strong></label>
+                        <div class="d-flex align-items-center">
+                            <div class="toggle-switch-container">
+                                <label class="toggle-switch">
+                                    <input type="checkbox"
+                                        class="toggle-switch-input"
+                                        name="ShowAbsensi"
+                                        id="showAbsensi">
+                                    <span class="toggle-switch-slider">
+                                        <span class="toggle-switch-label-on">YA</span>
+                                        <span class="toggle-switch-label-off">TIDAK</span>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -1407,11 +1736,20 @@
                     <input type="hidden" name="Semester" id="catatanSemester">
 
                     <div class="form-group">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="ShowCatatan" id="showCatatan">
-                            <label class="form-check-label" for="showCatatan">
-                                Tampilkan Catatan di Rapor
-                            </label>
+                        <label class="mb-2"><strong>Tampilkan Catatan di Rapor</strong></label>
+                        <div class="d-flex align-items-center">
+                            <div class="toggle-switch-container">
+                                <label class="toggle-switch">
+                                    <input type="checkbox"
+                                        class="toggle-switch-input"
+                                        name="ShowCatatan"
+                                        id="showCatatan">
+                                    <span class="toggle-switch-slider">
+                                        <span class="toggle-switch-label-on">YA</span>
+                                        <span class="toggle-switch-label-off">TIDAK</span>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 

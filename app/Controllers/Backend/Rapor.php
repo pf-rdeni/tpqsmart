@@ -470,7 +470,7 @@ class Rapor extends BaseController
     /**
      * Siapkan data untuk view rapor
      */
-    private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester)
+    private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak = null)
     {
         // Ambil data TPQ
         $tpqRow = $this->helpFunctionModel->getNamaTpqById($IdTpq);
@@ -582,7 +582,7 @@ class Rapor extends BaseController
             'tpq' => $tpq,
             'tahunAjaran' => $this->helpFunctionModel->convertTahunAjaran($IdTahunAjaran),
             'semester' => $semester,
-            'tanggal' => formatTanggalIndonesia(date('Y-m-d'), 'd F Y'),
+            'tanggal' => !empty($tanggalCetak) ? formatTanggalIndonesia($tanggalCetak, 'd F Y') : formatTanggalIndonesia(date('Y-m-d'), 'd F Y'),
             'signatures' => $signatures,
             'lembagaType' => $lembagaType,
             'nilaiRataRata' => $nilaiRataRata,
@@ -886,8 +886,15 @@ class Rapor extends BaseController
                 throw new \Exception('Data santri tidak ditemukan');
             }
 
-            // Siapkan data untuk view rapor
-            $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester);
+            // Ambil tanggal dari query parameter
+            $tanggalCetak = $this->request->getGet('tanggal');
+            if (empty($tanggalCetak)) {
+                // Default ke tanggal hari ini jika tidak ada
+                $tanggalCetak = date('Y-m-d');
+            }
+
+            // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
+            $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
 
             // Load view untuk PDF
             $html = view('backend/rapor/print', $data);
@@ -918,6 +925,13 @@ class Rapor extends BaseController
             $IdTpq = session()->get('IdTpq');
             $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
 
+            // Ambil tanggal dari query parameter
+            $tanggalCetak = $this->request->getGet('tanggal');
+            if (empty($tanggalCetak)) {
+                // Default ke tanggal hari ini jika tidak ada
+                $tanggalCetak = date('Y-m-d');
+            }
+
             // Ambil semua santri dalam kelas tersebut
             $listSantri = $this->santriBaruModel->where([
                 'IdTpq' => $IdTpq,
@@ -942,8 +956,8 @@ class Rapor extends BaseController
                     continue; // Skip jika data santri tidak ditemukan
                 }
 
-                // Siapkan data untuk view rapor
-                $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester);
+                // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
+                $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
 
                 // Load view untuk setiap santri
                 $html = view('backend/rapor/print', $data);
