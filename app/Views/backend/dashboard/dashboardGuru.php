@@ -47,15 +47,58 @@ function render_progress_bar($persentase, $height = 25)
                         <div class="row mb-3 mb-md-4">
                             <div class="col-12">
                                 <div class="alert alert-info alert-dismissible">
-                                    <h5 class="mb-2 mb-md-3"><i class="icon fas fa-info-circle"></i> Bismillahirrahmanirrahim</h5>
-                                    <p class="mb-0 small-text-mobile">Assalamu'alaikum, <strong><?= esc(($SapaanLogin ?? 'Ustadz') . ' ' . ($NamaLogin ?? 'Pengguna')) ?></strong>...!
-                                        Selamat datang di aplikasi TPQ Smart, Anda login sebagai <strong><?= esc($PeranLogin ?? 'Guru') ?></strong>
-                                        <?php if (($PeranLogin ?? '') === 'Wali Kelas' && !empty($WaliKelasNamaKelas ?? '')): ?>
-                                            - <strong><?= esc($WaliKelasNamaKelas) ?></strong>
-                                            <span class="d-none d-sm-inline">(Tahun Ajaran <?= esc($TahunAjaran ?? '') ?>)</span>
-                                            <?php endif; ?>.
-                                            <span class="d-none d-md-inline">Semoga Allah senantiasa memberkahi langkah kita dalam menuntut ilmu dan mendidik generasi penerus.</span>
-                                    </p>
+                                    <div class="d-flex align-items-start">
+                                        <?php
+                                        // Ambil foto profil user yang sedang login
+                                        $userImage = null;
+                                        $hasValidImage = false;
+
+                                        if (function_exists('user') && user()) {
+                                            $userModel = new \App\Models\UserModel();
+                                            $userId = null;
+                                            if (function_exists('user_id')) {
+                                                $userId = user_id();
+                                            } else {
+                                                $userId = user()->id ?? null;
+                                            }
+                                            if ($userId) {
+                                                $userData = $userModel->getUser($userId);
+                                                $userImage = $userData['user_image'] ?? null;
+
+                                                // Cek apakah file benar-benar ada dan bukan default.svg
+                                                if (!empty($userImage) && $userImage !== 'default.svg') {
+                                                    $imagePath = FCPATH . 'uploads/profil/user/' . $userImage;
+                                                    if (file_exists($imagePath)) {
+                                                        $hasValidImage = true;
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        $photoUrl = $hasValidImage
+                                            ? base_url('uploads/profil/user/' . $userImage)
+                                            : base_url('images/no-photo.jpg');
+                                        ?>
+                                        <div class="mr-3" style="flex-shrink: 0;">
+                                            <img id="profilePhoto"
+                                                src="<?= $photoUrl ?>"
+                                                alt="Foto Profil"
+                                                style="width: 90px; height: 120px; object-fit: cover; cursor: pointer; border: 2px solid #dee2e6; border-radius: 8px;"
+                                                title="Double click untuk mengubah foto profil"
+                                                onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-2 mb-md-3"><i class="icon fas fa-info-circle"></i> Bismillahirrahmanirrahim</h5>
+                                            <p class="mb-0 small-text-mobile">Assalamu'alaikum, <strong><?= esc(($SapaanLogin ?? 'Ustadz') . ' ' . ($NamaLogin ?? 'Pengguna')) ?></strong>...!
+                                                Selamat datang di aplikasi TPQ Smart, Anda login sebagai <strong><?= esc($PeranLogin ?? 'Guru') ?></strong>
+                                                <?php if (($PeranLogin ?? '') === 'Wali Kelas' && !empty($WaliKelasNamaKelas ?? '')): ?>
+                                                    - <strong><?= esc($WaliKelasNamaKelas) ?></strong>
+                                                    <span class="d-none d-sm-inline">(Tahun Ajaran <?= esc($TahunAjaran ?? '') ?>)</span>
+                                                    <?php endif; ?>.
+                                                    <span class="d-none d-md-inline">Semoga Allah senantiasa memberkahi langkah kita dalam menuntut ilmu dan mendidik generasi penerus.</span>
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -832,4 +875,29 @@ function render_progress_bar($persentase, $height = 25)
         }
     }
 </style>
+<?= $this->endSection(); ?>
+
+<?= $this->section('scripts'); ?>
+<script>
+    $(document).ready(function() {
+        // Double click handler untuk edit foto profil
+        let clickCount = 0;
+        let clickTimer;
+
+        $('#profilePhoto').on('click', function() {
+            clickCount++;
+
+            if (clickCount === 1) {
+                clickTimer = setTimeout(function() {
+                    clickCount = 0;
+                }, 300);
+            } else if (clickCount === 2) {
+                clearTimeout(clickTimer);
+                clickCount = 0;
+                // Redirect ke halaman profil untuk edit foto
+                window.location.href = '<?= base_url('backend/pages/profil') ?>';
+            }
+        });
+    });
+</script>
 <?= $this->endSection(); ?>
