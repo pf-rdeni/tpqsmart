@@ -45,7 +45,8 @@
                                         Upload foto profil atau ambil foto dengan kamera. <span id="editPhotoHint" style="display: none;"><strong>Klik Edit untuk crop foto yang sudah ada</strong></span></small>
                                     <form id="formUploadPhoto" style="display: none;">
                                         <input type="file" id="photo_profil" name="photo_profil"
-                                            accept="image/*"
+                                            accept=".jpg,.jpeg,.png,image/*"
+                                            onchange="previewPhoto(this)"
                                             style="display: none;">
                                     </form>
                                     <span id="photo_profilError" class="text-danger" style="display:none;">Photo Profil diperlukan.</span>
@@ -326,31 +327,6 @@
         // Cek dan tampilkan button Edit jika foto sudah ada
         toggleEditButton();
 
-        // Event listener untuk input file (lebih robust untuk mobile)
-        const photoInput = document.getElementById('photo_profil');
-        if (photoInput) {
-            // Hapus event listener lama jika ada
-            photoInput.removeEventListener('change', handleFileSelect);
-            photoInput.removeEventListener('input', handleFileSelect);
-            
-            // Tambahkan event listener untuk change dan input (untuk mobile compatibility)
-            photoInput.addEventListener('change', handleFileSelect, false);
-            photoInput.addEventListener('input', handleFileSelect, false);
-            
-            // Tambahkan event listener untuk tombol upload (fallback)
-            const uploadBtn = document.querySelector('button[onclick*="photo_profil"]');
-            if (uploadBtn) {
-                uploadBtn.addEventListener('click', function(e) {
-                    // Pastikan input file di-reset dulu untuk memastikan event change terpicu
-                    setTimeout(function() {
-                        if (photoInput) {
-                            photoInput.click();
-                        }
-                    }, 100);
-                });
-            }
-        }
-
         // Cek apakah Cropper.js sudah dimuat
         setTimeout(function() {
             if (typeof Cropper === 'undefined') {
@@ -373,104 +349,11 @@
         }, 1000);
     });
 
-    // Handler untuk file select (lebih robust untuk mobile)
-    function handleFileSelect(event) {
-        const input = event.target || event.srcElement;
-        console.log('File input triggered:', event.type, input.files);
-        
-        // Pastikan input adalah elemen file input
-        if (!input || input.type !== 'file') {
-            console.warn('Invalid input element');
-            return;
-        }
-        
-        if (input.files && input.files.length > 0) {
-            const file = input.files[0];
-            console.log('File selected:', file.name, file.type, file.size);
-            
-            // Validasi file type
-            if (!file.type || !file.type.match('image.*')) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Format tidak valid',
-                    text: 'Silakan pilih file gambar (JPG, PNG, dll)'
-                });
-                input.value = ''; // Reset input
-                return;
-            }
-            
-            // Panggil previewPhoto dengan delay kecil untuk memastikan file sudah ter-load
-            setTimeout(function() {
-                previewPhoto(input);
-            }, 50);
-        } else {
-            console.log('No file selected');
-        }
-    }
-
-    // Fungsi untuk menampilkan preview foto profil
+    // Fungsi untuk menampilkan preview foto profil (sederhana seperti di createEmisStep)
     function previewPhoto(input) {
-        console.log('previewPhoto called');
-        
-        if (!input) {
-            console.error('Input element is null');
-            return;
-        }
-        
-        if (input.files && input.files.length > 0) {
+        if (input.files && input.files[0]) {
             const file = input.files[0];
-            console.log('Processing file:', file.name, file.type, file.size);
-            
-            // Validasi file type
-            if (!file.type.match('image.*')) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Format tidak valid',
-                    text: 'Silakan pilih file gambar (JPG, PNG, dll)'
-                });
-                input.value = ''; // Reset input
-                return;
-            }
-            
-            // Validasi ukuran file (max 50MB)
-            const maxFileSize = 50 * 1024 * 1024; // 50MB
-            if (file.size > maxFileSize) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'File terlalu besar',
-                    text: 'Ukuran file maksimal 50MB. Silakan pilih file yang lebih kecil.'
-                });
-                input.value = ''; // Reset input
-                return;
-            }
-            
-            // Tampilkan loading jika file besar
-            if (file.size > 2 * 1024 * 1024) { // > 2MB
-                Swal.fire({
-                    title: 'Memproses gambar...',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-            }
-            
-            try {
-                showCropModalProfil(file);
-            } catch (error) {
-                console.error('Error in previewPhoto:', error);
-                Swal.close();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Gagal memproses gambar: ' + error.message
-                });
-                input.value = ''; // Reset input
-            }
-        } else {
-            console.warn('No file selected in input');
+            showCropModalProfil(file);
         }
     }
 
@@ -818,18 +701,7 @@
                                 toggleEditButton();
                                 // Close modal dan reset
                                 $('#modalCropImage').modal('hide');
-                                
-                                // Reset input file dengan clone/replace untuk mobile compatibility
-                                const photoInput = document.getElementById('photo_profil');
-                                if (photoInput) {
-                                    const newInput = photoInput.cloneNode(true);
-                                    photoInput.parentNode.replaceChild(newInput, photoInput);
-                                    
-                                    // Re-attach event listeners
-                                    newInput.addEventListener('change', handleFileSelect, false);
-                                    newInput.addEventListener('input', handleFileSelect, false);
-                                }
-                                
+                                document.getElementById('photo_profil').value = '';
                                 if (cropper) {
                                     cropper.destroy();
                                     cropper = null;
@@ -1068,19 +940,7 @@
                 cropper.destroy();
                 cropper = null;
             }
-            
-            // Reset input file untuk memastikan event change terpicu lagi saat file dipilih
-            const photoInput = document.getElementById('photo_profil');
-            if (photoInput) {
-                // Clone dan replace input untuk memastikan reset sempurna (untuk mobile compatibility)
-                const newInput = photoInput.cloneNode(true);
-                photoInput.parentNode.replaceChild(newInput, photoInput);
-                
-                // Re-attach event listeners ke input baru
-                newInput.addEventListener('change', handleFileSelect, false);
-                newInput.addEventListener('input', handleFileSelect, false);
-            }
-            
+            document.getElementById('photo_profil').value = '';
             selectedFile = null;
             // Reset tombol move
             if (btnMove) {
