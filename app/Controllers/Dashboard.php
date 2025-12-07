@@ -474,32 +474,36 @@ class Dashboard extends BaseController
      */
     public function index()
     {
+        // Simpan query parameter after_login untuk dipertahankan saat redirect
+        $afterLogin = $this->request->getGet('after_login');
+        $queryString = $afterLogin ? '?after_login=1' : '';
+
         // Cek jika user adalah JuriSertifikasi, redirect ke dashboard sertifikasi
         if (in_groups('JuriSertifikasi')) {
-            return redirect()->to(base_url('backend/sertifikasi/dashboard'));
+            return redirect()->to(base_url('backend/sertifikasi/dashboard') . $queryString);
         }
 
         // Cek jika user adalah PanitiaSertifikasi, redirect ke dashboard panitia sertifikasi
         if (in_groups('PanitiaSertifikasi')) {
-            return redirect()->to(base_url('backend/sertifikasi/dashboardPanitiaSertifikasi'));
+            return redirect()->to(base_url('backend/sertifikasi/dashboardPanitiaSertifikasi') . $queryString);
         }
 
         // Cek jika user adalah Juri atau Panitia, redirect ke dashboard munaqosah
         if (in_groups('Juri') || in_groups('Panitia')) {
-            return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah'));
+            return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah') . $queryString);
         }
 
         // Untuk Admin dan Operator, cek query parameter dashboard untuk redirect server-side
         if (in_groups('Admin') || in_groups('Operator')) {
             $dashboardParam = $this->request->getGet('dashboard');
             if ($dashboardParam === 'munaqosah') {
-                return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah'));
+                return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah') . $queryString);
             }
             if ($dashboardParam === 'sertifikasi' && in_groups('Admin')) {
-                return redirect()->to(base_url('backend/sertifikasi/dashboard-admin'));
+                return redirect()->to(base_url('backend/sertifikasi/dashboard-admin') . $queryString);
             }
             if ($dashboardParam === 'myauth' && in_groups('Admin')) {
-                return redirect()->to(base_url('backend/auth'));
+                return redirect()->to(base_url('backend/auth') . $queryString);
             }
         }
 
@@ -516,7 +520,7 @@ class Dashboard extends BaseController
         // Jika multiple peran dan belum ada peran aktif di session, tampilkan modal pemilihan
         if ($userInfo['HasMultipleRoles'] && empty($activeRole)) {
             // Redirect ke halaman pemilihan peran
-            return redirect()->to(base_url('backend/dashboard/select-role'));
+            return redirect()->to(base_url('backend/dashboard/select-role') . $queryString);
         }
         
         // Set active role ke session
@@ -525,31 +529,31 @@ class Dashboard extends BaseController
         // Redirect berdasarkan peran aktif
         switch ($activeRole) {
             case 'admin':
-                return redirect()->to(base_url('backend/dashboard/admin'));
+                return redirect()->to(base_url('backend/dashboard/admin') . $queryString);
             case 'operator':
-                return redirect()->to(base_url('backend/dashboard/operator'));
+                return redirect()->to(base_url('backend/dashboard/operator') . $queryString);
             case 'kepala_tpq':
-                return redirect()->to(base_url('backend/dashboard/kepala-tpq'));
+                return redirect()->to(base_url('backend/dashboard/kepala-tpq') . $queryString);
             case 'wali_kelas':
             case 'guru':
             default:
                 // Pastikan user memiliki peran guru sebelum redirect
                 if (in_array('guru', $userInfo['AllRoles']) || in_groups('Guru')) {
-                    return redirect()->to(base_url('backend/dashboard/guru'));
+                    return redirect()->to(base_url('backend/dashboard/guru') . $queryString);
                 } else {
                     // Jika tidak memiliki peran guru, redirect ke select-role atau dashboard sesuai peran yang ada
                     if ($userInfo['HasMultipleRoles']) {
-                        return redirect()->to(base_url('backend/dashboard/select-role'));
+                        return redirect()->to(base_url('backend/dashboard/select-role') . $queryString);
                     } else {
                         // Fallback ke peran pertama yang ada
                         $firstRole = !empty($userInfo['AllRoles']) ? $userInfo['AllRoles'][0] : 'pengguna';
                         switch ($firstRole) {
                             case 'operator':
-                                return redirect()->to(base_url('backend/dashboard/operator'));
+                                return redirect()->to(base_url('backend/dashboard/operator') . $queryString);
                             case 'kepala_tpq':
-                                return redirect()->to(base_url('backend/dashboard/kepala-tpq'));
+                                return redirect()->to(base_url('backend/dashboard/kepala-tpq') . $queryString);
                             default:
-                                return redirect()->to(base_url('backend/dashboard/select-role'));
+                                return redirect()->to(base_url('backend/dashboard/select-role') . $queryString);
                         }
                     }
                 }

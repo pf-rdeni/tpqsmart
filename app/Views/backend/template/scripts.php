@@ -1,4 +1,148 @@
 <script>
+    // ============================================
+    // Last Page Tracking per User - PRIORITAS TINGGI
+    // Jalankan SEBELUM document.ready untuk memastikan redirect terjadi sebelum dashboardSelector
+    // ============================================
+    (function() {
+        <?php
+        // Ambil user ID untuk digunakan sebagai key localStorage
+        $currentUserId = null;
+        if (function_exists('user_id')) {
+            $currentUserId = user_id();
+        } elseif (function_exists('user') && user()) {
+            $currentUserId = user()->id ?? null;
+        }
+        ?>
+
+        const currentUserId = <?= $currentUserId ?? 'null' ?>;
+
+        // Skip jika user belum login
+        if (!currentUserId) {
+            return;
+        }
+
+        // Key untuk localStorage (spesifik per user)
+        const lastPageStorageKey = 'lastPage_' + currentUserId;
+        const redirectDoneKey = 'lastPageRedirectDone_' + currentUserId;
+
+        // Cek apakah ini adalah redirect setelah login dengan melihat query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAfterLogin = urlParams.get('after_login') === '1';
+        const currentPath = window.location.pathname;
+
+        const currentUrl = window.location.href;
+
+        console.log('[LastPage] User ID:', currentUserId);
+        console.log('[LastPage] Current URL:', currentUrl);
+        console.log('[LastPage] Is after login:', isAfterLogin);
+
+        // PRIORITAS: Jika ini adalah redirect setelah login, cek dan redirect SEBELUM yang lain
+        if (isAfterLogin) {
+            // Reset redirectDone saat ada after_login=1 untuk memungkinkan redirect
+            sessionStorage.removeItem(redirectDoneKey);
+            console.log('[LastPage] Reset redirectDone because after_login detected');
+
+            // Cek apakah ini halaman dashboard (semua variasi)
+            const isDashboardPage = currentPath === '/' ||
+                currentPath.includes('/dashboard') ||
+                currentPath.includes('/backend/dashboard/admin') ||
+                currentPath.includes('/backend/dashboard/operator') ||
+                currentPath.includes('/backend/dashboard/guru') ||
+                currentPath.includes('/backend/dashboard/kepala-tpq') ||
+                currentPath.includes('/backend/dashboard/select-role') ||
+                currentPath.includes('/backend/munaqosah/dashboard-munaqosah') ||
+                currentPath.includes('/backend/sertifikasi/dashboard') ||
+                currentPath.includes('/backend/auth');
+
+            console.log('[LastPage] Is dashboard page:', isDashboardPage);
+
+            if (isDashboardPage) {
+                // Cek apakah ada halaman terakhir yang valid
+                const lastPageCheck = localStorage.getItem(lastPageStorageKey);
+                let cleanLastPageCheck = lastPageCheck;
+                if (cleanLastPageCheck) {
+                    cleanLastPageCheck = cleanLastPageCheck.replace(/[?&]after_login=1/g, '').replace(/\?$/, '');
+                }
+
+                // Bersihkan current URL untuk perbandingan
+                const currentUrlClean = currentUrl.replace(/[?&]after_login=1/g, '').replace(/\?$/, '');
+                const currentUrlBase = window.location.origin + currentPath;
+
+                const hasValidLastPage = cleanLastPageCheck &&
+                    !cleanLastPageCheck.includes('/login') &&
+                    !cleanLastPageCheck.includes('/logout') &&
+                    !cleanLastPageCheck.includes('/auth/') &&
+                    !cleanLastPageCheck.includes('/dashboard') &&
+                    cleanLastPageCheck !== currentUrlClean &&
+                    cleanLastPageCheck !== currentUrlBase &&
+                    cleanLastPageCheck !== window.location.origin + '/' &&
+                    !cleanLastPageCheck.endsWith('/');
+
+                console.log('[LastPage] Has valid last page:', hasValidLastPage, cleanLastPageCheck);
+
+                if (hasValidLastPage) {
+                    // Jika ada halaman terakhir yang valid, langsung redirect TANPA delay
+                    // Ini memastikan redirect terjadi SEBELUM dashboardSelector redirect
+                    sessionStorage.setItem(redirectDoneKey, 'true');
+                    console.log('[LastPage] Redirecting to last page immediately:', cleanLastPageCheck);
+                    window.location.href = cleanLastPageCheck;
+                    return; // Exit early, jangan lanjutkan eksekusi script
+                } else {
+                    // Jika tidak ada halaman terakhir yang valid, tandai redirect sudah dilakukan
+                    sessionStorage.setItem(redirectDoneKey, 'true');
+                    console.log('[LastPage] No valid last page, skipping redirect');
+                }
+            }
+        }
+
+        // Simpan halaman saat ini ke localStorage setiap kali navigasi
+        // Kecuali untuk halaman login, logout, dan halaman khusus lainnya
+        const skipPages = [
+            '/login',
+            '/logout',
+            '/auth/login',
+            '/auth/logout',
+            '/auth/register',
+            '/auth/forgot',
+            '/auth/reset-password'
+        ];
+
+        const shouldSkip = skipPages.some(page => currentPath.includes(page));
+
+        // Jangan simpan jika ada query parameter after_login (ini adalah redirect setelah login)
+        const hasAfterLogin = currentUrl.includes('after_login=1');
+
+        if (!shouldSkip && !hasAfterLogin) {
+            // Simpan URL lengkap (termasuk query string jika ada)
+            localStorage.setItem(lastPageStorageKey, currentUrl);
+            console.log('[LastPage] Saved current page:', currentUrl);
+        } else if (hasAfterLogin) {
+            console.log('[LastPage] Skipping save - after_login detected');
+        }
+
+        // Handle logout - simpan halaman terakhir sebelum logout dan reset redirectDone
+        $(document).on('click', 'a[href*="logout"], a[href*="/logout"]', function(e) {
+            // Simpan halaman saat ini sebelum logout
+            const currentPage = window.location.href;
+            if (!shouldSkip && !currentPage.includes('after_login=1')) {
+                localStorage.setItem(lastPageStorageKey, currentPage);
+                console.log('[LastPage] Saved page before logout:', currentPage);
+            }
+
+            // Reset redirectDone flag saat logout agar bisa redirect di login berikutnya
+            sessionStorage.removeItem(redirectDoneKey);
+            console.log('[LastPage] Reset redirectDone flag on logout');
+        });
+
+        // Hapus query parameter setelah dibaca (jika belum redirect)
+        if (isAfterLogin && !sessionStorage.getItem(redirectDoneKey)) {
+            const newUrl = window.location.pathname + (window.location.search.replace(/[?&]after_login=1/, '').replace(/^\?/, '') ? '?' + window.location.search.replace(/[?&]after_login=1/, '').replace(/^\?/, '') : '');
+            if (newUrl !== window.location.pathname + window.location.search) {
+                window.history.replaceState({}, '', newUrl);
+            }
+        }
+    })();
+
     $(function() {
         // Date picker initialization
         $('#DateForEdit, #DateForInput').datetimepicker({

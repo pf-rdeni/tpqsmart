@@ -69,6 +69,11 @@ class AuthController extends MythAuthController
         // Custom logic: Setup session data setelah login berhasil
         $redirectURL = $this->setupPostLoginSession();
 
+        // Tambahkan query parameter untuk menandai bahwa ini adalah redirect setelah login
+        // Ini akan digunakan oleh JavaScript untuk mendeteksi dan melakukan redirect ke halaman terakhir
+        $separator = strpos($redirectURL, '?') !== false ? '&' : '?';
+        $redirectURL .= $separator . 'after_login=1';
+
         return redirect()->to($redirectURL)->withCookies()->with('message', lang('Auth.loginSuccess'));
     }
 
@@ -87,11 +92,15 @@ class AuthController extends MythAuthController
             $this->setGuruSessionData($idGuru);
         }
 
-        // Ambil redirect URL dari session atau default ke home
-        $redirectURL = session('redirect_url') ?? site_url('/');
-        unset($_SESSION['redirect_url']);
+        // Hapus redirect_url dari session jika ada (untuk cleanup)
+        // Selalu redirect ke dashboard setelah login untuk konsistensi dan keamanan
+        // Ini mencegah user diarahkan ke halaman terakhir yang dibuka user lain
+        if (session()->has('redirect_url')) {
+            unset($_SESSION['redirect_url']);
+        }
 
-        return $redirectURL;
+        // Selalu redirect ke dashboard (home) setelah login
+        return site_url('/');
     }
 
     /**

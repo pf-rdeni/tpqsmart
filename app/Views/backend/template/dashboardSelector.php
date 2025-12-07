@@ -161,6 +161,28 @@
 
 <script>
     $(document).ready(function() {
+        // Ambil user ID dari PHP untuk digunakan sebagai key localStorage
+        <?php
+        $currentUserId = null;
+        if (function_exists('user_id')) {
+            $currentUserId = user_id();
+        } elseif (function_exists('user') && user()) {
+            $currentUserId = user()->id ?? null;
+        }
+        ?>
+        const currentUserId = <?= $currentUserId ?? 'null' ?>;
+
+        // Buat key localStorage yang spesifik per user
+        const getDashboardStorageKey = function() {
+            if (currentUserId) {
+                return 'selectedDashboard_' + currentUserId;
+            }
+            // Fallback jika user ID tidak tersedia (seharusnya tidak terjadi saat login)
+            return 'selectedDashboard';
+        };
+
+        const dashboardStorageKey = getDashboardStorageKey();
+
         // Hitung jumlah dashboard option yang tersedia
         const dashboardCount = $('.dashboard-option-wrapper').length;
 
@@ -190,7 +212,7 @@
 
         // Fungsi untuk update label dashboard di navbar
         function updateDashboardLabel() {
-            const selectedDashboard = localStorage.getItem('selectedDashboard') || 'semester';
+            const selectedDashboard = localStorage.getItem(dashboardStorageKey) || 'semester';
             const labelMap = {
                 'semester': 'Default',
                 'munaqosah': 'Munaqosah',
@@ -199,13 +221,13 @@
             };
             const currentLabel = labelMap[selectedDashboard] || 'Dashboard';
             $('#currentDashboardLabel').text(currentLabel);
-            
+
             // Update checkmark di dropdown
             $('.switch-dashboard-btn').each(function() {
                 const $item = $(this);
                 const dashboard = $item.data('dashboard');
                 const $icon = $item.find('i.fa-check, i.fa-circle').first();
-                
+
                 if (dashboard === selectedDashboard) {
                     $item.addClass('active');
                     $icon.removeClass('far fa-circle').addClass('fas fa-check text-success');
@@ -231,7 +253,7 @@
         }
 
         // Cek localStorage untuk pilihan dashboard
-        const selectedDashboard = localStorage.getItem('selectedDashboard');
+        const selectedDashboard = localStorage.getItem(dashboardStorageKey);
         const currentPath = window.location.pathname;
         const currentUrl = window.location.href.toLowerCase();
 
@@ -244,7 +266,7 @@
 
         // Jika ada query parameter dashboard, set localStorage dan redirect jika perlu
         if (dashboardParam && !selectedDashboard) {
-            localStorage.setItem('selectedDashboard', dashboardParam);
+            localStorage.setItem(dashboardStorageKey, dashboardParam);
             updateDashboardLabel();
             if (dashboardParam === 'munaqosah') {
                 window.location.href = '<?= base_url("backend/munaqosah/dashboard-munaqosah") ?>';
@@ -263,7 +285,30 @@
 
         // Jika ada pilihan dashboard dari localStorage (dari login sebelumnya)
         // dan tidak ada query parameter, langsung terapkan pilihan tersebut
-        if (selectedDashboard && !dashboardParam) {
+        // TAPI: Skip redirect jika ini adalah redirect setelah login dan ada halaman terakhir yang valid
+        const urlParamsCheck = new URLSearchParams(window.location.search);
+        const isAfterLoginCheck = urlParamsCheck.get('after_login') === '1';
+        const lastPageStorageKeyCheck = 'lastPage_' + currentUserId;
+        const lastPageCheck = localStorage.getItem(lastPageStorageKeyCheck);
+
+        // Cek apakah ada halaman terakhir yang valid (bukan dashboard)
+        let hasValidLastPage = false;
+        if (lastPageCheck && isAfterLoginCheck) {
+            const cleanLastPage = lastPageCheck.replace(/[?&]after_login=1/g, '').replace(/\?$/, '');
+            if (cleanLastPage &&
+                !cleanLastPage.includes('/login') &&
+                !cleanLastPage.includes('/logout') &&
+                !cleanLastPage.includes('/auth/') &&
+                !cleanLastPage.includes('/dashboard') &&
+                cleanLastPage !== window.location.origin + '/') {
+                hasValidLastPage = true;
+                console.log('[DashboardSelector] Valid last page found, skipping dashboard redirect:', cleanLastPage);
+            }
+        }
+
+        // Jika ada halaman terakhir yang valid setelah login, tunggu script lastPage redirect dulu
+        // Jangan redirect ke dashboard jika ada halaman terakhir yang valid
+        if (selectedDashboard && !dashboardParam && !hasValidLastPage) {
             // Cek apakah user berada di dashboard default (ujian semester)
             const isDashboardDefault = currentPath === '/' ||
                 currentPath.includes('/dashboard/index') ||
@@ -278,18 +323,41 @@
 
             // Jika user berada di dashboard default dan pilihan bukan semester,
             // redirect ke dashboard yang dipilih (langsung, tidak melalui query parameter)
+            // TAPI: Delay sedikit jika after_login untuk memberi waktu script lastPage redirect dulu
             if (selectedDashboard !== 'semester' && isDashboardDefault) {
-                if (selectedDashboard === 'munaqosah') {
-                    window.location.href = '<?= base_url("backend/munaqosah/dashboard-munaqosah") ?>';
-                    return;
-                }
-                if (selectedDashboard === 'sertifikasi' && isAdmin) {
-                    window.location.href = '<?= base_url("backend/sertifikasi/dashboard-admin") ?>';
-                    return;
-                }
-                if (selectedDashboard === 'myauth' && isAdmin) {
-                    window.location.href = '<?= base_url("backend/auth") ?>';
-                    return;
+                const redirectToSelectedDashboard = function() {
+                    if (selectedDashboard === 'munaqosah') {
+                        window.location.href = '<?= base_url("backend/munaqosah/dashboard-munaqosah") ?>';
+                        return;
+                    }
+                    if (selectedDashboard === 'sertifikasi' && isAdmin) {
+                        window.location.href = '<?= base_url("backend/sertifikasi/dashboard-admin") ?>';
+                        return;
+                    }
+                    if (selectedDashboard === 'myauth' && isAdmin) {
+                        window.location.href = '<?= base_url("backend/auth") ?>';
+                        return;
+                    }
+                };
+
+                // Jika after_login, delay sedikit untuk memberi waktu script lastPage redirect dulu
+                if (isAfterLoginCheck) {
+                    setTimeout(function() {
+                        // Cek lagi apakah masih di dashboard (jika sudah redirect ke lastPage, tidak akan redirect lagi)
+                        const currentPathCheck = window.location.pathname;
+                        const stillOnDashboard = currentPathCheck === '/' ||
+                            currentPathCheck.includes('/dashboard') ||
+                            currentPathCheck.includes('/backend/dashboard/admin') ||
+                            currentPathCheck.includes('/backend/dashboard/operator') ||
+                            currentPathCheck.includes('/backend/dashboard/kepala-tpq') ||
+                            currentPathCheck.includes('/backend/dashboard/guru');
+
+                        if (stillOnDashboard && currentPathCheck === currentPath) {
+                            redirectToSelectedDashboard();
+                        }
+                    }, 1000);
+                } else {
+                    redirectToSelectedDashboard();
                 }
             }
         }
@@ -310,19 +378,19 @@
                 updateDashboardLabel();
             }, 100);
         });
-        
+
         // Handle klik dropdown item dashboard
         $(document).on('click', '.switch-dashboard-btn', function(e) {
             e.preventDefault();
             const dashboard = $(this).data('dashboard');
             const dashboardUrl = $(this).data('url');
-            
-            // Simpan ke localStorage
-            localStorage.setItem('selectedDashboard', dashboard);
-            
+
+            // Simpan ke localStorage dengan key spesifik user
+            localStorage.setItem(dashboardStorageKey, dashboard);
+
             // Update label dan checkmark
             updateDashboardLabel();
-            
+
             // Redirect ke dashboard yang dipilih
             if (dashboardUrl) {
                 window.location.href = dashboardUrl;
@@ -330,7 +398,7 @@
                 redirectToDashboard(dashboard);
             }
         });
-        
+
         // Handle klik tombol "Pilih Dashboard" di navbar (jika masih ada untuk backward compatibility)
         $('#btnPilihDashboard').click(function(e) {
             e.preventDefault();
@@ -340,7 +408,7 @@
         // Handle klik tombol dashboard
         $('.dashboard-option').click(function() {
             const dashboard = $(this).data('dashboard');
-            localStorage.setItem('selectedDashboard', dashboard);
+            localStorage.setItem(dashboardStorageKey, dashboard);
             updateDashboardLabel();
             $('#modalPilihDashboard').modal('hide');
 
@@ -401,8 +469,8 @@
                 return; // Biarkan default behavior
             }
 
-            // Cek localStorage untuk pilihan dashboard
-            const selectedDashboard = localStorage.getItem('selectedDashboard');
+            // Cek localStorage untuk pilihan dashboard dengan key spesifik user
+            const selectedDashboard = localStorage.getItem(dashboardStorageKey);
 
             // Jika ada pilihan dashboard selain semester, intercept dan redirect
             if (selectedDashboard && selectedDashboard !== 'semester') {

@@ -463,7 +463,7 @@ foreach ($dataNilai as $santri) {
             const savedTabId = localStorage.getItem(storageKey);
             if (savedTabId) {
                 // Hapus class active dari semua tab dan tab pane
-                $('.nav-link').removeClass('active');
+                $('#kelasTab .nav-link').removeClass('active').attr('aria-selected', 'false');
                 $('.tab-pane').removeClass('show active');
 
                 // Aktifkan tab yang tersimpan
@@ -488,19 +488,54 @@ foreach ($dataNilai as $santri) {
 
         // Fungsi untuk set tab pertama sebagai aktif
         function setFirstTab() {
-            const firstTab = $('.nav-link').first();
+            // Gunakan selector spesifik untuk tab kelas agar tidak konflik dengan tab lain
+            const firstTab = $('#kelasTab .nav-link').first();
             const firstTabId = firstTab.attr('id');
-            if (firstTabId) {
+
+            if (firstTabId && firstTab.length) {
                 const tabId = firstTabId.replace('tab-', '');
-                saveActiveTab(tabId);
+
+                // Hapus active dari semua tab dan tab pane terlebih dahulu
+                $('#kelasTab .nav-link').removeClass('active').attr('aria-selected', 'false');
+                $('.tab-pane').removeClass('show active');
+
+                // Aktifkan tab pertama
                 firstTab.addClass('active').attr('aria-selected', 'true');
-                $('#kelas-' + tabId).addClass('show active');
+                const firstTabPane = $('#kelas-' + tabId);
+                if (firstTabPane.length) {
+                    firstTabPane.addClass('show active');
+                }
+
+                // Trigger Bootstrap tab untuk memastikan tab benar-benar aktif
+                firstTab.tab('show');
+
+                // Simpan ke localStorage
+                saveActiveTab(tabId);
+            }
+        }
+
+        // Fungsi untuk memastikan tab pertama tetap aktif
+        function ensureFirstTabActive() {
+            const activeTab = $('#kelasTab .nav-link.active');
+            if (!activeTab.length) {
+                // Jika tidak ada tab aktif, aktifkan tab pertama
+                setFirstTab();
+            } else {
+                // Pastikan tab pane juga aktif dan visible
+                const activeTabId = activeTab.attr('id').replace('tab-', '');
+                const activeTabPane = $('#kelas-' + activeTabId);
+                if (activeTabPane.length) {
+                    // Pastikan class show active ada dan hapus fade jika perlu
+                    activeTabPane.addClass('show active');
+                    // Pastikan tab link juga aktif
+                    activeTab.addClass('active').attr('aria-selected', 'true');
+                }
             }
         }
 
         // Event listener untuk menyimpan tab saat tab diubah
         // Gunakan event delegation untuk memastikan event terikat dengan benar
-        $(document).on('shown.bs.tab', 'a[data-toggle="tab"]', function(e) {
+        $(document).on('shown.bs.tab', '#kelasTab a[data-toggle="tab"]', function(e) {
             const tabId = $(e.target).attr('id').replace('tab-', '');
             if (tabId) {
                 saveActiveTab(tabId);
@@ -508,12 +543,84 @@ foreach ($dataNilai as $santri) {
         });
 
         // Memuat tab yang tersimpan saat halaman dimuat
-        loadActiveTab();
+        // Pastikan tab aktif SEBELUM inisialisasi DataTable
+        // Gunakan setTimeout untuk memastikan DOM sudah siap dan semua elemen ter-render
+
+        // Langsung aktifkan tab pertama saat DOM ready (tanpa menunggu localStorage)
+        // Ini memastikan tab selalu terlihat saat pertama kali load
+        const firstTab = $('#kelasTab .nav-link').first();
+        const firstTabId = firstTab.attr('id');
+        let firstTabIdValue = null;
+        if (firstTabId) {
+            firstTabIdValue = firstTabId.replace('tab-', '');
+            // Pastikan tab pertama aktif secara visual
+            firstTab.addClass('active').attr('aria-selected', 'true');
+            $('#kelas-' + firstTabIdValue).addClass('show active');
+        }
+
+        // Kemudian load dari localStorage jika ada
+        setTimeout(function() {
+            const savedTabId = localStorage.getItem(storageKey);
+            if (savedTabId && savedTabId !== firstTabIdValue) {
+                // Jika ada tab yang tersimpan dan berbeda dengan tab pertama, aktifkan
+                loadActiveTab();
+            } else {
+                // Jika tidak ada atau sama dengan tab pertama, pastikan tab pertama aktif
+                ensureFirstTabActive();
+            }
+
+            // Verifikasi lagi setelah loadActiveTab
+            setTimeout(function() {
+                ensureFirstTabActive();
+            }, 50);
+        }, 100);
 
         // Initial DataTable per kelas dengan scroll horizontal dan export buttons
-        <?php foreach ($dataKelas as $kelasId => $kelas): ?>
-            initializeDataTableScrollX("#TableNilaiSemester-<?= $kelasId ?>", ['copy', 'excel', 'colvis']);
-        <?php endforeach; ?>
+        // Inisialisasi setelah tab sudah aktif
+        setTimeout(function() {
+            <?php foreach ($dataKelas as $kelasId => $kelas): ?>
+                // Hanya inisialisasi DataTable jika tabel ada dan terlihat
+                const table<?= $kelasId ?> = $("#TableNilaiSemester-<?= $kelasId ?>");
+                if (table<?= $kelasId ?>.length && !$.fn.DataTable.isDataTable("#TableNilaiSemester-<?= $kelasId ?>")) {
+                    initializeDataTableScrollX("#TableNilaiSemester-<?= $kelasId ?>", ['copy', 'excel', 'colvis']);
+
+                    // Pastikan tab tetap aktif setelah DataTable draw
+                    $("#TableNilaiSemester-<?= $kelasId ?>").on('draw.dt', function() {
+                        ensureFirstTabActive();
+                    });
+                }
+            <?php endforeach; ?>
+
+            // Pastikan tab aktif setelah semua DataTable diinisialisasi
+            ensureFirstTabActive();
+        }, 200);
+
+        // Monitor untuk memastikan tab tetap aktif (jika ada sesuatu yang menutupnya)
+        // Monitor lebih lama dan lebih agresif
+        let monitorCount = 0;
+        const monitorInterval = setInterval(function() {
+            monitorCount++;
+            if (monitorCount > 20) { // Stop setelah 10 detik (20 x 500ms)
+                clearInterval(monitorInterval);
+                return;
+            }
+
+            // Cek apakah ada tab aktif
+            const activeTab = $('#kelasTab .nav-link.active');
+            const activeTabPane = $('.tab-pane.show.active');
+
+            if (!activeTab.length || !activeTabPane.length) {
+                // Jika tidak ada tab atau tab pane aktif, aktifkan tab pertama
+                ensureFirstTabActive();
+            } else {
+                // Pastikan tab pane yang aktif sesuai dengan tab yang aktif
+                const activeTabId = activeTab.attr('id').replace('tab-', '');
+                const expectedTabPane = $('#kelas-' + activeTabId);
+                if (!expectedTabPane.hasClass('show active')) {
+                    expectedTabPane.addClass('show active');
+                }
+            }
+        }, 500);
 
         // Inisialisasi DataTable untuk modal
         function initModalDataTable(santriId) {
