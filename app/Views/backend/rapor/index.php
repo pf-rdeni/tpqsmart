@@ -163,48 +163,54 @@
 
                                             <?php if ($isWaliKelasBtn): ?>
                                                 <div class="col-md-4 mb-3">
-                                                    <div class="card <?= $allSignedWalas ? 'border-danger' : 'border-info' ?> shadow-sm h-100" style="background: linear-gradient(135deg, <?= $allSignedWalas ? '#fff5f5' : '#e8f4f8' ?> 0%, #ffffff 100%);">
-                                                        <div class="card-body text-center">
-                                                            <h5 class="card-title">
-                                                                <i class="fas fa-signature <?= $allSignedWalas ? 'text-danger' : 'text-info' ?>"></i>
+                                                    <div class="info-box <?= $allSignedWalas ? 'bg-gradient-success' : 'bg-gradient-info' ?> shadow-sm">
+                                                        <span class="info-box-icon">
+                                                            <i class="fas fa-qrcode"></i>
+                                                        </span>
+                                                        <div class="info-box-content">
+                                                            <span class="info-box-text">
                                                                 <?= $allSignedWalas ? 'Batalkan TTD' : 'Tanda Tangan QR' ?>
-                                                                <br><small>Wali Kelas</small>
-                                                            </h5>
-                                                            <div class="mt-3">
-                                                                <div class="row text-center">
-                                                                    <div class="col-6">
-                                                                        <div class="text-success">
-                                                                            <i class="fas fa-check-circle fa-2x"></i>
-                                                                            <p class="mb-0 mt-2"><strong><?= $ttdWalas ?></strong></p>
-                                                                            <small>Sudah TTD</small>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <div class="text-warning">
-                                                                            <i class="fas fa-clock fa-2x"></i>
-                                                                            <p class="mb-0 mt-2"><strong><?= $belumTtdWalas ?></strong></p>
-                                                                            <small>Belum TTD</small>
-                                                                        </div>
+                                                                <br><small>Wali Kelas - Kelas <?= esc($kelas->NamaKelas) ?></small>
+                                                            </span>
+                                                            <div class="row mt-2">
+                                                                <div class="col-6">
+                                                                    <div class="text-center">
+                                                                        <span class="info-box-number" style="font-size: 1.5rem;"><?= $ttdWalas ?></span>
+                                                                        <small>Sudah TTD</small>
                                                                     </div>
                                                                 </div>
-                                                                <div class="mt-3">
-                                                                    <p class="mb-1"><strong>Total: <?= $totalSantri ?> Rapor</strong></p>
-                                                                    <?php if ($allSignedWalas): ?>
-                                                                        <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-walas"
-                                                                            data-kelas="<?= $kelas->IdKelas ?>"
-                                                                            data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
-                                                                            data-semester="<?= $semester ?>">
-                                                                            <i class="fas fa-times-circle"></i> Batalkan TTD
-                                                                        </button>
-                                                                    <?php else: ?>
-                                                                        <button type="button" class="btn btn-info btn-sm btn-block btn-ttd-bulk-walas"
-                                                                            data-kelas="<?= $kelas->IdKelas ?>"
-                                                                            data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
-                                                                            data-semester="<?= $semester ?>">
-                                                                            <i class="fas fa-signature"></i> Tanda Tangan Semua
-                                                                        </button>
-                                                                    <?php endif; ?>
+                                                                <div class="col-6">
+                                                                    <div class="text-center">
+                                                                        <span class="info-box-number" style="font-size: 1.5rem;"><?= $belumTtdWalas ?></span>
+                                                                        <small>Belum TTD</small>
+                                                                    </div>
                                                                 </div>
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <small>Total: <?= $totalSantri ?> Rapor</small>
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <?php if ($allSignedWalas): ?>
+                                                                    <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-walas"
+                                                                        data-kelas="<?= $kelas->IdKelas ?>"
+                                                                        data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                        data-semester="<?= $semester ?>">
+                                                                        <i class="fas fa-times-circle"></i> Batalkan TTD
+                                                                    </button>
+                                                                    <div class="mt-2">
+                                                                        <small>Info: Untuk membatalkan tanda tangan semua rapor, silahkan klik tombol <span class="badge badge-danger"><i class="fas fa-times-circle"></i> Batalkan TTD</span> di card</small>
+                                                                    </div>
+                                                                <?php else: ?>
+                                                                    <button type="button" class="btn btn-warning btn-sm btn-block btn-ttd-bulk-walas"
+                                                                        data-kelas="<?= $kelas->IdKelas ?>"
+                                                                        data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                        data-semester="<?= $semester ?>">
+                                                                        <i class="fas fa-signature"></i> Tanda Tangan Semua
+                                                                    </button>
+                                                                    <div class="mt-2">
+                                                                        <small>Info: Untuk menandatangani semua rapor, silahkan klik tombol <span class="badge badge-warning"><i class="fas fa-signature"></i> Tanda Tangan Semua</span> di card</small>
+                                                                    </div>
+                                                                <?php endif; ?>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -213,48 +219,54 @@
 
                                             <?php if ($isKepalaSekolahBtn): ?>
                                                 <div class="col-md-4 mb-3">
-                                                    <div class="card <?= $allSignedKepsek ? 'border-danger' : 'border-success' ?> shadow-sm h-100" style="background: linear-gradient(135deg, <?= $allSignedKepsek ? '#fff5f5' : '#e8f8f0' ?> 0%, #ffffff 100%);">
-                                                        <div class="card-body text-center">
-                                                            <h5 class="card-title">
-                                                                <i class="fas fa-signature <?= $allSignedKepsek ? 'text-danger' : 'text-success' ?>"></i>
+                                                    <div class="info-box <?= $allSignedKepsek ? 'bg-gradient-success' : 'bg-gradient-info' ?> shadow-sm">
+                                                        <span class="info-box-icon">
+                                                            <i class="fas fa-qrcode"></i>
+                                                        </span>
+                                                        <div class="info-box-content">
+                                                            <span class="info-box-text">
                                                                 <?= $allSignedKepsek ? 'Batalkan TTD' : 'Tanda Tangan QR' ?>
-                                                                <br><small>Kepala Sekolah</small>
-                                                            </h5>
-                                                            <div class="mt-3">
-                                                                <div class="row text-center">
-                                                                    <div class="col-6">
-                                                                        <div class="text-success">
-                                                                            <i class="fas fa-check-circle fa-2x"></i>
-                                                                            <p class="mb-0 mt-2"><strong><?= $ttdKepsek ?></strong></p>
-                                                                            <small>Sudah TTD</small>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <div class="text-warning">
-                                                                            <i class="fas fa-clock fa-2x"></i>
-                                                                            <p class="mb-0 mt-2"><strong><?= $belumTtdKepsek ?></strong></p>
-                                                                            <small>Belum TTD</small>
-                                                                        </div>
+                                                                <br><small>Kepala Sekolah - Kelas <?= esc($kelas->NamaKelas) ?></small>
+                                                            </span>
+                                                            <div class="row mt-2">
+                                                                <div class="col-6">
+                                                                    <div class="text-center">
+                                                                        <span class="info-box-number" style="font-size: 1.5rem;"><?= $ttdKepsek ?></span>
+                                                                        <small>Sudah TTD</small>
                                                                     </div>
                                                                 </div>
-                                                                <div class="mt-3">
-                                                                    <p class="mb-1"><strong>Total: <?= $totalSantri ?> Rapor</strong></p>
-                                                                    <?php if ($allSignedKepsek): ?>
-                                                                        <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-kepsek"
-                                                                            data-kelas="<?= $kelas->IdKelas ?>"
-                                                                            data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
-                                                                            data-semester="<?= $semester ?>">
-                                                                            <i class="fas fa-times-circle"></i> Batalkan TTD
-                                                                        </button>
-                                                                    <?php else: ?>
-                                                                        <button type="button" class="btn btn-success btn-sm btn-block btn-ttd-bulk-kepsek"
-                                                                            data-kelas="<?= $kelas->IdKelas ?>"
-                                                                            data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
-                                                                            data-semester="<?= $semester ?>">
-                                                                            <i class="fas fa-signature"></i> Tanda Tangan Semua
-                                                                        </button>
-                                                                    <?php endif; ?>
+                                                                <div class="col-6">
+                                                                    <div class="text-center">
+                                                                        <span class="info-box-number" style="font-size: 1.5rem;"><?= $belumTtdKepsek ?></span>
+                                                                        <small>Belum TTD</small>
+                                                                    </div>
                                                                 </div>
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <small>Total: <?= $totalSantri ?> Rapor</small>
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <?php if ($allSignedKepsek): ?>
+                                                                    <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-kepsek"
+                                                                        data-kelas="<?= $kelas->IdKelas ?>"
+                                                                        data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                        data-semester="<?= $semester ?>">
+                                                                        <i class="fas fa-times-circle"></i> Batalkan TTD
+                                                                    </button>
+                                                                    <div class="mt-2">
+                                                                        <small>Info: Untuk membatalkan tanda tangan semua rapor, silahkan klik tombol <span class="badge badge-danger"><i class="fas fa-times-circle"></i> Batalkan TTD</span> di card</small>
+                                                                    </div>
+                                                                <?php else: ?>
+                                                                    <button type="button" class="btn btn-warning btn-sm btn-block btn-ttd-bulk-kepsek"
+                                                                        data-kelas="<?= $kelas->IdKelas ?>"
+                                                                        data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                        data-semester="<?= $semester ?>">
+                                                                        <i class="fas fa-signature"></i> Tanda Tangan Semua
+                                                                    </button>
+                                                                    <div class="mt-2">
+                                                                        <small>Info: Untuk menandatangani semua rapor, silahkan klik tombol <span class="badge badge-warning"><i class="fas fa-signature"></i> Tanda Tangan Semua</span> di card</small>
+                                                                    </div>
+                                                                <?php endif; ?>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -262,63 +274,63 @@
                                             <?php endif; ?>
 
                                             <div class="col-md-4 mb-3">
-                                                <div class="card border-primary shadow-sm h-100" style="background: linear-gradient(135deg, #e8f0ff 0%, #ffffff 100%);">
-                                                    <div class="card-body text-center">
-                                                        <h5 class="card-title">
-                                                            <i class="fas fa-print text-primary"></i>
+                                                <div class="info-box bg-gradient-primary shadow-sm">
+                                                    <span class="info-box-icon">
+                                                        <i class="fas fa-print"></i>
+                                                    </span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">
                                                             Cetak Semua Rapor
                                                             <br><small>Kelas <?= esc($kelas->NamaKelas) ?></small>
-                                                        </h5>
-                                                        <div class="mt-3">
-                                                            <div class="text-center">
-                                                                <i class="fas fa-file-pdf fa-3x text-primary mb-3"></i>
-                                                                <p class="mb-1"><strong>Jumlah Rapor: <?= $totalSantri ?></strong></p>
-                                                                <small class="text-muted">Semester <?= $semester ?></small>
-                                                            </div>
-                                                            <div class="mt-3">
-                                                                <div class="form-group text-left">
-                                                                    <label for="tanggalCetak-<?= $kelas->IdKelas ?>" class="small mb-1"><strong>Tanggal Diserahkan:</strong></label>
-                                                                    <input type="date"
-                                                                        class="form-control form-control-sm tanggal-cetak"
-                                                                        id="tanggalCetak-<?= $kelas->IdKelas ?>"
-                                                                        data-kelas="<?= $kelas->IdKelas ?>"
-                                                                        data-semester="<?= $semester ?>"
-                                                                        data-tahun-ajaran="<?= session()->get('IdTahunAjaran') ?>"
-                                                                        value="<?= date('Y-m-d') ?>">
-                                                                </div>
-                                                                <div class="form-check text-left mb-2">
-                                                                    <input class="form-check-input checkbox-tanggal-cetak"
-                                                                        type="checkbox"
-                                                                        id="confirmTanggal-<?= $kelas->IdKelas ?>"
-                                                                        data-kelas="<?= $kelas->IdKelas ?>"
-                                                                        data-semester="<?= $semester ?>"
-                                                                        data-tahun-ajaran="<?= session()->get('IdTahunAjaran') ?>">
-                                                                    <label class="form-check-label small" for="confirmTanggal-<?= $kelas->IdKelas ?>">
-                                                                        Saya sudah mengisi tanggal
-                                                                    </label>
-                                                                </div>
-                                                                <button type="button"
-                                                                    class="btn btn-primary btn-sm btn-block btn-print-all"
+                                                        </span>
+                                                        <div class="mt-2">
+                                                            <div class="form-group text-left">
+                                                                <label for="tanggalCetak-<?= $kelas->IdKelas ?>" class="small mb-1"><strong>Tanggal Diserahkan:</strong></label>
+                                                                <input type="date"
+                                                                    class="form-control form-control-sm tanggal-cetak"
+                                                                    id="tanggalCetak-<?= $kelas->IdKelas ?>"
                                                                     data-kelas="<?= $kelas->IdKelas ?>"
-                                                                    data-semester="<?= $semester ?>">
-                                                                    <i class="fas fa-print"></i> Cetak Semua Rapor
-                                                                </button>
+                                                                    data-semester="<?= $semester ?>"
+                                                                    data-tahun-ajaran="<?= session()->get('IdTahunAjaran') ?>"
+                                                                    value="<?= date('Y-m-d') ?>">
                                                             </div>
+                                                            <div class="form-check text-left mb-2">
+                                                                <input class="form-check-input checkbox-tanggal-cetak"
+                                                                    type="checkbox"
+                                                                    id="confirmTanggal-<?= $kelas->IdKelas ?>"
+                                                                    data-kelas="<?= $kelas->IdKelas ?>"
+                                                                    data-semester="<?= $semester ?>"
+                                                                    data-tahun-ajaran="<?= session()->get('IdTahunAjaran') ?>">
+                                                                <label class="form-check-label small" for="confirmTanggal-<?= $kelas->IdKelas ?>">
+                                                                    Ya, tanggal tersebut sudah benar
+                                                                </label>
+                                                            </div>
+                                                            <button type="button"
+                                                                class="btn btn-warning btn-sm btn-block btn-print-all"
+                                                                data-kelas="<?= $kelas->IdKelas ?>"
+                                                                data-semester="<?= $semester ?>">
+                                                                <i class="fas fa-print"></i> Cetak Semua Rapor
+                                                            </button>
+                                                        </div>
+                                                        <div class="mt-2">
+                                                            <small>Info: Untuk mencetak semua rapor, silahkan klik tombol <span class="badge badge-warning"><i class="fas fa-print"></i> Cetak Semua Rapor</span> di card. atau klik tombol <span class="badge badge-warning"><i class="fas fa-print"></i> Cetak Rapor</span> pada kolom Aksi untuk mencetak rapor individual.</small>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div class="col-md-4 mb-3">
-                                                <div class="card border-secondary shadow-sm h-100" style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
-                                                    <div class="card-body text-center">
-                                                        <h5 class="card-title">
-                                                            <i class="fas fa-tasks text-secondary"></i>
-                                                            Aksi Catatan & Absensi
+                                                <div class="info-box bg-gradient-secondary shadow-sm">
+                                                    <span class="info-box-icon">
+                                                        <i class="fas fa-tasks"></i>
+                                                    </span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">
+                                                            Catatan & Absensi
                                                             <br><small>Kelas <?= esc($kelas->NamaKelas) ?></small>
-                                                        </h5>
-                                                        <div class="mt-3">
-                                                            <table class="table table-sm table-bordered mb-0">
+                                                        </span>
+                                                        <div class="mt-2">
+                                                            <table class="table table-sm table-bordered mb-0" id="tableCatatanAbsensi-<?= $kelas->IdKelas ?>" data-table="false">
                                                                 <thead class="thead-light">
                                                                     <tr>
                                                                         <th class="text-left">Aksi</th>
@@ -351,6 +363,9 @@
                                                                     </tr>
                                                                 </tbody>
                                                             </table>
+                                                            <div class="mt-2">
+                                                                <small>Info: Untuk melakukan catatan dan absensi, silahkan klik tombol <span class="badge badge-info">Catatan</span> atau <span class="badge badge-info">Absensi</span> pada kolom Aksi.</small>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -591,9 +606,13 @@
 </style>
 <script>
     $(document).ready(function() {
-        // Inisialisasi DataTable untuk setiap kelas
+        // Inisialisasi DataTable untuk setiap kelas (hanya untuk tabel santri, bukan tabel catatan/absensi)
         <?php foreach ($dataKelas as $kelasId => $IdKelas): ?>
             initializeDataTableUmum("#tableSantri-<?= $kelasId ?>", true, true);
+            // Pastikan tabel catatan/absensi tidak diinisialisasi sebagai DataTable
+            if ($.fn.DataTable.isDataTable('#tableCatatanAbsensi-<?= $kelasId ?>')) {
+                $('#tableCatatanAbsensi-<?= $kelasId ?>').DataTable().destroy();
+            }
         <?php endforeach; ?>
 
         // Pastikan event handler terpasang setelah DataTable selesai

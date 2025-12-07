@@ -296,6 +296,78 @@
 
 <!-- Custom CSS untuk optimasi navbar di mobile sesuai AdminLTE -->
 <style>
+    /* Dark mode styles untuk navbar - memastikan teks dan icon terlihat */
+    .dark-mode .main-header.navbar.navbar-white.navbar-light {
+        background-color: #343a40 !important;
+        border-color: #495057 !important;
+    }
+
+    .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link {
+        color: #ffffff !important;
+    }
+
+    .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link i {
+        color: #ffffff !important;
+    }
+
+    .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link:hover {
+        color: #f8f9fa !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link:hover i {
+        color: #f8f9fa !important;
+    }
+
+    .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link:focus {
+        color: #ffffff !important;
+    }
+
+    /* Dark mode untuk dropdown menu */
+    .dark-mode .main-header.navbar .navbar-nav .dropdown-menu {
+        background-color: #343a40 !important;
+        border-color: #495057 !important;
+    }
+
+    .dark-mode .main-header.navbar .navbar-nav .dropdown-item {
+        color: #ffffff !important;
+    }
+
+    .dark-mode .main-header.navbar .navbar-nav .dropdown-item:hover {
+        background-color: #495057 !important;
+        color: #ffffff !important;
+    }
+
+    .dark-mode .main-header.navbar .navbar-nav .dropdown-item i {
+        color: #ffffff !important;
+    }
+
+    .dark-mode .main-header.navbar .navbar-nav .dropdown-header {
+        color: #adb5bd !important;
+    }
+
+    /* Dark mode untuk navbar search block */
+    .dark-mode .main-header.navbar .navbar-search-block {
+        background-color: #343a40 !important;
+        border-color: #495057 !important;
+    }
+
+    .dark-mode .main-header.navbar .navbar-search-block .form-control-navbar {
+        background-color: #495057 !important;
+        color: #ffffff !important;
+        border-color: #6c757d !important;
+    }
+
+    .dark-mode .main-header.navbar .navbar-search-block .form-control-navbar::placeholder {
+        color: #adb5bd !important;
+    }
+
+    .dark-mode .main-header.navbar .navbar-search-block .btn-navbar {
+        background-color: #495057 !important;
+        color: #ffffff !important;
+        border-color: #6c757d !important;
+    }
+
     /* Memastikan navbar selalu terlihat dan berfungsi dengan baik di semua ukuran layar */
     @media (max-width: 991.98px) {
         .main-header.navbar {
@@ -340,6 +412,15 @@
             display: inline-block !important;
         }
 
+        /* Dark mode di mobile - memastikan teks dan icon terlihat */
+        .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link {
+            color: #ffffff !important;
+        }
+
+        .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link i {
+            color: #ffffff !important;
+        }
+
         /* Styling untuk dropdown menu mobile */
         .main-header.navbar .navbar-nav .dropdown-menu {
             border-radius: 0.25rem;
@@ -354,6 +435,12 @@
             border: 1px solid rgba(0, 0, 0, .15) !important;
             max-width: calc(100vw - 20px);
             white-space: nowrap;
+        }
+
+        /* Dark mode untuk dropdown menu di mobile */
+        .dark-mode .main-header.navbar .navbar-nav .dropdown-menu {
+            background-color: #343a40 !important;
+            border-color: #495057 !important;
         }
 
         /* Dropdown menu di sebelah kanan (default untuk right navbar) */
@@ -413,6 +500,20 @@
             text-align: center;
         }
 
+        /* Dark mode untuk dropdown item di mobile */
+        .dark-mode .main-header.navbar .navbar-nav .dropdown-item {
+            color: #ffffff !important;
+        }
+
+        .dark-mode .main-header.navbar .navbar-nav .dropdown-item:hover {
+            background-color: #495057 !important;
+            color: #ffffff !important;
+        }
+
+        .dark-mode .main-header.navbar .navbar-nav .dropdown-item i {
+            color: #ffffff !important;
+        }
+
         /* Pastikan navbar search block tidak overflow */
         .main-header.navbar .navbar-search-block {
             position: absolute;
@@ -423,6 +524,11 @@
             background: white;
             padding: 0.5rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dark mode untuk navbar search block di mobile */
+        .dark-mode .main-header.navbar .navbar-search-block {
+            background-color: #343a40 !important;
         }
 
         /* Pastikan navbar tidak terlalu tinggi */
@@ -443,6 +549,15 @@
         /* Pastikan icon tidak terlalu besar */
         .main-header.navbar .navbar-nav .nav-link i {
             font-size: 0.9rem;
+        }
+
+        /* Dark mode di layar kecil - memastikan teks dan icon terlihat */
+        .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link {
+            color: #ffffff !important;
+        }
+
+        .dark-mode .main-header.navbar.navbar-white.navbar-light .nav-link i {
+            color: #ffffff !important;
         }
     }
 
