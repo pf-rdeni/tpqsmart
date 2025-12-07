@@ -93,56 +93,230 @@
                                 aria-labelledby="tab-<?= $kelas->IdKelas ?>">
                                 <div class="table-responsive">
                                     <div class="mb-3">
-                                        <?php
-                                        // Cek apakah user adalah Kepala Sekolah atau Wali Kelas untuk tombol tanda tangan QR
-                                        $idTpqBtn = session()->get('IdTpq');
-                                        $idGuruBtn = session()->get('IdGuru');
-                                        $isKepalaSekolahBtn = false;
-                                        $isWaliKelasBtn = false;
+                                        <div class="row">
+                                            <?php
+                                            // Cek apakah user adalah Kepala Sekolah atau Wali Kelas untuk tombol tanda tangan QR
+                                            $idTpqBtn = session()->get('IdTpq');
+                                            $idGuruBtn = session()->get('IdGuru');
+                                            $isKepalaSekolahBtn = false;
+                                            $isWaliKelasBtn = false;
 
-                                        if (!empty($idGuruBtn) && !empty($idTpqBtn)) {
-                                            $helpFunctionModelBtn = new \App\Models\HelpFunctionModel();
+                                            if (!empty($idGuruBtn) && !empty($idTpqBtn)) {
+                                                $helpFunctionModelBtn = new \App\Models\HelpFunctionModel();
+                                                
+                                                // Cek apakah user adalah Kepala Sekolah
+                                                $jabatanDataBtn = $helpFunctionModelBtn->getStrukturLembagaJabatan($idGuruBtn, $idTpqBtn);
+                                                if (!empty($jabatanDataBtn)) {
+                                                    foreach ($jabatanDataBtn as $jabatan) {
+                                                        if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                                                            $isKepalaSekolahBtn = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+
+                                                // Cek apakah user adalah Wali Kelas untuk kelas ini
+                                                if (!$isKepalaSekolahBtn && !empty($guruKelasPermissions)) {
+                                                    foreach ($guruKelasPermissions as $perm) {
+                                                        if (isset($perm['IdKelas']) && $perm['IdKelas'] == $kelas->IdKelas && 
+                                                            isset($perm['NamaJabatan']) && $perm['NamaJabatan'] === 'Wali Kelas') {
+                                                            $isWaliKelasBtn = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
                                             
-                                            // Cek apakah user adalah Kepala Sekolah
-                                            $jabatanDataBtn = $helpFunctionModelBtn->getStrukturLembagaJabatan($idGuruBtn, $idTpqBtn);
-                                            if (!empty($jabatanDataBtn)) {
-                                                foreach ($jabatanDataBtn as $jabatan) {
-                                                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
-                                                        $isKepalaSekolahBtn = true;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-
-                                            // Cek apakah user adalah Wali Kelas untuk kelas ini
-                                            if (!$isKepalaSekolahBtn && !empty($guruKelasPermissions)) {
-                                                foreach ($guruKelasPermissions as $perm) {
-                                                    if (isset($perm['IdKelas']) && $perm['IdKelas'] == $kelas->IdKelas && 
-                                                        isset($perm['NamaJabatan']) && $perm['NamaJabatan'] === 'Wali Kelas') {
-                                                        $isWaliKelasBtn = true;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        ?>
-                                        <?php if ($isWaliKelasBtn): ?>
-                                            <button type="button" class="btn btn-info btn-sm btn-ttd-bulk-walas" 
-                                                    data-kelas="<?= $kelas->IdKelas ?>" 
-                                                    data-semester="<?= $semester ?>">
-                                                <i class="fas fa-signature"></i> Tanda Tangan QR Semua Wali Kelas
-                                            </button>
-                                        <?php endif; ?>
-                                        <?php if ($isKepalaSekolahBtn): ?>
-                                            <button type="button" class="btn btn-success btn-sm btn-ttd-bulk-kepsek" 
-                                                    data-kelas="<?= $kelas->IdKelas ?>" 
-                                                    data-semester="<?= $semester ?>">
-                                                <i class="fas fa-signature"></i> Tanda Tangan QR Semua Kepala Sekolah
-                                            </button>
-                                        <?php endif; ?>
-                                        <button type="button" class="btn btn-primary btn-sm btn-print-all" data-kelas="<?= $kelas->IdKelas ?>" data-semester="<?= $semester ?>">
-                                            <i class="fas fa-print"></i> Cetak Semua Rapor Kelas <?= $kelas->NamaKelas ?>
-                                        </button>
+                                            // Cek status tanda tangan bulk untuk kelas ini
+                                            $bulkStatus = $bulkSignatureStatus[$kelas->IdKelas] ?? null;
+                                            $allSignedWalas = $bulkStatus && $bulkStatus['all_signed_walas'];
+                                            $allSignedKepsek = $bulkStatus && $bulkStatus['all_signed_kepsek'];
+                                            $totalSantri = $bulkStatus['total'] ?? 0;
+                                            $ttdWalas = $bulkStatus['ttd_walas'] ?? 0;
+                                            $ttdKepsek = $bulkStatus['ttd_kepsek'] ?? 0;
+                                            $belumTtdWalas = $totalSantri - $ttdWalas;
+                                            $belumTtdKepsek = $totalSantri - $ttdKepsek;
+                                            
+                                            // Statistik catatan dan absensi
+                                            $jumlahCatatan = $bulkStatus['catatan'] ?? 0;
+                                            $jumlahAbsensi = $bulkStatus['absensi'] ?? 0;
+                                            $belumCatatan = $totalSantri - $jumlahCatatan;
+                                            $belumAbsensi = $totalSantri - $jumlahAbsensi;
+                                            ?>
+                                            
+                                            <?php if ($isWaliKelasBtn): ?>
+                                                <div class="col-md-4 mb-3">
+                                                    <div class="card <?= $allSignedWalas ? 'border-danger' : 'border-info' ?> shadow-sm h-100" style="background: linear-gradient(135deg, <?= $allSignedWalas ? '#fff5f5' : '#e8f4f8' ?> 0%, #ffffff 100%);">
+                                                        <div class="card-body text-center">
+                                                            <h5 class="card-title">
+                                                                <i class="fas fa-signature <?= $allSignedWalas ? 'text-danger' : 'text-info' ?>"></i>
+                                                                <?= $allSignedWalas ? 'Batalkan TTD' : 'Tanda Tangan QR' ?>
+                                                                <br><small>Wali Kelas</small>
+                                                            </h5>
+                                                            <div class="mt-3">
+                                                                <div class="row text-center">
+                                                                    <div class="col-6">
+                                                                        <div class="text-success">
+                                                                            <i class="fas fa-check-circle fa-2x"></i>
+                                                                            <p class="mb-0 mt-2"><strong><?= $ttdWalas ?></strong></p>
+                                                                            <small>Sudah TTD</small>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <div class="text-warning">
+                                                                            <i class="fas fa-clock fa-2x"></i>
+                                                                            <p class="mb-0 mt-2"><strong><?= $belumTtdWalas ?></strong></p>
+                                                                            <small>Belum TTD</small>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="mt-3">
+                                                                    <p class="mb-1"><strong>Total: <?= $totalSantri ?> Rapor</strong></p>
+                                                                    <?php if ($allSignedWalas): ?>
+                                                                        <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-walas" 
+                                                                                data-kelas="<?= $kelas->IdKelas ?>" 
+                                                                                data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                                data-semester="<?= $semester ?>">
+                                                                            <i class="fas fa-times-circle"></i> Batalkan TTD
+                                                                        </button>
+                                                                    <?php else: ?>
+                                                                        <button type="button" class="btn btn-info btn-sm btn-block btn-ttd-bulk-walas" 
+                                                                                data-kelas="<?= $kelas->IdKelas ?>" 
+                                                                                data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                                data-semester="<?= $semester ?>">
+                                                                            <i class="fas fa-signature"></i> Tanda Tangan Semua
+                                                                        </button>
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($isKepalaSekolahBtn): ?>
+                                                <div class="col-md-4 mb-3">
+                                                    <div class="card <?= $allSignedKepsek ? 'border-danger' : 'border-success' ?> shadow-sm h-100" style="background: linear-gradient(135deg, <?= $allSignedKepsek ? '#fff5f5' : '#e8f8f0' ?> 0%, #ffffff 100%);">
+                                                        <div class="card-body text-center">
+                                                            <h5 class="card-title">
+                                                                <i class="fas fa-signature <?= $allSignedKepsek ? 'text-danger' : 'text-success' ?>"></i>
+                                                                <?= $allSignedKepsek ? 'Batalkan TTD' : 'Tanda Tangan QR' ?>
+                                                                <br><small>Kepala Sekolah</small>
+                                                            </h5>
+                                                            <div class="mt-3">
+                                                                <div class="row text-center">
+                                                                    <div class="col-6">
+                                                                        <div class="text-success">
+                                                                            <i class="fas fa-check-circle fa-2x"></i>
+                                                                            <p class="mb-0 mt-2"><strong><?= $ttdKepsek ?></strong></p>
+                                                                            <small>Sudah TTD</small>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <div class="text-warning">
+                                                                            <i class="fas fa-clock fa-2x"></i>
+                                                                            <p class="mb-0 mt-2"><strong><?= $belumTtdKepsek ?></strong></p>
+                                                                            <small>Belum TTD</small>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="mt-3">
+                                                                    <p class="mb-1"><strong>Total: <?= $totalSantri ?> Rapor</strong></p>
+                                                                    <?php if ($allSignedKepsek): ?>
+                                                                        <button type="button" class="btn btn-danger btn-sm btn-block btn-cancel-ttd-kepsek" 
+                                                                                data-kelas="<?= $kelas->IdKelas ?>" 
+                                                                                data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                                data-semester="<?= $semester ?>">
+                                                                            <i class="fas fa-times-circle"></i> Batalkan TTD
+                                                                        </button>
+                                                                    <?php else: ?>
+                                                                        <button type="button" class="btn btn-success btn-sm btn-block btn-ttd-bulk-kepsek" 
+                                                                                data-kelas="<?= $kelas->IdKelas ?>" 
+                                                                                data-nama-kelas="<?= esc($kelas->NamaKelas) ?>"
+                                                                                data-semester="<?= $semester ?>">
+                                                                            <i class="fas fa-signature"></i> Tanda Tangan Semua
+                                                                        </button>
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <div class="col-md-4 mb-3">
+                                                <div class="card border-primary shadow-sm h-100" style="background: linear-gradient(135deg, #e8f0ff 0%, #ffffff 100%);">
+                                                    <div class="card-body text-center">
+                                                        <h5 class="card-title">
+                                                            <i class="fas fa-print text-primary"></i>
+                                                            Cetak Semua Rapor
+                                                            <br><small>Kelas <?= esc($kelas->NamaKelas) ?></small>
+                                                        </h5>
+                                                        <div class="mt-3">
+                                                            <div class="text-center">
+                                                                <i class="fas fa-file-pdf fa-3x text-primary mb-3"></i>
+                                                                <p class="mb-1"><strong>Jumlah Rapor: <?= $totalSantri ?></strong></p>
+                                                                <small class="text-muted">Semester <?= $semester ?></small>
+                                                            </div>
+                                                            <div class="mt-3">
+                                                                <button type="button" class="btn btn-primary btn-sm btn-block btn-print-all" 
+                                                                        data-kelas="<?= $kelas->IdKelas ?>" 
+                                                                        data-semester="<?= $semester ?>">
+                                                                    <i class="fas fa-print"></i> Cetak Semua Rapor
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-4 mb-3">
+                                                <div class="card border-secondary shadow-sm h-100" style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
+                                                    <div class="card-body text-center">
+                                                        <h5 class="card-title">
+                                                            <i class="fas fa-tasks text-secondary"></i>
+                                                            Aksi Catatan & Absensi
+                                                            <br><small>Kelas <?= esc($kelas->NamaKelas) ?></small>
+                                                        </h5>
+                                                        <div class="mt-3">
+                                                            <table class="table table-sm table-bordered mb-0">
+                                                                <thead class="thead-light">
+                                                                    <tr>
+                                                                        <th class="text-left">Aksi</th>
+                                                                        <th class="text-center text-success">Sudah</th>
+                                                                        <th class="text-center text-warning">Belum</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td class="text-left">
+                                                                            <i class="fas fa-sticky-note text-warning"></i> Catatan
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <strong class="text-success"><?= $jumlahCatatan ?></strong>
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <strong class="text-warning"><?= $belumCatatan ?></strong>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left">
+                                                                            <i class="fas fa-calendar-check text-info"></i> Absensi
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <strong class="text-success"><?= $jumlahAbsensi ?></strong>
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <strong class="text-warning"><?= $belumAbsensi ?></strong>
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <?php
                                         // Tampilkan tombol setting mapping hanya untuk Wali Kelas dan jika setting aktif
                                         $isWaliKelas = false;
@@ -183,7 +357,6 @@
                                                 <th>Rangking</th>
                                                 <th>Kelas</th>
                                                 <th>Tahun Ajaran</th>
-                                                <th>Aksi Catatan & Absensi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -195,26 +368,11 @@
                                                     <tr>
                                                         <td><?= $no++ ?></td>
                                                         <td>
-                                                            <div class="btn-group" role="group">
+                                                            <div class="mb-2">
                                                                 <button type="button" class="btn btn-warning btn-sm btn-print-pdf" data-id="<?= $nilaiDetail->IdSantri ?>" data-semester="<?= $semester ?>">
                                                                     <i class="fas fa-print"></i> Cetak Rapor
                                                                 </button>
-                                                                <button type="button" class="btn btn-info btn-sm btn-ttd-walas" data-id="<?= $nilaiDetail->IdSantri ?>" data-semester="<?= $semester ?>" data-kelas="<?= $nilaiDetail->IdKelas ?>">
-                                                                    <i class="fas fa-signature"></i> Ttd Walas
-                                                                </button>
-                                                                <button type="button" class="btn btn-success btn-sm btn-ttd-kepsek" data-id="<?= $nilaiDetail->IdSantri ?>" data-semester="<?= $semester ?>" data-kelas="<?= $nilaiDetail->IdKelas ?>">
-                                                                    <i class="fas fa-signature"></i> Ttd Kepsek
-                                                                </button>
                                                             </div>
-                                                        </td>
-                                                        <td><?= $nilaiDetail->NamaSantri ?></td>
-                                                        <td><?= $nilaiDetail->IdSantri ?></td>
-                                                        <td><?= $nilaiDetail->TotalNilai ?></td>
-                                                        <td><?= $nilaiDetail->NilaiRataRata ?></td>
-                                                        <td><?= $nilaiDetail->Rangking ?></td>
-                                                        <td><?= $nilaiDetail->NamaKelas ?></td>
-                                                        <td><?= $nilaiDetail->IdTahunAjaran ?></td>
-                                                        <td>
                                                             <div class="form-check form-check-inline">
                                                                 <input class="form-check-input checkbox-absensi"
                                                                     type="checkbox"
@@ -240,6 +398,13 @@
                                                                 </label>
                                                             </div>
                                                         </td>
+                                                        <td><?= $nilaiDetail->NamaSantri ?></td>
+                                                        <td><?= $nilaiDetail->IdSantri ?></td>
+                                                        <td><?= $nilaiDetail->TotalNilai ?></td>
+                                                        <td><?= $nilaiDetail->NilaiRataRata ?></td>
+                                                        <td><?= $nilaiDetail->Rangking ?></td>
+                                                        <td><?= $nilaiDetail->NamaKelas ?></td>
+                                                        <td><?= $nilaiDetail->IdTahunAjaran ?></td>
                                                     </tr>
                                             <?php
                                                 endif;
@@ -309,263 +474,6 @@
             });
         <?php endif; ?>
 
-        // Fungsi untuk mengecek role user dan mengaktifkan button signature
-        function checkSignaturePermissions() {
-            const guruKelasPermissions = <?= json_encode($guruKelasPermissions) ?>;
-            const signatureStatus = <?= json_encode($signatureStatus) ?>;
-            const currentGuruId = '<?= $currentGuruId ?>';
-
-            // Debug logging
-            console.log('Guru Kelas Permissions:', guruKelasPermissions);
-            console.log('Current Guru ID:', currentGuruId);
-
-            // Cek apakah data permission tersedia
-            if (!guruKelasPermissions || guruKelasPermissions.length === 0) {
-                console.error('Data permission guru kelas tidak tersedia');
-                // Disable semua button signature
-                $('.btn-ttd-walas, .btn-ttd-kepsek').prop('disabled', true)
-                    .removeClass('btn-info btn-primary btn-success')
-                    .addClass('btn-secondary')
-                    .attr('title', 'Anda tidak memiliki akses untuk kelas ini');
-                return;
-            }
-
-            // Buat mapping permission berdasarkan IdKelas dan cek Kepala TPQ
-            const permissionMap = {};
-            let isKepalaTpq = false;
-            let kepalaTpqPermission = null;
-
-            guruKelasPermissions.forEach(permission => {
-                console.log('Processing permission:', permission);
-                if (permission.IdKelas !== null && permission.IdKelas !== undefined) {
-                    // Permission untuk kelas tertentu
-                    permissionMap[permission.IdKelas] = permission;
-                } else if (permission.NamaJabatan === 'Kepala TPQ') {
-                    // Kepala TPQ - bisa akses semua kelas
-                    isKepalaTpq = true;
-                    kepalaTpqPermission = permission;
-                    console.log('Found Kepala TPQ permission:', permission);
-                }
-            });
-
-            console.log('Is Kepala TPQ:', isKepalaTpq);
-            console.log('Permission Map:', permissionMap);
-
-            // Cek permission untuk setiap button berdasarkan kelas
-            $('.btn-ttd-walas').each(function() {
-                const IdKelas = $(this).data('kelas');
-                const IdSantri = $(this).data('id');
-                const permission = permissionMap[IdKelas];
-
-                // Cek apakah guru sudah menandatangani untuk santri ini
-                const signatureKey = IdSantri + '_' + currentGuruId;
-                const hasSigned = signatureStatus && signatureStatus[signatureKey] && signatureStatus[signatureKey].length > 0;
-
-                if (permission && permission.NamaJabatan === 'Wali Kelas') {
-                    if (hasSigned) {
-                        // Guru sudah menandatangani, disable button - warna grey
-                        $(this).prop('disabled', true)
-                            .removeClass('btn-info btn-primary')
-                            .addClass('btn-secondary')
-                            .attr('title', 'Sudah ditandatangani')
-                            .attr('data-toggle', 'tooltip')
-                            .attr('data-placement', 'top');
-                    } else {
-                        // Guru belum menandatangani, enable button - warna biru menyala (primary)
-                        $(this).prop('disabled', false)
-                            .removeClass('btn-info btn-secondary')
-                            .addClass('btn-primary')
-                            .attr('title', 'Tandatangani sebagai Wali Kelas')
-                            .removeAttr('data-toggle data-placement');
-                    }
-                } else {
-                    // Bukan Wali Kelas (Guru Kelas atau lainnya)
-                    if (hasSigned) {
-                        // Sudah di TTD button grey
-                        $(this).prop('disabled', true)
-                            .removeClass('btn-info btn-primary')
-                            .addClass('btn-secondary')
-                            .attr('title', 'Sudah ditandatangani')
-                            .attr('data-toggle', 'tooltip')
-                            .attr('data-placement', 'top');
-                    } else {
-                        // Belum di TTD - warna biru tapi disable
-                        $(this).prop('disabled', true)
-                            .removeClass('btn-info btn-secondary')
-                            .addClass('btn-primary')
-                            .attr('title', 'Hanya Wali Kelas yang dapat menandatangani')
-                            .attr('data-toggle', 'tooltip')
-                            .attr('data-placement', 'top');
-                    }
-                }
-            });
-
-            $('.btn-ttd-kepsek').each(function() {
-                const IdKelas = $(this).data('kelas');
-                const IdSantri = $(this).data('id');
-                const permission = permissionMap[IdKelas];
-
-                console.log('Checking TTD Kepsek for:', {
-                    IdKelas,
-                    IdSantri,
-                    permission,
-                    isKepalaTpq
-                });
-
-                // Cek apakah guru sudah menandatangani untuk santri ini
-                const signatureKey = IdSantri + '_' + currentGuruId;
-                const hasSigned = signatureStatus && signatureStatus[signatureKey] && signatureStatus[signatureKey].length > 0;
-
-                // Cek apakah guru adalah Kepala TPQ (prioritas utama)
-                let canSign = false;
-                let signTitle = '';
-
-                if (isKepalaTpq) {
-                    // Kepala TPQ dapat menandatangani semua kelas
-                    canSign = true;
-                    signTitle = 'Tandatangani sebagai Kepala TPQ';
-                    console.log('Kepala TPQ can sign for all classes');
-                } else if (permission && (permission.NamaJabatan === 'Kepala TPQ' || permission.NamaJabatan === 'Kepala Sekolah')) {
-                    // Permission untuk kelas tertentu
-                    canSign = true;
-                    signTitle = 'Tandatangani sebagai ' + permission.NamaJabatan;
-                    console.log('Has specific permission for this class:', permission.NamaJabatan);
-                }
-
-                if (canSign) {
-                    if (hasSigned) {
-                        // Guru sudah menandatangani, disable button
-                        $(this).prop('disabled', true)
-                            .removeClass('btn-secondary')
-                            .addClass('btn-success')
-                            .attr('title', 'Sudah ditandatangani')
-                            .attr('data-toggle', 'tooltip')
-                            .attr('data-placement', 'top');
-                        console.log('Already signed, disabling button');
-                    } else {
-                        // Guru belum menandatangani, enable button
-                        $(this).prop('disabled', false)
-                            .removeClass('btn-secondary')
-                            .addClass('btn-success')
-                            .attr('title', signTitle)
-                            .removeAttr('data-toggle data-placement');
-                        console.log('Can sign, enabling button');
-                    }
-                } else {
-                    $(this).prop('disabled', true)
-                        .removeClass('btn-success')
-                        .addClass('btn-secondary')
-                        .attr('title', 'Hanya Kepala TPQ yang dapat menandatangani')
-                        .attr('data-toggle', 'tooltip')
-                        .attr('data-placement', 'top');
-                    console.log('Cannot sign, no permission');
-                }
-            });
-
-            // Initialize tooltips
-            $('[data-toggle="tooltip"]').tooltip();
-        }
-
-        // Fungsi helper untuk menangani signature request
-        function handleSignatureRequest(IdSantri, IdKelas, semester, signatureType) {
-            const url = `<?= base_url('backend/rapor/ttd') ?>${signatureType}/${IdSantri}/${IdKelas}/${semester}`;
-
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                success: function(response) {
-                    if (response.status === 'success') {
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: response.message,
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Refresh halaman untuk update status signature
-                            location.reload();
-                        });
-                    } else if (response.status === 'warning') {
-                        Swal.fire({
-                            title: 'Peringatan!',
-                            text: response.message,
-                            icon: 'warning',
-                            confirmButtonText: 'OK'
-                        });
-                    } else if (response.status === 'info') {
-                        Swal.fire({
-                            title: 'Informasi!',
-                            text: response.message,
-                            icon: 'info',
-                            showCancelButton: true,
-                            confirmButtonText: 'Ya, Ganti',
-                            cancelButtonText: 'Batal',
-                            confirmButtonColor: '#3085d6',
-                            cancelButtonColor: '#d33'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                // Kirim request untuk mengganti signature
-                                $.ajax({
-                                    url: url,
-                                    type: 'POST',
-                                    data: {
-                                        replace: true,
-                                        existing_id: response.existing_id
-                                    },
-                                    dataType: 'json',
-                                    success: function(replaceResponse) {
-                                        if (replaceResponse.status === 'success') {
-                                            Swal.fire({
-                                                title: 'Berhasil!',
-                                                text: 'Tanda tangan berhasil diganti.',
-                                                icon: 'success',
-                                                confirmButtonText: 'OK'
-                                            }).then(() => {
-                                                // Refresh halaman untuk update status signature
-                                                location.reload();
-                                            });
-                                        } else {
-                                            Swal.fire({
-                                                title: 'Error!',
-                                                text: replaceResponse.message,
-                                                icon: 'error',
-                                                confirmButtonText: 'OK'
-                                            });
-                                        }
-                                    },
-                                    error: function() {
-                                        Swal.fire({
-                                            title: 'Error!',
-                                            text: 'Terjadi kesalahan saat mengganti tanda tangan.',
-                                            icon: 'error',
-                                            confirmButtonText: 'OK'
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: response.message,
-                            icon: 'error',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Terjadi kesalahan saat memproses request: ' + error,
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            });
-        }
-
-        // Panggil fungsi pengecekan permission saat halaman dimuat
-        checkSignaturePermissions();
         // Handle print PDF button click
         $(document).on('click', '.btn-print-pdf', function() {
             const IdSantri = $(this).data('id');
@@ -582,12 +490,22 @@
         // Handle tanda tangan bulk wali kelas
         $(document).on('click', '.btn-ttd-bulk-walas', function() {
             const IdKelas = $(this).data('kelas');
+            const namaKelas = $(this).data('nama-kelas');
             const semester = $(this).data('semester');
             const btn = $(this);
+            
+            // Hitung jumlah santri di kelas ini dari tabel
+            const tableId = '#tableSantri-' + IdKelas;
+            const jumlahSantri = $(tableId + ' tbody tr').length;
 
             Swal.fire({
-                title: 'Konfirmasi Tanda Tangan',
-                text: 'Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Wali Kelas?',
+                title: 'Konfirmasi Tanda Tangan Wali Kelas',
+                html: '<div class="text-left">' +
+                      '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
+                      '<p><strong>Semester:</strong> ' + semester + '</p>' +
+                      '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
+                      '<p class="mt-3">Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Wali Kelas?</p>' +
+                      '</div>',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -643,12 +561,22 @@
         // Handle tanda tangan bulk kepala sekolah
         $(document).on('click', '.btn-ttd-bulk-kepsek', function() {
             const IdKelas = $(this).data('kelas');
+            const namaKelas = $(this).data('nama-kelas');
             const semester = $(this).data('semester');
             const btn = $(this);
+            
+            // Hitung jumlah santri di kelas ini dari tabel
+            const tableId = '#tableSantri-' + IdKelas;
+            const jumlahSantri = $(tableId + ' tbody tr').length;
 
             Swal.fire({
-                title: 'Konfirmasi Tanda Tangan',
-                text: 'Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Kepala Sekolah?',
+                title: 'Konfirmasi Tanda Tangan Kepala Sekolah',
+                html: '<div class="text-left">' +
+                      '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
+                      '<p><strong>Semester:</strong> ' + semester + '</p>' +
+                      '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
+                      '<p class="mt-3">Apakah Anda yakin ingin menandatangani semua rapor santri dalam kelas ini sebagai Kepala Sekolah?</p>' +
+                      '</div>',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -701,6 +629,150 @@
             });
         });
 
+        // Handle cancel tanda tangan bulk wali kelas
+        $(document).on('click', '.btn-cancel-ttd-walas', function() {
+            const IdKelas = $(this).data('kelas');
+            const namaKelas = $(this).data('nama-kelas');
+            const semester = $(this).data('semester');
+            const btn = $(this);
+            
+            // Hitung jumlah santri di kelas ini dari tabel
+            const tableId = '#tableSantri-' + IdKelas;
+            const jumlahSantri = $(tableId + ' tbody tr').length;
+
+            Swal.fire({
+                title: 'Konfirmasi Batalkan Tanda Tangan Wali Kelas',
+                html: '<div class="text-left">' +
+                      '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
+                      '<p><strong>Semester:</strong> ' + semester + '</p>' +
+                      '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
+                      '<p class="mt-3 text-danger"><strong>Peringatan:</strong> Tanda tangan yang sudah dibuat akan dihapus dari database dan tidak dapat dikembalikan.</p>' +
+                      '<p class="mt-2">Apakah Anda yakin ingin membatalkan semua tanda tangan wali kelas untuk kelas ini?</p>' +
+                      '</div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Batalkan',
+                cancelButtonText: 'Tidak',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch('<?= base_url('backend/rapor/cancelBulkWalas') ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            IdKelas: IdKelas,
+                            Semester: semester
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat memproses pembatalan tanda tangan',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+        });
+
+        // Handle cancel tanda tangan bulk kepala sekolah
+        $(document).on('click', '.btn-cancel-ttd-kepsek', function() {
+            const IdKelas = $(this).data('kelas');
+            const namaKelas = $(this).data('nama-kelas');
+            const semester = $(this).data('semester');
+            const btn = $(this);
+            
+            // Hitung jumlah santri di kelas ini dari tabel
+            const tableId = '#tableSantri-' + IdKelas;
+            const jumlahSantri = $(tableId + ' tbody tr').length;
+
+            Swal.fire({
+                title: 'Konfirmasi Batalkan Tanda Tangan Kepala Sekolah',
+                html: '<div class="text-left">' +
+                      '<p><strong>Kelas:</strong> ' + namaKelas + '</p>' +
+                      '<p><strong>Semester:</strong> ' + semester + '</p>' +
+                      '<p><strong>Jumlah Rapor:</strong> ' + jumlahSantri + ' rapor</p>' +
+                      '<p class="mt-3 text-danger"><strong>Peringatan:</strong> Tanda tangan yang sudah dibuat akan dihapus dari database dan tidak dapat dikembalikan.</p>' +
+                      '<p class="mt-2">Apakah Anda yakin ingin membatalkan semua tanda tangan kepala sekolah untuk kelas ini?</p>' +
+                      '</div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Batalkan',
+                cancelButtonText: 'Tidak',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch('<?= base_url('backend/rapor/cancelBulkKepsek') ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            IdKelas: IdKelas,
+                            Semester: semester
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat memproses pembatalan tanda tangan',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+        });
+
         $(document).on('click', '.btn-print-all', function() {
             const kelasId = $(this).data('kelas');
             const semester = $(this).data('semester');
@@ -727,57 +799,6 @@
             }, 2000);
         });
 
-        // Handle Ttd Walas button click
-        $(document).on('click', '.btn-ttd-walas', function() {
-            // Cek apakah button disabled
-            if ($(this).prop('disabled')) {
-                return false;
-            }
-
-            const IdSantri = $(this).data('id');
-            const semester = $(this).data('semester');
-            const IdKelas = $(this).data('kelas');
-            Swal.fire({
-                title: 'Tanda Tangan Wali Kelas',
-                text: 'Apakah Anda yakin ingin menandatangani rapor ini?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Tandatangani',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    handleSignatureRequest(IdSantri, IdKelas, semester, 'Walas');
-                }
-            });
-        });
-
-        // Handle Ttd Kepsek button click
-        $(document).on('click', '.btn-ttd-kepsek', function() {
-            // Cek apakah button disabled
-            if ($(this).prop('disabled')) {
-                return false;
-            }
-
-            const IdSantri = $(this).data('id');
-            const semester = $(this).data('semester');
-            const IdKelas = $(this).data('kelas');
-            Swal.fire({
-                title: 'Tanda Tangan Kepala Sekolah',
-                text: 'Apakah Anda yakin ingin menandatangani rapor ini?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Tandatangani',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    handleSignatureRequest(IdSantri, IdKelas, semester, 'Kepsek');
-                }
-            });
-        });
 
         // Load data absensi dan catatan saat halaman dimuat (menggunakan data dari PHP)
         function loadCatatanAbsensiData() {

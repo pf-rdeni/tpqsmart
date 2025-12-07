@@ -755,6 +755,79 @@ class Rapor extends BaseController
             $signatureStatus[$key][] = $signature;
         }
 
+        // Cek status tanda tangan bulk per kelas untuk Wali Kelas dan Kepala Sekolah
+        $bulkSignatureStatus = [];
+        foreach ($dataKelas as $kelas) {
+            // Hitung jumlah santri di kelas
+            $jumlahSantri = 0;
+            $jumlahTtdWalas = 0;
+            $jumlahTtdKepsek = 0;
+            
+            foreach ($summaryData['nilai'] as $nilaiDetail) {
+                if ($nilaiDetail->IdKelas == $kelas->IdKelas) {
+                    $jumlahSantri++;
+                    
+                    // Cek tanda tangan wali kelas - cari di semua signature dengan SignatureData = 'Walas'
+                    foreach ($signatures as $sig) {
+                        if (isset($sig['IdSantri']) && $sig['IdSantri'] == $nilaiDetail->IdSantri &&
+                            isset($sig['IdKelas']) && $sig['IdKelas'] == $kelas->IdKelas &&
+                            isset($sig['SignatureData']) && $sig['SignatureData'] === 'Walas' &&
+                            isset($sig['Semester']) && $sig['Semester'] === $semester) {
+                            $jumlahTtdWalas++;
+                            break;
+                        }
+                    }
+                    
+                    // Cek tanda tangan kepala sekolah - cari di semua signature dengan SignatureData = 'Kepsek'
+                    foreach ($signatures as $sig) {
+                        if (isset($sig['IdSantri']) && $sig['IdSantri'] == $nilaiDetail->IdSantri &&
+                            isset($sig['IdKelas']) && $sig['IdKelas'] == $kelas->IdKelas &&
+                            isset($sig['SignatureData']) && $sig['SignatureData'] === 'Kepsek' &&
+                            isset($sig['Semester']) && $sig['Semester'] === $semester) {
+                            $jumlahTtdKepsek++;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Hitung status catatan dan absensi per kelas
+            $jumlahCatatan = 0;
+            $jumlahAbsensi = 0;
+            
+            foreach ($summaryData['nilai'] as $nilaiDetail) {
+                if ($nilaiDetail->IdKelas == $kelas->IdKelas) {
+                    $keySetting = $nilaiDetail->IdSantri . '_' . $semester;
+                    
+                    // Cek catatan
+                    if (isset($raportSettingsMap[$keySetting])) {
+                        $setting = $raportSettingsMap[$keySetting];
+                        if (isset($setting['ShowCatatan']) && $setting['ShowCatatan'] == 1) {
+                            $jumlahCatatan++;
+                        }
+                    }
+                    
+                    // Cek absensi
+                    if (isset($raportSettingsMap[$keySetting])) {
+                        $setting = $raportSettingsMap[$keySetting];
+                        if (isset($setting['ShowAbsensi']) && $setting['ShowAbsensi'] == 1) {
+                            $jumlahAbsensi++;
+                        }
+                    }
+                }
+            }
+            
+            $bulkSignatureStatus[$kelas->IdKelas] = [
+                'total' => $jumlahSantri,
+                'ttd_walas' => $jumlahTtdWalas,
+                'ttd_kepsek' => $jumlahTtdKepsek,
+                'all_signed_walas' => ($jumlahSantri > 0 && $jumlahTtdWalas == $jumlahSantri),
+                'all_signed_kepsek' => ($jumlahSantri > 0 && $jumlahTtdKepsek == $jumlahSantri),
+                'catatan' => $jumlahCatatan,
+                'absensi' => $jumlahAbsensi
+            ];
+        }
+
         $data = [
             'page_title' => 'Rapor Santri',
             'dataKelas' => $dataKelas,
@@ -764,7 +837,8 @@ class Rapor extends BaseController
             'signatures' => $signatures,
             'signatureStatus' => $signatureStatus,
             'currentGuruId' => $IdGuru,
-            'raportSettingsMap' => $raportSettingsMap
+            'raportSettingsMap' => $raportSettingsMap,
+            'bulkSignatureStatus' => $bulkSignatureStatus
         ];
 
         return view('backend/rapor/index', $data);
@@ -897,22 +971,6 @@ class Rapor extends BaseController
     }
 
     /**
-     * Handle tanda tangan wali kelas
-     */
-    public function ttdWalas($IdSantri, $IdKelas, $semester)
-    {
-        return $this->handleSignature($IdSantri, $IdKelas, $semester, 'walas');
-    }
-
-    /**
-     * Handle tanda tangan kepala sekolah
-     */
-    public function ttdKepsek($IdSantri, $IdKelas, $semester)
-    {
-        return $this->handleSignature($IdSantri, $IdKelas, $semester, 'kepsek');
-    }
-
-    /**
      * Generate token unik untuk tanda tangan
      */
     private function generateUniqueToken()
@@ -938,131 +996,6 @@ class Rapor extends BaseController
             }
         }
         return false;
-    }
-
-    /**
-     * Handle tanda tangan (untuk wali kelas dan kepala sekolah)
-     */
-    private function handleSignature($IdSantri, $IdKelas, $semester, $signatureType)
-    {
-        try {
-            $IdTpq = session()->get('IdTpq');
-            $IdTahunAjaran = session()->get('IdTahunAjaran');
-            $IdGuru = session()->get('IdGuru');
-
-            // Cek permission berdasarkan tbl_guru_kelas
-            $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
-
-            if (!$guruKelasPermission) {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Anda tidak memiliki akses untuk kelas ini pada tahun ajaran ini.'
-                ]);
-            }
-
-            // Cek permission berdasarkan jabatan dari tbl_guru_kelas
-            if ($signatureType === 'walas' && $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Anda tidak memiliki permission untuk menandatangani sebagai wali kelas.'
-                ]);
-            }
-
-            if ($signatureType === 'kepsek' && $guruKelasPermission['NamaJabatan'] !== 'Kepala TPQ') {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Anda tidak memiliki permission untuk menandatangani sebagai kepala sekolah.'
-                ]);
-            }
-
-            // Cek apakah signature sudah ada
-            $existingSignature = $this->signatureModel->where([
-                'IdSantri' => $IdSantri,
-                'IdTpq' => $IdTpq,
-                'IdTahunAjaran' => $IdTahunAjaran,
-                'IdGuru' => $IdGuru,
-                'Semester' => $semester,
-                'JenisDokumen' => 'Rapor',
-                'Status' => 'active'
-            ])->first();
-
-            // Jika ada request untuk replace dan signature sudah ada
-            if ($this->request->getPost('replace') && $existingSignature) {
-                // Hapus file QR code lama jika ada
-                $this->deleteQRCodeFile($existingSignature['QrCode']);
-                // Hapus signature lama
-                $this->signatureModel->delete($existingSignature['Id']);
-            } elseif ($existingSignature && !$this->request->getPost('replace')) {
-                $typeName = $signatureType === 'walas' ? 'wali kelas' : 'kepala sekolah';
-                return $this->response->setJSON([
-                    'status' => 'info',
-                    'message' => "Tanda tangan {$typeName} untuk santri ini sudah pernah dibuat pada " . date('d F Y H:i', strtotime($existingSignature['TanggalTtd'])) . '. Apakah Anda ingin menggantinya?',
-                    'existing_signature' => true,
-                    'existing_id' => $existingSignature['Id']
-                ]);
-            }
-
-            $kelasData = $this->helpFunctionModel->getIdKelasByTahunAjaranDanSemester($IdTpq, $IdTahunAjaran, $semester, $IdSantri);
-
-            // Generate token unik
-            $token = $this->generateUniqueToken();
-
-            // Data untuk signature
-            $signatureData = $signatureType === 'walas' ? 'Walas' : 'Kepsek';
-
-            // Data untuk disimpan ke tbl_tanda_tangan
-            $signatureData = [
-                'Token' => $token,
-                'IdSantri' => $IdSantri,
-                'IdKelas' => !empty($kelasData) ? $kelasData[0]['IdKelas'] : null,
-                'IdTahunAjaran' => $IdTahunAjaran,
-                'Semester' => $semester,
-                'IdGuru' => $IdGuru,
-                'IdTpq' => $IdTpq,
-                'JenisDokumen' => 'Rapor',
-                'SignatureData' => $signatureData,
-                'StatusValidasi' => 'Valid',
-                'TanggalTtd' => date('Y-m-d H:i:s')
-            ];
-
-            // Simpan data tanda tangan
-            $IdSignature = $this->signatureModel->insert($signatureData);
-
-            if ($IdSignature) {
-                // Generate QR Code
-                $qrCodeData = $this->generateQRCode($token);
-
-                if ($qrCodeData) {
-                    // Update data tanda tangan dengan nama file QR
-                    $this->signatureModel->where('Id', $IdSignature)
-                        ->set(['QrCode' => $qrCodeData['filename']])
-                        ->update();
-
-                    $typeName = $signatureType === 'walas' ? 'wali kelas' : 'kepala sekolah';
-                    return $this->response->setJSON([
-                        'status' => 'success',
-                        'message' => "Tanda tangan {$typeName} berhasil disimpan dan QR Code telah dibuat."
-                    ]);
-                } else {
-                    return $this->response->setJSON([
-                        'status' => 'warning',
-                        'message' => 'Tanda tangan berhasil disimpan, namun gagal membuat QR Code.'
-                    ]);
-                }
-            } else {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Gagal menyimpan tanda tangan.'
-                ]);
-            }
-        } catch (\Exception $e) {
-            $typeName = $signatureType === 'walas' ? 'wali kelas' : 'kepala sekolah';
-            log_message('error', "Rapor: ttd{$typeName} - Error: " . $e->getMessage());
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ]);
-        }
     }
 
     /**
@@ -2416,8 +2349,11 @@ class Rapor extends BaseController
             $IdTpq = session()->get('IdTpq');
             $IdTahunAjaran = session()->get('IdTahunAjaran');
             $IdGuru = session()->get('IdGuru');
-            $IdKelas = $this->request->getPost('IdKelas');
-            $semester = $this->request->getPost('Semester');
+            
+            // Baca data dari JSON body
+            $jsonData = $this->request->getJSON(true);
+            $IdKelas = $jsonData['IdKelas'] ?? $this->request->getPost('IdKelas');
+            $semester = $jsonData['Semester'] ?? $this->request->getPost('Semester');
 
             if (empty($IdKelas) || empty($semester)) {
                 return $this->response->setJSON([
@@ -2550,8 +2486,11 @@ class Rapor extends BaseController
             $IdTpq = session()->get('IdTpq');
             $IdTahunAjaran = session()->get('IdTahunAjaran');
             $IdGuru = session()->get('IdGuru');
-            $IdKelas = $this->request->getPost('IdKelas');
-            $semester = $this->request->getPost('Semester');
+            
+            // Baca data dari JSON body
+            $jsonData = $this->request->getJSON(true);
+            $IdKelas = $jsonData['IdKelas'] ?? $this->request->getPost('IdKelas');
+            $semester = $jsonData['Semester'] ?? $this->request->getPost('Semester');
 
             if (empty($IdKelas) || empty($semester)) {
                 return $this->response->setJSON([
@@ -2670,6 +2609,223 @@ class Rapor extends BaseController
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Rapor: ttdBulkKepsek - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Batalkan/hapus tanda tangan bulk wali kelas untuk semua santri dalam kelas
+     */
+    public function cancelBulkWalas()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $IdGuru = session()->get('IdGuru');
+            
+            // Baca data dari JSON body
+            $jsonData = $this->request->getJSON(true);
+            $IdKelas = $jsonData['IdKelas'] ?? $this->request->getPost('IdKelas');
+            $semester = $jsonData['Semester'] ?? $this->request->getPost('Semester');
+
+            if (empty($IdKelas) || empty($semester)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'IdKelas dan Semester harus diisi'
+                ]);
+            }
+
+            // Cek permission: hanya Wali Kelas yang bisa cancel
+            $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
+
+            if (!$guruKelasPermission || $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki permission untuk membatalkan tanda tangan sebagai wali kelas.'
+                ]);
+            }
+
+            // Ambil semua santri di kelas
+            $santriList = $this->santriBaruModel->where([
+                'IdTpq' => $IdTpq,
+                'IdKelas' => $IdKelas,
+                'Active' => 1
+            ])->findAll();
+
+            if (empty($santriList)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Tidak ada santri dalam kelas ini'
+                ]);
+            }
+
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($santriList as $santri) {
+                $IdSantri = is_object($santri) ? $santri->IdSantri : $santri['IdSantri'];
+
+                // Cari dan hapus signature wali kelas
+                $signature = $this->signatureModel->where([
+                    'IdSantri' => $IdSantri,
+                    'IdTpq' => $IdTpq,
+                    'IdTahunAjaran' => $IdTahunAjaran,
+                    'IdGuru' => $IdGuru,
+                    'Semester' => $semester,
+                    'JenisDokumen' => 'Rapor',
+                    'SignatureData' => 'Walas',
+                    'StatusValidasi' => 'Valid'
+                ])->first();
+
+                if ($signature) {
+                    // Hapus file QR code jika ada
+                    if (!empty($signature['QrCode'])) {
+                        $this->deleteQRCodeFile($signature['QrCode']);
+                    }
+                    
+                    // Hapus signature dari database
+                    if ($this->signatureModel->delete($signature['Id'])) {
+                        $successCount++;
+                    } else {
+                        $errorCount++;
+                        $errors[] = "Gagal menghapus tanda tangan untuk santri: {$IdSantri}";
+                    }
+                }
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => "Tanda tangan wali kelas berhasil dibatalkan untuk {$successCount} rapor" . ($errorCount > 0 ? ". {$errorCount} gagal." : "."),
+                'successCount' => $successCount,
+                'errorCount' => $errorCount,
+                'errors' => $errors
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: cancelBulkWalas - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Batalkan/hapus tanda tangan bulk kepala sekolah untuk semua santri dalam kelas
+     */
+    public function cancelBulkKepsek()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $IdGuru = session()->get('IdGuru');
+            
+            // Baca data dari JSON body
+            $jsonData = $this->request->getJSON(true);
+            $IdKelas = $jsonData['IdKelas'] ?? $this->request->getPost('IdKelas');
+            $semester = $jsonData['Semester'] ?? $this->request->getPost('Semester');
+
+            if (empty($IdKelas) || empty($semester)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'IdKelas dan Semester harus diisi'
+                ]);
+            }
+
+            // Cek permission: hanya Kepala Sekolah yang bisa cancel
+            $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+            $isKepalaSekolah = false;
+            if (!empty($jabatanData)) {
+                foreach ($jabatanData as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaSekolah = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$isKepalaSekolah) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki permission untuk membatalkan tanda tangan sebagai kepala sekolah.'
+                ]);
+            }
+
+            // Ambil semua santri di kelas
+            $santriList = $this->santriBaruModel->where([
+                'IdTpq' => $IdTpq,
+                'IdKelas' => $IdKelas,
+                'Active' => 1
+            ])->findAll();
+
+            if (empty($santriList)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Tidak ada santri dalam kelas ini'
+                ]);
+            }
+
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($santriList as $santri) {
+                $IdSantri = is_object($santri) ? $santri->IdSantri : $santri['IdSantri'];
+
+                // Cari dan hapus signature kepala sekolah
+                $signature = $this->signatureModel->where([
+                    'IdSantri' => $IdSantri,
+                    'IdTpq' => $IdTpq,
+                    'IdTahunAjaran' => $IdTahunAjaran,
+                    'IdGuru' => $IdGuru,
+                    'Semester' => $semester,
+                    'JenisDokumen' => 'Rapor',
+                    'SignatureData' => 'Kepsek',
+                    'StatusValidasi' => 'Valid'
+                ])->first();
+
+                if ($signature) {
+                    // Hapus file QR code jika ada
+                    if (!empty($signature['QrCode'])) {
+                        $this->deleteQRCodeFile($signature['QrCode']);
+                    }
+                    
+                    // Hapus signature dari database
+                    if ($this->signatureModel->delete($signature['Id'])) {
+                        $successCount++;
+                    } else {
+                        $errorCount++;
+                        $errors[] = "Gagal menghapus tanda tangan untuk santri: {$IdSantri}";
+                    }
+                }
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => "Tanda tangan kepala sekolah berhasil dibatalkan untuk {$successCount} rapor" . ($errorCount > 0 ? ". {$errorCount} gagal." : "."),
+                'successCount' => $successCount,
+                'errorCount' => $errorCount,
+                'errors' => $errors
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: cancelBulkKepsek - Error: ' . $e->getMessage());
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
