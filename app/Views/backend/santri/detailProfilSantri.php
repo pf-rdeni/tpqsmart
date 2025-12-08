@@ -21,8 +21,8 @@
                         <div class="col-md-3 text-center">
                             <img src="<?= esc($photoUrl) ?>"
                                 alt="Foto Profil"
-                                class="img-fluid rounded-circle mb-3"
-                                style="width: 200px; height: 200px; object-fit: cover; border: 3px solid #dee2e6;"
+                                class="img-fluid mb-3"
+                                style="width: 150px; height: 200px; object-fit: cover; border: 3px solid #dee2e6; border-radius: 4px;"
                                 onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
                             <h4 class="mb-1"><?= esc($santri['NamaSantri'] ?? '-') ?></h4>
                             <p class="text-muted mb-0">

@@ -111,8 +111,8 @@
                                     <a href="<?= base_url('backend/tabungan/showTabunganSantri') ?>" class="small-box-footer">
                                         <span>Lihat Tabungan </span><i class="fas fa-arrow-circle-right"></i>
                                     </a>
-                                </div>
                             </div>
+                        </div>
 
                             <!-- Card Prestasi -->
                             <div class="col-lg-3 col-md-6 col-12 mb-3">
@@ -234,18 +234,18 @@
                                         
                                         <ul class="nav nav-tabs" id="nilai-tabs" role="tablist">
                                             <?php if (!$hideGanjil): ?>
-                                                <li class="nav-item">
+                                            <li class="nav-item">
                                                     <a class="nav-link <?= $ganjilActive ? 'active' : '' ?>" id="ganjil-tab" data-toggle="pill" href="#ganjil" role="tab" aria-controls="ganjil" aria-selected="<?= $ganjilActive ? 'true' : 'false' ?>">
-                                                        <i class="fas fa-book"></i> Semester Ganjil
-                                                    </a>
-                                                </li>
+                                                    <i class="fas fa-book"></i> Semester Ganjil
+                                                </a>
+                                            </li>
                                             <?php endif; ?>
                                             <?php if (!$hideGenap): ?>
-                                                <li class="nav-item">
+                                            <li class="nav-item">
                                                     <a class="nav-link <?= $genapActive ? 'active' : '' ?>" id="genap-tab" data-toggle="pill" href="#genap" role="tab" aria-controls="genap" aria-selected="<?= $genapActive ? 'true' : 'false' ?>">
-                                                        <i class="fas fa-book-open"></i> Semester Genap
-                                                    </a>
-                                                </li>
+                                                    <i class="fas fa-book-open"></i> Semester Genap
+                                                </a>
+                                            </li>
                                             <?php endif; ?>
                                         </ul>
                                     </div>
