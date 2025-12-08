@@ -1431,7 +1431,7 @@
                     $('#resultSantriAktifTanpaKelas').show();
                     $('#btnUpdateSantriAktifTanpaKelas').show();
 
-                    let summaryText = `Ditemukan <strong>${response.total_checked}</strong> santri aktif yang tidak terdaftar di kelas santri untuk tahun ajaran <strong>${response.id_tahun_ajaran}</strong>.`;
+                    let summaryText = `Ditemukan <strong>${response.total_checked}</strong> santri aktif yang tidak terdaftar di kelas santri atau tidak memiliki data nilai untuk tahun ajaran <strong>${response.id_tahun_ajaran}</strong>.`;
                     $('#summarySantriAktifTanpaKelasText').html(summaryText);
                 } else {
                     Swal.fire({
@@ -1488,6 +1488,18 @@
                                 </span>
                                 <span class="badge badge-warning" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.total_tanpa_kelas || 0}</span>
                             </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted" style="font-size: 0.8rem;">
+                                    <i class="fas fa-file-alt text-danger"></i> Tanpa Nilai:
+                                </span>
+                                <span class="badge badge-danger" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.total_tanpa_nilai || 0}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted" style="font-size: 0.8rem;">
+                                    <i class="fas fa-exchange-alt text-warning"></i> Duplikasi TPQ:
+                                </span>
+                                <span class="badge badge-warning" style="font-size: 0.8rem; padding: 0.35em 0.6em; min-width: 40px;">${tpq.total_duplikasi_tpq || 0}</span>
+                            </div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="text-muted" style="font-size: 0.8rem;">
                                     <i class="fas fa-users text-primary"></i> Jumlah Santri Terkena:
@@ -1531,6 +1543,19 @@
             const kelasBadge = item.IdKelas ?
                 `<span class="badge badge-info">${item.NamaKelas || 'Tidak ditemukan'}</span>` :
                 `<span class="badge badge-warning">Belum ada kelas</span>`;
+            
+            // Badge untuk jenis masalah
+            let typeBadge = '';
+            if (item.type === 'santri_duplikasi_tpq') {
+                typeBadge = `<span class="badge badge-warning">Duplikasi TPQ</span>`;
+                if (item.NamaTpqLain) {
+                    typeBadge += ` <small class="text-muted">(di ${item.NamaTpqLain})</small>`;
+                }
+            } else if (item.type === 'santri_aktif_tanpa_nilai') {
+                typeBadge = `<span class="badge badge-danger">Tanpa Nilai</span>`;
+            } else {
+                typeBadge = `<span class="badge badge-warning">Tanpa Kelas</span>`;
+            }
 
             const row = `
                 <tr>
@@ -1545,6 +1570,7 @@
                     <td>${item.IdTahunAjaran || ''}</td>
                     <td>
                         <span class="badge badge-success">Aktif</span>
+                        ${typeBadge}
                     </td>
                     <td>
                         <small class="text-muted">${item.reason || ''}</small>

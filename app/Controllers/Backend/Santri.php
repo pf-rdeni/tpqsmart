@@ -3079,18 +3079,21 @@ class Santri extends BaseController
 
             log_message('info', 'Santri: normalisasiNilai - Akan memproses ' . count($idsToDelete) . ' records');
 
+            // Ambil IdTpq dari session (TPQ saat ini)
+            $currentIdTpq = session()->get('IdTpq');
+
             // Ambil semua data yang akan dihapus untuk analisis duplikat
             $dataToDelete = $this->nilaiModel->whereIn('Id', $idsToDelete)->findAll();
 
-            // Kelompokkan berdasarkan kombinasi duplikat
-            // Key: IdSantri_IdMateri_IdKelas_IdTpq_IdTahunAjaran_Semester
+            // Kelompokkan berdasarkan kombinasi duplikat (tanpa IdSantri dan IdTpq)
+            // Key: IdMateri_IdKelas_IdTahunAjaran_Semester
+            // Ini memungkinkan beberapa IdSantri berbeda dalam satu grup (untuk kelas yang sama)
             $duplicateGroups = [];
             $invalidIds = [];
             $duplicateIds = [];
 
             foreach ($dataToDelete as $nilai) {
-                $duplicateKey = $nilai['IdSantri'] . '_' . $nilai['IdMateri'] . '_' .
-                    $nilai['IdKelas'] . '_' . $nilai['IdTpq'] . '_' .
+                $duplicateKey = $nilai['IdMateri'] . '_' . $nilai['IdKelas'] . '_' .
                     $nilai['IdTahunAjaran'] . '_' . $nilai['Semester'];
 
                 if (!isset($duplicateGroups[$duplicateKey])) {
@@ -3102,21 +3105,49 @@ class Santri extends BaseController
             // Untuk setiap grup duplikat, tentukan mana yang harus disimpan
             foreach ($duplicateGroups as $key => $group) {
                 if (count($group) > 1) {
-                    // Ada duplikat dalam grup ini
-                    // Urutkan: prioritaskan yang memiliki nilai, kemudian yang tertua (Id terkecil)
-                    usort($group, function ($a, $b) {
+                    // Ada duplikat dalam grup ini (beberapa IdSantri berbeda dengan kelas yang sama)
+                    // Ambil status Active dari tbl_santri_baru untuk setiap IdSantri
+                    $santriActiveMap = [];
+                    $santriTpqMap = [];
+                    foreach ($group as $item) {
+                        $idSantri = $item['IdSantri'];
+                        if (!isset($santriActiveMap[$idSantri])) {
+                            $santri = $this->DataSantriBaru->where('IdSantri', $idSantri)->first();
+                            $santriActiveMap[$idSantri] = $santri ? (int)($santri['Active'] ?? 0) : 0;
+                            $santriTpqMap[$idSantri] = $santri ? (int)($santri['IdTpq'] ?? 0) : 0;
+                        }
+                    }
+
+                    // Urutkan: prioritaskan santri yang Active = 1 di TPQ saat ini, kemudian yang Active = 1 di TPQ lain, kemudian yang memiliki nilai, kemudian yang tertua
+                    usort($group, function ($a, $b) use ($santriActiveMap, $santriTpqMap, $currentIdTpq) {
+                        $idSantriA = $a['IdSantri'];
+                        $idSantriB = $b['IdSantri'];
+
+                        $activeA = $santriActiveMap[$idSantriA] ?? 0;
+                        $activeB = $santriActiveMap[$idSantriB] ?? 0;
+                        $tpqA = $santriTpqMap[$idSantriA] ?? 0;
+                        $tpqB = $santriTpqMap[$idSantriB] ?? 0;
+
+                        // Prioritas 1: Santri yang Active = 1 (Aktif) di TPQ saat ini
+                        if ($activeA == 1 && $tpqA == $currentIdTpq && ($activeB != 1 || $tpqB != $currentIdTpq)) return -1;
+                        if ($activeB == 1 && $tpqB == $currentIdTpq && ($activeA != 1 || $tpqA != $currentIdTpq)) return 1;
+
+                        // Prioritas 2: Santri yang Active = 1 (Aktif) di TPQ lain
+                        if ($activeA == 1 && $activeB != 1) return -1;
+                        if ($activeA != 1 && $activeB == 1) return 1;
+
+                        // Prioritas 3: Jika status Active sama, prioritaskan yang memiliki nilai
                         $nilaiA = (float)($a['Nilai'] ?? 0);
                         $nilaiB = (float)($b['Nilai'] ?? 0);
 
-                        // Jika salah satu memiliki nilai dan yang lain tidak, prioritaskan yang memiliki nilai
                         if ($nilaiA > 0 && $nilaiB == 0) return -1;
                         if ($nilaiA == 0 && $nilaiB > 0) return 1;
 
-                        // Jika keduanya memiliki nilai atau keduanya tidak, prioritaskan yang tertua (Id terkecil)
+                        // Prioritas 4: Jika sama, prioritaskan yang tertua (Id terkecil)
                         return $a['Id'] <=> $b['Id'];
                     });
 
-                    // Simpan yang pertama (terbaik), hapus yang lainnya
+                    // Simpan yang pertama (terbaik - santri aktif di TPQ saat ini), hapus yang lainnya
                     $keepId = $group[0]['Id'];
                     foreach ($group as $item) {
                         if ($item['Id'] != $keepId) {

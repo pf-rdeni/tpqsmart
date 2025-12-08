@@ -1614,6 +1614,56 @@ class HelpFunctionModel extends Model
     }
 
     /**
+     * Generate nilai untuk santri yang sudah ada di kelas_santri
+     * Hanya generate nilai tanpa insert ke kelas_santri
+     * 
+     * @param array $santriList List santri yang akan diproses
+     * @param string $tahunAjaran Tahun ajaran
+     * @return array Result dengan success count dan error count
+     */
+    public function generateNilaiUntukSantri($santriList, $tahunAjaran)
+    {
+        if (empty($santriList)) {
+            return ['success' => 0, 'errors' => 0, 'message' => 'No santri to process'];
+        }
+
+        // Start database transaction for consistency
+        $this->db->transStart();
+
+        try {
+            $result = [
+                'success' => 0,
+                'errors' => 0,
+                'processed_santri' => [],
+                'failed_santri' => []
+            ];
+
+            // Bulk process materi dan nilai saja (tanpa insert ke kelas_santri)
+            $this->prosesMateriDanNilaiBulk($santriList, $tahunAjaran);
+
+            // Mark all as successful
+            $result['success'] = count($santriList);
+            $result['processed_santri'] = array_column($santriList, 'IdSantri');
+
+            $this->db->transComplete();
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+
+            // Log error
+            log_message('error', 'Error in generateNilaiUntukSantri: ' . $e->getMessage());
+
+            return [
+                'success' => 0,
+                'errors' => count($santriList),
+                'message' => 'Transaction failed: ' . $e->getMessage(),
+                'failed_santri' => array_column($santriList, 'IdSantri')
+            ];
+        }
+    }
+
+    /**
      * Menyimpan nilai untuk satu materi
      * @param object $materi
      * @param array $dataSantri

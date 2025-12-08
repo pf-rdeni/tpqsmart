@@ -857,7 +857,8 @@ class Kelas extends BaseController
 
     /**
      * Mengecek santri yang aktif (Active = 1) di tbl_santri_baru 
-     * tetapi tidak ada di tbl_kelas_santri untuk tahun ajaran saat ini
+     * Prioritas utama: harus memiliki Kelas Santri dan harus memiliki materi nilai di tabel nilai
+     * Juga mengecek duplikasi: jika IdSantri Active dan di tabel kelas IdSantri Status 1 dengan IdTpq Berbeda tapi kelas sama
      * @return json
      */
     public function checkSantriAktifTanpaKelas()
@@ -868,35 +869,132 @@ class Kelas extends BaseController
             $db = \Config\Database::connect();
             $idTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
 
-            // Query untuk mendapatkan santri aktif yang tidak ada di tbl_kelas_santri
-            $builder = $db->table('tbl_santri_baru s');
-            $builder->select('s.IdSantri, s.NamaSantri, s.IdTpq, s.IdKelas, s.Active, s.Status, 
-                            t.NamaTpq, k.NamaKelas');
-            $builder->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
+            // ============================================
+            // PRIORITAS UTAMA: Check santri aktif harus punya kelas santri dan nilai
+            // ============================================
+            
+            // Query 1: Santri aktif yang tidak ada di tbl_kelas_santri untuk IdTpq aktifnya
+            $builder1 = $db->table('tbl_santri_baru s');
+            $builder1->select('s.IdSantri, s.NamaSantri, s.IdTpq, s.IdKelas, s.Active, s.Status, 
+                            t.NamaTpq, k.NamaKelas, NULL as IdKelasSantri, NULL as IdKelasSantriLain, 
+                            NULL as IdTpqLain, NULL as NamaTpqLain');
+            $builder1->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'left');
+            $builder1->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
 
-            // Left join dengan tbl_kelas_santri untuk menemukan yang tidak ada
-            $builder->join(
+            // Left join dengan tbl_kelas_santri untuk IdTpq yang sama dengan santri (TPQ aktif)
+            $builder1->join(
                 'tbl_kelas_santri ks',
-                'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = ' . $db->escape($idTahunAjaran),
+                'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = ' . $db->escape($idTahunAjaran) . ' AND ks.IdTpq = s.IdTpq',
                 'left'
             );
 
             // Hanya ambil santri yang:
             // 1. Active = 1 (aktif)
-            // 2. Tidak ada di tbl_kelas_santri untuk tahun ajaran saat ini (ks.Id IS NULL)
-            $builder->where('s.Active', 1);
-            $builder->where('ks.Status', 0);
+            // 2. Tidak ada di tbl_kelas_santri untuk IdTpq aktifnya (ks.Id IS NULL)
+            // 3. Bukan kelas alumni (IdKelas != 10)
+            $builder1->where('s.Active', 1);
+            $builder1->where('ks.Id IS NULL', null, false);
+            $builder1->where('s.IdKelas !=', 10);
+            $builder1->where('s.IdKelas IS NOT NULL', null, false);
 
             // Filter berdasarkan IdTpq jika ada
             if ($IdTpq != null && $IdTpq != 0) {
-                $builder->where('s.IdTpq', $IdTpq);
+                $builder1->where('s.IdTpq', $IdTpq);
             }
 
-            $builder->orderBy('s.IdTpq', 'ASC');
-            $builder->orderBy('s.NamaSantri', 'ASC');
+            $query1 = $builder1->getCompiledSelect(false);
 
-            $result = $builder->get()->getResultArray();
+            // Query 2: Santri aktif yang ada di tbl_kelas_santri untuk IdTpq aktifnya tetapi tidak ada data nilai
+            $builder2 = $db->table('tbl_santri_baru s');
+            $builder2->select('s.IdSantri, s.NamaSantri, s.IdTpq, ks.IdKelas, s.Active, s.Status, 
+                            t.NamaTpq, k.NamaKelas, ks.Id as IdKelasSantri, NULL as IdKelasSantriLain, 
+                            NULL as IdTpqLain, NULL as NamaTpqLain');
+            $builder2->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'left');
+            $builder2->join(
+                'tbl_kelas_santri ks',
+                'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = ' . $db->escape($idTahunAjaran) . ' AND ks.Status = 1 AND ks.IdTpq = s.IdTpq',
+                'inner'
+            );
+            $builder2->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');
+
+            // Left join dengan tbl_nilai untuk menemukan yang tidak ada data nilai
+            $builder2->join(
+                'tbl_nilai n',
+                'n.IdSantri = s.IdSantri AND n.IdTahunAjaran = ' . $db->escape($idTahunAjaran) . ' AND n.IdTpq = s.IdTpq',
+                'left'
+            );
+
+            // Hanya ambil santri yang:
+            // 1. Active = 1 (aktif)
+            // 2. Ada di tbl_kelas_santri untuk IdTpq aktifnya (Status = 1)
+            // 3. Tidak ada data nilai (n.Id IS NULL)
+            // 4. Bukan kelas alumni (ks.IdKelas != 10)
+            $builder2->where('s.Active', 1);
+            $builder2->where('n.Id IS NULL', null, false);
+            $builder2->where('ks.IdKelas !=', 10);
+            $builder2->where('ks.IdKelas IS NOT NULL', null, false);
+
+            // Filter berdasarkan IdTpq jika ada
+            if ($IdTpq != null && $IdTpq != 0) {
+                $builder2->where('s.IdTpq', $IdTpq);
+            }
+
+            $query2 = $builder2->getCompiledSelect(false);
+
+            // Query 3: Santri aktif yang punya kelas santri di TPQ berbeda (duplikasi)
+            // IdSantri Active dan di tabel kelas IdSantri Status 1 dengan IdTpq Berbeda tapi kelas sama
+            $builder3 = $db->table('tbl_santri_baru s');
+            $builder3->select('s.IdSantri, s.NamaSantri, s.IdTpq, s.IdKelas, s.Active, s.Status, 
+                            t.NamaTpq, k.NamaKelas, NULL as IdKelasSantri, ks_lain.Id as IdKelasSantriLain, 
+                            ks_lain.IdTpq as IdTpqLain, t_lain.NamaTpq as NamaTpqLain');
+            $builder3->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'left');
+            $builder3->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
+            
+            // Join dengan tbl_kelas_santri untuk TPQ aktif (harus tidak ada)
+            $builder3->join(
+                'tbl_kelas_santri ks',
+                'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = ' . $db->escape($idTahunAjaran) . ' AND ks.IdTpq = s.IdTpq',
+                'left'
+            );
+            
+            // Join dengan tbl_kelas_santri untuk TPQ lain (harus ada)
+            $builder3->join(
+                'tbl_kelas_santri ks_lain',
+                'ks_lain.IdSantri = s.IdSantri AND ks_lain.IdTahunAjaran = ' . $db->escape($idTahunAjaran) . ' AND ks_lain.Status = 1 AND ks_lain.IdTpq != s.IdTpq AND ks_lain.IdKelas = s.IdKelas',
+                'inner'
+            );
+            $builder3->join('tbl_tpq t_lain', 't_lain.IdTpq = ks_lain.IdTpq', 'left');
+
+            // Hanya ambil santri yang:
+            // 1. Active = 1 (aktif)
+            // 2. Tidak ada di tbl_kelas_santri untuk IdTpq aktifnya (ks.Id IS NULL)
+            // 3. Ada di tbl_kelas_santri untuk TPQ lain (ks_lain.Id IS NOT NULL)
+            // 4. Bukan kelas alumni (IdKelas != 10)
+            $builder3->where('s.Active', 1);
+            $builder3->where('ks.Id IS NULL', null, false);
+            $builder3->where('s.IdKelas !=', 10);
+            $builder3->where('s.IdKelas IS NOT NULL', null, false);
+
+            // Filter berdasarkan IdTpq jika ada
+            if ($IdTpq != null && $IdTpq != 0) {
+                $builder3->where('s.IdTpq', $IdTpq);
+            }
+
+            // Jalankan query terpisah dan gabungkan hasilnya
+            $result1 = $builder1->get()->getResultArray();
+            $result2 = $builder2->get()->getResultArray();
+            $result3 = $builder3->get()->getResultArray();
+            
+            // Gabungkan hasil
+            $result = array_merge($result1, $result2, $result3);
+            
+            // Urutkan hasil
+            usort($result, function($a, $b) {
+                if ($a['IdTpq'] == $b['IdTpq']) {
+                    return strcmp($a['NamaSantri'] ?? '', $b['NamaSantri'] ?? '');
+                }
+                return $a['IdTpq'] <=> $b['IdTpq'];
+            });
 
             // Hitung rangkuman per TPQ
             $summaryByTpq = [];
@@ -906,19 +1004,43 @@ class Kelas extends BaseController
                 $idTpq = $item['IdTpq'];
                 $namaTpq = $item['NamaTpq'] ?? 'Tidak ditemukan';
                 $namaKelas = $item['NamaKelas'] ?? 'Belum ada kelas';
+                $idKelas = $item['IdKelas'] ?? null;
+                $idKelasSantri = $item['IdKelasSantri'] ?? null;
+                $idKelasSantriLain = $item['IdKelasSantriLain'] ?? null;
+                $idTpqLain = $item['IdTpqLain'] ?? null;
+                $namaTpqLain = $item['NamaTpqLain'] ?? null;
+
+                // Tentukan type dan reason
+                $type = 'santri_aktif_tanpa_kelas';
+                if (!empty($idKelasSantriLain)) {
+                    // Kasus duplikasi: ada di TPQ lain tapi tidak di TPQ aktif
+                    $reason = 'Santri aktif (Active = 1) terdaftar di kelas santri TPQ lain (' . ($namaTpqLain ?? 'TPQ ' . $idTpqLain) . ') tetapi tidak terdaftar di TPQ aktif (' . $namaTpq . ') untuk tahun ajaran ' . $idTahunAjaran;
+                    $type = 'santri_duplikasi_tpq';
+                } else if (!empty($idKelasSantri)) {
+                    // Santri ada di tbl_kelas_santri tetapi tidak ada data nilai
+                    $reason = 'Santri aktif (Active = 1) terdaftar di kelas santri tetapi tidak memiliki data nilai untuk tahun ajaran ' . $idTahunAjaran;
+                    $type = 'santri_aktif_tanpa_nilai';
+                } else {
+                    // Santri tidak ada di tbl_kelas_santri
+                    $reason = 'Santri aktif (Active = 1) tetapi tidak terdaftar di tbl_kelas_santri untuk tahun ajaran ' . $idTahunAjaran;
+                }
 
                 $formattedItem = [
                     'IdSantri' => $item['IdSantri'],
                     'NamaSantri' => $item['NamaSantri'] ?? 'Tidak ditemukan',
                     'IdTpq' => $idTpq,
                     'NamaTpq' => $namaTpq,
-                    'IdKelas' => $item['IdKelas'] ?? null,
+                    'IdKelas' => $idKelas,
                     'NamaKelas' => $namaKelas,
                     'Active' => $item['Active'],
                     'Status' => $item['Status'] ?? null,
                     'IdTahunAjaran' => $idTahunAjaran,
-                    'type' => 'santri_aktif_tanpa_kelas',
-                    'reason' => 'Santri aktif (Active = 1) tetapi tidak terdaftar di tbl_kelas_santri untuk tahun ajaran ' . $idTahunAjaran
+                    'IdKelasSantri' => $idKelasSantri,
+                    'IdKelasSantriLain' => $idKelasSantriLain,
+                    'IdTpqLain' => $idTpqLain,
+                    'NamaTpqLain' => $namaTpqLain,
+                    'type' => $type,
+                    'reason' => $reason
                 ];
 
                 $formattedData[] = $formattedItem;
@@ -931,17 +1053,34 @@ class Kelas extends BaseController
                         'total' => 0,
                         'total_dengan_kelas' => 0,      // Santri yang sudah punya IdKelas
                         'total_tanpa_kelas' => 0,        // Santri yang belum punya IdKelas
+                        'total_tanpa_nilai' => 0,        // Santri yang ada kelas tetapi tidak ada nilai
+                        'total_duplikasi_tpq' => 0,      // Santri yang ada di TPQ lain
                         'santri_terkena' => []
                     ];
                 }
 
                 $summaryByTpq[$idTpq]['total']++;
 
-                // Kategorikan berdasarkan ada/tidaknya IdKelas
-                if (!empty($item['IdKelas'])) {
-                    $summaryByTpq[$idTpq]['total_dengan_kelas']++;
+                // Kategorikan berdasarkan type
+                if (!empty($idKelasSantriLain)) {
+                    // Kasus duplikasi TPQ
+                    $summaryByTpq[$idTpq]['total_duplikasi_tpq']++;
+                    if (!empty($idKelas)) {
+                        $summaryByTpq[$idTpq]['total_dengan_kelas']++;
+                    }
+                } else if (!empty($idKelasSantri)) {
+                    // Santri ada di kelas santri tetapi tidak ada nilai
+                    $summaryByTpq[$idTpq]['total_tanpa_nilai']++;
+                    if (!empty($idKelas)) {
+                        $summaryByTpq[$idTpq]['total_dengan_kelas']++;
+                    }
                 } else {
-                    $summaryByTpq[$idTpq]['total_tanpa_kelas']++;
+                    // Santri tidak ada di kelas santri
+                    if (!empty($idKelas)) {
+                        $summaryByTpq[$idTpq]['total_dengan_kelas']++;
+                    } else {
+                        $summaryByTpq[$idTpq]['total_tanpa_kelas']++;
+                    }
                 }
 
                 // Kumpulkan IdSantri yang terkena (unik)
@@ -999,8 +1138,10 @@ class Kelas extends BaseController
             $idTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
             $addedCount = 0;
             $updatedCount = 0;
+            $nilaiGeneratedCount = 0;
             $errors = [];
-            $dataSantriBaru = []; // Data untuk diproses seperti santri baru
+            $dataSantriBaru = []; // Data untuk diproses seperti santri baru (belum ada di kelas_santri)
+            $dataSantriHanyaNilai = []; // Data untuk generate nilai saja (sudah ada di kelas_santri)
 
             // Validasi dan siapkan data untuk diproses
             foreach ($selectedSantri as $idSantri) {
@@ -1023,10 +1164,36 @@ class Kelas extends BaseController
                         continue;
                     }
 
-                    // Cek apakah sudah ada di tbl_kelas_santri untuk tahun ajaran ini
+                    // Skip jika kelas alumni (IdKelas = 10)
+                    if ($santri['IdKelas'] == 10) {
+                        continue; // Skip alumni tanpa error message
+                    }
+
+                    // Cek apakah ada duplikasi: kelas santri di TPQ lain dengan kelas sama
+                    $duplikasiKelasSantri = $db->table('tbl_kelas_santri')
+                        ->where('IdSantri', $idSantri)
+                        ->where('IdTahunAjaran', $idTahunAjaran)
+                        ->where('Status', 1)
+                        ->where('IdTpq !=', $santri['IdTpq'])
+                        ->where('IdKelas', $santri['IdKelas'])
+                        ->get()
+                        ->getResultArray();
+
+                    // Jika ada duplikasi, hapus kelas santri di TPQ lain
+                    if (!empty($duplikasiKelasSantri)) {
+                        foreach ($duplikasiKelasSantri as $dup) {
+                            $db->table('tbl_kelas_santri')
+                                ->where('Id', $dup['Id'])
+                                ->delete();
+                            log_message('info', 'Kelas: updateSantriAktifTanpaKelas - Menghapus duplikasi kelas santri ID ' . $dup['Id'] . ' di TPQ ' . $dup['IdTpq']);
+                        }
+                    }
+
+                    // Cek apakah sudah ada di tbl_kelas_santri untuk tahun ajaran ini dan TPQ aktif
                     $existing = $db->table('tbl_kelas_santri')
                         ->where('IdSantri', $idSantri)
                         ->where('IdTahunAjaran', $idTahunAjaran)
+                        ->where('IdTpq', $santri['IdTpq'])
                         ->get()
                         ->getRowArray();
 
@@ -1037,29 +1204,39 @@ class Kelas extends BaseController
                                 ->where('Id', $existing['Id'])
                                 ->update(['Status' => 1]);
                             $updatedCount++;
-
-                            // Cek apakah sudah ada nilai untuk santri ini
-                            $existingNilai = $db->table('tbl_nilai')
-                                ->where('IdSantri', $idSantri)
-                                ->where('IdTahunAjaran', $idTahunAjaran)
-                                ->where('IdTpq', $santri['IdTpq'])
-                                ->countAllResults();
-
-                            // Jika belum ada nilai, perlu generate nilai juga
-                            if ($existingNilai == 0) {
-                                $dataSantriBaru[] = [
-                                    'IdSantri' => $idSantri,
-                                    'IdTpq' => $santri['IdTpq'],
-                                    'IdKelas' => $santri['IdKelas'],
-                                    'IdTahunAjaran' => $idTahunAjaran
-                                ];
-                            }
                         }
-                        // Jika sudah ada dan aktif, skip
+
+                        // Cek apakah sudah ada nilai untuk santri ini
+                        $existingNilai = $db->table('tbl_nilai')
+                            ->where('IdSantri', $idSantri)
+                            ->where('IdTahunAjaran', $idTahunAjaran)
+                            ->where('IdTpq', $santri['IdTpq'])
+                            ->countAllResults();
+
+                        // Jika belum ada nilai, perlu generate nilai
+                        // Gunakan IdKelas dari existing kelas_santri jika berbeda dengan IdKelas di santri
+                        $idKelasToUse = !empty($existing['IdKelas']) ? $existing['IdKelas'] : $santri['IdKelas'];
+                        
+                        // Skip jika kelas alumni (IdKelas = 10)
+                        if ($idKelasToUse == 10) {
+                            continue;
+                        }
+                        
+                        if ($existingNilai == 0) {
+                            // Masukkan ke kelompok yang hanya perlu generate nilai
+                            $dataSantriHanyaNilai[] = [
+                                'IdSantri' => $idSantri,
+                                'IdTpq' => $santri['IdTpq'],
+                                'IdKelas' => $idKelasToUse,
+                                'IdTahunAjaran' => $idTahunAjaran
+                            ];
+                        }
+                        
+                        // Skip karena sudah ada di kelas_santri
                         continue;
                     }
 
-                    // Siapkan data untuk diproses seperti santri baru
+                    // Siapkan data untuk diproses seperti santri baru (belum ada di kelas_santri)
                     // Format sesuai yang dibutuhkan saveDataSantriDanMateriDiTabelNilaiOptimized
                     $dataSantriBaru[] = [
                         'IdSantri' => $idSantri,
@@ -1073,7 +1250,7 @@ class Kelas extends BaseController
                 }
             }
 
-            // Proses seperti memproses santri baru: insert ke kelas_santri dan generate nilai
+            // Proses santri yang belum ada di kelas_santri: insert ke kelas_santri dan generate nilai
             if (!empty($dataSantriBaru)) {
                 try {
                     // Gunakan method yang sama seperti memproses santri baru
@@ -1103,12 +1280,44 @@ class Kelas extends BaseController
                 }
             }
 
-            $totalProcessed = $addedCount + $updatedCount;
+            // Proses santri yang sudah ada di kelas_santri: hanya generate nilai
+            if (!empty($dataSantriHanyaNilai)) {
+                try {
+                    // Gunakan method generate nilai saja (tanpa insert ke kelas_santri)
+                    // Kita perlu memanggil fungsi yang hanya generate nilai
+                    $resultNilai = $this->helpFunction->generateNilaiUntukSantri($dataSantriHanyaNilai, $idTahunAjaran);
+                    
+                    if ($resultNilai['success'] > 0) {
+                        $nilaiGeneratedCount = $resultNilai['success'];
+                        log_message('info', 'Kelas: updateSantriAktifTanpaKelas - Berhasil generate nilai untuk ' . $nilaiGeneratedCount . ' santri');
+                    }
+
+                    if (isset($resultNilai['errors']) && $resultNilai['errors'] > 0) {
+                        $errors[] = "Ada {$resultNilai['errors']} santri yang gagal generate nilai";
+                        log_message('warning', 'Kelas: updateSantriAktifTanpaKelas - Ada ' . $resultNilai['errors'] . ' santri yang gagal generate nilai');
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "Gagal generate nilai: " . $e->getMessage();
+                    log_message('error', 'Kelas: updateSantriAktifTanpaKelas - Error generate nilai: ' . $e->getMessage());
+                }
+            }
+
+            $totalProcessed = $addedCount + $updatedCount + $nilaiGeneratedCount;
             $message = "Update selesai. Santri yang diproses: {$totalProcessed} dari " . count($selectedSantri) . " yang dipilih.";
+            
+            $details = [];
             if ($addedCount > 0) {
-                $message .= " ({$addedCount} ditambahkan ke kelas_santri dan generate nilai, {$updatedCount} diupdate status)";
-            } else if ($updatedCount > 0) {
-                $message .= " ({$updatedCount} diupdate status)";
+                $details[] = "{$addedCount} ditambahkan ke kelas_santri dan generate nilai";
+            }
+            if ($updatedCount > 0) {
+                $details[] = "{$updatedCount} diupdate status";
+            }
+            if ($nilaiGeneratedCount > 0) {
+                $details[] = "{$nilaiGeneratedCount} generate nilai (sudah ada di kelas_santri)";
+            }
+            
+            if (!empty($details)) {
+                $message .= " (" . implode(", ", $details) . ")";
             }
 
             if (!empty($errors)) {
@@ -1127,6 +1336,7 @@ class Kelas extends BaseController
                     'total_selected' => count($selectedSantri),
                     'added_count' => $addedCount,
                     'updated_count' => $updatedCount,
+                    'nilai_generated_count' => $nilaiGeneratedCount,
                     'total_processed' => $totalProcessed,
                     'errors' => $errors
                 ]
