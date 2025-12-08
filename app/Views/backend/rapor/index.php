@@ -330,7 +330,7 @@
                                                             <br><small>Kelas <?= esc($kelas->NamaKelas) ?></small>
                                                         </span>
                                                         <div class="mt-2">
-                                                            <table class="table table-sm table-bordered mb-0" id="tableCatatanAbsensi-<?= $kelas->IdKelas ?>" data-table="false">
+                                                            <table class="table table-sm table-bordered mb-0" data-no-datatable="true">
                                                                 <thead class="thead-light">
                                                                     <tr>
                                                                         <th class="text-left">Aksi</th>
@@ -605,19 +605,96 @@
     }
 </style>
 <script>
+    // Simpan referensi original di level global
+    var originalDataTableFn = null;
+    var originalInitializeDataTableUmumFn = null;
+
     $(document).ready(function() {
-        // Inisialisasi DataTable untuk setiap kelas (hanya untuk tabel santri, bukan tabel catatan/absensi)
-        <?php foreach ($dataKelas as $kelasId => $IdKelas): ?>
-            initializeDataTableUmum("#tableSantri-<?= $kelasId ?>", true, true);
-            // Pastikan tabel catatan/absensi tidak diinisialisasi sebagai DataTable
-            if ($.fn.DataTable.isDataTable('#tableCatatanAbsensi-<?= $kelasId ?>')) {
-                $('#tableCatatanAbsensi-<?= $kelasId ?>').DataTable().destroy();
+        // Simpan referensi original sebelum override
+        if ($.fn.DataTable && !originalDataTableFn) {
+            originalDataTableFn = $.fn.DataTable;
+        }
+
+        // Override $.fn.DataTable
+        if (originalDataTableFn) {
+            $.fn.DataTable = function(options) {
+                // Cek jika tabel memiliki atribut data-no-datatable="true"
+                if (this.length && this.attr('data-no-datatable') === 'true') {
+                    console.log('Blocking DataTable initialization - data-no-datatable="true"');
+                    return this;
+                }
+                // Panggil fungsi original
+                return originalDataTableFn.apply(this, arguments);
+            };
+        }
+
+        // Simpan referensi original initializeDataTableUmum sebelum override
+        if (typeof window.initializeDataTableUmum === 'function' && !originalInitializeDataTableUmumFn) {
+            originalInitializeDataTableUmumFn = window.initializeDataTableUmum;
+        }
+
+        // Override initializeDataTableUmum
+        if (originalInitializeDataTableUmumFn) {
+            window.initializeDataTableUmum = function(selector, paging, lengthChange, buttons, options) {
+                const $table = $(selector);
+                // Jangan inisialisasi jika tabel memiliki atribut data-no-datatable="true"
+                if ($table.length && $table.attr('data-no-datatable') === 'true') {
+                    console.log('Skipping initializeDataTableUmum - data-no-datatable="true"');
+                    return;
+                }
+                // Panggil fungsi original
+                return originalInitializeDataTableUmumFn.apply(this, arguments);
+            };
+        }
+
+        // Override initializeDataTableUmum
+        if (typeof window.initializeDataTableUmum === 'function') {
+            var originalInitializeDataTableUmum = window.initializeDataTableUmum;
+            window.initializeDataTableUmum = function(selector, paging, lengthChange, buttons, options) {
+                const $table = $(selector);
+                // Jangan inisialisasi jika tabel memiliki atribut data-no-datatable="true"
+                if ($table.length && $table.attr('data-no-datatable') === 'true') {
+                    console.log('Skipping initializeDataTableUmum - data-no-datatable="true"');
+                    return;
+                }
+                // Panggil fungsi original
+                return originalInitializeDataTableUmum.apply(this, arguments);
+            };
+        }
+
+        // Pastikan tabel dengan data-no-datatable tidak terinisialisasi
+        $('table[data-no-datatable="true"]').each(function() {
+            if ($.fn.DataTable.isDataTable(this)) {
+                $(this).DataTable().destroy();
             }
+        });
+
+        // Inisialisasi DataTable untuk setiap kelas (hanya untuk tabel santri)
+        <?php foreach ($dataKelas as $kelas): ?>
+            initializeDataTableUmum("#tableSantri-<?= $kelas->IdKelas ?>", true, true);
         <?php endforeach; ?>
 
-        // Pastikan event handler terpasang setelah DataTable selesai
-        setTimeout(function() {
-            console.log('Setting up checkbox event handlers');
+        // Fungsi untuk memastikan tabel dengan data-no-datatable tidak terinisialisasi
+        function preventDataTableOnNoDatatableTables() {
+            $('table[data-no-datatable="true"]').each(function() {
+                if ($.fn.DataTable.isDataTable(this)) {
+                    try {
+                        $(this).DataTable().destroy();
+                        // Hapus wrapper DataTable jika ada
+                        const $wrapper = $(this).closest('.dataTables_wrapper');
+                        if ($wrapper.length) {
+                            $wrapper.find('.dataTables_length, .dataTables_filter, .dataTables_info, .dataTables_paginate').remove();
+                        }
+                    } catch (e) {
+                        console.log('Error destroying DataTable:', e);
+                    }
+                }
+            });
+        }
+
+        // Check setiap 500ms untuk memastikan tabel tidak terinisialisasi
+        setInterval(function() {
+            preventDataTableOnNoDatatableTables();
         }, 500);
 
         // Simpan tab aktif ke localStorage saat tab diklik
@@ -625,6 +702,11 @@
             const targetTab = $(e.target).attr('href'); // e.g., #kelas-123
             const storageKey = 'rapor_active_tab_<?= $semester ?>_<?= session()->get("IdTahunAjaran") ?>';
             localStorage.setItem(storageKey, targetTab);
+
+            // Pastikan tabel dengan data-no-datatable tidak terinisialisasi saat tab diaktifkan
+            setTimeout(function() {
+                preventDataTableOnNoDatatableTables();
+            }, 100);
         });
 
         // Pulihkan tab aktif dari localStorage saat halaman dimuat
