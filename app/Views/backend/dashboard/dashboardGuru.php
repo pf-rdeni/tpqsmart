@@ -265,7 +265,7 @@ function render_progress_bar($persentase, $height = 25)
                                                 <!-- Action Buttons -->
                                                 <div class="row mt-2 mt-md-3">
                                                     <?php if ($isSemesterGanjil): ?>
-                                                        <div class="col-4 mb-2">
+                                                        <div class="col-6 col-md-3 mb-2">
                                                             <a href="<?= base_url('backend/nilai/showSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-primary btn-sm mobile-btn">
                                                                 <i class="fas fa-edit"></i>
                                                                 <span class="d-none d-sm-inline">Input Nilai</span>
@@ -273,7 +273,7 @@ function render_progress_bar($persentase, $height = 25)
                                                             </a>
                                                         </div>
                                                     <?php else: ?>
-                                                        <div class="col-4 mb-2">
+                                                        <div class="col-6 col-md-3 mb-2">
                                                             <button class="btn btn-block btn-secondary btn-sm mobile-btn" disabled>
                                                                 <i class="fas fa-edit"></i>
                                                                 <span class="d-none d-sm-inline">Input Nilai</span>
@@ -281,14 +281,21 @@ function render_progress_bar($persentase, $height = 25)
                                                             </button>
                                                         </div>
                                                     <?php endif; ?>
-                                                    <div class="col-4 mb-2">
+                                                    <div class="col-6 col-md-3 mb-2">
                                                         <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-success btn-sm mobile-btn">
                                                             <i class="fas fa-eye"></i>
                                                             <span class="d-none d-sm-inline">Detail</span>
                                                             <span class="d-inline d-sm-none">Detail</span>
                                                         </a>
                                                     </div>
-                                                    <div class="col-4 mb-2">
+                                                    <div class="col-6 col-md-3 mb-2">
+                                                        <a href="<?= base_url('backend/nilai/showRanking/Ganjil') ?>" class="btn btn-block btn-info btn-sm mobile-btn">
+                                                            <i class="fas fa-trophy"></i>
+                                                            <span class="d-none d-sm-inline">Rangking</span>
+                                                            <span class="d-inline d-sm-none">Rangking</span>
+                                                        </a>
+                                                    </div>
+                                                    <div class="col-6 col-md-3 mb-2">
                                                         <a href="<?= base_url('backend/rapor/index/Ganjil') ?>" class="btn btn-block btn-warning btn-sm mobile-btn">
                                                             <i class="fas fa-file-alt"></i>
                                                             <span class="d-none d-sm-inline">Raport</span>
@@ -349,7 +356,7 @@ function render_progress_bar($persentase, $height = 25)
                                                 <!-- Action Buttons -->
                                                 <div class="row mt-2 mt-md-3">
                                                     <?php if ($isSemesterGenap): ?>
-                                                        <div class="col-4 mb-2">
+                                                        <div class="col-6 col-md-3 mb-2">
                                                             <a href="<?= base_url('backend/nilai/showSantriPerKelas/Genap') ?>" class="btn btn-block btn-primary btn-sm mobile-btn">
                                                                 <i class="fas fa-edit"></i>
                                                                 <span class="d-none d-sm-inline">Input Nilai</span>
@@ -357,7 +364,7 @@ function render_progress_bar($persentase, $height = 25)
                                                             </a>
                                                         </div>
                                                     <?php else: ?>
-                                                        <div class="col-4 mb-2">
+                                                        <div class="col-6 col-md-3 mb-2">
                                                             <button class="btn btn-block btn-secondary btn-sm mobile-btn" disabled>
                                                                 <i class="fas fa-edit"></i>
                                                                 <span class="d-none d-sm-inline">Input Nilai</span>
@@ -365,14 +372,21 @@ function render_progress_bar($persentase, $height = 25)
                                                             </button>
                                                         </div>
                                                     <?php endif; ?>
-                                                    <div class="col-4 mb-2">
+                                                    <div class="col-6 col-md-3 mb-2">
                                                         <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Genap') ?>" class="btn btn-block btn-success btn-sm mobile-btn">
                                                             <i class="fas fa-eye"></i>
                                                             <span class="d-none d-sm-inline">Detail</span>
                                                             <span class="d-inline d-sm-none">Detail</span>
                                                         </a>
                                                     </div>
-                                                    <div class="col-4 mb-2">
+                                                    <div class="col-6 col-md-3 mb-2">
+                                                        <a href="<?= base_url('backend/nilai/showRanking/Genap') ?>" class="btn btn-block btn-info btn-sm mobile-btn">
+                                                            <i class="fas fa-trophy"></i>
+                                                            <span class="d-none d-sm-inline">Rangking</span>
+                                                            <span class="d-inline d-sm-none">Rangking</span>
+                                                        </a>
+                                                    </div>
+                                                    <div class="col-6 col-md-3 mb-2">
                                                         <a href="<?= base_url('backend/rapor/index/Genap') ?>" class="btn btn-block btn-warning btn-sm mobile-btn">
                                                             <i class="fas fa-file-alt"></i>
                                                             <span class="d-none d-sm-inline">Raport</span>
