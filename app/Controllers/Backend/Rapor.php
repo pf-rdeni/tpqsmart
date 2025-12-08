@@ -980,8 +980,13 @@ class Rapor extends BaseController
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
 
+            // Ambil nama kelas untuk nama file
+            $namaKelas = $this->helpFunctionModel->getNamaKelas($IdKelas);
+            // Sanitize nama kelas untuk nama file (hapus spasi dan karakter khusus)
+            $namaKelasSanitized = preg_replace('/[^a-zA-Z0-9_-]/', '', str_replace(' ', '_', $namaKelas));
+
             // Output PDF
-            $filename = 'rapor_kelas_' . $IdKelas . '_' . $semester . '.pdf';
+            $filename = 'rapor_kelas_' . $namaKelasSanitized . '_' . $IdTahunAjaran . '_' . $semester . '.pdf';
             $this->outputPdf($dompdf, $filename);
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdfBulk - Error: ' . $e->getMessage());
