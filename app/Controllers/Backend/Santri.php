@@ -1828,6 +1828,7 @@ class Santri extends BaseController
                             'NamaIbu' => $detail['NamaIbu'] ?? '',
                             'NoHpAyah' => $detail['NoHpAyah'] ?? '',
                             'NoHpIbu' => $detail['NoHpIbu'] ?? '',
+                            'NoHpSantri' => $detail['NoHpSantri'] ?? '',
                             'Alamat' => $alamatLengkap,
                             'AlamatSantri' => $detail['AlamatSantri'] ?? '',
                             'RtSantri' => $detail['RtSantri'] ?? '',

@@ -104,6 +104,9 @@
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-tambah">
                         <i class="fas fa-plus"></i> Tambah User
                     </button>
+                    <button type="button" class="btn btn-success ml-2" data-toggle="modal" data-target="#modal-generate-kelas">
+                        <i class="fas fa-users"></i> Generate User Per Kelas
+                    </button>
                 </div>
                 <!-- /.card-header -->
                 <div class="card-body">
@@ -180,7 +183,7 @@
 
                         <!-- Tab Santri per Kelas -->
                         <?php foreach ($dataKelas as $index => $kelas): ?>
-                            <?php 
+                            <?php
                             $kelasData = $userDataSantriPerKelas[$kelas['IdKelas']] ?? null;
                             $santriUsers = $kelasData['users'] ?? [];
                             ?>
@@ -269,7 +272,7 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <!-- Form untuk Guru -->
                     <div id="form-guru">
                         <?php if ($isAdmin): ?>
@@ -368,12 +371,12 @@
                             </div>
                             <div class="custom-control custom-checkbox" id="checkbox-default-password-santri" style="display: none;">
                                 <input type="checkbox" class="custom-control-input" id="use-default-password-santri" name="use-default-password-santri">
-                                <label class="custom-control-label text-primary" for="use-default-password-santri"><small id="label-default-password-santri">Gunakan Default Password: SmartSantriTpq<?php 
-                                    $idTpq = session()->get('IdTpq') ?? 0;
-                                    $idTpqStr = (string)$idTpq;
-                                    $idTpqLast3 = strlen($idTpqStr) > 3 ? substr($idTpqStr, -3) : str_pad($idTpqStr, 3, '0', STR_PAD_LEFT);
-                                    echo $idTpqLast3;
-                                ?></small></label>
+                                <label class="custom-control-label text-primary" for="use-default-password-santri"><small id="label-default-password-santri">Gunakan Default Password: SmartSantriTpq<?php
+                                                                                                                                                                                                        $idTpq = session()->get('IdTpq') ?? 0;
+                                                                                                                                                                                                        $idTpqStr = (string)$idTpq;
+                                                                                                                                                                                                        $idTpqLast3 = strlen($idTpqStr) > 3 ? substr($idTpqStr, -3) : str_pad($idTpqStr, 3, '0', STR_PAD_LEFT);
+                                                                                                                                                                                                        echo $idTpqLast3;
+                                                                                                                                                                                                        ?></small></label>
                             </div>
                             <span class="text-danger" id="error-confirm-password"></span>
                         </div>
@@ -388,6 +391,68 @@
         <!-- /.modal-content -->
     </div>
     <!-- /.modal-dialog -->
+</div>
+
+<!-- Modal Generate User Per Kelas -->
+<div class="modal fade" id="modal-generate-kelas" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h4 class="modal-title">Generate User Per Kelas</h4>
+            </div>
+            <form id="formGenerateKelas" onsubmit="event.preventDefault(); generateUserPerKelas();">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Fitur ini akan membuat user account untuk semua santri di kelas yang dipilih yang belum memiliki user account. Password default akan digunakan untuk semua user yang dibuat.
+                    </div>
+                    <div class="form-group row">
+                        <label for="IdKelasGenerate" class="col-sm-3 col-form-label">Pilih Kelas</label>
+                        <div class="col-sm-9">
+                            <select class="form-control select2" id="IdKelasGenerate" name="IdKelasGenerate" style="width: 100%;" required>
+                                <option value="">Pilih Kelas</option>
+                                <?php foreach ($dataKelasForDropdown as $kelas): ?>
+                                    <option value="<?= esc($kelas['IdKelas']); ?>">
+                                        <?= esc($kelas['NamaKelas']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="form-text text-muted">Hanya kelas yang memiliki santri tanpa user account yang ditampilkan</small>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-3 col-form-label">Password Default</label>
+                        <div class="col-sm-9">
+                            <div class="alert alert-warning mb-0">
+                                <strong>SmartSantriTpq<?php
+                                                        $idTpq = session()->get('IdTpq') ?? 0;
+                                                        $idTpqStr = (string)$idTpq;
+                                                        $idTpqLast3 = strlen($idTpqStr) > 3 ? substr($idTpqStr, -3) : str_pad($idTpqStr, 3, '0', STR_PAD_LEFT);
+                                                        echo $idTpqLast3;
+                                                        ?></strong>
+                                <br><small>Password ini akan digunakan untuk semua user yang dibuat</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="info-santri-kelas" style="display: none;">
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">Santri yang akan dibuat user:</label>
+                            <div class="col-sm-9">
+                                <div id="list-santri-kelas" class="border p-2" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Daftar santri akan dimuat di sini -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-users"></i> Generate User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Edit -->
@@ -474,7 +539,7 @@
     <?php endforeach; ?>
 
     // Reinitialize DataTable when tab is shown
-    $('#userTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+    $('#userTabs a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
         const target = $(e.target).attr("href");
         if (target === "#guru" && tableGuru) {
             tableGuru.columns.adjust().draw();
@@ -648,24 +713,24 @@
 
                 // Fungsi untuk generate username dari nama
                 // Bersihkan nama dari gelar di depan, tanda koma/titik, dan gelar di belakang
-                
+
                 // Daftar gelar di depan (dengan atau tanpa titik)
                 const gelarDepan = ['dr', 'dr.', 'dr ', 'Dr', 'Dr.', 'Dr ', 'prof', 'prof.', 'Prof', 'Prof.', 'ust', 'ust.', 'Ust', 'Ust.'];
-                
+
                 // Daftar gelar di belakang (dengan atau tanpa titik)
                 const gelarBelakang = ['s.pd', 's.pd.i', 's.ag', 's.ag.i', 'm.pd', 'm.pd.i', 'm.ag', 'm.ag.i', 's.kom', 'm.kom', 's.si', 'm.si'];
-                
+
                 let namaBersih = namaGuru.trim();
-                
+
                 // Hapus gelar di depan
                 for (const gelar of gelarDepan) {
                     const regex = new RegExp('^' + gelar.replace(/\./g, '\\.') + '\\s+', 'i');
                     namaBersih = namaBersih.replace(regex, '').trim();
                 }
-                
+
                 // Split nama menjadi bagian-bagian
                 let namaParts = namaBersih.split(/\s+/);
-                
+
                 // Filter out gelar di belakang dan tanda koma/titik
                 namaParts = namaParts.map(part => {
                     // Hapus tanda koma dan titik
@@ -677,12 +742,12 @@
                     const partLower = part.toLowerCase();
                     return !gelarBelakang.some(gelar => partLower === gelar || partLower.includes(gelar));
                 });
-                
+
                 // Jika masih ada bagian nama yang valid
                 if (namaParts.length > 0) {
                     // Hapus karakter khusus dari setiap bagian (tanda hubung, underscore, dll)
                     namaParts = namaParts.map(part => part.replace(/[.,\-_]/g, '').trim()).filter(part => part.length > 0);
-                    
+
                     if (namaParts.length > 1) {
                         // Ambil huruf pertama nama depan + nama belakang (tanpa gelar)
                         const firstPart = namaParts[0].charAt(0).toLowerCase();
@@ -703,7 +768,7 @@
                             fallbackParts = originalParts.slice(1);
                         }
                     }
-                    
+
                     if (fallbackParts.length > 1) {
                         const firstPart = fallbackParts[0].charAt(0).toLowerCase();
                         const secondPart = fallbackParts[1].toLowerCase().replace(/[.,\-_]/g, '');
@@ -715,7 +780,7 @@
                         username = namaGuru.trim().toLowerCase().replace(/[^a-z]/g, '').substring(0, 8);
                     }
                 }
-                
+
                 // Bersihkan username dari karakter khusus yang tersisa (hanya huruf dan angka)
                 username = username.replace(/[^a-z0-9]/g, '');
 
@@ -758,7 +823,7 @@
         }
 
         const groupName = $('#IdAuthGroup option:selected').text().trim();
-        
+
         if (groupName === 'Santri') {
             // Sembunyikan form guru
             $('#form-guru').hide();
@@ -766,22 +831,22 @@
             $('#form-santri').removeAttr('style').show();
             $('#checkbox-default-password-guru').hide();
             $('#checkbox-default-password-santri').show();
-            
+
             // Reset form guru
             $('#IdNikGuru').val('').trigger('change');
             $('#fullname_manual').val('');
-            
+
             // Reset username dan password
             $('#username').val('');
             $('#password').val('');
             $('#confirm-password').val('');
             $('#use-default-password').prop('checked', false);
-            
+
             // Reset kelas dan santri
             $('#IdKelasSantri').val('').trigger('change');
             $('#IdNikSantri').val('').trigger('change');
             $('#IdNikSantri').prop('disabled', true);
-            
+
             // Re-initialize Select2 untuk kelas dan santri
             setTimeout(function() {
                 if ($('#IdKelasSantri').hasClass('select2-hidden-accessible')) {
@@ -812,18 +877,18 @@
             $('#form-santri').hide();
             $('#checkbox-default-password-guru').show();
             $('#checkbox-default-password-santri').hide();
-            
+
             // Reset form santri
             $('#IdKelasSantri').val('').trigger('change');
             $('#IdNikSantri').val('').trigger('change');
             $('#IdNikSantri').prop('disabled', true);
-            
+
             // Reset username dan password
             $('#username').val('');
             $('#password').val('');
             $('#confirm-password').val('');
             $('#use-default-password-santri').prop('checked', false);
-            
+
             // Trigger guru change if value exists
             if ($('#IdNikGuru').val()) {
                 handleGuruChange();
@@ -867,12 +932,12 @@
                 // Username santri adalah IdSantri
                 if (IdSantri) {
                     $('#username').val(IdSantri);
-                    
+
                     // Set password default untuk santri: SmartSantriTpq{IdTpq} (3 digit terakhir)
                     const idTpqFull = '<?= session()->get("IdTpq") ?? 0; ?>';
                     const idTpq = String(idTpqFull).slice(-3).padStart(3, '0'); // Ambil 3 digit terakhir
                     const defaultPasswordSantri = 'SmartSantriTpq' + idTpq;
-                    
+
                     // Jika checkbox default password santri dicentang, set password
                     if ($('#use-default-password-santri').is(':checked')) {
                         $('#password').val(defaultPasswordSantri);
@@ -890,19 +955,19 @@
     function handleKelasChange() {
         const IdKelas = $('#IdKelasSantri').val();
         const dataSantriGrouped = <?= json_encode($dataSantriGrouped); ?>;
-        
+
         // Reset dropdown santri
         $('#IdNikSantri').val('').trigger('change');
         $('#username').val('');
         $('#password').val('');
         $('#confirm-password').val('');
         $('#use-default-password-santri').prop('checked', false);
-        
+
         if (!IdKelas || IdKelas === '') {
             // Disable dropdown santri jika kelas tidak dipilih
             $('#IdNikSantri').prop('disabled', true);
             $('#IdNikSantri').empty().append('<option value="">Pilih Kelas terlebih dahulu</option>');
-            
+
             // Re-initialize Select2
             if ($('#IdNikSantri').hasClass('select2-hidden-accessible')) {
                 $('#IdNikSantri').select2('destroy');
@@ -916,26 +981,26 @@
             });
             return;
         }
-        
+
         // Enable dropdown santri
         $('#IdNikSantri').prop('disabled', false);
-        
+
         // Filter santri berdasarkan kelas yang dipilih
         const kelasData = dataSantriGrouped[IdKelas];
         if (kelasData && kelasData.santri) {
             // Clear dan isi dropdown santri
             $('#IdNikSantri').empty().append('<option value="">Pilih Nama Santri</option>');
-            
+
             kelasData.santri.forEach(function(santri) {
                 $('#IdNikSantri').append(
                     $('<option></option>')
-                        .attr('value', santri.NikSantri)
-                        .attr('data-idsantri', santri.IdSantri)
-                        .attr('data-kelas', santri.NamaKelas)
-                        .text(santri.NamaSantri)
+                    .attr('value', santri.NikSantri)
+                    .attr('data-idsantri', santri.IdSantri)
+                    .attr('data-kelas', santri.NamaKelas)
+                    .text(santri.NamaSantri)
                 );
             });
-            
+
             // Re-initialize Select2
             if ($('#IdNikSantri').hasClass('select2-hidden-accessible')) {
                 $('#IdNikSantri').select2('destroy');
@@ -950,7 +1015,7 @@
         } else {
             // Jika tidak ada santri di kelas tersebut
             $('#IdNikSantri').empty().append('<option value="">Tidak ada santri di kelas ini</option>');
-            
+
             // Re-initialize Select2
             if ($('#IdNikSantri').hasClass('select2-hidden-accessible')) {
                 $('#IdNikSantri').select2('destroy');
@@ -1013,7 +1078,7 @@
                 });
                 return;
             }
-            
+
             if (!IdNikSantri || IdNikSantri === '' || IdNikSantri === null) {
                 Swal.fire({
                     title: 'Peringatan!',
@@ -1023,7 +1088,7 @@
                 });
                 return;
             }
-            
+
             if (!username || username === '') {
                 Swal.fire({
                     title: 'Peringatan!',
@@ -1033,7 +1098,7 @@
                 });
                 return;
             }
-            
+
             if (!password || password === '') {
                 Swal.fire({
                     title: 'Peringatan!',
@@ -1192,7 +1257,7 @@
         const idTpqFull = '<?= session()->get("IdTpq") ?? 0; ?>';
         const idTpq = String(idTpqFull).slice(-3).padStart(3, '0'); // Ambil 3 digit terakhir
         const defaultPasswordSantri = 'SmartSantriTpq' + idTpq;
-        
+
         if ($(this).is(':checked')) {
             $('#password').val(defaultPasswordSantri);
             $('#confirm-password').val(defaultPasswordSantri);
@@ -1424,6 +1489,120 @@
                 checkbox.checked = originalStatus;
             }
         });
+    }
+
+    // Initialize Select2 for Generate Kelas Modal
+    $('#modal-generate-kelas').on('shown.bs.modal', function() {
+        if (!$('#IdKelasGenerate').hasClass('select2-hidden-accessible')) {
+            $('#IdKelasGenerate').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Pilih Kelas',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#modal-generate-kelas')
+            });
+        }
+    });
+
+    // Handle kelas change untuk menampilkan daftar santri
+    $('#IdKelasGenerate').on('change', function() {
+        const idKelas = $(this).val();
+        const listSantriDiv = $('#list-santri-kelas');
+        const infoSantriDiv = $('#info-santri-kelas');
+
+        if (idKelas) {
+            // Ambil data santri dari dataSantriGrouped yang sudah ada di PHP
+            const dataSantriGrouped = <?= json_encode($dataSantriGrouped) ?>;
+            const santriKelas = dataSantriGrouped[idKelas] ? dataSantriGrouped[idKelas].santri : [];
+
+            if (santriKelas.length > 0) {
+                let html = '<ul class="list-unstyled mb-0">';
+                santriKelas.forEach(function(santri) {
+                    html += '<li><i class="fas fa-user"></i> ID: ' + santri.IdSantri + ' - ' + santri.NamaSantri + '</li>';
+                });
+                html += '</ul>';
+                listSantriDiv.html(html);
+                infoSantriDiv.show();
+            } else {
+                listSantriDiv.html('<p class="text-muted mb-0">Tidak ada santri di kelas ini yang belum memiliki user account</p>');
+                infoSantriDiv.show();
+            }
+        } else {
+            listSantriDiv.html('');
+            infoSantriDiv.hide();
+        }
+    });
+
+    // Reset form saat modal ditutup
+    $('#modal-generate-kelas').on('hidden.bs.modal', function() {
+        $('#formGenerateKelas').trigger('reset');
+        $('#IdKelasGenerate').val('').trigger('change');
+        $('#list-santri-kelas').html('');
+        $('#info-santri-kelas').hide();
+    });
+
+    // Fungsi untuk generate user per kelas
+    function generateUserPerKelas() {
+        const idKelas = $('#IdKelasGenerate').val();
+
+        if (!idKelas) {
+            Swal.fire({
+                title: 'Peringatan!',
+                text: 'Pilih kelas terlebih dahulu',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: 'User account akan dibuat untuk semua santri di kelas ini yang belum memiliki user account. Password default akan digunakan.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Generate!',
+                cancelButtonText: 'Batal',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch('<?= base_url('backend/user/generateUserPerKelas') ?>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                IdKelas: idKelas
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'Gagal generate user');
+                            }
+                            return data;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage('Error: ' + error.message);
+                        });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            })
+            .then((result) => {
+                if (result.isConfirmed && result.value) {
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        text: result.value.message || 'User berhasil di-generate',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        $('#modal-generate-kelas').modal('hide');
+                        // Reload halaman untuk menampilkan user yang baru dibuat
+                        location.reload();
+                    });
+                }
+            });
     }
 </script>
 

@@ -346,6 +346,135 @@ class User extends BaseController
             ]);
         }
     }
+    /**
+     * Generate user per kelas sekaligus
+     * Membuat user account untuk semua santri di kelas yang dipilih yang belum memiliki user account
+     */
+    public function generateUserPerKelas()
+    {
+        try {
+            // Ambil data dari JSON request
+            $jsonData = $this->request->getJSON(true);
+            $IdKelas = $jsonData['IdKelas'] ?? null;
+
+            // Validasi
+            if (empty($IdKelas)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Kelas harus dipilih'
+                ]);
+            }
+
+            // Ambil IdTpq dan IdTahunAjaran dari session
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+            if (!$IdTahunAjaran) {
+                $IdTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+            }
+
+            // Ambil semua santri di kelas tersebut yang belum punya user account
+            $santriList = $this->userModel->getSantriForUserCreation($IdTpq, $IdTahunAjaran);
+
+            // Filter hanya santri di kelas yang dipilih
+            $santriKelas = array_filter($santriList, function ($santri) use ($IdKelas) {
+                return $santri['IdKelas'] == $IdKelas;
+            });
+
+            if (empty($santriKelas)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada santri di kelas ini yang belum memiliki user account'
+                ]);
+            }
+
+            // Ambil group_id untuk Santri
+            $santriGroup = $this->helpFunction->getDataAuthGoups(null);
+            $santriGroupId = null;
+            foreach ($santriGroup as $group) {
+                if ($group['name'] === 'Santri') {
+                    $santriGroupId = $group['id'];
+                    break;
+                }
+            }
+
+            if (!$santriGroupId) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'Group Santri tidak ditemukan'
+                ]);
+            }
+
+            // Hitung password default untuk santri
+            $IdTpqStr = (string)($IdTpq ?? 0);
+            $IdTpqLast3 = strlen($IdTpqStr) > 3 ? substr($IdTpqStr, -3) : str_pad($IdTpqStr, 3, '0', STR_PAD_LEFT);
+            $defaultPasswordSantri = 'SmartSantriTpq' . $IdTpqLast3;
+
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            // Generate user untuk setiap santri
+            foreach ($santriKelas as $santri) {
+                try {
+                    // Cek apakah user sudah ada
+                    $existingUser = $this->helpFunction->getUserByUsername($santri['IdSantri']);
+                    if ($existingUser > 0) {
+                        $errorCount++;
+                        $errors[] = "Santri {$santri['NamaSantri']} (NIK: {$santri['NikSantri']}) sudah memiliki user account";
+                        continue;
+                    }
+
+                    // Buat data user
+                    $userData = [
+                        'username' => $santri['IdSantri'],
+                        'fullname' => $santri['NamaSantri'],
+                        'email' => $santri['IdSantri'] . '@tpqsmart.simpedis.com',
+                        'password_hash' => Password::hash($defaultPasswordSantri),
+                        'nik' => $santri['NikSantri'],
+                        'active' => 1
+                    ];
+
+                    // Simpan user
+                    $returnUserId = $this->userModel->store($userData);
+
+                    // Tambahkan ke group Santri
+                    $groupData = [
+                        'group_id' => (int)$santriGroupId,
+                        'user_id' => $returnUserId
+                    ];
+                    $this->helpFunction->insertAuthGroupsUsers($groupData);
+
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errorCount++;
+                    $errors[] = "Gagal membuat user untuk {$santri['NamaSantri']}: " . $e->getMessage();
+                    log_message('error', 'User: generateUserPerKelas - Error: ' . $e->getMessage());
+                }
+            }
+
+            // Buat pesan response
+            $message = "Berhasil membuat {$successCount} user account";
+            if ($errorCount > 0) {
+                $message .= ". {$errorCount} user gagal dibuat.";
+            }
+
+            return $this->response->setJSON([
+                'success' => $successCount > 0,
+                'message' => $message,
+                'success_count' => $successCount,
+                'error_count' => $errorCount,
+                'errors' => $errors
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'User: generateUserPerKelas - Error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal generate user: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     // buat fungsi update status user
     public function updateStatus()
     {

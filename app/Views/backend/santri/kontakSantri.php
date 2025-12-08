@@ -44,83 +44,80 @@
         <?php foreach ($santri as $s): ?>
           <div class="col-12 col-sm-6 col-md-4 d-flex align-items-stretch flex-column mb-3">
             <div class="card bg-light d-flex flex-fill">
-              <div class="card-header text-muted border-bottom-0">
-                <?= esc($s['NamaKelas'] ?? 'Kelas') ?>
-              </div>
-              <div class="card-body pt-0">
-                <div class="row">
-                  <div class="col-7">
-                    <h2 class="lead"><b><?= esc($s['NamaSantri']) ?></b></h2>
-                    <p class="text-muted text-sm">
-                      <b>ID: </b><?= esc($s['IdSantri']) ?><br>
-                      <b>Jenis Kelamin: </b><?= esc($s['JenisKelamin'] ?? '-') ?>
-                    </p>
-                    <ul class="ml-4 mb-0 fa-ul text-muted">
-                      <?php if (!empty($s['Alamat'])): ?>
-                        <li class="small">
-                          <span class="fa-li"><i class="fas fa-lg fa-building"></i></span>
-                          <strong>Alamat:</strong><br>
-                          <?= esc($s['Alamat']) ?>
-                          <?php if (!empty($s['TitikKoordinatSantri']) || !empty($s['AlamatSantri'])): ?>
-                            <?php
-                            // Buat URL Google Maps
-                            $mapQuery = '';
-                            if (!empty($s['TitikKoordinatSantri'])) {
-                              // Jika ada koordinat, gunakan koordinat
-                              $mapQuery = urlencode($s['TitikKoordinatSantri']);
-                              $mapUrl = "https://www.google.com/maps?q={$mapQuery}";
-                            } else {
-                              // Jika tidak ada koordinat, gunakan alamat lengkap
-                              $mapQuery = urlencode($s['Alamat']);
-                              $mapUrl = "https://www.google.com/maps/search/?api=1&query={$mapQuery}";
-                            }
-                            ?>
-                            <br>
-                            <a href="<?= $mapUrl ?>" target="_blank" class="btn btn-xs btn-info mt-1" title="Lihat di Google Maps">
-                              <i class="fas fa-map-marker-alt"></i> Lihat di Peta
-                            </a>
-                          <?php endif; ?>
-                        </li>
-                      <?php endif; ?>
-                      <?php if (!empty($s['NamaAyah'])): ?>
-                        <li class="small">
-                          <span class="fa-li"><i class="fas fa-lg fa-user"></i></span>
-                          Ayah: <?= esc($s['NamaAyah']) ?>
-                        </li>
-                      <?php endif; ?>
-                      <?php if (!empty($s['NamaIbu'])): ?>
-                        <li class="small">
-                          <span class="fa-li"><i class="fas fa-lg fa-user"></i></span>
-                          Ibu: <?= esc($s['NamaIbu']) ?>
-                        </li>
-                      <?php endif; ?>
-                    </ul>
-                  </div>
-                  <div class="col-5 text-center">
-                    <?php
-                    $photoUrl = base_url('images/no-photo.jpg');
-                    if (!empty($s['PhotoProfil'])) {
-                      $photoPath = FCPATH . 'uploads/santri/' . $s['PhotoProfil'];
-                      if (file_exists($photoPath)) {
-                        $photoUrl = base_url('uploads/santri/' . $s['PhotoProfil']);
-                      }
+              <div class="card-body pt-3">
+                <div class="text-center mb-3">
+                  <?php
+                  $photoUrl = base_url('images/no-photo.jpg');
+                  if (!empty($s['PhotoProfil'])) {
+                    $photoPath = FCPATH . 'uploads/santri/' . $s['PhotoProfil'];
+                    if (file_exists($photoPath)) {
+                      $photoUrl = base_url('uploads/santri/' . $s['PhotoProfil']);
                     }
-                    ?>
-                    <img src="<?= $photoUrl ?>"
-                      alt="Foto <?= esc($s['NamaSantri']) ?>"
-                      class="img-circle img-fluid"
-                      style="max-width: 100px; max-height: 100px; object-fit: cover;"
-                      onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
+                  }
+                  ?>
+                  <img src="<?= $photoUrl ?>"
+                    alt="Foto <?= esc($s['NamaSantri']) ?>"
+                    class="img-fluid"
+                    style="width: 150px; height: 200px; object-fit: cover; border: 3px solid #dee2e6; border-radius: 4px;"
+                    onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
+                </div>
+                <div>
+                  <h2 class="lead text-center"><b><?= esc($s['NamaSantri']) ?></b></h2>
+                  <p class="text-muted text-sm text-center">
+                    <b>Id Santri: </b><?= esc($s['IdSantri']) ?><br>
+                    <b>Jenis Kelamin: </b><?= esc($s['JenisKelamin'] ?? '-') ?>
+                  </p>
+                  <ul class="ml-4 mb-0 fa-ul text-muted">
+                    <?php if (!empty($s['Alamat'])): ?>
+                      <li class="small">
+                        <span class="fa-li"><i class="fas fa-lg fa-building"></i></span>
+                        <strong>Alamat:</strong><br>
+                        <?= esc($s['Alamat']) ?>
+                        <?php if (!empty($s['TitikKoordinatSantri']) || !empty($s['AlamatSantri'])): ?>
+                          <?php
+                          // Buat URL Google Maps
+                          $mapQuery = '';
+                          if (!empty($s['TitikKoordinatSantri'])) {
+                            // Jika ada koordinat, gunakan koordinat
+                            $mapQuery = urlencode($s['TitikKoordinatSantri']);
+                            $mapUrl = "https://www.google.com/maps?q={$mapQuery}";
+                          } else {
+                            // Jika tidak ada koordinat, gunakan alamat lengkap
+                            $mapQuery = urlencode($s['Alamat']);
+                            $mapUrl = "https://www.google.com/maps/search/?api=1&query={$mapQuery}";
+                          }
+                          ?>
+                          <br>
+                          <a href="<?= $mapUrl ?>" target="_blank" class="btn btn-xs btn-info mt-1" title="Lihat di Google Maps">
+                            <i class="fas fa-map-marker-alt"></i> Lihat di Peta
+                          </a>
+                        <?php endif; ?>
+                      </li>
+                    <?php endif; ?>
+                    <?php if (!empty($s['NamaAyah'])): ?>
+                      <li class="small">
+                        <span class="fa-li"><i class="fas fa-lg fa-user"></i></span>
+                        Ayah: <?= esc($s['NamaAyah']) ?>
+                      </li>
+                    <?php endif; ?>
+                    <?php if (!empty($s['NamaIbu'])): ?>
+                      <li class="small">
+                        <span class="fa-li"><i class="fas fa-lg fa-user"></i></span>
+                        Ibu: <?= esc($s['NamaIbu']) ?>
+                      </li>
+                    <?php endif; ?>
+                  </ul>
+                </div>
+              </div>
+              <?php if (!empty($s['NoHpSantri'])): ?>
+                <div class="card-footer">
+                  <div class="text-right">
+                    <a href="tel:<?= esc($s['NoHpSantri']) ?>" class="btn btn-sm btn-success">
+                      <i class="fas fa-phone"></i> Call No HP Santri
+                    </a>
                   </div>
                 </div>
-              </div>
-              <div class="card-footer">
-                <div class="text-right">
-                  <a href="<?= base_url('backend/santri/showProfilSantri?filterIdKelas=' . ($s['IdKelas'] ?? '')) ?>" class="btn btn-sm btn-primary">
-                    <i class="fas fa-user"></i> Profil
-                  </a>
-                </div>
-              </div>
+              <?php endif; ?>
             </div>
           </div>
         <?php endforeach; ?>
