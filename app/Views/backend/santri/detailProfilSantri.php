@@ -19,11 +19,11 @@
                     <!-- Foto Profil dan Info Dasar -->
                     <div class="row mb-4">
                         <div class="col-md-3 text-center">
-                            <img src="<?= esc($photoUrl) ?>" 
-                                 alt="Foto Profil" 
-                                 class="img-fluid rounded-circle mb-3"
-                                 style="width: 200px; height: 200px; object-fit: cover; border: 3px solid #dee2e6;"
-                                 onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
+                            <img src="<?= esc($photoUrl) ?>"
+                                alt="Foto Profil"
+                                class="img-fluid rounded-circle mb-3"
+                                style="width: 200px; height: 200px; object-fit: cover; border: 3px solid #dee2e6;"
+                                onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
                             <h4 class="mb-1"><?= esc($santri['NamaSantri'] ?? '-') ?></h4>
                             <p class="text-muted mb-0">
                                 <small>ID: <?= esc($santri['IdSantri'] ?? '-') ?></small>
@@ -39,9 +39,25 @@
                                 <div class="col-md-6">
                                     <p><strong>NIK:</strong> <?= esc($santri['NikSantri'] ?? '-') ?></p>
                                     <p><strong>No. KK:</strong> <?= esc($santri['IdKartuKeluarga'] ?? '-') ?></p>
-                                    <p><strong>Status:</strong> 
-                                        <span class="badge <?= (!empty($santri['Status']) && $santri['Status'] == 1) ? 'badge-success' : 'badge-secondary' ?>">
-                                            <?= (!empty($santri['Status']) && $santri['Status'] == 1) ? 'Aktif' : 'Tidak Aktif' ?>
+                                    <p><strong>Status:</strong>
+                                        <span class="badge <?= (!empty($santri['Active']) && $santri['Active'] == 1) ? 'badge-success' : 'badge-secondary' ?>">
+                                            <?= (!empty($santri['Active']) && $santri['Active'] == 1) ? 'Aktif' : 'Tidak Aktif' ?>
+                                        </span>
+                                    </p>
+                                    <p><strong>Status Verifikasi:</strong>
+                                        <?php
+                                        $statusVerifikasi = $santri['Status'] ?? 'Belum Diverifikasi';
+                                        $badgeClass = 'badge-secondary';
+                                        if ($statusVerifikasi == 'Sudah Diverifikasi') {
+                                            $badgeClass = 'badge-success';
+                                        } elseif ($statusVerifikasi == 'Perlu Perbaikan') {
+                                            $badgeClass = 'badge-danger';
+                                        } elseif ($statusVerifikasi == 'Belum Diverifikasi') {
+                                            $badgeClass = 'badge-warning';
+                                        }
+                                        ?>
+                                        <span class="badge <?= $badgeClass ?>">
+                                            <?= esc($statusVerifikasi) ?>
                                         </span>
                                     </p>
                                 </div>
@@ -106,7 +122,7 @@
                                                             <div class="info-box-content">
                                                                 <span class="info-box-text">Tempat, Tanggal Lahir</span>
                                                                 <span class="info-box-number">
-                                                                    <?= esc($santri['TempatLahirSantri'] ?? '-') ?>, 
+                                                                    <?= esc($santri['TempatLahirSantri'] ?? '-') ?>,
                                                                     <?= !empty($santri['TanggalLahirSantri']) ? date('d F Y', strtotime($santri['TanggalLahirSantri'])) : '-' ?>
                                                                 </span>
                                                             </div>
@@ -393,7 +409,7 @@
                                                             <div class="info-box-content">
                                                                 <span class="info-box-text">Tempat, Tanggal Lahir</span>
                                                                 <span class="info-box-number">
-                                                                    <?= esc($santri['TempatLahirAyah'] ?? '-') ?>, 
+                                                                    <?= esc($santri['TempatLahirAyah'] ?? '-') ?>,
                                                                     <?= !empty($santri['TanggalLahirAyah']) ? date('d F Y', strtotime($santri['TanggalLahirAyah'])) : '-' ?>
                                                                 </span>
                                                             </div>
@@ -490,7 +506,7 @@
                                                             <div class="info-box-content">
                                                                 <span class="info-box-text">Tempat, Tanggal Lahir</span>
                                                                 <span class="info-box-number">
-                                                                    <?= esc($santri['TempatLahirIbu'] ?? '-') ?>, 
+                                                                    <?= esc($santri['TempatLahirIbu'] ?? '-') ?>,
                                                                     <?= !empty($santri['TanggalLahirIbu']) ? date('d F Y', strtotime($santri['TanggalLahirIbu'])) : '-' ?>
                                                                 </span>
                                                             </div>
@@ -540,86 +556,87 @@
 
                                 <!-- Data Wali (jika ada) -->
                                 <?php if (!empty($santri['StatusWali']) && $santri['StatusWali'] == 'Ya'): ?>
-                                <div class="row mt-4">
-                                    <div class="col-md-12">
-                                        <div class="card card-outline card-warning">
-                                            <div class="card-header">
-                                                <h3 class="card-title"><i class="fas fa-user-shield text-warning"></i> Data Wali</h3>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="row">
-                                                    <div class="col-md-12 mb-3">
-                                                        <div class="info-box bg-light">
-                                                            <span class="info-box-icon bg-warning"><i class="fas fa-user"></i></span>
-                                                            <div class="info-box-content">
-                                                                <span class="info-box-text">Nama Lengkap</span>
-                                                                <span class="info-box-number"><?= esc($santri['NamaWali'] ?? '-') ?></span>
+                                    <div class="row mt-4">
+                                        <div class="col-md-12">
+                                            <div class="card card-outline card-warning">
+                                                <div class="card-header">
+                                                    <h3 class="card-title"><i class="fas fa-user-shield text-warning"></i> Data Wali</h3>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-md-12 mb-3">
+                                                            <div class="info-box bg-light">
+                                                                <span class="info-box-icon bg-warning"><i class="fas fa-user"></i></span>
+                                                                <div class="info-box-content">
+                                                                    <span class="info-box-text">Nama Lengkap</span>
+                                                                    <span class="info-box-number"><?= esc($santri['NamaWali'] ?? '-') ?></span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="info-box bg-light">
-                                                            <span class="info-box-icon bg-primary"><i class="fas fa-id-card"></i></span>
-                                                            <div class="info-box-content">
-                                                                <span class="info-box-text">NIK</span>
-                                                                <span class="info-box-number"><?= esc($santri['NikWali'] ?? '-') ?></span>
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="info-box bg-light">
+                                                                <span class="info-box-icon bg-primary"><i class="fas fa-id-card"></i></span>
+                                                                <div class="info-box-content">
+                                                                    <span class="info-box-text">NIK</span>
+                                                                    <span class="info-box-number"><?= esc($santri['NikWali'] ?? '-') ?></span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="info-box bg-light">
-                                                            <span class="info-box-icon bg-success"><i class="fas fa-flag"></i></span>
-                                                            <div class="info-box-content">
-                                                                <span class="info-box-text">Kewarganegaraan</span>
-                                                                <span class="info-box-number"><?= esc($santri['KewarganegaraanWali'] ?? '-') ?></span>
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="info-box bg-light">
+                                                                <span class="info-box-icon bg-success"><i class="fas fa-flag"></i></span>
+                                                                <div class="info-box-content">
+                                                                    <span class="info-box-text">Kewarganegaraan</span>
+                                                                    <span class="info-box-number"><?= esc($santri['KewarganegaraanWali'] ?? '-') ?></span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="info-box bg-light">
-                                                            <span class="info-box-icon bg-warning"><i class="fas fa-birthday-cake"></i></span>
-                                                            <div class="info-box-content">
-                                                                <span class="info-box-text">Tempat, Tanggal Lahir</span>
-                                                                <span class="info-box-number">
-                                                                    <?= esc($santri['TempatLahirWali'] ?? '-') ?>, 
-                                                                    <?= !empty($santri['TanggalLahirWali']) ? date('d F Y', strtotime($santri['TanggalLahirWali'])) : '-' ?>
-                                                                </span>
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="info-box bg-light">
+                                                                <span class="info-box-icon bg-warning"><i class="fas fa-birthday-cake"></i></span>
+                                                                <div class="info-box-content">
+                                                                    <span class="info-box-text">Tempat, Tanggal Lahir</span>
+                                                                    <span class="info-box-number">
+                                                                        <?= esc($santri['TempatLahirWali'] ?? '-') ?>,
+                                                                        <?= !empty($santri['TanggalLahirWali']) ? date('d F Y', strtotime($santri['TanggalLahirWali'])) : '-' ?>
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="info-box bg-light">
-                                                            <span class="info-box-icon bg-info"><i class="fas fa-graduation-cap"></i></span>
-                                                            <div class="info-box-content">
-                                                                <span class="info-box-text">Pendidikan</span>
-                                                                <span class="info-box-number"><?= esc($santri['PendidikanWali'] ?? '-') ?></span>
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="info-box bg-light">
+                                                                <span class="info-box-icon bg-info"><i class="fas fa-graduation-cap"></i></span>
+                                                                <div class="info-box-content">
+                                                                    <span class="info-box-text">Pendidikan</span>
+                                                                    <span class="info-box-number"><?= esc($santri['PendidikanWali'] ?? '-') ?></span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="info-box bg-light">
-                                                            <span class="info-box-icon bg-primary"><i class="fas fa-briefcase"></i></span>
-                                                            <div class="info-box-content">
-                                                                <span class="info-box-text">Pekerjaan</span>
-                                                                <span class="info-box-number"><?= esc($santri['PekerjaanUtamaWali'] ?? '-') ?></span>
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="info-box bg-light">
+                                                                <span class="info-box-icon bg-primary"><i class="fas fa-briefcase"></i></span>
+                                                                <div class="info-box-content">
+                                                                    <span class="info-box-text">Pekerjaan</span>
+                                                                    <span class="info-box-number"><?= esc($santri['PekerjaanUtamaWali'] ?? '-') ?></span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="info-box bg-light">
-                                                            <span class="info-box-icon bg-success"><i class="fas fa-money-bill-wave"></i></span>
-                                                            <div class="info-box-content">
-                                                                <span class="info-box-text">Penghasilan</span>
-                                                                <span class="info-box-number"><?= esc($santri['PenghasilanUtamaWali'] ?? '-') ?></span>
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="info-box bg-light">
+                                                                <span class="info-box-icon bg-success"><i class="fas fa-money-bill-wave"></i></span>
+                                                                <div class="info-box-content">
+                                                                    <span class="info-box-text">Penghasilan</span>
+                                                                    <span class="info-box-number"><?= esc($santri['PenghasilanUtamaWali'] ?? '-') ?></span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="info-box bg-light">
-                                                            <span class="info-box-icon bg-danger"><i class="fas fa-phone"></i></span>
-                                                            <div class="info-box-content">
-                                                                <span class="info-box-text">No. HP</span>
-                                                                <span class="info-box-number"><?= esc($santri['NoHpWali'] ?? '-') ?></span>
+                                                        <div class="col-md-6 mb-3">
+                                                            <div class="info-box bg-light">
+                                                                <span class="info-box-icon bg-danger"><i class="fas fa-phone"></i></span>
+                                                                <div class="info-box-content">
+                                                                    <span class="info-box-text">No. HP</span>
+                                                                    <span class="info-box-number"><?= esc($santri['NoHpWali'] ?? '-') ?></span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -627,16 +644,15 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
                                 <?php endif; ?>
 
                                 <!-- Alamat Orang Tua -->
                                 <div class="row mt-4">
-                                    <?php 
+                                    <?php
                                     // Cek apakah alamat ibu sama dengan ayah
                                     // Cek dari field AlamatIbuSamaDenganAyah
                                     $alamatIbuSamaField = (!empty($santri['AlamatIbuSamaDenganAyah']) && $santri['AlamatIbuSamaDenganAyah'] == 'Ya');
-                                    
+
                                     // Cek juga dengan membandingkan isi alamat secara langsung
                                     $alamatAyah = trim($santri['AlamatAyah'] ?? '');
                                     $alamatIbu = trim($santri['AlamatIbu'] ?? '');
@@ -654,7 +670,7 @@
                                     $rwIbu = trim($santri['RwIbu'] ?? '');
                                     $kodePosAyah = trim($santri['KodePosAyah'] ?? '');
                                     $kodePosIbu = trim($santri['KodePosIbu'] ?? '');
-                                    
+
                                     // Bandingkan semua field alamat
                                     $alamatIbuSamaIsi = (
                                         $alamatAyah == $alamatIbu &&
@@ -667,11 +683,11 @@
                                         $kodePosAyah == $kodePosIbu &&
                                         !empty($alamatAyah) && !empty($alamatIbu)
                                     );
-                                    
+
                                     // Gunakan salah satu kondisi yang true
                                     $alamatIbuSama = $alamatIbuSamaField || $alamatIbuSamaIsi;
                                     ?>
-                                    
+
                                     <?php if ($alamatIbuSama): ?>
                                         <!-- Alamat Ayah & Ibu (Sama) -->
                                         <div class="col-md-12 mb-4">
@@ -955,13 +971,14 @@
                             <div class="card-body">
                                 <?php
                                 // Fungsi helper untuk mendapatkan icon dan warna berdasarkan ekstensi
-                                function getFileIcon($fileName) {
+                                function getFileIcon($fileName)
+                                {
                                     if (empty($fileName)) {
                                         return ['icon' => 'fa-file', 'color' => 'secondary', 'bgColor' => 'bg-secondary'];
                                     }
-                                    
+
                                     $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-                                    
+
                                     switch ($extension) {
                                         case 'pdf':
                                             return ['icon' => 'fa-file-pdf', 'color' => 'danger', 'bgColor' => 'bg-danger'];
@@ -981,10 +998,10 @@
                                             return ['icon' => 'fa-file', 'color' => 'secondary', 'bgColor' => 'bg-secondary'];
                                     }
                                 }
-                                
+
                                 // Kumpulkan semua dokumen dalam satu array
                                 $documents = [];
-                                
+
                                 // Dokumen Santri
                                 if (!empty($santri['FileKIP'])) {
                                     $documents[] = [
@@ -993,7 +1010,7 @@
                                         'type' => 'santri'
                                     ];
                                 }
-                                
+
                                 if (!empty($santri['FileKKS'])) {
                                     $documents[] = [
                                         'label' => 'Kartu Keluarga Sejahtera (KKS)',
@@ -1001,7 +1018,7 @@
                                         'type' => 'santri'
                                     ];
                                 }
-                                
+
                                 if (!empty($santri['FilePKH'])) {
                                     $documents[] = [
                                         'label' => 'Program Keluarga Harapan (PKH)',
@@ -1009,38 +1026,38 @@
                                         'type' => 'santri'
                                     ];
                                 }
-                                
+
                                 // Kartu Keluarga - gabungkan jika sama
                                 $kkFiles = [];
                                 $kkLabels = [];
-                                
+
                                 // Kartu Keluarga Santri
                                 if (!empty($santri['FileKkSantri'])) {
                                     $kkFiles[] = $santri['FileKkSantri'];
                                     $kkLabels[] = 'Kartu Keluarga Santri';
                                 }
-                                
+
                                 // Kartu Keluarga Ayah
                                 $fileKkAyah = $santri['FileKkAyah'] ?? ($santri['FileKKAyah'] ?? null);
                                 if (!empty($fileKkAyah)) {
                                     $kkFiles[] = $fileKkAyah;
                                     $kkLabels[] = 'Kartu Keluarga Ayah';
                                 }
-                                
+
                                 // Kartu Keluarga Ibu
                                 $fileKkIbu = $santri['FileKkIbu'] ?? ($santri['FileKKIbu'] ?? null);
                                 if (!empty($fileKkIbu)) {
                                     $kkFiles[] = $fileKkIbu;
                                     $kkLabels[] = 'Kartu Keluarga Ibu';
                                 }
-                                
+
                                 // Kartu Keluarga Wali
                                 $fileKkWali = $santri['FileKkWali'] ?? ($santri['FileKKWali'] ?? null);
                                 if (!empty($fileKkWali)) {
                                     $kkFiles[] = $fileKkWali;
                                     $kkLabels[] = 'Kartu Keluarga Wali';
                                 }
-                                
+
                                 // Jika ada Kartu Keluarga, gabungkan yang sama
                                 if (!empty($kkFiles)) {
                                     $uniqueKkFiles = array_unique($kkFiles);
@@ -1052,14 +1069,14 @@
                                                 $matchingLabels[] = $kkLabels[$index];
                                             }
                                         }
-                                        
+
                                         // Jika hanya satu, gunakan label asli, jika lebih dari satu gabungkan
                                         if (count($matchingLabels) > 1) {
                                             $label = 'Kartu Keluarga';
                                         } else {
                                             $label = $matchingLabels[0];
                                         }
-                                        
+
                                         $documents[] = [
                                             'label' => $label,
                                             'fileName' => $kkFile,
@@ -1067,18 +1084,18 @@
                                         ];
                                     }
                                 }
-                                
+
                                 $basePath = FCPATH . 'uploads/santri/';
                                 ?>
-                                
+
                                 <?php if (empty($documents)): ?>
                                     <div class="alert alert-warning">
-                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        <i class="fas fa-exclamation-triangle"></i>
                                         <strong>Belum ada dokumen yang diunggah.</strong>
                                     </div>
                                 <?php else: ?>
                                     <div class="row">
-                                        <?php foreach ($documents as $doc): 
+                                        <?php foreach ($documents as $doc):
                                             $fileExists = file_exists($basePath . $doc['fileName']);
                                             $fileIcon = getFileIcon($doc['fileName']);
                                             $fileUrl = base_url('uploads/santri/' . $doc['fileName']);
@@ -1099,7 +1116,7 @@
                                                                 </small>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         <?php if ($fileExists): ?>
                                                             <div class="mb-2">
                                                                 <small class="text-muted">
@@ -1126,12 +1143,12 @@
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
-                                    
+
                                     <!-- Info Tambahan -->
                                     <div class="row mt-3">
                                         <div class="col-md-12">
                                             <div class="alert alert-info">
-                                                <i class="fas fa-info-circle"></i> 
+                                                <i class="fas fa-info-circle"></i>
                                                 <strong>Informasi:</strong> Klik tombol "Lihat" untuk melihat preview file atau tombol download untuk mengunduh file.
                                             </div>
                                         </div>
@@ -1139,11 +1156,10 @@
                                 <?php endif; ?>
                             </div>
                         </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<?= $this->endSection(); ?>
-
+    <?= $this->endSection(); ?>

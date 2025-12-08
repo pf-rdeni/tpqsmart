@@ -904,9 +904,9 @@ class Santri extends BaseController
         // Ambil foto profil
         $photoUrl = base_url('images/no-photo.jpg');
         if (!empty($santriData['PhotoProfil'])) {
-            $photoPath = FCPATH . 'uploads/profil/santri/' . $santriData['PhotoProfil'];
+            $photoPath = FCPATH . 'uploads/santri/' . $santriData['PhotoProfil'];
             if (file_exists($photoPath)) {
-                $photoUrl = base_url('uploads/profil/santri/' . $santriData['PhotoProfil']);
+                $photoUrl = base_url('uploads/santri/' . $santriData['PhotoProfil']);
             }
         }
         $data['photoUrl'] = $photoUrl;

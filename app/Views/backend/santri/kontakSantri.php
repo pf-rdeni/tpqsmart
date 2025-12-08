@@ -100,9 +100,9 @@
                     <?php
                     $photoUrl = base_url('images/no-photo.jpg');
                     if (!empty($s['PhotoProfil'])) {
-                      $photoPath = FCPATH . 'uploads/profil/santri/' . $s['PhotoProfil'];
+                      $photoPath = FCPATH . 'uploads/santri/' . $s['PhotoProfil'];
                       if (file_exists($photoPath)) {
-                        $photoUrl = base_url('uploads/profil/santri/' . $s['PhotoProfil']);
+                        $photoUrl = base_url('uploads/santri/' . $s['PhotoProfil']);
                       }
                     }
                     ?>

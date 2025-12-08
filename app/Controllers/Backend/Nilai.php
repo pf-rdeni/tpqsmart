@@ -498,9 +498,9 @@ class Nilai extends BaseController
         // Ambil foto profil
         $photoUrl = base_url('images/no-photo.jpg');
         if (!empty($santriDetail['PhotoProfil'])) {
-            $photoPath = FCPATH . 'uploads/profil/santri/' . $santriDetail['PhotoProfil'];
+            $photoPath = FCPATH . 'uploads/santri/' . $santriDetail['PhotoProfil'];
             if (file_exists($photoPath)) {
-                $photoUrl = base_url('uploads/profil/santri/' . $santriDetail['PhotoProfil']);
+                $photoUrl = base_url('uploads/santri/' . $santriDetail['PhotoProfil']);
             }
         }
 

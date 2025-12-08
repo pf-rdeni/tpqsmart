@@ -29,9 +29,9 @@
                                         // Ambil foto profil santri
                                         $photoUrl = base_url('images/no-photo.jpg');
                                         if (!empty($profilSantri['PhotoProfil'])) {
-                                            $photoPath = FCPATH . 'uploads/profil/santri/' . $profilSantri['PhotoProfil'];
+                                            $photoPath = FCPATH . 'uploads/santri/' . $profilSantri['PhotoProfil'];
                                             if (file_exists($photoPath)) {
-                                                $photoUrl = base_url('uploads/profil/santri/' . $profilSantri['PhotoProfil']);
+                                                $photoUrl = base_url('uploads/santri/' . $profilSantri['PhotoProfil']);
                                             }
                                         }
                                         ?>
