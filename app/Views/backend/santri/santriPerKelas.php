@@ -151,7 +151,7 @@
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex justify-content-start align-items-center">
-                                                            <?php 
+                                                            <?php
                                                             // Logika tombol Edit/View:
                                                             // 1. Jika login sebagai Wali Kelas → selalu bisa Edit (tidak peduli status nilai)
                                                             // 2. Jika login sebagai Guru Pendamping/Guru Kelas → 
@@ -159,13 +159,13 @@
                                                             //    - Jika nilai belum 100% → bisa Edit
                                                             $showEdit = false;
                                                             $showView = false;
-                                                            
+
                                                             // Cek apakah user login sebagai Wali Kelas
                                                             $isUserWaliKelas = isset($isWaliKelas) && $isWaliKelas;
-                                                            
+
                                                             // Cek apakah user memiliki jabatan yang berhak mengakses (Guru Kelas, Wali Kelas, atau Guru Pendamping)
                                                             $hasAccess = ($santri->NamaJabatan == "Guru Kelas" || $santri->NamaJabatan == "Wali Kelas" || $santri->NamaJabatan == "Guru Pendamping");
-                                                            
+
                                                             if ($hasAccess) {
                                                                 if ($isUserWaliKelas) {
                                                                     // Wali Kelas: selalu bisa Edit (tidak peduli status nilai)
@@ -181,7 +181,7 @@
                                                                     }
                                                                 }
                                                             }
-                                                            
+
                                                             if ($showEdit) : ?>
                                                                 <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn btn-warning me-2">
                                                                     <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Edit&nbsp;
@@ -277,10 +277,27 @@
             }
         }
 
-        // Event listener untuk menyimpan tab saat tab diubah
+        // Event listener untuk menyimpan tab saat tab diubah dan recalculate DataTable
         $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
             const tabId = $(e.target).attr('id').replace('tab-', '');
             saveActiveTab(tabId);
+
+            // Recalculate DataTable columns untuk tab yang baru ditampilkan
+            const tableSelector = "#TableNilaiSemester-" + tabId;
+            if ($.fn.DataTable.isDataTable(tableSelector)) {
+                const table = $(tableSelector).DataTable();
+                // Delay untuk memastikan tab pane sudah fully visible
+                setTimeout(function() {
+                    try {
+                        // Recalculate columns dan scrollX
+                        table.columns.adjust();
+                        // Trigger resize untuk memastikan scrollX di-recalculate
+                        $(window).trigger('resize');
+                    } catch (e) {
+                        console.warn('Error recalculating DataTable on tab switch:', e);
+                    }
+                }, 100);
+            }
         });
 
         // Memuat tab yang tersimpan saat halaman dimuat
@@ -290,6 +307,19 @@
         <?php foreach ($dataKelas as $kelasId => $kelas): ?>
             initializeDataTableScrollX("#TableNilaiSemester-<?= $kelasId ?>");
         <?php endforeach; ?>
+
+        // Recalculate DataTable untuk tab aktif setelah semua tabel diinisialisasi
+        setTimeout(function() {
+            const activeTab = $('.nav-link.active');
+            if (activeTab.length) {
+                const activeTabId = activeTab.attr('id').replace('tab-', '');
+                const activeTableSelector = "#TableNilaiSemester-" + activeTabId;
+                if ($.fn.DataTable.isDataTable(activeTableSelector)) {
+                    const activeTable = $(activeTableSelector).DataTable();
+                    activeTable.columns.adjust();
+                }
+            }
+        }, 500);
     });
 </script>
 <?= $this->endSection(); ?>

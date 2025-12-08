@@ -295,13 +295,38 @@
         });
 
         // Fix: Adjust columns setelah tab shown (jika tabel di dalam tab)
-        $(selector).closest('.tab-pane').on('shown.bs.tab', function() {
-            setTimeout(function() {
-                if ($.fn.DataTable.isDataTable(selector)) {
-                    table.columns.adjust();
+        // Event ini dipicu pada tab link, bukan tab pane
+        // Kita perlu mencari parent tab container dan listen pada tab links
+        const tabPane = $(selector).closest('.tab-pane');
+        if (tabPane.length) {
+            // Cari tab content container
+            const tabContent = tabPane.closest('.tab-content');
+            if (tabContent.length) {
+                // Cari card yang mengandung tab navigation
+                const cardContainer = tabContent.closest('.card-tabs, .card');
+                if (cardContainer.length) {
+                    // Listen pada semua tab links di container yang sama
+                    cardContainer.find('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+                        // Cek apakah tabel ini ada di tab pane yang baru ditampilkan
+                        const targetHref = e.target.getAttribute('href');
+                        const targetPane = $(targetHref);
+                        if (targetPane.length && targetPane.find(selector).length) {
+                            setTimeout(function() {
+                                if ($.fn.DataTable.isDataTable(selector)) {
+                                    try {
+                                        table.columns.adjust();
+                                        // Trigger resize untuk memastikan scrollX di-recalculate
+                                        $(window).trigger('resize');
+                                    } catch (err) {
+                                        console.warn('Error adjusting columns on tab switch:', err);
+                                    }
+                                }
+                            }, 150);
+                        }
+                    });
                 }
-            }, 100);
-        });
+            }
+        }
 
         return table;
     }
