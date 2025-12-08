@@ -346,7 +346,7 @@ helper('nilai');
             <td colspan="5" style="width: 50%; padding: 5px; text-align: right;"> Diberikan di Seri Kuala Lobam Tanggal: <?= $tanggal ?></td>
         </tr>
         <tr>
-            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">Kepala TPQ</td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;"><?= (($lembagaType ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ') ?></td>
             <td style="width: 50%; padding: 5px;"></td>
             <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">Wali Kelas</td>
         </tr>
