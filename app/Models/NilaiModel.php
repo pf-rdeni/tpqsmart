@@ -692,11 +692,49 @@ class NilaiModel extends Model
 
         log_message('debug', "=== MULAI getDataNilaiPerSemesterOptimized ===");
 
-        // Tahap 1: Data Santri
-        $dataSantri = $this->getDataSantriForNilai($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+        // TAHAP 0: Ambil semua santri aktif dari tbl_kelas_santri (bukan hanya yang punya nilai)
+        $startTime = microtime(true);
+        $builderSantri = $this->db->table('tbl_kelas_santri ks');
+        $builderSantri->select('ks.IdSantri, ks.IdKelas, ks.IdTahunAjaran, k.NamaKelas, s.NamaSantri, s.JenisKelamin');
+        $builderSantri->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner');
+        $builderSantri->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner');
+        $builderSantri->where('ks.Status', 1);
+        $builderSantri->where('s.Active', 1);
+        $builderSantri->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        $builderSantri->where('ks.IdTpq', $IdTpq);
+        
+        if (is_array($IdKelas)) {
+            $builderSantri->whereIn('ks.IdKelas', $IdKelas);
+        } else if ($IdKelas) {
+            $builderSantri->where('ks.IdKelas', $IdKelas);
+        }
+        
+        $allSantri = $builderSantri->get()->getResult();
+        
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000;
+        log_message('debug', "Tahap 0 - Data Santri Aktif: {$executionTime}ms");
 
-        // Tahap 2: Data Kelas Santri
-        $dataKelasSantri = $this->getDataKelasSantriForNilai($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+        // Tahap 1: Data Santri (dari query di atas)
+        $dataSantri = [];
+        foreach ($allSantri as $santri) {
+            $dataSantri[] = (object) [
+                'IdSantri' => $santri->IdSantri,
+                'NamaSantri' => $santri->NamaSantri,
+                'JenisKelamin' => $santri->JenisKelamin
+            ];
+        }
+
+        // Tahap 2: Data Kelas Santri (dari query di atas)
+        $dataKelasSantri = [];
+        foreach ($allSantri as $santri) {
+            $dataKelasSantri[] = (object) [
+                'IdSantri' => $santri->IdSantri,
+                'IdTahunAjaran' => $santri->IdTahunAjaran,
+                'IdKelas' => $santri->IdKelas,
+                'NamaKelas' => $santri->NamaKelas
+            ];
+        }
 
         // Tahap 3: Perhitungan Agregasi
         $nilaiAggregation = $this->calculateNilaiAggregation($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
@@ -730,25 +768,84 @@ class NilaiModel extends Model
             $rankingMap[$ranking->IdSantri] = $ranking;
         }
 
-        // Gabungkan data
+        // Gabungkan data - ambil semua santri aktif, bukan hanya yang punya nilai
         foreach ($dataSantriMap as $idSantri => $santri) {
             $kelas = $dataKelasMap[$idSantri] ?? null;
             $nilai = $nilaiMap[$idSantri] ?? null;
             $ranking = $rankingMap[$idSantri] ?? null;
 
-            if ($kelas && $nilai && $ranking) {
+            // Ubah kondisi: cukup kelas ada, nilai dan ranking bisa null
+            if ($kelas) {
                 $result[] = (object) [
                     'IdSantri' => $idSantri,
                     'NamaSantri' => $santri->NamaSantri,
                     'JenisKelamin' => $santri->JenisKelamin,
                     'IdTahunAjaran' => $kelas->IdTahunAjaran,
-                    'Semester' => $nilai->Semester,
+                    'Semester' => $nilai ? $nilai->Semester : $semester,
                     'NamaKelas' => $kelas->NamaKelas,
                     'IdKelas' => $kelas->IdKelas,
-                    'TotalNilai' => $nilai->TotalNilai,
-                    'NilaiRataRata' => $nilai->NilaiRataRata,
-                    'Rangking' => $ranking->Rangking
+                    'TotalNilai' => $nilai ? $nilai->TotalNilai : 0,
+                    'NilaiRataRata' => $nilai ? $nilai->NilaiRataRata : 0,
+                    'Rangking' => $ranking ? $ranking->Rangking : null
                 ];
+            }
+        }
+
+        // Hitung ranking untuk santri yang belum punya ranking (santri tanpa nilai)
+        // Kelompokkan per kelas dan hitung ranking berdasarkan nilai rata-rata
+        $resultByKelas = [];
+        foreach ($result as $item) {
+            $idKelas = $item->IdKelas;
+            if (!isset($resultByKelas[$idKelas])) {
+                $resultByKelas[$idKelas] = [];
+            }
+            $resultByKelas[$idKelas][] = $item;
+        }
+        
+        // Hitung ranking untuk setiap kelas
+        foreach ($resultByKelas as $idKelas => $items) {
+            // Sort berdasarkan nilai rata-rata descending (null di akhir)
+            usort($items, function($a, $b) {
+                if ($a->NilaiRataRata == 0 && $b->NilaiRataRata == 0) {
+                    return 0;
+                }
+                if ($a->NilaiRataRata == 0) {
+                    return 1; // a di akhir
+                }
+                if ($b->NilaiRataRata == 0) {
+                    return -1; // b di akhir
+                }
+                return $b->NilaiRataRata <=> $a->NilaiRataRata;
+            });
+            
+            // Assign ranking untuk yang belum punya ranking
+            $currentRank = 1;
+            $prevNilai = null;
+            $sameRankCount = 0;
+            
+            foreach ($items as $item) {
+                if ($item->Rangking === null) {
+                    // Jika nilai sama dengan sebelumnya, ranking sama
+                    if ($prevNilai !== null && $item->NilaiRataRata > 0 && $item->NilaiRataRata == $prevNilai) {
+                        $item->Rangking = $currentRank - $sameRankCount;
+                        $sameRankCount++;
+                    } else {
+                        $item->Rangking = $currentRank;
+                        $sameRankCount = 1;
+                    }
+                    if ($item->NilaiRataRata > 0) {
+                        $prevNilai = $item->NilaiRataRata;
+                    }
+                    $currentRank++;
+                } else {
+                    // Update currentRank berdasarkan ranking yang sudah ada
+                    if ($item->Rangking >= $currentRank) {
+                        $currentRank = $item->Rangking + 1;
+                    }
+                    if ($item->NilaiRataRata > 0) {
+                        $prevNilai = $item->NilaiRataRata;
+                    }
+                }
             }
         }
 
@@ -756,7 +853,17 @@ class NilaiModel extends Model
         usort($result, function ($a, $b) {
             if ($a->IdKelas == $b->IdKelas) {
                 if ($a->Semester == $b->Semester) {
-                    return $b->TotalNilai <=> $a->TotalNilai;
+                    // Sort by ranking, null ranking di akhir
+                    if ($a->Rangking === null && $b->Rangking === null) {
+                        return 0;
+                    }
+                    if ($a->Rangking === null) {
+                        return 1; // a di akhir
+                    }
+                    if ($b->Rangking === null) {
+                        return -1; // b di akhir
+                    }
+                    return $a->Rangking <=> $b->Rangking;
                 }
                 return $a->Semester <=> $b->Semester;
             }

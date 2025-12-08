@@ -103,6 +103,8 @@ $routes->post('backend/mda/uploadKop', 'Backend\Mda::uploadKop');
 $routes->get('nilai/showDetail/(:num)/(:num)', 'Nilai::showDetail/$1/$2');
 $routes->get('backend/nilai/showNilaiProfilDetail', 'Backend\Nilai::showNilaiProfilDetail');
 $routes->get('backend/nilai/showNilaiProfilDetail/(:any)', 'Backend\Nilai::showNilaiProfilDetail/$1');
+$routes->get('backend/nilai/showRanking', 'Backend\Nilai::showRanking');
+$routes->get('backend/nilai/showRanking/(:segment)', 'Backend\Nilai::showRanking/$1');
 
 //Table Kelas
 $routes->get('kelas', 'Kelas::index');             // List all records (Read)

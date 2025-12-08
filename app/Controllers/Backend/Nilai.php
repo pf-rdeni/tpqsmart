@@ -1144,5 +1144,154 @@ class Nilai extends BaseController
             return [];
         }
     }
-        
+
+    public function showRanking($semester = null)
+    {
+        $IdGuru = session()->get('IdGuru');
+        $IdKelas = session()->get('IdKelas');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdTpq = $this->IdTpq;
+
+        // Jika semester tidak diberikan, default ke semester saat ini
+        if ($semester === null) {
+            $currentMonth = (int)date('m');
+            $semester = ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
+        }
+
+        // Ambil data kelas aktif dari tbl_kelas_santri
+        $dataKelas = [];
+        $db = \Config\Database::connect();
+
+        // Query untuk mengambil kelas aktif dari tbl_kelas_santri
+        $builder = $db->table('tbl_kelas_santri ks');
+        $builder->select('ks.IdKelas, k.NamaKelas');
+        $builder->distinct();
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner');
+        $builder->where('ks.Status', 1);
+        $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+
+        if (!empty($IdTpq)) {
+            $builder->where('ks.IdTpq', $IdTpq);
+        }
+
+        // Filter berdasarkan role user
+        $isAdmin = in_groups('Admin');
+        $isOperator = in_groups('Operator');
+        $isKepalaTpq = in_groups('Kepala TPQ');
+        $isGuru = in_groups('Guru');
+
+        if ($isGuru && !$isAdmin && !$isOperator && !$isKepalaTpq) {
+            // Untuk Guru, filter berdasarkan kelas yang diajarkan
+            $sessionIdKelas = session()->get('IdKelas');
+            if ($sessionIdKelas && is_array($sessionIdKelas)) {
+                $builder->whereIn('ks.IdKelas', $sessionIdKelas);
+            } elseif ($sessionIdKelas) {
+                $builder->where('ks.IdKelas', $sessionIdKelas);
+            }
+        }
+
+        $builder->orderBy('k.IdKelas', 'ASC');
+        $kelasResult = $builder->get()->getResultArray();
+
+        // Konversi ke format yang diharapkan
+        foreach ($kelasResult as $kelas) {
+            $dataKelas[] = [
+                'IdKelas' => $kelas['IdKelas'],
+                'NamaKelas' => $kelas['NamaKelas']
+            ];
+        }
+
+        // Terapkan mapping MDA pada nama kelas
+        if (!empty($dataKelas) && !empty($IdTpq)) {
+            foreach ($dataKelas as $key => $kelas) {
+                if (isset($kelas['NamaKelas']) && !empty($kelas['NamaKelas'])) {
+                    $namaKelasOriginal = $kelas['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $dataKelas[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                    $dataKelas[$key]['NamaKelasOriginal'] = $namaKelasOriginal;
+                }
+            }
+        }
+
+        // Buat array kelas untuk tab (tanpa opsi SEMUA)
+        $dataKelasArray = [];
+        foreach ($dataKelas as $kelas) {
+            $dataKelasArray[$kelas['IdKelas']] = $kelas['NamaKelas'];
+        }
+
+        // Ambil data ranking menggunakan method yang sudah ada
+        $allKelasIds = array_keys($dataKelasArray);
+
+        // Tentukan IdKelas untuk query
+        $IdKelasForQuery = null;
+        if (!empty($allKelasIds)) {
+            $IdKelasForQuery = $allKelasIds;
+        } elseif ($IdKelas) {
+            $IdKelasForQuery = is_array($IdKelas) ? $IdKelas : [$IdKelas];
+        }
+
+        // Ambil data ranking per kelas
+        $rankingData = [];
+        if ($IdKelasForQuery && !empty($IdTpq) && !empty($IdTahunAjaran)) {
+            try {
+                $result = $this->DataNilai->getDataNilaiPerSemester($IdTpq, $IdKelasForQuery, $IdTahunAjaran, $semester);
+                // Pastikan hasil adalah array
+                $rankingData = is_array($result) ? $result : [];
+
+                // Sort ranking data berdasarkan IdKelas dan Ranking
+                usort($rankingData, function ($a, $b) {
+                    // Urutkan berdasarkan IdKelas dulu
+                    if ($a->IdKelas != $b->IdKelas) {
+                        return $a->IdKelas <=> $b->IdKelas;
+                    }
+                    // Jika IdKelas sama, urutkan berdasarkan Ranking
+                    return $a->Rangking <=> $b->Rangking;
+                });
+            } catch (\Exception $e) {
+                log_message('error', 'Error getting ranking data: ' . $e->getMessage());
+                $rankingData = [];
+            }
+        }
+
+        // Kelompokkan data ranking per kelas
+        $rankingPerKelas = [];
+        foreach ($rankingData as $data) {
+            $idKelas = $data->IdKelas;
+            if (!isset($rankingPerKelas[$idKelas])) {
+                $rankingPerKelas[$idKelas] = [];
+            }
+            $rankingPerKelas[$idKelas][] = $data;
+        }
+
+        // Sort ranking per kelas berdasarkan ranking (sudah terurut dari sorting sebelumnya, tapi pastikan)
+        foreach ($rankingPerKelas as $idKelas => &$data) {
+            usort($data, function ($a, $b) {
+                return $a->Rangking <=> $b->Rangking;
+            });
+        }
+
+        // Konversi nama kelas di ranking data menjadi MDA jika perlu
+        foreach ($rankingData as &$data) {
+            $namaKelasOriginal = $data->NamaKelas;
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $data->NamaKelas = $this->helpFunction->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+        }
+
+        $data = [
+            'page_title' => 'Rangking Santri Per Kelas - Semester ' . $semester,
+            'rankingData' => $rankingData,
+            'rankingPerKelas' => $rankingPerKelas,
+            'dataKelas' => $dataKelasArray,
+            'semester' => $semester,
+            'IdTahunAjaran' => $IdTahunAjaran,
+        ];
+
+        return view('backend/nilai/ranking', $data);
+    }
 }

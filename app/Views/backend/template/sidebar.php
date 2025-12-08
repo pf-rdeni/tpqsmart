@@ -1086,6 +1086,30 @@
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">
                                         <i class="far fa-circle nav-icon"></i>
+                                        <p>Rangking Kelas
+                                            <i class="right fas fa-angle-left"></i>
+                                        </p>
+                                    </a>
+                                    <ul class="nav nav-treeview" style="display: none;">
+                                        <li class="nav-item">
+                                            <a href=<?php
+                                                    echo base_url('backend/nilai/showRanking' . '/' . 'Ganjil') ?> class="nav-link">
+                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
+                                                <p>Semester Ganjil</p>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href=<?php
+                                                    echo base_url('backend/nilai/showRanking' . '/' . 'Genap') ?> class="nav-link">
+                                                <i class="far fa-dot-circle nav-icon text-info"></i>
+                                                <p>Semester Genap</p>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="#" class="nav-link no-hover">
+                                        <i class="far fa-circle nav-icon"></i>
                                         <p>Rapor Nilai</p>
                                         <i class="right fas fa-angle-left"></i>
                                         </p>
