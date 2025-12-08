@@ -131,6 +131,25 @@
                                                         </a>
                                                     </li>
                                                 <?php endif; ?>
+                                                <?php
+                                                // Cek apakah setting munaqosah aktif dan ada data munaqosah atau pra-munaqosah
+                                                $munaqosahAktif = $kelas['munaqosahAktif'] ?? false;
+                                                $hasMunaqosah = $munaqosahAktif && (!empty($kelas['nilaiMunaqosah']) || !empty($kelas['nilaiPraMunaqosah']));
+                                                $munaqosahId = 'munaqosah_' . $key;
+                                                if ($hasMunaqosah):
+                                                ?>
+                                                    <li class="nav-item" role="presentation">
+                                                        <a class="nav-link"
+                                                            id="<?= $munaqosahId ?>-tab"
+                                                            data-toggle="tab"
+                                                            href="#<?= $munaqosahId ?>"
+                                                            role="tab"
+                                                            aria-controls="<?= $munaqosahId ?>"
+                                                            aria-selected="false">
+                                                            Munaqosah
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
                                             </ul>
 
                                             <!-- Tab Content untuk Semester -->
@@ -448,6 +467,87 @@
                                                         </div>
                                                     </div>
                                                 <?php endif; ?>
+                                                <!-- Tab Munaqosah -->
+                                                <?php if ($hasMunaqosah): ?>
+                                                    <div class="tab-pane fade"
+                                                        id="<?= $munaqosahId ?>"
+                                                        role="tabpanel"
+                                                        aria-labelledby="<?= $munaqosahId ?>-tab">
+                                                        <div class="card">
+                                                            <div class="card-header p-2">
+                                                                <h5 class="card-title mb-0">
+                                                                    <i class="fas fa-graduation-cap"></i> Nilai Munaqosah
+                                                                </h5>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <?php if (!empty($kelas['nilaiMunaqosah'])): ?>
+                                                                    <h6 class="mb-3"><strong>Munaqosah</strong></h6>
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-bordered table-striped" id="table_munaqosah_<?= $key ?>">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>No Peserta</th>
+                                                                                    <th>Kategori Materi</th>
+                                                                                    <th>Nama Materi</th>
+                                                                                    <th>Nilai</th>
+                                                                                    <th>Catatan</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <?php foreach ($kelas['nilaiMunaqosah'] as $nilai): ?>
+                                                                                    <tr>
+                                                                                        <td><?= esc($nilai['NoPeserta'] ?? '-') ?></td>
+                                                                                        <td><?= esc($nilai['NamaKategoriMateri'] ?? '-') ?></td>
+                                                                                        <td><?= esc($nilai['NamaMateri'] ?? '-') ?></td>
+                                                                                        <td><?= esc($nilai['Nilai'] ?? '-') ?></td>
+                                                                                        <td><?= esc($nilai['Catatan'] ?? '-') ?></td>
+                                                                                    </tr>
+                                                                                <?php endforeach; ?>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                <?php else: ?>
+                                                                    <div class="alert alert-info">
+                                                                        <p class="mb-0">Belum ada data nilai Munaqosah untuk tahun ajaran ini.</p>
+                                                                    </div>
+                                                                <?php endif; ?>
+
+                                                                <?php if (!empty($kelas['nilaiPraMunaqosah'])): ?>
+                                                                    <hr>
+                                                                    <h6 class="mb-3"><strong>Pra-Munaqosah</strong></h6>
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-bordered table-striped" id="table_pra_munaqosah_<?= $key ?>">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>No Peserta</th>
+                                                                                    <th>Kategori Materi</th>
+                                                                                    <th>Nama Materi</th>
+                                                                                    <th>Nilai</th>
+                                                                                    <th>Catatan</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <?php foreach ($kelas['nilaiPraMunaqosah'] as $nilai): ?>
+                                                                                    <tr>
+                                                                                        <td><?= esc($nilai['NoPeserta'] ?? '-') ?></td>
+                                                                                        <td><?= esc($nilai['NamaKategoriMateri'] ?? '-') ?></td>
+                                                                                        <td><?= esc($nilai['NamaMateri'] ?? '-') ?></td>
+                                                                                        <td><?= esc($nilai['Nilai'] ?? '-') ?></td>
+                                                                                        <td><?= esc($nilai['Catatan'] ?? '-') ?></td>
+                                                                                    </tr>
+                                                                                <?php endforeach; ?>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                <?php else: ?>
+                                                                    <div class="alert alert-info mt-3">
+                                                                        <p class="mb-0">Belum ada data nilai Pra-Munaqosah untuk tahun ajaran ini.</p>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -509,6 +609,15 @@
                             tableSelector = '#table_ganjil_' + kelasKey;
                         } else if (activeSemesterId.includes('genap')) {
                             tableSelector = '#table_genap_' + kelasKey;
+                        } else if (activeSemesterId.includes('munaqosah')) {
+                            // Inisialisasi kedua tabel munaqosah jika ada
+                            if ($('#table_munaqosah_' + kelasKey + ' tbody tr').length > 0) {
+                                initDataTable('#table_munaqosah_' + kelasKey);
+                            }
+                            if ($('#table_pra_munaqosah_' + kelasKey + ' tbody tr').length > 0) {
+                                initDataTable('#table_pra_munaqosah_' + kelasKey);
+                            }
+                            return;
                         }
 
                         if (tableSelector) {
@@ -567,6 +676,17 @@
                         tableSelector = '#table_ganjil_<?= $key ?>';
                     } else if (target.includes('genap')) {
                         tableSelector = '#table_genap_<?= $key ?>';
+                    } else if (target.includes('munaqosah')) {
+                        // Inisialisasi kedua tabel munaqosah jika ada
+                        setTimeout(function() {
+                            if ($('#table_munaqosah_<?= $key ?> tbody tr').length > 0) {
+                                initDataTable('#table_munaqosah_<?= $key ?>');
+                            }
+                            if ($('#table_pra_munaqosah_<?= $key ?> tbody tr').length > 0) {
+                                initDataTable('#table_pra_munaqosah_<?= $key ?>');
+                            }
+                        }, 100);
+                        return;
                     }
 
                     if (tableSelector) {

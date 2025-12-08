@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use App\Models\NilaiModel;
 use App\Models\HelpFunctionModel;
 use App\Models\SantriBaruModel;
+use App\Models\MunaqosahNilaiModel;
+use App\Models\MunaqosahKonfigurasiModel;
 
 class Nilai extends BaseController
 {
@@ -16,6 +18,9 @@ class Nilai extends BaseController
     protected $IdKelas;
     protected $IdTahunAjaran;
     protected $settingNilaiModel;
+    protected $munaqosahNilaiModel;
+    protected $munaqosahKonfigurasiModel;
+    protected $db;
 
     public function __construct()
     {
@@ -25,6 +30,9 @@ class Nilai extends BaseController
         $this->DataNilai = new NilaiModel();
         $this->helpFunction = new HelpFunctionModel();
         $this->DataSantriBaru = new SantriBaruModel();
+        $this->munaqosahNilaiModel = new MunaqosahNilaiModel();
+        $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
+        $this->db = \Config\Database::connect();
     }
 
     public function showDetail($IdSantri, $IdSemseter, $Edit = null, $IdJabatan = null)
@@ -466,6 +474,30 @@ class Nilai extends BaseController
                 $hideGenap = false;
             }
 
+            // Cek apakah setting munaqosah aktif untuk menampilkan nilai munaqosah
+            // Cek setting dengan IdTpq spesifik terlebih dahulu, jika tidak ada cek dengan IdTpq = '0' (global)
+            $munaqosahAktif = false;
+            if (!empty($IdTpqKelas)) {
+                // Cek setting untuk TPQ spesifik
+                $munaqosahAktif = $this->munaqosahKonfigurasiModel->getSettingAsBool((string)$IdTpqKelas, 'AktiveTombolKelulusan', false);
+
+                // Jika tidak ada setting untuk TPQ spesifik, cek setting global (IdTpq = '0')
+                if (!$munaqosahAktif) {
+                    $munaqosahAktif = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+                }
+            } else {
+                // Jika IdTpq kosong, cek setting global
+                $munaqosahAktif = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+            }
+
+            // Ambil data nilai munaqosah dan pra-munaqosah hanya jika setting aktif
+            $nilaiMunaqosah = [];
+            $nilaiPraMunaqosah = [];
+            if ($munaqosahAktif) {
+                $nilaiMunaqosah = $this->getNilaiMunaqosah($IdSantri, $IdTahunAjaran, $IdTpqKelas);
+                $nilaiPraMunaqosah = $this->getNilaiPraMunaqosah($IdSantri, $IdTahunAjaran, $IdTpqKelas);
+            }
+
             // Buat key unik untuk setiap kombinasi kelas dan tahun ajaran
             $key = $IdKelas . '_' . $IdTahunAjaran;
             $kelasData[$key] = [
@@ -478,6 +510,9 @@ class Nilai extends BaseController
                 'nilaiGenap' => $datanilaiGenap,
                 'statistikGanjil' => $statistikGanjil,
                 'statistikGenap' => $statistikGenap,
+                'nilaiMunaqosah' => $nilaiMunaqosah,
+                'nilaiPraMunaqosah' => $nilaiPraMunaqosah,
+                'munaqosahAktif' => $munaqosahAktif,
                 'waliKelas' => $waliKelas ? ($waliKelas->Nama ?? '') : '',
                 'hideGanjil' => $hideGanjil,
                 'hideGenap' => $hideGenap,
@@ -992,6 +1027,56 @@ class Nilai extends BaseController
         }
 
         return $statistik;
+    }
+
+    /**
+     * Ambil data nilai munaqosah untuk santri tertentu
+     */
+    private function getNilaiMunaqosah($IdSantri, $IdTahunAjaran, $IdTpq)
+    {
+        try {
+            $builder = $this->db->table('tbl_munaqosah_nilai mn');
+            $builder->select('mn.*, mp.NamaMateri, km.NamaKategoriMateri, r.NoPeserta');
+            $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = mn.IdMateri', 'left');
+            $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = mn.IdKategoriMateri', 'left');
+            $builder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = mn.NoPeserta AND r.IdTahunAjaran = mn.IdTahunAjaran AND r.TypeUjian = mn.TypeUjian', 'left');
+            $builder->where('mn.IdSantri', $IdSantri);
+            $builder->where('mn.IdTahunAjaran', $IdTahunAjaran);
+            $builder->where('mn.IdTpq', $IdTpq);
+            $builder->where('mn.TypeUjian', 'munaqosah');
+            $builder->orderBy('km.NamaKategoriMateri', 'ASC');
+            $builder->orderBy('mp.NamaMateri', 'ASC');
+
+            return $builder->get()->getResultArray();
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getNilaiMunaqosah: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Ambil data nilai pra-munaqosah untuk santri tertentu
+     */
+    private function getNilaiPraMunaqosah($IdSantri, $IdTahunAjaran, $IdTpq)
+    {
+        try {
+            $builder = $this->db->table('tbl_munaqosah_nilai mn');
+            $builder->select('mn.*, mp.NamaMateri, km.NamaKategoriMateri, r.NoPeserta');
+            $builder->join('tbl_materi_pelajaran mp', 'mp.IdMateri = mn.IdMateri', 'left');
+            $builder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = mn.IdKategoriMateri', 'left');
+            $builder->join('tbl_munaqosah_registrasi_uji r', 'r.NoPeserta = mn.NoPeserta AND r.IdTahunAjaran = mn.IdTahunAjaran AND r.TypeUjian = mn.TypeUjian', 'left');
+            $builder->where('mn.IdSantri', $IdSantri);
+            $builder->where('mn.IdTahunAjaran', $IdTahunAjaran);
+            $builder->where('mn.IdTpq', $IdTpq);
+            $builder->where('mn.TypeUjian', 'pra-munaqosah');
+            $builder->orderBy('km.NamaKategoriMateri', 'ASC');
+            $builder->orderBy('mp.NamaMateri', 'ASC');
+
+            return $builder->get()->getResultArray();
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getNilaiPraMunaqosah: ' . $e->getMessage());
+            return [];
+        }
     }
         
 }
