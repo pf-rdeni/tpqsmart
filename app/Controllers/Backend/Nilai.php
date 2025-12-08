@@ -1145,12 +1145,48 @@ class Nilai extends BaseController
         }
     }
 
+    /**
+     * Ambil data summary nilai untuk setiap santri - SAMA PERSIS DENGAN RAPORT
+     */
+    private function getSummaryDataForSantri($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        // Ambil data summary nilai per semester
+        $summaryData = $this->DataNilai->getDataNilaiPerSemester($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+
+        // Buat array dataKelas untuk struktur data
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        $dataKelas = [];
+        foreach ($summaryData as $nilai) {
+            $namaKelasOriginal = $nilai->NamaKelas;
+
+            // Check MDA mapping dan convert nama kelas jika sesuai
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $namaKelasDisplay = $this->helpFunction->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+
+            // Simpan nama kelas yang sudah dikonversi
+            if (!isset($dataKelas[$nilai->IdKelas])) {
+                $dataKelas[$nilai->IdKelas] = $namaKelasDisplay;
+            }
+
+            // Update nama kelas di data summary untuk ditampilkan di tabel
+            $nilai->NamaKelas = $namaKelasDisplay;
+        }
+
+        return [
+            'nilai' => $summaryData,
+            'dataKelas' => $dataKelas
+        ];
+    }
+
     public function showRanking($semester = null)
     {
+        // Gunakan logika yang sama persis dengan raport
+        $IdTpq = session()->get('IdTpq');
         $IdGuru = session()->get('IdGuru');
-        $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $IdTpq = $this->IdTpq;
 
         // Jika semester tidak diberikan, default ke semester saat ini
         if ($semester === null) {
@@ -1158,103 +1194,86 @@ class Nilai extends BaseController
             $semester = ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
         }
 
-        // Ambil data kelas aktif dari tbl_kelas_santri
-        $dataKelas = [];
-        $db = \Config\Database::connect();
-
-        // Query untuk mengambil kelas aktif dari tbl_kelas_santri
-        $builder = $db->table('tbl_kelas_santri ks');
-        $builder->select('ks.IdKelas, k.NamaKelas');
-        $builder->distinct();
-        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner');
-        $builder->where('ks.Status', 1);
-        $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
-
-        if (!empty($IdTpq)) {
-            $builder->where('ks.IdTpq', $IdTpq);
-        }
-
-        // Filter berdasarkan role user
-        $isAdmin = in_groups('Admin');
+        // Cek apakah user adalah Operator
         $isOperator = in_groups('Operator');
-        $isKepalaTpq = in_groups('Kepala TPQ');
-        $isGuru = in_groups('Guru');
 
-        if ($isGuru && !$isAdmin && !$isOperator && !$isKepalaTpq) {
-            // Untuk Guru, filter berdasarkan kelas yang diajarkan
-            $sessionIdKelas = session()->get('IdKelas');
-            if ($sessionIdKelas && is_array($sessionIdKelas)) {
-                $builder->whereIn('ks.IdKelas', $sessionIdKelas);
-            } elseif ($sessionIdKelas) {
-                $builder->where('ks.IdKelas', $sessionIdKelas);
-            }
-        }
-
-        $builder->orderBy('k.IdKelas', 'ASC');
-        $kelasResult = $builder->get()->getResultArray();
-
-        // Konversi ke format yang diharapkan
-        foreach ($kelasResult as $kelas) {
-            $dataKelas[] = [
-                'IdKelas' => $kelas['IdKelas'],
-                'NamaKelas' => $kelas['NamaKelas']
-            ];
-        }
-
-        // Terapkan mapping MDA pada nama kelas
-        if (!empty($dataKelas) && !empty($IdTpq)) {
-            foreach ($dataKelas as $key => $kelas) {
-                if (isset($kelas['NamaKelas']) && !empty($kelas['NamaKelas'])) {
-                    $namaKelasOriginal = $kelas['NamaKelas'];
-                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
-                    $dataKelas[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
-                        $namaKelasOriginal,
-                        $mdaCheckResult['mappedMdaKelas']
-                    );
-                    $dataKelas[$key]['NamaKelasOriginal'] = $namaKelasOriginal;
+        // Cek apakah user adalah Kepala Sekolah
+        $jabatanData = $this->helpFunction->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+        $isKepalaSekolah = false;
+        if (!empty($jabatanData)) {
+            foreach ($jabatanData as $jabatan) {
+                if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    $isKepalaSekolah = true;
+                    break;
                 }
             }
         }
 
-        // Buat array kelas untuk tab (tanpa opsi SEMUA)
-        $dataKelasArray = [];
-        foreach ($dataKelas as $kelas) {
-            $dataKelasArray[$kelas['IdKelas']] = $kelas['NamaKelas'];
-        }
-
-        // Ambil data ranking menggunakan method yang sudah ada
-        $allKelasIds = array_keys($dataKelasArray);
-
-        // Tentukan IdKelas untuk query
-        $IdKelasForQuery = null;
-        if (!empty($allKelasIds)) {
-            $IdKelasForQuery = $allKelasIds;
-        } elseif ($IdKelas) {
-            $IdKelasForQuery = is_array($IdKelas) ? $IdKelas : [$IdKelas];
-        }
-
-        // Ambil data ranking per kelas
-        $rankingData = [];
-        if ($IdKelasForQuery && !empty($IdTpq) && !empty($IdTahunAjaran)) {
-            try {
-                $result = $this->DataNilai->getDataNilaiPerSemester($IdTpq, $IdKelasForQuery, $IdTahunAjaran, $semester);
-                // Pastikan hasil adalah array
-                $rankingData = is_array($result) ? $result : [];
-
-                // Sort ranking data berdasarkan IdKelas dan Ranking
-                usort($rankingData, function ($a, $b) {
-                    // Urutkan berdasarkan IdKelas dulu
-                    if ($a->IdKelas != $b->IdKelas) {
-                        return $a->IdKelas <=> $b->IdKelas;
-                    }
-                    // Jika IdKelas sama, urutkan berdasarkan Ranking
-                    return $a->Rangking <=> $b->Rangking;
-                });
-            } catch (\Exception $e) {
-                log_message('error', 'Error getting ranking data: ' . $e->getMessage());
-                $rankingData = [];
+        // Ambil list id kelas dari tbl_kelas_santri - SAMA PERSIS DENGAN RAPORT
+        // Operator dan Kepala Sekolah memiliki akses ke semua kelas
+        if ($isKepalaSekolah || $isOperator) {
+            $listIdKelas = $this->helpFunction->getListIdKelasFromKelasSantri($IdTpq, $IdTahunAjaran);
+        } else {
+            $listIdKelas = session()->get('IdKelas');
+            // Jika tidak ada kelas di session, ambil semua kelas dari TPQ
+            if (empty($listIdKelas)) {
+                $listIdKelas = $this->helpFunction->getListIdKelasFromKelasSantri($IdTpq, $IdTahunAjaran);
             }
         }
+
+        // Pastikan listIdKelas adalah array (bisa jadi null atau bukan array)
+        if (empty($listIdKelas) || !is_array($listIdKelas)) {
+            $listIdKelas = [];
+        }
+
+        // Untuk Operator, set IdGuru menjadi null agar getListKelas menggunakan mode admin/kepala sekolah
+        $guruIdForKelas = ($isOperator && empty($IdGuru)) ? null : $IdGuru;
+
+        // Ambil object data kelas - kirim flag isOperator agar diperlakukan seperti kepala sekolah
+        $dataKelas = $this->helpFunction->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $guruIdForKelas, $isOperator);
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping - SAMA PERSIS DENGAN RAPORT
+        foreach ($dataKelas as $kelas) {
+            $namaKelasOriginal = $kelas->NamaKelas;
+
+            // Check MDA mapping dan convert nama kelas jika sesuai
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $kelas->NamaKelas = $this->helpFunction->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+        }
+
+        // Ambil data summary nilai untuk setiap santri - SAMA PERSIS DENGAN RAPORT
+        $summaryData = $this->getSummaryDataForSantri($IdTpq, $listIdKelas, $IdTahunAjaran, $semester);
+
+        // Buat array kelas untuk tab
+        $dataKelasArray = [];
+        foreach ($dataKelas as $kelas) {
+            $dataKelasArray[$kelas->IdKelas] = $kelas->NamaKelas;
+        }
+
+        // Gunakan data dari summaryData yang sama dengan raport
+        $rankingData = $summaryData['nilai'] ?? [];
+
+        // Sort ranking data berdasarkan IdKelas dan Ranking
+        usort($rankingData, function ($a, $b) {
+            // Urutkan berdasarkan IdKelas dulu
+            if ($a->IdKelas != $b->IdKelas) {
+                return $a->IdKelas <=> $b->IdKelas;
+            }
+            // Jika IdKelas sama, urutkan berdasarkan Ranking
+            if ($a->Rangking === null && $b->Rangking === null) {
+                return 0;
+            }
+            if ($a->Rangking === null) {
+                return 1; // a di akhir
+            }
+            if ($b->Rangking === null) {
+                return -1; // b di akhir
+            }
+            return $a->Rangking <=> $b->Rangking;
+        });
 
         // Kelompokkan data ranking per kelas
         $rankingPerKelas = [];
@@ -1266,21 +1285,20 @@ class Nilai extends BaseController
             $rankingPerKelas[$idKelas][] = $data;
         }
 
-        // Sort ranking per kelas berdasarkan ranking (sudah terurut dari sorting sebelumnya, tapi pastikan)
+        // Sort ranking per kelas berdasarkan ranking
         foreach ($rankingPerKelas as $idKelas => &$data) {
             usort($data, function ($a, $b) {
+                if ($a->Rangking === null && $b->Rangking === null) {
+                    return 0;
+                }
+                if ($a->Rangking === null) {
+                    return 1; // a di akhir
+                }
+                if ($b->Rangking === null) {
+                    return -1; // b di akhir
+                }
                 return $a->Rangking <=> $b->Rangking;
             });
-        }
-
-        // Konversi nama kelas di ranking data menjadi MDA jika perlu
-        foreach ($rankingData as &$data) {
-            $namaKelasOriginal = $data->NamaKelas;
-            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
-            $data->NamaKelas = $this->helpFunction->convertKelasToMda(
-                $namaKelasOriginal,
-                $mdaCheckResult['mappedMdaKelas']
-            );
         }
 
         $data = [

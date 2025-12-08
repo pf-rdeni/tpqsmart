@@ -693,12 +693,16 @@ class NilaiModel extends Model
         log_message('debug', "=== MULAI getDataNilaiPerSemesterOptimized ===");
 
         // TAHAP 0: Ambil semua santri aktif dari tbl_kelas_santri (bukan hanya yang punya nilai)
+        // HAPUS FILTER Status karena kita sudah filter berdasarkan IdTahunAjaran
+        // Status hanya relevan untuk membedakan tahun ajaran aktif vs tidak aktif
+        // Tapi karena kita sudah filter berdasarkan IdTahunAjaran, semua data dari tahun ajaran tersebut harus muncul
         $startTime = microtime(true);
         $builderSantri = $this->db->table('tbl_kelas_santri ks');
         $builderSantri->select('ks.IdSantri, ks.IdKelas, ks.IdTahunAjaran, k.NamaKelas, s.NamaSantri, s.JenisKelamin');
         $builderSantri->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner');
         $builderSantri->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner');
-        $builderSantri->where('ks.Status', 1);
+        // Hapus filter Status agar data dari tahun ajaran yang dipilih muncul, terlepas dari statusnya
+        // $builderSantri->where('ks.Status', 1); // DIHAPUS
         $builderSantri->where('s.Active', 1);
         $builderSantri->where('ks.IdTahunAjaran', $IdTahunAjaran);
         $builderSantri->where('ks.IdTpq', $IdTpq);
