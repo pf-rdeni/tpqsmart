@@ -37,6 +37,26 @@
                                 $tabIndex++;
                             endforeach;
                             ?>
+                            <?php
+                            // Tambahkan tab Munaqosah di level tab kelas jika ada data
+                            $hasMunaqosahGlobal = isset($munaqosahAktifGlobal) ? $munaqosahAktifGlobal : false;
+                            $allNilaiMunaqosah = isset($allNilaiMunaqosah) ? $allNilaiMunaqosah : [];
+                            $allNilaiPraMunaqosah = isset($allNilaiPraMunaqosah) ? $allNilaiPraMunaqosah : [];
+                            $hasMunaqosahData = (!empty($allNilaiMunaqosah) || !empty($allNilaiPraMunaqosah));
+                            if ($hasMunaqosahGlobal && $hasMunaqosahData):
+                            ?>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link"
+                                        id="munaqosah-tab"
+                                        data-toggle="tab"
+                                        href="#munaqosah"
+                                        role="tab"
+                                        aria-controls="munaqosah"
+                                        aria-selected="false">
+                                        Munaqosah
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
 
                         <!-- Tab Content untuk setiap kelas -->
@@ -128,25 +148,6 @@
                                                             aria-controls="<?= $genapId ?>"
                                                             aria-selected="<?= $genapActive ? 'true' : 'false' ?>">
                                                             Semester Genap
-                                                        </a>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <?php
-                                                // Cek apakah setting munaqosah aktif dan ada data munaqosah atau pra-munaqosah
-                                                $munaqosahAktif = $kelas['munaqosahAktif'] ?? false;
-                                                $hasMunaqosah = $munaqosahAktif && (!empty($kelas['nilaiMunaqosah']) || !empty($kelas['nilaiPraMunaqosah']));
-                                                $munaqosahId = 'munaqosah_' . $key;
-                                                if ($hasMunaqosah):
-                                                ?>
-                                                    <li class="nav-item" role="presentation">
-                                                        <a class="nav-link"
-                                                            id="<?= $munaqosahId ?>-tab"
-                                                            data-toggle="tab"
-                                                            href="#<?= $munaqosahId ?>"
-                                                            role="tab"
-                                                            aria-controls="<?= $munaqosahId ?>"
-                                                            aria-selected="false">
-                                                            Munaqosah
                                                         </a>
                                                     </li>
                                                 <?php endif; ?>
@@ -467,87 +468,6 @@
                                                         </div>
                                                     </div>
                                                 <?php endif; ?>
-                                                <!-- Tab Munaqosah -->
-                                                <?php if ($hasMunaqosah): ?>
-                                                    <div class="tab-pane fade"
-                                                        id="<?= $munaqosahId ?>"
-                                                        role="tabpanel"
-                                                        aria-labelledby="<?= $munaqosahId ?>-tab">
-                                                        <div class="card">
-                                                            <div class="card-header p-2">
-                                                                <h5 class="card-title mb-0">
-                                                                    <i class="fas fa-graduation-cap"></i> Nilai Munaqosah
-                                                                </h5>
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <?php if (!empty($kelas['nilaiMunaqosah'])): ?>
-                                                                    <h6 class="mb-3"><strong>Munaqosah</strong></h6>
-                                                                    <div class="table-responsive">
-                                                                        <table class="table table-bordered table-striped" id="table_munaqosah_<?= $key ?>">
-                                                                            <thead>
-                                                                                <tr>
-                                                                                    <th>No Peserta</th>
-                                                                                    <th>Kategori Materi</th>
-                                                                                    <th>Nama Materi</th>
-                                                                                    <th>Nilai</th>
-                                                                                    <th>Catatan</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                <?php foreach ($kelas['nilaiMunaqosah'] as $nilai): ?>
-                                                                                    <tr>
-                                                                                        <td><?= esc($nilai['NoPeserta'] ?? '-') ?></td>
-                                                                                        <td><?= esc($nilai['NamaKategoriMateri'] ?? '-') ?></td>
-                                                                                        <td><?= esc($nilai['NamaMateri'] ?? '-') ?></td>
-                                                                                        <td><?= esc($nilai['Nilai'] ?? '-') ?></td>
-                                                                                        <td><?= esc($nilai['Catatan'] ?? '-') ?></td>
-                                                                                    </tr>
-                                                                                <?php endforeach; ?>
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                <?php else: ?>
-                                                                    <div class="alert alert-info">
-                                                                        <p class="mb-0">Belum ada data nilai Munaqosah untuk tahun ajaran ini.</p>
-                                                                    </div>
-                                                                <?php endif; ?>
-
-                                                                <?php if (!empty($kelas['nilaiPraMunaqosah'])): ?>
-                                                                    <hr>
-                                                                    <h6 class="mb-3"><strong>Pra-Munaqosah</strong></h6>
-                                                                    <div class="table-responsive">
-                                                                        <table class="table table-bordered table-striped" id="table_pra_munaqosah_<?= $key ?>">
-                                                                            <thead>
-                                                                                <tr>
-                                                                                    <th>No Peserta</th>
-                                                                                    <th>Kategori Materi</th>
-                                                                                    <th>Nama Materi</th>
-                                                                                    <th>Nilai</th>
-                                                                                    <th>Catatan</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                <?php foreach ($kelas['nilaiPraMunaqosah'] as $nilai): ?>
-                                                                                    <tr>
-                                                                                        <td><?= esc($nilai['NoPeserta'] ?? '-') ?></td>
-                                                                                        <td><?= esc($nilai['NamaKategoriMateri'] ?? '-') ?></td>
-                                                                                        <td><?= esc($nilai['NamaMateri'] ?? '-') ?></td>
-                                                                                        <td><?= esc($nilai['Nilai'] ?? '-') ?></td>
-                                                                                        <td><?= esc($nilai['Catatan'] ?? '-') ?></td>
-                                                                                    </tr>
-                                                                                <?php endforeach; ?>
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                <?php else: ?>
-                                                                    <div class="alert alert-info mt-3">
-                                                                        <p class="mb-0">Belum ada data nilai Pra-Munaqosah untuk tahun ajaran ini.</p>
-                                                                    </div>
-                                                                <?php endif; ?>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -556,6 +476,242 @@
                                 $firstTab = false;
                             endforeach;
                             ?>
+                            <!-- Tab Content Munaqosah (Level Pertama) -->
+                            <?php if ($hasMunaqosahGlobal && $hasMunaqosahData): ?>
+                                <div class="tab-pane fade"
+                                    id="munaqosah"
+                                    role="tabpanel"
+                                    aria-labelledby="munaqosah-tab">
+                                    <?php
+                                    // Fungsi untuk mengelompokkan dan memformat data munaqosah seperti di printKelulusanPesertaUjian
+                                    function formatMunaqosahDataForPrint($nilaiData, $bobotMap = [])
+                                    {
+                                        $grouped = [];
+                                        foreach ($nilaiData as $nilai) {
+                                            $catId = $nilai['IdKategoriMateri'] ?? '';
+                                            $catName = $nilai['NamaKategoriMateri'] ?? '-';
+                                            $tahunAjaran = $nilai['IdTahunAjaran'] ?? '';
+
+                                            if (!isset($grouped[$catId])) {
+                                                $grouped[$catId] = [
+                                                    'category' => [
+                                                        'id' => $catId,
+                                                        'name' => $catName
+                                                    ],
+                                                    'materi' => [],
+                                                    'juri_scores' => [],
+                                                    'tahunAjaran' => $tahunAjaran
+                                                ];
+                                            }
+
+                                            // Tambahkan materi jika belum ada
+                                            $materiName = $nilai['NamaMateri'] ?? '-';
+                                            if ($materiName !== '-' && !in_array($materiName, $grouped[$catId]['materi'])) {
+                                                $grouped[$catId]['materi'][] = $materiName;
+                                            }
+
+                                            // Tambahkan nilai juri
+                                            $juriNumber = $nilai['IdJuri'] ?? 0;
+                                            $grouped[$catId]['juri_scores'][] = [
+                                                'JuriNumber' => $juriNumber,
+                                                'label' => 'Juri ' . $juriNumber,
+                                                'Nilai' => (float)($nilai['Nilai'] ?? 0),
+                                                'Catatan' => $nilai['Catatan'] ?? '-'
+                                            ];
+                                        }
+
+                                        // Hitung average dan weighted untuk setiap kategori
+                                        foreach ($grouped as $catId => &$detail) {
+                                            $juriScores = $detail['juri_scores'];
+                                            $validScores = array_filter($juriScores, function ($score) {
+                                                return isset($score['Nilai']) && (float)$score['Nilai'] > 0;
+                                            });
+                                            $validScores = array_values($validScores);
+
+                                            // Hitung rata-rata
+                                            $average = 0.0;
+                                            if (count($validScores) === 1) {
+                                                $average = (float)$validScores[0]['Nilai'];
+                                            } elseif (count($validScores) > 1) {
+                                                $sum = array_sum(array_column($validScores, 'Nilai'));
+                                                $average = round($sum / count($validScores), 1);
+                                            }
+
+                                            // Hitung nilai bobot
+                                            $tahunAjaran = $detail['tahunAjaran'] ?? '';
+                                            $bobotKey = $tahunAjaran . '_' . $catId;
+                                            $weight = isset($bobotMap[$bobotKey]) ? (float)$bobotMap[$bobotKey] : 0.0;
+                                            $weighted = $weight > 0 ? round(($average * $weight) / 100, 1) : 0.0;
+
+                                            $detail['average'] = $average;
+                                            $detail['weighted'] = $weighted;
+                                        }
+                                        unset($detail);
+
+                                        // Urutkan berdasarkan nama kategori
+                                        usort($grouped, function ($a, $b) {
+                                            return strcmp($a['category']['name'], $b['category']['name']);
+                                        });
+
+                                        return array_values($grouped);
+                                    }
+
+                                    $bobotMap = isset($bobotMap) ? $bobotMap : [];
+                                    $formattedMunaqosah = !empty($allNilaiMunaqosah) ? formatMunaqosahDataForPrint($allNilaiMunaqosah, $bobotMap) : [];
+                                    $formattedPraMunaqosah = !empty($allNilaiPraMunaqosah) ? formatMunaqosahDataForPrint($allNilaiPraMunaqosah, $bobotMap) : [];
+                                    ?>
+
+                                    <?php if (!empty($formattedMunaqosah)): ?>
+                                        <div class="card mt-3">
+                                            <div class="card-header p-2">
+                                                <h4 class="card-title mb-0">
+                                                    <i class="fas fa-graduation-cap"></i> Nilai Munaqosah
+                                                </h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-striped" id="table_munaqosah_all" data-no-datatable="true">
+                                                        <thead class="thead-light">
+                                                            <tr>
+                                                                <th>KATEGORI</th>
+                                                                <th>MATERI</th>
+                                                                <th style="text-align:center">NILAI</th>
+                                                                <th style="text-align:center">NILAI BOBOT</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+                                                            $totalNilai = 0;
+                                                            $totalBobot = 0;
+                                                            ?>
+                                                            <?php foreach ($formattedMunaqosah as $detail): ?>
+                                                                <?php
+                                                                $category = $detail['category'] ?? [];
+                                                                $materis = $detail['materi'] ?? [];
+                                                                $average = (float)($detail['average'] ?? 0);
+                                                                $weighted = (float)($detail['weighted'] ?? 0);
+
+                                                                $totalNilai += $average;
+                                                                $totalBobot += $weighted;
+
+                                                                // Ambil materi pertama, atau gabungkan jika ada beberapa
+                                                                $materiName = '-';
+                                                                if (!empty($materis)) {
+                                                                    $materiName = esc($materis[0] ?? '-', 'html');
+                                                                    // Jika ada lebih dari satu materi, gabungkan
+                                                                    if (count($materis) > 1) {
+                                                                        $materiName = implode(', ', array_map(function ($m) {
+                                                                            return esc($m, 'html');
+                                                                        }, $materis));
+                                                                    }
+                                                                }
+
+                                                                // Jika kategori adalah TULIS AL-QURAN dan materi kosong, set default
+                                                                $categoryName = $category['name'] ?? '';
+                                                                if (stripos($categoryName, 'TULIS') !== false && stripos($categoryName, 'AL-QURAN') !== false && $materiName === '-') {
+                                                                    $materiName = 'SURAH AL-FATIHAH';
+                                                                }
+                                                                ?>
+                                                                <tr>
+                                                                    <td><?= esc($categoryName) ?></td>
+                                                                    <td><?= $materiName ?></td>
+                                                                    <td style="text-align:center"><?= number_format($average, 1) ?></td>
+                                                                    <td style="text-align:center"><?= number_format($weighted, 1) ?></td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                            <tr class="bg-light font-weight-bold">
+                                                                <td></td>
+                                                                <td><strong>JUMLAH</strong></td>
+                                                                <td style="text-align:center"><strong><?= number_format($totalNilai, 1) ?></strong></td>
+                                                                <td style="text-align:center"><strong><?= number_format($totalBobot, 1) ?></strong></td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-info mt-3">
+                                            <p class="mb-0">Belum ada data nilai Munaqosah.</p>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($formattedPraMunaqosah)): ?>
+                                        <div class="card mt-3">
+                                            <div class="card-header p-2">
+                                                <h4 class="card-title mb-0">
+                                                    <i class="fas fa-graduation-cap"></i> Nilai Pra-Munaqosah
+                                                </h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-striped" id="table_pra_munaqosah_all" data-no-datatable="true">
+                                                        <thead class="thead-light">
+                                                            <tr>
+                                                                <th>KATEGORI</th>
+                                                                <th>MATERI</th>
+                                                                <th style="text-align:center">NILAI</th>
+                                                                <th style="text-align:center">NILAI BOBOT</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+                                                            $totalNilai = 0;
+                                                            $totalBobot = 0;
+                                                            ?>
+                                                            <?php foreach ($formattedPraMunaqosah as $detail): ?>
+                                                                <?php
+                                                                $category = $detail['category'] ?? [];
+                                                                $materis = $detail['materi'] ?? [];
+                                                                $average = (float)($detail['average'] ?? 0);
+                                                                $weighted = (float)($detail['weighted'] ?? 0);
+
+                                                                $totalNilai += $average;
+                                                                $totalBobot += $weighted;
+
+                                                                // Ambil materi pertama, atau gabungkan jika ada beberapa
+                                                                $materiName = '-';
+                                                                if (!empty($materis)) {
+                                                                    $materiName = esc($materis[0] ?? '-', 'html');
+                                                                    // Jika ada lebih dari satu materi, gabungkan
+                                                                    if (count($materis) > 1) {
+                                                                        $materiName = implode(', ', array_map(function ($m) {
+                                                                            return esc($m, 'html');
+                                                                        }, $materis));
+                                                                    }
+                                                                }
+
+                                                                // Jika kategori adalah TULIS AL-QURAN dan materi kosong, set default
+                                                                $categoryName = $category['name'] ?? '';
+                                                                if (stripos($categoryName, 'TULIS') !== false && stripos($categoryName, 'AL-QURAN') !== false && $materiName === '-') {
+                                                                    $materiName = 'SURAH AL-FATIHAH';
+                                                                }
+                                                                ?>
+                                                                <tr>
+                                                                    <td><?= esc($categoryName) ?></td>
+                                                                    <td><?= $materiName ?></td>
+                                                                    <td style="text-align:center"><?= number_format($average, 1) ?></td>
+                                                                    <td style="text-align:center"><?= number_format($weighted, 1) ?></td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                            <tr class="bg-light font-weight-bold">
+                                                                <td></td>
+                                                                <td><strong>JUMLAH</strong></td>
+                                                                <td style="text-align:center"><strong><?= number_format($totalNilai, 1) ?></strong></td>
+                                                                <td style="text-align:center"><strong><?= number_format($totalBobot, 1) ?></strong></td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-info mt-3">
+                                            <p class="mb-0">Belum ada data nilai Pra-Munaqosah.</p>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -576,6 +732,11 @@
 
             // Function untuk menginisialisasi DataTable dengan pengecekan
             function initDataTable(selector) {
+                // Jangan inisialisasi DataTable jika tabel memiliki atribut data-no-datatable
+                if ($(selector).attr('data-no-datatable') === 'true') {
+                    return;
+                }
+
                 // Cek apakah DataTable sudah ada
                 if ($.fn.DataTable.isDataTable(selector)) {
                     // Destroy DataTable yang sudah ada
@@ -595,7 +756,17 @@
                 // Inisialisasi DataTable untuk tab kelas aktif
                 var activeKelasTab = $('#kelasTabs .nav-link.active');
                 if (activeKelasTab.length > 0) {
-                    var activeKelasId = activeKelasTab.attr('href'); // e.g., #kelas_123_20232024
+                    var activeKelasId = activeKelasTab.attr('href'); // e.g., #kelas_123_20232024 atau #munaqosah
+
+                    // Jika tab Munaqosah, tidak perlu inisialisasi DataTable
+                    if (activeKelasId === '#munaqosah') {
+                        // Inisialisasi tooltip saja
+                        setTimeout(function() {
+                            $('[data-toggle="tooltip"]').tooltip();
+                        }, 200);
+                        return;
+                    }
+
                     var kelasKey = activeKelasId.replace('#kelas_', '');
 
                     // Inisialisasi DataTable untuk tab semester aktif di dalam tab kelas aktif
@@ -609,15 +780,6 @@
                             tableSelector = '#table_ganjil_' + kelasKey;
                         } else if (activeSemesterId.includes('genap')) {
                             tableSelector = '#table_genap_' + kelasKey;
-                        } else if (activeSemesterId.includes('munaqosah')) {
-                            // Inisialisasi kedua tabel munaqosah jika ada
-                            if ($('#table_munaqosah_' + kelasKey + ' tbody tr').length > 0) {
-                                initDataTable('#table_munaqosah_' + kelasKey);
-                            }
-                            if ($('#table_pra_munaqosah_' + kelasKey + ' tbody tr').length > 0) {
-                                initDataTable('#table_pra_munaqosah_' + kelasKey);
-                            }
-                            return;
                         }
 
                         if (tableSelector) {
@@ -626,6 +788,33 @@
                     }
                 }
             }
+
+            // Pastikan tabel munaqosah tidak diinisialisasi dengan DataTable
+            // Hapus DataTable jika sudah terinisialisasi sebelumnya
+            function destroyMunaqosahDataTables() {
+                if ($.fn.DataTable.isDataTable('#table_munaqosah_all')) {
+                    $('#table_munaqosah_all').DataTable().destroy();
+                }
+                if ($.fn.DataTable.isDataTable('#table_pra_munaqosah_all')) {
+                    $('#table_pra_munaqosah_all').DataTable().destroy();
+                }
+            }
+
+            // Hapus DataTable segera dan secara berkala
+            destroyMunaqosahDataTables();
+            setTimeout(destroyMunaqosahDataTables, 100);
+            setTimeout(destroyMunaqosahDataTables, 500);
+            setTimeout(destroyMunaqosahDataTables, 1000);
+
+            // Monitor dan hapus DataTable jika terinisialisasi ulang
+            var munaqosahTableObserver = setInterval(function() {
+                destroyMunaqosahDataTables();
+            }, 2000);
+
+            // Hentikan observer setelah 10 detik
+            setTimeout(function() {
+                clearInterval(munaqosahTableObserver);
+            }, 10000);
 
             // Inisialisasi DataTable untuk tab pertama yang aktif saat halaman dimuat
             setTimeout(function() {
@@ -638,7 +827,16 @@
 
             // Event handler untuk tab kelas
             $('#kelasTabs a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
-                var target = $(e.target).attr("href"); // e.g., #kelas_123_20232024
+                var target = $(e.target).attr("href"); // e.g., #kelas_123_20232024 atau #munaqosah
+
+                // Jika tab Munaqosah, tidak perlu inisialisasi DataTable
+                if (target === '#munaqosah') {
+                    setTimeout(function() {
+                        $('[data-toggle="tooltip"]').tooltip();
+                    }, 200);
+                    return;
+                }
+
                 var kelasKey = target.replace('#kelas_', '');
 
                 // Tunggu sedikit untuk memastikan tab content sudah ter-render
@@ -676,17 +874,6 @@
                         tableSelector = '#table_ganjil_<?= $key ?>';
                     } else if (target.includes('genap')) {
                         tableSelector = '#table_genap_<?= $key ?>';
-                    } else if (target.includes('munaqosah')) {
-                        // Inisialisasi kedua tabel munaqosah jika ada
-                        setTimeout(function() {
-                            if ($('#table_munaqosah_<?= $key ?> tbody tr').length > 0) {
-                                initDataTable('#table_munaqosah_<?= $key ?>');
-                            }
-                            if ($('#table_pra_munaqosah_<?= $key ?> tbody tr').length > 0) {
-                                initDataTable('#table_pra_munaqosah_<?= $key ?>');
-                            }
-                        }, 100);
-                        return;
                     }
 
                     if (tableSelector) {
@@ -851,6 +1038,20 @@
             // Tambahkan CSS untuk card yang aktif
             if (!$('#filterCardStyle').length) {
                 $('head').append('<style id="filterCardStyle">.clickable-filter.filter-active { box-shadow: 0 0 10px rgba(0,123,255,0.5); border: 2px solid #007bff; } .clickable-filter:hover { opacity: 0.8; transform: scale(1.02); transition: all 0.2s; }</style>');
+            }
+
+            // Override initializeDataTableUmum untuk mencegah inisialisasi pada tabel munaqosah
+            var originalInitializeDataTableUmum = window.initializeDataTableUmum;
+            if (typeof originalInitializeDataTableUmum === 'function') {
+                window.initializeDataTableUmum = function(selector, paging, lengthChange, buttons, options) {
+                    // Jangan inisialisasi jika tabel memiliki atribut data-no-datatable
+                    if ($(selector).attr('data-no-datatable') === 'true') {
+                        console.log('Skipping DataTable initialization for:', selector);
+                        return;
+                    }
+                    // Panggil fungsi original
+                    return originalInitializeDataTableUmum.apply(this, arguments);
+                };
             }
         });
     </script>

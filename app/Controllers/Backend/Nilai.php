@@ -8,6 +8,7 @@ use App\Models\HelpFunctionModel;
 use App\Models\SantriBaruModel;
 use App\Models\MunaqosahNilaiModel;
 use App\Models\MunaqosahKonfigurasiModel;
+use App\Models\MunaqosahBobotNilaiModel;
 
 class Nilai extends BaseController
 {
@@ -20,6 +21,7 @@ class Nilai extends BaseController
     protected $settingNilaiModel;
     protected $munaqosahNilaiModel;
     protected $munaqosahKonfigurasiModel;
+    protected $munaqosahBobotNilaiModel;
     protected $db;
 
     public function __construct()
@@ -32,6 +34,7 @@ class Nilai extends BaseController
         $this->DataSantriBaru = new SantriBaruModel();
         $this->munaqosahNilaiModel = new MunaqosahNilaiModel();
         $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
+        $this->munaqosahBobotNilaiModel = new MunaqosahBobotNilaiModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -539,6 +542,65 @@ class Nilai extends BaseController
             }
         }
 
+        // Gabungkan semua data munaqosah dari semua kelas menjadi satu
+        $allNilaiMunaqosah = [];
+        $allNilaiPraMunaqosah = [];
+        $munaqosahAktifGlobal = false;
+        $tahunAjaranList = [];
+
+        foreach ($kelasData as $kelas) {
+            $munaqosahAktif = $kelas['munaqosahAktif'] ?? false;
+            if ($munaqosahAktif) {
+                $munaqosahAktifGlobal = true;
+                $tahunAjaran = $kelas['IdTahunAjaran'] ?? '';
+                if (!empty($tahunAjaran) && !in_array($tahunAjaran, $tahunAjaranList)) {
+                    $tahunAjaranList[] = $tahunAjaran;
+                }
+                if (!empty($kelas['nilaiMunaqosah'])) {
+                    foreach ($kelas['nilaiMunaqosah'] as $nilai) {
+                        $nilai['NamaKelas'] = $kelas['NamaKelas'];
+                        $nilai['TahunAjaranDisplay'] = $kelas['TahunAjaranDisplay'];
+                        $allNilaiMunaqosah[] = $nilai;
+                    }
+                }
+                if (!empty($kelas['nilaiPraMunaqosah'])) {
+                    foreach ($kelas['nilaiPraMunaqosah'] as $nilai) {
+                        $nilai['NamaKelas'] = $kelas['NamaKelas'];
+                        $nilai['TahunAjaranDisplay'] = $kelas['TahunAjaranDisplay'];
+                        $allNilaiPraMunaqosah[] = $nilai;
+                    }
+                }
+            }
+        }
+
+        // Ambil data bobot untuk semua tahun ajaran yang ada
+        $bobotMap = [];
+        foreach ($tahunAjaranList as $tahunAjaran) {
+            $bobotData = $this->munaqosahBobotNilaiModel->getBobotWithKategori($tahunAjaran);
+            foreach ($bobotData as $row) {
+                $catId = $row['IdKategoriMateri'] ?? '';
+                if (!empty($catId)) {
+                    // Gunakan tahun ajaran sebagai key untuk mapping
+                    $key = $tahunAjaran . '_' . $catId;
+                    $bobotMap[$key] = (float)($row['NilaiBobot'] ?? 0);
+                }
+            }
+
+            // Jika tidak ada data untuk tahun ajaran spesifik, coba ambil dari default
+            if (empty($bobotData)) {
+                $defaultBobot = $this->munaqosahBobotNilaiModel->getBobotWithKategori('Default');
+                foreach ($defaultBobot as $row) {
+                    $catId = $row['IdKategoriMateri'] ?? '';
+                    if (!empty($catId)) {
+                        $key = $tahunAjaran . '_' . $catId;
+                        if (!isset($bobotMap[$key])) {
+                            $bobotMap[$key] = (float)($row['NilaiBobot'] ?? 0);
+                        }
+                    }
+                }
+            }
+        }
+
         return view('backend/nilai/nilaiSantriDetailPersonal', [
             'page_title' => 'Detail Nilai',
             'kelasData' => $kelasData,
@@ -546,6 +608,10 @@ class Nilai extends BaseController
             'namaOrangTua' => $namaOrangTua,
             'photoUrl' => $photoUrl,
             'IdTahunAjaran' => $this->IdTahunAjaran,
+            'allNilaiMunaqosah' => $allNilaiMunaqosah,
+            'allNilaiPraMunaqosah' => $allNilaiPraMunaqosah,
+            'munaqosahAktifGlobal' => $munaqosahAktifGlobal,
+            'bobotMap' => $bobotMap,
         ]);
     }
 
