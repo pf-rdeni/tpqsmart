@@ -91,10 +91,43 @@ class Tabungan extends BaseController
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
 
-        $dataSantri = $this->tabunganModel->getSantriWithBalance($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+        // Ambil semua data santri (tanpa filter kelas spesifik untuk mendapatkan semua kelas)
+        $dataSantri = $this->tabunganModel->getSantriWithBalance($IdTpq, $IdTahunAjaran, null, $IdGuru);
+
+        // Kelompokkan data per kelas
+        $dataSantriPerKelas = [];
+        $totalSaldoKeseluruhan = 0;
+
+        if (!empty($dataSantri)) {
+            foreach ($dataSantri as $santri) {
+                $idKelas = $santri->IdKelas ?? 'unknown';
+                $namaKelas = $santri->NamaKelas ?? 'Tidak Diketahui';
+
+                if (!isset($dataSantriPerKelas[$idKelas])) {
+                    $dataSantriPerKelas[$idKelas] = [
+                        'IdKelas' => $idKelas,
+                        'NamaKelas' => $namaKelas,
+                        'santri' => [],
+                        'totalSaldo' => 0
+                    ];
+                }
+
+                $dataSantriPerKelas[$idKelas]['santri'][] = $santri;
+                $balance = $santri->Balance ?? 0;
+                $dataSantriPerKelas[$idKelas]['totalSaldo'] += $balance;
+                $totalSaldoKeseluruhan += $balance;
+            }
+
+            // Urutkan berdasarkan nama kelas
+            uasort($dataSantriPerKelas, function ($a, $b) {
+                return strcmp($a['NamaKelas'], $b['NamaKelas']);
+            });
+        }
+
         $data = [
             'page_title' => 'Tabungan Santri',
-            'dataSantri' => $dataSantri
+            'dataSantriPerKelas' => $dataSantriPerKelas,
+            'totalSaldoKeseluruhan' => $totalSaldoKeseluruhan
         ];
 
         return view('backend/tabungan/tabunganPerKelas', $data);
@@ -200,4 +233,58 @@ class Tabungan extends BaseController
         return view('backend/tabungan/tabunganSantriMutasi', $data);
     }
 
+    /**
+     * Menampilkan detail tabungan untuk user Santri
+     */
+    public function showTabunganSantri()
+    {
+        // Cek apakah user adalah Santri
+        if (!in_groups('Santri')) {
+            return redirect()->to(base_url())->with('error', 'Akses ditolak');
+        }
+
+        // Ambil NIK dari user yang login
+        $userNik = user()->nik ?? null;
+        if (empty($userNik)) {
+            return redirect()->to(base_url())->with('error', 'Data user tidak valid');
+        }
+
+        // Ambil data santri berdasarkan NIK
+        $santriModel = new \App\Models\SantriBaruModel();
+        $santriData = $santriModel->getSantriByNik($userNik);
+
+        if (empty($santriData)) {
+            return redirect()->to(base_url())->with('error', 'Data santri tidak ditemukan');
+        }
+
+        $IdSantri = $santriData['IdSantri'];
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+        // Ambil mutasi tabungan
+        $mutasi = $this->getMutasiSantri($IdSantri, $IdTahunAjaran);
+        $mutasi = array_map(function ($item) {
+            return json_decode(json_encode($item));
+        }, $mutasi);
+
+        // Hitung saldo
+        $saldo = $this->tabunganModel->calculateBalance($IdSantri);
+
+        // Ambil transaksi terbaru
+        $transaksiTerbaru = $this->tabunganModel->where('IdSantri', $IdSantri)
+            ->orderBy('TanggalTransaksi', 'DESC')
+            ->orderBy('CreatedAt', 'DESC')
+            ->limit(10)
+            ->findAll();
+
+        $data = [
+            'page_title' => 'Detail Tabungan',
+            'dataTabungan' => $mutasi,
+            'santri' => $santriData,
+            'saldo' => $saldo,
+            'transaksiTerbaru' => $transaksiTerbaru,
+            'IdTahunAjaran' => $IdTahunAjaran,
+        ];
+
+        return view('backend/tabungan/tabunganSantriDetail', $data);
+    }
 }

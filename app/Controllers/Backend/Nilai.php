@@ -262,25 +262,255 @@ class Nilai extends BaseController
         return view('backend/santri/santriPerKelas', $data);
     }
 
-    public function showNilaiProfilDetail($IdSantri)
+    public function showNilaiProfilDetail($IdSantri = null)
     {
-        // Ambil IdTpq dari session untuk filter query
-        $IdTpq = $this->IdTpq;
-        
-        try {
-            // Gunakan method yang dioptimasi dengan caching
-            // TAMBAHKAN IdTpq sebagai parameter untuk menghindari double materi saat ada kelas yang sama di tahun yang sama dengan IdTpq berbeda
-            $datanilai = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, 1, null, null, $IdTpq);
-        } catch (\Exception $e) {
-            // Log error dan fallback ke method lama
-            log_message('error', 'Error in showNilaiProfilDetail optimized method: ' . $e->getMessage());
-            // TAMBAHKAN IdTpq sebagai parameter untuk menghindari double materi saat ada kelas yang sama di tahun yang sama dengan IdTpq berbeda
-            $datanilai = $this->DataNilai->GetDataNilaiDetail($IdSantri, 1, null, null, $IdTpq);
+        // Jika user adalah Santri, ambil IdSantri dari user yang login
+        $isSantri = in_groups('Santri');
+        if ($isSantri && empty($IdSantri)) {
+            $userNik = user()->nik ?? null;
+            if (!empty($userNik)) {
+                $santriData = $this->DataSantriBaru->getSantriByNik($userNik);
+                if (!empty($santriData)) {
+                    $IdSantri = $santriData['IdSantri'];
+                }
+            }
+        }
+
+        if (empty($IdSantri)) {
+            return redirect()->to(base_url())->with('error', 'Data santri tidak ditemukan');
+        }
+
+        // Ambil data santri lengkap
+        $santriDetail = $this->DataSantriBaru->getProfilDetailSantri($IdSantri);
+        if (empty($santriDetail)) {
+            return redirect()->to(base_url())->with('error', 'Data santri tidak ditemukan');
+        }
+
+        // Ambil IdTpq default
+        $IdTpq = $santriDetail['IdTpq'] ?? $this->IdTpq;
+
+        $db = db_connect();
+
+        // Ambil semua kombinasi tahun ajaran, kelas, dan TPQ yang memiliki nilai dari tbl_nilai
+        // Ini akan mengambil semua tahun ajaran yang memiliki data nilai, tidak hanya yang ada di tbl_kelas_santri
+        $allNilaiKombinasi = $db->table('tbl_nilai n')
+            ->select('n.IdTahunAjaran, n.IdKelas, n.IdTpq, k.NamaKelas')
+            ->distinct()
+            ->join('tbl_kelas k', 'k.IdKelas = n.IdKelas', 'inner')
+            ->where('n.IdSantri', $IdSantri)
+            ->orderBy('n.IdTahunAjaran', 'DESC')
+            ->orderBy('k.NamaKelas', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        // Ambil semua kelas santri dari berbagai tahun ajaran dari tbl_kelas_santri
+        $allKelasSantri = $db->table('tbl_kelas_santri ks')
+            ->select('ks.IdKelas, ks.IdTahunAjaran, ks.IdTpq, k.NamaKelas')
+            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner')
+            ->where('ks.IdSantri', $IdSantri)
+            ->where('ks.Status', 1)
+            ->orderBy('ks.IdTahunAjaran', 'DESC')
+            ->orderBy('k.NamaKelas', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        // Gabungkan data dari tbl_nilai dan tbl_kelas_santri
+        // Prioritas: jika ada di tbl_kelas_santri, gunakan data dari sana, jika tidak gunakan dari tbl_nilai
+        $combinedKelas = [];
+
+        // Tambahkan dari tbl_kelas_santri dulu (prioritas)
+        foreach ($allKelasSantri as $kelas) {
+            // Pastikan IdTpq tidak null
+            $kelasIdTpq = !empty($kelas['IdTpq']) ? $kelas['IdTpq'] : $IdTpq;
+            $key = $kelas['IdKelas'] . '_' . $kelas['IdTahunAjaran'] . '_' . $kelasIdTpq;
+            if (!isset($combinedKelas[$key])) {
+                $combinedKelas[$key] = $kelas;
+                // Pastikan IdTpq di-set jika null
+                if (empty($combinedKelas[$key]['IdTpq'])) {
+                    $combinedKelas[$key]['IdTpq'] = $kelasIdTpq;
+                }
+            }
+        }
+
+        // Tambahkan dari tbl_nilai jika belum ada
+        foreach ($allNilaiKombinasi as $nilai) {
+            // Pastikan IdTpq tidak null
+            $nilaiIdTpq = !empty($nilai['IdTpq']) ? $nilai['IdTpq'] : $IdTpq;
+            $key = $nilai['IdKelas'] . '_' . $nilai['IdTahunAjaran'] . '_' . $nilaiIdTpq;
+            if (!isset($combinedKelas[$key])) {
+                $combinedKelas[$key] = [
+                    'IdKelas' => $nilai['IdKelas'],
+                    'IdTahunAjaran' => $nilai['IdTahunAjaran'],
+                    'IdTpq' => $nilaiIdTpq,
+                    'NamaKelas' => $nilai['NamaKelas']
+                ];
+            }
+        }
+
+        // Konversi ke array indexed
+        $allKelasSantri = array_values($combinedKelas);
+
+        // Jika masih tidak ada data, coba ambil dari tbl_santri_baru sebagai fallback
+        if (empty($allKelasSantri)) {
+            $IdKelas = $santriDetail['IdKelas'] ?? $this->IdKelas;
+            $IdTahunAjaran = $this->IdTahunAjaran;
+            if (!empty($IdKelas) && !empty($IdTahunAjaran)) {
+                $kelasInfo = $db->table('tbl_kelas')
+                    ->select('IdKelas, NamaKelas')
+                    ->where('IdKelas', $IdKelas)
+                    ->get()
+                    ->getRowArray();
+
+                if (!empty($kelasInfo)) {
+                    $allKelasSantri = [[
+                        'IdKelas' => $IdKelas,
+                        'IdTahunAjaran' => $IdTahunAjaran,
+                        'IdTpq' => $IdTpq,
+                        'NamaKelas' => $kelasInfo['NamaKelas']
+                    ]];
+                }
+            }
+        }
+
+        // Struktur data untuk setiap kelas dengan nilai Ganjil dan Genap
+        $kelasData = [];
+        foreach ($allKelasSantri as $kelas) {
+            $IdKelas = $kelas['IdKelas'];
+            $IdTahunAjaran = $kelas['IdTahunAjaran'];
+            $IdTpqKelas = $kelas['IdTpq'] ?? $IdTpq;
+
+            // Ambil data nilai untuk semester Ganjil
+            $datanilaiGanjil = [];
+            try {
+                $datanilaiGanjil = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, 'Ganjil', $IdTahunAjaran, $IdKelas, $IdTpqKelas);
+            } catch (\Exception $e) {
+                log_message('error', 'Error in showNilaiProfilDetail Ganjil: ' . $e->getMessage());
+                try {
+                    $datanilaiGanjil = $this->DataNilai->GetDataNilaiDetail($IdSantri, 'Ganjil', $IdTahunAjaran, $IdKelas, $IdTpqKelas);
+                } catch (\Exception $e2) {
+                    log_message('error', 'Error in showNilaiProfilDetail Ganjil fallback: ' . $e2->getMessage());
+                }
+            }
+
+            // Ambil data nilai untuk semester Genap
+            $datanilaiGenap = [];
+            try {
+                $datanilaiGenap = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, 'Genap', $IdTahunAjaran, $IdKelas, $IdTpqKelas);
+            } catch (\Exception $e) {
+                log_message('error', 'Error in showNilaiProfilDetail Genap: ' . $e->getMessage());
+                try {
+                    $datanilaiGenap = $this->DataNilai->GetDataNilaiDetail($IdSantri, 'Genap', $IdTahunAjaran, $IdKelas, $IdTpqKelas);
+                } catch (\Exception $e2) {
+                    log_message('error', 'Error in showNilaiProfilDetail Genap fallback: ' . $e2->getMessage());
+                }
+            }
+
+            // Bandingkan nilai dengan semester sebelumnya dan tambahkan status
+            $datanilaiGanjil = $this->compareNilaiWithPreviousSemester($datanilaiGanjil, $IdSantri, 'Ganjil', $IdTahunAjaran, $IdKelas, $IdTpqKelas);
+            $datanilaiGenap = $this->compareNilaiWithPreviousSemester($datanilaiGenap, $IdSantri, 'Genap', $IdTahunAjaran, $IdKelas, $IdTpqKelas);
+
+            // Ambil wali kelas
+            $waliKelas = null;
+            if (!empty($IdKelas) && !empty($IdTpqKelas) && !empty($IdTahunAjaran)) {
+                $waliKelas = $this->helpFunction->getWaliKelasByIdKelas($IdKelas, $IdTpqKelas, $IdTahunAjaran);
+            }
+
+            // Format tahun ajaran untuk display
+            $tahunAjaranStr = (string)$IdTahunAjaran;
+            $tahunAjaranDisplay = $tahunAjaranStr;
+            if (strlen($tahunAjaranStr) == 8) {
+                $tahunAjaranDisplay = substr($tahunAjaranStr, 0, 4) . '/' . substr($tahunAjaranStr, 4, 4);
+            }
+
+            // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+            $namaKelasOriginal = $kelas['NamaKelas'];
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpqKelas, $namaKelasOriginal);
+            $namaKelasDisplay = $this->helpFunction->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+
+            // Hitung statistik untuk semester Ganjil
+            $statistikGanjil = $this->calculateNilaiStatistics($datanilaiGanjil);
+
+            // Hitung statistik untuk semester Genap
+            $statistikGenap = $this->calculateNilaiStatistics($datanilaiGenap);
+
+            // Tentukan semester saat ini berdasarkan bulan
+            // Semester Ganjil: Juli-Desember (bulan 7-12)
+            // Semester Genap: Januari-Juni (bulan 1-6)
+            $currentMonth = (int)date('m');
+            $semesterSaatIni = ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
+
+            // Tentukan apakah tahun ajaran ini adalah tahun ajaran saat ini
+            $isTahunAjaranSaatIni = ($IdTahunAjaran == $this->IdTahunAjaran);
+
+            // Tentukan apakah harus hide semester
+            $hideGanjil = false;
+            $hideGenap = false;
+
+            if ($isTahunAjaranSaatIni) {
+                // Jika tahun ajaran saat ini
+                if ($semesterSaatIni == 'Ganjil') {
+                    // Semester saat ini Ganjil: hide Ganjil dan Genap
+                    $hideGanjil = true;
+                    $hideGenap = true;
+                } else {
+                    // Semester saat ini Genap: hide Genap saja
+                    $hideGanjil = false;
+                    $hideGenap = true;
+                }
+            } else {
+                // Tahun ajaran sebelumnya: tampilkan semua
+                $hideGanjil = false;
+                $hideGenap = false;
+            }
+
+            // Buat key unik untuk setiap kombinasi kelas dan tahun ajaran
+            $key = $IdKelas . '_' . $IdTahunAjaran;
+            $kelasData[$key] = [
+                'IdKelas' => $IdKelas,
+                'NamaKelas' => $namaKelasDisplay, // Nama kelas yang sudah dikonversi MDA jika perlu
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'TahunAjaranDisplay' => $tahunAjaranDisplay,
+                'IdTpq' => $IdTpqKelas,
+                'nilaiGanjil' => $datanilaiGanjil,
+                'nilaiGenap' => $datanilaiGenap,
+                'statistikGanjil' => $statistikGanjil,
+                'statistikGenap' => $statistikGenap,
+                'waliKelas' => $waliKelas ? ($waliKelas->Nama ?? '') : '',
+                'hideGanjil' => $hideGanjil,
+                'hideGenap' => $hideGenap,
+            ];
+        }
+
+        // Ambil nama orang tua
+        $namaOrangTua = '';
+        if (!empty($santriDetail['NamaAyah'])) {
+            $namaOrangTua = $santriDetail['NamaAyah'];
+            if (!empty($santriDetail['NamaIbu'])) {
+                $namaOrangTua .= ' / ' . $santriDetail['NamaIbu'];
+            }
+        } elseif (!empty($santriDetail['NamaIbu'])) {
+            $namaOrangTua = $santriDetail['NamaIbu'];
+        }
+
+        // Ambil foto profil
+        $photoUrl = base_url('images/no-photo.jpg');
+        if (!empty($santriDetail['PhotoProfil'])) {
+            $photoPath = FCPATH . 'uploads/profil/santri/' . $santriDetail['PhotoProfil'];
+            if (file_exists($photoPath)) {
+                $photoUrl = base_url('uploads/profil/santri/' . $santriDetail['PhotoProfil']);
+            }
         }
 
         return view('backend/nilai/nilaiSantriDetailPersonal', [
             'page_title' => 'Detail Nilai',
-            'nilai' => $datanilai
+            'kelasData' => $kelasData,
+            'santri' => $santriDetail,
+            'namaOrangTua' => $namaOrangTua,
+            'photoUrl' => $photoUrl,
+            'IdTahunAjaran' => $this->IdTahunAjaran,
         ]);
     }
 
@@ -387,6 +617,381 @@ class Nilai extends BaseController
             // Mengembalikan respons JSON dengan kesalahan
             return $this->response->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Membandingkan nilai dengan semester sebelumnya dan menambahkan status
+     * 
+     * @param array|object $currentNilai Data nilai semester saat ini
+     * @param string $IdSantri ID Santri
+     * @param string $currentSemester Semester saat ini (Ganjil/Genap)
+     * @param string $IdTahunAjaran Tahun ajaran saat ini
+     * @param string $IdKelas ID Kelas
+     * @param string $IdTpq ID TPQ
+     * @return array|object Data nilai dengan status perbandingan
+     */
+    private function compareNilaiWithPreviousSemester($currentNilai, $IdSantri, $currentSemester, $IdTahunAjaran, $IdKelas, $IdTpq)
+    {
+        // Konversi ke array jika object
+        $nilaiArray = [];
+        if (is_array($currentNilai)) {
+            $nilaiArray = $currentNilai;
+        } elseif (is_object($currentNilai) && method_exists($currentNilai, 'getResult')) {
+            $nilaiArray = $currentNilai->getResult();
+        } elseif (is_object($currentNilai)) {
+            $nilaiArray = [$currentNilai];
+        }
+
+        if (empty($nilaiArray)) {
+            return $currentNilai;
+        }
+
+        // Tentukan semester sebelumnya
+        // Logika:
+        // - Semester Genap (2025/2026) → bandingkan dengan Semester Ganjil (2025/2026) tahun ajaran yang sama
+        // - Semester Ganjil (2025/2026) → bandingkan dengan Semester Genap (2024/2025) tahun ajaran sebelumnya
+        $previousSemester = null;
+        $previousTahunAjaran = null;
+
+        if ($currentSemester == 'Genap') {
+            // Semester sebelumnya adalah Ganjil dari tahun ajaran yang sama
+            $previousSemester = 'Ganjil';
+            $previousTahunAjaran = $IdTahunAjaran;
+            log_message('debug', "Perbandingan nilai: Semester Genap ({$IdTahunAjaran}) dibandingkan dengan Semester Ganjil ({$previousTahunAjaran})");
+        } else {
+            // Semester sebelumnya adalah Genap dari tahun ajaran sebelumnya
+            $previousSemester = 'Genap';
+            // Gunakan fungsi dari HelpFunctionModel untuk mendapatkan tahun ajaran sebelumnya
+            $previousTahunAjaran = $this->helpFunction->getTahunAjaranSebelumnyaDari($IdTahunAjaran);
+            log_message('debug', "Perbandingan nilai: Semester Ganjil ({$IdTahunAjaran}) dibandingkan dengan Semester Genap ({$previousTahunAjaran})");
+        }
+
+        // Ambil nilai dari semester sebelumnya
+        // Untuk semester Ganjil: cari di kelas sebelumnya di tahun ajaran sebelumnya
+        // Untuk semester Genap: cari di kelas yang sama di tahun ajaran yang sama
+        $previousNilai = [];
+
+        $db = db_connect();
+
+        // Tentukan kelas yang akan dicari
+        $previousIdKelas = null;
+        $searchInSpecificClass = false;
+
+        if ($currentSemester == 'Ganjil') {
+            // Untuk semester Ganjil, cari di kelas sebelumnya
+            $previousIdKelas = $this->getPreviousKelas($IdKelas);
+            $searchInSpecificClass = ($previousIdKelas !== null);
+            log_message('debug', "Semester Ganjil: Mencari nilai di kelas sebelumnya - Kelas saat ini: {$IdKelas}, Kelas sebelumnya: " . ($previousIdKelas ?? 'null'));
+        } else {
+            // Untuk semester Genap, cari di kelas yang sama
+            $previousIdKelas = $IdKelas;
+            $searchInSpecificClass = true;
+            log_message('debug', "Semester Genap: Mencari nilai di kelas yang sama - Kelas: {$IdKelas}");
+        }
+
+        // Cari kelas santri di tahun ajaran sebelumnya
+        $previousKelasSantri = $db->table('tbl_kelas_santri')
+            ->select('IdKelas, IdTpq')
+            ->where('IdSantri', $IdSantri)
+            ->where('IdTahunAjaran', $previousTahunAjaran);
+
+        // Jika ada kelas sebelumnya yang ditentukan, filter berdasarkan kelas tersebut
+        if ($searchInSpecificClass && $previousIdKelas !== null) {
+            $previousKelasSantri->where('IdKelas', $previousIdKelas);
+        }
+
+        $previousKelasSantri = $previousKelasSantri->get()->getResultArray();
+
+        log_message('debug', "Mencari nilai semester sebelumnya - IdSantri: {$IdSantri}, Semester: {$previousSemester}, TahunAjaran: {$previousTahunAjaran}, Kelas yang dicari: " . ($previousIdKelas ?? 'semua') . ", Jumlah kelas ditemukan: " . count($previousKelasSantri));
+
+        // Jika ada kelas di tahun ajaran sebelumnya, cari nilai di kelas tersebut
+        if (!empty($previousKelasSantri)) {
+            foreach ($previousKelasSantri as $prevKelas) {
+                $prevIdKelas = $prevKelas['IdKelas'];
+                $prevIdTpq = $prevKelas['IdTpq'] ?? $IdTpq;
+
+                try {
+                    log_message('debug', "Mencari nilai di kelas: {$prevIdKelas}, TPQ: {$prevIdTpq}");
+                    $previousNilaiResult = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, $previousSemester, $previousTahunAjaran, $prevIdKelas, $prevIdTpq);
+
+                    $tempNilai = [];
+                    if (is_array($previousNilaiResult)) {
+                        $tempNilai = $previousNilaiResult;
+                    } elseif (is_object($previousNilaiResult) && method_exists($previousNilaiResult, 'getResult')) {
+                        $tempNilai = $previousNilaiResult->getResult();
+                    } elseif (is_object($previousNilaiResult)) {
+                        $tempNilai = [$previousNilaiResult];
+                    }
+
+                    // Gabungkan dengan nilai yang sudah ada (hindari duplikasi berdasarkan IdMateri)
+                    foreach ($tempNilai as $temp) {
+                        $idMateri = is_object($temp) ? $temp->IdMateri : ($temp['IdMateri'] ?? null);
+                        if ($idMateri) {
+                            // Cek apakah IdMateri sudah ada
+                            $exists = false;
+                            foreach ($previousNilai as $existing) {
+                                $existingIdMateri = is_object($existing) ? $existing->IdMateri : ($existing['IdMateri'] ?? null);
+                                if ($existingIdMateri == $idMateri) {
+                                    $exists = true;
+                                    break;
+                                }
+                            }
+                            if (!$exists) {
+                                $previousNilai[] = $temp;
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    log_message('debug', "Error mencari nilai di kelas {$prevIdKelas}: " . $e->getMessage());
+                    // Fallback: coba dengan method lama
+                    try {
+                        $previousNilaiResult = $this->DataNilai->GetDataNilaiDetail($IdSantri, $previousSemester, $previousTahunAjaran, $prevIdKelas, $prevIdTpq);
+                        if (is_object($previousNilaiResult) && method_exists($previousNilaiResult, 'getResult')) {
+                            $tempNilai = $previousNilaiResult->getResult();
+                            foreach ($tempNilai as $temp) {
+                                $idMateri = is_object($temp) ? $temp->IdMateri : ($temp['IdMateri'] ?? null);
+                                if ($idMateri) {
+                                    $exists = false;
+                                    foreach ($previousNilai as $existing) {
+                                        $existingIdMateri = is_object($existing) ? $existing->IdMateri : ($existing['IdMateri'] ?? null);
+                                        if ($existingIdMateri == $idMateri) {
+                                            $exists = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!$exists) {
+                                        $previousNilai[] = $temp;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (\Exception $e2) {
+                        log_message('debug', "Error fallback mencari nilai di kelas {$prevIdKelas}: " . $e2->getMessage());
+                    }
+                }
+            }
+        } else {
+            // Jika tidak ada kelas di tahun ajaran sebelumnya dengan filter kelas sebelumnya, 
+            // coba cari di semua kelas di tahun ajaran sebelumnya sebagai fallback
+            log_message('debug', "Tidak ada kelas di tahun ajaran sebelumnya dengan filter, mencoba mencari di semua kelas");
+            $allPreviousKelas = $db->table('tbl_kelas_santri')
+                ->select('IdKelas, IdTpq')
+                ->where('IdSantri', $IdSantri)
+                ->where('IdTahunAjaran', $previousTahunAjaran)
+                ->where('Status', 1)
+                ->get()
+                ->getResultArray();
+
+            log_message('debug', "Fallback: Jumlah semua kelas di tahun ajaran sebelumnya: " . count($allPreviousKelas));
+
+            if (!empty($allPreviousKelas)) {
+                foreach ($allPreviousKelas as $prevKelas) {
+                    $prevIdKelas = $prevKelas['IdKelas'];
+                    $prevIdTpq = $prevKelas['IdTpq'] ?? $IdTpq;
+
+                    try {
+                        log_message('debug', "Fallback: Mencari nilai di kelas: {$prevIdKelas}, TPQ: {$prevIdTpq}");
+                        $previousNilaiResult = $this->DataNilai->getDataNilaiDetailOptimized($IdSantri, $previousSemester, $previousTahunAjaran, $prevIdKelas, $prevIdTpq);
+
+                        $tempNilai = [];
+                        if (is_array($previousNilaiResult)) {
+                            $tempNilai = $previousNilaiResult;
+                        } elseif (is_object($previousNilaiResult) && method_exists($previousNilaiResult, 'getResult')) {
+                            $tempNilai = $previousNilaiResult->getResult();
+                        } elseif (is_object($previousNilaiResult)) {
+                            $tempNilai = [$previousNilaiResult];
+                        }
+
+                        log_message('debug', "Fallback: Ditemukan " . count($tempNilai) . " nilai di kelas {$prevIdKelas}");
+
+                        foreach ($tempNilai as $temp) {
+                            $idMateri = is_object($temp) ? $temp->IdMateri : ($temp['IdMateri'] ?? null);
+                            if ($idMateri) {
+                                $exists = false;
+                                foreach ($previousNilai as $existing) {
+                                    $existingIdMateri = is_object($existing) ? $existing->IdMateri : ($existing['IdMateri'] ?? null);
+                                    if ($existingIdMateri == $idMateri) {
+                                        $exists = true;
+                                        break;
+                                    }
+                                }
+                                if (!$exists) {
+                                    $previousNilai[] = $temp;
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        log_message('debug', "Error mencari nilai di kelas {$prevIdKelas} (fallback): " . $e->getMessage());
+                        // Coba dengan method lama
+                        try {
+                            $previousNilaiResult = $this->DataNilai->GetDataNilaiDetail($IdSantri, $previousSemester, $previousTahunAjaran, $prevIdKelas, $prevIdTpq);
+                            if (is_object($previousNilaiResult) && method_exists($previousNilaiResult, 'getResult')) {
+                                $tempNilai = $previousNilaiResult->getResult();
+                                foreach ($tempNilai as $temp) {
+                                    $idMateri = is_object($temp) ? $temp->IdMateri : ($temp['IdMateri'] ?? null);
+                                    if ($idMateri) {
+                                        $exists = false;
+                                        foreach ($previousNilai as $existing) {
+                                            $existingIdMateri = is_object($existing) ? $existing->IdMateri : ($existing['IdMateri'] ?? null);
+                                            if ($existingIdMateri == $idMateri) {
+                                                $exists = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!$exists) {
+                                            $previousNilai[] = $temp;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (\Exception $e2) {
+                            log_message('debug', "Error fallback method lama di kelas {$prevIdKelas}: " . $e2->getMessage());
+                        }
+                    }
+                }
+            }
+        }
+
+        log_message('debug', "Total data nilai semester sebelumnya ditemukan: " . count($previousNilai) . " materi");
+
+        // Buat mapping nilai sebelumnya berdasarkan IdMateri
+        // Gunakan string untuk key agar matching lebih reliable
+        $previousNilaiMap = [];
+        foreach ($previousNilai as $prev) {
+            $idMateri = is_object($prev) ? $prev->IdMateri : ($prev['IdMateri'] ?? null);
+            $nilai = is_object($prev) ? $prev->Nilai : ($prev['Nilai'] ?? null);
+            if ($idMateri !== null && $nilai !== null) {
+                // Konversi IdMateri ke string untuk konsistensi
+                $idMateriKey = (string)$idMateri;
+                $previousNilaiMap[$idMateriKey] = (float)$nilai;
+                log_message('debug', "Mapping nilai sebelumnya - IdMateri: {$idMateriKey}, Nilai: {$nilai}");
+            }
+        }
+
+        log_message('debug', "Total mapping nilai sebelumnya: " . count($previousNilaiMap) . " materi");
+
+        // Bandingkan dan tambahkan status
+        $result = [];
+        foreach ($nilaiArray as $nilai) {
+            $idMateri = is_object($nilai) ? $nilai->IdMateri : ($nilai['IdMateri'] ?? null);
+            $currentNilaiValue = is_object($nilai) ? $nilai->Nilai : ($nilai['Nilai'] ?? null);
+
+            $status = 'baru'; // Default: materi baru
+            $previousNilaiValue = null;
+
+            if ($idMateri !== null) {
+                // Konversi IdMateri ke string untuk matching
+                $idMateriKey = (string)$idMateri;
+
+                if (isset($previousNilaiMap[$idMateriKey])) {
+                    $previousNilaiValue = $previousNilaiMap[$idMateriKey];
+                    $currentNilaiFloat = (float)$currentNilaiValue;
+
+                    log_message('debug', "Membandingkan nilai - IdMateri: {$idMateriKey}, Nilai sekarang: {$currentNilaiFloat}, Nilai sebelumnya: {$previousNilaiValue}");
+
+                    if ($currentNilaiFloat > $previousNilaiValue) {
+                        $status = 'naik';
+                    } elseif ($currentNilaiFloat < $previousNilaiValue) {
+                        $status = 'turun';
+                    } else {
+                        $status = 'sama';
+                    }
+                } else {
+                    log_message('debug', "Materi baru - IdMateri: {$idMateriKey} tidak ditemukan di semester sebelumnya");
+                }
+            }
+
+            // Tambahkan status ke data nilai
+            if (is_object($nilai)) {
+                $nilai->statusNilai = $status;
+                $nilai->previousNilai = $previousNilaiValue;
+            } else {
+                $nilai['statusNilai'] = $status;
+                $nilai['previousNilai'] = $previousNilaiValue;
+            }
+
+            $result[] = $nilai;
+        }
+
+        // Kembalikan dalam format yang sama dengan input
+        if (is_array($currentNilai)) {
+            return $result;
+        } elseif (is_object($currentNilai) && method_exists($currentNilai, 'getResult')) {
+            // Jika object dengan method getResult, kembalikan sebagai array
+            return $result;
+        } else {
+            return !empty($result) ? $result[0] : $currentNilai;
+        }
+    }
+
+    /**
+     * Mendapatkan kelas sebelumnya berdasarkan ID kelas saat ini
+     * @param string $idKelas ID kelas saat ini
+     * @return string|null ID kelas sebelumnya, atau null jika tidak ada
+     */
+    private function getPreviousKelas($idKelas)
+    {
+        // Mapping kelas sebelumnya (kebalikan dari getNextKelas)
+        $previousClassMapping = [
+            2 => 1,   // TKQA -> TKQ
+            3 => 2,   // TKQB -> TKQA
+            4 => 3,   // TPQ1/SD1 -> TKQB
+            5 => 4,   // TPQ2/SD2 -> TPQ1/SD1
+            6 => 5,   // TPQ3/SD3 -> TPQ2/SD2
+            7 => 6,   // TPQ4/SD4 -> TPQ3/SD3
+            8 => 7,   // TPQ5/SD5 -> TPQ4/SD4
+            9 => 8,   // TPQ6/SD6 -> TPQ5/SD5
+            10 => 9,  // ALUMNI -> TPQ6/SD6
+        ];
+
+        return $previousClassMapping[$idKelas] ?? null;
+    }
+
+    /**
+     * Menghitung statistik nilai (naik, turun, sama, baru)
+     * @param array|object $nilaiData Data nilai
+     * @return array Statistik dengan keys: naik, turun, sama, baru, total
+     */
+    private function calculateNilaiStatistics($nilaiData)
+    {
+        // Konversi ke array jika object
+        $nilaiArray = [];
+        if (is_array($nilaiData)) {
+            $nilaiArray = $nilaiData;
+        } elseif (is_object($nilaiData) && method_exists($nilaiData, 'getResult')) {
+            $nilaiArray = $nilaiData->getResult();
+        } elseif (is_object($nilaiData)) {
+            $nilaiArray = [$nilaiData];
+        }
+
+        $statistik = [
+            'naik' => 0,
+            'turun' => 0,
+            'sama' => 0,
+            'baru' => 0,
+            'total' => count($nilaiArray)
+        ];
+
+        foreach ($nilaiArray as $nilai) {
+            $status = is_object($nilai) ? ($nilai->statusNilai ?? 'baru') : ($nilai['statusNilai'] ?? 'baru');
+
+            switch ($status) {
+                case 'naik':
+                    $statistik['naik']++;
+                    break;
+                case 'turun':
+                    $statistik['turun']++;
+                    break;
+                case 'sama':
+                    $statistik['sama']++;
+                    break;
+                default:
+                    $statistik['baru']++;
+                    break;
+            }
+        }
+
+        return $statistik;
     }
         
 }

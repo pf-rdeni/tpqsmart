@@ -331,6 +331,18 @@ class HelpFunctionModel extends Model
         return $builder->get()->getRowArray();
     }
 
+    /**
+     * Mengambil data santri berdasarkan NIK
+     * @param string $idNik
+     * @return array|null
+     */
+    public function getSantriByIdNik($idNik)
+    {
+        $builder = $this->db->table('users')
+        ->where('nik', $idNik);
+        return $builder->get()->getRowArray();
+    }
+
     //get nama guru by IdNik
     /**
      * Mengambil nama guru berdasarkan IdGuru
@@ -469,6 +481,32 @@ class HelpFunctionModel extends Model
         $nextEndYear = $endYear + 1;
 
         return $nextStartYear . $nextEndYear;
+    }
+
+    /**
+     * Mendapatkan tahun ajaran sebelumnya dari tahun ajaran tertentu
+     * @param string $currentTahunAjaran Tahun ajaran saat ini (format: 20252026)
+     * @return string Tahun ajaran sebelumnya (format: 20242025)
+     */
+    public function getTahunAjaranSebelumnyaDari($currentTahunAjaran)
+    {
+        $tahunAjaranStr = (string)$currentTahunAjaran;
+        
+        // Normalisasi: hapus karakter non-numeric
+        $normalized = preg_replace('/\D/', '', $tahunAjaranStr);
+        
+        if (strlen($normalized) == 8) {
+            $startYear = (int) substr($normalized, 0, 4);
+            $endYear = (int) substr($normalized, 4, 4);
+
+            $previousStartYear = $startYear - 1;
+            $previousEndYear = $endYear - 1;
+
+            return str_pad($previousStartYear, 4, '0', STR_PAD_LEFT) . str_pad($previousEndYear, 4, '0', STR_PAD_LEFT);
+        } else {
+            // Fallback: gunakan fungsi getTahunAjaranSebelumnya() tanpa parameter
+            return $this->getTahunAjaranSebelumnya();
+        }
     }
 
     /**

@@ -136,4 +136,92 @@ class Prestasi extends BaseController
             </button>
         </div>');
     }
+
+    /**
+     * Menampilkan prestasi untuk user Santri
+     */
+    public function showPrestasiSantri()
+    {
+        // Cek apakah user adalah Santri
+        if (!in_groups('Santri')) {
+            return redirect()->to(base_url())->with('error', 'Akses ditolak');
+        }
+
+        // Ambil NIK dari user yang login
+        $userNik = user()->nik ?? null;
+        if (empty($userNik)) {
+            return redirect()->to(base_url())->with('error', 'Data user tidak valid');
+        }
+
+        // Ambil data santri berdasarkan NIK
+        $santriModel = new \App\Models\SantriBaruModel();
+        $santriData = $santriModel->getSantriByNik($userNik);
+
+        if (empty($santriData)) {
+            return redirect()->to(base_url())->with('error', 'Data santri tidak ditemukan');
+        }
+
+        $IdSantri = $santriData['IdSantri'];
+        $IdTpq = $santriData['IdTpq'];
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+        // Ambil kelas dari tbl_kelas_santri
+        $db = db_connect();
+        $kelasSantri = $db->table('tbl_kelas_santri ks')
+            ->select('ks.IdKelas, k.NamaKelas')
+            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner')
+            ->where('ks.IdSantri', $IdSantri)
+            ->where('ks.IdTahunAjaran', $IdTahunAjaran)
+            ->where('ks.Status', 1)
+            ->orderBy('k.NamaKelas', 'ASC')
+            ->get()
+            ->getRowArray();
+
+        $IdKelas = $kelasSantri['IdKelas'] ?? $santriData['IdKelas'] ?? null;
+
+        // Ambil semua prestasi santri
+        $prestasiList = $this->prestasiModel
+            ->select('tbl_prestasi.*, tbl_materi_pelajaran.NamaMateri, tbl_materi_pelajaran.Kategori')
+            ->join('tbl_materi_pelajaran', 'tbl_prestasi.IdMateriPelajaran = tbl_materi_pelajaran.IdMateri')
+            ->where('tbl_prestasi.IdSantri', $IdSantri)
+            ->where('tbl_prestasi.IdTpq', $IdTpq)
+            ->orderBy('tbl_prestasi.updated_at', 'DESC')
+            ->orderBy('tbl_prestasi.Tanggal', 'DESC')
+            ->findAll();
+
+        // Ambil prestasi terbaru (untuk dashboard)
+        $prestasiTerbaru = $this->prestasiModel
+            ->select('tbl_prestasi.*, tbl_materi_pelajaran.NamaMateri, tbl_materi_pelajaran.Kategori')
+            ->join('tbl_materi_pelajaran', 'tbl_prestasi.IdMateriPelajaran = tbl_materi_pelajaran.IdMateri')
+            ->where('tbl_prestasi.IdSantri', $IdSantri)
+            ->where('tbl_prestasi.IdTpq', $IdTpq)
+            ->orderBy('tbl_prestasi.updated_at', 'DESC')
+            ->orderBy('tbl_prestasi.Tanggal', 'DESC')
+            ->limit(5)
+            ->findAll();
+
+        // Hitung statistik prestasi
+        $totalPrestasi = count($prestasiList);
+        $prestasiByJenis = [];
+        foreach ($prestasiList as $prestasi) {
+            $jenis = $prestasi['JenisPrestasi'] ?? 'Lainnya';
+            if (!isset($prestasiByJenis[$jenis])) {
+                $prestasiByJenis[$jenis] = 0;
+            }
+            $prestasiByJenis[$jenis]++;
+        }
+
+        $data = [
+            'page_title' => 'Prestasi Santri',
+            'santri' => $santriData,
+            'prestasiList' => $prestasiList,
+            'prestasiTerbaru' => $prestasiTerbaru,
+            'totalPrestasi' => $totalPrestasi,
+            'prestasiByJenis' => $prestasiByJenis,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'NamaKelas' => $kelasSantri['NamaKelas'] ?? $santriData['NamaKelas'] ?? '',
+        ];
+
+        return view('backend/prestasi/prestasiSantriDetail', $data);
+    }
 }

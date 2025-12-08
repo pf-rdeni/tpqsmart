@@ -455,6 +455,13 @@ class Search extends BaseController
                 'description' => 'Lihat profil santri',
             ];
             $menus[] = [
+                'title' => 'Detail Profil Santri',
+                'url' => base_url('backend/santri/detailProfilSantri'),
+                'icon' => 'fas fa-user-circle',
+                'category' => 'Santri',
+                'description' => 'Detail profil santri lengkap',
+            ];
+            $menus[] = [
                 'title' => 'Ubah Santri',
                 'url' => base_url('backend/santri/showAturSantriBaru'),
                 'icon' => 'fas fa-user-edit',
@@ -1025,11 +1032,39 @@ class Search extends BaseController
         // Menu untuk grup Santri
         if (in_groups('Santri')) {
             $menus[] = [
-                'title' => 'Profil Detail',
-                'url' => base_url('backend/nilai/showNilaiProfilDetail/20150001'),
+                'title' => 'Detail Profil',
+                'url' => base_url('backend/santri/detailProfilSantri'),
                 'icon' => 'fas fa-user-circle',
                 'category' => 'Kesantrian',
-                'description' => 'Profil detail santri',
+                'description' => 'Detail profil santri lengkap',
+            ];
+            $menus[] = [
+                'title' => 'Detail Absensi',
+                'url' => base_url('backend/absensi/showAbsensiSantri'),
+                'icon' => 'fas fa-calendar-check',
+                'category' => 'Kesantrian',
+                'description' => 'Detail absensi santri',
+            ];
+            $menus[] = [
+                'title' => 'Detail Prestasi',
+                'url' => base_url('backend/prestasi/showPrestasiSantri'),
+                'icon' => 'fas fa-trophy',
+                'category' => 'Kesantrian',
+                'description' => 'Detail prestasi santri',
+            ];
+            $menus[] = [
+                'title' => 'Detail Nilai',
+                'url' => base_url('backend/nilai/showNilaiProfilDetail'),
+                'icon' => 'fas fa-chart-line',
+                'category' => 'Kesantrian',
+                'description' => 'Detail nilai santri',
+            ];
+            $menus[] = [
+                'title' => 'Detail Tabungan',
+                'url' => base_url('backend/tabungan/showTabunganSantri'),
+                'icon' => 'fas fa-piggy-bank',
+                'category' => 'Kesantrian',
+                'description' => 'Detail tabungan santri',
             ];
             $menus[] = [
                 'title' => 'Kontak Santri',

@@ -870,6 +870,50 @@ class Santri extends BaseController
         return view('backend/santri/listDataProfilSantri', $data);
     }
 
+    /**
+     * Menampilkan detail profil santri lengkap dengan segmentasi
+     * Informasi Santri, Orang Tua, dan Alamat
+     */
+    public function detailProfilSantri()
+    {
+        // Ambil IdSantri dari session atau request
+        $idSantri = session()->get('IdSantri');
+        if (empty($idSantri)) {
+            $idSantri = $this->request->getGet('id');
+        }
+
+        if (empty($idSantri)) {
+            return redirect()->to(base_url('backend/dashboard/santri'))->with('error', 'ID Santri tidak ditemukan');
+        }
+
+        // Ambil data santri lengkap dari tabel santri_baru
+        $santriData = $this->DataSantriBaru->getProfilDetailSantri($idSantri);
+
+        if (empty($santriData)) {
+            return redirect()->to(base_url('backend/dashboard/santri'))->with('error', 'Data santri tidak ditemukan');
+        }
+
+        // Siapkan data untuk view
+        $data = [
+            'page_title' => 'Detail Profil Santri',
+            'santri' => $santriData,
+            'NamaLogin' => $santriData['NamaSantri'] ?? 'Santri',
+            'PeranLogin' => 'Santri',
+        ];
+
+        // Ambil foto profil
+        $photoUrl = base_url('images/no-photo.jpg');
+        if (!empty($santriData['PhotoProfil'])) {
+            $photoPath = FCPATH . 'uploads/profil/santri/' . $santriData['PhotoProfil'];
+            if (file_exists($photoPath)) {
+                $photoUrl = base_url('uploads/profil/santri/' . $santriData['PhotoProfil']);
+            }
+        }
+        $data['photoUrl'] = $photoUrl;
+
+        return view('backend/santri/detailProfilSantri', $data);
+    }
+
     // Page: Profil Data Santri - Detail
 
     public function showAturSantriBaru()
@@ -1621,10 +1665,220 @@ class Santri extends BaseController
 
     public function showKontakSantri($IdSantri = null)
     {
+        // Ambil filter dari request atau session
+        $filterIdTpq = $this->request->getGet('filterIdTpq');
+        $filterIdKelas = $this->request->getGet('filterIdKelas');
+
+        $sessionIdTpq = session()->get('IdTpq');
+        $sessionIdKelas = session()->get('IdKelas');
+        $sessionIdTahunAjaran = session()->get('IdTahunAjaran');
+        $isOperator = in_groups('Operator');
+        $isAdmin = in_groups('Admin');
+        $isGuru = in_groups('Guru');
+        $isKepalaTpq = in_groups('Kepala TPQ');
+        $isSantri = in_groups('Santri');
+
+        // Tentukan IdTpq yang akan digunakan
+        $IdTpq = null;
+        if ($isAdmin) {
+            $IdTpq = $filterIdTpq ?: $sessionIdTpq;
+        } else {
+            $IdTpq = $sessionIdTpq;
+        }
+
+        // Tentukan IdKelas yang akan digunakan
+        $IdKelas = null;
+        $idKelasArray = null;
+
+        // Jika user adalah Santri, ambil kelas dari santri yang login
+        if ($isSantri) {
+            $userNik = user()->nik ?? null;
+            if (!empty($userNik)) {
+                $santriData = $this->DataSantriBaru->getSantriByNik($userNik);
+                if (!empty($santriData)) {
+                    $IdTpq = $santriData['IdTpq'];
+
+                    // Ambil kelas dari tbl_kelas_santri untuk tahun ajaran saat ini
+                    if (!empty($sessionIdTahunAjaran)) {
+                        $db = db_connect();
+                        $kelasSantri = $db->table('tbl_kelas_santri ks')
+                            ->select('ks.IdKelas, k.NamaKelas')
+                            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner')
+                            ->where('ks.IdSantri', $santriData['IdSantri'])
+                            ->where('ks.IdTahunAjaran', $sessionIdTahunAjaran)
+                            ->where('ks.Status', 1)
+                            ->orderBy('k.NamaKelas', 'ASC')
+                            ->get()
+                            ->getRowArray();
+
+                        if (!empty($kelasSantri)) {
+                            $IdKelas = $kelasSantri['IdKelas'];
+                        }
+                    }
+
+                    // Fallback ke IdKelas dari tbl_santri_baru jika tidak ada di tbl_kelas_santri
+                    if (empty($IdKelas) && !empty($santriData['IdKelas'])) {
+                        $IdKelas = $santriData['IdKelas'];
+                    }
+                }
+            }
+        } elseif ($isOperator && $IdTpq !== null) {
+            // Jika Operator login, ambil semua kelas dari TPQ yang memiliki santri aktif
+            $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq);
+
+            // Jika ada filter kelas dari request, gunakan filter tersebut
+            if ($filterIdKelas && $filterIdKelas !== '') {
+                if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                    $filterArray = array_filter(explode(',', $filterIdKelas));
+                    $IdKelas = array_intersect($filterArray, $idKelasArray);
+                } else {
+                    if (in_array($filterIdKelas, $idKelasArray)) {
+                        $IdKelas = $filterIdKelas;
+                    }
+                }
+            }
+        } else {
+            // Untuk role lain, gunakan filter dari request atau session
+            if ($filterIdKelas && $filterIdKelas !== '') {
+                if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                    $IdKelas = array_filter(explode(',', $filterIdKelas));
+                } else {
+                    $IdKelas = $filterIdKelas;
+                }
+            } else {
+                $IdKelas = $sessionIdKelas;
+            }
+        }
+
+        // Ambil data santri menggunakan GetDataSantriPerKelas untuk mendapatkan data lengkap dengan kontak
+        $santri = [];
+        if (!empty($IdTpq) && !empty($sessionIdTahunAjaran)) {
+            if ($isSantri && !empty($IdKelas)) {
+                // Untuk Santri, ambil hanya santri di kelas yang sama
+                $santri = $this->DataSantri->GetDataSantriPerKelas($IdTpq, $sessionIdTahunAjaran, $IdKelas, null);
+            } elseif ($isOperator && $idKelasArray !== null && empty($IdKelas)) {
+                // Untuk Operator tanpa filter kelas, ambil semua kelas
+                $santri = $this->DataSantri->GetDataSantriPerKelas($IdTpq, $sessionIdTahunAjaran, 0, null);
+            } elseif (!empty($IdKelas)) {
+                // Untuk role lain dengan filter kelas
+                $santri = $this->DataSantri->GetDataSantriPerKelas($IdTpq, $sessionIdTahunAjaran, $IdKelas, null);
+            }
+        }
+
+        // Konversi object ke array dan tambahkan data kontak dari tbl_santri_baru
+        $santriData = [];
+        if (!empty($santri)) {
+            $santriIds = [];
+            foreach ($santri as $s) {
+                $santriIds[] = is_object($s) ? $s->IdSantri : $s['IdSantri'];
+            }
+
+            // Ambil data kontak lengkap dari tbl_santri_baru
+            if (!empty($santriIds)) {
+                $santriDetail = $this->DataSantriBaru->whereIn('IdSantri', $santriIds)
+                    ->where('Active', 1)
+                    ->findAll();
+
+                // Buat mapping IdSantri => data detail
+                $santriDetailMap = [];
+                foreach ($santriDetail as $detail) {
+                    $santriDetailMap[$detail['IdSantri']] = $detail;
+                }
+
+                // Gabungkan data
+                foreach ($santri as $s) {
+                    $idSantri = is_object($s) ? $s->IdSantri : $s['IdSantri'];
+                    if (isset($santriDetailMap[$idSantri])) {
+                        $detail = $santriDetailMap[$idSantri];
+                        // Buat alamat lengkap
+                        $alamatLengkap = '';
+                        $alamatParts = [];
+                        if (!empty($detail['AlamatSantri'])) {
+                            $alamatParts[] = $detail['AlamatSantri'];
+                        }
+                        if (!empty($detail['RtSantri']) || !empty($detail['RwSantri'])) {
+                            $rtRw = 'RT ' . ($detail['RtSantri'] ?? '') . ' / RW ' . ($detail['RwSantri'] ?? '');
+                            $alamatParts[] = $rtRw;
+                        }
+                        if (!empty($detail['KelurahanDesaSantri'])) {
+                            $alamatParts[] = $detail['KelurahanDesaSantri'];
+                        }
+                        if (!empty($detail['KecamatanSantri'])) {
+                            $alamatParts[] = $detail['KecamatanSantri'];
+                        }
+                        if (!empty($detail['KabupatenKotaSantri'])) {
+                            $alamatParts[] = $detail['KabupatenKotaSantri'];
+                        }
+                        if (!empty($detail['ProvinsiSantri'])) {
+                            $alamatParts[] = $detail['ProvinsiSantri'];
+                        }
+                        if (!empty($detail['KodePosSantri'])) {
+                            $alamatParts[] = $detail['KodePosSantri'];
+                        }
+                        $alamatLengkap = implode(', ', array_filter($alamatParts));
+
+                        $santriData[] = [
+                            'IdSantri' => $idSantri,
+                            'IdKelas' => is_object($s) ? ($s->IdKelas ?? null) : ($s['IdKelas'] ?? $detail['IdKelas'] ?? null),
+                            'NamaSantri' => is_object($s) ? $s->NamaSantri : ($s['NamaSantri'] ?? $detail['NamaSantri']),
+                            'NamaKelas' => is_object($s) ? $s->NamaKelas : ($s['NamaKelas'] ?? ''),
+                            'PhotoProfil' => is_object($s) ? ($s->PhotoProfil ?? null) : ($s['PhotoProfil'] ?? null),
+                            'JenisKelamin' => is_object($s) ? $s->JenisKelamin : ($s['JenisKelamin'] ?? $detail['JenisKelamin']),
+                            'NamaAyah' => $detail['NamaAyah'] ?? '',
+                            'NamaIbu' => $detail['NamaIbu'] ?? '',
+                            'NoHpAyah' => $detail['NoHpAyah'] ?? '',
+                            'NoHpIbu' => $detail['NoHpIbu'] ?? '',
+                            'Alamat' => $alamatLengkap,
+                            'AlamatSantri' => $detail['AlamatSantri'] ?? '',
+                            'RtSantri' => $detail['RtSantri'] ?? '',
+                            'RwSantri' => $detail['RwSantri'] ?? '',
+                            'KelurahanDesaSantri' => $detail['KelurahanDesaSantri'] ?? '',
+                            'KecamatanSantri' => $detail['KecamatanSantri'] ?? '',
+                            'KabupatenKotaSantri' => $detail['KabupatenKotaSantri'] ?? '',
+                            'ProvinsiSantri' => $detail['ProvinsiSantri'] ?? '',
+                            'KodePosSantri' => $detail['KodePosSantri'] ?? '',
+                            'TitikKoordinatSantri' => $detail['TitikKoordinatSantri'] ?? '',
+                            'NamaTpq' => is_object($s) ? ($s->NamaTpq ?? '') : ($s['NamaTpq'] ?? ''),
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Get data TPQ untuk filter dropdown (jika bukan Santri)
+        $dataTpq = [];
+        $dataKelas = [];
+        if (!$isSantri) {
+            $dataTpq = $this->helpFunction->getDataTpq();
+            usort($dataTpq, function ($a, $b) {
+                return strcasecmp($a['NamaTpq'] ?? '', $b['NamaTpq'] ?? '');
+            });
+
+            if ($isAdmin || $isOperator || $isKepalaTpq) {
+                $dataKelas = $this->helpFunction->getDataKelas();
+            } elseif ($isGuru) {
+                if ($sessionIdKelas && is_array($sessionIdKelas)) {
+                    $allKelas = $this->helpFunction->getDataKelas();
+                    $dataKelas = array_filter($allKelas, function ($kelas) use ($sessionIdKelas) {
+                        return in_array($kelas['IdKelas'], $sessionIdKelas);
+                    });
+                    $dataKelas = array_values($dataKelas);
+                }
+            }
+        }
 
         $data = [
             'page_title' => 'Kontak Santri',
-            'santri' => $datasantri = ""
+            'santri' => $santriData,
+            'dataTpq' => $dataTpq,
+            'dataKelas' => $dataKelas,
+            'currentIdTpq' => $IdTpq,
+            'currentIdKelas' => $IdKelas,
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+            'isGuru' => $isGuru,
+            'isKepalaTpq' => $isKepalaTpq,
+            'isSantri' => $isSantri,
         ];
         return view('backend/santri/kontakSantri', $data);
     }

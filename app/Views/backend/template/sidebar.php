@@ -609,6 +609,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Detail Profil Santri</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Ubah Santri</p>
@@ -933,7 +939,20 @@
                                     <p>Profil Data Santri</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Detail Profil Santri</p>
+                                </a>
+                            </li>
                         </ul>
+                    </li>
+                    <!-- Detail Profil -->
+                    <li class="nav-item">
+                        <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
+                            <i class="nav-icon fas fa-user-circle"></i>
+                            <p>Detail Profil</p>
+                        </a>
                     </li>
                     <!-- Absensi -->
                     <li class="nav-item no-hover">
@@ -1163,13 +1182,37 @@
                         </a>
                         <ul class="nav nav-treeview" style="display: block;">
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/nilai/showNilaiProfilDetail' . '/' . '20150001') ?> class="nav-link">
+                                <a href="<?= base_url('backend/santri/detailProfilSantri') ?>" class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Profil Detail</p>
+                                    <p>Detail Profil</p>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/showKontakSantri') ?> class="nav-link">
+                                <a href="<?= base_url('backend/absensi/showAbsensiSantri') ?>" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Detail Absensi</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/prestasi/showPrestasiSantri') ?>" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Detail Prestasi</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/nilai/showNilaiProfilDetail') ?>" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Detail Nilai</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/tabungan/showTabunganSantri') ?>" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Detail Tabungan</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/santri/showKontakSantri') ?>" class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Kontak Santri</p>
                                 </a>

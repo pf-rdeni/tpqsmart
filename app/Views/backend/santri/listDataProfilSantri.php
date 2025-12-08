@@ -22,11 +22,22 @@
                             <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dikelola. Setiap tab menampilkan santri dari kelas yang berbeda. Tab aktif akan tersimpan otomatis, sehingga saat refresh halaman, tab yang terakhir dipilih akan tetap aktif.
                         </li>
                         <li class="mb-2">
-                            <strong>Lihat Daftar Santri:</strong> Tabel menampilkan daftar santri per kelas dengan informasi:
+                            <strong>Lihat Daftar Santri:</strong> Tabel menampilkan daftar santri per kelas dengan informasi lengkap:
                             <ul class="mt-2">
                                 <li><strong>No:</strong> Nomor urut santri</li>
                                 <li><strong>Aksi:</strong> Tombol untuk mencetak profil individual</li>
-                                <li><strong>Nama:</strong> Nama lengkap santri dengan Id Santri di bawahnya</li>
+                                <li><strong>ID Santri:</strong> Identitas unik santri</li>
+                                <li><strong>Nama:</strong> Nama lengkap santri</li>
+                                <li><strong>NIK:</strong> Nomor Induk Kependudukan</li>
+                                <li><strong>Jenis Kelamin:</strong> Jenis kelamin santri</li>
+                                <li><strong>Tempat, Tgl Lahir:</strong> Tempat dan tanggal lahir</li>
+                                <li><strong>Alamat:</strong> Alamat lengkap santri</li>
+                                <li><strong>No HP / Email:</strong> Kontak santri</li>
+                                <li><strong>Nama Ayah/Ibu:</strong> Nama orang tua</li>
+                                <li><strong>Pekerjaan Ayah/Ibu:</strong> Pekerjaan orang tua</li>
+                                <li><strong>No HP Ayah/Ibu:</strong> Kontak orang tua</li>
+                                <li><strong>TPQ:</strong> Nama TPQ</li>
+                                <li><strong>Kelas:</strong> Nama kelas</li>
                             </ul>
                             Tabel dapat di-scroll horizontal jika kolom banyak.
                         </li>
@@ -64,9 +75,9 @@
                     <div class="alert alert-info mb-0">
                         <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
                         <ul class="mb-0">
-                            <li>Halaman ini menampilkan <strong>ringkasan profil</strong> santri yang dikelompokkan per kelas menggunakan tab. Setiap kelas memiliki tab sendiri.</li>
+                            <li>Halaman ini menampilkan <strong>profil lengkap</strong> santri yang dikelompokkan per kelas menggunakan tab. Setiap kelas memiliki tab sendiri.</li>
                             <li>Data ditampilkan berdasarkan <strong>TPQ</strong> dan <strong>Kelas</strong> yang sesuai dengan akses user Anda.</li>
-                            <li>Tabel menampilkan informasi sederhana: <strong>No, Aksi, dan Nama</strong> (dengan Id Santri di bawahnya).</li>
+                            <li>Tabel menampilkan informasi lengkap: <strong>No, Aksi, ID Santri, Nama, NIK, Jenis Kelamin, Tempat/Tgl Lahir, Alamat, No HP/Email, Data Orang Tua, TPQ, dan Kelas</strong>.</li>
                             <li>Gunakan fitur <strong>pagination</strong> di DataTable untuk navigasi halaman jika data banyak (default: 25 data per halaman).</li>
                             <li>Tab aktif akan tersimpan di localStorage, sehingga saat refresh halaman, tab yang terakhir dipilih akan tetap aktif.</li>
                             <li>Card <strong>Tanda Tangan QR</strong> dan <strong>Cetak Semua Profil</strong> menggunakan layout setengah lebar (col-md-6) dan berdampingan.</li>
@@ -223,14 +234,87 @@
                                                 <tr>
                                                     <th>No</th>
                                                     <th>Aksi</th>
+                                                    <th>ID Santri</th>
                                                     <th>Nama</th>
+                                                    <th>NIK</th>
+                                                    <th>Jenis Kelamin</th>
+                                                    <th>Tempat, Tgl Lahir</th>
+                                                    <th>Alamat</th>
+                                                    <th>No HP / Email</th>
+                                                    <th>Nama Ayah</th>
+                                                    <th>Nama Ibu</th>
+                                                    <th>Pekerjaan Ayah</th>
+                                                    <th>Pekerjaan Ibu</th>
+                                                    <th>No HP Ayah</th>
+                                                    <th>No HP Ibu</th>
+                                                    <th>TPQ</th>
+                                                    <th>Kelas</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <?php
                                                 $no = 1;
                                                 $kelasSantri = $santriPerKelas[$kelas->IdKelas] ?? [];
-                                                foreach ($kelasSantri as $santri) : ?>
+                                                foreach ($kelasSantri as $santri) :
+                                                    // Format tanggal lahir
+                                                    $tanggalLahir = '-';
+                                                    if (!empty($santri['TanggalLahirSantri'])) {
+                                                        try {
+                                                            $dateObj = new \DateTime($santri['TanggalLahirSantri']);
+                                                            $tanggalLahir = $dateObj->format('d/m/Y');
+                                                        } catch (\Exception $e) {
+                                                            $tanggalLahir = $santri['TanggalLahirSantri'];
+                                                        }
+                                                    }
+
+                                                    $tempatTglLahir = '';
+                                                    if (!empty($santri['TempatLahirSantri'])) {
+                                                        $tempatTglLahir = $santri['TempatLahirSantri'];
+                                                    }
+                                                    if (!empty($tempatTglLahir) && $tanggalLahir !== '-') {
+                                                        $tempatTglLahir .= ', ' . $tanggalLahir;
+                                                    } elseif ($tanggalLahir !== '-') {
+                                                        $tempatTglLahir = $tanggalLahir;
+                                                    }
+                                                    if (empty($tempatTglLahir)) {
+                                                        $tempatTglLahir = '-';
+                                                    }
+
+                                                    // Format alamat
+                                                    $alamatParts = [];
+                                                    if (!empty($santri['AlamatSantri'])) {
+                                                        $alamatParts[] = $santri['AlamatSantri'];
+                                                    }
+                                                    if (!empty($santri['RtSantri'])) {
+                                                        $alamatParts[] = 'RT ' . $santri['RtSantri'];
+                                                    }
+                                                    if (!empty($santri['RwSantri'])) {
+                                                        $alamatParts[] = 'RW ' . $santri['RwSantri'];
+                                                    }
+                                                    if (!empty($santri['KelurahanDesaSantri'])) {
+                                                        $alamatParts[] = $santri['KelurahanDesaSantri'];
+                                                    }
+                                                    if (!empty($santri['KecamatanSantri'])) {
+                                                        $alamatParts[] = $santri['KecamatanSantri'];
+                                                    }
+                                                    if (!empty($santri['KabupatenKotaSantri'])) {
+                                                        $alamatParts[] = $santri['KabupatenKotaSantri'];
+                                                    }
+                                                    if (!empty($santri['ProvinsiSantri'])) {
+                                                        $alamatParts[] = $santri['ProvinsiSantri'];
+                                                    }
+                                                    $alamatLengkap = !empty($alamatParts) ? implode(', ', $alamatParts) : '-';
+
+                                                    // Format No HP / Email
+                                                    $noHpEmail = [];
+                                                    if (!empty($santri['NoHpSantri'])) {
+                                                        $noHpEmail[] = $santri['NoHpSantri'];
+                                                    }
+                                                    if (!empty($santri['EmailSantri'])) {
+                                                        $noHpEmail[] = $santri['EmailSantri'];
+                                                    }
+                                                    $noHpEmailStr = !empty($noHpEmail) ? implode(' / ', $noHpEmail) : '-';
+                                                ?>
                                                     <tr>
                                                         <td><?= $no++ ?></td>
                                                         <td>
@@ -238,14 +322,23 @@
                                                                 <i class="fas fa-print"></i><span class="d-none d-md-inline">&nbsp;Print</span>
                                                             </a>
                                                         </td>
-                                                        <td>
-                                                            <div>
-                                                                <strong><?= ucwords(strtolower($santri['NamaSantri'])); ?></strong>
-                                                            </div>
-                                                            <div>
-                                                                <small class="text-muted">Id Santri: <?= $santri['IdSantri']; ?></small>
-                                                            </div>
+                                                        <td style="white-space: nowrap;"><?= esc($santri['IdSantri'] ?? '-') ?></td>
+                                                        <td style="min-width: 150px;">
+                                                            <strong><?= ucwords(strtolower($santri['NamaSantri'] ?? '-')); ?></strong>
                                                         </td>
+                                                        <td style="white-space: nowrap;"><?= esc($santri['NikSantri'] ?? '-') ?></td>
+                                                        <td style="white-space: nowrap;"><?= esc($santri['JenisKelamin'] ?? '-') ?></td>
+                                                        <td style="min-width: 120px;"><?= esc($tempatTglLahir ?: '-') ?></td>
+                                                        <td style="min-width: 200px; max-width: 250px; word-wrap: break-word;"><?= esc($alamatLengkap) ?></td>
+                                                        <td style="min-width: 120px;"><?= esc($noHpEmailStr) ?></td>
+                                                        <td style="min-width: 120px;"><?= esc($santri['NamaAyah'] ?? '-') ?></td>
+                                                        <td style="min-width: 120px;"><?= esc($santri['NamaIbu'] ?? '-') ?></td>
+                                                        <td style="min-width: 100px;"><?= esc($santri['PekerjaanUtamaAyah'] ?? '-') ?></td>
+                                                        <td style="min-width: 100px;"><?= esc($santri['PekerjaanUtamaIbu'] ?? '-') ?></td>
+                                                        <td style="white-space: nowrap;"><?= esc($santri['NoHpAyah'] ?? '-') ?></td>
+                                                        <td style="white-space: nowrap;"><?= esc($santri['NoHpIbu'] ?? '-') ?></td>
+                                                        <td style="min-width: 120px;"><?= esc($santri['NamaTpq'] ?? '-') ?></td>
+                                                        <td style="white-space: nowrap;"><?= esc($santri['NamaKelas'] ?? '-') ?></td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>

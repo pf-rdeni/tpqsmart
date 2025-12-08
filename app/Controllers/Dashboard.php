@@ -21,12 +21,14 @@ class Dashboard extends BaseController
     protected $helpFunctionModel;
     protected $santriModel;
     protected $tabunganModel;
+    protected $db;
     
     public function __construct()
     {
         $this->helpFunctionModel = new HelpFunctionModel();
         $this->santriModel = new SantriModel();
         $this->tabunganModel = new TabunganModel();
+        $this->db = \Config\Database::connect();
     }
 
     private function getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $kelasList, $semester)
@@ -488,6 +490,11 @@ class Dashboard extends BaseController
             return redirect()->to(base_url('backend/sertifikasi/dashboardPanitiaSertifikasi') . $queryString);
         }
 
+        // Cek jika user adalah Santri, redirect ke dashboard santri
+        if (in_groups('Santri')) {
+            return redirect()->to(base_url('backend/dashboard/santri') . $queryString);
+        }
+
         // Cek jika user adalah Juri atau Panitia, redirect ke dashboard munaqosah
         if (in_groups('Juri') || in_groups('Panitia')) {
             return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah') . $queryString);
@@ -809,6 +816,307 @@ class Dashboard extends BaseController
         $data = array_merge($data, $userInfo);
 
         return view('backend/dashboard/dashboardAdmin', $data);
+    }
+
+    /**
+     * Dashboard untuk Santri
+     */
+    public function dashboardSantri()
+    {
+        // Cek apakah user adalah Santri
+        if (!in_groups('Santri')) {
+            return redirect()->to(base_url());
+        }
+
+        // Ambil NIK dari user yang login
+        $userNik = user()->nik ?? null;
+        if (empty($userNik)) {
+            return redirect()->to(base_url())->with('error', 'Data user tidak valid');
+        }
+
+        // Inisialisasi session tahun ajaran
+        $this->initSessionTahunAjaran();
+        
+        $idTahunAjaran = session()->get('IdTahunAjaran');
+        
+        // Ambil data santri berdasarkan NIK
+        $santriModel = new \App\Models\SantriBaruModel();
+        $santriData = $santriModel->getSantriByNik($userNik);
+        
+        if (empty($santriData)) {
+            return redirect()->to(base_url())->with('error', 'Data santri tidak ditemukan');
+        }
+
+        $idSantri = $santriData['IdSantri'];
+        $idTpq = $santriData['IdTpq'];
+        $idKelas = $santriData['IdKelas'] ?? null;
+
+        // Set session untuk santri
+        session()->set('IdSantri', $idSantri);
+        session()->set('IdTpq', $idTpq);
+        if ($idKelas) {
+            session()->set('IdKelas', $idKelas);
+        }
+
+        // Ambil data kelas dari tbl_kelas_santri untuk tahun ajaran saat ini
+        $kelasSantri = $this->db->table('tbl_kelas_santri ks')
+            ->select('ks.IdKelas, k.NamaKelas')
+            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner')
+            ->where('ks.IdSantri', $idSantri)
+            ->where('ks.IdTahunAjaran', $idTahunAjaran)
+            ->where('ks.Status', 1)
+            ->orderBy('k.NamaKelas', 'ASC')
+            ->get()
+            ->getRowArray();
+
+        // Jika ada kelas di tbl_kelas_santri, gunakan itu
+        if (!empty($kelasSantri)) {
+            $idKelas = $kelasSantri['IdKelas'];
+            $namaKelas = $kelasSantri['NamaKelas'];
+        } else {
+            // Fallback ke IdKelas dari tbl_santri_baru
+            $namaKelas = $santriData['NamaKelas'] ?? 'Tidak Ada Kelas';
+        }
+
+        // Ambil data dashboard
+        $data = $this->getSantriDashboardData($idSantri, $idTpq, $idKelas, $idTahunAjaran);
+        
+        // Tambahkan info user
+        $data['page_title'] = 'Dashboard Santri';
+        $data['NamaLogin'] = $santriData['NamaSantri'] ?? 'Santri';
+        $data['PeranLogin'] = 'Santri';
+        $data['IdSantri'] = $idSantri;
+        $data['IdTpq'] = $idTpq;
+        $data['IdKelas'] = $idKelas;
+        $data['NamaKelas'] = $namaKelas;
+        $data['TahunAjaran'] = $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran);
+
+        return view('backend/dashboard/dashboardSantri', $data);
+    }
+
+    /**
+     * Mengambil data dashboard untuk Santri
+     */
+    private function getSantriDashboardData($idSantri, $idTpq, $idKelas, $idTahunAjaran)
+    {
+        $data = [];
+        
+        // Ambil data profil santri lengkap
+        $santriModel = new \App\Models\SantriBaruModel();
+        $data['profilSantri'] = $santriModel->getProfilDetailSantri($idSantri);
+
+        // Ambil data nilai untuk semester Ganjil dan Genap
+        $nilaiModel = new \App\Models\NilaiModel();
+        $nilaiGanjil = $nilaiModel->getDataNilaiPerSantri($idTpq, $idTahunAjaran, $idKelas, $idSantri, 'Ganjil');
+        $nilaiGenap = $nilaiModel->getDataNilaiPerSantri($idTpq, $idTahunAjaran, $idKelas, $idSantri, 'Genap');
+        
+        // Tentukan semester saat ini berdasarkan bulan
+        // Semester Ganjil: Juli-Desember (bulan 7-12)
+        // Semester Genap: Januari-Juni (bulan 1-6)
+        $currentMonth = (int)date('m');
+        $semesterSaatIni = ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
+        
+        // Tentukan apakah tahun ajaran ini adalah tahun ajaran saat ini
+        $tahunAjaranSaatIni = $this->helpFunctionModel->getTahunAjaranSaatIni();
+        $isTahunAjaranSaatIni = ($idTahunAjaran == $tahunAjaranSaatIni);
+        
+        // Tentukan apakah harus hide semester
+        $hideGanjil = false;
+        $hideGenap = false;
+        
+        if ($isTahunAjaranSaatIni) {
+            // Jika tahun ajaran saat ini
+            if ($semesterSaatIni == 'Ganjil') {
+                // Semester saat ini Ganjil: hide Ganjil dan Genap
+                $hideGanjil = true;
+                $hideGenap = true;
+            } else {
+                // Semester saat ini Genap: hide Genap saja
+                $hideGanjil = false;
+                $hideGenap = true;
+            }
+        } else {
+            // Tahun ajaran sebelumnya: tampilkan semua
+            $hideGanjil = false;
+            $hideGenap = false;
+        }
+        
+        $data['nilaiGanjil'] = $nilaiGanjil;
+        $data['nilaiGenap'] = $nilaiGenap;
+        $data['hideGanjil'] = $hideGanjil;
+        $data['hideGenap'] = $hideGenap;
+        $data['semesterSaatIni'] = $semesterSaatIni;
+        $data['isTahunAjaranSaatIni'] = $isTahunAjaranSaatIni;
+
+        // Hitung rata-rata nilai per semester
+        $data['rataRataGanjil'] = $this->hitungRataRataNilaiSantri($nilaiGanjil);
+        $data['rataRataGenap'] = $this->hitungRataRataNilaiSantri($nilaiGenap);
+
+        // Ambil data absensi per semester
+        $absensiModel = new \App\Models\AbsensiModel();
+        $data['absensiGanjil'] = $this->getAbsensiSantriPerSemester($idSantri, $idTpq, $idKelas, $idTahunAjaran, 'Ganjil');
+        $data['absensiGenap'] = $this->getAbsensiSantriPerSemester($idSantri, $idTpq, $idKelas, $idTahunAjaran, 'Genap');
+
+        // Ambil data tabungan jika ada
+        $tabunganModel = new \App\Models\TabunganModel();
+        $data['tabungan'] = $this->getTabunganSantri($idSantri, $idTahunAjaran);
+
+        // Ambil data prestasi
+        $prestasiModel = new \App\Models\PrestasiModel();
+        $data['prestasi'] = $this->getPrestasiSantri($idSantri, $idTpq, $idTahunAjaran);
+
+        return $data;
+    }
+
+    /**
+     * Ambil data prestasi santri
+     */
+    private function getPrestasiSantri($idSantri, $idTpq, $idTahunAjaran)
+    {
+        $prestasiModel = new \App\Models\PrestasiModel();
+        
+        // Ambil semua prestasi
+        $allPrestasi = $prestasiModel
+            ->select('tbl_prestasi.*, tbl_materi_pelajaran.NamaMateri, tbl_materi_pelajaran.Kategori')
+            ->join('tbl_materi_pelajaran', 'tbl_prestasi.IdMateriPelajaran = tbl_materi_pelajaran.IdMateri')
+            ->where('tbl_prestasi.IdSantri', $idSantri)
+            ->where('tbl_prestasi.IdTpq', $idTpq)
+            ->orderBy('tbl_prestasi.updated_at', 'DESC')
+            ->orderBy('tbl_prestasi.Tanggal', 'DESC')
+            ->findAll();
+
+        // Ambil prestasi terbaru (5 terakhir)
+        $prestasiTerbaru = array_slice($allPrestasi, 0, 5);
+
+        // Hitung statistik
+        $totalPrestasi = count($allPrestasi);
+        $prestasiByJenis = [];
+        foreach ($allPrestasi as $prestasi) {
+            $jenis = $prestasi['JenisPrestasi'] ?? 'Lainnya';
+            if (!isset($prestasiByJenis[$jenis])) {
+                $prestasiByJenis[$jenis] = 0;
+            }
+            $prestasiByJenis[$jenis]++;
+        }
+
+        return [
+            'total' => $totalPrestasi,
+            'terbaru' => $prestasiTerbaru,
+            'byJenis' => $prestasiByJenis
+        ];
+    }
+
+    /**
+     * Hitung rata-rata nilai santri
+     */
+    private function hitungRataRataNilaiSantri($nilaiData)
+    {
+        if (empty($nilaiData)) {
+            return 0;
+        }
+
+        $total = 0;
+        $count = 0;
+        
+        foreach ($nilaiData as $nilai) {
+            $nilaiValue = is_object($nilai) ? ($nilai->Nilai ?? 0) : ($nilai['Nilai'] ?? 0);
+            if ($nilaiValue > 0) {
+                $total += $nilaiValue;
+                $count++;
+            }
+        }
+
+        return $count > 0 ? round($total / $count, 2) : 0;
+    }
+
+    /**
+     * Ambil data absensi santri per semester
+     */
+    private function getAbsensiSantriPerSemester($idSantri, $idTpq, $idKelas, $idTahunAjaran, $semester)
+    {
+        // Tentukan tanggal awal dan akhir berdasarkan semester
+        $tahunAwal = substr($idTahunAjaran, 0, 4);
+        $tahunAkhir = substr($idTahunAjaran, 4, 4);
+
+        if ($semester === 'Ganjil') {
+            $startDate = $tahunAwal . '-07-01';
+            $endDate = $tahunAwal . '-12-31';
+        } else {
+            $startDate = $tahunAkhir . '-01-01';
+            $endDate = $tahunAkhir . '-06-30';
+        }
+
+        $absensiModel = new \App\Models\AbsensiModel();
+        $absensiData = $absensiModel
+            ->where('IdSantri', $idSantri)
+            ->where('IdTpq', $idTpq)
+            ->where('IdKelas', $idKelas)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('Tanggal >=', $startDate)
+            ->where('Tanggal <=', $endDate)
+            ->findAll();
+
+        $statistik = [
+            'hadir' => 0,
+            'izin' => 0,
+            'sakit' => 0,
+            'alfa' => 0,
+            'total' => count($absensiData)
+        ];
+
+        foreach ($absensiData as $absensi) {
+            $kehadiran = strtolower(trim($absensi['Kehadiran'] ?? ''));
+            if ($kehadiran === 'hadir') {
+                $statistik['hadir']++;
+            } elseif ($kehadiran === 'izin') {
+                $statistik['izin']++;
+            } elseif ($kehadiran === 'sakit') {
+                $statistik['sakit']++;
+            } elseif ($kehadiran === 'alfa') {
+                $statistik['alfa']++;
+            }
+        }
+
+        // Hitung persentase
+        if ($statistik['total'] > 0) {
+            $statistik['persenHadir'] = round(($statistik['hadir'] / $statistik['total']) * 100, 1);
+            $statistik['persenIzin'] = round(($statistik['izin'] / $statistik['total']) * 100, 1);
+            $statistik['persenSakit'] = round(($statistik['sakit'] / $statistik['total']) * 100, 1);
+            $statistik['persenAlfa'] = round(($statistik['alfa'] / $statistik['total']) * 100, 1);
+        } else {
+            $statistik['persenHadir'] = 0;
+            $statistik['persenIzin'] = 0;
+            $statistik['persenSakit'] = 0;
+            $statistik['persenAlfa'] = 0;
+        }
+
+        return $statistik;
+    }
+
+    /**
+     * Ambil data tabungan santri
+     */
+    private function getTabunganSantri($idSantri, $idTahunAjaran)
+    {
+        $tabunganModel = new \App\Models\TabunganModel();
+        
+        // Hitung saldo menggunakan method yang ada (semua transaksi, tidak hanya tahun ajaran tertentu)
+        $saldo = $tabunganModel->calculateBalance($idSantri);
+        
+        // Ambil transaksi terbaru untuk tahun ajaran saat ini
+        $builder = $tabunganModel->where('IdSantri', $idSantri);
+        if (!empty($idTahunAjaran)) {
+            $builder->where('IdTahunAjaran', $idTahunAjaran);
+        }
+        $transaksi = $builder->orderBy('TanggalTransaksi', 'DESC')
+            ->orderBy('CreatedAt', 'DESC')
+            ->limit(10)
+            ->findAll();
+
+        return [
+            'saldo' => $saldo ?? 0,
+            'transaksi' => $transaksi ?? []
+        ];
     }
 
     /**

@@ -1251,4 +1251,248 @@ class Absensi extends BaseController
             ]);
         }
     }
+
+    /**
+     * Menampilkan detail absensi untuk user Santri dengan grafik
+     */
+    public function showAbsensiSantri()
+    {
+        // Cek apakah user adalah Santri
+        if (!in_groups('Santri')) {
+            return redirect()->to(base_url())->with('error', 'Akses ditolak');
+        }
+
+        // Ambil NIK dari user yang login
+        $userNik = user()->nik ?? null;
+        if (empty($userNik)) {
+            return redirect()->to(base_url())->with('error', 'Data user tidak valid');
+        }
+
+        // Ambil data santri berdasarkan NIK
+        $santriModel = new \App\Models\SantriBaruModel();
+        $santriData = $santriModel->getSantriByNik($userNik);
+        
+        if (empty($santriData)) {
+            return redirect()->to(base_url())->with('error', 'Data santri tidak ditemukan');
+        }
+
+        $IdSantri = $santriData['IdSantri'];
+        $IdTpq = $santriData['IdTpq'];
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+        // Ambil kelas dari tbl_kelas_santri
+        $db = db_connect();
+        $kelasSantri = $db->table('tbl_kelas_santri ks')
+            ->select('ks.IdKelas, k.NamaKelas')
+            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner')
+            ->where('ks.IdSantri', $IdSantri)
+            ->where('ks.IdTahunAjaran', $IdTahunAjaran)
+            ->where('ks.Status', 1)
+            ->orderBy('k.NamaKelas', 'ASC')
+            ->get()
+            ->getRowArray();
+
+        $IdKelas = $kelasSantri['IdKelas'] ?? $santriData['IdKelas'] ?? null;
+
+        // Ambil data absensi per semester
+        $absensiModel = new AbsensiModel();
+        $absensiGanjil = $this->getAbsensiSantriPerSemester($IdSantri, $IdTpq, $IdKelas, $IdTahunAjaran, 'Ganjil');
+        $absensiGenap = $this->getAbsensiSantriPerSemester($IdSantri, $IdTpq, $IdKelas, $IdTahunAjaran, 'Genap');
+
+        // Ambil data absensi per bulan untuk grafik (2 bulan terakhir)
+        $absensiPerBulan = [];
+        for ($i = 1; $i >= 0; $i--) {
+            $bulan = date('Y-m', strtotime("-$i month"));
+            $startDate = date('Y-m-01', strtotime("-$i month"));
+            $endDate = date('Y-m-t', strtotime("-$i month"));
+            
+            $builder = $db->table('tbl_absensi_santri');
+            $builder->select('Kehadiran, COUNT(*) as jumlah')
+                ->where('IdSantri', $IdSantri)
+                ->where('IdTpq', $IdTpq)
+                ->where('Tanggal >=', $startDate)
+                ->where('Tanggal <=', $endDate)
+                ->groupBy('Kehadiran');
+            
+            $bulanData = $builder->get()->getResultArray();
+            $absensiPerBulan[$bulan] = [
+                'Hadir' => 0,
+                'Izin' => 0,
+                'Sakit' => 0,
+                'Alfa' => 0
+            ];
+            
+            foreach ($bulanData as $row) {
+                $absensiPerBulan[$bulan][$row['Kehadiran']] = (int)$row['jumlah'];
+            }
+        }
+
+        // Ambil history absensi santri dengan data kelas, tahun ajaran, dan guru
+        $historyAbsensi = $db->table('tbl_absensi_santri a')
+            ->select('a.Tanggal, a.Kehadiran, a.Keterangan, a.IdTahunAjaran, k.NamaKelas, g.Nama as NamaGuru, g.JenisKelamin as JenisKelaminGuru')
+            ->join('tbl_kelas k', 'k.IdKelas = a.IdKelas', 'left')
+            ->join('tbl_guru g', 'g.IdGuru = a.IdGuru', 'left')
+            ->where('a.IdSantri', $IdSantri)
+            ->where('a.IdTahunAjaran', $IdTahunAjaran)
+            ->orderBy('a.Tanggal', 'DESC')
+            ->get()
+            ->getResultArray();
+        
+        // Tambahkan informasi semester dan format nama guru untuk setiap record
+        foreach ($historyAbsensi as &$absensi) {
+            // Hitung semester berdasarkan bulan tanggal
+            if (!empty($absensi['Tanggal'])) {
+                $bulan = (int)date('m', strtotime($absensi['Tanggal']));
+                $absensi['Semester'] = ($bulan >= 7 && $bulan <= 12) ? 'Ganjil' : 'Genap';
+            } else {
+                $absensi['Semester'] = '-';
+            }
+            
+            // Format tahun ajaran
+            if (!empty($absensi['IdTahunAjaran'])) {
+                $tahunAjaranStr = (string)$absensi['IdTahunAjaran'];
+                if (strlen($tahunAjaranStr) == 8 && is_numeric($tahunAjaranStr)) {
+                    // Format: 20242025
+                    $tahunAwal = substr($tahunAjaranStr, 0, 4);
+                    $tahunAkhir = substr($tahunAjaranStr, 4, 4);
+                    $absensi['TahunAjaran'] = $tahunAwal . '/' . $tahunAkhir;
+                } elseif (strpos($tahunAjaranStr, '/') !== false || strpos($tahunAjaranStr, '-') !== false) {
+                    // Format sudah ada separator
+                    $absensi['TahunAjaran'] = $tahunAjaranStr;
+                } else {
+                    $absensi['TahunAjaran'] = $tahunAjaranStr;
+                }
+            } else {
+                $absensi['TahunAjaran'] = '-';
+            }
+            
+            // Format nama guru dengan prefix Ustad/Ustadzah
+            if (!empty($absensi['NamaGuru'])) {
+                $namaGuru = ucwords(strtolower($absensi['NamaGuru']));
+                $jenisKelamin = strtolower($absensi['JenisKelaminGuru'] ?? '');
+                
+                // Tambahkan prefix berdasarkan jenis kelamin
+                if (stripos($jenisKelamin, 'l') === 0 || stripos($jenisKelamin, 'laki') !== false) {
+                    $absensi['NamaGuruFormatted'] = 'Ustad ' . $namaGuru;
+                } elseif (stripos($jenisKelamin, 'p') === 0 || stripos($jenisKelamin, 'perempuan') !== false) {
+                    $absensi['NamaGuruFormatted'] = 'Ustadzah ' . $namaGuru;
+                } else {
+                    $absensi['NamaGuruFormatted'] = $namaGuru;
+                }
+            } else {
+                $absensi['NamaGuruFormatted'] = '-';
+            }
+        }
+        unset($absensi); // Unset reference
+
+        $data = [
+            'page_title' => 'Detail Absensi',
+            'santri' => $santriData,
+            'absensiGanjil' => $absensiGanjil,
+            'absensiGenap' => $absensiGenap,
+            'absensiPerBulan' => $absensiPerBulan,
+            'historyAbsensi' => $historyAbsensi,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'NamaKelas' => $kelasSantri['NamaKelas'] ?? $santriData['NamaKelas'] ?? '',
+        ];
+
+        return view('backend/absensi/absensiSantriDetail', $data);
+    }
+
+    /**
+     * Helper method untuk mendapatkan absensi santri per semester
+     */
+    private function getAbsensiSantriPerSemester($IdSantri, $IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        // Tentukan rentang tanggal berdasarkan semester
+        // Format IdTahunAjaran bisa: "2024/2025", "2024-2025", atau "20242025"
+        $tahunAjaranStr = is_numeric($IdTahunAjaran) ? (string)$IdTahunAjaran : $IdTahunAjaran;
+        
+        // Parse tahun ajaran
+        if (strpos($tahunAjaranStr, '/') !== false || strpos($tahunAjaranStr, '-') !== false) {
+            $tahunAjaranParts = preg_split('/[\/\-]/', $tahunAjaranStr);
+            $tahunAwal = isset($tahunAjaranParts[0]) ? (int)trim($tahunAjaranParts[0]) : (int)date('Y');
+            $tahunAkhir = isset($tahunAjaranParts[1]) ? (int)trim($tahunAjaranParts[1]) : ($tahunAwal + 1);
+        } elseif (strlen($tahunAjaranStr) == 8 && is_numeric($tahunAjaranStr)) {
+            // Format: "20242025"
+            $tahunAwal = (int)substr($tahunAjaranStr, 0, 4);
+            $tahunAkhir = (int)substr($tahunAjaranStr, 4, 4);
+        } else {
+            // Fallback: gunakan tahun saat ini
+            $currentYear = (int)date('Y');
+            $currentMonth = (int)date('m');
+            if ($currentMonth >= 7) {
+                $tahunAwal = $currentYear;
+                $tahunAkhir = $currentYear + 1;
+            } else {
+                $tahunAwal = $currentYear - 1;
+                $tahunAkhir = $currentYear;
+            }
+        }
+        
+        // Tentukan rentang tanggal berdasarkan semester
+        if ($semester === 'Ganjil') {
+            // Semester Ganjil: Juli-Desember (tahun awal)
+            $startDate = $tahunAwal . '-07-01';
+            $endDate = $tahunAwal . '-12-31';
+        } else {
+            // Semester Genap: Januari-Juni (tahun akhir)
+            $startDate = $tahunAkhir . '-01-01';
+            $endDate = $tahunAkhir . '-06-30';
+        }
+        
+        $db = db_connect();
+        $builder = $db->table('tbl_absensi_santri');
+        
+        $builder->select('
+            SUM(CASE WHEN Kehadiran = "Hadir" THEN 1 ELSE 0 END) as hadir,
+            SUM(CASE WHEN Kehadiran = "Izin" THEN 1 ELSE 0 END) as izin,
+            SUM(CASE WHEN Kehadiran = "Sakit" THEN 1 ELSE 0 END) as sakit,
+            SUM(CASE WHEN Kehadiran = "Alfa" THEN 1 ELSE 0 END) as alfa,
+            COUNT(*) as total
+        ')
+        ->where('IdSantri', $IdSantri)
+        ->where('IdTpq', $IdTpq)
+        ->where('IdTahunAjaran', $IdTahunAjaran)
+        ->where('Tanggal >=', $startDate)
+        ->where('Tanggal <=', $endDate);
+
+        if ($IdKelas) {
+            $builder->where('IdKelas', $IdKelas);
+        }
+
+        $result = $builder->get()->getRowArray();
+        
+        if (empty($result)) {
+            return [
+                'hadir' => 0,
+                'izin' => 0,
+                'sakit' => 0,
+                'alfa' => 0,
+                'total' => 0,
+                'persenHadir' => 0,
+                'persenIzin' => 0,
+                'persenSakit' => 0,
+                'persenAlfa' => 0
+            ];
+        }
+
+        $total = (int)($result['total'] ?? 0);
+        $hadir = (int)($result['hadir'] ?? 0);
+        $izin = (int)($result['izin'] ?? 0);
+        $sakit = (int)($result['sakit'] ?? 0);
+        $alfa = (int)($result['alfa'] ?? 0);
+
+        return [
+            'hadir' => $hadir,
+            'izin' => $izin,
+            'sakit' => $sakit,
+            'alfa' => $alfa,
+            'total' => $total,
+            'persenHadir' => $total > 0 ? round(($hadir / $total) * 100, 1) : 0,
+            'persenIzin' => $total > 0 ? round(($izin / $total) * 100, 1) : 0,
+            'persenSakit' => $total > 0 ? round(($sakit / $total) * 100, 1) : 0,
+            'persenAlfa' => $total > 0 ? round(($alfa / $total) * 100, 1) : 0
+        ];
+    }
 }

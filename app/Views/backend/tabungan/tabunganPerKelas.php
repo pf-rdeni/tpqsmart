@@ -5,99 +5,189 @@
     <?php echo session()->getFlashdata('pesan'); ?>
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">List Santri</h3>
+            <h3 class="card-title">Tabungan Santri Per Kelas</h3>
             <h3 class="card-title float-right bg-success text-white p-2 rounded">
-                Total Saldo: Rp. <?= number_format(array_sum(array_column($dataSantri, 'Balance')), 0, ',', '.'); ?>
+                Total Saldo: Rp. <?= number_format($totalSaldoKeseluruhan ?? 0, 0, ',', '.'); ?>
             </h3>
         </div>
         <div class="card-body">
-            <table id="tabelListTabunganSantri" class="table table-bordered table-striped">
-                <thead>
-                    <?php
-                    echo $tableHeaderFooter = '
-                    <tr>
-                    <th>Aksi</th>
-                    <th>Nama Santri</th>
-                    <th>Tingkat Kelas</th>
-                    <th>Saldo</th>
-                    </tr>
-                    ';
-                    ?>
-                </thead>
-                <tbody>
-                    <?php foreach ($dataSantri as $santri) : ?>
-                        <tr>
-                            <td>
-                                <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#TransaksiTabungan<?= $santri->IdSantri ?>">Transaksi <i class="fas fa-edit"></i></button>
-                                <a href="<?= base_url('backend/tabungan/showMutasi/' . $santri->IdSantri . '/' . $santri->IdTahunAjaran) ?>" class="btn btn-primary btn-sm"> Mutasi&nbsp;&nbsp;<i class="fas fa-eye"></i></a>
-                            </td>
-                            <td><?php echo $santri->NamaSantri; ?></td>
-                            <td><?php echo $santri->NamaKelas; ?></td>
-                            <td><?php echo 'Rp. ' . number_format($santri->Balance, 0, ',', '.'); ?></td>
-                        </tr>
-                    <?php endforeach ?>
-                </tbody>
-                <tfoot>
-                    <?= $tableHeaderFooter ?>
-                </tfoot>
-            </table>
+            <?php if (empty($dataSantriPerKelas)): ?>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Belum ada data tabungan santri.
+                </div>
+            <?php else: ?>
+                <!-- Tabs untuk setiap kelas -->
+                <div class="card card-primary card-outline card-tabs">
+                    <div class="card-header p-0 pt-1 border-bottom-0">
+                        <ul class="nav nav-tabs" id="kelas-tabs" role="tablist">
+                            <?php $tabIndex = 0;
+                            foreach ($dataSantriPerKelas as $kelasData): ?>
+                                <li class="nav-item">
+                                    <a class="nav-link <?= $tabIndex === 0 ? 'active' : '' ?>"
+                                        id="kelas-<?= $kelasData['IdKelas'] ?>-tab"
+                                        data-toggle="tab"
+                                        href="#kelas-<?= $kelasData['IdKelas'] ?>"
+                                        role="tab"
+                                        aria-controls="kelas-<?= $kelasData['IdKelas'] ?>"
+                                        aria-selected="<?= $tabIndex === 0 ? 'true' : 'false' ?>">
+                                        <?= esc($kelasData['NamaKelas']) ?>
+                                        <span class="badge badge-info ml-1"><?= count($kelasData['santri']) ?></span>
+                                    </a>
+                                </li>
+                            <?php $tabIndex++;
+                            endforeach; ?>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="kelas-tab-content">
+                            <?php $tabIndex = 0;
+                            foreach ($dataSantriPerKelas as $kelasData): ?>
+                                <div class="tab-pane fade <?= $tabIndex === 0 ? 'show active' : '' ?>"
+                                    id="kelas-<?= $kelasData['IdKelas'] ?>"
+                                    role="tabpanel"
+                                    aria-labelledby="kelas-<?= $kelasData['IdKelas'] ?>-tab">
+
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <div class="alert alert-info">
+                                                <strong>Kelas:</strong> <?= esc($kelasData['NamaKelas']) ?> |
+                                                <strong>Total Santri:</strong> <?= count($kelasData['santri']) ?> |
+                                                <strong>Total Saldo Kelas:</strong> Rp. <?= number_format($kelasData['totalSaldo'], 0, ',', '.') ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <table id="tabelListTabunganSantri-<?= $kelasData['IdKelas'] ?>" class="table table-bordered table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Aksi</th>
+                                                <th>Nama Santri</th>
+                                                <th>Tingkat Kelas</th>
+                                                <th>Saldo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($kelasData['santri'] as $santri) : ?>
+                                                <tr>
+                                                    <td>
+                                                        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#TransaksiTabungan<?= $santri->IdSantri ?>">Transaksi <i class="fas fa-edit"></i></button>
+                                                        <a href="<?= base_url('backend/tabungan/showMutasi/' . $santri->IdSantri . '/' . $santri->IdTahunAjaran) ?>" class="btn btn-primary btn-sm"> Mutasi&nbsp;&nbsp;<i class="fas fa-eye"></i></a>
+                                                    </td>
+                                                    <td><?php echo esc($santri->NamaSantri); ?></td>
+                                                    <td><?php echo esc($santri->NamaKelas); ?></td>
+                                                    <td><?php echo 'Rp. ' . number_format($santri->Balance ?? 0, 0, ',', '.'); ?></td>
+                                                </tr>
+                                            <?php endforeach ?>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <th colspan="3" class="text-right">Total Saldo Kelas:</th>
+                                                <th>Rp. <?= number_format($kelasData['totalSaldo'], 0, ',', '.') ?></th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            <?php $tabIndex++;
+                            endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
 <!-- Modal Transaksi Tabungan-->
-<?php foreach ($dataSantri as $santri) : ?>
-    <div class="modal fade" id="TransaksiTabungan<?= $santri->IdSantri ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-white">
-                    <h5 class="modal-title" id="exampleModalLabel">Tabungan Santri</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form action="/backend/tabungan/create" method="post">
-                        <input type="hidden" id="IdTahunAjaran" name="IdTahunAjaran" value="<?= $santri->IdTahunAjaran ?>">
-                        <input type="hidden" id="IdSantri" name="IdSantri" value="<?= $santri->IdSantri ?>">
-                        <input type="hidden" id="IdKelas" name="IdKelas" value="<?= $santri->IdKelas ?>">
-                        <input type="hidden" id="IdTpq" name="IdTpq" value="<?= $santri->IdTpq ?>">
-                        <input type="hidden" id="IdGuru" name="IdGuru" value="<?= $santri->IdGuru ?>">
-                        <div class="form-group">
-                            <label for="NamaSantri">Nama Santri</label>
-                            <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->NamaSantri, ENT_QUOTES, 'UTF-8'); ?>" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label for="JenisTransaksi">JenisTransaksi</label>
-                            <select class="form-control" id="JenisTransaksi" name="JenisTransaksi" required onchange="updateNominal(this)">
-                                <option value="">-- Pilih JenisTransaksi --</option>
-                                <option value="Setoran">Setoran</option>
-                                <option value="Penarikan">Penarikan</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="Nominal">Nominal</label>
-                            <input type="text" class="form-control" id="Nominal<?= $santri->IdSantri ?>" name="Nominal" placeholder="Masukan Nominal" required oninput="formatRupiah(this); updateTerbilang(this)" min="100" max="1000000">
-                            <input type="text" class="form-control" id="Terbilang<?= $santri->IdSantri ?>" name="Terbilang" placeholder="Terbilang" readonly>
-                        </div>
-                        <!-- Added Keterangan field -->
-                        <div class="form-group">
-                            <label for="Keterangan">Keterangan</label>
-                            <textarea class="form-control" id="Keterangan<?= $santri->IdSantri ?>" name="Keterangan" placeholder="Masukan keterangan"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    </form>
+<?php foreach ($dataSantriPerKelas as $kelasData): ?>
+    <?php foreach ($kelasData['santri'] as $santri) : ?>
+        <div class="modal fade" id="TransaksiTabungan<?= $santri->IdSantri ?>" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" data-backdrop="static" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-white">
+                        <h5 class="modal-title" id="exampleModalLabel">Tabungan Santri</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="/backend/tabungan/create" method="post">
+                            <input type="hidden" id="IdTahunAjaran" name="IdTahunAjaran" value="<?= $santri->IdTahunAjaran ?>">
+                            <input type="hidden" id="IdSantri" name="IdSantri" value="<?= $santri->IdSantri ?>">
+                            <input type="hidden" id="IdKelas" name="IdKelas" value="<?= $santri->IdKelas ?>">
+                            <input type="hidden" id="IdTpq" name="IdTpq" value="<?= $santri->IdTpq ?>">
+                            <input type="hidden" id="IdGuru" name="IdGuru" value="<?= $santri->IdGuru ?? '' ?>">
+                            <div class="form-group">
+                                <label for="NamaSantri">Nama Santri</label>
+                                <input type="text" class="form-control" id="NamaSantri" name="NamaSantri" value="<?= htmlspecialchars($santri->NamaSantri, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="JenisTransaksi">JenisTransaksi</label>
+                                <select class="form-control" id="JenisTransaksi" name="JenisTransaksi" required onchange="updateNominal(this)">
+                                    <option value="">-- Pilih JenisTransaksi --</option>
+                                    <option value="Setoran">Setoran</option>
+                                    <option value="Penarikan">Penarikan</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="Nominal">Nominal</label>
+                                <input type="text" class="form-control" id="Nominal<?= $santri->IdSantri ?>" name="Nominal" placeholder="Masukan Nominal" required oninput="formatRupiah(this); updateTerbilang(this)" min="100" max="1000000">
+                                <input type="text" class="form-control" id="Terbilang<?= $santri->IdSantri ?>" name="Terbilang" placeholder="Terbilang" readonly>
+                            </div>
+                            <!-- Added Keterangan field -->
+                            <div class="form-group">
+                                <label for="Keterangan">Keterangan</label>
+                                <textarea class="form-control" id="Keterangan<?= $santri->IdSantri ?>" name="Keterangan" placeholder="Masukan keterangan"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    <?php endforeach ?>
 <?php endforeach ?>
+
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
 <script>
-    //datatable umum
-    initializeDataTableUmum("#tabelListTabunganSantri", true, true);
+    // Object untuk menyimpan instance DataTable
+    var dataTables = {};
+
+    // Function untuk menginisialisasi DataTable dengan pengecekan
+    function initDataTableForKelas(kelasId) {
+        var selector = "#tabelListTabunganSantri-" + kelasId;
+
+        // Cek apakah DataTable sudah ada
+        if ($.fn.DataTable.isDataTable(selector)) {
+            // Destroy DataTable yang sudah ada
+            $(selector).DataTable().destroy();
+        }
+
+        // Inisialisasi DataTable baru
+        dataTables[kelasId] = initializeDataTableUmum(selector, true, true);
+    }
+
+    // Initialize DataTable untuk tab pertama (aktif)
+    <?php
+    if (!empty($dataSantriPerKelas)):
+        $firstKelas = reset($dataSantriPerKelas);
+    ?>
+        $(document).ready(function() {
+            initDataTableForKelas('<?= $firstKelas['IdKelas'] ?>');
+        });
+    <?php endif; ?>
+
+    // Initialize DataTable untuk tab lain saat tab diaktifkan
+    $('#kelas-tabs a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+        var target = $(e.target).attr("href"); // mendapatkan href dari tab yang aktif
+        var kelasId = target.replace('#kelas-', ''); // extract kelas ID dari href
+
+        // Inisialisasi DataTable jika belum diinisialisasi
+        if (!dataTables[kelasId]) {
+            initDataTableForKelas(kelasId);
+        }
+    });
 
     function updateNominal(selectElement) {
         var kategori = selectElement.value;
@@ -131,7 +221,7 @@
         var nominalInput = modal.find('[id^=Nominal]');
         var terbilangInput = modal.find('[id^=Terbilang]');
         var value = nominalInput.val().replace(/[^,\d]/g, '').toString();
-        var nominal = parseInt(value.replace('Rp. ', '').replace('.', '').replace(',', ''), 10); // Get numeric value
+        var nominal = parseInt(value.replace('Rp. ', '').replace(/\./g, '').replace(',', ''), 10); // Get numeric value
 
         terbilangInput.val(terbilang(nominal) + ' Rupiah');
     }

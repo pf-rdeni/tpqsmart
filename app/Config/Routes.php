@@ -42,6 +42,7 @@ $routes->get('backend/dashboard/guru', 'Dashboard::dashboardGuru');
 $routes->get('backend/dashboard/operator', 'Dashboard::dashboardOperator');
 $routes->get('backend/dashboard/kepala-tpq', 'Dashboard::dashboardKepalaTpq');
 $routes->get('backend/dashboard/admin', 'Dashboard::dashboardAdmin');
+$routes->get('backend/dashboard/santri', 'Dashboard::dashboardSantri');
 $routes->post('dashboard/updateTahunAjaranDanKelas', 'Dashboard::updateTahunAjaranDanKelas');
 //$routes->get('/', 'Backend\Pages::index');
 //$routes->get('/', 'Frontend\Home::index');
@@ -100,7 +101,8 @@ $routes->post('backend/mda/uploadKop', 'Backend\Mda::uploadKop');
 
 //Table Nilai
 $routes->get('nilai/showDetail/(:num)/(:num)', 'Nilai::showDetail/$1/$2');
-$routes->get('nilai/showNilaiProfilDetail/(:any)', 'Nilai::showNilaiProfilDetail/$1');
+$routes->get('backend/nilai/showNilaiProfilDetail', 'Backend\Nilai::showNilaiProfilDetail');
+$routes->get('backend/nilai/showNilaiProfilDetail/(:any)', 'Backend\Nilai::showNilaiProfilDetail/$1');
 
 //Table Kelas
 $routes->get('kelas', 'Kelas::index');             // List all records (Read)
@@ -225,6 +227,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
 
     // Profil Santri
     $routes->get('santri/showProfilSantri', 'Santri::showProfilSantri');
+    $routes->get('santri/detailProfilSantri', 'Santri::detailProfilSantri');
     $routes->get('santri/generatePDFprofilSantriRaport/(:segment)', 'Santri::generatePDFprofilSantriRaport/$1');
     $routes->get('santri/generatePDFAllProfilSantri', 'Santri::generatePDFAllProfilSantri');
     $routes->post('santri/ttdBulkKepsekProfil', 'Santri::ttdBulkKepsekProfil');

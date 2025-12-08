@@ -12,9 +12,6 @@
             <a href=<?php echo base_url('backend/pages/profil') ?> class="nav-link">Profil</a>
         </li>
         <li class="nav-item d-none d-md-inline-block">
-            <a href=<?php echo base_url('backend/pages/help') ?> class="nav-link">Help</a>
-        </li>
-        <li class="nav-item d-none d-md-inline-block">
             <a href=<?php echo base_url('backend/pages/contact') ?> class="nav-link">Contact</a>
         </li>
         <!-- Dropdown menu untuk mobile (hanya muncul di mobile) -->
@@ -28,9 +25,6 @@
                 </a>
                 <a href=<?php echo base_url('backend/pages/profil') ?> class="dropdown-item">
                     <i class="fas fa-user mr-2"></i> Profil
-                </a>
-                <a href=<?php echo base_url('backend/pages/help') ?> class="dropdown-item">
-                    <i class="fas fa-question-circle mr-2"></i> Help
                 </a>
                 <a href=<?php echo base_url('backend/pages/contact') ?> class="dropdown-item">
                     <i class="fas fa-envelope mr-2"></i> Contact

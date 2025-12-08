@@ -23,10 +23,18 @@ class User extends BaseController
     {
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
-        $userData = $this->userModel->getAllUserData();
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
 
-        // Mengecek setiap user data untuk password default
-        foreach ($userData as &$user) {
+        // Jika IdTahunAjaran tidak ada, ambil tahun ajaran saat ini
+        if (!$IdTahunAjaran) {
+            $IdTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        }
+
+        // Ambil data user Guru
+        $userDataGuru = $this->userModel->getUserDataGuru($IdTpq);
+
+        // Mengecek setiap user data guru untuk password default
+        foreach ($userDataGuru as &$user) {
             // Verifikasi apakah password_hash cocok dengan 'TpqSmart123'
             if (Password::verify('TpqSmart123', $user['password_hash'])) {
                 $user['password_hash'] = 'TpqSmart123';
@@ -37,26 +45,88 @@ class User extends BaseController
             }
         }
 
+        // Ambil data santri per kelas dari tbl_kelas_santri
+        $userDataSantriPerKelas = $this->userModel->getUserDataSantriPerKelas($IdTpq, $IdTahunAjaran);
+
+        // Mengecek setiap user data santri untuk password default
+        // Ambil 3 digit terakhir dari IdTpq
+        $IdTpqStr = (string)($IdTpq ?? 0);
+        $IdTpqLast3 = strlen($IdTpqStr) > 3 ? substr($IdTpqStr, -3) : str_pad($IdTpqStr, 3, '0', STR_PAD_LEFT);
+        $defaultPasswordSantri = 'SmartSantriTpq' . $IdTpqLast3;
+
+        foreach ($userDataSantriPerKelas as $kelas => &$kelasData) {
+            // Pastikan $kelasData adalah array dan memiliki key 'users'
+            if (is_array($kelasData) && isset($kelasData['users']) && is_array($kelasData['users'])) {
+                foreach ($kelasData['users'] as &$user) {
+                    // Pastikan $user adalah array dan memiliki key 'password_hash'
+                    if (is_array($user) && isset($user['password_hash'])) {
+                        // Verifikasi apakah password_hash cocok dengan password default santri
+                        if (Password::verify($defaultPasswordSantri, $user['password_hash'])) {
+                            $user['password_hash'] = $defaultPasswordSantri;
+                        }
+                        // Jika tidak cocok, cek password default guru
+                        elseif (Password::verify('TpqSmart123', $user['password_hash'])) {
+                            $user['password_hash'] = 'TpqSmart123';
+                        }
+                        // Jika tidak cocok, biarkan password_hash terenkripsi
+                        else {
+                            $user['password_hash'] = '********';
+                        }
+                    }
+                }
+            }
+        }
+
+        // Ambil data kelas untuk tab
+        $dataKelas = $this->userModel->getKelasWithSantri($IdTpq, $IdTahunAjaran);
+
         $dataGuru = $this->helpFunction->getDataGuru(IdTpq: $IdTpq);
 
         $dataAutGroups = $this->helpFunction->getDataAuthGoups();
 
-        // jika IdTpq ada $dataAutGroup filter hanya diambil 'name' => 'Guru'
+        // jika IdTpq ada $dataAutGroup filter hanya diambil 'name' => 'Guru' atau 'Santri'
         if ($IdTpq) {
             $dataAutGroups = array_filter($dataAutGroups, function ($group) {
-                return $group['name'] == 'Guru';
+                return in_array($group['name'], ['Guru', 'Santri']);
             });
         }
+
+        // Ambil data santri untuk dropdown (tanpa filter kelas, untuk create user)
+        $dataSantri = $this->userModel->getSantriForUserCreation($IdTpq, $IdTahunAjaran);
+
+        // Ambil data kelas yang memiliki santri tanpa user account untuk dropdown
+        $dataKelasForDropdown = $this->userModel->getKelasForSantriUserCreation($IdTpq, $IdTahunAjaran);
 
         // Cek apakah user yang login adalah Admin
         $isAdmin = in_groups('Admin');
 
+        // Group data santri berdasarkan kelas untuk JavaScript
+        $dataSantriGrouped = [];
+        foreach ($dataSantri as $santri) {
+            $idKelas = $santri['IdKelas'];
+            if (!isset($dataSantriGrouped[$idKelas])) {
+                $dataSantriGrouped[$idKelas] = [
+                    'IdKelas' => $idKelas,
+                    'NamaKelas' => $santri['NamaKelas'],
+                    'santri' => []
+                ];
+            }
+            $dataSantriGrouped[$idKelas]['santri'][] = $santri;
+        }
+
         $data = [
             'page_title' => 'Data User',
-            'userData' => $userData,
+            'userDataGuru' => $userDataGuru,
+            'userDataSantriPerKelas' => $userDataSantriPerKelas,
+            'dataKelas' => $dataKelas,
             'dataGuru' => $dataGuru,
+            'dataSantri' => $dataSantri,
+            'dataSantriGrouped' => $dataSantriGrouped,
+            'dataKelasForDropdown' => $dataKelasForDropdown,
             'dataAuthGroups' => $dataAutGroups,
-            'isAdmin' => $isAdmin
+            'isAdmin' => $isAdmin,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'IdTpq' => $IdTpq
         ];
         return view('backend/user/index', $data);
     }
@@ -73,41 +143,22 @@ class User extends BaseController
         return $this->response->setJSON(['exists' => $exists]);
     }
 
+    public function checkUserIdNikSantri($idNik)
+    {
+        $exists = $this->helpFunction->getSantriByIdNik($idNik) > 0;
+        return $this->response->setJSON(['exists' => $exists]);
+    }
+
     public function create()
     {
         $groupsId = $this->request->getPost('IdAuthGroup');
-        $idNik = $this->request->getPost('IdNikGuru');
+        $idNikGuru = $this->request->getPost('IdNikGuru');
+        $idNikSantri = $this->request->getPost('IdNikSantri');
 
         // Cek apakah user yang login adalah Admin
         $isAdmin = in_groups('Admin');
 
-        // Jika Admin, fullname bisa dari input manual atau dari guru
-        // Jika bukan Admin, wajib pilih guru
-        if ($isAdmin) {
-            // Admin bisa input fullname manual atau pilih dari guru
-            $fullNameManual = $this->request->getPost('fullname_manual');
-            if (!empty($idNik)) {
-                // Jika pilih guru, ambil nama dari guru
-                $fullName = $this->helpFunction->getNamaGuruByIdNik($idNik);
-            } elseif (!empty($fullNameManual)) {
-                // Jika input manual, gunakan input manual
-                $fullName = $fullNameManual;
-            } else {
-                // Jika kosong semua, gunakan username sebagai fallback
-                $fullName = $this->request->getPost('username');
-            }
-        } else {
-            // Bukan Admin, wajib pilih guru
-            if (empty($idNik)) {
-                return $this->response->setStatusCode(400)->setJSON([
-                    'success' => false,
-                    'message' => 'Nama Guru harus dipilih'
-                ]);
-            }
-            $fullName = $this->helpFunction->getNamaGuruByIdNik($idNik);
-        }
-
-        // Validasi dan pastikan group_id sesuai untuk Panitia
+        // Validasi group harus dipilih
         if (empty($groupsId)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
@@ -115,10 +166,76 @@ class User extends BaseController
             ]);
         }
 
-        // Ambil informasi group yang dipilih untuk validasi
+        // Ambil informasi group yang dipilih
         $selectedGroup = $this->helpFunction->getDataAuthGoups($groupsId);
-        if (!empty($selectedGroup)) {
-            $groupName = $selectedGroup[0]['name'] ?? '';
+        if (empty($selectedGroup)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Group tidak valid'
+            ]);
+        }
+
+        $groupName = $selectedGroup[0]['name'] ?? '';
+        $fullName = '';
+        $idNik = null;
+
+        // Handle berdasarkan jenis group
+        if ($groupName === 'Santri') {
+            // Untuk Santri, wajib pilih santri
+            if (empty($idNikSantri)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Nama Santri harus dipilih'
+                ]);
+            }
+
+            // Ambil nama santri dari NIK
+            $santriData = $this->db->table('tbl_santri_baru')
+                ->select('NamaSantri')
+                ->where('NikSantri', $idNikSantri)
+                ->get()
+                ->getRowArray();
+
+            if (empty($santriData)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Data santri tidak ditemukan'
+                ]);
+            }
+
+            $fullName = $santriData['NamaSantri'];
+            $idNik = $idNikSantri;
+        } else {
+            // Untuk Guru atau group lainnya
+            if ($isAdmin) {
+                // Admin bisa input fullname manual atau pilih dari guru
+                $fullNameManual = $this->request->getPost('fullname_manual');
+                if (!empty($idNikGuru)) {
+                    // Jika pilih guru, ambil nama dari guru
+                    $namaGuru = $this->helpFunction->getNamaGuruByIdNik($idNikGuru);
+                    $fullName = $namaGuru && isset($namaGuru['Nama']) ? $namaGuru['Nama'] : '';
+                    $idNik = $idNikGuru;
+                } elseif (!empty($fullNameManual)) {
+                    // Jika input manual, gunakan input manual
+                    $fullName = $fullNameManual;
+                    $idNik = null;
+                } else {
+                    // Jika kosong semua, gunakan username sebagai fallback
+                    $fullName = $this->request->getPost('username');
+                    $idNik = null;
+                }
+            } else {
+                // Bukan Admin, wajib pilih guru
+                if (empty($idNikGuru)) {
+                    return $this->response->setStatusCode(400)->setJSON([
+                        'success' => false,
+                        'message' => 'Nama Guru harus dipilih'
+                    ]);
+                }
+                $namaGuru = $this->helpFunction->getNamaGuruByIdNik($idNikGuru);
+                $fullName = $namaGuru && isset($namaGuru['Nama']) ? $namaGuru['Nama'] : '';
+                $idNik = $idNikGuru;
+            }
 
             // Pastikan group Panitia menggunakan group_id = 6
             if ($groupName === 'Panitia') {
@@ -131,7 +248,7 @@ class User extends BaseController
             'fullname' => $fullName,
             'email' => $this->request->getPost('username') . '@tpqsmart.simpedis.com',
             'password_hash' => Password::hash($this->request->getPost('password')),
-            'nik' => $idNik ?: null, // Bisa null jika Admin tidak pilih guru
+            'nik' => $idNik,
             'active' => 1
         ];
 
