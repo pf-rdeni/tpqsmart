@@ -607,7 +607,6 @@
 <script>
     // Simpan referensi original di level global
     var originalDataTableFn = null;
-    var originalInitializeDataTableUmumFn = null;
 
     $(document).ready(function() {
         // Simpan referensi original sebelum override
@@ -615,69 +614,108 @@
             originalDataTableFn = $.fn.DataTable;
         }
 
-        // Override $.fn.DataTable
+        // Override $.fn.DataTable dengan mempertahankan semua method dan property
         if (originalDataTableFn) {
-            $.fn.DataTable = function(options) {
+            // Simpan referensi original untuk digunakan di dalam function
+            var originalFn = originalDataTableFn;
+
+            // Buat wrapper function yang akan menjadi $.fn.DataTable baru
+            var newDataTableFn = function(options) {
                 // Cek jika tabel memiliki atribut data-no-datatable="true"
                 if (this.length && this.attr('data-no-datatable') === 'true') {
                     console.log('Blocking DataTable initialization - data-no-datatable="true"');
-                    return this;
+                    // Return jQuery object, tapi pastikan isDataTable mengembalikan false
+                    var $table = this;
+                    // Hapus data-dt-id jika ada (yang digunakan DataTable untuk tracking)
+                    $table.removeAttr('data-dt-id');
+                    // Return jQuery object biasa (bukan DataTable instance)
+                    return $table;
                 }
-                // Panggil fungsi original
-                return originalDataTableFn.apply(this, arguments);
-            };
-        }
-
-        // Simpan referensi original initializeDataTableUmum sebelum override
-        if (typeof window.initializeDataTableUmum === 'function' && !originalInitializeDataTableUmumFn) {
-            originalInitializeDataTableUmumFn = window.initializeDataTableUmum;
-        }
-
-        // Override initializeDataTableUmum
-        if (originalInitializeDataTableUmumFn) {
-            window.initializeDataTableUmum = function(selector, paging, lengthChange, buttons, options) {
-                const $table = $(selector);
-                // Jangan inisialisasi jika tabel memiliki atribut data-no-datatable="true"
-                if ($table.length && $table.attr('data-no-datatable') === 'true') {
-                    console.log('Skipping initializeDataTableUmum - data-no-datatable="true"');
-                    return;
+                // Panggil fungsi original untuk tabel yang boleh diinisialisasi
+                try {
+                    var result = originalFn.apply(this, arguments);
+                    // Pastikan result adalah DataTable instance yang valid
+                    if (result && typeof result.columns === 'object' && typeof result.columns.adjust === 'function') {
+                        return result;
+                    }
+                    // Jika result tidak valid, return original result
+                    return result;
+                } catch (e) {
+                    console.error('Error initializing DataTable:', e);
+                    return this; // Return jQuery object sebagai fallback
                 }
-                // Panggil fungsi original
-                return originalInitializeDataTableUmumFn.apply(this, arguments);
             };
-        }
 
-        // Override initializeDataTableUmum
-        if (typeof window.initializeDataTableUmum === 'function') {
-            var originalInitializeDataTableUmum = window.initializeDataTableUmum;
-            window.initializeDataTableUmum = function(selector, paging, lengthChange, buttons, options) {
-                const $table = $(selector);
-                // Jangan inisialisasi jika tabel memiliki atribut data-no-datatable="true"
-                if ($table.length && $table.attr('data-no-datatable') === 'true') {
-                    console.log('Skipping initializeDataTableUmum - data-no-datatable="true"');
-                    return;
+            // Copy semua property dan method dari original ke function baru (termasuk isDataTable)
+            // Gunakan Object.assign untuk memastikan semua property ter-copy
+            if (typeof Object.assign === 'function') {
+                Object.assign(newDataTableFn, originalDataTableFn);
+            } else {
+                // Fallback untuk browser lama
+                for (var prop in originalDataTableFn) {
+                    if (originalDataTableFn.hasOwnProperty(prop)) {
+                        newDataTableFn[prop] = originalDataTableFn[prop];
+                    }
                 }
-                // Panggil fungsi original
-                return originalInitializeDataTableUmum.apply(this, arguments);
-            };
+            }
+
+            // Pastikan isDataTable tersedia secara eksplisit (sangat penting!)
+            if (originalDataTableFn.isDataTable) {
+                newDataTableFn.isDataTable = originalDataTableFn.isDataTable;
+            }
+
+            // Copy property penting lainnya yang mungkin tidak enumerable
+            if (originalDataTableFn.settings) {
+                newDataTableFn.settings = originalDataTableFn.settings;
+            }
+            if (originalDataTableFn.version) {
+                newDataTableFn.version = originalDataTableFn.version;
+            }
+
+            // Set sebagai $.fn.DataTable
+            $.fn.DataTable = newDataTableFn;
+
+            // Double check: Pastikan isDataTable masih tersedia setelah assignment
+            if (!$.fn.DataTable.isDataTable && originalDataTableFn.isDataTable) {
+                $.fn.DataTable.isDataTable = originalDataTableFn.isDataTable;
+            }
         }
 
         // Pastikan tabel dengan data-no-datatable tidak terinisialisasi
         $('table[data-no-datatable="true"]').each(function() {
-            if ($.fn.DataTable.isDataTable(this)) {
+            if ($.fn.DataTable.isDataTable && $.fn.DataTable.isDataTable(this)) {
                 $(this).DataTable().destroy();
             }
         });
 
-        // Inisialisasi DataTable untuk setiap kelas (hanya untuk tabel santri)
+        // Inisialisasi DataTable untuk setiap kelas (hanya untuk tabel santri) - langsung tanpa initializeDataTableUmum
         <?php foreach ($dataKelas as $kelas): ?>
-            initializeDataTableUmum("#tableSantri-<?= $kelas->IdKelas ?>", true, true);
+            $("#tableSantri-<?= $kelas->IdKelas ?>").DataTable({
+                "lengthChange": true,
+                "responsive": true,
+                "autoWidth": false,
+                "paging": true,
+                "buttons": [],
+                "pageLength": 20,
+                "lengthMenu": [
+                    [10, 20, 30, 50, 100, -1],
+                    [10, 20, 30, 50, 100, "Semua"]
+                ],
+                "language": {
+                    "search": "Pencarian:",
+                    "paginate": {
+                        "next": "Selanjutnya",
+                        "previous": "Sebelumnya"
+                    },
+                    "lengthMenu": "Tampilkan _MENU_ entri"
+                }
+            });
         <?php endforeach; ?>
 
         // Fungsi untuk memastikan tabel dengan data-no-datatable tidak terinisialisasi
         function preventDataTableOnNoDatatableTables() {
             $('table[data-no-datatable="true"]').each(function() {
-                if ($.fn.DataTable.isDataTable(this)) {
+                if ($.fn.DataTable.isDataTable && $.fn.DataTable.isDataTable(this)) {
                     try {
                         $(this).DataTable().destroy();
                         // Hapus wrapper DataTable jika ada

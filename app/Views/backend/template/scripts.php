@@ -411,11 +411,31 @@
         // Dapatkan target tab yang aktif
         let targetTab = $(e.target).attr("href");
 
-        // Cari table di dalam tab yang aktif
-        let table = $(targetTab).find('table').DataTable();
+        // Pastikan $.fn.DataTable.isDataTable tersedia sebelum digunakan
+        if (!$.fn.DataTable || typeof $.fn.DataTable.isDataTable !== 'function') {
+            return;
+        }
 
-        // Adjust columns untuk memastikan responsive bekerja
-        table.columns.adjust().responsive.recalc();
+        // Cari semua table di dalam tab yang aktif
+        $(targetTab).find('table').each(function() {
+            const $table = $(this);
+            // Pastikan tabel adalah instance DataTable yang valid sebelum memanggil method
+            if ($.fn.DataTable.isDataTable(this)) {
+                try {
+                    const dataTable = $table.DataTable();
+                    // Pastikan dataTable memiliki method columns dan responsive
+                    if (dataTable && typeof dataTable.columns === 'object' && typeof dataTable.columns.adjust === 'function') {
+                        dataTable.columns.adjust();
+                        // Cek apakah responsive tersedia
+                        if (typeof dataTable.responsive === 'object' && typeof dataTable.responsive.recalc === 'function') {
+                            dataTable.responsive.recalc();
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error adjusting DataTable columns in tab:', error);
+                }
+            }
+        });
     });
 
     //-=============================================================================================
