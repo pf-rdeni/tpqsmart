@@ -54,7 +54,7 @@ class Rapor extends BaseController
     /**
      * Setup Dompdf configuration dengan pengaturan optimal untuk karakter Arab dan performa
      */
-    private function setupDompdfConfig()
+    private function setupDompdfConfig($isBulk = false)
     {
         $options = new Options();
         $options->set('isHtml5ParserEnabled', true);
@@ -68,7 +68,6 @@ class Rapor extends BaseController
         $options->set('defaultMediaType', 'print');
         $options->set('isJavascriptEnabled', false);
         // Optimasi untuk performa
-        $options->set('isFontSubsettingEnabled', true);
         $options->set('debugKeepTemp', false);
         $options->set('debugCss', false);
         $options->set('debugLayout', false);
@@ -76,6 +75,19 @@ class Rapor extends BaseController
         $options->set('debugLayoutBlocks', false);
         $options->set('debugLayoutInline', false);
         $options->set('debugLayoutPaddingBox', false);
+
+        // Optimasi khusus untuk bulk processing
+        if ($isBulk) {
+            // Kurangi memory usage dengan optimasi tambahan
+            // Set temp directory untuk mengurangi I/O
+            $tempDir = sys_get_temp_dir() . '/dompdf_' . uniqid();
+            if (!is_dir($tempDir)) {
+                @mkdir($tempDir, 0755, true);
+            }
+            if (method_exists($options, 'setTempDir')) {
+                $options->setTempDir($tempDir);
+            }
+        }
 
         return new Dompdf($options);
     }
@@ -917,10 +929,15 @@ class Rapor extends BaseController
     public function printPdfBulk($IdKelas, $semester)
     {
         try {
-            // Set memory limit dan timeout untuk bulk processing
-            ini_set('memory_limit', '512M');
-            set_time_limit(600);
+            // Set memory limit dan timeout untuk bulk processing - lebih agresif untuk webserver
+            ini_set('memory_limit', '1024M'); // Increase untuk webserver
+            set_time_limit(0); // Unlimited untuk webserver (atau set sesuai kebutuhan server)
             mb_internal_encoding('UTF-8');
+
+            // Disable output buffering untuk mengurangi memory
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
 
             $IdTpq = session()->get('IdTpq');
             $IdTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
@@ -943,53 +960,120 @@ class Rapor extends BaseController
                 throw new \Exception('Tidak ada santri dalam kelas ini');
             }
 
-            // Setup Dompdf
-            $dompdf = $this->setupDompdfConfig();
+            $totalSantri = count($listSantri);
+            log_message('info', "Rapor: printPdfBulk - Memproses {$totalSantri} santri untuk kelas {$IdKelas}");
 
-            // Gabungkan semua HTML
-            $combinedHtml = '';
-            foreach ($listSantri as $index => $santri) {
-                // Ambil data santri lengkap dengan nilai dan wali kelas
-                $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
+            // Setup Dompdf dengan optimasi bulk
+            $dompdf = $this->setupDompdfConfig(true);
 
-                if (!$santriData) {
-                    continue; // Skip jika data santri tidak ditemukan
+            // Chunking: proses per 5 santri untuk mengurangi memory usage
+            // Jika jumlah santri banyak, gunakan chunking
+            $chunkSize = 5; // Jumlah santri per chunk
+            $useChunking = $totalSantri > 10; // Gunakan chunking jika lebih dari 10 santri
+
+            if ($useChunking) {
+                // Render per chunk dan gabungkan
+                $combinedHtml = '';
+                $chunks = array_chunk($listSantri, $chunkSize);
+
+                foreach ($chunks as $chunkIndex => $chunk) {
+                    log_message('info', "Rapor: printPdfBulk - Memproses chunk " . ($chunkIndex + 1) . " dari " . count($chunks));
+
+                    foreach ($chunk as $index => $santri) {
+                        $globalIndex = ($chunkIndex * $chunkSize) + $index;
+
+                        // Ambil data santri lengkap dengan nilai dan wali kelas
+                        $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
+
+                        if (!$santriData) {
+                            continue; // Skip jika data santri tidak ditemukan
+                        }
+
+                        // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
+                        $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
+
+                        // Load view untuk setiap santri
+                        $html = view('backend/rapor/print', $data);
+
+                        // Wrap setiap rapor dengan div yang memaksa page break sebelum santri berikutnya
+                        if ($globalIndex > 0) {
+                            $html = '<div style="page-break-before: always;">' . $html . '</div>';
+                        } else {
+                            $html = '<div>' . $html . '</div>';
+                        }
+
+                        $combinedHtml .= $html;
+
+                        // Free memory setelah setiap santri
+                        unset($santriData, $data, $html);
+                    }
+
+                    // Free memory setelah setiap chunk
+                    unset($chunk);
+                    gc_collect_cycles(); // Force garbage collection
                 }
+            } else {
+                // Untuk jumlah santri sedikit, proses normal
+                $combinedHtml = '';
+                foreach ($listSantri as $index => $santri) {
+                    // Ambil data santri lengkap dengan nilai dan wali kelas
+                    $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
 
-                // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
-                $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
+                    if (!$santriData) {
+                        continue; // Skip jika data santri tidak ditemukan
+                    }
 
-                // Load view untuk setiap santri
-                $html = view('backend/rapor/print', $data);
+                    // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
+                    $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
 
-                // Wrap setiap rapor dengan div yang memaksa page break sebelum santri berikutnya
-                // Gunakan page-break-before untuk memastikan setiap santri dimulai di halaman baru
-                if ($index > 0) {
-                    // Untuk santri kedua dan seterusnya, tambahkan page break sebelum
-                    $html = '<div style="page-break-before: always;">' . $html . '</div>';
-                } else {
-                    // Untuk santri pertama, tidak perlu page break
-                    $html = '<div>' . $html . '</div>';
+                    // Load view untuk setiap santri
+                    $html = view('backend/rapor/print', $data);
+
+                    // Wrap setiap rapor dengan div yang memaksa page break sebelum santri berikutnya
+                    if ($index > 0) {
+                        $html = '<div style="page-break-before: always;">' . $html . '</div>';
+                    } else {
+                        $html = '<div>' . $html . '</div>';
+                    }
+
+                    $combinedHtml .= $html;
+
+                    // Free memory
+                    unset($santriData, $data, $html);
                 }
-
-                $combinedHtml .= $html;
             }
+
+            log_message('info', 'Rapor: printPdfBulk - Memulai render PDF...');
 
             // Load HTML gabungan ke Dompdf
             $dompdf->loadHtml($combinedHtml);
             $dompdf->setPaper('A4', 'portrait');
+
+            // Render dengan optimasi
             $dompdf->render();
+
+            log_message('info', 'Rapor: printPdfBulk - Render PDF selesai');
 
             // Ambil nama kelas untuk nama file
             $namaKelas = $this->helpFunctionModel->getNamaKelas($IdKelas);
-            // Sanitize nama kelas untuk nama file (hapus spasi dan karakter khusus)
-            $namaKelasSanitized = preg_replace('/[^a-zA-Z0-9_-]/', '', str_replace(' ', '_', $namaKelas));
-
+            // Maping MDA
+            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelas);
+            $namaKelas = $this->helpFunctionModel->convertKelasToMda(
+                $namaKelas,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+            // Sanitize nama kelas untuk nama file: ganti karakter /, spasi, dan karakter khusus dengan _
+            $namaKelas = preg_replace('/[^a-zA-Z0-9_-]/', '_', $namaKelas);
             // Output PDF
-            $filename = 'rapor_kelas_' . $namaKelasSanitized . '_' . $IdTahunAjaran . '_' . $semester . '.pdf';
+            $filename = 'Rapor_Kelas_' . $namaKelas . '_' . $IdTahunAjaran . '_' . $semester . '.pdf';
             $this->outputPdf($dompdf, $filename);
+
+            // Cleanup
+            unset($dompdf, $combinedHtml);
+            gc_collect_cycles();
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdfBulk - Error: ' . $e->getMessage());
+            log_message('error', 'Rapor: printPdfBulk - Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
