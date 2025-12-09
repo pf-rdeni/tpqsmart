@@ -1474,6 +1474,7 @@ class Dashboard extends BaseController
                     // Ambil data santri untuk kelas ini dan hitung ulang sudah dinilai berdasarkan 100%
                     $santriList = [];
                     $sudahDinilaiRecalc = 0; // Recalculate berdasarkan 100% completion
+                    $adaNilai = false; // Flag untuk cek apakah ada nilai yang sudah diisi
                     foreach ($dataSantriGanjil as $santriRow) {
                         if ($santriRow['IdTpq'] == $tpqId && $santriRow['IdKelas'] == $row['IdKelas']) {
                             $totalMateri = (int)$santriRow['total_materi'];
@@ -1488,9 +1489,11 @@ class Dashboard extends BaseController
                                 $statusSantri = 'Sudah Dinilai';
                                 $statusColor = 'success';
                                 $sudahDinilaiRecalc++;
+                                $adaNilai = true;
                             } elseif ($materiTerisi > 0) {
                                 $statusSantri = 'Sedang Dinilai';
                                 $statusColor = 'warning';
+                                $adaNilai = true;
                             }
                             
                             $santriList[] = [
@@ -1511,6 +1514,19 @@ class Dashboard extends BaseController
                     $belumDinilai = $totalSantri - $sudahDinilai;
                     $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
                     
+                    // Tentukan status kelas
+                    $statusKelas = null;
+                    $statusKelasColor = null;
+                    if ($sudahDinilai > 0) {
+                        // Ada yang sudah selesai, tampilkan persentase
+                        $statusKelas = null; // null berarti tampilkan persentase
+                    } elseif ($adaNilai) {
+                        // Ada nilai tapi belum ada yang selesai
+                        $statusKelas = 'Sedang Di Nilai';
+                        $statusKelasColor = 'warning';
+                    }
+                    // Jika tidak ada nilai sama sekali, statusKelas tetap null (blank)
+                    
                     $tpqData['Kelas'][] = [
                         'IdKelas' => $row['IdKelas'],
                         'NamaKelas' => $row['NamaKelas'],
@@ -1518,6 +1534,8 @@ class Dashboard extends BaseController
                         'SudahDinilai' => $sudahDinilai,
                         'BelumDinilai' => $belumDinilai,
                         'PersentaseSudah' => $persentase,
+                        'StatusKelas' => $statusKelas,
+                        'StatusKelasColor' => $statusKelasColor,
                         'Santri' => $santriList
                     ];
                     
@@ -1531,6 +1549,32 @@ class Dashboard extends BaseController
             if ($tpqData['TotalSantri'] > 0) {
                 $tpqData['PersentaseSudah'] = round(($tpqData['TotalSudahDinilai'] / $tpqData['TotalSantri']) * 100, 1);
             }
+            
+            // Tentukan status TPQ berdasarkan kelas-kelasnya
+            $adaKelasSelesai = false;
+            $adaNilaiTpq = false;
+            foreach ($tpqData['Kelas'] as $kelas) {
+                if ($kelas['SudahDinilai'] > 0) {
+                    $adaKelasSelesai = true;
+                    $adaNilaiTpq = true;
+                    break;
+                } elseif (!empty($kelas['StatusKelas']) && $kelas['StatusKelas'] == 'Sedang Di Nilai') {
+                    $adaNilaiTpq = true;
+                }
+            }
+            
+            // Tentukan status TPQ
+            $tpqData['StatusTpq'] = null;
+            $tpqData['StatusTpqColor'] = null;
+            if ($adaKelasSelesai) {
+                // Ada kelas yang sudah selesai, tampilkan persentase
+                $tpqData['StatusTpq'] = null; // null berarti tampilkan persentase
+            } elseif ($adaNilaiTpq) {
+                // Ada nilai tapi belum ada yang selesai
+                $tpqData['StatusTpq'] = 'Sedang Di Nilai';
+                $tpqData['StatusTpqColor'] = 'warning';
+            }
+            // Jika tidak ada nilai sama sekali, StatusTpq tetap null (blank)
             
             if ($tpqData['TotalSantri'] > 0) {
                 $resultGanjil[] = $tpqData;

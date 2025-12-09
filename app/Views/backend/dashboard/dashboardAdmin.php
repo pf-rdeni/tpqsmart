@@ -673,18 +673,32 @@
                                                                             <span class="badge badge-info"><?= number_format($tpq['TotalSantri']) ?></span>
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <span class="badge badge-success"><?= number_format($tpq['TotalSudahDinilai']) ?></span>
+                                                                            <?php if (!empty($tpq['StatusTpq'])): ?>
+                                                                                <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
+                                                                            <?php elseif ($tpq['TotalSudahDinilai'] > 0): ?>
+                                                                                <span class="badge badge-success"><?= number_format($tpq['TotalSudahDinilai']) ?></span>
+                                                                            <?php else: ?>
+                                                                                <span class="badge badge-secondary">-</span>
+                                                                            <?php endif; ?>
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <span class="badge badge-danger"><?= number_format($tpq['TotalBelumDinilai']) ?></span>
+                                                                            <?php if (!empty($tpq['StatusTpq'])): ?>
+                                                                                <span class="badge badge-secondary">-</span>
+                                                                            <?php else: ?>
+                                                                                <span class="badge badge-danger"><?= number_format($tpq['TotalBelumDinilai']) ?></span>
+                                                                            <?php endif; ?>
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <div class="progress" style="height: 25px;">
-                                                                                <div class="progress-bar <?= $tpq['PersentaseSudah'] <= 40 ? 'bg-danger' : ($tpq['PersentaseSudah'] <= 80 ? 'bg-warning' : 'bg-success') ?>" 
-                                                                                     style="width: <?= $tpq['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center;">
-                                                                                    <?= $tpq['PersentaseSudah'] ?>%
+                                                                            <?php if (!empty($tpq['StatusTpq'])): ?>
+                                                                                <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
+                                                                            <?php else: ?>
+                                                                                <div class="progress" style="height: 25px;">
+                                                                                    <div class="progress-bar <?= $tpq['PersentaseSudah'] < 50 ? 'bg-danger' : ($tpq['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>" 
+                                                                                         style="width: <?= $tpq['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center;">
+                                                                                        <?= $tpq['PersentaseSudah'] ?>%
+                                                                                    </div>
                                                                                 </div>
-                                                                            </div>
+                                                                            <?php endif; ?>
                                                                         </td>
                                                                     </tr>
                                                                     <!-- Detail Kelas (Child rows - hidden by default) -->
@@ -713,18 +727,32 @@
                                                                                     <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
                                                                                 </td>
                                                                                 <td class="text-center">
-                                                                                    <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
+                                                                                    <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                                        <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                                    <?php elseif ($kelas['SudahDinilai'] > 0): ?>
+                                                                                        <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
+                                                                                    <?php else: ?>
+                                                                                        <span class="badge badge-secondary">-</span>
+                                                                                    <?php endif; ?>
                                                                                 </td>
                                                                                 <td class="text-center">
-                                                                                    <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
+                                                                                    <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                                        <span class="badge badge-secondary">-</span>
+                                                                                    <?php else: ?>
+                                                                                        <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
+                                                                                    <?php endif; ?>
                                                                                 </td>
                                                                                 <td class="text-center">
-                                                                                    <div class="progress" style="height: 20px;">
-                                                                                        <div class="progress-bar <?= $kelas['PersentaseSudah'] <= 40 ? 'bg-danger' : ($kelas['PersentaseSudah'] <= 80 ? 'bg-warning' : 'bg-success') ?>" 
-                                                                                             style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
-                                                                                            <?= $kelas['PersentaseSudah'] ?>%
+                                                                                    <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                                        <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                                    <?php else: ?>
+                                                                                        <div class="progress" style="height: 20px;">
+                                                                                            <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>" 
+                                                                                                 style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                                                                                <?= $kelas['PersentaseSudah'] ?>%
+                                                                                            </div>
                                                                                         </div>
-                                                                                    </div>
+                                                                                    <?php endif; ?>
                                                                                 </td>
                                                                             </tr>
                                                                             <!-- Detail Santri (Grandchild rows - hidden by default) -->
@@ -758,7 +786,7 @@
                                                                                         </td>
                                                                                         <td class="text-center">
                                                                                             <div class="progress" style="height: 18px;">
-                                                                                                <div class="progress-bar <?= ($santri['StatusColor'] ?? 'danger') == 'success' ? 'bg-success' : (($santri['StatusColor'] ?? 'danger') == 'warning' ? 'bg-warning' : 'bg-danger') ?>" 
+                                                                                                <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>" 
                                                                                                      style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
                                                                                                     <?= $santri['PersentaseSudah'] ?>%
                                                                                                 </div>
@@ -825,18 +853,32 @@
                                                                             <span class="badge badge-info"><?= number_format($tpq['TotalSantri']) ?></span>
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <span class="badge badge-success"><?= number_format($tpq['TotalSudahDinilai']) ?></span>
+                                                                            <?php if (!empty($tpq['StatusTpq'])): ?>
+                                                                                <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
+                                                                            <?php elseif ($tpq['TotalSudahDinilai'] > 0): ?>
+                                                                                <span class="badge badge-success"><?= number_format($tpq['TotalSudahDinilai']) ?></span>
+                                                                            <?php else: ?>
+                                                                                <span class="badge badge-secondary">-</span>
+                                                                            <?php endif; ?>
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <span class="badge badge-danger"><?= number_format($tpq['TotalBelumDinilai']) ?></span>
+                                                                            <?php if (!empty($tpq['StatusTpq'])): ?>
+                                                                                <span class="badge badge-secondary">-</span>
+                                                                            <?php else: ?>
+                                                                                <span class="badge badge-danger"><?= number_format($tpq['TotalBelumDinilai']) ?></span>
+                                                                            <?php endif; ?>
                                                                         </td>
                                                                         <td class="text-center">
-                                                                            <div class="progress" style="height: 25px;">
-                                                                                <div class="progress-bar <?= $tpq['PersentaseSudah'] <= 40 ? 'bg-danger' : ($tpq['PersentaseSudah'] <= 80 ? 'bg-warning' : 'bg-success') ?>" 
-                                                                                     style="width: <?= $tpq['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center;">
-                                                                                    <?= $tpq['PersentaseSudah'] ?>%
+                                                                            <?php if (!empty($tpq['StatusTpq'])): ?>
+                                                                                <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
+                                                                            <?php else: ?>
+                                                                                <div class="progress" style="height: 25px;">
+                                                                                    <div class="progress-bar <?= $tpq['PersentaseSudah'] < 50 ? 'bg-danger' : ($tpq['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>" 
+                                                                                         style="width: <?= $tpq['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center;">
+                                                                                        <?= $tpq['PersentaseSudah'] ?>%
+                                                                                    </div>
                                                                                 </div>
-                                                                            </div>
+                                                                            <?php endif; ?>
                                                                         </td>
                                                                     </tr>
                                                                     <!-- Detail Kelas (Child rows - hidden by default) -->
@@ -865,18 +907,32 @@
                                                                                     <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
                                                                                 </td>
                                                                                 <td class="text-center">
-                                                                                    <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
+                                                                                    <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                                        <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                                    <?php elseif ($kelas['SudahDinilai'] > 0): ?>
+                                                                                        <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
+                                                                                    <?php else: ?>
+                                                                                        <span class="badge badge-secondary">-</span>
+                                                                                    <?php endif; ?>
                                                                                 </td>
                                                                                 <td class="text-center">
-                                                                                    <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
+                                                                                    <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                                        <span class="badge badge-secondary">-</span>
+                                                                                    <?php else: ?>
+                                                                                        <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
+                                                                                    <?php endif; ?>
                                                                                 </td>
                                                                                 <td class="text-center">
-                                                                                    <div class="progress" style="height: 20px;">
-                                                                                        <div class="progress-bar <?= $kelas['PersentaseSudah'] <= 40 ? 'bg-danger' : ($kelas['PersentaseSudah'] <= 80 ? 'bg-warning' : 'bg-success') ?>" 
-                                                                                             style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
-                                                                                            <?= $kelas['PersentaseSudah'] ?>%
+                                                                                    <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                                        <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                                    <?php else: ?>
+                                                                                        <div class="progress" style="height: 20px;">
+                                                                                            <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>" 
+                                                                                                 style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                                                                                <?= $kelas['PersentaseSudah'] ?>%
+                                                                                            </div>
                                                                                         </div>
-                                                                                    </div>
+                                                                                    <?php endif; ?>
                                                                                 </td>
                                                                             </tr>
                                                                             <!-- Detail Santri (Grandchild rows - hidden by default) -->
@@ -910,7 +966,7 @@
                                                                                         </td>
                                                                                         <td class="text-center">
                                                                                             <div class="progress" style="height: 18px;">
-                                                                                                <div class="progress-bar <?= ($santri['StatusColor'] ?? 'danger') == 'success' ? 'bg-success' : (($santri['StatusColor'] ?? 'danger') == 'warning' ? 'bg-warning' : 'bg-danger') ?>" 
+                                                                                                <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>" 
                                                                                                      style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
                                                                                                     <?= $santri['PersentaseSudah'] ?>%
                                                                                                 </div>
