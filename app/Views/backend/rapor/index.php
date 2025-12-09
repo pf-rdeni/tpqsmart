@@ -1212,26 +1212,131 @@
                 return;
             }
 
-            // Tampilkan loading
+            const estimatedTime = 10; // Estimasi waktu default
+
+            // Tampilkan progress modal
+            let progress = 0;
+            let progressInterval;
+            let downloadStarted = false;
+
             Swal.fire({
-                title: 'Memproses...',
-                text: 'Sedang menggabungkan rapor, mohon tunggu',
+                title: 'Memproses Rapor',
+                html: `
+                    <div class="text-center mb-3">
+                        <i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i>
+                        <p class="mb-2">Sedang membuat file ZIP rapor...</p>
+                        <p class="text-muted small" id="progress-status">Memulai proses...</p>
+                    </div>
+                    <div class="progress" style="height: 30px;">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                             role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            <span id="progress-text" class="font-weight-bold" style="line-height: 30px;">0%</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <small class="text-muted" id="progress-detail">Mempersiapkan...</small>
+                    </div>
+                `,
                 allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    // Simulasi progress (akan diupdate oleh actual download)
+                    progressInterval = setInterval(() => {
+                        if (!downloadStarted && progress < 90) {
+                            progress += Math.random() * 5; // Increment random 0-5%
+                            if (progress > 90) progress = 90; // Max 90% sampai download benar-benar selesai
+                            
+                            updateProgress(progress, 'Membuat PDF rapor...');
+                        }
+                    }, 500);
+                },
+                willClose: () => {
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                    }
                 }
             });
 
-            // Panggil endpoint untuk menggabungkan PDF dengan parameter tanggal
-            const printWindow = window.open(`<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}?tanggal=${tanggal}`, '_blank');
+            // Function untuk update progress
+            function updateProgress(percent, status, detail = '') {
+                progress = Math.min(100, Math.max(0, percent));
+                $('#progress-bar').css('width', progress + '%').attr('aria-valuenow', progress);
+                $('#progress-text').text(Math.round(progress) + '%');
+                if (status) $('#progress-status').text(status);
+                if (detail) $('#progress-detail').text(detail);
+            }
 
-            // Tutup loading setelah 2 detik (memberikan waktu untuk membuka PDF)
-            setTimeout(() => {
-                Swal.close();
-                if (printWindow) {
-                    printWindow.focus();
-                }
-            }, 2000);
+            // Download file menggunakan fetch untuk track progress
+            const url = `<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}?tanggal=${tanggal}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Gagal membuat file ZIP');
+                    }
+                    downloadStarted = true;
+                    updateProgress(95, 'File ZIP siap, sedang mengunduh...', 'Hampir selesai...');
+                    
+                    // Ambil nama file dari Content-Disposition header
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'Rapor_Kelas.zip';
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                        if (filenameMatch && filenameMatch[1]) {
+                            filename = filenameMatch[1].replace(/['"]/g, '');
+                        }
+                    }
+                    
+                    return response.blob().then(blob => ({ blob, filename }));
+                })
+                .then(({ blob, filename }) => {
+                    // Buat URL untuk download
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(blobUrl);
+                    
+                    // Update progress ke 100%
+                    updateProgress(100, 'Download selesai!', 'File ZIP berhasil diunduh');
+                    
+                    // Tutup progress dan tampilkan success message
+                    setTimeout(() => {
+                        if (progressInterval) {
+                            clearInterval(progressInterval);
+                        }
+                        Swal.close();
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            html: `
+                                <div class="text-center">
+                                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                    <p>File ZIP rapor berhasil dibuat dan diunduh</p>
+                                </div>
+                            `,
+                            icon: 'success',
+                            confirmButtonText: 'OK',
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+                    }, 500);
+                })
+                .catch(error => {
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                    }
+                    Swal.close();
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Gagal membuat file ZIP: ' + error.message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
         });
 
 

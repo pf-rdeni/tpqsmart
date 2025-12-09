@@ -929,9 +929,9 @@ class Rapor extends BaseController
     public function printPdfBulk($IdKelas, $semester)
     {
         try {
-            // Set memory limit dan timeout untuk bulk processing - lebih agresif untuk webserver
-            ini_set('memory_limit', '1024M'); // Increase untuk webserver
-            set_time_limit(0); // Unlimited untuk webserver (atau set sesuai kebutuhan server)
+            // Set memory limit dan timeout untuk bulk processing
+            ini_set('memory_limit', '512M');
+            set_time_limit(600);
             mb_internal_encoding('UTF-8');
 
             // Disable output buffering untuk mengurangi memory
@@ -963,119 +963,209 @@ class Rapor extends BaseController
             $totalSantri = count($listSantri);
             log_message('info', "Rapor: printPdfBulk - Memproses {$totalSantri} santri untuk kelas {$IdKelas}");
 
-            // Setup Dompdf dengan optimasi bulk
-            $dompdf = $this->setupDompdfConfig(true);
-
-            // Chunking: proses per 5 santri untuk mengurangi memory usage
-            // Jika jumlah santri banyak, gunakan chunking
-            $chunkSize = 5; // Jumlah santri per chunk
-            $useChunking = $totalSantri > 10; // Gunakan chunking jika lebih dari 10 santri
-
-            if ($useChunking) {
-                // Render per chunk dan gabungkan
-                $combinedHtml = '';
-                $chunks = array_chunk($listSantri, $chunkSize);
-
-                foreach ($chunks as $chunkIndex => $chunk) {
-                    log_message('info', "Rapor: printPdfBulk - Memproses chunk " . ($chunkIndex + 1) . " dari " . count($chunks));
-
-                    foreach ($chunk as $index => $santri) {
-                        $globalIndex = ($chunkIndex * $chunkSize) + $index;
-
-                        // Ambil data santri lengkap dengan nilai dan wali kelas
-                        $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
-
-                        if (!$santriData) {
-                            continue; // Skip jika data santri tidak ditemukan
-                        }
-
-                        // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
-                        $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
-
-                        // Load view untuk setiap santri
-                        $html = view('backend/rapor/print', $data);
-
-                        // Wrap setiap rapor dengan div yang memaksa page break sebelum santri berikutnya
-                        if ($globalIndex > 0) {
-                            $html = '<div style="page-break-before: always;">' . $html . '</div>';
-                        } else {
-                            $html = '<div>' . $html . '</div>';
-                        }
-
-                        $combinedHtml .= $html;
-
-                        // Free memory setelah setiap santri
-                        unset($santriData, $data, $html);
-                    }
-
-                    // Free memory setelah setiap chunk
-                    unset($chunk);
-                    gc_collect_cycles(); // Force garbage collection
-                }
-            } else {
-                // Untuk jumlah santri sedikit, proses normal
-                $combinedHtml = '';
-                foreach ($listSantri as $index => $santri) {
-                    // Ambil data santri lengkap dengan nilai dan wali kelas
-                    $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
-
-                    if (!$santriData) {
-                        continue; // Skip jika data santri tidak ditemukan
-                    }
-
-                    // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
-                    $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
-
-                    // Load view untuk setiap santri
-                    $html = view('backend/rapor/print', $data);
-
-                    // Wrap setiap rapor dengan div yang memaksa page break sebelum santri berikutnya
-                    if ($index > 0) {
-                        $html = '<div style="page-break-before: always;">' . $html . '</div>';
-                    } else {
-                        $html = '<div>' . $html . '</div>';
-                    }
-
-                    $combinedHtml .= $html;
-
-                    // Free memory
-                    unset($santriData, $data, $html);
-                }
-            }
-
-            log_message('info', 'Rapor: printPdfBulk - Memulai render PDF...');
-
-            // Load HTML gabungan ke Dompdf
-            $dompdf->loadHtml($combinedHtml);
-            $dompdf->setPaper('A4', 'portrait');
-
-            // Render dengan optimasi
-            $dompdf->render();
-
-            log_message('info', 'Rapor: printPdfBulk - Render PDF selesai');
-
-            // Ambil nama kelas untuk nama file
-            $namaKelas = $this->helpFunctionModel->getNamaKelas($IdKelas);
-            // Maping MDA
-            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelas);
-            $namaKelas = $this->helpFunctionModel->convertKelasToMda(
-                $namaKelas,
-                $mdaCheckResult['mappedMdaKelas']
-            );
-            // Sanitize nama kelas untuk nama file: ganti karakter /, spasi, dan karakter khusus dengan _
-            $namaKelas = preg_replace('/[^a-zA-Z0-9_-]/', '_', $namaKelas);
-            // Output PDF
-            $filename = 'Rapor_Kelas_' . $namaKelas . '_' . $IdTahunAjaran . '_' . $semester . '.pdf';
-            $this->outputPdf($dompdf, $filename);
-
-            // Cleanup
-            unset($dompdf, $combinedHtml);
-            gc_collect_cycles();
+            // Gunakan metode zip untuk stabilitas di webserver
+            return $this->printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdfBulk - Error: ' . $e->getMessage());
             log_message('error', 'Rapor: printPdfBulk - Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Print PDF bulk dengan metode zip (satu per satu lalu di-zip)
+     * Lebih stabil untuk webserver karena memory usage lebih rendah
+     */
+    private function printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak)
+    {
+        // Buat temporary directory untuk menyimpan PDF
+        $tempDir = sys_get_temp_dir() . '/rapor_bulk_' . uniqid();
+        if (!is_dir($tempDir)) {
+            @mkdir($tempDir, 0755, true);
+        }
+
+        $pdfFiles = [];
+        $successCount = 0;
+        $errorCount = 0;
+
+        try {
+            // Generate PDF satu per satu
+            foreach ($listSantri as $index => $santri) {
+                try {
+                    log_message('info', "Rapor: printPdfBulkZip - Memproses santri " . ($index + 1) . " dari " . count($listSantri));
+
+                    // Ambil data santri lengkap dengan nilai dan wali kelas
+                    $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
+
+                    if (!$santriData) {
+                        $errorCount++;
+                        log_message('warning', "Rapor: printPdfBulkZip - Data santri tidak ditemukan: " . $santri['IdSantri']);
+                        continue;
+                    }
+
+                    // Siapkan data untuk view rapor
+                    $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
+
+                    // Load view untuk PDF
+                    $html = view('backend/rapor/print', $data);
+
+                    // Setup Dompdf untuk setiap PDF
+                    $dompdf = $this->setupDompdfConfig();
+                    $dompdf->loadHtml($html);
+                    $dompdf->setPaper('A4', 'portrait');
+                    $dompdf->render();
+
+                    // Generate nama file untuk PDF dengan nama santri
+                    // Format: NamaSantri_IdTahunAjaran_Semester.pdf
+                    $namaSantri = $santriData['santri']['NamaSantri'];
+                    // Sanitize nama santri untuk nama file (ganti spasi dan karakter khusus dengan _)
+                    $namaSantriSanitized = preg_replace('/[^a-zA-Z0-9_-]/', '_', str_replace(' ', '_', $namaSantri));
+                    $pdfFilename = $namaSantriSanitized . '_' . $IdTahunAjaran . '_' . $semester . '.pdf';
+                    $pdfPath = $tempDir . '/' . $pdfFilename;
+
+                    // Simpan PDF ke file
+                    file_put_contents($pdfPath, $dompdf->output());
+
+                    $pdfFiles[] = [
+                        'path' => $pdfPath,
+                        'name' => $pdfFilename
+                    ];
+
+                    $successCount++;
+
+                    // Free memory
+                    unset($dompdf, $html, $data, $santriData);
+                    gc_collect_cycles();
+                } catch (\Exception $e) {
+                    $errorCount++;
+                    log_message('error', "Rapor: printPdfBulkZip - Error untuk santri {$santri['IdSantri']}: " . $e->getMessage());
+                    continue;
+                }
+            }
+
+            if (empty($pdfFiles)) {
+                throw new \Exception('Tidak ada PDF yang berhasil dibuat');
+            }
+
+            log_message('info', "Rapor: printPdfBulkZip - Berhasil membuat {$successCount} PDF, {$errorCount} error");
+
+            // Buat ZIP file
+            $zipFilename = $this->createZipFromPdfs($pdfFiles, $IdKelas, $IdTahunAjaran, $semester, $tempDir);
+
+            // Cleanup temporary PDF files
+            foreach ($pdfFiles as $pdfFile) {
+                if (file_exists($pdfFile['path'])) {
+                    @unlink($pdfFile['path']);
+                }
+            }
+
+            // Output ZIP file
+            if (file_exists($zipFilename)) {
+                // Hapus semua output sebelumnya
+                if (ob_get_level()) {
+                    ob_end_clean();
+                }
+
+                // Set headers untuk download
+                header('Content-Type: application/zip');
+                header('Content-Disposition: attachment; filename="' . basename($zipFilename) . '"');
+                header('Content-Length: ' . filesize($zipFilename));
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+                header('X-Content-Type-Options: nosniff');
+
+                // Read dan output file
+                readfile($zipFilename);
+
+                // Cleanup ZIP file setelah beberapa detik (background cleanup)
+                // Jangan hapus langsung karena file sedang di-download
+                register_shutdown_function(function () use ($zipFilename, $tempDir) {
+                    sleep(2); // Tunggu 2 detik untuk memastikan download selesai
+                    if (file_exists($zipFilename)) {
+                        @unlink($zipFilename);
+                    }
+                    if (is_dir($tempDir)) {
+                        @rmdir($tempDir);
+                    }
+                });
+
+                exit();
+            } else {
+                throw new \Exception('Gagal membuat file ZIP');
+            }
+        } catch (\Exception $e) {
+            // Cleanup on error
+            foreach ($pdfFiles as $pdfFile) {
+                if (file_exists($pdfFile['path'])) {
+                    @unlink($pdfFile['path']);
+                }
+            }
+            if (is_dir($tempDir)) {
+                $this->deleteDirectory($tempDir);
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Buat ZIP file dari array PDF files
+     */
+    private function createZipFromPdfs($pdfFiles, $IdKelas, $IdTahunAjaran, $semester, $tempDir)
+    {
+        // Ambil nama kelas untuk nama file ZIP
+        $namaKelas = $this->helpFunctionModel->getNamaKelas($IdKelas);
+        // Maping MDA
+        $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping(session()->get('IdTpq'), $namaKelas);
+        $namaKelas = $this->helpFunctionModel->convertKelasToMda(
+            $namaKelas,
+            $mdaCheckResult['mappedMdaKelas']
+        );
+        // Sanitize nama kelas untuk nama file
+        $namaKelas = preg_replace('/[^a-zA-Z0-9_-]/', '_', $namaKelas);
+
+        $zipFilename = $tempDir . '/Rapor_Kelas_' . $namaKelas . '_' . $IdTahunAjaran . '_' . $semester . '.zip';
+
+        // Cek apakah ZipArchive tersedia
+        if (!class_exists('ZipArchive')) {
+            throw new \Exception('Extension ZipArchive tidak tersedia di server');
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipFilename, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+            throw new \Exception('Tidak dapat membuat file ZIP');
+        }
+
+        // Tambahkan setiap PDF ke ZIP
+        foreach ($pdfFiles as $pdfFile) {
+            if (file_exists($pdfFile['path'])) {
+                $zip->addFile($pdfFile['path'], $pdfFile['name']);
+            }
+        }
+
+        $zip->close();
+
+        return $zipFilename;
+    }
+
+    /**
+     * Hapus directory secara recursive
+     */
+    private function deleteDirectory($dir)
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $files = array_diff(scandir($dir), array('.', '..'));
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            if (is_dir($path)) {
+                $this->deleteDirectory($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
     }
 
     /**
