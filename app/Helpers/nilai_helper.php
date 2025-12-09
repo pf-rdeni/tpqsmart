@@ -588,3 +588,52 @@ if (!function_exists('angkaKeHurufArabTerbilang')) {
         return $terbilang;
     }
 }
+
+/**
+ * Menentukan semester saat ini berdasarkan bulan
+ * Semester Ganjil: Juli-Desember (bulan 7-12)
+ * Semester Genap: Januari-Juni (bulan 1-6)
+ * 
+ * @param int|null $month Bulan (1-12), jika null akan menggunakan bulan saat ini
+ * @return string 'Ganjil' atau 'Genap'
+ */
+if (!function_exists('getSemesterSaatIni')) {
+    function getSemesterSaatIni($month = null)
+    {
+        if ($month === null) {
+            $month = (int)date('n');
+        } else {
+            $month = (int)$month;
+        }
+        
+        // Semester Ganjil: Juli-Desember (bulan 7-12)
+        // Semester Genap: Januari-Juni (bulan 1-6)
+        return ($month >= 7 && $month <= 12) ? 'Ganjil' : 'Genap';
+    }
+}
+
+/**
+ * Mengecek apakah saat ini adalah semester Ganjil
+ * 
+ * @param int|null $month Bulan (1-12), jika null akan menggunakan bulan saat ini
+ * @return bool true jika semester Ganjil, false jika Genap
+ */
+if (!function_exists('isSemesterGanjil')) {
+    function isSemesterGanjil($month = null)
+    {
+        return getSemesterSaatIni($month) === 'Ganjil';
+    }
+}
+
+/**
+ * Mengecek apakah saat ini adalah semester Genap
+ * 
+ * @param int|null $month Bulan (1-12), jika null akan menggunakan bulan saat ini
+ * @return bool true jika semester Genap, false jika Ganjil
+ */
+if (!function_exists('isSemesterGenap')) {
+    function isSemesterGenap($month = null)
+    {
+        return getSemesterSaatIni($month) === 'Genap';
+    }
+}
