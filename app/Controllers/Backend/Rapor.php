@@ -482,7 +482,7 @@ class Rapor extends BaseController
     /**
      * Siapkan data untuk view rapor
      */
-    private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak = null)
+    private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak = null, $batasanPeringkat = null)
     {
         // Ambil data TPQ
         $tpqRow = $this->helpFunctionModel->getNamaTpqById($IdTpq);
@@ -588,6 +588,19 @@ class Rapor extends BaseController
             $semester
         );
 
+        // Hitung peringkat santri jika batasan peringkat diisi
+        $peringkatData = null;
+        if (!empty($batasanPeringkat) && $batasanPeringkat > 0 && !empty($idKelas)) {
+            $peringkatData = $this->hitungPeringkatSantri(
+                $santriData['santri']['IdSantri'],
+                $idKelas,
+                $IdTpq,
+                $IdTahunAjaran,
+                $semester,
+                $batasanPeringkat
+            );
+        }
+
         return [
             'santri' => $santriData['santri'],
             'nilai' => $nilaiGrouped, // Gunakan nilai yang sudah di-group
@@ -599,7 +612,85 @@ class Rapor extends BaseController
             'lembagaType' => $lembagaType,
             'nilaiRataRata' => $nilaiRataRata,
             'catatanRaport' => $catatanRaport,
-            'raportSetting' => $raportSetting
+            'raportSetting' => $raportSetting,
+            'peringkatData' => $peringkatData
+        ];
+    }
+
+    /**
+     * Hitung peringkat santri berdasarkan nilai rata-rata di kelas
+     * @param int $IdSantri ID Santri yang akan dihitung peringkatnya
+     * @param int $IdKelas ID Kelas
+     * @param int $IdTpq ID TPQ
+     * @param int $IdTahunAjaran ID Tahun Ajaran
+     * @param string $semester Semester
+     * @param int $batasanPeringkat Batasan peringkat (misal 10 untuk 10 besar)
+     * @return array|null Array dengan data peringkat atau null jika tidak masuk batasan
+     */
+    private function hitungPeringkatSantri($IdSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $batasanPeringkat)
+    {
+        // Ambil semua santri di kelas yang sama
+        $listSantri = $this->santriBaruModel->where([
+            'IdTpq' => $IdTpq,
+            'IdKelas' => $IdKelas,
+            'Active' => 1
+        ])->findAll();
+
+        if (empty($listSantri)) {
+            return null;
+        }
+
+        // Hitung rata-rata nilai untuk setiap santri
+        $dataPeringkat = [];
+        foreach ($listSantri as $santri) {
+            $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
+
+            if (!$santriData || empty($santriData['nilai'])) {
+                continue;
+            }
+
+            // Group nilai berdasarkan kategori
+            $nilaiGrouped = $this->groupNilaiByKategori(
+                $santriData['nilai'],
+                $IdTpq,
+                $IdKelas,
+                $IdTahunAjaran,
+                $semester
+            );
+
+            // Hitung rata-rata nilai
+            $rataRata = $this->hitungRataRataNilai($nilaiGrouped);
+
+            $dataPeringkat[] = [
+                'IdSantri' => $santri['IdSantri'],
+                'NamaSantri' => $santri['NamaSantri'],
+                'rataRata' => $rataRata
+            ];
+        }
+
+        // Urutkan berdasarkan rata-rata tertinggi ke terendah
+        usort($dataPeringkat, function ($a, $b) {
+            return $b['rataRata'] <=> $a['rataRata'];
+        });
+
+        // Cari peringkat santri yang sedang diproses
+        $peringkat = null;
+        foreach ($dataPeringkat as $index => $data) {
+            if ($data['IdSantri'] == $IdSantri) {
+                $peringkat = $index + 1; // Peringkat dimulai dari 1
+                break;
+            }
+        }
+
+        // Jika peringkat tidak ditemukan atau melebihi batasan, return null
+        if ($peringkat === null || $peringkat > $batasanPeringkat) {
+            return null;
+        }
+
+        // Return data peringkat
+        return [
+            'peringkat' => $peringkat,
+            'batasanPeringkat' => $batasanPeringkat
         ];
     }
 
@@ -905,8 +996,12 @@ class Rapor extends BaseController
                 $tanggalCetak = date('Y-m-d');
             }
 
+            // Ambil parameter peringkat dari query parameter
+            $batasanPeringkat = $this->request->getGet('peringkat');
+            $batasanPeringkat = !empty($batasanPeringkat) ? (int)$batasanPeringkat : null;
+
             // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
-            $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
+            $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
 
             // Load view untuk PDF
             $html = view('backend/rapor/print', $data);
@@ -950,6 +1045,10 @@ class Rapor extends BaseController
                 $tanggalCetak = date('Y-m-d');
             }
 
+            // Ambil parameter peringkat dari query parameter
+            $batasanPeringkat = $this->request->getGet('peringkat');
+            $batasanPeringkat = !empty($batasanPeringkat) ? (int)$batasanPeringkat : null;
+
             // Ambil semua santri dalam kelas tersebut
             $listSantri = $this->santriBaruModel->where([
                 'IdTpq' => $IdTpq,
@@ -965,7 +1064,7 @@ class Rapor extends BaseController
             log_message('info', "Rapor: printPdfBulk - Memproses {$totalSantri} santri untuk kelas {$IdKelas}");
 
             // Gunakan metode zip untuk stabilitas di webserver
-            return $this->printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
+            return $this->printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdfBulk - Error: ' . $e->getMessage());
             log_message('error', 'Rapor: printPdfBulk - Stack trace: ' . $e->getTraceAsString());
@@ -977,7 +1076,7 @@ class Rapor extends BaseController
      * Print PDF bulk dengan metode zip (satu per satu lalu di-zip)
      * Lebih stabil untuk webserver karena memory usage lebih rendah
      */
-    private function printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak)
+    private function printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat = null)
     {
         // Buat temporary directory untuk menyimpan PDF
         $tempDir = sys_get_temp_dir() . '/rapor_bulk_' . uniqid();

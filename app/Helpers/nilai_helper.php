@@ -133,6 +133,42 @@ if (!function_exists('angkaKeKata')) {
     }
 }
 
+if (!function_exists('angkaKeOrdinal')) {
+    /**
+     * Konversi angka ke ordinal (pertama, kedua, ketiga, dst)
+     * Menggunakan fungsi angkaKeKata yang sudah ada
+     */
+    function angkaKeOrdinal($angka)
+    {
+        $angka = intval($angka);
+
+        // Array khusus untuk ordinal 1-10
+        $ordinalKhusus = [
+            1 => 'Pertama',
+            2 => 'Kedua',
+            3 => 'Ketiga',
+            4 => 'Keempat',
+            5 => 'Kelima',
+            6 => 'Keenam',
+            7 => 'Ketujuh',
+            8 => 'Kedelapan',
+            9 => 'Kesembilan',
+            10 => 'Kesepuluh'
+        ];
+
+        // Jika angka 1-10, gunakan array khusus
+        if (isset($ordinalKhusus[$angka])) {
+            return $ordinalKhusus[$angka];
+        }
+
+        // Untuk angka > 10, gunakan angkaKeKata dan tambahkan "ke-" di depan
+        $kata = angkaKeKata($angka);
+
+        // Kapitalisasi huruf pertama
+        return 'Ke' . ucfirst($kata);
+    }
+}
+
 if (!function_exists('formatTerbilang')) {
     function formatTerbilang($angka)
     {

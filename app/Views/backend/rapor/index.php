@@ -305,6 +305,17 @@
                                                                     Ya, tanggal tersebut sudah benar
                                                                 </label>
                                                             </div>
+                                                            <div class="form-group text-left mb-2">
+                                                                <label for="peringatanRapor-<?= $kelas->IdKelas ?>" class="small mb-1"><strong>Peringkat yang akan ditampilkan di rapor:</strong></label>
+                                                                <input type="text"
+                                                                    class="form-control form-control-sm peringatan-rapor"
+                                                                    id="peringatanRapor-<?= $kelas->IdKelas ?>"
+                                                                    data-kelas="<?= $kelas->IdKelas ?>"
+                                                                    data-semester="<?= $semester ?>"
+                                                                    data-tahun-ajaran="<?= session()->get('IdTahunAjaran') ?>"
+                                                                    data-max="<?= $totalSantri ?>"
+                                                                    placeholder="Masukan jumlah peringkat besar yang akan ditampilkan">
+                                                            </div>
                                                             <button type="button"
                                                                 class="btn btn-warning btn-sm btn-block btn-print-all"
                                                                 data-kelas="<?= $kelas->IdKelas ?>"
@@ -831,8 +842,15 @@
                 return;
             }
 
-            // Panggil endpoint dengan parameter tanggal
-            const printWindow = window.open(`<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}?tanggal=${tanggal}`, '_blank');
+            // Ambil nilai peringkat dari input (jika ada)
+            const peringkat = $(`#peringatanRapor-${IdKelas}`).val() || '';
+
+            // Panggil endpoint dengan parameter tanggal dan peringkat
+            let url = `<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}?tanggal=${tanggal}`;
+            if (peringkat && peringkat.trim() !== '') {
+                url += `&peringkat=${peringkat}`;
+            }
+            const printWindow = window.open(url, '_blank');
             if (printWindow) {
                 printWindow.onload = function() {
                     printWindow.print();
@@ -1160,6 +1178,21 @@
                     $(`#confirmTanggal-${IdKelas}`).prop('checked', true);
                 }
             });
+
+            // Load nilai peringkat dari localStorage saat halaman dimuat
+            $('.peringatan-rapor').each(function() {
+                const IdKelas = $(this).data('kelas');
+                const semester = $(this).data('semester');
+                const tahunAjaran = $(this).data('tahun-ajaran');
+                const storageKeyPeringkat = `peringkatRapor_${IdKelas}_${semester}_${tahunAjaran}`;
+
+                // Ambil nilai peringkat dari localStorage jika ada
+                const savedPeringkat = localStorage.getItem(storageKeyPeringkat);
+                if (savedPeringkat) {
+                    $(this).val(savedPeringkat);
+                }
+            });
+
         });
 
         // Handle perubahan tanggal cetak
@@ -1184,11 +1217,91 @@
             }
         });
 
+        // Handle input peringatan rapor - hanya menerima angka
+        $(document).on('keypress', '.peringatan-rapor', function(e) {
+            // Hanya izinkan angka (0-9)
+            const charCode = (e.which) ? e.which : e.keyCode;
+            if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Handle input peringatan rapor - validasi maksimal dan hanya angka
+        $(document).on('input paste', '.peringatan-rapor', function() {
+            const $input = $(this);
+            const IdKelas = $input.data('kelas');
+            const semester = $input.data('semester');
+            const tahunAjaran = $input.data('tahun-ajaran');
+            const maxValue = parseInt($input.data('max')) || 0;
+            let value = $input.val();
+
+            // Hapus karakter non-angka
+            value = value.replace(/[^0-9]/g, '');
+
+            // Jika ada nilai dan melebihi maksimal, batasi ke maksimal
+            if (value && parseInt(value) > maxValue) {
+                value = maxValue.toString();
+                $input.addClass('is-invalid');
+            } else {
+                $input.removeClass('is-invalid');
+            }
+
+            // Update nilai input
+            $input.val(value);
+
+            // Simpan nilai peringkat ke localStorage
+            const storageKey = `peringkatRapor_${IdKelas}_${semester}_${tahunAjaran}`;
+            if (value && value.trim() !== '') {
+                localStorage.setItem(storageKey, value);
+            } else {
+                localStorage.removeItem(storageKey);
+            }
+        });
+
+        // Handle blur untuk validasi akhir
+        $(document).on('blur', '.peringatan-rapor', function() {
+            const $input = $(this);
+            const IdKelas = $input.data('kelas');
+            const semester = $input.data('semester');
+            const tahunAjaran = $input.data('tahun-ajaran');
+            const maxValue = parseInt($input.data('max')) || 0;
+            let value = $input.val();
+
+            // Hapus karakter non-angka
+            value = value.replace(/[^0-9]/g, '');
+
+            // Jika ada nilai dan melebihi maksimal, batasi ke maksimal
+            if (value && parseInt(value) > maxValue) {
+                value = maxValue.toString();
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: `Angka peringkat tidak boleh melebihi ${maxValue} (jumlah santri kelas)`,
+                    icon: 'warning',
+                    confirmButtonText: 'OK',
+                    timer: 3000
+                });
+            }
+
+            // Update nilai input
+            $input.val(value);
+            $input.removeClass('is-invalid');
+
+            // Simpan nilai peringkat ke localStorage
+            const storageKey = `peringkatRapor_${IdKelas}_${semester}_${tahunAjaran}`;
+            if (value && value.trim() !== '') {
+                localStorage.setItem(storageKey, value);
+            } else {
+                localStorage.removeItem(storageKey);
+            }
+        });
+
         $(document).on('click', '.btn-print-all', function() {
             const kelasId = $(this).data('kelas');
             const semester = $(this).data('semester');
             const tanggal = $(`#tanggalCetak-${kelasId}`).val();
             const checkbox = $(`#confirmTanggal-${kelasId}`);
+            const peringkat = $(`#peringatanRapor-${kelasId}`).val();
 
             // Validasi checkbox harus tercentang
             if (!checkbox.is(':checked')) {
@@ -1246,7 +1359,7 @@
                         if (!downloadStarted && progress < 90) {
                             progress += Math.random() * 5; // Increment random 0-5%
                             if (progress > 90) progress = 90; // Max 90% sampai download benar-benar selesai
-                            
+
                             updateProgress(progress, 'Membuat PDF rapor...');
                         }
                     }, 500);
@@ -1268,8 +1381,11 @@
             }
 
             // Download file menggunakan fetch untuk track progress
-            const url = `<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}?tanggal=${tanggal}`;
-            
+            let url = `<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}?tanggal=${tanggal}`;
+            if (peringkat && peringkat.trim() !== '') {
+                url += `&peringkat=${peringkat}`;
+            }
+
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
@@ -1277,7 +1393,7 @@
                     }
                     downloadStarted = true;
                     updateProgress(95, 'File ZIP siap, sedang mengunduh...', 'Hampir selesai...');
-                    
+
                     // Ambil nama file dari Content-Disposition header
                     const contentDisposition = response.headers.get('Content-Disposition');
                     let filename = 'Rapor_Kelas.zip';
@@ -1287,10 +1403,16 @@
                             filename = filenameMatch[1].replace(/['"]/g, '');
                         }
                     }
-                    
-                    return response.blob().then(blob => ({ blob, filename }));
+
+                    return response.blob().then(blob => ({
+                        blob,
+                        filename
+                    }));
                 })
-                .then(({ blob, filename }) => {
+                .then(({
+                    blob,
+                    filename
+                }) => {
                     // Buat URL untuk download
                     const blobUrl = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -1300,10 +1422,10 @@
                     a.click();
                     document.body.removeChild(a);
                     window.URL.revokeObjectURL(blobUrl);
-                    
+
                     // Update progress ke 100%
                     updateProgress(100, 'Download selesai!', 'File ZIP berhasil diunduh');
-                    
+
                     // Tutup progress dan tampilkan success message
                     setTimeout(() => {
                         if (progressInterval) {

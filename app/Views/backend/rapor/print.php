@@ -320,25 +320,63 @@ helper('nilai');
         </table>
     <?php endif; ?>
 
-    <!-- Tabel Catatan (hanya dari settingan raport) -->
-    <?php if (!empty($raportSetting) && $raportSetting['ShowCatatan'] == 1 && !empty($raportSetting['CatatanData'])): ?>
-        <?php
+    <!-- Tabel Catatan (gabungan catatan opsional guru dan catatan peringkat) -->
+    <?php
+    $catatanGuru = '';
+    $catatanPeringkat = '';
+
+    // Ambil catatan opsional guru jika ada
+    if (!empty($raportSetting) && $raportSetting['ShowCatatan'] == 1 && !empty($raportSetting['CatatanData'])) {
         $catatanData = $raportSetting['CatatanData'];
-        if (!empty($catatanData['catatanFinal'])):
-        ?>
-            <table class="nilai-table">
-                <thead>
-                    <tr>
-                        <th width="30%">Catatan</th>
-                    </tr>
-                    <tr>
-                        <td style="text-align: justify; padding: 10px;">
-                            <?= nl2br(htmlspecialchars($catatanData['catatanFinal'])) ?>
-                        </td>
-                    </tr>
-                </thead>
-            </table>
-        <?php endif; ?>
+        if (!empty($catatanData['catatanFinal'])) {
+            $catatanGuru = $catatanData['catatanFinal'];
+        }
+    }
+
+    // Ambil catatan peringkat jika ada
+    if (!empty($peringkatData) && isset($peringkatData['peringkat']) && isset($peringkatData['batasanPeringkat'])) {
+        $peringkat = $peringkatData['peringkat'];
+        $batasanPeringkat = $peringkatData['batasanPeringkat'];
+
+        // Konversi peringkat ke ordinal menggunakan fungsi angkaKeKata
+        $peringkatOrdinal = angkaKeOrdinal($peringkat);
+
+        // Format peringkat dengan bold: 1 (Pertama)
+        $peringkatFormatted = "<strong>{$peringkat} ({$peringkatOrdinal})</strong>";
+
+        // Ambil nama santri dan format dengan bold
+        $namaSantri = htmlspecialchars(toTitleCase($santri['NamaSantri']));
+        $namaSantriBold = "<strong>" . $namaSantri . "</strong>";
+
+        $catatanPeringkat = "Barokalloh, alhamdulillah ananda " . $namaSantriBold . " berhasil masuk dalam peringkat {$batasanPeringkat} besar dan menempati posisi peringkat " . $peringkatFormatted . ". Tingkatkan atau pertahankan prestasi ini dengan terus belajar dan menjaga semangat yang baik.";
+    }
+
+    // Gabungkan catatan jika ada salah satu atau kedua catatan
+    $catatanFinal = '';
+    if (!empty($catatanGuru) && !empty($catatanPeringkat)) {
+        // Jika ada kedua catatan, gabungkan dengan spasi kosong di antara
+        $catatanFinal = $catatanGuru . "\n\n" . $catatanPeringkat;
+    } elseif (!empty($catatanGuru)) {
+        $catatanFinal = $catatanGuru;
+    } elseif (!empty($catatanPeringkat)) {
+        $catatanFinal = $catatanPeringkat;
+    }
+
+    // Tampilkan tabel catatan hanya jika ada catatan
+    if (!empty($catatanFinal)):
+    ?>
+        <table class="nilai-table">
+            <thead>
+                <tr>
+                    <th width="30%">Catatan</th>
+                </tr>
+                <tr>
+                    <td style="text-align: justify; padding: 10px;">
+                        <?= nl2br($catatanFinal) ?>
+                    </td>
+                </tr>
+            </thead>
+        </table>
     <?php endif; ?>
     <!-- Tanda Tangan Layout Gambar Tabel -->
     <table style="width: 100%; border-collapse: collapse; margin-top: 50px; font-size: 12px; page-break-inside: avoid;">
@@ -353,9 +391,9 @@ helper('nilai');
         <tr>
             <td colspan="2" style="height: 50px; text-align: center;">
                 <?php
-                                                                                // Cari signature untuk kepala sekolah berdasarkan posisi
-                                                                                // Sesuaikan dengan lembagaType: jika MDA cari 'Kepala MDTA', jika TPQ cari 'Kepala TPQ'
-                                                                                $jabatanKepala = (($lembagaType ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ');
+                // Cari signature untuk kepala sekolah berdasarkan posisi
+                // Sesuaikan dengan lembagaType: jika MDA cari 'Kepala MDTA', jika TPQ cari 'Kepala TPQ'
+                $jabatanKepala = (($lembagaType ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ');
                 $kepsekSignature = null;
                 foreach ($signatures as $signature) {
                     if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] == $jabatanKepala && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
