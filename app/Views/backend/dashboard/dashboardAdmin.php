@@ -742,19 +742,25 @@
                                                                                             <strong><?= esc($santri['NamaSantri']) ?></strong>
                                                                                         </td>
                                                                                         <td class="text-center">
-                                                                                            <span class="badge badge-secondary">-</span>
+                                                                                            <span class="badge badge-<?= esc($santri['StatusColor'] ?? 'secondary') ?>">
+                                                                                                <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
+                                                                                            </span>
                                                                                         </td>
                                                                                         <td class="text-center">
-                                                                                            <span class="badge badge-success"><?= number_format($santri['MateriTerisi']) ?></span>
+                                                                                            <span class="badge badge-info"><?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?></span>
                                                                                         </td>
                                                                                         <td class="text-center">
-                                                                                            <span class="badge badge-danger"><?= number_format($santri['MateriBelum']) ?></span>
+                                                                                            <?php if ($santri['MateriBelum'] > 0): ?>
+                                                                                                <span class="badge badge-warning"><?= number_format($santri['MateriBelum']) ?> Materi</span>
+                                                                                            <?php else: ?>
+                                                                                                <span class="badge badge-success">Lengkap</span>
+                                                                                            <?php endif; ?>
                                                                                         </td>
                                                                                         <td class="text-center">
                                                                                             <div class="progress" style="height: 18px;">
-                                                                                                <div class="progress-bar <?= $santri['PersentaseSudah'] <= 40 ? 'bg-danger' : ($santri['PersentaseSudah'] <= 80 ? 'bg-warning' : 'bg-success') ?>" 
-                                                                                                     style="width: <?= $santri['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
-                                                                                                    <?= $santri['PersentaseSudah'] ?>% (<?= $santri['MateriTerisi'] ?>/<?= $santri['TotalMateri'] ?>)
+                                                                                                <div class="progress-bar <?= ($santri['StatusColor'] ?? 'danger') == 'success' ? 'bg-success' : (($santri['StatusColor'] ?? 'danger') == 'warning' ? 'bg-warning' : 'bg-danger') ?>" 
+                                                                                                     style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+                                                                                                    <?= $santri['PersentaseSudah'] ?>%
                                                                                                 </div>
                                                                                             </div>
                                                                                         </td>
@@ -888,19 +894,25 @@
                                                                                             <strong><?= esc($santri['NamaSantri']) ?></strong>
                                                                                         </td>
                                                                                         <td class="text-center">
-                                                                                            <span class="badge badge-secondary">-</span>
+                                                                                            <span class="badge badge-<?= esc($santri['StatusColor'] ?? 'secondary') ?>">
+                                                                                                <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
+                                                                                            </span>
                                                                                         </td>
                                                                                         <td class="text-center">
-                                                                                            <span class="badge badge-success"><?= number_format($santri['MateriTerisi']) ?></span>
+                                                                                            <span class="badge badge-info"><?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?></span>
                                                                                         </td>
                                                                                         <td class="text-center">
-                                                                                            <span class="badge badge-danger"><?= number_format($santri['MateriBelum']) ?></span>
+                                                                                            <?php if ($santri['MateriBelum'] > 0): ?>
+                                                                                                <span class="badge badge-warning"><?= number_format($santri['MateriBelum']) ?> Materi</span>
+                                                                                            <?php else: ?>
+                                                                                                <span class="badge badge-success">Lengkap</span>
+                                                                                            <?php endif; ?>
                                                                                         </td>
                                                                                         <td class="text-center">
                                                                                             <div class="progress" style="height: 18px;">
-                                                                                                <div class="progress-bar <?= $santri['PersentaseSudah'] <= 40 ? 'bg-danger' : ($santri['PersentaseSudah'] <= 80 ? 'bg-warning' : 'bg-success') ?>" 
-                                                                                                     style="width: <?= $santri['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
-                                                                                                    <?= $santri['PersentaseSudah'] ?>% (<?= $santri['MateriTerisi'] ?>/<?= $santri['TotalMateri'] ?>)
+                                                                                                <div class="progress-bar <?= ($santri['StatusColor'] ?? 'danger') == 'success' ? 'bg-success' : (($santri['StatusColor'] ?? 'danger') == 'warning' ? 'bg-warning' : 'bg-danger') ?>" 
+                                                                                                     style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+                                                                                                    <?= $santri['PersentaseSudah'] ?>%
                                                                                                 </div>
                                                                                             </div>
                                                                                         </td>
