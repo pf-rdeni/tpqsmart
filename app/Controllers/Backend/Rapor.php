@@ -1012,7 +1012,8 @@ class Rapor extends BaseController
                     // Setup Dompdf untuk setiap PDF
                     $dompdf = $this->setupDompdfConfig();
                     $dompdf->loadHtml($html);
-                    $dompdf->setPaper('A4', 'portrait');
+                    // set paper folio atau F4
+                    $dompdf->setPaper([0, 0, 595.276, 935.433], 'portrait');
                     $dompdf->render();
 
                     // Generate nama file untuk PDF dengan nama santri
