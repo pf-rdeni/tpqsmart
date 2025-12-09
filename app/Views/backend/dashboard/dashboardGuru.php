@@ -210,12 +210,9 @@ function render_progress_bar($persentase, $height = 25)
 
                         <!-- Semester Cards -->
                         <?php
-                        // Tentukan semester saat ini berdasarkan bulan
-                        // Semester Ganjil: Juli-Desember (bulan 7-12)
-                        // Semester Genap: Januari-Juni (bulan 1-6)
-                        $currentMonth = date('n');
-                        $isSemesterGanjil = ($currentMonth >= 7 && $currentMonth <= 12);
-                        $isSemesterGenap = ($currentMonth >= 1 && $currentMonth <= 6);
+                        // Tentukan semester saat ini menggunakan helper function
+                        $isSemesterGanjil = isSemesterGanjil();
+                        $isSemesterGenap = isSemesterGenap();
                         ?>
                         <div class="row mt-3 mt-md-4">
                             <!-- Semester Ganjil -->
@@ -405,6 +402,396 @@ function render_progress_bar($persentase, $height = 25)
             </div>
         </div>
     </div>
+
+    <!-- Statistik Progress Penilaian per Kelas -->
+    <?php if (!empty($StatistikProgressNilaiPerKelas)): ?>
+        <div class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-warning card-outline">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-chart-line"></i> Statistik Progress Penilaian per Kelas
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-warning btn-sm" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>Informasi:</strong> Tabel ini menampilkan progress pengisian nilai per kelas yang Anda ajar. Klik pada baris kelas untuk melihat detail per santri.
+                                </p>
+
+                                <?php
+                                // Tentukan semester saat ini menggunakan helper function
+                                $isSemesterGanjil = isSemesterGanjil();
+                                $isSemesterGenap = isSemesterGenap();
+                                ?>
+
+                                <!-- Semester Ganjil -->
+                                <div class="mb-4">
+                                    <div class="card card-outline card-secondary <?= !$isSemesterGanjil ? 'collapsed-card' : '' ?>">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-book-reader"></i> Semester Ganjil TA <?= esc($TahunAjaran ?? '') ?>
+                                            </h5>
+                                            <div class="card-tools">
+                                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                    <i class="fas <?= !$isSemesterGanjil ? 'fa-plus' : 'fa-minus' ?>"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table id="tabelProgressNilaiGanjil" class="table table-bordered table-striped table-hover">
+                                                    <thead class="thead-light">
+                                                        <tr>
+                                                            <th class="text-center" style="width: 50px;">No</th>
+                                                            <th style="width: 50px;"></th>
+                                                            <th>Nama Kelas</th>
+                                                            <th class="text-center">Total Santri</th>
+                                                            <th class="text-center">Sudah Dinilai</th>
+                                                            <th class="text-center">Belum Dinilai</th>
+                                                            <th class="text-center">Progress</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php if (!empty($StatistikProgressNilaiPerKelas['Ganjil'])): ?>
+                                                            <?php $no = 1; ?>
+                                                            <?php foreach ($StatistikProgressNilaiPerKelas['Ganjil'] as $kelas): ?>
+                                                                <?php
+                                                                $kelasKey = md5($kelas['IdKelas']);
+                                                                $hasSantri = !empty($kelas['Santri']) && count($kelas['Santri']) > 0;
+                                                                ?>
+                                                                <!-- Row Kelas (Parent) - Tertutup secara default -->
+                                                                <tr class="kelas-row" data-kelas-key="<?= $kelasKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
+                                                                    <td class="text-center"><?= $no++ ?></td>
+                                                                    <td class="text-center">
+                                                                        <?php if ($hasSantri): ?>
+                                                                            <i class="fas fa-chevron-right expand-icon-kelas" style="transition: transform 0.3s; color: #007bff;"></i>
+                                                                        <?php else: ?>
+                                                                            <i class="fas fa-minus" style="color: #ccc;"></i>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <td>
+                                                                        <strong><?= esc($kelas['NamaKelas']) ?></strong>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                            <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                        <?php elseif ($kelas['SudahDinilai'] > 0): ?>
+                                                                            <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
+                                                                        <?php else: ?>
+                                                                            <span class="badge badge-secondary">-</span>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                            <span class="badge badge-secondary">-</span>
+                                                                        <?php else: ?>
+                                                                            <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                            <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                        <?php else: ?>
+                                                                            <div class="progress" style="height: 20px;">
+                                                                                <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                    style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                                                                    <?= $kelas['PersentaseSudah'] ?>%
+                                                                                </div>
+                                                                            </div>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                </tr>
+                                                                <!-- Detail Santri (Child rows - Tertutup secara default) -->
+                                                                <?php if ($hasSantri): ?>
+                                                                    <?php foreach ($kelas['Santri'] as $santri): ?>
+                                                                        <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
+                                                                            <td></td>
+                                                                            <td class="text-center">
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil/' . $santri['IdTpq'] . '/' . ($IdJabatanForUrl ?? 4)) ?>" class="text-muted" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                    <i class="fas fa-user text-primary"></i>
+                                                                                </a>
+                                                                            </td>
+                                                                            <td style="padding-left: 40px;">
+                                                                                <span class="text-muted small"><i class="fas fa-user text-primary mr-1"></i>Santri</span>
+                                                                            </td>
+                                                                            <td style="padding-left: 20px;">
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil/' . $santri['IdTpq'] . '/' . ($IdJabatanForUrl ?? 4)) ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                    <strong><?= esc($santri['NamaSantri']) ?></strong>
+                                                                                </a>
+                                                                            </td>
+                                                                            <td class="text-center">
+                                                                                <span class="badge badge-<?= esc($santri['StatusColor'] ?? 'secondary') ?>">
+                                                                                    <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
+                                                                                </span>
+                                                                            </td>
+                                                                            <td class="text-center">
+                                                                                <span class="badge badge-info">
+                                                                                    <?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?>
+                                                                                    <?php if ($santri['MateriBelum'] > 0): ?>
+                                                                                        <span class="ml-1"><?= number_format($santri['MateriBelum']) ?> Materi</span>
+                                                                                    <?php endif; ?>
+                                                                                </span>
+                                                                            </td>
+                                                                            <td class="text-center">
+                                                                                <div class="progress" style="height: 18px;">
+                                                                                    <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                        style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+                                                                                        <?= $santri['PersentaseSudah'] ?>%
+                                                                                    </div>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    <?php endforeach; ?>
+                                                                <?php endif; ?>
+                                                            <?php endforeach; ?>
+                                                        <?php else: ?>
+                                                            <tr>
+                                                                <td colspan="7" class="text-center">Tidak ada data untuk semester Ganjil</td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <!-- Action Buttons -->
+                                            <div class="row mt-3">
+                                                <?php if ($isSemesterGanjil): ?>
+                                                    <div class="col-6 col-md-3 mb-2">
+                                                        <a href="<?= base_url('backend/nilai/showSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-primary btn-sm mobile-btn">
+                                                            <i class="fas fa-edit"></i>
+                                                            <span class="d-none d-sm-inline">Input Nilai</span>
+                                                            <span class="d-inline d-sm-none">Input</span>
+                                                        </a>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="col-6 col-md-3 mb-2">
+                                                        <button class="btn btn-block btn-secondary btn-sm mobile-btn" disabled>
+                                                            <i class="fas fa-edit"></i>
+                                                            <span class="d-none d-sm-inline">Input Nilai</span>
+                                                            <span class="d-inline d-sm-none">Input</span>
+                                                        </button>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div class="col-6 col-md-3 mb-2">
+                                                    <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-success btn-sm mobile-btn">
+                                                        <i class="fas fa-eye"></i>
+                                                        <span class="d-none d-sm-inline">Detail</span>
+                                                        <span class="d-inline d-sm-none">Detail</span>
+                                                    </a>
+                                                </div>
+                                                <div class="col-6 col-md-3 mb-2">
+                                                    <a href="<?= base_url('backend/nilai/showRanking/Ganjil') ?>" class="btn btn-block btn-info btn-sm mobile-btn">
+                                                        <i class="fas fa-trophy"></i>
+                                                        <span class="d-none d-sm-inline">Rangking</span>
+                                                        <span class="d-inline d-sm-none">Rangking</span>
+                                                    </a>
+                                                </div>
+                                                <div class="col-6 col-md-3 mb-2">
+                                                    <a href="<?= base_url('backend/rapor/index/Ganjil') ?>" class="btn btn-block btn-warning btn-sm mobile-btn">
+                                                        <i class="fas fa-file-alt"></i>
+                                                        <span class="d-none d-sm-inline">Raport</span>
+                                                        <span class="d-inline d-sm-none">Raport</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Semester Genap -->
+                                <div class="mb-4">
+                                    <div class="card card-outline card-secondary <?= !$isSemesterGenap ? 'collapsed-card' : '' ?>">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-book-reader"></i> Semester Genap TA <?= esc($TahunAjaran ?? '') ?>
+                                            </h5>
+                                            <div class="card-tools">
+                                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                    <i class="fas <?= !$isSemesterGenap ? 'fa-plus' : 'fa-minus' ?>"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table id="tabelProgressNilaiGenap" class="table table-bordered table-striped table-hover">
+                                                    <thead class="thead-light">
+                                                        <tr>
+                                                            <th class="text-center" style="width: 50px;">No</th>
+                                                            <th style="width: 50px;"></th>
+                                                            <th>Nama Kelas</th>
+                                                            <th class="text-center">Total Santri</th>
+                                                            <th class="text-center">Sudah Dinilai</th>
+                                                            <th class="text-center">Belum Dinilai</th>
+                                                            <th class="text-center">Progress</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php if (!empty($StatistikProgressNilaiPerKelas['Genap'])): ?>
+                                                            <?php $no = 1; ?>
+                                                            <?php foreach ($StatistikProgressNilaiPerKelas['Genap'] as $kelas): ?>
+                                                                <?php
+                                                                $kelasKey = md5($kelas['IdKelas']);
+                                                                $hasSantri = !empty($kelas['Santri']) && count($kelas['Santri']) > 0;
+                                                                ?>
+                                                                <!-- Row Kelas (Parent) - Tertutup secara default -->
+                                                                <tr class="kelas-row" data-kelas-key="<?= $kelasKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
+                                                                    <td class="text-center"><?= $no++ ?></td>
+                                                                    <td class="text-center">
+                                                                        <?php if ($hasSantri): ?>
+                                                                            <i class="fas fa-chevron-right expand-icon-kelas" style="transition: transform 0.3s; color: #007bff;"></i>
+                                                                        <?php else: ?>
+                                                                            <i class="fas fa-minus" style="color: #ccc;"></i>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <td>
+                                                                        <strong><?= esc($kelas['NamaKelas']) ?></strong>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                            <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                        <?php elseif ($kelas['SudahDinilai'] > 0): ?>
+                                                                            <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
+                                                                        <?php else: ?>
+                                                                            <span class="badge badge-secondary">-</span>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                            <span class="badge badge-secondary">-</span>
+                                                                        <?php else: ?>
+                                                                            <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                            <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                        <?php else: ?>
+                                                                            <div class="progress" style="height: 20px;">
+                                                                                <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                    style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                                                                    <?= $kelas['PersentaseSudah'] ?>%
+                                                                                </div>
+                                                                            </div>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                </tr>
+                                                                <!-- Detail Santri (Child rows - Tertutup secara default) -->
+                                                                <?php if ($hasSantri): ?>
+                                                                    <?php foreach ($kelas['Santri'] as $santri): ?>
+                                                                        <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
+                                                                            <td></td>
+                                                                            <td class="text-center">
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap/' . $santri['IdTpq'] . '/' . ($IdJabatanForUrl ?? 4)) ?>" class="text-muted" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                    <i class="fas fa-user text-primary"></i>
+                                                                                </a>
+                                                                            </td>
+                                                                            <td style="padding-left: 40px;">
+                                                                                <span class="text-muted small"><i class="fas fa-user text-primary mr-1"></i>Santri</span>
+                                                                            </td>
+                                                                            <td style="padding-left: 20px;">
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap/' . $santri['IdTpq'] . '/' . ($IdJabatanForUrl ?? 4)) ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                    <strong><?= esc($santri['NamaSantri']) ?></strong>
+                                                                                </a>
+                                                                            </td>
+                                                                            <td class="text-center">
+                                                                                <span class="badge badge-<?= esc($santri['StatusColor'] ?? 'secondary') ?>">
+                                                                                    <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
+                                                                                </span>
+                                                                            </td>
+                                                                            <td class="text-center">
+                                                                                <span class="badge badge-info">
+                                                                                    <?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?>
+                                                                                    <?php if ($santri['MateriBelum'] > 0): ?>
+                                                                                        <span class="ml-1"><?= number_format($santri['MateriBelum']) ?> Materi</span>
+                                                                                    <?php endif; ?>
+                                                                                </span>
+                                                                            </td>
+                                                                            <td class="text-center">
+                                                                                <div class="progress" style="height: 18px;">
+                                                                                    <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                        style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+                                                                                        <?= $santri['PersentaseSudah'] ?>%
+                                                                                    </div>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    <?php endforeach; ?>
+                                                                <?php endif; ?>
+                                                            <?php endforeach; ?>
+                                                        <?php else: ?>
+                                                            <tr>
+                                                                <td colspan="7" class="text-center">Tidak ada data untuk semester Genap</td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <!-- Action Buttons -->
+                                            <div class="row mt-3">
+                                                <?php if ($isSemesterGenap): ?>
+                                                    <div class="col-6 col-md-3 mb-2">
+                                                        <a href="<?= base_url('backend/nilai/showSantriPerKelas/Genap') ?>" class="btn btn-block btn-primary btn-sm mobile-btn">
+                                                            <i class="fas fa-edit"></i>
+                                                            <span class="d-none d-sm-inline">Input Nilai</span>
+                                                            <span class="d-inline d-sm-none">Input</span>
+                                                        </a>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="col-6 col-md-3 mb-2">
+                                                        <button class="btn btn-block btn-secondary btn-sm mobile-btn" disabled>
+                                                            <i class="fas fa-edit"></i>
+                                                            <span class="d-none d-sm-inline">Input Nilai</span>
+                                                            <span class="d-inline d-sm-none">Input</span>
+                                                        </button>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div class="col-6 col-md-3 mb-2">
+                                                    <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Genap') ?>" class="btn btn-block btn-success btn-sm mobile-btn">
+                                                        <i class="fas fa-eye"></i>
+                                                        <span class="d-none d-sm-inline">Detail</span>
+                                                        <span class="d-inline d-sm-none">Detail</span>
+                                                    </a>
+                                                </div>
+                                                <div class="col-6 col-md-3 mb-2">
+                                                    <a href="<?= base_url('backend/nilai/showRanking/Genap') ?>" class="btn btn-block btn-info btn-sm mobile-btn">
+                                                        <i class="fas fa-trophy"></i>
+                                                        <span class="d-none d-sm-inline">Rangking</span>
+                                                        <span class="d-inline d-sm-none">Rangking</span>
+                                                    </a>
+                                                </div>
+                                                <div class="col-6 col-md-3 mb-2">
+                                                    <a href="<?= base_url('backend/rapor/index/Genap') ?>" class="btn btn-block btn-warning btn-sm mobile-btn">
+                                                        <i class="fas fa-file-alt"></i>
+                                                        <span class="d-none d-sm-inline">Raport</span>
+                                                        <span class="d-inline d-sm-none">Raport</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </section>
 
 <?= $this->endSection(); ?>
@@ -912,6 +1299,26 @@ function render_progress_bar($persentase, $height = 25)
                 window.location.href = '<?= base_url('backend/pages/profil') ?>';
             }
         });
+    });
+
+    // Handle expand/collapse untuk kelas (kelas tertutup secara default)
+    $(document).on('click', '.kelas-row', function() {
+        var kelasKey = $(this).data('kelas-key');
+        var $table = $(this).closest('table'); // Ambil tabel parent (Ganjil atau Genap)
+        var detailRows = $table.find('.detail-' + kelasKey); // Cari hanya dalam tabel yang sama
+        var expandIcon = $(this).find('.expand-icon-kelas');
+
+        if (detailRows.length > 0) {
+            if (detailRows.is(':visible')) {
+                detailRows.slideUp(300);
+                expandIcon.css('transform', 'rotate(0deg)');
+                $(this).removeClass('expanded');
+            } else {
+                detailRows.slideDown(300);
+                expandIcon.css('transform', 'rotate(90deg)');
+                $(this).addClass('expanded');
+            }
+        }
     });
 </script>
 <?= $this->endSection(); ?>

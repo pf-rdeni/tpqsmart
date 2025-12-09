@@ -744,6 +744,17 @@ class Dashboard extends BaseController
             }
         }
 
+        // Tentukan IdJabatan untuk URL showDetail
+        // IdJabatan = 3 untuk Wali Kelas (bisa edit), 4 untuk Guru Pendamping (view saja)
+        $userJabatanList = session()->get('IdJabatan') ?? [];
+        $isWaliKelas = false;
+        if (is_array($userJabatanList)) {
+            $isWaliKelas = in_array(3, $userJabatanList);
+        } else {
+            $isWaliKelas = ($userJabatanList == 3);
+        }
+        $data['IdJabatanForUrl'] = $isWaliKelas ? 3 : 4;
+
         return view('backend/dashboard/dashboardGuru', $data);
     }
 
@@ -1526,6 +1537,7 @@ class Dashboard extends BaseController
                         $santriList[] = [
                             'IdSantri' => $santriRow['IdSantri'],
                             'NamaSantri' => $santriRow['NamaSantri'],
+                            'IdTpq' => $santriRow['IdTpq'],
                             'TotalMateri' => $totalMateri,
                             'MateriTerisi' => $materiTerisi,
                             'MateriBelum' => $materiBelum,
@@ -1610,6 +1622,7 @@ class Dashboard extends BaseController
                         $santriList[] = [
                             'IdSantri' => $santriRow['IdSantri'],
                             'NamaSantri' => $santriRow['NamaSantri'],
+                            'IdTpq' => $santriRow['IdTpq'],
                             'TotalMateri' => $totalMateri,
                             'MateriTerisi' => $materiTerisi,
                             'MateriBelum' => $materiBelum,
@@ -1849,6 +1862,7 @@ class Dashboard extends BaseController
                         $santriList[] = [
                             'IdSantri' => $santriRow['IdSantri'],
                             'NamaSantri' => $santriRow['NamaSantri'],
+                            'IdTpq' => $santriRow['IdTpq'],
                             'TotalMateri' => $totalMateri,
                             'MateriTerisi' => $materiTerisi,
                             'MateriBelum' => $materiBelum,
@@ -1972,6 +1986,7 @@ class Dashboard extends BaseController
                         $santriList[] = [
                             'IdSantri' => $santriRow['IdSantri'],
                             'NamaSantri' => $santriRow['NamaSantri'],
+                            'IdTpq' => $santriRow['IdTpq'],
                             'TotalMateri' => $totalMateri,
                             'MateriTerisi' => $materiTerisi,
                             'MateriBelum' => $materiBelum,
