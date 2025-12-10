@@ -2,7 +2,7 @@
 <?= $this->section('content'); ?>
 <div class="col-12">
     <?php echo session()->getFlashdata('pesan'); ?>
-    
+
     <!-- Card Informasi Alur Proses -->
     <div class="card card-info collapsed-card">
         <div class="card-header">
@@ -28,7 +28,7 @@
                             </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Filter Materi:</strong> Gunakan dropdown filter di samping search box untuk memfilter materi tertentu. 
+                            <strong>Filter Materi:</strong> Gunakan dropdown filter di samping search box untuk memfilter materi tertentu.
                             Anda dapat memilih beberapa materi sekaligus. Filter akan tersimpan otomatis di browser Anda.
                         </li>
                         <li class="mb-2">
@@ -47,7 +47,7 @@
                             </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Simpan Nilai:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-save"></i> Simpan</span> 
+                            <strong>Simpan Nilai:</strong> Klik tombol <span class="badge badge-primary"><i class="fas fa-save"></i> Simpan</span>
                             untuk menyimpan nilai. Sistem akan otomatis memperbarui tampilan tabel setelah penyimpanan berhasil.
                         </li>
                     </ol>
@@ -171,17 +171,13 @@
             <table id="TabelNilaiPerSemester" class="table table-bordered table-striped">
                 <thead>
                     <?php
-                    $tableHeadersFooter =
-                        '<tr>';
-                    if ($pageEdit) {
-                        $tableHeadersFooter .= '<th>Aksi</th>';
-                    }
-                    $tableHeadersFooter .=
-                        '
+                    $tableHeadersFooter = '<tr>';
+                    $tableHeadersFooter .= '<th>Aksi</th>';
+                    $tableHeadersFooter .= '
                         <th>Nilai</th>
                         <th>Id - Nama Materi</th>
                         <th>Kategori</th>
-                         </tr>';
+                    </tr>';
 
                     echo $tableHeadersFooter
                     ?>
@@ -190,28 +186,53 @@
                 <tbody>
                     <?php
                     foreach ($nilai as $DataNilai) : ?>
-
                         <tr>
-                            <?php if ($pageEdit) {
+                            <td>
+                                <?php
                                 $isNilaiPositive = $DataNilai->Nilai > 0;
-                                $isGuruPendamping4 = $guruPendamping == 4; // Assuming $guruPendamping is the value of $IdJabatan Guru Kelas bukan Wali Kelas
 
-                                $btnClass = $isNilaiPositive ? ($isGuruPendamping4 ? 'btn-success' : 'btn-warning') : 'btn-primary';
-                                $faClass = $isNilaiPositive ? ($isGuruPendamping4 ? 'fa-eye' : 'fa-edit') : 'fa-plus';
-                                $name = $isNilaiPositive ? ($isGuruPendamping4 ? 'View' : 'Edit') : 'Add';
-                                if ($name == 'View') {
-                                    // button disabled
-                                    $disabled = 'disabled';
-                                } else {
+                                // LOGIKA PERMISSION:
+                                // 1. Wali Kelas untuk kelas ini: selalu bisa edit (tidak peduli nilai sudah ada atau belum)
+                                // 2. Guru Pendamping untuk kelas ini: 
+                                //    - Jika nilai kosong (0): bisa edit (tombol Add)
+                                //    - Jika nilai sudah ada: hanya view (tombol View disabled)
+                                // 3. Admin dan Operator: tidak bisa edit sama sekali (hanya view atau tidak akses)
+                                // Catatan: Jika guru adalah Wali Kelas di kelas lain tapi pendamping di kelas ini,
+                                //          maka di kelas ini dia hanya bisa edit jika nilai kosong
+
+                                if ($canEditAll) {
+                                    // Wali Kelas: bisa edit semua
+                                    $btnClass = $isNilaiPositive ? 'btn-warning' : 'btn-primary';
+                                    $faClass = $isNilaiPositive ? 'fa-edit' : 'fa-plus';
+                                    $name = $isNilaiPositive ? 'Edit' : 'Add';
                                     $disabled = '';
+                                } elseif ($isGuruPendamping) {
+                                    // Guru Pendamping: hanya bisa edit jika nilai kosong
+                                    if ($isNilaiPositive) {
+                                        // Nilai sudah ada: hanya view (disabled)
+                                        $btnClass = 'btn-success';
+                                        $faClass = 'fa-eye';
+                                        $name = 'View';
+                                        $disabled = 'disabled';
+                                    } else {
+                                        // Nilai kosong: bisa edit
+                                        $btnClass = 'btn-primary';
+                                        $faClass = 'fa-plus';
+                                        $name = 'Add';
+                                        $disabled = '';
+                                    }
+                                } else {
+                                    // Admin dan Operator: tidak bisa edit sama sekali (hanya view)
+                                    $btnClass = 'btn-success';
+                                    $faClass = 'fa-eye';
+                                    $name = 'View';
+                                    $disabled = 'disabled';
                                 }
-                            ?>
-                                <td>
-                                    <button id="EditNilai-<?= $DataNilai->Id ?>" class="btn <?= $btnClass ?> btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')" <?= $disabled ?>>
-                                        <i class="fas <?= $faClass ?>"></i><span style=" margin-left: 5px;"></span><?= $name ?>
-                                    </button>
-                                </td>
-                            <?php } ?>
+                                ?>
+                                <button id="EditNilai-<?= $DataNilai->Id ?>" class="btn <?= $btnClass ?> btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')" <?= $disabled ?>>
+                                    <i class="fas <?= $faClass ?>"></i><span style="margin-left: 5px;"></span><?= $name ?>
+                                </button>
+                            </td>
                             <td>
                                 <input type="text" name="Nilai-<?= $DataNilai->Id ?>" id="Nilai-<?= $DataNilai->Id ?>" class="form-control" value="<?php echo $DataNilai->Nilai; ?>" readonly
                                     style="border: <?= $DataNilai->Nilai == 0 ? '2px solid red' : '2px solid green' ?>;" />
@@ -219,7 +240,6 @@
                             <td><?php echo $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri; ?></td>
                             <td><?php echo $DataNilai->Kategori; ?></td>
                         </tr>
-
                     <?php endforeach ?>
                 </tbody>
                 <tfoot>
@@ -245,7 +265,7 @@ foreach ($nilai as $DataNilai) : ?>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form action="<?= base_url('backend/nilai/update/' . $pageEdit) ?>" method="POST">
+                    <form action="<?= base_url('backend/nilai/update') ?>" method="POST">
                         <input type="hidden" name="Id" value=<?= $DataNilai->Id ?>>
                         <div class="form-group">
                             <label for="FormProfilTpq">Kategori</label>
@@ -360,8 +380,8 @@ foreach ($nilai as $DataNilai) : ?>
     var table = $('#TabelNilaiPerSemester').DataTable();
 
     // Tentukan index kolom "Id - Nama Materi"
-    // Jika ada kolom Aksi: index 2, jika tidak: index 1
-    var namaMateriColumnIndex = <?= $pageEdit ? 2 : 1 ?>;
+    // Kolom Aksi selalu ada, jadi index kolom nama materi adalah 2
+    var namaMateriColumnIndex = 2;
 
     // Fungsi untuk membuat regex pattern dari array nilai
     function createFilterPattern(selectedValues) {

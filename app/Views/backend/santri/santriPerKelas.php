@@ -182,13 +182,10 @@
                                                                 }
                                                             }
 
-                                                            if ($showEdit) : ?>
-                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 1 . '/' . $santri->IdJabatan) ?>" class="btn btn-warning me-2">
-                                                                    <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Edit&nbsp;
-                                                                </a>
-                                                            <?php elseif ($showView) : ?>
-                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester . '/' . 0 . '/' . $santri->IdJabatan) ?>" class="btn btn-primary me-2">
-                                                                    <i class="fas fa-eye"></i><span style="margin-left: 5px;"></span>View
+                                                            // Permission sekarang ditangani di controller/view, jadi langsung link ke showDetail
+                                                            if ($showEdit || $showView) : ?>
+                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri->IdSantri . '/' . $semester) ?>" class="btn btn-primary me-2">
+                                                                    <i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>&nbsp;Nilai&nbsp;
                                                                 </a>
                                                             <?php endif; ?>
 

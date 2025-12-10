@@ -1412,6 +1412,7 @@ class Dashboard extends BaseController
                 k.IdKelas,
                 n.IdSantri,
                 s.NamaSantri,
+                s.PhotoProfil,
                 COUNT(DISTINCT n.IdMateri) as total_materi,
                 COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
             FROM tbl_nilai n
@@ -1422,7 +1423,7 @@ class Dashboard extends BaseController
                 AND n.Semester = 'Ganjil'
                 AND n.IdTpq = ?
                 AND n.IdKelas IN ($placeholders)
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri
+            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
             ORDER BY k.IdKelas ASC, s.NamaSantri ASC
         ", array_merge([$idTahunAjaran, $idTpq], $kelasIds));
 
@@ -1476,6 +1477,7 @@ class Dashboard extends BaseController
                 k.IdKelas,
                 n.IdSantri,
                 s.NamaSantri,
+                s.PhotoProfil,
                 COUNT(DISTINCT n.IdMateri) as total_materi,
                 COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
             FROM tbl_nilai n
@@ -1486,7 +1488,7 @@ class Dashboard extends BaseController
                 AND n.Semester = 'Genap'
                 AND n.IdTpq = ?
                 AND n.IdKelas IN ($placeholders)
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri
+            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
             ORDER BY k.IdKelas ASC, s.NamaSantri ASC
         ", array_merge([$idTahunAjaran, $idTpq], $kelasIds));
 
@@ -1537,6 +1539,7 @@ class Dashboard extends BaseController
                         $santriList[] = [
                             'IdSantri' => $santriRow['IdSantri'],
                             'NamaSantri' => $santriRow['NamaSantri'],
+                            'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
                             'IdTpq' => $santriRow['IdTpq'],
                             'TotalMateri' => $totalMateri,
                             'MateriTerisi' => $materiTerisi,
@@ -1622,6 +1625,7 @@ class Dashboard extends BaseController
                         $santriList[] = [
                             'IdSantri' => $santriRow['IdSantri'],
                             'NamaSantri' => $santriRow['NamaSantri'],
+                            'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
                             'IdTpq' => $santriRow['IdTpq'],
                             'TotalMateri' => $totalMateri,
                             'MateriTerisi' => $materiTerisi,
@@ -1735,6 +1739,7 @@ class Dashboard extends BaseController
                 k.IdKelas,
                 n.IdSantri,
                 s.NamaSantri,
+                s.PhotoProfil,
                 COUNT(DISTINCT n.IdMateri) as total_materi,
                 COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
             FROM tbl_nilai n
@@ -1744,7 +1749,7 @@ class Dashboard extends BaseController
             WHERE n.IdTahunAjaran = ?
                 AND n.Semester = 'Ganjil'
                 AND n.IdTpq = ?
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri
+            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
             ORDER BY k.IdKelas ASC, s.NamaSantri ASC
         ", [$idTahunAjaran, $idTpq]);
 
@@ -1797,6 +1802,7 @@ class Dashboard extends BaseController
                 k.IdKelas,
                 n.IdSantri,
                 s.NamaSantri,
+                s.PhotoProfil,
                 COUNT(DISTINCT n.IdMateri) as total_materi,
                 COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
             FROM tbl_nilai n
@@ -1806,7 +1812,7 @@ class Dashboard extends BaseController
             WHERE n.IdTahunAjaran = ?
                 AND n.Semester = 'Genap'
                 AND n.IdTpq = ?
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri
+            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
             ORDER BY k.IdKelas ASC, s.NamaSantri ASC
         ", [$idTahunAjaran, $idTpq]);
 
@@ -1862,6 +1868,7 @@ class Dashboard extends BaseController
                         $santriList[] = [
                             'IdSantri' => $santriRow['IdSantri'],
                             'NamaSantri' => $santriRow['NamaSantri'],
+                            'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
                             'IdTpq' => $santriRow['IdTpq'],
                             'TotalMateri' => $totalMateri,
                             'MateriTerisi' => $materiTerisi,
@@ -1986,6 +1993,7 @@ class Dashboard extends BaseController
                         $santriList[] = [
                             'IdSantri' => $santriRow['IdSantri'],
                             'NamaSantri' => $santriRow['NamaSantri'],
+                            'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
                             'IdTpq' => $santriRow['IdTpq'],
                             'TotalMateri' => $totalMateri,
                             'MateriTerisi' => $materiTerisi,
@@ -2128,6 +2136,7 @@ class Dashboard extends BaseController
                 k.IdKelas,
                 n.IdSantri,
                 s.NamaSantri,
+                s.PhotoProfil,
                 COUNT(DISTINCT n.IdMateri) as total_materi,
                 COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
             FROM tbl_nilai n
@@ -2136,7 +2145,7 @@ class Dashboard extends BaseController
             LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
             WHERE n.IdTahunAjaran = ?
                 AND n.Semester = 'Ganjil'
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri
+            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
             ORDER BY t.IdTpq ASC, k.IdKelas ASC, s.NamaSantri ASC
         ", [$idTahunAjaran]);
         
@@ -2188,6 +2197,7 @@ class Dashboard extends BaseController
                 k.IdKelas,
                 n.IdSantri,
                 s.NamaSantri,
+                s.PhotoProfil,
                 COUNT(DISTINCT n.IdMateri) as total_materi,
                 COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
             FROM tbl_nilai n
@@ -2196,7 +2206,7 @@ class Dashboard extends BaseController
             LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
             WHERE n.IdTahunAjaran = ?
                 AND n.Semester = 'Genap'
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri
+            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
             ORDER BY t.IdTpq ASC, k.IdKelas ASC, s.NamaSantri ASC
         ", [$idTahunAjaran]);
         
@@ -2253,6 +2263,7 @@ class Dashboard extends BaseController
                             $santriList[] = [
                                 'IdSantri' => $santriRow['IdSantri'],
                                 'NamaSantri' => $santriRow['NamaSantri'],
+                                'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
                                 'TotalMateri' => $totalMateri,
                                 'MateriTerisi' => $materiTerisi,
                                 'MateriBelum' => $materiBelum,
@@ -2383,6 +2394,7 @@ class Dashboard extends BaseController
                             $santriList[] = [
                                 'IdSantri' => $santriRow['IdSantri'],
                                 'NamaSantri' => $santriRow['NamaSantri'],
+                                'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
                                 'TotalMateri' => $totalMateri,
                                 'MateriTerisi' => $materiTerisi,
                                 'MateriBelum' => $materiBelum,

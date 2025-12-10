@@ -38,16 +38,41 @@ class Nilai extends BaseController
         $this->db = \Config\Database::connect();
     }
 
-    public function showDetail($IdSantri, $IdSemseter, $Edit = null, $IdJabatan = null)
+    public function showDetail($IdSantri, $IdSemseter)
     {
         log_message('info', '=== showDetail: START ===');
-        log_message('info', 'showDetail Parameters - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter) . ', Edit: ' . json_encode($Edit) . ', IdJabatan: ' . json_encode($IdJabatan));
+        log_message('info', 'showDetail Parameters - IdSantri: ' . json_encode($IdSantri) . ', IdSemseter: ' . json_encode($IdSemseter));
 
         // ambil settingan nilai minimun dan maksimal dari session
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $IdKelas = session()->get('IdKelas');
-        $IdTpq = $this->IdTpq; // Ambil IdTpq dari session untuk filter query
-        log_message('info', 'showDetail Session Data - IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas: ' . json_encode($IdKelas) . ', IdTpq: ' . json_encode($IdTpq));
+
+        // Ambil IdKelas dan IdTpq dari data santri yang sedang dilihat, bukan dari session
+        // Ini penting untuk pengecekan permission yang akurat
+        $IdKelas = null;
+        $IdTpq = null;
+
+        // Coba ambil dari tbl_kelas_santri berdasarkan IdSantri dan IdTahunAjaran
+        $db = db_connect();
+        $kelasSantri = $db->table('tbl_kelas_santri ks')
+            ->select('ks.IdKelas, ks.IdTpq')
+            ->where('ks.IdSantri', $IdSantri)
+            ->where('ks.IdTahunAjaran', $IdTahunAjaran)
+            ->where('ks.Status', 1)
+            ->orderBy('ks.IdKelas', 'ASC')
+            ->limit(1)
+            ->get()
+            ->getRowArray();
+
+        if (!empty($kelasSantri)) {
+            $IdKelas = $kelasSantri['IdKelas'];
+            $IdTpq = $kelasSantri['IdTpq'];
+        } else {
+            // Fallback: ambil dari session jika tidak ditemukan di tbl_kelas_santri
+            $IdKelas = session()->get('IdKelas');
+            $IdTpq = $this->IdTpq;
+        }
+
+        log_message('info', 'showDetail Data - IdTahunAjaran: ' . json_encode($IdTahunAjaran) . ', IdKelas (dari santri): ' . json_encode($IdKelas) . ', IdTpq (dari santri): ' . json_encode($IdTpq));
 
         $settingNilai = (object)[
             'NilaiMin' => session()->get('SettingNilaiMin'),
@@ -60,10 +85,12 @@ class Nilai extends BaseController
 
         if ($nilaiAlphabetEnabled) {
             // Jika alphabet enabled, ambil detail settings
-            log_message('info', "showDetail Query 1: getNilaiAlphabetSettings START - IdTpq: " . json_encode($this->IdTpq));
+            // Gunakan IdTpq dari data santri untuk konsistensi
+            $idTpqForSettings = !empty($IdTpq) ? $IdTpq : $this->IdTpq;
+            log_message('info', "showDetail Query 1: getNilaiAlphabetSettings START - IdTpq: " . json_encode($idTpqForSettings));
             $queryStartTime = microtime(true);
 
-            $settingNilai->NilaiAlphabet = $this->helpFunction->getNilaiAlphabetSettings($this->IdTpq);
+            $settingNilai->NilaiAlphabet = $this->helpFunction->getNilaiAlphabetSettings($idTpqForSettings);
 
             $queryEndTime = microtime(true);
             $queryExecutionTime = ($queryEndTime - $queryStartTime) * 1000; // Convert to milliseconds
@@ -100,13 +127,101 @@ class Nilai extends BaseController
             log_message('info', "showDetail Query 2 (FALLBACK): GetDataNilaiDetail END - Execution Time: {$queryExecutionTime}ms, Result Count: {$resultCount}");
         }
 
+        // LOGIKA PERMISSION BERDASARKAN USER GRUP DAN IdJabatan
+        // Cek active_role dari session untuk menentukan peran yang sedang digunakan
+        // Ini penting untuk user yang memiliki multiple roles (Guru, Operator, Kepala TPQ)
+        $activeRole = session()->get('active_role');
+
+        // Cek apakah user memiliki group Admin atau Operator (untuk pengecekan dasar)
+        $hasAdminGroup = in_groups('Admin');
+        $hasOperatorGroup = in_groups('Operator');
+
+        // Tentukan apakah user sedang menggunakan peran Admin/Operator atau peran Guru
+        // Jika active_role adalah 'guru' atau 'wali_kelas', maka user sedang menggunakan peran Guru
+        // Jika active_role adalah 'operator' atau 'kepala_tpq' atau 'admin', maka user sedang menggunakan peran tersebut
+        $isUsingGuruRole = in_array($activeRole, ['guru', 'wali_kelas']);
+        $isUsingAdminRole = ($activeRole === 'admin' && $hasAdminGroup);
+        $isUsingOperatorRole = ($activeRole === 'operator' && $hasOperatorGroup);
+        $isUsingKepalaTpqRole = ($activeRole === 'kepala_tpq');
+
+        // Jika active_role tidak ada atau tidak valid, cek berdasarkan group
+        // Default: jika user memiliki group Guru dan tidak memilih peran lain, anggap sebagai Guru
+        if (empty($activeRole) || (!in_array($activeRole, ['admin', 'operator', 'kepala_tpq', 'guru', 'wali_kelas']))) {
+            if (in_groups('Guru')) {
+                $isUsingGuruRole = true;
+            } elseif ($hasAdminGroup) {
+                $isUsingAdminRole = true;
+            } elseif ($hasOperatorGroup) {
+                $isUsingOperatorRole = true;
+            }
+        }
+
+        // Tentukan isAdmin dan isOperator berdasarkan peran yang sedang digunakan
+        // Jika user menggunakan peran Guru, maka bukan Admin/Operator meskipun memiliki group tersebut
+        $isAdmin = $isUsingAdminRole;
+        $isOperator = $isUsingOperatorRole || $isUsingKepalaTpqRole;
+
+        // Ambil IdGuru dari session
+        $IdGuru = session()->get('IdGuru');
+
+        // Cek apakah guru adalah Wali Kelas untuk kelas yang sedang dilihat
+        $isWaliKelasUntukKelasIni = false;
+        $isGuruPendampingUntukKelasIni = false;
+
+        // Hanya cek permission sebagai Guru jika user sedang menggunakan peran Guru
+        if ($isUsingGuruRole && !empty($IdGuru) && !empty($IdKelas) && !empty($IdTpq) && !empty($IdTahunAjaran)) {
+            // Cek apakah guru adalah Wali Kelas untuk kelas ini
+            $guruKelasData = $this->helpFunction->getDataGuruKelas(
+                IdGuru: $IdGuru,
+                IdTpq: $IdTpq,
+                IdKelas: $IdKelas,
+                IdTahunAjaran: $IdTahunAjaran,
+                IdJabatan: 3 // Wali Kelas
+            );
+
+            if (!empty($guruKelasData)) {
+                $isWaliKelasUntukKelasIni = true;
+            } else {
+                // Jika bukan Wali Kelas, cek apakah dia Guru Pendamping untuk kelas ini
+                // Cek semua data guru kelas untuk kelas ini (tanpa filter IdJabatan)
+                $guruPendampingData = $this->helpFunction->getDataGuruKelas(
+                    IdGuru: $IdGuru,
+                    IdTpq: $IdTpq,
+                    IdKelas: $IdKelas,
+                    IdTahunAjaran: $IdTahunAjaran
+                );
+
+                // Jika ada data dan IdJabatan bukan 3 (Wali Kelas), berarti dia pendamping
+                if (!empty($guruPendampingData)) {
+                    foreach ($guruPendampingData as $gk) {
+                        $gkArray = is_object($gk) ? (array)$gk : $gk;
+                        $idJabatanGk = $gkArray['IdJabatan'] ?? null;
+                        // Jika IdJabatan bukan 3 (Wali Kelas) dan tidak null, berarti dia pendamping
+                        if ($idJabatanGk != 3 && $idJabatanGk != null) {
+                            $isGuruPendampingUntukKelasIni = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Tentukan permission:
+        // - Wali Kelas untuk kelas ini: bisa edit semua nilai (baik kosong maupun sudah ada)
+        // - Guru Pendamping untuk kelas ini: hanya bisa edit jika nilai kosong, view jika nilai sudah ada
+        // - Admin dan Operator: tidak bisa edit sama sekali (hanya view atau tidak akses)
+        $canEditAll = $isWaliKelasUntukKelasIni; // Hanya Wali Kelas untuk kelas ini yang bisa edit semua
+        $isGuruPendamping = $isGuruPendampingUntukKelasIni && !$isAdmin && !$isOperator; // Guru Pendamping untuk kelas ini (bukan Admin, bukan Operator)
+
         log_message('info', '=== showDetail: END ===');
 
         $data = [
             'page_title' => 'Data Nilai',
             'nilai' => $datanilai,
-            'guruPendamping' => $IdJabatan,
-            'pageEdit' => $Edit,
+            'canEditAll' => $canEditAll, // Hanya Wali Kelas bisa edit semua
+            'isGuruPendamping' => $isGuruPendamping, // Guru Pendamping bisa edit jika nilai kosong
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
             'settingNilai' => $settingNilai,
         ];
 

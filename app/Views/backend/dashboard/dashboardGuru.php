@@ -207,196 +207,6 @@ function render_progress_bar($persentase, $height = 25)
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Semester Cards -->
-                        <?php
-                        // Tentukan semester saat ini menggunakan helper function
-                        $isSemesterGanjil = isSemesterGanjil();
-                        $isSemesterGenap = isSemesterGenap();
-                        ?>
-                        <div class="row mt-3 mt-md-4">
-                            <!-- Semester Ganjil -->
-                            <div class="col-12 mb-3">
-                                <div class="card card-secondary card-outline <?= !$isSemesterGanjil ? 'collapsed-card' : '' ?>">
-                                    <div class="card-header">
-                                        <h3 class="card-title mobile-card-title">
-                                            <i class="fas fa-book-reader"></i>
-                                            <span class="d-none d-sm-inline">Semester Ganjil </span>
-                                            <span class="d-inline d-sm-none">Sem. Ganjil </span>
-                                            <span class="d-none d-md-inline">TA <?= esc($TahunAjaran ?? '') ?></span>
-                                        </h3>
-                                        <div class="card-tools">
-                                            <button type="button" class="btn btn-secondary btn-sm" data-card-widget="collapse">
-                                                <i class="fas <?= !$isSemesterGanjil ? 'fa-plus' : 'fa-minus' ?>"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="info-box bg-gradient-secondary">
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Total Santri</span>
-                                                <span class="info-box-number mobile-info-number">
-                                                    <?= $TotalSantri ?? 0 ?> Santri
-                                                    <span class="d-none d-sm-inline">dari <?= $JumlahKelasDiajar ?? 0 ?> Kelas</span>
-                                                    <span class="d-inline d-sm-none">(<?= $JumlahKelasDiajar ?? 0 ?> Kls)</span>
-                                                </span>
-                                                <?= render_progress_bar($StatusInputNilaiSemesterGanjil->persentasiSudah ?? 0) ?>
-                                                <span class="progress-description mobile-progress-desc">
-                                                    Input nilai (<?= $StatusInputNilaiSemesterGanjil->countSudah ?? 0 ?>/<?= $StatusInputNilaiSemesterGanjil->countTotal ?? 0 ?>)
-                                                </span>
-
-                                                <!-- Progress per Kelas -->
-                                                <div class="row mt-2 mt-md-3">
-                                                    <?php foreach ($StatusInputNilaiPerKelasGanjil ?? [] as $item): ?>
-                                                        <div class="col-12 col-md-6 mb-2">
-                                                            <span class="info-box-text mobile-kelas-text">
-                                                                <?= esc($item['NamaKelas']) ?>
-                                                                <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small>
-                                                            </span>
-                                                            <?= render_progress_bar($item['StatusInputNilai']->persentasiSudah ?? 0, 20) ?>
-                                                            <small class="mobile-small-text">Input nilai (<?= $item['StatusInputNilai']->countSudah ?? 0 ?>/<?= $item['StatusInputNilai']->countTotal ?? 0 ?>)</small>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-
-                                                <!-- Action Buttons -->
-                                                <div class="row mt-2 mt-md-3">
-                                                    <?php if ($isSemesterGanjil): ?>
-                                                        <div class="col-6 col-md-3 mb-2">
-                                                            <a href="<?= base_url('backend/nilai/showSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-primary btn-sm mobile-btn">
-                                                                <i class="fas fa-edit"></i>
-                                                                <span class="d-none d-sm-inline">Input Nilai</span>
-                                                                <span class="d-inline d-sm-none">Input</span>
-                                                            </a>
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="col-6 col-md-3 mb-2">
-                                                            <button class="btn btn-block btn-secondary btn-sm mobile-btn" disabled>
-                                                                <i class="fas fa-edit"></i>
-                                                                <span class="d-none d-sm-inline">Input Nilai</span>
-                                                                <span class="d-inline d-sm-none">Input</span>
-                                                            </button>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="col-6 col-md-3 mb-2">
-                                                        <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Ganjil') ?>" class="btn btn-block btn-success btn-sm mobile-btn">
-                                                            <i class="fas fa-eye"></i>
-                                                            <span class="d-none d-sm-inline">Detail</span>
-                                                            <span class="d-inline d-sm-none">Detail</span>
-                                                        </a>
-                                                    </div>
-                                                    <div class="col-6 col-md-3 mb-2">
-                                                        <a href="<?= base_url('backend/nilai/showRanking/Ganjil') ?>" class="btn btn-block btn-info btn-sm mobile-btn">
-                                                            <i class="fas fa-trophy"></i>
-                                                            <span class="d-none d-sm-inline">Rangking</span>
-                                                            <span class="d-inline d-sm-none">Rangking</span>
-                                                        </a>
-                                                    </div>
-                                                    <div class="col-6 col-md-3 mb-2">
-                                                        <a href="<?= base_url('backend/rapor/index/Ganjil') ?>" class="btn btn-block btn-warning btn-sm mobile-btn">
-                                                            <i class="fas fa-file-alt"></i>
-                                                            <span class="d-none d-sm-inline">Raport</span>
-                                                            <span class="d-inline d-sm-none">Raport</span>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Semester Genap -->
-                            <div class="col-12">
-                                <div class="card card-info card-outline <?= !$isSemesterGenap ? 'collapsed-card' : '' ?>">
-                                    <div class="card-header">
-                                        <h3 class="card-title mobile-card-title">
-                                            <i class="fas fa-book-reader"></i>
-                                            <span class="d-none d-sm-inline">Semester Genap </span>
-                                            <span class="d-inline d-sm-none">Sem. Genap </span>
-                                            <span class="d-none d-md-inline">TA <?= esc($TahunAjaran ?? '') ?></span>
-                                        </h3>
-                                        <div class="card-tools">
-                                            <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse">
-                                                <i class="fas <?= !$isSemesterGenap ? 'fa-plus' : 'fa-minus' ?>"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="info-box bg-gradient-info">
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Total Santri</span>
-                                                <span class="info-box-number mobile-info-number">
-                                                    <?= $TotalSantri ?? 0 ?> Santri
-                                                    <span class="d-none d-sm-inline">dari <?= $JumlahKelasDiajar ?? 0 ?> Kelas</span>
-                                                    <span class="d-inline d-sm-none">(<?= $JumlahKelasDiajar ?? 0 ?> Kls)</span>
-                                                </span>
-                                                <?= render_progress_bar($StatusInputNilaiSemesterGenap->persentasiSudah ?? 0) ?>
-                                                <span class="progress-description mobile-progress-desc">
-                                                    Input nilai (<?= $StatusInputNilaiSemesterGenap->countSudah ?? 0 ?>/<?= $StatusInputNilaiSemesterGenap->countTotal ?? 0 ?>)
-                                                </span>
-
-                                                <!-- Progress per Kelas -->
-                                                <div class="row mt-2 mt-md-3">
-                                                    <?php foreach ($StatusInputNilaiPerKelasGenap ?? [] as $item): ?>
-                                                        <div class="col-12 col-md-6 mb-2">
-                                                            <span class="info-box-text mobile-kelas-text">
-                                                                <?= esc($item['NamaKelas']) ?>
-                                                                <small class="float-right"><?= $JumlahSantriPerKelas[$item['IdKelas']] ?? 0 ?> Santri</small>
-                                                            </span>
-                                                            <?= render_progress_bar($item['StatusInputNilai']->persentasiSudah ?? 0, 20) ?>
-                                                            <small class="mobile-small-text">Input nilai (<?= $item['StatusInputNilai']->countSudah ?? 0 ?>/<?= $item['StatusInputNilai']->countTotal ?? 0 ?>)</small>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-
-                                                <!-- Action Buttons -->
-                                                <div class="row mt-2 mt-md-3">
-                                                    <?php if ($isSemesterGenap): ?>
-                                                        <div class="col-6 col-md-3 mb-2">
-                                                            <a href="<?= base_url('backend/nilai/showSantriPerKelas/Genap') ?>" class="btn btn-block btn-primary btn-sm mobile-btn">
-                                                                <i class="fas fa-edit"></i>
-                                                                <span class="d-none d-sm-inline">Input Nilai</span>
-                                                                <span class="d-inline d-sm-none">Input</span>
-                                                            </a>
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="col-6 col-md-3 mb-2">
-                                                            <button class="btn btn-block btn-secondary btn-sm mobile-btn" disabled>
-                                                                <i class="fas fa-edit"></i>
-                                                                <span class="d-none d-sm-inline">Input Nilai</span>
-                                                                <span class="d-inline d-sm-none">Input</span>
-                                                            </button>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="col-6 col-md-3 mb-2">
-                                                        <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas/Genap') ?>" class="btn btn-block btn-success btn-sm mobile-btn">
-                                                            <i class="fas fa-eye"></i>
-                                                            <span class="d-none d-sm-inline">Detail</span>
-                                                            <span class="d-inline d-sm-none">Detail</span>
-                                                        </a>
-                                                    </div>
-                                                    <div class="col-6 col-md-3 mb-2">
-                                                        <a href="<?= base_url('backend/nilai/showRanking/Genap') ?>" class="btn btn-block btn-info btn-sm mobile-btn">
-                                                            <i class="fas fa-trophy"></i>
-                                                            <span class="d-none d-sm-inline">Rangking</span>
-                                                            <span class="d-inline d-sm-none">Rangking</span>
-                                                        </a>
-                                                    </div>
-                                                    <div class="col-6 col-md-3 mb-2">
-                                                        <a href="<?= base_url('backend/rapor/index/Genap') ?>" class="btn btn-block btn-warning btn-sm mobile-btn">
-                                                            <i class="fas fa-file-alt"></i>
-                                                            <span class="d-none d-sm-inline">Raport</span>
-                                                            <span class="d-inline d-sm-none">Raport</span>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -456,7 +266,6 @@ function render_progress_bar($persentase, $height = 25)
                                                             <th class="text-center">Total Santri</th>
                                                             <th class="text-center">Sudah Dinilai</th>
                                                             <th class="text-center">Belum Dinilai</th>
-                                                            <th class="text-center">Progress</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -478,7 +287,23 @@ function render_progress_bar($persentase, $height = 25)
                                                                         <?php endif; ?>
                                                                     </td>
                                                                     <td>
-                                                                        <strong><?= esc($kelas['NamaKelas']) ?></strong>
+                                                                        <div>
+                                                                            <strong><?= esc($kelas['NamaKelas']) ?></strong>
+                                                                        </div>
+                                                                        <?php if (empty($kelas['StatusKelas'])): ?>
+                                                                            <div class="mt-2">
+                                                                                <div class="progress" style="height: 20px;">
+                                                                                    <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                        style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                                                                        <?= $kelas['PersentaseSudah'] ?>%
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        <?php else: ?>
+                                                                            <div class="mt-1">
+                                                                                <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                            </div>
+                                                                        <?php endif; ?>
                                                                     </td>
                                                                     <td class="text-center">
                                                                         <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
@@ -499,18 +324,6 @@ function render_progress_bar($persentase, $height = 25)
                                                                             <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
                                                                         <?php endif; ?>
                                                                     </td>
-                                                                    <td class="text-center">
-                                                                        <?php if (!empty($kelas['StatusKelas'])): ?>
-                                                                            <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
-                                                                        <?php else: ?>
-                                                                            <div class="progress" style="height: 20px;">
-                                                                                <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                    style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
-                                                                                    <?= $kelas['PersentaseSudah'] ?>%
-                                                                                </div>
-                                                                            </div>
-                                                                        <?php endif; ?>
-                                                                    </td>
                                                                 </tr>
                                                                 <!-- Detail Santri (Child rows - Tertutup secara default) -->
                                                                 <?php if ($hasSantri): ?>
@@ -518,16 +331,52 @@ function render_progress_bar($persentase, $height = 25)
                                                                         <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
                                                                             <td></td>
                                                                             <td class="text-center">
-                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil/' . $santri['IdTpq'] . '/' . ($IdJabatanForUrl ?? 4)) ?>" class="text-muted" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
-                                                                                    <i class="fas fa-user text-primary"></i>
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                    <?php
+                                                                                    // Ambil foto profil santri
+                                                                                    $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
+                                                                                    $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                                                                                    $photoProfil = $santri['PhotoProfil'] ?? null;
+                                                                                    if (!empty($photoProfil)) {
+                                                                                        $thumbnailFile = 'thumb_' . $photoProfil;
+                                                                                        $thumbnailFullPath = FCPATH . 'uploads/santri/thumbnails/' . $thumbnailFile;
+                                                                                        if (file_exists($thumbnailFullPath)) {
+                                                                                            $photoUrl = $thumbnailPath . $thumbnailFile;
+                                                                                        } else {
+                                                                                            // Fallback ke foto asli jika thumbnail tidak ada
+                                                                                            $photoFullPath = FCPATH . 'uploads/santri/' . $photoProfil;
+                                                                                            if (file_exists($photoFullPath)) {
+                                                                                                $photoUrl = $uploadPath . $photoProfil;
+                                                                                            } else {
+                                                                                                $photoUrl = base_url('images/no-photo.jpg');
+                                                                                            }
+                                                                                        }
+                                                                                    } else {
+                                                                                        $photoUrl = base_url('images/no-photo.jpg');
+                                                                                    }
+                                                                                    ?>
+                                                                                    <img src="<?= $photoUrl ?>"
+                                                                                        alt="Foto <?= esc($santri['NamaSantri']) ?>"
+                                                                                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6; cursor: pointer;"
+                                                                                        onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
                                                                                 </a>
                                                                             </td>
-                                                                            <td style="padding-left: 40px;">
-                                                                                <span class="text-muted small"><i class="fas fa-user text-primary mr-1"></i>Santri</span>
-                                                                            </td>
-                                                                            <td style="padding-left: 20px;">
-                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil/' . $santri['IdTpq'] . '/' . ($IdJabatanForUrl ?? 4)) ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
-                                                                                    <strong><?= esc($santri['NamaSantri']) ?></strong>
+                                                                            <td colspan="2" style="padding-left: 40px;">
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                    <div>
+                                                                                        <strong><?= esc($santri['NamaSantri']) ?></strong>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <span class="text-muted small">ID: <?= esc($santri['IdSantri']) ?></span>
+                                                                                    </div>
+                                                                                    <div class="mt-2">
+                                                                                        <div class="progress" style="height: 18px;">
+                                                                                            <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                                style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+                                                                                                <?= $santri['PersentaseSudah'] ?>%
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </a>
                                                                             </td>
                                                                             <td class="text-center">
@@ -543,21 +392,13 @@ function render_progress_bar($persentase, $height = 25)
                                                                                     <?php endif; ?>
                                                                                 </span>
                                                                             </td>
-                                                                            <td class="text-center">
-                                                                                <div class="progress" style="height: 18px;">
-                                                                                    <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                        style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
-                                                                                        <?= $santri['PersentaseSudah'] ?>%
-                                                                                    </div>
-                                                                                </div>
-                                                                            </td>
                                                                         </tr>
                                                                     <?php endforeach; ?>
                                                                 <?php endif; ?>
                                                             <?php endforeach; ?>
                                                         <?php else: ?>
                                                             <tr>
-                                                                <td colspan="7" class="text-center">Tidak ada data untuk semester Ganjil</td>
+                                                                <td colspan="6" class="text-center">Tidak ada data untuk semester Ganjil</td>
                                                             </tr>
                                                         <?php endif; ?>
                                                     </tbody>
@@ -633,7 +474,6 @@ function render_progress_bar($persentase, $height = 25)
                                                             <th class="text-center">Total Santri</th>
                                                             <th class="text-center">Sudah Dinilai</th>
                                                             <th class="text-center">Belum Dinilai</th>
-                                                            <th class="text-center">Progress</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -655,7 +495,23 @@ function render_progress_bar($persentase, $height = 25)
                                                                         <?php endif; ?>
                                                                     </td>
                                                                     <td>
-                                                                        <strong><?= esc($kelas['NamaKelas']) ?></strong>
+                                                                        <div>
+                                                                            <strong><?= esc($kelas['NamaKelas']) ?></strong>
+                                                                        </div>
+                                                                        <?php if (empty($kelas['StatusKelas'])): ?>
+                                                                            <div class="mt-2">
+                                                                                <div class="progress" style="height: 20px;">
+                                                                                    <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                        style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                                                                        <?= $kelas['PersentaseSudah'] ?>%
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        <?php else: ?>
+                                                                            <div class="mt-1">
+                                                                                <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                            </div>
+                                                                        <?php endif; ?>
                                                                     </td>
                                                                     <td class="text-center">
                                                                         <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
@@ -676,18 +532,6 @@ function render_progress_bar($persentase, $height = 25)
                                                                             <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
                                                                         <?php endif; ?>
                                                                     </td>
-                                                                    <td class="text-center">
-                                                                        <?php if (!empty($kelas['StatusKelas'])): ?>
-                                                                            <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
-                                                                        <?php else: ?>
-                                                                            <div class="progress" style="height: 20px;">
-                                                                                <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                    style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
-                                                                                    <?= $kelas['PersentaseSudah'] ?>%
-                                                                                </div>
-                                                                            </div>
-                                                                        <?php endif; ?>
-                                                                    </td>
                                                                 </tr>
                                                                 <!-- Detail Santri (Child rows - Tertutup secara default) -->
                                                                 <?php if ($hasSantri): ?>
@@ -695,16 +539,44 @@ function render_progress_bar($persentase, $height = 25)
                                                                         <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
                                                                             <td></td>
                                                                             <td class="text-center">
-                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap/' . $santri['IdTpq'] . '/' . ($IdJabatanForUrl ?? 4)) ?>" class="text-muted" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
-                                                                                    <i class="fas fa-user text-primary"></i>
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                    <?php
+                                                                                    // Ambil foto profil santri
+                                                                                    $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
+                                                                                    $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                                                                                    $photoProfil = $santri['PhotoProfil'] ?? null;
+                                                                                    if (!empty($photoProfil)) {
+                                                                                        $thumbnailFile = 'thumb_' . $photoProfil;
+                                                                                        $thumbnailFullPath = FCPATH . 'uploads/santri/thumbnails/' . $thumbnailFile;
+                                                                                        if (file_exists($thumbnailFullPath)) {
+                                                                                            $photoUrl = $thumbnailPath . $thumbnailFile;
+                                                                                        } else {
+                                                                                            // Fallback ke foto asli jika thumbnail tidak ada
+                                                                                            $photoFullPath = FCPATH . 'uploads/santri/' . $photoProfil;
+                                                                                            if (file_exists($photoFullPath)) {
+                                                                                                $photoUrl = $uploadPath . $photoProfil;
+                                                                                            } else {
+                                                                                                $photoUrl = base_url('images/no-photo.jpg');
+                                                                                            }
+                                                                                        }
+                                                                                    } else {
+                                                                                        $photoUrl = base_url('images/no-photo.jpg');
+                                                                                    }
+                                                                                    ?>
+                                                                                    <img src="<?= $photoUrl ?>"
+                                                                                        alt="Foto <?= esc($santri['NamaSantri']) ?>"
+                                                                                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6; cursor: pointer;"
+                                                                                        onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
                                                                                 </a>
                                                                             </td>
-                                                                            <td style="padding-left: 40px;">
-                                                                                <span class="text-muted small"><i class="fas fa-user text-primary mr-1"></i>Santri</span>
-                                                                            </td>
-                                                                            <td style="padding-left: 20px;">
-                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap/' . $santri['IdTpq'] . '/' . ($IdJabatanForUrl ?? 4)) ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
-                                                                                    <strong><?= esc($santri['NamaSantri']) ?></strong>
+                                                                            <td colspan="2" style="padding-left: 40px;">
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                    <div>
+                                                                                        <strong><?= esc($santri['NamaSantri']) ?></strong>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <span class="text-muted small">ID: <?= esc($santri['IdSantri']) ?></span>
+                                                                                    </div>
                                                                                 </a>
                                                                             </td>
                                                                             <td class="text-center">
@@ -734,7 +606,7 @@ function render_progress_bar($persentase, $height = 25)
                                                             <?php endforeach; ?>
                                                         <?php else: ?>
                                                             <tr>
-                                                                <td colspan="7" class="text-center">Tidak ada data untuk semester Genap</td>
+                                                                <td colspan="6" class="text-center">Tidak ada data untuk semester Genap</td>
                                                             </tr>
                                                         <?php endif; ?>
                                                     </tbody>
@@ -1301,6 +1173,114 @@ function render_progress_bar($persentase, $height = 25)
         });
     });
 
+    // Key untuk localStorage
+    const storageKeyCard = 'dashboardGuru_cardExpand';
+    const storageKeyKelas = 'dashboardGuru_kelasExpand';
+
+    // Fungsi untuk menyimpan status expand card ke localStorage
+    function saveCardExpandState(cardId, isExpanded) {
+        var states = JSON.parse(localStorage.getItem(storageKeyCard) || '{}');
+        states[cardId] = isExpanded;
+        localStorage.setItem(storageKeyCard, JSON.stringify(states));
+    }
+
+    // Fungsi untuk memuat status expand card dari localStorage
+    function loadCardExpandState(cardId) {
+        var states = JSON.parse(localStorage.getItem(storageKeyCard) || '{}');
+        return states[cardId] !== undefined ? states[cardId] : null;
+    }
+
+    // Fungsi untuk menyimpan status expand kelas ke localStorage
+    function saveKelasExpandState(kelasKey, semester, isExpanded) {
+        var key = semester + '_' + kelasKey;
+        var states = JSON.parse(localStorage.getItem(storageKeyKelas) || '{}');
+        states[key] = isExpanded;
+        localStorage.setItem(storageKeyKelas, JSON.stringify(states));
+    }
+
+    // Fungsi untuk memuat status expand kelas dari localStorage
+    function loadKelasExpandState(kelasKey, semester) {
+        var key = semester + '_' + kelasKey;
+        var states = JSON.parse(localStorage.getItem(storageKeyKelas) || '{}');
+        return states[key] === true;
+    }
+
+    // Fungsi helper untuk mendapatkan card identifier
+    function getCardIdentifier($card) {
+        // Coba ambil dari ID card
+        var cardId = $card.attr('id');
+        if (cardId) {
+            return cardId;
+        }
+        // Coba ambil dari text header
+        var headerText = $card.find('.card-header h3, .card-header h5').text().trim();
+        if (headerText) {
+            // Buat identifier dari text header (hapus spasi dan karakter khusus)
+            return headerText.replace(/[^a-zA-Z0-9]/g, '_');
+        }
+        // Fallback: gunakan index
+        return 'card_' + $card.index();
+    }
+
+    // Handle expand/collapse untuk card semester (Ganjil/Genap)
+    $(document).on('expanded.lte.cardwidget', function(event) {
+        var $card = $(event.target).closest('.card');
+        var cardId = getCardIdentifier($card);
+        saveCardExpandState(cardId, true);
+    });
+
+    $(document).on('collapsed.lte.cardwidget', function(event) {
+        var $card = $(event.target).closest('.card');
+        var cardId = getCardIdentifier($card);
+        saveCardExpandState(cardId, false);
+    });
+
+    // Load status expand card saat page load
+    $(document).ready(function() {
+        // Tunggu sebentar untuk memastikan AdminLTE sudah initialize
+        setTimeout(function() {
+            $('.card').each(function() {
+                var $card = $(this);
+                // Hanya proses card yang memiliki collapse widget
+                if ($card.find('[data-card-widget="collapse"]').length > 0) {
+                    var cardId = getCardIdentifier($card);
+                    var savedState = loadCardExpandState(cardId);
+                    if (savedState !== null) {
+                        if (savedState && $card.hasClass('collapsed-card')) {
+                            // Expand card jika tersimpan sebagai expanded
+                            $card.removeClass('collapsed-card');
+                            $card.find('[data-card-widget="collapse"] i').removeClass('fa-plus').addClass('fa-minus');
+                            $card.find('.card-body, .card-footer').slideDown();
+                        } else if (!savedState && !$card.hasClass('collapsed-card')) {
+                            // Collapse card jika tersimpan sebagai collapsed
+                            $card.addClass('collapsed-card');
+                            $card.find('[data-card-widget="collapse"] i').removeClass('fa-minus').addClass('fa-plus');
+                            $card.find('.card-body, .card-footer').slideUp();
+                        }
+                    }
+                }
+            });
+        }, 100);
+    });
+
+    // Fungsi helper untuk menentukan semester berdasarkan tabel
+    function getSemesterFromTable($table) {
+        var tableId = $table.attr('id') || '';
+        if (tableId.includes('Ganjil')) {
+            return 'Ganjil';
+        } else if (tableId.includes('Genap')) {
+            return 'Genap';
+        }
+        // Fallback: cek dari card header
+        var cardHeaderText = $table.closest('.card').find('.card-header').text();
+        if (cardHeaderText.includes('Ganjil')) {
+            return 'Ganjil';
+        } else if (cardHeaderText.includes('Genap')) {
+            return 'Genap';
+        }
+        return '';
+    }
+
     // Handle expand/collapse untuk kelas (kelas tertutup secara default)
     $(document).on('click', '.kelas-row', function() {
         var kelasKey = $(this).data('kelas-key');
@@ -1308,17 +1288,53 @@ function render_progress_bar($persentase, $height = 25)
         var detailRows = $table.find('.detail-' + kelasKey); // Cari hanya dalam tabel yang sama
         var expandIcon = $(this).find('.expand-icon-kelas');
 
+        // Tentukan semester berdasarkan tabel parent
+        var semester = getSemesterFromTable($table);
+
         if (detailRows.length > 0) {
             if (detailRows.is(':visible')) {
                 detailRows.slideUp(300);
                 expandIcon.css('transform', 'rotate(0deg)');
                 $(this).removeClass('expanded');
+                // Simpan status ke localStorage
+                if (semester) {
+                    saveKelasExpandState(kelasKey, semester, false);
+                }
             } else {
                 detailRows.slideDown(300);
                 expandIcon.css('transform', 'rotate(90deg)');
                 $(this).addClass('expanded');
+                // Simpan status ke localStorage
+                if (semester) {
+                    saveKelasExpandState(kelasKey, semester, true);
+                }
             }
         }
+    });
+
+    // Load status expand kelas saat page load
+    $(document).ready(function() {
+        setTimeout(function() {
+            $('.kelas-row').each(function() {
+                var kelasKey = $(this).data('kelas-key');
+                var $table = $(this).closest('table');
+                var detailRows = $table.find('.detail-' + kelasKey);
+                var expandIcon = $(this).find('.expand-icon-kelas');
+
+                // Tentukan semester berdasarkan tabel parent
+                var semester = getSemesterFromTable($table);
+
+                if (semester && detailRows.length > 0) {
+                    var isExpanded = loadKelasExpandState(kelasKey, semester);
+                    if (isExpanded) {
+                        // Expand kelas jika tersimpan sebagai expanded
+                        detailRows.show();
+                        expandIcon.css('transform', 'rotate(90deg)');
+                        $(this).addClass('expanded');
+                    }
+                }
+            });
+        }, 200);
     });
 </script>
 <?= $this->endSection(); ?>
