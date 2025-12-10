@@ -3,6 +3,9 @@
 <div class="col-12">
     <?php echo session()->getFlashdata('pesan'); ?>
 
+    <!-- Flash Notification Container -->
+    <div id="flashNotificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;"></div>
+
     <!-- Card Informasi Alur Proses -->
     <div class="card card-info collapsed-card">
         <div class="card-header">
@@ -159,6 +162,50 @@
                     .dataTables_wrapper .dataTables_filter .select2-container {
                         width: 100% !important;
                     }
+
+                    /* Perbesar kolom input nilai di mobile */
+                    #TabelNilaiPerSemester td:nth-child(2) {
+                        min-width: 50px !important;
+                        width: 50px !important;
+                    }
+
+                    .nilai-input-inline {
+                        font-size: 18px !important;
+                        padding: 12px 8px !important;
+                        min-height: 48px !important;
+                        text-align: center !important;
+                    }
+
+                    .nilai-input-inline.nilai-input-numeric {
+                        font-size: 25px !important;
+                        font-weight: 700 !important;
+                    }
+
+                    /* Styling button Edit, Add, dan View di mobile */
+                    .btn-action-nilai {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        width: 100% !important;
+                        min-width: 100% !important;
+                        padding: 10px 10px !important;
+                        font-size: 14px !important;
+                        gap: 2px !important;
+                    }
+
+                    .btn-action-nilai i {
+                        font-size: 18px !important;
+                        margin: 0 !important;
+                        display: block !important;
+                    }
+
+                    .btn-action-nilai .btn-text {
+                        margin: 0 !important;
+                        display: block !important;
+                        font-size: 15px !important;
+                        line-height: 1 !important;
+                    }
                 }
 
                 /* Responsive untuk tablet view */
@@ -175,8 +222,7 @@
                     $tableHeadersFooter .= '<th>Aksi</th>';
                     $tableHeadersFooter .= '
                         <th>Nilai</th>
-                        <th>Id - Nama Materi</th>
-                        <th>Kategori</th>
+                        <th>Materi</th>
                     </tr>';
 
                     echo $tableHeadersFooter
@@ -229,16 +275,64 @@
                                     $disabled = 'disabled';
                                 }
                                 ?>
-                                <button id="EditNilai-<?= $DataNilai->Id ?>" class="btn <?= $btnClass ?> btn-sm" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')" <?= $disabled ?>>
-                                    <i class="fas <?= $faClass ?>"></i><span style="margin-left: 5px;"></span><?= $name ?>
+                                <button id="EditNilai-<?= $DataNilai->Id ?>" class="btn <?= $btnClass ?> btn-sm btn-action-nilai" onclick="showModalEditNilai('<?= $DataNilai->Id ?>')" <?= $disabled ?>>
+                                    <i class="fas <?= $faClass ?>"></i>
+                                    <span class="btn-text"><?= $name ?></span>
                                 </button>
                             </td>
-                            <td>
-                                <input type="text" name="Nilai-<?= $DataNilai->Id ?>" id="Nilai-<?= $DataNilai->Id ?>" class="form-control" value="<?php echo $DataNilai->Nilai; ?>" readonly
-                                    style="border: <?= $DataNilai->Nilai == 0 ? '2px solid red' : '2px solid green' ?>;" />
+                            <td data-sort="<?= $DataNilai->Nilai ?>">
+                                <?php
+                                // Cek apakah kelas ini menggunakan alphabet
+                                $alphabetSettings = getAlphabetKelasSettings($settingNilai, $DataNilai->IdKelas);
+                                $isAlphabetKelas = $alphabetSettings['isAlphabetKelas'];
+                                $SettingAlphabeticNilaiTransformed = $alphabetSettings['transformedNilai'];
+
+                                // Tentukan apakah user bisa edit (sama seperti logic tombol)
+                                $canEditNilai = $canEditAll || ($isGuruPendamping && $DataNilai->Nilai == 0);
+                                ?>
+                                <?php if ($isAlphabetKelas && $canEditNilai): ?>
+                                    <!-- Dropdown untuk nilai alphabet -->
+                                    <select name="Nilai-<?= $DataNilai->Id ?>" id="Nilai-<?= $DataNilai->Id ?>"
+                                        class="form-control nilai-input-inline"
+                                        data-id="<?= $DataNilai->Id ?>"
+                                        data-materi="<?= htmlspecialchars($DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri, ENT_QUOTES, 'UTF-8') ?>"
+                                        data-nilai-lama="<?= $DataNilai->Nilai ?>"
+                                        data-is-alphabet="true"
+                                        style="border: <?= $DataNilai->Nilai == 0 ? '2px solid red' : '2px solid green' ?>; cursor: pointer;">
+                                        <option value="0" <?= $DataNilai->Nilai == 0 ? 'selected' : '' ?>>-- Pilih Nilai --</option>
+                                        <?php foreach ($SettingAlphabeticNilaiTransformed as $nilaiItem): ?>
+                                            <option value="<?= $nilaiItem['Value'] ?>" <?= $DataNilai->Nilai == $nilaiItem['Value'] ? 'selected' : '' ?>>
+                                                <?= $nilaiItem['Label'] ?> (<?= $nilaiItem['Value'] ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <!-- Input number untuk nilai numerik -->
+                                    <input type="text"
+                                        name="Nilai-<?= $DataNilai->Id ?>"
+                                        id="Nilai-<?= $DataNilai->Id ?>"
+                                        class="form-control nilai-input-inline nilai-input-numeric <?= $canEditNilai ? '' : 'readonly-disabled' ?>"
+                                        value="<?php echo $DataNilai->Nilai; ?>"
+                                        <?= $canEditNilai ? '' : 'readonly' ?>
+                                        data-id="<?= $DataNilai->Id ?>"
+                                        data-materi="<?= htmlspecialchars($DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri, ENT_QUOTES, 'UTF-8') ?>"
+                                        data-nilai-lama="<?= $DataNilai->Nilai ?>"
+                                        data-nilai-min="<?= $settingNilai->NilaiMin ?? 0 ?>"
+                                        data-nilai-max="<?= $settingNilai->NilaiMax ?? 100 ?>"
+                                        data-is-alphabet="false"
+                                        maxlength="2"
+                                        pattern="[0-9]{1,2}"
+                                        inputmode="numeric"
+                                        placeholder="Ketik nilai"
+                                        style="border: <?= $DataNilai->Nilai == 0 ? '2px solid red' : '2px solid green' ?>; <?= $canEditNilai ? '' : 'cursor: not-allowed; background-color: #e9ecef;' ?>" />
+                                <?php endif; ?>
                             </td>
-                            <td><?php echo $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri; ?></td>
-                            <td><?php echo $DataNilai->Kategori; ?></td>
+                            <td>
+                                <div><?php echo htmlspecialchars($DataNilai->NamaMateri, ENT_QUOTES, 'UTF-8'); ?></div>
+                                <div style="font-size: 0.875rem; color: #6c757d; margin-top: 4px;">
+                                    <small><?php echo htmlspecialchars($DataNilai->Kategori . ' - ' . $DataNilai->IdMateri, ENT_QUOTES, 'UTF-8'); ?></small>
+                                </div>
+                            </td>
                         </tr>
                     <?php endforeach ?>
                 </tbody>
@@ -273,7 +367,7 @@ foreach ($nilai as $DataNilai) : ?>
                         </div>
 
                         <div class="form-group">
-                            <label for="FormProfilTpq">Id-Nama Materi</label>
+                            <label for="FormProfilTpq">Materi</label>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri ?></span>
                         </div>
                         <?= $isAlphabetKelas = false; ?>
@@ -348,13 +442,13 @@ foreach ($nilai as $DataNilai) : ?>
     // Flag untuk mencegah double save saat load filter
     var isLoadingFilter = false;
 
-    // Daftar materi dari PHP
+    // Daftar materi dari PHP (hanya NamaMateri karena format di tabel sudah berubah)
     var daftarMateri = [
         <?php
-        // Kumpulkan daftar nama materi yang unik
+        // Kumpulkan daftar nama materi yang unik (hanya NamaMateri, tanpa IdMateri)
         $uniqueMateri = [];
         foreach ($nilai as $DataNilai) {
-            $materiKey = $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri;
+            $materiKey = $DataNilai->NamaMateri; // Hanya NamaMateri, sesuai format di tabel
             if (!in_array($materiKey, $uniqueMateri)) {
                 $uniqueMateri[] = $materiKey;
             }
@@ -370,16 +464,54 @@ foreach ($nilai as $DataNilai) : ?>
         ?>
     ];
 
-    // Inisialisasi DataTable dengan konfigurasi tambahan
-    initializeDataTableUmum("#TabelNilaiPerSemester", true, true, [], {
+    // Inisialisasi DataTable dengan scrollX simple dan simpan instance
+    var table = initializeDataTableScrollX("#TabelNilaiPerSemester", [], {
         orderCellsTop: true,
-        order: []
+        order: [],
+        columnDefs: [{
+                targets: 0, // Kolom Aksi
+                orderable: false,
+                searchable: false
+            },
+            {
+                targets: 1, // Kolom Nilai
+                type: 'num', // Sorting numerik
+                render: function(data, type, row) {
+                    // Untuk sorting, gunakan data-sort attribute dari td
+                    if (type === 'sort' || type === 'type') {
+                        // Ambil dari data-sort attribute pada td
+                        const td = $(row).find('td:eq(1)');
+                        const sortValue = td.attr('data-sort');
+                        if (sortValue !== undefined && sortValue !== null) {
+                            return parseFloat(sortValue) || 0;
+                        }
+                        // Fallback: ambil dari input/select
+                        const input = $(data).find('input, select');
+                        if (input.length) {
+                            const value = input.val() || input.text();
+                            return parseFloat(value) || 0;
+                        }
+                        return parseFloat(data) || 0;
+                    }
+                    return data;
+                }
+            },
+            {
+                targets: 2, // Kolom Materi
+                render: function(data, type, row) {
+                    // Untuk search/filter, extract NamaMateri dari HTML
+                    if (type === 'filter' || type === 'search') {
+                        const $temp = $('<div>').html(data);
+                        const namaMateri = $temp.find('div:first').text().trim();
+                        return namaMateri || $temp.text().trim();
+                    }
+                    return data;
+                }
+            }
+        ]
     });
 
-    // Dapatkan referensi DataTable setelah inisialisasi
-    var table = $('#TabelNilaiPerSemester').DataTable();
-
-    // Tentukan index kolom "Id - Nama Materi"
+    // Tentukan index kolom "Materi"
     // Kolom Aksi selalu ada, jadi index kolom nama materi adalah 2
     var namaMateriColumnIndex = 2;
 
@@ -404,6 +536,78 @@ foreach ($nilai as $DataNilai) : ?>
         }
     }
 
+    // Variable untuk menyimpan custom filter function
+    var customFilterFunction = null;
+
+    // Fungsi untuk menerapkan custom filter
+    function applyCustomFilter(selectedValues) {
+        if (!table) {
+            console.warn('Table not initialized');
+            return;
+        }
+
+        // Hapus custom filter function yang lama jika ada
+        if (customFilterFunction) {
+            // Cari dan hapus customFilterFunction dari array
+            const searchFunctions = $.fn.dataTable.ext.search;
+            for (let i = searchFunctions.length - 1; i >= 0; i--) {
+                if (searchFunctions[i] === customFilterFunction) {
+                    searchFunctions.splice(i, 1);
+                    break;
+                }
+            }
+            customFilterFunction = null;
+        }
+
+        // Jika tidak ada filter yang dipilih, clear search dan tampilkan semua
+        if (!selectedValues || selectedValues.length === 0) {
+            table.column(namaMateriColumnIndex).search('').draw();
+            return;
+        }
+
+        // Buat custom filter function baru
+        customFilterFunction = function(settings, data, dataIndex) {
+            // Hanya terapkan filter untuk tabel ini
+            if (!settings || !settings.nTable || settings.nTable.id !== 'TabelNilaiPerSemester') {
+                return true;
+            }
+
+            try {
+                // Dapatkan row node langsung dari DataTable
+                const row = table.row(dataIndex).node();
+                if (!row) {
+                    return true;
+                }
+
+                // Ambil cell dari kolom Materi (index 2)
+                const $cell = $(row).find('td').eq(namaMateriColumnIndex);
+                if (!$cell.length) {
+                    return true;
+                }
+
+                // Ambil teks dari div pertama (NamaMateri)
+                const $firstDiv = $cell.find('div:first');
+                const cellText = $firstDiv.length ? $firstDiv.text().trim() : $cell.text().trim();
+
+                // Cek apakah cellText match dengan salah satu selectedValues
+                const isMatch = selectedValues.some(function(value) {
+                    return cellText === value;
+                });
+
+                return isMatch;
+            } catch (e) {
+                console.error('Error in custom filter:', e, 'dataIndex:', dataIndex);
+                return true;
+            }
+        };
+
+        // Tambahkan custom filter function
+        $.fn.dataTable.ext.search.push(customFilterFunction);
+
+        // Redraw tabel
+        table.draw();
+    }
+
     // Fungsi untuk memuat filter dari localStorage
     function loadFilter() {
         const savedFilter = localStorage.getItem(filterStorageKey);
@@ -414,9 +618,12 @@ foreach ($nilai as $DataNilai) : ?>
                     isLoadingFilter = true;
                     // Set nilai select untuk Select2
                     $('#filterNamaMateri').val(selectedValues).trigger('change.select2');
-                    // Terapkan filter ke tabel
-                    const filterPattern = createFilterPattern(selectedValues);
-                    table.column(namaMateriColumnIndex).search(filterPattern, true, false).draw();
+                    // Terapkan custom filter
+                    applyCustomFilter(selectedValues);
+                    // Redraw tabel
+                    if (table) {
+                        table.draw();
+                    }
                     isLoadingFilter = false;
                 }
             } catch (e) {
@@ -429,13 +636,30 @@ foreach ($nilai as $DataNilai) : ?>
 
     // Ganti search box DataTable dengan Select2 di samping search box default
     $(document).ready(function() {
-        // Tunggu sampai DataTable selesai diinisialisasi
-        setTimeout(function() {
+        // Tunggu sampai DataTable selesai diinisialisasi dan siap
+        // Pastikan tabel sudah terinisialisasi dengan baik
+        function initFilterSelect2() {
+            // Cek apakah DataTable sudah terinisialisasi
+            if (!$.fn.DataTable.isDataTable('#TabelNilaiPerSemester')) {
+                setTimeout(initFilterSelect2, 100);
+                return;
+            }
+
+            // Pastikan variabel table sudah ada
+            if (!table) {
+                table = $('#TabelNilaiPerSemester').DataTable();
+            }
+
             // Cari label search box DataTable
             var filterLabel = $('.dataTables_filter label');
             var searchBox = $('.dataTables_filter input');
 
             if (filterLabel.length && searchBox.length) {
+                // Cek apakah filter sudah ada, jika sudah jangan buat lagi
+                if ($('#filterNamaMateri').length > 0) {
+                    return;
+                }
+
                 // Buat select element untuk Select2
                 var selectElement = $('<select id="filterNamaMateri" class="form-control form-control-sm" multiple></select>');
 
@@ -492,10 +716,12 @@ foreach ($nilai as $DataNilai) : ?>
                         if (!isLoadingFilter) {
                             saveFilter(selectedValues);
                         }
-                        // Buat pattern filter untuk DataTable
-                        const filterPattern = createFilterPattern(selectedValues);
-                        // Terapkan filter ke tabel
-                        table.column(namaMateriColumnIndex).search(filterPattern, true, false).draw();
+                        // Terapkan custom filter
+                        applyCustomFilter(selectedValues);
+                        // Redraw tabel untuk menerapkan filter
+                        if (table) {
+                            table.draw();
+                        }
                     });
 
                     // Memuat filter yang tersimpan setelah Select2 siap
@@ -505,8 +731,14 @@ foreach ($nilai as $DataNilai) : ?>
                         setSelect2Width();
                     }, 100);
                 }, 50);
+            } else {
+                // Jika belum ada, coba lagi setelah delay
+                setTimeout(initFilterSelect2, 100);
             }
-        }, 300);
+        }
+
+        // Mulai inisialisasi filter setelah delay awal
+        setTimeout(initFilterSelect2, 300);
     });
 
     // Fungsi untuk menampilkan modal edit nilai dan menangani pengiriman form
@@ -625,5 +857,596 @@ foreach ($nilai as $DataNilai) : ?>
             isChanged = true;
         });
     }
+
+    // ========== INLINE EDITING DENGAN AUTO-SAVE ==========
+
+    // Object untuk menyimpan timeout per input
+    const saveTimeouts = {};
+
+    // Object untuk menyimpan nilai original per input
+    const originalValues = {};
+
+    // Flag untuk mencegah save ganda
+    const savingInProgress = {};
+
+    // Object untuk menyimpan notifikasi error per kolom (id -> notificationId)
+    const errorNotifications = {};
+
+    // Fungsi untuk menampilkan flash notification
+    function showFlashNotification(message, type = 'success', autoClose = true, duration = 3000, columnId = null) {
+        const container = $('#flashNotificationContainer');
+        const notificationId = 'flash-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+        // Tentukan warna dan icon berdasarkan type
+        let bgColor, textColor, icon, progressColor;
+        if (type === 'success') {
+            bgColor = '#28a745';
+            textColor = '#fff';
+            icon = '<i class="fas fa-check-circle"></i>';
+            progressColor = '#fff';
+        } else if (type === 'error') {
+            bgColor = '#dc3545';
+            textColor = '#fff';
+            icon = '<i class="fas fa-exclamation-circle"></i>';
+            progressColor = '#fff';
+        } else {
+            bgColor = '#17a2b8';
+            textColor = '#fff';
+            icon = '<i class="fas fa-info-circle"></i>';
+            progressColor = '#fff';
+        }
+
+        // Buat elemen notification
+        const notification = $(`
+            <div id="${notificationId}" class="alert alert-dismissible fade show shadow-lg" 
+                 style="background-color: ${bgColor}; color: ${textColor}; border: none; margin-bottom: 10px; border-radius: 8px; padding: 15px; position: relative; overflow: hidden;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="font-size: 20px;">${icon}</div>
+                    <div style="flex: 1; font-size: 14px; line-height: 1.4;">${message}</div>
+                    ${!autoClose ? '<button type="button" class="close" style="color: ' + textColor + '; opacity: 0.8; font-size: 20px; line-height: 1; padding: 0; margin-left: 10px;" onclick="closeFlashNotification(\'' + notificationId + '\')"><span>&times;</span></button>' : ''}
+                </div>
+                ${autoClose ? '<div class="notification-progress" style="position: absolute; bottom: 0; left: 0; height: 3px; background-color: ' + progressColor + '; width: 100%; animation: progressBar ' + duration + 'ms linear;"></div>' : ''}
+            </div>
+        `);
+
+        // Tambahkan ke container
+        container.append(notification);
+
+        // Jika ini adalah notifikasi error untuk kolom tertentu, simpan referensinya
+        if (type === 'error' && columnId !== null) {
+            // Tutup notifikasi error lama untuk kolom ini jika ada
+            if (errorNotifications[columnId]) {
+                closeFlashNotification(errorNotifications[columnId]);
+            }
+            // Simpan referensi notifikasi error baru
+            errorNotifications[columnId] = notificationId;
+        }
+
+        // Auto close jika diperlukan
+        if (autoClose) {
+            setTimeout(function() {
+                closeFlashNotification(notificationId);
+            }, duration);
+        }
+
+        // Animasi masuk
+        setTimeout(function() {
+            $('#' + notificationId).addClass('show');
+        }, 10);
+
+        // Return notificationId untuk referensi
+        return notificationId;
+    }
+
+    // Fungsi untuk menutup notification
+    function closeFlashNotification(notificationId) {
+        const notification = $('#' + notificationId);
+        if (notification.length === 0) {
+            return; // Notification sudah tidak ada
+        }
+        notification.removeClass('show');
+        setTimeout(function() {
+            notification.remove();
+            // Hapus dari errorNotifications jika ada
+            for (const columnId in errorNotifications) {
+                if (errorNotifications[columnId] === notificationId) {
+                    delete errorNotifications[columnId];
+                    break;
+                }
+            }
+        }, 300);
+    }
+
+    // Tambahkan CSS untuk animasi progress bar
+    if (!$('#inlineEditStyles').length) {
+        $('head').append(`
+            <style id="inlineEditStyles">
+                @keyframes progressBar {
+                    from { width: 100%; }
+                    to { width: 0%; }
+                }
+                .nilai-input-inline:focus {
+                    border-color: #007bff !important;
+                    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+                }
+                .nilai-input-inline.saving {
+                    border-color: #ffc107 !important;
+                    background-color: #fff3cd !important;
+                }
+                .nilai-input-inline.saved {
+                    border-color: #28a745 !important;
+                    background-color: #d4edda !important;
+                }
+                .nilai-input-inline.error {
+                    border-color: #dc3545 !important;
+                    background-color: #f8d7da !important;
+                }
+                .readonly-disabled {
+                    cursor: not-allowed !important;
+                    background-color: #e9ecef !important;
+                }
+                
+                /* Responsive untuk input nilai di mobile */
+                @media (max-width: 768px) {
+                    #TabelNilaiPerSemester td:nth-child(2) {
+                        min-width: 120px !important;
+                        width: 120px !important;
+                    }
+                    
+                    .nilai-input-inline {
+                        font-size: 18px !important;
+                        padding: 12px 8px !important;
+                        min-height: 48px !important;
+                        text-align: center !important;
+                    }
+                    
+                    .nilai-input-inline.nilai-input-numeric {
+                        font-size: 20px !important;
+                        font-weight: 600 !important;
+                    }
+                    
+                    /* Styling button Edit, Add, dan View di mobile */
+                    .btn-action-nilai {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        width: 100% !important;
+                        min-width: 100% !important;
+                        padding: 10px 10px !important;
+                        font-size: 20px !important;
+                        gap: 2px !important;
+                    }
+                    
+                    .btn-action-nilai i {
+                        font-size: 18px !important;
+                        margin: 0 !important;
+                        display: block !important;
+                    }
+                    
+                    .btn-action-nilai .btn-text {
+                        margin: 0 !important;
+                        display: block !important;
+                        font-size: 15px !important;
+                        line-height: 1.2 !important;
+                    }
+                }
+            </style>
+        `);
+    }
+
+    // Fungsi untuk validasi nilai
+    function validateNilai(value, isAlphabet, nilaiMin, nilaiMax, alphabetOptions) {
+        if (value === '' || value === null || value === undefined) {
+            return {
+                valid: false,
+                message: 'Nilai tidak boleh kosong'
+            };
+        }
+
+        if (isAlphabet) {
+            // Validasi untuk alphabet: nilai harus ada di dalam opsi yang tersedia
+            const numericValue = parseFloat(value);
+            if (isNaN(numericValue)) {
+                return {
+                    valid: false,
+                    message: 'Nilai harus berupa angka'
+                };
+            }
+            const validValues = alphabetOptions.map(opt => parseFloat(opt.value));
+            if (!validValues.includes(numericValue) && numericValue !== 0) {
+                return {
+                    valid: false,
+                    message: 'Nilai tidak valid untuk sistem alphabet'
+                };
+            }
+        } else {
+            // Validasi untuk numerik
+            const numericValue = parseFloat(value);
+            if (isNaN(numericValue)) {
+                return {
+                    valid: false,
+                    message: 'Nilai harus berupa angka'
+                };
+            }
+            if (numericValue < nilaiMin || numericValue > nilaiMax) {
+                return {
+                    valid: false,
+                    message: `Nilai harus antara ${nilaiMin} dan ${nilaiMax}`
+                };
+            }
+        }
+
+        return {
+            valid: true
+        };
+    }
+
+    // Fungsi untuk menyimpan nilai
+    function saveNilai(inputElement) {
+        const $input = $(inputElement);
+        const id = $input.data('id');
+        const nilaiBaru = $input.val();
+        const nilaiLama = $input.data('nilai-lama');
+        const materi = $input.data('materi');
+        const isAlphabet = $input.data('is-alphabet') === true || $input.data('is-alphabet') === 'true';
+        const nilaiMin = parseFloat($input.data('nilai-min')) || 0;
+        const nilaiMax = parseFloat($input.data('nilai-max')) || 100;
+
+        // Jika nilai tidak berubah, tidak perlu save
+        // Konversi ke string untuk perbandingan yang konsisten
+        if (String(nilaiBaru) === String(nilaiLama)) {
+            return;
+        }
+
+        // Validasi: Mencegah perubahan dari nilai > 0 menjadi 0
+        const nilaiLamaFloat = parseFloat(nilaiLama) || 0;
+        const nilaiBaruFloat = parseFloat(nilaiBaru) || 0;
+
+        if (nilaiLamaFloat > 0 && nilaiBaruFloat === 0) {
+            $input.addClass('error');
+            showFlashNotification(
+                `<strong>Validasi Gagal</strong><br>${materi}<br>Nilai tidak dapat diubah dari ${nilaiLama} menjadi 0. Nilai yang sudah diisi tidak dapat dihapus.`,
+                'error',
+                false, // Manual close untuk error
+                0, // Duration tidak digunakan untuk error
+                id // Column ID untuk tracking
+            );
+            // Kembalikan nilai lama setelah 2 detik
+            setTimeout(function() {
+                $input.val(nilaiLama);
+                $input.data('nilai-lama', nilaiLama);
+                $input.removeClass('error');
+            }, 2000);
+            return;
+        }
+
+        // Validasi nilai
+        let alphabetOptions = [];
+        if (isAlphabet && $input.is('select')) {
+            alphabetOptions = Array.from($input.find('option')).map(opt => ({
+                value: opt.value
+            }));
+        }
+
+        const validation = validateNilai(nilaiBaru, isAlphabet, nilaiMin, nilaiMax, alphabetOptions);
+        if (!validation.valid) {
+            $input.addClass('error');
+            showFlashNotification(
+                `<strong>Validasi Gagal</strong><br>${materi}<br>${validation.message}`,
+                'error',
+                false, // Manual close untuk error
+                0, // Duration tidak digunakan untuk error
+                id // Column ID untuk tracking
+            );
+            // Kembalikan nilai lama setelah 2 detik
+            setTimeout(function() {
+                $input.val(nilaiLama);
+                $input.data('nilai-lama', nilaiLama);
+                $input.removeClass('error');
+            }, 2000);
+            return;
+        }
+
+        // Cegah save ganda
+        if (savingInProgress[id]) {
+            return;
+        }
+        savingInProgress[id] = true;
+
+        // Tampilkan indikator saving
+        $input.addClass('saving').removeClass('saved error');
+
+        // Siapkan data untuk dikirim
+        const formData = {
+            Id: id,
+            Nilai: nilaiBaru
+        };
+
+        // Jika menggunakan radio button (alphabet), kirim juga NilaiRadio
+        if (isAlphabet && $input.is('select')) {
+            formData.NilaiRadio = nilaiBaru;
+        }
+
+        // Kirim request AJAX
+        $.ajax({
+            url: '<?= base_url('backend/nilai/update') ?>',
+            method: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Tutup notifikasi error untuk kolom ini jika ada
+                    if (errorNotifications[id]) {
+                        closeFlashNotification(errorNotifications[id]);
+                    }
+
+                    // Update nilai lama
+                    $input.data('nilai-lama', nilaiBaru);
+
+                    // Update data-sort attribute pada td untuk sorting
+                    const $td = $input.closest('td');
+                    $td.attr('data-sort', nilaiBaru);
+
+                    // Update border berdasarkan nilai
+                    if (parseFloat(nilaiBaru) == 0) {
+                        $input.css('border', '2px solid red');
+                    } else {
+                        $input.css('border', '2px solid green');
+                    }
+
+                    // Tampilkan indikator saved
+                    $input.removeClass('saving').addClass('saved');
+                    setTimeout(function() {
+                        $input.removeClass('saved');
+                    }, 2000);
+
+                    // Tampilkan notifikasi success
+                    const nilaiDisplay = isAlphabet && $input.is('select') ?
+                        $input.find('option:selected').text() :
+                        nilaiBaru;
+                    showFlashNotification(
+                        `<strong>Berhasil Disimpan</strong><br>${materi}<br>Nilai: ${nilaiDisplay}`,
+                        'success',
+                        true,
+                        5000
+                    );
+
+                    // Update tombol edit jika perlu
+                    const btnEdit = $('#EditNilai-' + id);
+                    if (parseFloat(nilaiBaru) > 0) {
+                        btnEdit.html('<i class="fas fa-edit"></i><span style="margin-left: 5px;"></span>Edit');
+                        btnEdit.removeClass('btn-primary').addClass('btn-warning');
+                    } else {
+                        btnEdit.html('<i class="fas fa-plus"></i><span style="margin-left: 5px;"></span>Add');
+                        btnEdit.removeClass('btn-warning').addClass('btn-primary');
+                    }
+
+                    // Update DataTable sorting jika diperlukan
+                    const table = $('#TabelNilaiPerSemester').DataTable();
+                    table.draw(false); // Redraw tanpa reset paging
+                } else {
+                    // Error dari server
+                    $input.addClass('error').removeClass('saving saved');
+                    showFlashNotification(
+                        `<strong>Gagal Menyimpan</strong><br>${materi}<br>${response.message || 'Terjadi kesalahan saat menyimpan data'}`,
+                        'error',
+                        false, // Manual close untuk error
+                        0, // Duration tidak digunakan untuk error
+                        id // Column ID untuk tracking
+                    );
+                    // Kembalikan nilai lama
+                    $input.val(nilaiLama);
+                }
+            },
+            error: function(xhr) {
+                // Error dari AJAX
+                $input.addClass('error').removeClass('saving saved');
+                let errorMessage = 'Terjadi kesalahan saat menyimpan data';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showFlashNotification(
+                    `<strong>Gagal Menyimpan</strong><br>${materi}<br>${errorMessage}`,
+                    'error',
+                    false, // Manual close untuk error
+                    0, // Duration tidak digunakan untuk error
+                    id // Column ID untuk tracking
+                );
+                // Kembalikan nilai lama
+                $input.val(nilaiLama);
+            },
+            complete: function() {
+                // Reset flag
+                savingInProgress[id] = false;
+            }
+        });
+    }
+
+    // Event handler untuk mencegah input non-numerik dan membatasi 2 digit
+    $(document).on('keydown', '.nilai-input-numeric', function(e) {
+        const $input = $(this);
+        const key = e.key;
+        const currentValue = $input.val();
+
+        // Izinkan: Backspace, Delete, Tab, Escape, Enter, Arrow keys, Home, End
+        if ([8, 9, 27, 13, 46, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+            // Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+            (e.keyCode === 65 && e.ctrlKey === true) ||
+            (e.keyCode === 67 && e.ctrlKey === true) ||
+            (e.keyCode === 86 && e.ctrlKey === true) ||
+            (e.keyCode === 88 && e.ctrlKey === true)) {
+            return;
+        }
+
+        // Izinkan hanya angka 0-9
+        if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+            e.preventDefault();
+            return false;
+        }
+
+        // Cegah input jika sudah 2 digit (kecuali untuk select all atau delete)
+        if (currentValue.length >= 2 &&
+            !(e.keyCode === 65 && e.ctrlKey) && // Ctrl+A
+            !(e.keyCode === 8) && // Backspace
+            !(e.keyCode === 46) && // Delete
+            !(e.keyCode >= 35 && e.keyCode <= 40)) { // Arrow keys, Home, End
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // Event handler untuk paste - hanya izinkan angka dan maksimal 2 digit
+    $(document).on('paste', '.nilai-input-numeric', function(e) {
+        e.preventDefault();
+        const $input = $(this);
+        const pastedText = (e.originalEvent || e).clipboardData.getData('text/plain');
+
+        // Hapus semua karakter non-numerik
+        const numericOnly = pastedText.replace(/[^0-9]/g, '');
+
+        // Ambil hanya 2 digit pertama
+        const limitedValue = numericOnly.substring(0, 2);
+
+        $input.val(limitedValue);
+
+        // Trigger input event untuk update
+        $input.trigger('input');
+    });
+
+    // Event handler untuk input - hapus karakter non-numerik dan batasi 2 digit
+    $(document).on('input', '.nilai-input-numeric', function() {
+        const $input = $(this);
+        let value = $input.val();
+
+        // Hapus semua karakter non-numerik
+        value = value.replace(/[^0-9]/g, '');
+
+        // Batasi hanya 2 digit
+        if (value.length > 2) {
+            value = value.substring(0, 2);
+        }
+
+        // Update nilai jika ada perubahan
+        if ($input.val() !== value) {
+            $input.val(value);
+        }
+    });
+
+    // Event handler untuk input/select nilai (auto-save dengan delay 5 detik)
+    $(document).on('input', '.nilai-input-inline', function() {
+        const $input = $(this);
+        const id = $input.data('id');
+        const nilaiBaru = $input.val();
+        const nilaiLama = $input.data('nilai-lama');
+
+        // Hapus timeout sebelumnya jika ada
+        if (saveTimeouts[id]) {
+            clearTimeout(saveTimeouts[id]);
+        }
+
+        // Hapus class saved/error saat user mengetik
+        $input.removeClass('saved error');
+
+        // Konversi ke number untuk perbandingan
+        const nilaiBaruNum = parseFloat(nilaiBaru) || 0;
+        const nilaiLamaNum = parseFloat(nilaiLama) || 0;
+
+        // Jika nilai lama adalah 0 dan nilai baru juga 0, jangan set timeout
+        // (User hanya fokus ke input tapi tidak mengubah nilai)
+        if (nilaiLamaNum === 0 && nilaiBaruNum === 0) {
+            return;
+        }
+
+        // Hanya set timeout jika nilai berbeda dari nilai lama
+        // Konversi ke string untuk perbandingan yang konsisten
+        if (String(nilaiBaru) !== String(nilaiLama)) {
+            // Set timeout untuk auto-save setelah 5 detik tidak ada input
+            saveTimeouts[id] = setTimeout(function() {
+                // Cek lagi apakah nilai masih berbeda sebelum save
+                const currentValue = $input.val();
+                const originalValue = $input.data('nilai-lama');
+                const currentValueNum = parseFloat(currentValue) || 0;
+                const originalValueNum = parseFloat(originalValue) || 0;
+
+                // Jangan save jika nilai tetap 0
+                if (originalValueNum === 0 && currentValueNum === 0) {
+                    return;
+                }
+
+                if (String(currentValue) !== String(originalValue)) {
+                    saveNilai($input[0]);
+                }
+            }, 5000);
+        }
+    });
+
+    // Event handler untuk blur (auto-save saat kursor pindah atau klik di luar)
+    $(document).on('blur', '.nilai-input-inline', function() {
+        const $input = $(this);
+        const id = $input.data('id');
+        const nilaiBaru = $input.val();
+        const nilaiLama = $input.data('nilai-lama');
+
+        // Hapus timeout jika ada
+        if (saveTimeouts[id]) {
+            clearTimeout(saveTimeouts[id]);
+            delete saveTimeouts[id];
+        }
+
+        // Konversi ke number untuk perbandingan
+        const nilaiBaruNum = parseFloat(nilaiBaru) || 0;
+        const nilaiLamaNum = parseFloat(nilaiLama) || 0;
+
+        // Jika nilai lama adalah 0 dan nilai baru juga 0, jangan trigger save
+        // (User hanya fokus ke input tapi tidak mengubah nilai)
+        if (nilaiLamaNum === 0 && nilaiBaruNum === 0) {
+            return;
+        }
+
+        // Hanya save jika nilai berbeda dari nilai lama
+        // Konversi ke string untuk perbandingan yang konsisten
+        if (String(nilaiBaru) !== String(nilaiLama)) {
+            saveNilai($input[0]);
+        }
+    });
+
+    // Event handler untuk change pada select (dropdown alphabet)
+    $(document).on('change', '.nilai-input-inline', function() {
+        const $input = $(this);
+        const id = $input.data('id');
+        const nilaiBaru = $input.val();
+        const nilaiLama = $input.data('nilai-lama');
+
+        // Hapus timeout jika ada
+        if (saveTimeouts[id]) {
+            clearTimeout(saveTimeouts[id]);
+            delete saveTimeouts[id];
+        }
+
+        // Konversi ke number untuk perbandingan
+        const nilaiBaruNum = parseFloat(nilaiBaru) || 0;
+        const nilaiLamaNum = parseFloat(nilaiLama) || 0;
+
+        // Jika nilai lama adalah 0 dan nilai baru juga 0, jangan trigger save
+        // (User hanya memilih opsi yang sama atau tidak mengubah)
+        if (nilaiLamaNum === 0 && nilaiBaruNum === 0) {
+            return;
+        }
+
+        // Hanya save jika nilai berbeda dari nilai lama
+        // Konversi ke string untuk perbandingan yang konsisten
+        if (String(nilaiBaru) !== String(nilaiLama)) {
+            // Langsung save untuk select (dropdown)
+            saveNilai($input[0]);
+        }
+    });
+
+    // Event handler untuk klik di luar area input (mencegah save saat masih mengetik)
+    $(document).on('click', function(e) {
+        // Jika klik di luar input nilai, trigger blur pada input yang sedang aktif
+        if (!$(e.target).closest('.nilai-input-inline').length) {
+            $('.nilai-input-inline:focus').blur();
+        }
+    });
 </script>
 <?= $this->endSection(); ?>

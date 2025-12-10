@@ -780,7 +780,7 @@
                                                                                             <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
                                                                                                 <td></td>
                                                                                                 <td class="text-center">
-                                                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
                                                                                                         <?php
                                                                                                         // Ambil foto profil santri
                                                                                                         $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
@@ -811,7 +811,7 @@
                                                                                                     </a>
                                                                                                 </td>
                                                                                                 <td colspan="2" style="padding-left: 80px;">
-                                                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
                                                                                                         <div>
                                                                                                             <strong><?= esc($santri['NamaSantri']) ?></strong>
                                                                                                         </div>
@@ -1541,8 +1541,32 @@
 
             if (detailRows.length > 0) {
                 if (detailRows.is(':visible')) {
-                    // Collapse
-                    detailRows.slideUp(300);
+                    // Collapse - tutup semua level kelas dan santri yang terkait
+                    detailRows.each(function() {
+                        var $kelasRow = $(this);
+                        var kelasKey = $kelasRow.data('kelas-key');
+
+                        // Jika ini adalah kelas-row yang expanded, collapse juga santri-rows-nya
+                        if ($kelasRow.hasClass('kelas-row') && kelasKey) {
+                            var santriRows = $table.find('.detail-' + kelasKey);
+                            if (santriRows.length > 0 && santriRows.is(':visible')) {
+                                santriRows.slideUp(200);
+                                var kelasExpandIcon = $kelasRow.find('.expand-icon-kelas');
+                                kelasExpandIcon.css('transform', 'rotate(0deg)');
+                                $kelasRow.removeClass('expanded');
+                                if (semester) {
+                                    saveKelasExpandState(kelasKey, semester, false);
+                                }
+                            }
+                        }
+                    });
+
+                    // Collapse semua detail rows (kelas) - pastikan semua santri rows juga tertutup
+                    detailRows.slideUp(300, function() {
+                        // Setelah kelas rows tertutup, pastikan semua santri rows juga tertutup
+                        var allSantriRows = $table.find('.santri-row');
+                        allSantriRows.hide();
+                    });
                     expandIcon.css('transform', 'rotate(0deg)');
                     $(this).removeClass('expanded');
                     if (semester) {

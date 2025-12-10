@@ -814,6 +814,23 @@ class Nilai extends BaseController
                 $Nilai = $this->request->getVar('Nilai');
             }
 
+            // Validasi nilai sesuai dengan setting (sama seperti di modal)
+            $nilaiMin = session()->get('SettingNilaiMin') ?? 0;
+            $nilaiMax = session()->get('SettingNilaiMax') ?? 100;
+
+            // Konversi nilai ke float untuk validasi
+            $nilaiFloat = floatval($Nilai);
+
+            // Validasi range nilai (kecuali jika nilai adalah 0 atau kosong untuk reset)
+            if ($Nilai !== '' && $Nilai !== null && $Nilai !== '0') {
+                if ($nilaiFloat < $nilaiMin || $nilaiFloat > $nilaiMax) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => "Nilai harus antara {$nilaiMin} dan {$nilaiMax}"
+                    ]);
+                }
+            }
+
             $result = $this->DataNilai->save([
                 'Id' => $Id,
                 'IdGuru' => $IdGuru,
