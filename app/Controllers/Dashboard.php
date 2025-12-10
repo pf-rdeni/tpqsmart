@@ -11,6 +11,7 @@ use Psr\Log\LoggerInterface;
 use App\Models\HelpFunctionModel;
 use App\Models\SantriModel;
 use App\Models\TabunganModel;
+use App\Models\ToolsModel;
 
 /**
  * Dashboard Controller
@@ -21,6 +22,7 @@ class Dashboard extends BaseController
     protected $helpFunctionModel;
     protected $santriModel;
     protected $tabunganModel;
+    protected $toolsModel;
     protected $db;
     
     public function __construct()
@@ -28,6 +30,7 @@ class Dashboard extends BaseController
         $this->helpFunctionModel = new HelpFunctionModel();
         $this->santriModel = new SantriModel();
         $this->tabunganModel = new TabunganModel();
+        $this->toolsModel = new ToolsModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -245,9 +248,9 @@ class Dashboard extends BaseController
             
             // Gabungkan data santri dan guru untuk menghitung rasio
             $statistikTpqDenganRasio = $this->gabungkanStatistikTpqDenganRasio($statistikSantriPerTpq, $statistikGuruPerTpq);
-            
-            // Statistik progress penilaian per TPQ dan per kelas
-            $statistikProgressNilaiPerTpq = $this->getStatistikProgressNilaiPerTpq($idTahunAjaran);
+
+            // Statistik progress penilaian per TPQ dan per kelas (menggunakan fungsi yang lebih cepat)
+            $statistikProgressNilaiPerTpq = $this->getStatistikProgressNilaiPerTpqSingle($idTahunAjaran, 0);
         }
 
         return [
@@ -1340,6 +1343,7 @@ class Dashboard extends BaseController
 
     /**
      * Mengambil statistik progress penilaian per kelas untuk guru (hanya kelas yang diajar)
+     * Menggunakan fungsi getStatistikProgressNilaiPerTpqSingle yang lebih cepat
      * @param mixed $idTahunAjaran
      * @param mixed $idTpq
      * @param mixed $idKelas Array atau single ID kelas yang diajar guru
@@ -1358,313 +1362,75 @@ class Dashboard extends BaseController
             return ['Ganjil' => [], 'Genap' => []];
         }
 
-        // Ambil koneksi database
-        $db = db_connect();
+        // Gunakan fungsi yang lebih cepat untuk mengambil data
+        $statistikData = $this->getStatistikProgressNilaiPerTpqSingle($idTahunAjaran, $idTpq);
 
-        // Buat placeholder untuk IN clause
-        $placeholders = implode(',', array_fill(0, count($kelasIds), '?'));
-
-        // Query untuk mengambil statistik progress penilaian per kelas untuk semester Ganjil
-        $queryGanjil = $db->query("
-            SELECT 
-                t.IdTpq,
-                t.NamaTpq,
-                COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
-                k.IdKelas,
-                k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri,
-                COUNT(DISTINCT CASE 
-                    WHEN santri_complete.total_materi = santri_complete.materi_terisi AND santri_complete.total_materi > 0 
-                    THEN n.IdSantri 
-                END) as sudah_dinilai
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            LEFT JOIN (
-                SELECT 
-                    n2.IdTpq,
-                    n2.IdKelas,
-                    n2.IdSantri,
-                    COUNT(DISTINCT n2.IdMateri) as total_materi,
-                    COUNT(DISTINCT CASE WHEN n2.Nilai != 0 THEN n2.IdMateri END) as materi_terisi
-                FROM tbl_nilai n2
-                INNER JOIN tbl_santri_baru s2 ON s2.IdSantri = n2.IdSantri AND s2.Active = 1
-                WHERE n2.IdTahunAjaran = ? AND n2.Semester = 'Ganjil' AND n2.IdTpq = ? AND n2.IdKelas IN ($placeholders)
-                GROUP BY n2.IdTpq, n2.IdKelas, n2.IdSantri
-            ) santri_complete ON santri_complete.IdTpq = n.IdTpq 
-                AND santri_complete.IdKelas = n.IdKelas 
-                AND santri_complete.IdSantri = n.IdSantri
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Ganjil'
-                AND n.IdTpq = ?
-                AND n.IdKelas IN ($placeholders)
-            GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
-            ORDER BY k.NamaKelas ASC
-        ", array_merge([$idTahunAjaran, $idTpq], $kelasIds, [$idTahunAjaran, $idTpq], $kelasIds));
-
-        $dataGanjil = $queryGanjil->getResultArray();
-
-        // Query untuk mengambil data per santri untuk semester Ganjil
-        $querySantriGanjil = $db->query("
-            SELECT 
-                t.IdTpq,
-                k.IdKelas,
-                n.IdSantri,
-                s.NamaSantri,
-                s.PhotoProfil,
-                COUNT(DISTINCT n.IdMateri) as total_materi,
-                COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Ganjil'
-                AND n.IdTpq = ?
-                AND n.IdKelas IN ($placeholders)
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
-            ORDER BY k.IdKelas ASC, s.NamaSantri ASC
-        ", array_merge([$idTahunAjaran, $idTpq], $kelasIds));
-
-        $dataSantriGanjil = $querySantriGanjil->getResultArray();
-
-        // Query untuk semester Genap
-        $queryGenap = $db->query("
-            SELECT 
-                t.IdTpq,
-                t.NamaTpq,
-                COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
-                k.IdKelas,
-                k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri,
-                COUNT(DISTINCT CASE 
-                    WHEN santri_complete.total_materi = santri_complete.materi_terisi AND santri_complete.total_materi > 0 
-                    THEN n.IdSantri 
-                END) as sudah_dinilai
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            LEFT JOIN (
-                SELECT 
-                    n2.IdTpq,
-                    n2.IdKelas,
-                    n2.IdSantri,
-                    COUNT(DISTINCT n2.IdMateri) as total_materi,
-                    COUNT(DISTINCT CASE WHEN n2.Nilai != 0 THEN n2.IdMateri END) as materi_terisi
-                FROM tbl_nilai n2
-                INNER JOIN tbl_santri_baru s2 ON s2.IdSantri = n2.IdSantri AND s2.Active = 1
-                WHERE n2.IdTahunAjaran = ? AND n2.Semester = 'Genap' AND n2.IdTpq = ? AND n2.IdKelas IN ($placeholders)
-                GROUP BY n2.IdTpq, n2.IdKelas, n2.IdSantri
-            ) santri_complete ON santri_complete.IdTpq = n.IdTpq 
-                AND santri_complete.IdKelas = n.IdKelas 
-                AND santri_complete.IdSantri = n.IdSantri
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Genap'
-                AND n.IdTpq = ?
-                AND n.IdKelas IN ($placeholders)
-            GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
-            ORDER BY k.NamaKelas ASC
-        ", array_merge([$idTahunAjaran, $idTpq], $kelasIds, [$idTahunAjaran, $idTpq], $kelasIds));
-
-        $dataGenap = $queryGenap->getResultArray();
-
-        // Query untuk mengambil data per santri untuk semester Genap
-        $querySantriGenap = $db->query("
-            SELECT 
-                t.IdTpq,
-                k.IdKelas,
-                n.IdSantri,
-                s.NamaSantri,
-                s.PhotoProfil,
-                COUNT(DISTINCT n.IdMateri) as total_materi,
-                COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Genap'
-                AND n.IdTpq = ?
-                AND n.IdKelas IN ($placeholders)
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
-            ORDER BY k.IdKelas ASC, s.NamaSantri ASC
-        ", array_merge([$idTahunAjaran, $idTpq], $kelasIds));
-
-        $dataSantriGenap = $querySantriGenap->getResultArray();
-
-        // Organisir data untuk semester Ganjil
+        // Konversi struktur dari per-TPQ menjadi per-kelas dan filter hanya kelas yang diajar
         $resultGanjil = [];
-        foreach ($kelasIds as $kelasId) {
-            $kelasData = null;
-            foreach ($dataGanjil as $row) {
-                if ($row['IdKelas'] == $kelasId) {
-                    $kelasData = $row;
-                    break;
-                }
-            }
-
-            if ($kelasData) {
-                $totalSantri = (int)$kelasData['total_santri'];
-                $sudahDinilai = (int)($kelasData['sudah_dinilai'] ?? 0);
-                $belumDinilai = $totalSantri - $sudahDinilai;
-                $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
-
-                // Ambil data santri untuk kelas ini
-                $santriList = [];
-                $sudahDinilaiRecalc = 0;
-                $adaNilai = false;
-                foreach ($dataSantriGanjil as $santriRow) {
-                    if ($santriRow['IdKelas'] == $kelasId) {
-                        $totalMateri = (int)$santriRow['total_materi'];
-                        $materiTerisi = (int)($santriRow['materi_terisi'] ?? 0);
-                        $materiBelum = $totalMateri - $materiTerisi;
-                        $persentaseSantri = $totalMateri > 0 ? round(($materiTerisi / $totalMateri) * 100, 1) : 0;
-
-                        // Tentukan status
-                        $statusSantri = 'Belum Dinilai';
-                        $statusColor = 'danger';
-                        if ($totalMateri > 0 && $materiTerisi == $totalMateri) {
-                            $statusSantri = 'Sudah Dinilai';
-                            $statusColor = 'success';
-                            $sudahDinilaiRecalc++;
-                            $adaNilai = true;
-                        } elseif ($materiTerisi > 0) {
-                            $statusSantri = 'Sedang Dinilai';
-                            $statusColor = 'warning';
-                            $adaNilai = true;
-                        }
-
-                        $santriList[] = [
-                            'IdSantri' => $santriRow['IdSantri'],
-                            'NamaSantri' => $santriRow['NamaSantri'],
-                            'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
-                            'IdTpq' => $santriRow['IdTpq'],
-                            'TotalMateri' => $totalMateri,
-                            'MateriTerisi' => $materiTerisi,
-                            'MateriBelum' => $materiBelum,
-                            'PersentaseSudah' => $persentaseSantri,
-                            'StatusSantri' => $statusSantri,
-                            'StatusColor' => $statusColor
-                        ];
-                    }
-                }
-
-                // Recalculate
-                $sudahDinilai = $sudahDinilaiRecalc;
-                $belumDinilai = $totalSantri - $sudahDinilai;
-                $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
-
-                // Status kelas
-                $statusKelas = null;
-                $statusKelasColor = null;
-                if ($sudahDinilai > 0) {
-                    $statusKelas = null;
-                } elseif ($adaNilai) {
-                    $statusKelas = 'Sedang Di Nilai';
-                    $statusKelasColor = 'warning';
-                }
-
-                $resultGanjil[] = [
-                    'IdKelas' => $kelasData['IdKelas'],
-                    'NamaKelas' => $kelasData['NamaKelas'],
-                    'TotalSantri' => $totalSantri,
-                    'SudahDinilai' => $sudahDinilai,
-                    'BelumDinilai' => $belumDinilai,
-                    'PersentaseSudah' => $persentase,
-                    'StatusKelas' => $statusKelas,
-                    'StatusKelasColor' => $statusKelasColor,
-                    'Santri' => $santriList
-                ];
-            }
-        }
-
-        // Organisir data untuk semester Genap
         $resultGenap = [];
-        foreach ($kelasIds as $kelasId) {
-            $kelasData = null;
-            foreach ($dataGenap as $row) {
-                if ($row['IdKelas'] == $kelasId) {
-                    $kelasData = $row;
-                    break;
-                }
-            }
 
-            if ($kelasData) {
-                $totalSantri = (int)$kelasData['total_santri'];
-                $sudahDinilai = (int)($kelasData['sudah_dinilai'] ?? 0);
-                $belumDinilai = $totalSantri - $sudahDinilai;
-                $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
-
-                // Ambil data santri untuk kelas ini
-                $santriList = [];
-                $sudahDinilaiRecalc = 0;
-                $adaNilai = false;
-                foreach ($dataSantriGenap as $santriRow) {
-                    if ($santriRow['IdKelas'] == $kelasId) {
-                        $totalMateri = (int)$santriRow['total_materi'];
-                        $materiTerisi = (int)($santriRow['materi_terisi'] ?? 0);
-                        $materiBelum = $totalMateri - $materiTerisi;
-                        $persentaseSantri = $totalMateri > 0 ? round(($materiTerisi / $totalMateri) * 100, 1) : 0;
-
-                        // Tentukan status
-                        $statusSantri = 'Belum Dinilai';
-                        $statusColor = 'danger';
-                        if ($totalMateri > 0 && $materiTerisi == $totalMateri) {
-                            $statusSantri = 'Sudah Dinilai';
-                            $statusColor = 'success';
-                            $sudahDinilaiRecalc++;
-                            $adaNilai = true;
-                        } elseif ($materiTerisi > 0) {
-                            $statusSantri = 'Sedang Dinilai';
-                            $statusColor = 'warning';
-                            $adaNilai = true;
+        // Proses data semester Ganjil
+        // Catatan: Konversi MDA sudah dilakukan di getStatistikProgressNilaiPerTpqSingle untuk single TPQ
+        if (!empty($statistikData['Ganjil'])) {
+            foreach ($statistikData['Ganjil'] as $tpqData) {
+                if (!empty($tpqData['Kelas'])) {
+                    foreach ($tpqData['Kelas'] as $kelas) {
+                        // Filter hanya kelas yang diajar guru
+                        if (in_array($kelas['IdKelas'], $kelasIds)) {
+                            $resultGanjil[] = [
+                                'IdKelas' => $kelas['IdKelas'],
+                                'NamaKelas' => $kelas['NamaKelas'], // Sudah dikonversi MDA di getStatistikProgressNilaiPerTpqSingle
+                                'TotalSantri' => $kelas['TotalSantri'],
+                                'SudahDinilai' => $kelas['SudahDinilai'],
+                                'BelumDinilai' => $kelas['BelumDinilai'],
+                                'PersentaseSudah' => $kelas['PersentaseSudah'],
+                                'StatusKelas' => $kelas['StatusKelas'] ?? null,
+                                'StatusKelasColor' => $kelas['StatusKelasColor'] ?? null,
+                                'Santri' => $kelas['Santri'] ?? []
+                            ];
                         }
-
-                        $santriList[] = [
-                            'IdSantri' => $santriRow['IdSantri'],
-                            'NamaSantri' => $santriRow['NamaSantri'],
-                            'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
-                            'IdTpq' => $santriRow['IdTpq'],
-                            'TotalMateri' => $totalMateri,
-                            'MateriTerisi' => $materiTerisi,
-                            'MateriBelum' => $materiBelum,
-                            'PersentaseSudah' => $persentaseSantri,
-                            'StatusSantri' => $statusSantri,
-                            'StatusColor' => $statusColor
-                        ];
                     }
                 }
-
-                // Recalculate
-                $sudahDinilai = $sudahDinilaiRecalc;
-                $belumDinilai = $totalSantri - $sudahDinilai;
-                $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
-
-                // Status kelas
-                $statusKelas = null;
-                $statusKelasColor = null;
-                if ($sudahDinilai > 0) {
-                    $statusKelas = null;
-                } elseif ($adaNilai) {
-                    $statusKelas = 'Sedang Di Nilai';
-                    $statusKelasColor = 'warning';
-                }
-
-                $resultGenap[] = [
-                    'IdKelas' => $kelasData['IdKelas'],
-                    'NamaKelas' => $kelasData['NamaKelas'],
-                    'TotalSantri' => $totalSantri,
-                    'SudahDinilai' => $sudahDinilai,
-                    'BelumDinilai' => $belumDinilai,
-                    'PersentaseSudah' => $persentase,
-                    'StatusKelas' => $statusKelas,
-                    'StatusKelasColor' => $statusKelasColor,
-                    'Santri' => $santriList
-                ];
             }
         }
+
+        // Proses data semester Genap
+        // Catatan: Konversi MDA sudah dilakukan di getStatistikProgressNilaiPerTpqSingle untuk single TPQ
+        if (!empty($statistikData['Genap'])) {
+            foreach ($statistikData['Genap'] as $tpqData) {
+                if (!empty($tpqData['Kelas'])) {
+                    foreach ($tpqData['Kelas'] as $kelas) {
+                        // Filter hanya kelas yang diajar guru
+                        if (in_array($kelas['IdKelas'], $kelasIds)) {
+                            $resultGenap[] = [
+                                'IdKelas' => $kelas['IdKelas'],
+                                'NamaKelas' => $kelas['NamaKelas'], // Sudah dikonversi MDA di getStatistikProgressNilaiPerTpqSingle
+                                'TotalSantri' => $kelas['TotalSantri'],
+                                'SudahDinilai' => $kelas['SudahDinilai'],
+                                'BelumDinilai' => $kelas['BelumDinilai'],
+                                'PersentaseSudah' => $kelas['PersentaseSudah'],
+                                'StatusKelas' => $kelas['StatusKelas'] ?? null,
+                                'StatusKelasColor' => $kelas['StatusKelasColor'] ?? null,
+                                'Santri' => $kelas['Santri'] ?? []
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Urutkan berdasarkan IdKelas sesuai urutan $kelasIds
+        usort($resultGanjil, function ($a, $b) use ($kelasIds) {
+            $posA = array_search($a['IdKelas'], $kelasIds);
+            $posB = array_search($b['IdKelas'], $kelasIds);
+            return $posA <=> $posB;
+        });
+
+        usort($resultGenap, function ($a, $b) use ($kelasIds) {
+            $posA = array_search($a['IdKelas'], $kelasIds);
+            $posB = array_search($b['IdKelas'], $kelasIds);
+            return $posA <=> $posB;
+        });
 
         return [
             'Ganjil' => $resultGanjil,
@@ -1673,70 +1439,48 @@ class Dashboard extends BaseController
     }
 
     /**
-     * Mengambil statistik progress penilaian per TPQ dan per kelas untuk satu TPQ (Operator/Kepala TPQ)
+     * Mengambil statistik progress penilaian per TPQ dan per kelas untuk satu atau multiple TPQ (Operator/Kepala TPQ/Admin)
      * @param mixed $idTahunAjaran
-     * @param mixed $idTpq
+     * @param mixed $idTpq Single ID atau array of IDs (0 untuk semua TPQ)
      * @return array
      */
     private function getStatistikProgressNilaiPerTpqSingle($idTahunAjaran, $idTpq)
     {
-        // Ambil data TPQ
-        $tpqList = $this->helpFunctionModel->getDataTpq($idTpq);
+        // Normalisasi $idTpq menjadi array
+        if ($idTpq == 0 || $idTpq === '0' || empty($idTpq)) {
+            // Untuk admin, ambil semua TPQ
+            $tpqList = $this->helpFunctionModel->getDataTpq(0);
+            $tpqIds = array_column($tpqList, 'IdTpq');
+        } elseif (is_array($idTpq)) {
+            $tpqIds = array_filter($idTpq);
+            $tpqList = $this->helpFunctionModel->getDataTpq($idTpq);
+        } else {
+            $tpqIds = [$idTpq];
+            $tpqList = $this->helpFunctionModel->getDataTpq($idTpq);
+        }
 
-        if (empty($tpqList)) {
+        if (empty($tpqList) || empty($tpqIds)) {
             return ['Ganjil' => [], 'Genap' => []];
         }
 
-        $tpq = $tpqList[0];
+        // Buat mapping TPQ untuk akses cepat
+        $tpqMap = [];
+        foreach ($tpqList as $tpq) {
+            $tpqMap[$tpq['IdTpq']] = $tpq;
+        }
+
+        // Buat placeholder untuk IN clause
+        $placeholders = implode(',', array_fill(0, count($tpqIds), '?'));
 
         // Ambil koneksi database
         $db = db_connect();
 
-        // Query untuk mengambil statistik progress penilaian per kelas untuk semester Ganjil
-        $queryGanjil = $db->query("
-            SELECT 
-                t.IdTpq,
-                t.NamaTpq,
-                COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
-                k.IdKelas,
-                k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri,
-                COUNT(DISTINCT CASE 
-                    WHEN santri_complete.total_materi = santri_complete.materi_terisi AND santri_complete.total_materi > 0 
-                    THEN n.IdSantri 
-                END) as sudah_dinilai
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            LEFT JOIN (
-                SELECT 
-                    n2.IdTpq,
-                    n2.IdKelas,
-                    n2.IdSantri,
-                    COUNT(DISTINCT n2.IdMateri) as total_materi,
-                    COUNT(DISTINCT CASE WHEN n2.Nilai != 0 THEN n2.IdMateri END) as materi_terisi
-                FROM tbl_nilai n2
-                INNER JOIN tbl_santri_baru s2 ON s2.IdSantri = n2.IdSantri AND s2.Active = 1
-                WHERE n2.IdTahunAjaran = ? AND n2.Semester = 'Ganjil' AND n2.IdTpq = ?
-                GROUP BY n2.IdTpq, n2.IdKelas, n2.IdSantri
-            ) santri_complete ON santri_complete.IdTpq = n.IdTpq 
-                AND santri_complete.IdKelas = n.IdKelas 
-                AND santri_complete.IdSantri = n.IdSantri
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Ganjil'
-                AND n.IdTpq = ?
-            GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
-            ORDER BY k.NamaKelas ASC
-        ", [$idTahunAjaran, $idTpq, $idTahunAjaran, $idTpq]);
-
-        $dataGanjil = $queryGanjil->getResultArray();
-
-        // Query untuk mengambil data per santri untuk semester Ganjil
+        // Optimasi: Hitung completion per santri terlebih dahulu untuk semester Ganjil (menggunakan temporary table approach)
+        // Query untuk mengambil data per santri untuk semester Ganjil (lebih efisien, tanpa subquery di JOIN)
         $querySantriGanjil = $db->query("
             SELECT 
-                t.IdTpq,
-                k.IdKelas,
+                n.IdTpq,
+                n.IdKelas,
                 n.IdSantri,
                 s.NamaSantri,
                 s.PhotoProfil,
@@ -1744,62 +1488,75 @@ class Dashboard extends BaseController
                 COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
             FROM tbl_nilai n
             INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
             WHERE n.IdTahunAjaran = ?
                 AND n.Semester = 'Ganjil'
-                AND n.IdTpq = ?
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
-            ORDER BY k.IdKelas ASC, s.NamaSantri ASC
-        ", [$idTahunAjaran, $idTpq]);
+                AND n.IdTpq IN ($placeholders)
+            GROUP BY n.IdTpq, n.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
+            ORDER BY n.IdTpq ASC, n.IdKelas ASC, s.NamaSantri ASC
+        ", array_merge([$idTahunAjaran], $tpqIds));
 
         $dataSantriGanjil = $querySantriGanjil->getResultArray();
 
-        // Query untuk semester Genap
-        $queryGenap = $db->query("
+        // Optimasi: Query untuk mengambil statistik per kelas untuk semester Ganjil (menggunakan data santri yang sudah dihitung)
+        // Buat array untuk menghitung completion per santri
+        $santriCompleteGanjil = [];
+        foreach ($dataSantriGanjil as $santri) {
+            $key = $santri['IdTpq'] . '_' . $santri['IdKelas'] . '_' . $santri['IdSantri'];
+            $santriCompleteGanjil[$key] = [
+                'total_materi' => (int)$santri['total_materi'],
+                'materi_terisi' => (int)$santri['materi_terisi']
+            ];
+        }
+
+        // OPTIMASI: Query yang dioptimasi untuk statistik per kelas untuk semester Ganjil (kepala sekolah/operator/admin)
+        // - Menghilangkan JOIN dengan tbl_tpq (data TPQ sudah diketahui dari parameter)
+        // - Mengoptimalkan urutan WHERE clause untuk index (IdTahunAjaran, Semester, IdTpq)
+        // - Menggunakan INNER JOIN dengan tbl_santri_baru untuk filter aktif (lebih efisien dengan index)
+        // - Mengurangi kolom di GROUP BY (hanya yang diperlukan) - dari 6 kolom menjadi 3 kolom (tambah IdTpq untuk multiple TPQ)
+        // - Menghilangkan kolom yang tidak digunakan dari SELECT (NamaTpq, KelurahanDesa)
+        $queryGanjil = $db->query("
             SELECT 
-                t.IdTpq,
-                t.NamaTpq,
-                COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
-                k.IdKelas,
+                n.IdTpq,
+                n.IdKelas,
                 k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri,
-                COUNT(DISTINCT CASE 
-                    WHEN santri_complete.total_materi = santri_complete.materi_terisi AND santri_complete.total_materi > 0 
-                    THEN n.IdSantri 
-                END) as sudah_dinilai
+                COUNT(DISTINCT n.IdSantri) as total_santri
             FROM tbl_nilai n
             INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
             LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            LEFT JOIN (
-                SELECT 
-                    n2.IdTpq,
-                    n2.IdKelas,
-                    n2.IdSantri,
-                    COUNT(DISTINCT n2.IdMateri) as total_materi,
-                    COUNT(DISTINCT CASE WHEN n2.Nilai != 0 THEN n2.IdMateri END) as materi_terisi
-                FROM tbl_nilai n2
-                INNER JOIN tbl_santri_baru s2 ON s2.IdSantri = n2.IdSantri AND s2.Active = 1
-                WHERE n2.IdTahunAjaran = ? AND n2.Semester = 'Genap' AND n2.IdTpq = ?
-                GROUP BY n2.IdTpq, n2.IdKelas, n2.IdSantri
-            ) santri_complete ON santri_complete.IdTpq = n.IdTpq 
-                AND santri_complete.IdKelas = n.IdKelas 
-                AND santri_complete.IdSantri = n.IdSantri
             WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Genap'
-                AND n.IdTpq = ?
-            GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
-            ORDER BY k.NamaKelas ASC
-        ", [$idTahunAjaran, $idTpq, $idTahunAjaran, $idTpq]);
+                AND n.Semester = 'Ganjil'
+                AND n.IdTpq IN ($placeholders)
+            GROUP BY n.IdTpq, n.IdKelas, k.NamaKelas
+            ORDER BY n.IdTpq ASC, k.NamaKelas ASC
+        ", array_merge([$idTahunAjaran], $tpqIds));
 
-        $dataGenap = $queryGenap->getResultArray();
+        $dataGanjil = $queryGanjil->getResultArray();
 
-        // Query untuk mengambil data per santri untuk semester Genap
+        // Hitung sudah_dinilai berdasarkan data santri yang sudah dihitung
+        foreach ($dataGanjil as &$row) {
+            if (!empty($row['IdKelas'])) {
+                $sudahDinilai = 0;
+                foreach ($dataSantriGanjil as $santri) {
+                    if ($santri['IdTpq'] == $row['IdTpq'] && $santri['IdKelas'] == $row['IdKelas']) {
+                        $key = $santri['IdTpq'] . '_' . $santri['IdKelas'] . '_' . $santri['IdSantri'];
+                        if (isset($santriCompleteGanjil[$key])) {
+                            $complete = $santriCompleteGanjil[$key];
+                            if ($complete['total_materi'] > 0 && $complete['total_materi'] == $complete['materi_terisi']) {
+                                $sudahDinilai++;
+                            }
+                        }
+                    }
+                }
+                $row['sudah_dinilai'] = $sudahDinilai;
+            }
+        }
+        unset($row);
+
+        // Optimasi: Hitung completion per santri terlebih dahulu untuk semester Genap
         $querySantriGenap = $db->query("
             SELECT 
-                t.IdTpq,
-                k.IdKelas,
+                n.IdTpq,
+                n.IdKelas,
                 n.IdSantri,
                 s.NamaSantri,
                 s.PhotoProfil,
@@ -1807,34 +1564,114 @@ class Dashboard extends BaseController
                 COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
             FROM tbl_nilai n
             INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
             WHERE n.IdTahunAjaran = ?
                 AND n.Semester = 'Genap'
-                AND n.IdTpq = ?
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
-            ORDER BY k.IdKelas ASC, s.NamaSantri ASC
-        ", [$idTahunAjaran, $idTpq]);
+                AND n.IdTpq IN ($placeholders)
+            GROUP BY n.IdTpq, n.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
+            ORDER BY n.IdTpq ASC, n.IdKelas ASC, s.NamaSantri ASC
+        ", array_merge([$idTahunAjaran], $tpqIds));
 
         $dataSantriGenap = $querySantriGenap->getResultArray();
 
-        // Organisir data untuk semester Ganjil (hanya 1 TPQ)
+        // OPTIMASI: Query yang dioptimasi untuk statistik per kelas untuk semester Genap (kepala sekolah/operator/admin)
+        // - Menghilangkan JOIN dengan tbl_tpq (data TPQ sudah diketahui dari parameter)
+        // - Mengoptimalkan urutan WHERE clause untuk index (IdTahunAjaran, Semester, IdTpq)
+        // - Menggunakan INNER JOIN dengan tbl_santri_baru untuk filter aktif (lebih efisien dengan index)
+        // - Mengurangi kolom di GROUP BY (hanya yang diperlukan) - dari 6 kolom menjadi 3 kolom (tambah IdTpq untuk multiple TPQ)
+        // - Menghilangkan kolom yang tidak digunakan dari SELECT (NamaTpq, KelurahanDesa)
+        $queryGenap = $db->query("
+            SELECT 
+                n.IdTpq,
+                n.IdKelas,
+                k.NamaKelas,
+                COUNT(DISTINCT n.IdSantri) as total_santri
+            FROM tbl_nilai n
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
+            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
+            WHERE n.IdTahunAjaran = ?
+                AND n.Semester = 'Genap'
+                AND n.IdTpq IN ($placeholders)
+            GROUP BY n.IdTpq, n.IdKelas, k.NamaKelas
+            ORDER BY n.IdTpq ASC, k.NamaKelas ASC
+        ", array_merge([$idTahunAjaran], $tpqIds));
+
+        $dataGenap = $queryGenap->getResultArray();
+
+        // Hitung sudah_dinilai berdasarkan data santri yang sudah dihitung (lebih efisien di PHP)
+        foreach ($dataGenap as &$row) {
+            if (!empty($row['IdKelas'])) {
+                $sudahDinilai = 0;
+                foreach ($dataSantriGenap as $santri) {
+                    if ($santri['IdTpq'] == $row['IdTpq'] && $santri['IdKelas'] == $row['IdKelas']) {
+                        $totalMateri = (int)$santri['total_materi'];
+                        $materiTerisi = (int)$santri['materi_terisi'];
+                        if ($totalMateri > 0 && $totalMateri == $materiTerisi) {
+                            $sudahDinilai++;
+                        }
+                    }
+                }
+                $row['sudah_dinilai'] = $sudahDinilai;
+            }
+        }
+        unset($row);
+
+        // OPTIMASI: Batch processing untuk konversi nama kelas ke MDA (menghindari query database dalam loop)
+        // Kumpulkan semua TPQ ID dan nama kelas yang unik untuk semester Ganjil
+        $tpqKelasMappingGanjil = []; // [tpqId][namaKelas] => mappedMdaKelas
+        $uniqueTpqIdsForMappingGanjil = [];
+        foreach ($dataGanjil as $row) {
+            if (!empty($row['IdTpq']) && !empty($row['NamaKelas'])) {
+                $tpqId = $row['IdTpq'];
+                $namaKelas = $row['NamaKelas'];
+
+                if (!in_array($tpqId, $uniqueTpqIdsForMappingGanjil)) {
+                    $uniqueTpqIdsForMappingGanjil[] = $tpqId;
+                }
+
+                if (!isset($tpqKelasMappingGanjil[$tpqId][$namaKelas])) {
+                    $tpqKelasMappingGanjil[$tpqId][$namaKelas] = null;
+                }
+            }
+        }
+
+        // Lakukan batch check MDA mapping untuk semua TPQ dan kelas sekaligus (semester Ganjil)
+        foreach ($uniqueTpqIdsForMappingGanjil as $tpqId) {
+            if (isset($tpqKelasMappingGanjil[$tpqId])) {
+                $hasMda = $this->toolsModel->getSettingAsBool($tpqId, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
+                if ($hasMda) {
+                    $persamaanKelas = $this->toolsModel->getSettingAsString($tpqId, 'MDA_S1_PersamaanKelasMDA', '');
+                    $kelasMapping = $this->helpFunctionModel->parseMdaKelasMapping($persamaanKelas);
+                    foreach ($tpqKelasMappingGanjil[$tpqId] as $namaKelas => $value) {
+                        $matchResult = $this->helpFunctionModel->matchKelasWithMdaMapping($namaKelas, $kelasMapping);
+                        $tpqKelasMappingGanjil[$tpqId][$namaKelas] = $matchResult['mappedMdaKelas'];
+                    }
+                }
+            }
+        }
+
+        // Organisir data untuk semester Ganjil (support multiple TPQ)
         $resultGanjil = [];
-        $tpqId = $tpq['IdTpq'];
-        $tpqData = [
-            'IdTpq' => $tpqId,
-            'NamaTpq' => $tpq['NamaTpq'],
-            'KelurahanDesa' => $tpq['KelurahanDesa'] ?? $tpq['Alamat'] ?? '',
-            'Kelas' => [],
-            'TotalSantri' => 0,
-            'TotalSudahDinilai' => 0,
-            'TotalBelumDinilai' => 0,
-            'PersentaseSudah' => 0
-        ];
+
+        // Inisialisasi data TPQ untuk semua TPQ
+        $tpqDataMap = [];
+        foreach ($tpqList as $tpq) {
+            $tpqId = $tpq['IdTpq'];
+            $tpqDataMap[$tpqId] = [
+                'IdTpq' => $tpqId,
+                'NamaTpq' => $tpq['NamaTpq'],
+                'KelurahanDesa' => $tpq['KelurahanDesa'] ?? $tpq['Alamat'] ?? '',
+                'Kelas' => [],
+                'TotalSantri' => 0,
+                'TotalSudahDinilai' => 0,
+                'TotalBelumDinilai' => 0,
+                'PersentaseSudah' => 0
+            ];
+        }
 
         // Isi data dari query
         foreach ($dataGanjil as $row) {
-            if (!empty($row['IdKelas'])) {
+            $tpqId = $row['IdTpq'];
+            if (!empty($row['IdKelas']) && isset($tpqDataMap[$tpqId])) {
                 $totalSantri = (int)$row['total_santri'];
                 $sudahDinilai = (int)($row['sudah_dinilai'] ?? 0);
                 $belumDinilai = $totalSantri - $sudahDinilai;
@@ -1845,7 +1682,7 @@ class Dashboard extends BaseController
                 $sudahDinilaiRecalc = 0;
                 $adaNilai = false;
                 foreach ($dataSantriGanjil as $santriRow) {
-                    if ($santriRow['IdKelas'] == $row['IdKelas']) {
+                    if ($santriRow['IdTpq'] == $tpqId && $santriRow['IdKelas'] == $row['IdKelas']) {
                         $totalMateri = (int)$santriRow['total_materi'];
                         $materiTerisi = (int)($santriRow['materi_terisi'] ?? 0);
                         $materiBelum = $totalMateri - $materiTerisi;
@@ -1895,9 +1732,17 @@ class Dashboard extends BaseController
                     $statusKelasColor = 'warning';
                 }
 
-                $tpqData['Kelas'][] = [
+                // OPTIMASI: Gunakan mapping yang sudah dihitung sebelumnya (tidak perlu query database lagi)
+                $namaKelasOriginal = $row['NamaKelas'];
+                $mappedMdaKelas = $tpqKelasMappingGanjil[$tpqId][$namaKelasOriginal] ?? null;
+                $namaKelasDisplay = $this->helpFunctionModel->convertKelasToMda(
+                    $namaKelasOriginal,
+                    $mappedMdaKelas
+                );
+
+                $tpqDataMap[$tpqId]['Kelas'][] = [
                     'IdKelas' => $row['IdKelas'],
-                    'NamaKelas' => $row['NamaKelas'],
+                    'NamaKelas' => $namaKelasDisplay,
                     'TotalSantri' => $totalSantri,
                     'SudahDinilai' => $sudahDinilai,
                     'BelumDinilai' => $belumDinilai,
@@ -1907,59 +1752,103 @@ class Dashboard extends BaseController
                     'Santri' => $santriList
                 ];
 
-                $tpqData['TotalSantri'] += $totalSantri;
-                $tpqData['TotalSudahDinilai'] += $sudahDinilai;
-                $tpqData['TotalBelumDinilai'] += $belumDinilai;
+                $tpqDataMap[$tpqId]['TotalSantri'] += $totalSantri;
+                $tpqDataMap[$tpqId]['TotalSudahDinilai'] += $sudahDinilai;
+                $tpqDataMap[$tpqId]['TotalBelumDinilai'] += $belumDinilai;
             }
         }
 
-        // Hitung persentase total
-        if ($tpqData['TotalSantri'] > 0) {
-            $tpqData['PersentaseSudah'] = round(($tpqData['TotalSudahDinilai'] / $tpqData['TotalSantri']) * 100, 1);
-        }
+        // Hitung persentase total dan status TPQ untuk semua TPQ
+        foreach ($tpqDataMap as $tpqId => $tpqData) {
+            // Hitung persentase total
+            if ($tpqData['TotalSantri'] > 0) {
+                $tpqDataMap[$tpqId]['PersentaseSudah'] = round(($tpqData['TotalSudahDinilai'] / $tpqData['TotalSantri']) * 100, 1);
+            }
 
-        // Tentukan status TPQ
-        $adaKelasSelesai = false;
-        $adaNilaiTpq = false;
-        foreach ($tpqData['Kelas'] as $kelas) {
-            if ($kelas['SudahDinilai'] > 0) {
-                $adaKelasSelesai = true;
-                $adaNilaiTpq = true;
-                break;
-            } elseif (!empty($kelas['StatusKelas']) && $kelas['StatusKelas'] == 'Sedang Di Nilai') {
-                $adaNilaiTpq = true;
+            // Tentukan status TPQ
+            $adaKelasSelesai = false;
+            $adaNilaiTpq = false;
+            foreach ($tpqData['Kelas'] as $kelas) {
+                if ($kelas['SudahDinilai'] > 0) {
+                    $adaKelasSelesai = true;
+                    $adaNilaiTpq = true;
+                    break;
+                } elseif (!empty($kelas['StatusKelas']) && $kelas['StatusKelas'] == 'Sedang Di Nilai') {
+                    $adaNilaiTpq = true;
+                }
+            }
+
+            $tpqDataMap[$tpqId]['StatusTpq'] = null;
+            $tpqDataMap[$tpqId]['StatusTpqColor'] = null;
+            if ($adaKelasSelesai) {
+                $tpqDataMap[$tpqId]['StatusTpq'] = null;
+            } elseif ($adaNilaiTpq) {
+                $tpqDataMap[$tpqId]['StatusTpq'] = 'Sedang Di Nilai';
+                $tpqDataMap[$tpqId]['StatusTpqColor'] = 'warning';
+            }
+
+            if ($tpqData['TotalSantri'] > 0) {
+                $resultGanjil[] = $tpqDataMap[$tpqId];
             }
         }
 
-        $tpqData['StatusTpq'] = null;
-        $tpqData['StatusTpqColor'] = null;
-        if ($adaKelasSelesai) {
-            $tpqData['StatusTpq'] = null;
-        } elseif ($adaNilaiTpq) {
-            $tpqData['StatusTpq'] = 'Sedang Di Nilai';
-            $tpqData['StatusTpqColor'] = 'warning';
+        // OPTIMASI: Batch processing untuk konversi nama kelas ke MDA (menghindari query database dalam loop)
+        // Kumpulkan semua TPQ ID dan nama kelas yang unik untuk semester Genap
+        $tpqKelasMappingGenap = []; // [tpqId][namaKelas] => mappedMdaKelas
+        $uniqueTpqIdsForMappingGenap = [];
+        foreach ($dataGenap as $row) {
+            if (!empty($row['IdTpq']) && !empty($row['NamaKelas'])) {
+                $tpqId = $row['IdTpq'];
+                $namaKelas = $row['NamaKelas'];
+
+                if (!in_array($tpqId, $uniqueTpqIdsForMappingGenap)) {
+                    $uniqueTpqIdsForMappingGenap[] = $tpqId;
+                }
+
+                if (!isset($tpqKelasMappingGenap[$tpqId][$namaKelas])) {
+                    $tpqKelasMappingGenap[$tpqId][$namaKelas] = null;
+                }
+            }
         }
 
-        if ($tpqData['TotalSantri'] > 0) {
-            $resultGanjil[] = $tpqData;
+        // Lakukan batch check MDA mapping untuk semua TPQ dan kelas sekaligus (semester Genap)
+        foreach ($uniqueTpqIdsForMappingGenap as $tpqId) {
+            if (isset($tpqKelasMappingGenap[$tpqId])) {
+                $hasMda = $this->toolsModel->getSettingAsBool($tpqId, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
+                if ($hasMda) {
+                    $persamaanKelas = $this->toolsModel->getSettingAsString($tpqId, 'MDA_S1_PersamaanKelasMDA', '');
+                    $kelasMapping = $this->helpFunctionModel->parseMdaKelasMapping($persamaanKelas);
+                    foreach ($tpqKelasMappingGenap[$tpqId] as $namaKelas => $value) {
+                        $matchResult = $this->helpFunctionModel->matchKelasWithMdaMapping($namaKelas, $kelasMapping);
+                        $tpqKelasMappingGenap[$tpqId][$namaKelas] = $matchResult['mappedMdaKelas'];
+                    }
+                }
+            }
         }
 
-        // Organisir data untuk semester Genap (hanya 1 TPQ)
+        // Organisir data untuk semester Genap (support multiple TPQ)
         $resultGenap = [];
-        $tpqDataGenap = [
-            'IdTpq' => $tpqId,
-            'NamaTpq' => $tpq['NamaTpq'],
-            'KelurahanDesa' => $tpq['KelurahanDesa'] ?? $tpq['Alamat'] ?? '',
-            'Kelas' => [],
-            'TotalSantri' => 0,
-            'TotalSudahDinilai' => 0,
-            'TotalBelumDinilai' => 0,
-            'PersentaseSudah' => 0
-        ];
+
+        // Inisialisasi data TPQ untuk semua TPQ
+        $tpqDataGenapMap = [];
+        foreach ($tpqList as $tpq) {
+            $tpqId = $tpq['IdTpq'];
+            $tpqDataGenapMap[$tpqId] = [
+                'IdTpq' => $tpqId,
+                'NamaTpq' => $tpq['NamaTpq'],
+                'KelurahanDesa' => $tpq['KelurahanDesa'] ?? $tpq['Alamat'] ?? '',
+                'Kelas' => [],
+                'TotalSantri' => 0,
+                'TotalSudahDinilai' => 0,
+                'TotalBelumDinilai' => 0,
+                'PersentaseSudah' => 0
+            ];
+        }
 
         // Isi data dari query
         foreach ($dataGenap as $row) {
-            if (!empty($row['IdKelas'])) {
+            $tpqId = $row['IdTpq'];
+            if (!empty($row['IdKelas']) && isset($tpqDataGenapMap[$tpqId])) {
                 $totalSantri = (int)$row['total_santri'];
                 $sudahDinilai = (int)($row['sudah_dinilai'] ?? 0);
                 $belumDinilai = $totalSantri - $sudahDinilai;
@@ -1970,7 +1859,7 @@ class Dashboard extends BaseController
                 $sudahDinilaiRecalc = 0;
                 $adaNilai = false;
                 foreach ($dataSantriGenap as $santriRow) {
-                    if ($santriRow['IdKelas'] == $row['IdKelas']) {
+                    if ($santriRow['IdTpq'] == $tpqId && $santriRow['IdKelas'] == $row['IdKelas']) {
                         $totalMateri = (int)$santriRow['total_materi'];
                         $materiTerisi = (int)($santriRow['materi_terisi'] ?? 0);
                         $materiBelum = $totalMateri - $materiTerisi;
@@ -2010,63 +1899,39 @@ class Dashboard extends BaseController
                 $belumDinilai = $totalSantri - $sudahDinilai;
                 $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
 
-                // Tentukan status kelas
-                $statusKelas = null;
-                $statusKelasColor = null;
-                if ($sudahDinilai > 0) {
-                    $statusKelas = null;
-                } elseif ($adaNilai) {
-                    $statusKelas = 'Sedang Di Nilai';
-                    $statusKelasColor = 'warning';
-                }
+                // OPTIMASI: Gunakan mapping yang sudah dihitung sebelumnya (tidak perlu query database lagi)
+                $namaKelasOriginal = $row['NamaKelas'];
+                $mappedMdaKelas = $tpqKelasMappingGenap[$tpqId][$namaKelasOriginal] ?? null;
+                $namaKelasDisplay = $this->helpFunctionModel->convertKelasToMda(
+                    $namaKelasOriginal,
+                    $mappedMdaKelas
+                );
 
-                $tpqDataGenap['Kelas'][] = [
+                $tpqDataGenapMap[$tpqId]['Kelas'][] = [
                     'IdKelas' => $row['IdKelas'],
-                    'NamaKelas' => $row['NamaKelas'],
+                    'NamaKelas' => $namaKelasDisplay,
                     'TotalSantri' => $totalSantri,
                     'SudahDinilai' => $sudahDinilai,
                     'BelumDinilai' => $belumDinilai,
                     'PersentaseSudah' => $persentase,
-                    'StatusKelas' => $statusKelas,
-                    'StatusKelasColor' => $statusKelasColor,
                     'Santri' => $santriList
                 ];
 
-                $tpqDataGenap['TotalSantri'] += $totalSantri;
-                $tpqDataGenap['TotalSudahDinilai'] += $sudahDinilai;
-                $tpqDataGenap['TotalBelumDinilai'] += $belumDinilai;
+                $tpqDataGenapMap[$tpqId]['TotalSantri'] += $totalSantri;
+                $tpqDataGenapMap[$tpqId]['TotalSudahDinilai'] += $sudahDinilai;
+                $tpqDataGenapMap[$tpqId]['TotalBelumDinilai'] += $belumDinilai;
             }
         }
 
-        // Hitung persentase total
-        if ($tpqDataGenap['TotalSantri'] > 0) {
-            $tpqDataGenap['PersentaseSudah'] = round(($tpqDataGenap['TotalSudahDinilai'] / $tpqDataGenap['TotalSantri']) * 100, 1);
-        }
-
-        // Tentukan status TPQ
-        $adaKelasSelesai = false;
-        $adaNilaiTpq = false;
-        foreach ($tpqDataGenap['Kelas'] as $kelas) {
-            if ($kelas['SudahDinilai'] > 0) {
-                $adaKelasSelesai = true;
-                $adaNilaiTpq = true;
-                break;
-            } elseif (!empty($kelas['StatusKelas']) && $kelas['StatusKelas'] == 'Sedang Di Nilai') {
-                $adaNilaiTpq = true;
+        // Hitung persentase total untuk semua TPQ
+        foreach ($tpqDataGenapMap as $tpqId => $tpqData) {
+            if ($tpqData['TotalSantri'] > 0) {
+                $tpqDataGenapMap[$tpqId]['PersentaseSudah'] = round(($tpqData['TotalSudahDinilai'] / $tpqData['TotalSantri']) * 100, 1);
             }
-        }
 
-        $tpqDataGenap['StatusTpq'] = null;
-        $tpqDataGenap['StatusTpqColor'] = null;
-        if ($adaKelasSelesai) {
-            $tpqDataGenap['StatusTpq'] = null;
-        } elseif ($adaNilaiTpq) {
-            $tpqDataGenap['StatusTpq'] = 'Sedang Di Nilai';
-            $tpqDataGenap['StatusTpqColor'] = 'warning';
-        }
-
-        if ($tpqDataGenap['TotalSantri'] > 0) {
-            $resultGenap[] = $tpqDataGenap;
+            if ($tpqData['TotalSantri'] > 0) {
+                $resultGenap[] = $tpqDataGenapMap[$tpqId];
+            }
         }
 
         return [
@@ -2080,57 +1945,45 @@ class Dashboard extends BaseController
      * @param mixed $idTahunAjaran
      * @return array
      */
-    private function getStatistikProgressNilaiPerTpq($idTahunAjaran)
+    /**
+     * Mengambil dan mengorganisir statistik progress penilaian per TPQ dan per kelas untuk semester tertentu
+     * @param mixed $idTahunAjaran
+     * @param string $semester 'Ganjil' atau 'Genap'
+     * @param array $tpqList List TPQ
+     * @return array Data yang sudah diorganisir per TPQ
+     */
+    private function getStatistikProgressNilaiPerTpqBySemester($idTahunAjaran, $semester, $tpqList)
     {
-        // Ambil semua TPQ
-        $tpqList = $this->helpFunctionModel->getDataTpq(0);
-        
         // Ambil koneksi database
         $db = db_connect();
-        
-        // Query untuk mengambil statistik progress penilaian per TPQ dan per kelas
-        // Untuk semester Ganjil
-        // Logika: Hitung DISTINCT IdSantri sebagai total, dan DISTINCT IdSantri yang SEMUA materinya sudah terisi (100%) sebagai sudah dinilai
-        $queryGanjil = $db->query("
+
+        // OPTIMASI: Query untuk mengambil statistik progress penilaian per TPQ dan per kelas
+        // - Menghilangkan LEFT JOIN subquery yang kompleks (menghitung sudah_dinilai di PHP lebih efisien)
+        // - Mengoptimalkan urutan WHERE clause untuk index (IdTahunAjaran, Semester)
+        // - Menggunakan INNER JOIN dengan tbl_santri_baru untuk filter aktif (lebih efisien dengan index)
+        // - Mengurangi kompleksitas query dengan menghitung sudah_dinilai di PHP
+        $query = $db->query("
             SELECT 
                 t.IdTpq,
                 t.NamaTpq,
                 COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
                 k.IdKelas,
                 k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri,
-                COUNT(DISTINCT CASE 
-                    WHEN santri_complete.total_materi = santri_complete.materi_terisi AND santri_complete.total_materi > 0 
-                    THEN n.IdSantri 
-                END) as sudah_dinilai
+                COUNT(DISTINCT n.IdSantri) as total_santri
             FROM tbl_nilai n
             INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
             INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
             LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            LEFT JOIN (
-                SELECT 
-                    n2.IdTpq,
-                    n2.IdKelas,
-                    n2.IdSantri,
-                    COUNT(DISTINCT n2.IdMateri) as total_materi,
-                    COUNT(DISTINCT CASE WHEN n2.Nilai != 0 THEN n2.IdMateri END) as materi_terisi
-                FROM tbl_nilai n2
-                INNER JOIN tbl_santri_baru s2 ON s2.IdSantri = n2.IdSantri AND s2.Active = 1
-                WHERE n2.IdTahunAjaran = ? AND n2.Semester = 'Ganjil'
-                GROUP BY n2.IdTpq, n2.IdKelas, n2.IdSantri
-            ) santri_complete ON santri_complete.IdTpq = n.IdTpq 
-                AND santri_complete.IdKelas = n.IdKelas 
-                AND santri_complete.IdSantri = n.IdSantri
             WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Ganjil'
+                AND n.Semester = ?
             GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
             ORDER BY t.NamaTpq ASC, k.NamaKelas ASC
-        ", [$idTahunAjaran, $idTahunAjaran]);
-        
-        $dataGanjil = $queryGanjil->getResultArray();
-        
-        // Query untuk mengambil data per santri untuk semester Ganjil
-        $querySantriGanjil = $db->query("
+        ", [$idTahunAjaran, $semester]);
+
+        $data = $query->getResultArray();
+
+        // Query untuk mengambil data per santri
+        $querySantri = $db->query("
             SELECT 
                 t.IdTpq,
                 k.IdKelas,
@@ -2144,76 +1997,74 @@ class Dashboard extends BaseController
             INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
             LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
             WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Ganjil'
+                AND n.Semester = ?
             GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
             ORDER BY t.IdTpq ASC, k.IdKelas ASC, s.NamaSantri ASC
-        ", [$idTahunAjaran]);
-        
-        $dataSantriGanjil = $querySantriGanjil->getResultArray();
-        
-        // Query untuk semester Genap
-        $queryGenap = $db->query("
-            SELECT 
-                t.IdTpq,
-                t.NamaTpq,
-                COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
-                k.IdKelas,
-                k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri,
-                COUNT(DISTINCT CASE 
-                    WHEN santri_complete.total_materi = santri_complete.materi_terisi AND santri_complete.total_materi > 0 
-                    THEN n.IdSantri 
-                END) as sudah_dinilai
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            LEFT JOIN (
-                SELECT 
-                    n2.IdTpq,
-                    n2.IdKelas,
-                    n2.IdSantri,
-                    COUNT(DISTINCT n2.IdMateri) as total_materi,
-                    COUNT(DISTINCT CASE WHEN n2.Nilai != 0 THEN n2.IdMateri END) as materi_terisi
-                FROM tbl_nilai n2
-                INNER JOIN tbl_santri_baru s2 ON s2.IdSantri = n2.IdSantri AND s2.Active = 1
-                WHERE n2.IdTahunAjaran = ? AND n2.Semester = 'Genap'
-                GROUP BY n2.IdTpq, n2.IdKelas, n2.IdSantri
-            ) santri_complete ON santri_complete.IdTpq = n.IdTpq 
-                AND santri_complete.IdKelas = n.IdKelas 
-                AND santri_complete.IdSantri = n.IdSantri
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Genap'
-            GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
-            ORDER BY t.NamaTpq ASC, k.NamaKelas ASC
-        ", [$idTahunAjaran, $idTahunAjaran]);
-        
-        $dataGenap = $queryGenap->getResultArray();
-        
-        // Query untuk mengambil data per santri untuk semester Genap
-        $querySantriGenap = $db->query("
-            SELECT 
-                t.IdTpq,
-                k.IdKelas,
-                n.IdSantri,
-                s.NamaSantri,
-                s.PhotoProfil,
-                COUNT(DISTINCT n.IdMateri) as total_materi,
-                COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Genap'
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
-            ORDER BY t.IdTpq ASC, k.IdKelas ASC, s.NamaSantri ASC
-        ", [$idTahunAjaran]);
-        
-        $dataSantriGenap = $querySantriGenap->getResultArray();
-        
-        // Organisir data per TPQ untuk semester Ganjil
-        $resultGanjil = [];
+        ", [$idTahunAjaran, $semester]);
+
+        $dataSantri = $querySantri->getResultArray();
+
+        // OPTIMASI: Hitung sudah_dinilai berdasarkan data santri yang sudah dihitung (lebih efisien di PHP)
+        foreach ($data as &$row) {
+            if (!empty($row['IdKelas'])) {
+                $sudahDinilai = 0;
+                foreach ($dataSantri as $santri) {
+                    if ($santri['IdTpq'] == $row['IdTpq'] && $santri['IdKelas'] == $row['IdKelas']) {
+                        $totalMateri = (int)$santri['total_materi'];
+                        $materiTerisi = (int)$santri['materi_terisi'];
+                        if ($totalMateri > 0 && $totalMateri == $materiTerisi) {
+                            $sudahDinilai++;
+                        }
+                    }
+                }
+                $row['sudah_dinilai'] = $sudahDinilai;
+            }
+        }
+        unset($row);
+
+        // OPTIMASI: Batch processing untuk konversi nama kelas ke MDA (menghindari query database dalam loop)
+        // Kumpulkan semua TPQ ID dan nama kelas yang unik
+        $tpqKelasMapping = []; // [tpqId][namaKelas] => mappedMdaKelas
+        $uniqueTpqIdsForMapping = [];
+        foreach ($data as $row) {
+            if (!empty($row['IdTpq']) && !empty($row['NamaKelas'])) {
+                $tpqId = $row['IdTpq'];
+                $namaKelas = $row['NamaKelas'];
+
+                // Kumpulkan TPQ ID yang unik
+                if (!in_array($tpqId, $uniqueTpqIdsForMapping)) {
+                    $uniqueTpqIdsForMapping[] = $tpqId;
+                }
+
+                // Kumpulkan nama kelas per TPQ (untuk menghindari duplikasi check)
+                if (!isset($tpqKelasMapping[$tpqId][$namaKelas])) {
+                    $tpqKelasMapping[$tpqId][$namaKelas] = null; // Akan diisi nanti
+                }
+            }
+        }
+
+        // Lakukan batch check MDA mapping untuk semua TPQ dan kelas sekaligus
+        foreach ($uniqueTpqIdsForMapping as $tpqId) {
+            if (isset($tpqKelasMapping[$tpqId])) {
+                // Check terlebih dahulu apakah TPQ ini memiliki MDA (sekali per TPQ)
+                $hasMda = $this->toolsModel->getSettingAsBool($tpqId, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
+
+                if ($hasMda) {
+                    // Ambil dan parse mapping kelas MDA sekali per TPQ (tidak di dalam loop kelas)
+                    $persamaanKelas = $this->toolsModel->getSettingAsString($tpqId, 'MDA_S1_PersamaanKelasMDA', '');
+                    $kelasMapping = $this->helpFunctionModel->parseMdaKelasMapping($persamaanKelas);
+
+                    // Gunakan mapping yang sudah di-parse untuk semua kelas di TPQ ini
+                    foreach ($tpqKelasMapping[$tpqId] as $namaKelas => $value) {
+                        $matchResult = $this->helpFunctionModel->matchKelasWithMdaMapping($namaKelas, $kelasMapping);
+                        $tpqKelasMapping[$tpqId][$namaKelas] = $matchResult['mappedMdaKelas'];
+                    }
+                }
+            }
+        }
+
+        // Organisir data per TPQ
+        $result = [];
         foreach ($tpqList as $tpq) {
             $tpqId = $tpq['IdTpq'];
             $tpqData = [
@@ -2226,9 +2077,9 @@ class Dashboard extends BaseController
                 'TotalBelumDinilai' => 0,
                 'PersentaseSudah' => 0
             ];
-            
+
             // Isi data dari query
-            foreach ($dataGanjil as $row) {
+            foreach ($data as $row) {
                 if ($row['IdTpq'] == $tpqId && !empty($row['IdKelas'])) {
                     $totalSantri = (int)$row['total_santri'];
                     $sudahDinilai = (int)($row['sudah_dinilai'] ?? 0);
@@ -2239,7 +2090,7 @@ class Dashboard extends BaseController
                     $santriList = [];
                     $sudahDinilaiRecalc = 0; // Recalculate berdasarkan 100% completion
                     $adaNilai = false; // Flag untuk cek apakah ada nilai yang sudah diisi
-                    foreach ($dataSantriGanjil as $santriRow) {
+                    foreach ($dataSantri as $santriRow) {
                         if ($santriRow['IdTpq'] == $tpqId && $santriRow['IdKelas'] == $row['IdKelas']) {
                             $totalMateri = (int)$santriRow['total_materi'];
                             $materiTerisi = (int)($santriRow['materi_terisi'] ?? 0);
@@ -2278,148 +2129,48 @@ class Dashboard extends BaseController
                     $sudahDinilai = $sudahDinilaiRecalc;
                     $belumDinilai = $totalSantri - $sudahDinilai;
                     $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
-                    
-                    // Tentukan status kelas
+
+                    // Tentukan status kelas (hanya untuk semester Ganjil)
                     $statusKelas = null;
                     $statusKelasColor = null;
-                    if ($sudahDinilai > 0) {
-                        // Ada yang sudah selesai, tampilkan persentase
-                        $statusKelas = null; // null berarti tampilkan persentase
-                    } elseif ($adaNilai) {
-                        // Ada nilai tapi belum ada yang selesai
-                        $statusKelas = 'Sedang Di Nilai';
-                        $statusKelasColor = 'warning';
-                    }
-                    // Jika tidak ada nilai sama sekali, statusKelas tetap null (blank)
-                    
-                    $tpqData['Kelas'][] = [
-                        'IdKelas' => $row['IdKelas'],
-                        'NamaKelas' => $row['NamaKelas'],
-                        'TotalSantri' => $totalSantri,
-                        'SudahDinilai' => $sudahDinilai,
-                        'BelumDinilai' => $belumDinilai,
-                        'PersentaseSudah' => $persentase,
-                        'StatusKelas' => $statusKelas,
-                        'StatusKelasColor' => $statusKelasColor,
-                        'Santri' => $santriList
-                    ];
-                    
-                    $tpqData['TotalSantri'] += $totalSantri;
-                    $tpqData['TotalSudahDinilai'] += $sudahDinilai;
-                    $tpqData['TotalBelumDinilai'] += $belumDinilai;
-                }
-            }
-            
-            // Hitung persentase total
-            if ($tpqData['TotalSantri'] > 0) {
-                $tpqData['PersentaseSudah'] = round(($tpqData['TotalSudahDinilai'] / $tpqData['TotalSantri']) * 100, 1);
-            }
-            
-            // Tentukan status TPQ berdasarkan kelas-kelasnya
-            $adaKelasSelesai = false;
-            $adaNilaiTpq = false;
-            foreach ($tpqData['Kelas'] as $kelas) {
-                if ($kelas['SudahDinilai'] > 0) {
-                    $adaKelasSelesai = true;
-                    $adaNilaiTpq = true;
-                    break;
-                } elseif (!empty($kelas['StatusKelas']) && $kelas['StatusKelas'] == 'Sedang Di Nilai') {
-                    $adaNilaiTpq = true;
-                }
-            }
-            
-            // Tentukan status TPQ
-            $tpqData['StatusTpq'] = null;
-            $tpqData['StatusTpqColor'] = null;
-            if ($adaKelasSelesai) {
-                // Ada kelas yang sudah selesai, tampilkan persentase
-                $tpqData['StatusTpq'] = null; // null berarti tampilkan persentase
-            } elseif ($adaNilaiTpq) {
-                // Ada nilai tapi belum ada yang selesai
-                $tpqData['StatusTpq'] = 'Sedang Di Nilai';
-                $tpqData['StatusTpqColor'] = 'warning';
-            }
-            // Jika tidak ada nilai sama sekali, StatusTpq tetap null (blank)
-            
-            if ($tpqData['TotalSantri'] > 0) {
-                $resultGanjil[] = $tpqData;
-            }
-        }
-        
-        // Organisir data per TPQ untuk semester Genap
-        $resultGenap = [];
-        foreach ($tpqList as $tpq) {
-            $tpqId = $tpq['IdTpq'];
-            $tpqData = [
-                'IdTpq' => $tpqId,
-                'NamaTpq' => $tpq['NamaTpq'],
-                'KelurahanDesa' => $tpq['KelurahanDesa'] ?? $tpq['Alamat'] ?? '',
-                'Kelas' => [],
-                'TotalSantri' => 0,
-                'TotalSudahDinilai' => 0,
-                'TotalBelumDinilai' => 0,
-                'PersentaseSudah' => 0
-            ];
-            
-            // Isi data dari query
-            foreach ($dataGenap as $row) {
-                if ($row['IdTpq'] == $tpqId && !empty($row['IdKelas'])) {
-                    $totalSantri = (int)$row['total_santri'];
-                    $sudahDinilai = (int)($row['sudah_dinilai'] ?? 0);
-                    $belumDinilai = $totalSantri - $sudahDinilai;
-                    $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
-                    
-                    // Ambil data santri untuk kelas ini dan hitung ulang sudah dinilai berdasarkan 100%
-                    $santriList = [];
-                    $sudahDinilaiRecalc = 0; // Recalculate berdasarkan 100% completion
-                    foreach ($dataSantriGenap as $santriRow) {
-                        if ($santriRow['IdTpq'] == $tpqId && $santriRow['IdKelas'] == $row['IdKelas']) {
-                            $totalMateri = (int)$santriRow['total_materi'];
-                            $materiTerisi = (int)($santriRow['materi_terisi'] ?? 0);
-                            $materiBelum = $totalMateri - $materiTerisi;
-                            $persentaseSantri = $totalMateri > 0 ? round(($materiTerisi / $totalMateri) * 100, 1) : 0;
-                            
-                            // Tentukan status: Sudah Dinilai (100%), Sedang Dinilai (1-99%), Belum Dinilai (0%)
-                            $statusSantri = 'Belum Dinilai';
-                            $statusColor = 'danger';
-                            if ($totalMateri > 0 && $materiTerisi == $totalMateri) {
-                                $statusSantri = 'Sudah Dinilai';
-                                $statusColor = 'success';
-                                $sudahDinilaiRecalc++;
-                            } elseif ($materiTerisi > 0) {
-                                $statusSantri = 'Sedang Dinilai';
-                                $statusColor = 'warning';
-                            }
-                            
-                            $santriList[] = [
-                                'IdSantri' => $santriRow['IdSantri'],
-                                'NamaSantri' => $santriRow['NamaSantri'],
-                                'PhotoProfil' => $santriRow['PhotoProfil'] ?? null,
-                                'TotalMateri' => $totalMateri,
-                                'MateriTerisi' => $materiTerisi,
-                                'MateriBelum' => $materiBelum,
-                                'PersentaseSudah' => $persentaseSantri,
-                                'StatusSantri' => $statusSantri,
-                                'StatusColor' => $statusColor
-                            ];
+                    if ($semester === 'Ganjil') {
+                        if ($sudahDinilai > 0) {
+                            // Ada yang sudah selesai, tampilkan persentase
+                            $statusKelas = null; // null berarti tampilkan persentase
+                        } elseif ($adaNilai) {
+                            // Ada nilai tapi belum ada yang selesai
+                            $statusKelas = 'Sedang Di Nilai';
+                            $statusKelasColor = 'warning';
                         }
+                        // Jika tidak ada nilai sama sekali, statusKelas tetap null (blank)
                     }
-                    
-                    // Gunakan recalculated value untuk konsistensi
-                    $sudahDinilai = $sudahDinilaiRecalc;
-                    $belumDinilai = $totalSantri - $sudahDinilai;
-                    $persentase = $totalSantri > 0 ? round(($sudahDinilai / $totalSantri) * 100, 1) : 0;
-                    
-                    $tpqData['Kelas'][] = [
+
+                    // OPTIMASI: Gunakan mapping yang sudah dihitung sebelumnya (tidak perlu query database lagi)
+                    $namaKelasOriginal = $row['NamaKelas'];
+                    $mappedMdaKelas = $tpqKelasMapping[$tpqId][$namaKelasOriginal] ?? null;
+                    $namaKelasDisplay = $this->helpFunctionModel->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mappedMdaKelas
+                    );
+
+                    $kelasData = [
                         'IdKelas' => $row['IdKelas'],
-                        'NamaKelas' => $row['NamaKelas'],
+                        'NamaKelas' => $namaKelasDisplay,
                         'TotalSantri' => $totalSantri,
                         'SudahDinilai' => $sudahDinilai,
                         'BelumDinilai' => $belumDinilai,
                         'PersentaseSudah' => $persentase,
                         'Santri' => $santriList
                     ];
-                    
+
+                    // Tambahkan status kelas hanya untuk semester Ganjil
+                    if ($semester === 'Ganjil') {
+                        $kelasData['StatusKelas'] = $statusKelas;
+                        $kelasData['StatusKelasColor'] = $statusKelasColor;
+                    }
+
+                    $tpqData['Kelas'][] = $kelasData;
+
                     $tpqData['TotalSantri'] += $totalSantri;
                     $tpqData['TotalSudahDinilai'] += $sudahDinilai;
                     $tpqData['TotalBelumDinilai'] += $belumDinilai;
@@ -2430,11 +2181,56 @@ class Dashboard extends BaseController
             if ($tpqData['TotalSantri'] > 0) {
                 $tpqData['PersentaseSudah'] = round(($tpqData['TotalSudahDinilai'] / $tpqData['TotalSantri']) * 100, 1);
             }
+
+            // Tentukan status TPQ berdasarkan kelas-kelasnya (hanya untuk semester Ganjil)
+            if ($semester === 'Ganjil') {
+                $adaKelasSelesai = false;
+                $adaNilaiTpq = false;
+                foreach ($tpqData['Kelas'] as $kelas) {
+                    if ($kelas['SudahDinilai'] > 0) {
+                        $adaKelasSelesai = true;
+                        $adaNilaiTpq = true;
+                        break;
+                    } elseif (!empty($kelas['StatusKelas']) && $kelas['StatusKelas'] == 'Sedang Di Nilai') {
+                        $adaNilaiTpq = true;
+                    }
+                }
+
+                // Tentukan status TPQ
+                $tpqData['StatusTpq'] = null;
+                $tpqData['StatusTpqColor'] = null;
+                if ($adaKelasSelesai) {
+                    // Ada kelas yang sudah selesai, tampilkan persentase
+                    $tpqData['StatusTpq'] = null; // null berarti tampilkan persentase
+                } elseif ($adaNilaiTpq) {
+                    // Ada nilai tapi belum ada yang selesai
+                    $tpqData['StatusTpq'] = 'Sedang Di Nilai';
+                    $tpqData['StatusTpqColor'] = 'warning';
+                }
+                // Jika tidak ada nilai sama sekali, StatusTpq tetap null (blank)
+            }
             
             if ($tpqData['TotalSantri'] > 0) {
-                $resultGenap[] = $tpqData;
+                $result[] = $tpqData;
             }
         }
+
+        return $result;
+    }
+
+    /**
+     * Mengambil statistik progress penilaian per TPQ dan per kelas untuk semua TPQ (Admin)
+     * @param mixed $idTahunAjaran
+     * @return array
+     */
+    private function getStatistikProgressNilaiPerTpq($idTahunAjaran)
+    {
+        // Ambil semua TPQ
+        $tpqList = $this->helpFunctionModel->getDataTpq(0);
+
+        // Gunakan fungsi baru untuk menghindari duplikasi kode
+        $resultGanjil = $this->getStatistikProgressNilaiPerTpqBySemester($idTahunAjaran, 'Ganjil', $tpqList);
+        $resultGenap = $this->getStatistikProgressNilaiPerTpqBySemester($idTahunAjaran, 'Genap', $tpqList);
         
         return [
             'Ganjil' => $resultGanjil,
@@ -2556,4 +2352,5 @@ class Dashboard extends BaseController
         }
     }
 }
+
 

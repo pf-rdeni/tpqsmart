@@ -2499,57 +2499,12 @@ class HelpFunctionModel extends Model
             $persamaanKelas = $toolsModel->getSettingAsString($idTpqForQuery, 'MDA_S1_PersamaanKelasMDA', '');
 
             // Parse mapping: TPQ3=MDA1, TPQ4=MDA2, TPQ5=MDA3, TPQ6=MDA4
-            if (!empty($persamaanKelas)) {
-                $pairs = explode(',', $persamaanKelas);
-                foreach ($pairs as $pair) {
-                    $pair = trim($pair);
-                    if (strpos($pair, '=') !== false) {
-                        list($tpqKelas, $mdaKelas) = explode('=', $pair, 2);
-                        $kelasMapping[trim($tpqKelas)] = trim($mdaKelas);
-                    }
-                }
-            }
+            $kelasMapping = $this->parseMdaKelasMapping($persamaanKelas);
 
             // Check apakah nama kelas santri sesuai dengan mapping MDA
-            // Mapping format: TPQ3=MDA1, TPQ4=MDA2, TPQ5=MDA3, TPQ6=MDA4
-            // Format nama kelas: "TPQ3/SD3" atau "TPQ3" atau "Kelas TPQ3", dll
-            // Gunakan search/in (contains) untuk matching, bukan exact match
-            foreach ($kelasMapping as $tpqKelas => $mdaKelas) {
-                // Normalisasi nama kelas untuk perbandingan
-                $namaKelasNormalized = strtoupper(trim($namaKelasSantri));
-                $tpqKelasNormalized = strtoupper(trim($tpqKelas));
-
-                // Gunakan search/in (contains) untuk matching
-                // Cek apakah nama kelas santri mengandung key mapping
-                // Contoh: "TPQ3/SD3" mengandung "TPQ3" -> match
-                $isMatch = false;
-
-                // 1. Cek contains match (search in) - utama
-                if (stripos($namaKelasNormalized, $tpqKelasNormalized) !== false) {
-                    $isMatch = true;
-                }
-                // 2. Cek juga pattern TPQ + angka jika mapping mengandung "TPQ"
-                // Misal: mapping "TPQ3" bisa match dengan "TPQ3/SD3" atau "TPQ 3"
-                elseif (strpos($tpqKelasNormalized, 'TPQ') !== false) {
-                    $tpqKelasWithoutPrefix = str_replace('TPQ', '', $tpqKelasNormalized);
-                    // Cek apakah ada pattern "TPQ" diikuti angka dari mapping
-                    // Contoh: "TPQ3" -> cek apakah ada "TPQ" + "3" di "TPQ3/SD3"
-                    if (!empty($tpqKelasWithoutPrefix)) {
-                        // Pattern: TPQ diikuti angka dari mapping (bisa ada spasi atau karakter lain setelahnya)
-                        if (preg_match('/TPQ\s*' . preg_quote($tpqKelasWithoutPrefix, '/') . '/i', $namaKelasNormalized)) {
-                            $isMatch = true;
-                        }
-                    }
-                }
-
-                if ($isMatch) {
-                    // Kelas santri sesuai dengan mapping MDA
-                    $useMdaData = true;
-                    $mappedMdaKelas = $mdaKelas; // Simpan kelas MDA yang sesuai
-                    log_message('info', 'HelpFunctionModel: checkMdaKelasMapping - Kelas santri "' . $namaKelasSantri . '" sesuai dengan mapping MDA: ' . $tpqKelas . '=' . $mdaKelas);
-                    break;
-                }
-            }
+            $matchResult = $this->matchKelasWithMdaMapping($namaKelasSantri, $kelasMapping);
+            $useMdaData = $matchResult['useMdaData'];
+            $mappedMdaKelas = $matchResult['mappedMdaKelas'];
         }
 
         return [
@@ -2557,6 +2512,92 @@ class HelpFunctionModel extends Model
             'useMdaData' => $useMdaData,
             'mappedMdaKelas' => $mappedMdaKelas,
             'kelasMapping' => $kelasMapping
+        ];
+    }
+
+    /**
+     * Parse string mapping kelas MDA menjadi array
+     * Format input: "TPQ3=MDA1, TPQ4=MDA2, TPQ5=MDA3, TPQ6=MDA4"
+     * 
+     * @param string $persamaanKelas String mapping kelas MDA (contoh: "TPQ3=MDA1,TPQ4=MDA2")
+     * @return array Array mapping kelas (key: TPQ kelas, value: MDA kelas)
+     */
+    public function parseMdaKelasMapping($persamaanKelas)
+    {
+        $kelasMapping = [];
+
+        if (!empty($persamaanKelas)) {
+            $pairs = explode(',', $persamaanKelas);
+            foreach ($pairs as $pair) {
+                $pair = trim($pair);
+                if (strpos($pair, '=') !== false) {
+                    list($tpqKelas, $mdaKelas) = explode('=', $pair, 2);
+                    $kelasMapping[trim($tpqKelas)] = trim($mdaKelas);
+                }
+            }
+        }
+
+        return $kelasMapping;
+    }
+
+    /**
+     * Mencocokkan nama kelas santri dengan mapping MDA
+     * Mapping format: TPQ3=MDA1, TPQ4=MDA2, TPQ5=MDA3, TPQ6=MDA4
+     * Format nama kelas: "TPQ3/SD3" atau "TPQ3" atau "Kelas TPQ3", dll
+     * Gunakan search/in (contains) untuk matching, bukan exact match
+     * 
+     * @param string $namaKelasSantri Nama kelas santri (contoh: "TPQ3/SD3" atau "TPQ3")
+     * @param array $kelasMapping Array mapping kelas (key: TPQ kelas, value: MDA kelas)
+     * @return array Array dengan keys:
+     *   - 'useMdaData': bool - Apakah kelas sesuai dengan mapping MDA
+     *   - 'mappedMdaKelas': string|null - Kelas MDA yang sesuai dari mapping (contoh: "MDA1")
+     */
+    public function matchKelasWithMdaMapping($namaKelasSantri, $kelasMapping)
+    {
+        $useMdaData = false;
+        $mappedMdaKelas = null;
+
+        // Check apakah nama kelas santri sesuai dengan mapping MDA
+        foreach ($kelasMapping as $tpqKelas => $mdaKelas) {
+            // Normalisasi nama kelas untuk perbandingan
+            $namaKelasNormalized = strtoupper(trim($namaKelasSantri));
+            $tpqKelasNormalized = strtoupper(trim($tpqKelas));
+
+            // Gunakan search/in (contains) untuk matching
+            // Cek apakah nama kelas santri mengandung key mapping
+            // Contoh: "TPQ3/SD3" mengandung "TPQ3" -> match
+            $isMatch = false;
+
+            // 1. Cek contains match (search in) - utama
+            if (stripos($namaKelasNormalized, $tpqKelasNormalized) !== false) {
+                $isMatch = true;
+            }
+            // 2. Cek juga pattern TPQ + angka jika mapping mengandung "TPQ"
+            // Misal: mapping "TPQ3" bisa match dengan "TPQ3/SD3" atau "TPQ 3"
+            elseif (strpos($tpqKelasNormalized, 'TPQ') !== false) {
+                $tpqKelasWithoutPrefix = str_replace('TPQ', '', $tpqKelasNormalized);
+                // Cek apakah ada pattern "TPQ" diikuti angka dari mapping
+                // Contoh: "TPQ3" -> cek apakah ada "TPQ" + "3" di "TPQ3/SD3"
+                if (!empty($tpqKelasWithoutPrefix)) {
+                    // Pattern: TPQ diikuti angka dari mapping (bisa ada spasi atau karakter lain setelahnya)
+                    if (preg_match('/TPQ\s*' . preg_quote($tpqKelasWithoutPrefix, '/') . '/i', $namaKelasNormalized)) {
+                        $isMatch = true;
+                    }
+                }
+            }
+
+            if ($isMatch) {
+                // Kelas santri sesuai dengan mapping MDA
+                $useMdaData = true;
+                $mappedMdaKelas = $mdaKelas; // Simpan kelas MDA yang sesuai
+                log_message('debug', 'HelpFunctionModel: matchKelasWithMdaMapping - Kelas santri "' . $namaKelasSantri . '" sesuai dengan mapping MDA: ' . $tpqKelas . '=' . $mdaKelas);
+                break;
+            }
+        }
+
+        return [
+            'useMdaData' => $useMdaData,
+            'mappedMdaKelas' => $mappedMdaKelas
         ];
     }
 
@@ -2580,7 +2621,7 @@ class HelpFunctionModel extends Model
             $parts = explode('/', $namaKelasSantri);
             $parts[0] = $mappedMdaKelas; // Ganti bagian pertama dengan kelas MDA
             $result = implode('/', $parts);
-            log_message('info', 'HelpFunctionModel: convertKelasToMda - Nama kelas diubah dari "' . $namaKelasSantri . '" menjadi "' . $result . '"');
+            log_message('debug', 'HelpFunctionModel: convertKelasToMda - Nama kelas diubah dari "' . $namaKelasSantri . '" menjadi "' . $result . '"');
             return $result;
         } else {
             // Tidak ada separator, ganti seluruhnya dengan kelas MDA
