@@ -1380,12 +1380,31 @@ foreach ($nilai as $DataNilai) : ?>
         }
     });
 
+    // Event handler untuk focus (otomatis hapus nilai 0 saat user klik/tap)
+    $(document).on('focus', '.nilai-input-inline', function() {
+        const $input = $(this);
+        const nilaiSaatIni = $input.val();
+        const nilaiSaatIniNum = parseFloat(nilaiSaatIni) || 0;
+
+        // Jika nilai saat ini adalah 0, hapus nilai (set menjadi empty string)
+        // Ini memudahkan user untuk langsung mengetik tanpa harus menghapus 0 terlebih dahulu
+        if (nilaiSaatIniNum === 0) {
+            $input.val('');
+        }
+    });
+
     // Event handler untuk blur (auto-save saat kursor pindah atau klik di luar)
     $(document).on('blur', '.nilai-input-inline', function() {
         const $input = $(this);
         const id = $input.data('id');
-        const nilaiBaru = $input.val();
+        let nilaiBaru = $input.val();
         const nilaiLama = $input.data('nilai-lama');
+
+        // Jika nilai kosong setelah blur, set kembali menjadi 0
+        if (nilaiBaru === '' || nilaiBaru === null || nilaiBaru === undefined) {
+            nilaiBaru = '0';
+            $input.val('0');
+        }
 
         // Hapus timeout jika ada
         if (saveTimeouts[id]) {
