@@ -117,14 +117,45 @@
                                     <td><?= $row['NamaMateri']; ?></td>
                                     <td><?= $row['Kategori']; ?></td>
                                     <td>
+                                        <?php
+                                        // Cek apakah user adalah admin atau operator
+                                        $isAdmin = in_groups('Admin') || (empty($IdTpq) || $IdTpq == 0);
+                                        $isOperator = in_groups('Operator');
+
+                                        // Logika: Admin bisa edit semua, Operator hanya bisa edit TPQ mereka sendiri
+                                        // Materi FKPQ (IdTpq null) hanya bisa diedit oleh admin
+                                        $canEdit = false;
+                                        if ($isAdmin) {
+                                            // Admin bisa edit semua materi
+                                            $canEdit = true;
+                                        } elseif ($isOperator && !empty($row['IdTpq']) && $row['IdTpq'] == $IdTpq) {
+                                            // Operator hanya bisa edit materi TPQ mereka sendiri
+                                            $canEdit = true;
+                                        }
+
+                                        $isAlquranKategori = ($row['IdKategori'] == 'KM002' || $row['IdKategori'] == 'KM004');
+                                        $editModal = $isAlquranKategori ? 'modal-edit-step' : 'modal-edit' . $row['Id'];
+                                        $editDataAttr = $isAlquranKategori ? 'data-id-materi="' . $row['IdMateri'] . '"' : '';
+                                        ?>
                                         <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
-                                            data-target="#modal-edit<?= $row['Id']; ?>"
-                                            <?= empty($row['IdTpq']) ? 'disabled' : '' ?>>
+                                            data-target="#<?= $editModal; ?>" <?= $editDataAttr; ?>
+                                            <?= !$canEdit ? 'disabled' : '' ?>>
                                             <i class="fas fa-edit"></i>
                                         </button>
+                                        <?php
+                                        // Logika delete sama dengan edit
+                                        $canDelete = false;
+                                        if ($isAdmin) {
+                                            // Admin bisa delete semua materi
+                                            $canDelete = true;
+                                        } elseif ($isOperator && !empty($row['IdTpq']) && $row['IdTpq'] == $IdTpq) {
+                                            // Operator hanya bisa delete materi TPQ mereka sendiri
+                                            $canDelete = true;
+                                        }
+                                        ?>
                                         <button type="button" class="btn btn-danger btn-sm"
-                                            onclick="<?= !empty($row['IdTpq']) ? "confirmDelete('" . $row['Id'] . "')" : 'void(0)' ?>"
-                                            <?= empty($row['IdTpq']) ? 'disabled' : '' ?>>
+                                            onclick="<?= $canDelete ? "confirmDelete('" . $row['Id'] . "')" : 'void(0)' ?>"
+                                            <?= !$canDelete ? 'disabled' : '' ?>>
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -221,6 +252,151 @@
         </div>
     </div>
 <?php endforeach; ?>
+
+<!-- Modal Edit Step Form -->
+<div class="modal fade" id="modal-edit-step" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h4 class="modal-title">Edit Materi Pelajaran (Step Form)</h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formEditMateriStep">
+                <input type="hidden" id="editIdMateri" name="IdMateri">
+                <div class="modal-body">
+                    <!-- Progress Steps -->
+                    <div class="steps-progress mb-4">
+                        <div class="step-indicator">
+                            <div class="step active" data-step="1">
+                                <div class="step-number">1</div>
+                                <div class="step-label">Pilih Kategori</div>
+                            </div>
+                            <div class="step-line"></div>
+                            <div class="step" data-step="2">
+                                <div class="step-number">2</div>
+                                <div class="step-label">Form Input</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Pilih Kategori Materi -->
+                    <div class="step-content" id="edit-step-1">
+                        <!-- Info Materi (jika belum ada data alquran) -->
+                        <div id="editInfoMateri" style="display: none;" class="alert alert-info mb-3">
+                            <h6><i class="fas fa-info-circle"></i> Informasi Materi</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Nama Materi:</strong><br>
+                                    <span id="editInfoNamaMateri"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Kategori Saat Ini:</strong><br>
+                                    <span id="editInfoKategori"></span>
+                                </div>
+                            </div>
+                            <hr>
+                            <small class="text-muted">Materi ini belum memiliki data di tabel materi alquran. Silakan pilih kategori baru di bawah untuk menambahkan data alquran.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Pilih Kategori Materi <span class="text-danger">*</span></label>
+                            <select class="form-control" id="editSelectKategoriMateri" required>
+                                <option value="">-- Pilih Kategori Materi --</option>
+                            </select>
+                            <small class="form-text text-muted" id="editHintKategori">Pilih kategori materi untuk materi alquran</small>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Form Input (untuk KM002 dan KM004) -->
+                    <div class="step-content" id="edit-step-2" style="display: none;">
+                        <!-- Info Materi Referensi (ditampilkan di step 2) -->
+                        <div id="editInfoMateriStep2" style="display: none;" class="alert alert-info mb-3">
+                            <h6><i class="fas fa-info-circle"></i> Informasi Materi Sebelumnya</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Nama Materi:</strong><br>
+                                    <span id="editInfoNamaMateriStep2"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Kategori Sebelumnya:</strong><br>
+                                    <span id="editInfoKategoriStep2"></span>
+                                </div>
+                            </div>
+                            <small class="text-muted"><i class="fas fa-lightbulb"></i> Gunakan informasi ini sebagai referensi saat mengisi form di bawah</small>
+                        </div>
+
+                        <div id="editFormAlquran" style="display: none;">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Pilih Ayat Al-Quran <span class="text-danger">*</span></label>
+                                <div class="col-sm-8">
+                                    <select class="form-control select2" id="editSelectIdSurah" required style="width: 100%;">
+                                        <option value="">-- Pilih Ayat Al-Quran --</option>
+                                    </select>
+                                    <small class="form-text text-muted">Cari berdasarkan nomor surah, nama surah, atau juz (contoh: "101", "AdDuha", atau "Juz 30")</small>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Nama Surah</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" id="editNamaSurah" readonly>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Kategori</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" id="editIdKategori" readonly>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">ID Materi</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" id="editIdMateriDisplay" readonly>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Awal Ayat <span class="text-danger">*</span></label>
+                                <div class="col-sm-8">
+                                    <input type="number" class="form-control" id="editAyatAwal" min="1" step="1" required
+                                        onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    <small class="form-text text-muted">Masukkan nomor ayat awal (hanya angka)</small>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Akhir Ayat (Opsional)</label>
+                                <div class="col-sm-8">
+                                    <input type="number" class="form-control" id="editAyatAkhir" min="1" step="1"
+                                        onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    <small class="form-text text-muted" id="editHintAyatAkhir">Kosongkan jika hanya satu ayat</small>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">TPQ</label>
+                                <div class="col-sm-8">
+                                    <select class="form-control" id="editSelectIdTpq" required>
+                                        <option value="">-- Pilih TPQ --</option>
+                                    </select>
+                                    <small class="form-text text-muted" id="editHintTpq">Pilih TPQ atau Default untuk FKPQ</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" id="editBtnPrevStep" style="display: none;" onclick="editPrevStep()">Sebelumnya</button>
+                        <button type="button" class="btn btn-primary" id="editBtnNextStep" onclick="editNextStep()">Selanjutnya</button>
+                        <button type="submit" class="btn btn-success" id="editBtnSubmitStep" style="display: none;">Update</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Modal Tambah Step Form -->
 <div class="modal fade" id="modal-tambah-step" tabindex="-1" role="dialog">
@@ -429,6 +605,14 @@
             $('#selectIdSurah').select2('destroy');
         }
     });
+    
+    // Pastikan Select2 di-initialize setelah modal fully shown
+    $('#modal-tambah-step').on('shown.bs.modal', function() {
+        // Prevent click event yang menyebabkan dropdown close
+        $(document).off('click.select2').on('click.select2', '.select2-container', function(e) {
+            e.stopPropagation();
+        });
+    });
 
     // Cleanup saat modal ditutup
     $('#modal-tambah-step').on('hidden.bs.modal', function() {
@@ -596,8 +780,16 @@
                         return null;
                     }
                 });
+                
+                // Prevent event bubbling yang menyebabkan dropdown close
+                select.on('select2:open', function() {
+                    $(this).data('select2').$dropdown.off('mousedown').on('mousedown', function(e) {
+                        e.stopPropagation();
+                    });
+                });
+                
                 console.log('Select2 surah initialized');
-            }, 100);
+            }, 200);
         }
     }
 
@@ -897,6 +1089,27 @@
     $('#formTambahMateriStep').on('submit', function(e) {
         e.preventDefault();
 
+        // Remove required attribute dari semua field yang hidden atau di step yang tidak aktif
+        // untuk menghindari error "An invalid form control is not focusable"
+        $('#formTambahMateriStep').find('input[required], select[required]').each(function() {
+            const $field = $(this);
+            const $stepContent = $field.closest('.step-content');
+            const $formAlquran = $field.closest('#formAlquran');
+            
+            // Cek jika field berada di step yang tidak aktif
+            if ($stepContent.length > 0 && ($stepContent.css('display') === 'none' || !$stepContent.is(':visible'))) {
+                $field.removeAttr('required');
+            }
+            // Cek jika field berada di form alquran yang hidden
+            else if ($formAlquran.length > 0 && ($formAlquran.css('display') === 'none' || !$formAlquran.is(':visible'))) {
+                $field.removeAttr('required');
+            }
+            // Cek jika field sendiri hidden
+            else if (!$field.is(':visible')) {
+                $field.removeAttr('required');
+            }
+        });
+
         const idKategori = $('#selectKategoriMateri').val();
 
         if (idKategori === 'KM002' || idKategori === 'KM004') {
@@ -994,6 +1207,803 @@
             return false;
         }
         if (!$('#AyatAwal').val()) {
+            Swal.fire('Peringatan', 'Silakan masukkan ayat awal', 'warning');
+            return false;
+        }
+        return true;
+    }
+
+    // ============ EDIT MODAL STEP FORM ============
+    let editCurrentStep = 1;
+    let editSelectedKategori = null;
+    let editKategoriData = [];
+    let editSurahData = [];
+    let editTpqData = [];
+    let editMateriData = null;
+
+    // Load data saat modal edit dibuka
+    $('#modal-edit-step').on('show.bs.modal', function(e) {
+        const button = $(e.relatedTarget);
+        const idMateri = button.data('id-materi');
+
+        if (!idMateri) {
+            Swal.fire('Error', 'IdMateri tidak ditemukan', 'error');
+            $(this).modal('hide');
+            return;
+        }
+
+        editCurrentStep = 1;
+        editSelectedKategori = null;
+        editMateriData = null;
+        resetEditStepForm();
+        loadEditMateriData(idMateri);
+        loadKategoriMateriForEdit();
+        loadTpqListForEdit();
+    });
+    
+    // Pastikan Select2 di-initialize setelah modal fully shown
+    $('#modal-edit-step').on('shown.bs.modal', function() {
+        // Prevent click event yang menyebabkan dropdown close
+        $(document).off('click.select2-edit').on('click.select2-edit', '.select2-container', function(e) {
+            e.stopPropagation();
+        });
+    });
+
+    // Cleanup saat modal ditutup
+    $('#modal-edit-step').on('hidden.bs.modal', function() {
+        if ($('#editSelectIdSurah').hasClass('select2-hidden-accessible')) {
+            $('#editSelectIdSurah').select2('destroy');
+        }
+    });
+
+    function resetEditStepForm() {
+        editCurrentStep = 1;
+        $('#editInfoMateri').hide();
+        $('#editInfoMateriStep2').hide();
+        $('#editSelectKategoriMateri').val('');
+        $('#editSelectKategoriMateri').prop('disabled', false);
+        $('#editSelectIdSurah').val('');
+        $('#editNamaSurah').val('');
+        $('#editIdKategori').val('');
+        $('#editIdMateri').val('');
+        $('#editIdMateriDisplay').val('');
+        $('#editAyatAwal').val('');
+        $('#editAyatAkhir').val('');
+        $('#editSelectIdTpq').val('');
+        $('#editSelectIdTpq').prop('disabled', false);
+        $('#editHintTpq').text('Pilih TPQ atau Default untuk FKPQ');
+        $('#editHintKategori').text('Pilih kategori materi untuk materi alquran');
+        updateEditStepDisplay();
+    }
+
+    function updateEditStepDisplay() {
+        // Update step indicator
+        $('.step').removeClass('active completed');
+        for (let i = 1; i <= 2; i++) {
+            if (i < editCurrentStep) {
+                $(`.step[data-step="${i}"]`).addClass('completed');
+            } else if (i === editCurrentStep) {
+                $(`.step[data-step="${i}"]`).addClass('active');
+            }
+        }
+
+        // Show/hide step content
+        $('.step-content').hide();
+        $(`#edit-step-${editCurrentStep}`).show();
+
+        // Show/hide buttons
+        if (editCurrentStep === 1) {
+            $('#editBtnPrevStep').hide();
+            $('#editBtnNextStep').show();
+            $('#editBtnSubmitStep').hide();
+        } else if (editCurrentStep === 2) {
+            $('#editBtnPrevStep').show();
+            $('#editBtnNextStep').hide();
+            $('#editBtnSubmitStep').show();
+        }
+    }
+
+    function loadEditMateriData(idMateri) {
+        fetch('<?= base_url('backend/materiPelajaran/getMateriAlquranForEdit') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify({
+                    IdMateri: idMateri
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    editMateriData = data.data;
+                    populateEditForm(data.data);
+                } else {
+                    Swal.fire('Error', data.message || 'Gagal memuat data materi', 'error');
+                    $('#modal-edit-step').modal('hide');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading materi:', error);
+                Swal.fire('Error', 'Gagal memuat data materi', 'error');
+                $('#modal-edit-step').modal('hide');
+            });
+    }
+
+    function populateEditForm(data) {
+        const materi = data.materi;
+        const materiAlquran = data.materiAlquran;
+        const surah = data.surah;
+        const hasAlquranData = data.hasAlquranData !== false; // Default true jika tidak ada property
+
+        // Simpan info materi untuk ditampilkan di step 2 (selalu set)
+        const infoNamaMateri = materi.NamaMateri || '-';
+        const infoKategori = materi.Kategori || materi.IdKategori || '-';
+
+        // Set info untuk step 2 (selalu ditampilkan sebagai referensi)
+        $('#editInfoNamaMateriStep2').text(infoNamaMateri);
+        $('#editInfoKategoriStep2').text(infoKategori);
+
+        // Set IdMateri
+        $('#editIdMateri').val(materi.IdMateri);
+        $('#editIdMateriDisplay').val(materi.IdMateri);
+
+        // Jika belum ada data alquran, tampilkan info dan enable kategori selection
+        if (!hasAlquranData || !materiAlquran) {
+            // Tampilkan info materi di step 1
+            $('#editInfoMateri').show();
+            $('#editInfoNamaMateri').text(infoNamaMateri);
+            $('#editInfoKategori').text(infoKategori);
+            
+            // Tampilkan info referensi di step 2 juga (dengan pesan yang sama)
+            $('#editInfoMateriStep2').show();
+            // Info sudah di-set di awal function
+            
+            // Enable kategori selection
+            $('#editSelectKategoriMateri').prop('disabled', false);
+            $('#editHintKategori').text('Pilih kategori materi untuk menambahkan data alquran (KM002 atau KM004)');
+            
+            // Set kategori saat ini sebagai default (jika ada)
+            if (materi.IdKategori) {
+                $('#editSelectKategoriMateri').val(materi.IdKategori);
+                
+                // Cek apakah kategori adalah KM002 atau KM004, atau nama kategori mengandung "AYAT PILIHAN" atau "SURAT PENDEK"
+                const kategoriNama = (materi.Kategori || '').toUpperCase();
+                const isAyatPilihan = kategoriNama.includes('AYAT PILIHAN');
+                const isSuratPendek = kategoriNama.includes('SURAT PENDEK');
+                const isAlquranKategori = materi.IdKategori === 'KM002' || materi.IdKategori === 'KM004' || isAyatPilihan || isSuratPendek;
+                
+                if (isAlquranKategori) {
+                    // Fungsi untuk auto-select dan ke step 2
+                    const autoSelectAndGoToStep2 = (selectedIdKategori) => {
+                        // Set kategori di dropdown
+                        $('#editSelectKategoriMateri').val(selectedIdKategori);
+                        
+                        // Set TPQ dari materi
+                        const idTpq = materi.IdTpq || '0';
+                        $('#editSelectIdTpq').val(idTpq || '0');
+                        
+                        // Load surah dan langsung ke step 2
+                        loadSurahAlquranForEdit().then(() => {
+                            // Set kategori
+                            $('#editIdKategori').val(selectedIdKategori);
+                            
+                            // Clear form alquran (karena belum ada data)
+                            $('#editSelectIdSurah').val('');
+                            $('#editNamaSurah').val('');
+                            $('#editAyatAwal').val('');
+                            $('#editAyatAkhir').val('');
+                            
+                            // Parse nama materi untuk extract ayat
+                            const namaMateri = materi.NamaMateri || '';
+                            let ayatAwal = '';
+                            let ayatAkhir = '';
+                            
+                            // Cek pola "284-286" (range ayat) - prioritas pertama
+                            const rangePattern = /(\d+)-(\d+)/;
+                            const rangeMatch = namaMateri.match(rangePattern);
+                            if (rangeMatch) {
+                                ayatAwal = rangeMatch[1];
+                                ayatAkhir = rangeMatch[2];
+                            } else {
+                                // Cek pola angka di akhir nama materi (setelah spasi atau di akhir string)
+                                // Contoh: "AL-BAQARAH 255" atau "AL-BAQARAH255"
+                                const singlePattern = /[\s]?(\d+)$/;
+                                const singleMatch = namaMateri.match(singlePattern);
+                                if (singleMatch) {
+                                    ayatAwal = singleMatch[1];
+                                    ayatAkhir = '';
+                                } else {
+                                    // Default: set awal ayat = 1
+                                    ayatAwal = '1';
+                                    ayatAkhir = '';
+                                }
+                            }
+                            
+                            // Set ayat jika sudah ada surah yang dipilih
+                            if (ayatAwal) {
+                                $('#editAyatAwal').val(ayatAwal);
+                            }
+                            if (ayatAkhir) {
+                                $('#editAyatAkhir').val(ayatAkhir);
+                            }
+                            
+                            // Langsung ke step 2
+                            editCurrentStep = 2;
+                            updateEditStepDisplay();
+                            $('#editFormAlquran').show();
+                        });
+                    };
+                    
+                    // Tunggu editKategoriData ter-load dulu (jika belum)
+                    if (editKategoriData && editKategoriData.length > 0) {
+                        // Cari IdKategori yang sesuai
+                        let selectedIdKategori = materi.IdKategori;
+                        
+                        // Jika IdKategori bukan KM002 atau KM004, cari dari nama kategori
+                        if (selectedIdKategori !== 'KM002' && selectedIdKategori !== 'KM004') {
+                            // Cari kategori yang sesuai berdasarkan nama
+                            const foundKategori = editKategoriData.find(k => {
+                                const namaKategori = (k.NamaKategoriMateri || '').toUpperCase();
+                                return (isAyatPilihan && namaKategori.includes('AYAT PILIHAN')) ||
+                                       (isSuratPendek && namaKategori.includes('SURAT PENDEK'));
+                            });
+                            
+                            if (foundKategori) {
+                                selectedIdKategori = foundKategori.IdKategoriMateri;
+                            }
+                        }
+                        
+                        // Auto-select kategori dan langsung ke step 2
+                        editSelectedKategori = editKategoriData.find(k => k.IdKategoriMateri === selectedIdKategori);
+                        autoSelectAndGoToStep2(selectedIdKategori);
+                    } else {
+                        // Jika editKategoriData belum ter-load, tunggu sebentar
+                        setTimeout(() => {
+                            if (editKategoriData && editKategoriData.length > 0) {
+                                // Cari IdKategori yang sesuai
+                                let selectedIdKategori = materi.IdKategori;
+                                
+                                // Jika IdKategori bukan KM002 atau KM004, cari dari nama kategori
+                                if (selectedIdKategori !== 'KM002' && selectedIdKategori !== 'KM004') {
+                                    // Cari kategori yang sesuai berdasarkan nama
+                                    const foundKategori = editKategoriData.find(k => {
+                                        const namaKategori = (k.NamaKategoriMateri || '').toUpperCase();
+                                        return (isAyatPilihan && namaKategori.includes('AYAT PILIHAN')) ||
+                                               (isSuratPendek && namaKategori.includes('SURAT PENDEK'));
+                                    });
+                                    
+                                    if (foundKategori) {
+                                        selectedIdKategori = foundKategori.IdKategoriMateri;
+                                    }
+                                }
+                                
+                                editSelectedKategori = editKategoriData.find(k => k.IdKategoriMateri === selectedIdKategori);
+                                autoSelectAndGoToStep2(selectedIdKategori);
+                            } else {
+                                // Jika masih belum ter-load, tetap di step 1
+                                editSelectedKategori = { IdKategoriMateri: materi.IdKategori };
+                                const idTpq = materi.IdTpq || '0';
+                                $('#editSelectIdTpq').val(idTpq || '0');
+                                editCurrentStep = 1;
+                                updateEditStepDisplay();
+                            }
+                        }, 500);
+                    }
+                } else {
+                    // Kategori bukan KM002 atau KM004, tetap di step 1
+                    editSelectedKategori = { IdKategoriMateri: materi.IdKategori };
+                    
+                    // Set TPQ dari materi
+                    const idTpq = materi.IdTpq || '0';
+                    $('#editSelectIdTpq').val(idTpq || '0');
+                    
+                    // Clear form alquran
+                    $('#editSelectIdSurah').val('');
+                    $('#editNamaSurah').val('');
+                    $('#editIdKategori').val('');
+                    $('#editAyatAwal').val('');
+                    $('#editAyatAkhir').val('');
+                    
+                    // Tetap di step 1, user harus pilih kategori
+                    editCurrentStep = 1;
+                    updateEditStepDisplay();
+                }
+            } else {
+                // Tidak ada kategori, tetap di step 1
+                // Set TPQ dari materi
+                const idTpq = materi.IdTpq || '0';
+                $('#editSelectIdTpq').val(idTpq || '0');
+                
+                // Clear form alquran
+                $('#editSelectIdSurah').val('');
+                $('#editNamaSurah').val('');
+                $('#editIdKategori').val('');
+                $('#editAyatAwal').val('');
+                $('#editAyatAkhir').val('');
+                
+                // Tetap di step 1, user harus pilih kategori
+                editCurrentStep = 1;
+                updateEditStepDisplay();
+            }
+        } else {
+            // Jika sudah ada data alquran, gunakan logika lama
+            $('#editInfoMateri').hide();
+            
+            // Set kategori (disabled jika sudah ada data)
+            $('#editSelectKategoriMateri').val(materiAlquran.IdKategoriMateri || materi.IdKategori);
+            $('#editSelectKategoriMateri').prop('disabled', true);
+            $('#editHintKategori').text('Kategori tidak dapat diubah');
+            editSelectedKategori = { IdKategoriMateri: materiAlquran.IdKategoriMateri || materi.IdKategori };
+
+            // Set TPQ
+            const idTpq = materiAlquran.IdTpq || materi.IdTpq || '0';
+            $('#editSelectIdTpq').val(idTpq || '0');
+
+            // Load surah dan set values
+            loadSurahAlquranForEdit().then(() => {
+                if (surah && surah.IdSurah) {
+                    $('#editSelectIdSurah').val(surah.IdSurah).trigger('change');
+                    $('#editNamaSurah').val(surah.Surah);
+                    $('#editIdKategori').val(materiAlquran.IdKategoriMateri || materi.IdKategori);
+
+                    // Set max ayat
+                    if (surah.JumlahAyat) {
+                        $('#editAyatAwal').attr('max', surah.JumlahAyat);
+                        $('#editAyatAkhir').attr('max', surah.JumlahAyat);
+                        $('#editHintAyatAkhir').text(`Kosongkan jika hanya satu ayat (Maksimal: ${surah.JumlahAyat} ayat)`);
+                    }
+                }
+
+                // Set ayat
+                $('#editAyatAwal').val(materiAlquran.AyatMulai);
+                $('#editAyatAkhir').val(materiAlquran.AyatAkhir || '');
+
+                // Auto go to step 2
+                editCurrentStep = 2;
+                updateEditStepDisplay();
+                $('#editFormAlquran').show();
+
+                // Tampilkan info referensi di step 2 (selalu tampilkan)
+                $('#editInfoMateriStep2').show();
+            });
+        }
+
+        // Pastikan info referensi selalu di-set untuk step 2
+        // (sudah di-set di awal function)
+    }
+
+    function loadKategoriMateriForEdit() {
+        fetch('<?= base_url('backend/materiPelajaran/getKategoriMateri') ?>', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    editKategoriData = data.data;
+                    const select = $('#editSelectKategoriMateri');
+                    select.html('<option value="">-- Pilih Kategori Materi --</option>');
+                    data.data.forEach(kategori => {
+                        select.append(`<option value="${kategori.IdKategoriMateri}">${kategori.NamaKategoriMateri}</option>`);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading kategori:', error);
+            });
+    }
+
+    function loadSurahAlquranForEdit() {
+        return fetch('<?= base_url('backend/materiPelajaran/getSurahAlquran') ?>', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    editSurahData = data.data || [];
+                    const select = $('#editSelectIdSurah');
+
+                    select.empty();
+                    select.append('<option value="">-- Pilih Ayat Al-Quran --</option>');
+
+                    if (editSurahData.length === 0) {
+                        select.append('<option value="" disabled>Tidak ada surah ditemukan</option>');
+                    } else {
+                        editSurahData.forEach((surah, index) => {
+                            const idSurah = surah.IdSurah || surah.id || index + 1;
+                            const noSurah = surah.NoSurah || idSurah;
+                            const namaSurah = surah.NamaSurah || surah.Surah || `Surah ${noSurah}`;
+                            const idKategori = surah.IdKategori || '';
+                            const juz = surah.Juz || surah.juz || '';
+                            const jumlahAyat = surah.JumlahAyat || '';
+
+                            if (idSurah && namaSurah) {
+                                let displayText = `${noSurah} - ${namaSurah}`;
+                                if (juz) {
+                                    displayText += ` (Juz ${juz})`;
+                                }
+
+                                select.append(`<option value="${idSurah}" data-nama="${namaSurah}" data-kategori="${idKategori}" data-juz="${juz}" data-jumlah-ayat="${jumlahAyat}" data-no-surah="${noSurah}">${displayText}</option>`);
+                            }
+                        });
+                    }
+
+                    // Initialize Select2
+                    setTimeout(function() {
+                        if (select.hasClass('select2-hidden-accessible')) {
+                            select.select2('destroy');
+                        }
+                        select.select2({
+                            theme: 'bootstrap4',
+                            placeholder: '-- Pilih Ayat Al-Quran --',
+                            allowClear: true,
+                            width: '100%',
+                            dropdownParent: $('#modal-edit-step'),
+                            language: {
+                                noResults: function() {
+                                    return "Tidak ada hasil";
+                                },
+                                searching: function() {
+                                    return "Mencari...";
+                                }
+                            },
+                            matcher: function(params, data) {
+                                if ($.trim(params.term) === '') {
+                                    return data;
+                                }
+                                const term = params.term.toLowerCase().trim();
+                                const text = data.text.toLowerCase();
+                                const idSurah = data.id || '';
+                                const optionElement = $(data.element);
+                                const juz = optionElement.data('juz') || '';
+
+                                if (idSurah.toString().includes(term) ||
+                                    text.includes(term) ||
+                                    (juz && juz.toString().includes(term)) ||
+                                    (juz && ('juz ' + juz).includes(term)) ||
+                                    (juz && ('juz' + juz).includes(term))) {
+                                    return data;
+                                }
+                                return null;
+                            }
+                        });
+                        
+                        // Prevent event bubbling yang menyebabkan dropdown close
+                        select.on('select2:open', function() {
+                            $(this).data('select2').$dropdown.off('mousedown').on('mousedown', function(e) {
+                                e.stopPropagation();
+                            });
+                        });
+                    }, 200);
+                }
+            });
+    }
+
+    function loadTpqListForEdit() {
+        fetch('<?= base_url('backend/materiPelajaran/getAllTpq') ?>', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    editTpqData = data.data;
+                    const select = $('#editSelectIdTpq');
+                    const isOperator = data.isOperator || false;
+                    const isAdmin = data.isAdmin || false;
+                    const sessionIdTpq = data.sessionIdTpq || null;
+
+                    select.html('');
+
+                    data.data.forEach(tpq => {
+                        let displayText = tpq.NamaTpq;
+                        if (tpq.KelurahanDesa && tpq.KelurahanDesa.trim() !== '') {
+                            displayText += ' - ' + tpq.KelurahanDesa;
+                        }
+                        select.append(`<option value="${tpq.IdTpq}">${displayText}</option>`);
+                    });
+
+                     // Set TPQ berdasarkan data yang sudah ada
+                     if (editMateriData) {
+                         // Handle jika materiAlquran null (belum ada data alquran)
+                         const idTpq = (editMateriData.materiAlquran && editMateriData.materiAlquran.IdTpq) 
+                             ? editMateriData.materiAlquran.IdTpq 
+                             : (editMateriData.materi && editMateriData.materi.IdTpq) 
+                                 ? editMateriData.materi.IdTpq 
+                                 : '0';
+                         select.val(idTpq || '0');
+                     }
+
+                    if (isOperator && sessionIdTpq && sessionIdTpq != 0) {
+                        select.prop('disabled', true);
+                        $('#editHintTpq').text('TPQ Anda (tidak dapat diubah)');
+                    } else if (isAdmin) {
+                        select.prop('disabled', false);
+                        $('#editHintTpq').text('Pilih TPQ atau Default untuk FKPQ');
+                    } else {
+                        select.prop('disabled', false);
+                        $('#editHintTpq').text('Pilih TPQ atau Default untuk FKPQ');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading TPQ:', error);
+            });
+    }
+
+    // Handle surah selection untuk edit
+    $(document).on('change', '#editSelectIdSurah', function() {
+        const idSurah = $(this).val();
+        if (idSurah) {
+            const selectedOption = $(this).find('option:selected');
+            let namaSurah = selectedOption.data('nama') || selectedOption.text();
+            const jumlahAyat = selectedOption.data('jumlah-ayat') || '';
+
+            if (!namaSurah && editSurahData.length > 0) {
+                const surah = editSurahData.find(s => (s.IdSurah || s.id) == idSurah);
+                if (surah) {
+                    namaSurah = surah.NamaSurah || surah.Surah || '';
+                }
+            }
+
+            const idKategori = editSelectedKategori?.IdKategoriMateri || $('#editSelectKategoriMateri').val();
+
+            $('#editNamaSurah').val(namaSurah);
+            $('#editIdKategori').val(idKategori);
+
+            if (jumlahAyat && parseInt(jumlahAyat) > 0) {
+                $('#editAyatAwal').attr('max', jumlahAyat);
+                $('#editAyatAkhir').attr('max', jumlahAyat);
+                $('#editHintAyatAkhir').text(`Kosongkan jika hanya satu ayat (Maksimal: ${jumlahAyat} ayat)`);
+            } else {
+                $('#editAyatAwal').removeAttr('max');
+                $('#editAyatAkhir').removeAttr('max');
+                $('#editHintAyatAkhir').text('Kosongkan jika hanya satu ayat');
+            }
+
+            $('#editAyatAkhir').removeAttr('min');
+        }
+    });
+
+    function editNextStep() {
+        if (editCurrentStep === 1) {
+            const idKategori = $('#editSelectKategoriMateri').val();
+            if (!idKategori) {
+                Swal.fire('Peringatan', 'Silakan pilih kategori materi terlebih dahulu', 'warning');
+                return;
+            }
+
+            editSelectedKategori = editKategoriData.find(k => k.IdKategoriMateri === idKategori);
+
+            // Show appropriate form based on kategori
+            if (idKategori === 'KM002' || idKategori === 'KM004') {
+                $('#editFormAlquran').show();
+                
+                // Tampilkan info referensi di step 2
+                $('#editInfoMateriStep2').show();
+                
+                // Load surah data
+                loadSurahAlquranForEdit().then(() => {
+                    // Set kategori
+                    $('#editIdKategori').val(idKategori);
+                    
+                    // Jika belum ada data alquran, parse nama materi untuk extract ayat
+                    if (!editMateriData || !editMateriData.hasAlquranData) {
+                        $('#editSelectIdSurah').val('');
+                        $('#editNamaSurah').val('');
+                        
+                        // Parse nama materi untuk extract ayat
+                        const namaMateri = editMateriData?.materi?.NamaMateri || '';
+                        let ayatAwal = '';
+                        let ayatAkhir = '';
+                        
+                        // Cek pola "284-286" (range ayat) - prioritas pertama
+                        const rangePattern = /(\d+)-(\d+)/;
+                        const rangeMatch = namaMateri.match(rangePattern);
+                        if (rangeMatch) {
+                            ayatAwal = rangeMatch[1];
+                            ayatAkhir = rangeMatch[2];
+                        } else {
+                            // Cek pola angka di akhir nama materi (setelah spasi atau di akhir string)
+                            // Contoh: "AL-BAQARAH 255" atau "AL-BAQARAH255"
+                            const singlePattern = /[\s]?(\d+)$/;
+                            const singleMatch = namaMateri.match(singlePattern);
+                            if (singleMatch) {
+                                ayatAwal = singleMatch[1];
+                                ayatAkhir = '';
+                            } else {
+                                // Default: set awal ayat = 1
+                                ayatAwal = '1';
+                                ayatAkhir = '';
+                            }
+                        }
+                        
+                        // Set ayat
+                        if (ayatAwal) {
+                            $('#editAyatAwal').val(ayatAwal);
+                        }
+                        if (ayatAkhir) {
+                            $('#editAyatAkhir').val(ayatAkhir);
+                        }
+                    }
+                });
+            } else {
+                $('#editFormAlquran').hide();
+                Swal.fire('Info', 'Form untuk kategori ini akan dikembangkan kemudian', 'info');
+                return;
+            }
+
+            editCurrentStep = 2;
+            updateEditStepDisplay();
+        }
+    }
+
+    function editPrevStep() {
+        if (editCurrentStep === 2) {
+            editCurrentStep = 1;
+            updateEditStepDisplay();
+        }
+    }
+
+    // Handle form submission untuk edit
+    $('#formEditMateriStep').on('submit', function(e) {
+        e.preventDefault();
+
+        // Remove required attribute dari semua field yang hidden atau di step yang tidak aktif
+        // untuk menghindari error "An invalid form control is not focusable"
+        $('#formEditMateriStep').find('input[required], select[required]').each(function() {
+            var $field = $(this);
+            var $stepContent = $field.closest('.step-content');
+            var $formAlquran = $field.closest('#editFormAlquran');
+            var shouldRemove = false;
+            
+            // Cek jika field berada di step yang tidak aktif
+            if ($stepContent.length > 0) {
+                var stepDisplay = $stepContent.css('display');
+                if (stepDisplay === 'none' || !$stepContent.is(':visible')) {
+                    shouldRemove = true;
+                }
+            }
+            
+            // Cek jika field berada di form alquran yang hidden
+            if (!shouldRemove && $formAlquran.length > 0) {
+                var formDisplay = $formAlquran.css('display');
+                if (formDisplay === 'none' || !$formAlquran.is(':visible')) {
+                    shouldRemove = true;
+                }
+            }
+            
+            // Cek jika field sendiri hidden
+            if (!shouldRemove && !$field.is(':visible')) {
+                shouldRemove = true;
+            }
+            
+            if (shouldRemove) {
+                $field.removeAttr('required');
+            }
+        });
+        
+        // Ambil kategori dari dropdown atau dari field yang sudah di-set di step 2
+        let idKategori = $('#editSelectKategoriMateri').val();
+        if (!idKategori) {
+            // Jika tidak ada di dropdown, ambil dari field yang sudah di-set di step 2
+            idKategori = $('#editIdKategori').val();
+        }
+        
+        // Validasi kategori hanya jika benar-benar kosong
+        if (!idKategori) {
+            Swal.fire('Peringatan', 'Silakan pilih kategori materi terlebih dahulu', 'warning');
+            return;
+        }
+        
+        if (idKategori === 'KM002' || idKategori === 'KM004') {
+            if (!validateEditAlquranForm()) {
+                return;
+            }
+
+            let idTpq = $('#editSelectIdTpq').val();
+            if (!$('#editSelectIdTpq').is(':disabled') && !idTpq) {
+                idTpq = '0';
+            }
+
+            const formData = {
+                IdMateri: $('#editIdMateri').val(),
+                IdKategori: $('#editIdKategori').val(),
+                IdSurah: $('#editSelectIdSurah').val(),
+                AyatAwal: parseInt($('#editAyatAwal').val()),
+                AyatAkhir: $('#editAyatAkhir').val() ? parseInt($('#editAyatAkhir').val()) : null,
+                IdTpq: idTpq || '0'
+            };
+
+            // Validasi ayat range
+            if (formData.AyatAkhir && formData.AyatAkhir < formData.AyatAwal) {
+                Swal.fire('Error', 'Ayat akhir harus lebih besar atau sama dengan ayat awal', 'error');
+                return;
+            }
+
+            // Validasi maksimal ayat
+            const selectedOption = $('#editSelectIdSurah').find('option:selected');
+            const jumlahAyat = parseInt(selectedOption.data('jumlah-ayat')) || 0;
+
+            if (jumlahAyat > 0) {
+                if (formData.AyatAwal > jumlahAyat) {
+                    Swal.fire('Error', `Ayat awal tidak boleh lebih dari ${jumlahAyat} (jumlah ayat surah)`, 'error');
+                    return;
+                }
+                if (formData.AyatAkhir && formData.AyatAkhir > jumlahAyat) {
+                    Swal.fire('Error', `Ayat akhir tidak boleh lebih dari ${jumlahAyat} (jumlah ayat surah)`, 'error');
+                    return;
+                }
+            }
+
+            Swal.fire({
+                title: 'Memperbarui...',
+                text: 'Mohon tunggu sebentar',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('<?= base_url('backend/materiPelajaran/updateMateriAlquran') ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: data.message || 'Data berhasil diperbarui',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            $('#modal-edit-step').modal('hide');
+                            window.location.reload();
+                        });
+                    } else {
+                        throw new Error(data.message || 'Terjadi kesalahan saat memperbarui data');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        title: 'Gagal!',
+                        text: error.message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        }
+    });
+
+    function validateEditAlquranForm() {
+        if (!$('#editSelectIdSurah').val()) {
+            Swal.fire('Peringatan', 'Silakan pilih ayat Al-Quran', 'warning');
+            return false;
+        }
+        if (!$('#editAyatAwal').val()) {
             Swal.fire('Peringatan', 'Silakan masukkan ayat awal', 'warning');
             return false;
         }

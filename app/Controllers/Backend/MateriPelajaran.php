@@ -122,6 +122,7 @@ class MateriPelajaran extends BaseController
         ->join('tbl_tpq tpq', 'tpq.IdTpq = tbl_materi_pelajaran.IdTpq', 'left')
         ->where('tbl_materi_pelajaran.IdTpq', $IdTpq)
         ->orWhere('tbl_materi_pelajaran.IdTpq', null)
+            ->orderBy('tbl_materi_pelajaran.IdMateri', 'ASC')
         ->findAll();
 
         $kategori = $this->materiModel
@@ -715,6 +716,8 @@ class MateriPelajaran extends BaseController
 
             // Generate NamaMateri
             $namaMateri = strtoupper($surah['Surah']);
+            // Tambahkan kata SURAT di depan nama surah
+            $namaMateri = 'SURAT ' . $namaMateri;
             // Jika ada Awal Ayat dan Akhir Ayat: "AL-BAQARAH 23-50"
             // Jika tidak ada akhir ayat: "AL-BAQARAH" (hanya nama surah)
             if (!empty($data->AyatAkhir) && $data->AyatAkhir > $data->AyatAwal) {
@@ -806,6 +809,235 @@ class MateriPelajaran extends BaseController
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Gagal menyimpan data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get materi alquran untuk edit berdasarkan IdMateri
+     */
+    public function getMateriAlquranForEdit()
+    {
+        try {
+            $data = $this->request->getJSON();
+            $idMateri = $data->IdMateri ?? null;
+
+            if (!$idMateri) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'IdMateri harus diisi'
+                ]);
+            }
+
+            // Ambil data dari tbl_materi_pelajaran
+            $materi = $this->materiModel
+                ->where('IdMateri', $idMateri)
+                ->first();
+
+            if (!$materi) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Data materi tidak ditemukan'
+                ]);
+            }
+
+            // Ambil data dari tbl_materi_alquran (bisa null jika belum ada)
+            $materiAlquran = $this->materiAlquranModel
+                ->where('IdMateri', $idMateri)
+                ->first();
+
+            // Jika tidak ada di tbl_materi_alquran, return data materi saja
+            // Ini untuk handle materi yang belum memiliki data alquran
+            if (!$materiAlquran) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'data' => [
+                        'materi' => $materi,
+                        'materiAlquran' => null,
+                        'surah' => null,
+                        'hasAlquranData' => false
+                    ]
+                ]);
+            }
+
+            // Ambil detail surah dari tbl_alquran
+            $db = \Config\Database::connect();
+            $surah = $db->table('tbl_alquran')
+                ->select('id as IdSurah, NoSurah, Surah, JumlahAyat')
+                ->where('id', $materiAlquran['IdSurah'])
+                ->get()
+                ->getRowArray();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [
+                    'materi' => $materi,
+                    'materiAlquran' => $materiAlquran,
+                    'surah' => $surah,
+                    'hasAlquranData' => true
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengambil data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update materi alquran (untuk kategori KM002 dan KM004)
+     */
+    public function updateMateriAlquran()
+    {
+        try {
+            $data = $this->request->getJSON();
+
+            // Validasi input manual
+            $errors = [];
+            if (empty($data->IdMateri)) {
+                $errors[] = 'IdMateri harus diisi';
+            }
+            if (empty($data->IdKategori)) {
+                $errors[] = 'IdKategori harus diisi';
+            }
+            if (empty($data->IdSurah)) {
+                $errors[] = 'IdSurah harus diisi';
+            }
+            if (empty($data->AyatAwal) || !is_numeric($data->AyatAwal)) {
+                $errors[] = 'AyatAwal harus diisi dan berupa angka';
+            }
+            if (!empty($data->AyatAkhir) && !is_numeric($data->AyatAkhir)) {
+                $errors[] = 'AyatAkhir harus berupa angka';
+            }
+
+            if (!empty($errors)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $errors
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+
+            // Ambil detail surah
+            $builder = $db->table('tbl_alquran');
+            $builder->select('id as IdSurah, NoSurah, Surah, JumlahAyat')
+                ->where('id', $data->IdSurah);
+            $surah = $builder->get()->getRowArray();
+
+            if (!$surah) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Surah tidak ditemukan'
+                ]);
+            }
+
+            // Generate NamaMateri
+            $namaMateri = strtoupper($surah['Surah']);
+            // Tambahkan kata SURAT di depan nama surah
+            $namaMateri = 'SURAT ' . $namaMateri;
+            if (!empty($data->AyatAkhir) && $data->AyatAkhir > $data->AyatAwal) {
+                $namaMateri .= ' ' . $data->AyatAwal . '-' . $data->AyatAkhir;
+            }
+
+            // Ambil Nama Kategori
+            $kategori = $this->kategoriMateriModel
+                ->where('IdKategoriMateri', $data->IdKategori)
+                ->first();
+
+            $namaKategori = '';
+            if ($kategori && isset($kategori['NamaKategoriMateri'])) {
+                $namaKategori = $kategori['NamaKategoriMateri'];
+            }
+
+            // Mulai transaksi
+            $db->transStart();
+
+            // Update tbl_materi_pelajaran
+            $materiData = [
+                'IdKategori' => $data->IdKategori,
+                'IdTpq' => ($data->IdTpq == '0' || empty($data->IdTpq)) ? null : $data->IdTpq,
+                'NamaMateri' => strtoupper($namaMateri),
+                'Kategori' => $namaKategori
+            ];
+
+            // Cari ID primary key dari IdMateri
+            $materiRecord = $this->materiModel
+                ->where('IdMateri', $data->IdMateri)
+                ->first();
+
+            if (!$materiRecord) {
+                throw new \Exception('Data materi tidak ditemukan');
+            }
+
+            $materiUpdated = $this->materiModel
+                ->update($materiRecord['Id'], $materiData);
+
+            if (!$materiUpdated) {
+                throw new \Exception('Gagal memperbarui data materi pelajaran');
+            }
+            // Mengangambil No surah dari IdSurah tabel tbl_alquran
+            $noSurah = $db->table('tbl_alquran')
+                ->select('NoSurah')
+                ->where('id', $data->IdSurah)
+                ->get()
+                ->getRowArray();
+            $noSurah = $noSurah['NoSurah'];
+
+            // Update tbl_materi_alquran
+            $alquranData = [
+                'IdKategoriMateri' => $data->IdKategori,
+                'IdTpq' => ($data->IdTpq == '0' || empty($data->IdTpq)) ? null : $data->IdTpq,
+                'IdSurah' => $noSurah,
+                'AyatMulai' => $data->AyatAwal,
+                'AyatAkhir' => !empty($data->AyatAkhir) ? $data->AyatAkhir : null,
+                'NamaSurah' => strtoupper($namaMateri)
+            ];
+
+            // Cek apakah data sudah ada di tbl_materi_alquran
+            $alquranRecord = $this->materiAlquranModel
+                ->where('IdMateri', $data->IdMateri)
+                ->first();
+
+            if ($alquranRecord) {
+                // Update jika sudah ada
+                $alquranUpdated = $this->materiAlquranModel
+                    ->update($alquranRecord['id'], $alquranData);
+            } else {
+                // Insert jika belum ada (untuk materi yang belum memiliki data alquran)
+                $alquranData['IdMateri'] = $data->IdMateri;
+                $alquranUpdated = $this->materiAlquranModel->insert($alquranData);
+            }
+
+            if (!$alquranUpdated) {
+                $errors = $this->materiAlquranModel->errors();
+                $errorMessage = 'Gagal memperbarui data materi alquran';
+                if (!empty($errors)) {
+                    $errorMessage .= ': ' . implode(', ', array_values($errors));
+                }
+                throw new \Exception($errorMessage);
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Transaksi gagal');
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Data materi alquran berhasil diperbarui',
+                'data' => [
+                    'IdMateri' => $data->IdMateri,
+                    'NamaMateri' => $namaMateri
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui data: ' . $e->getMessage()
             ]);
         }
     }

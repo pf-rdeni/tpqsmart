@@ -9,6 +9,7 @@ use App\Models\SantriBaruModel;
 use App\Models\MunaqosahNilaiModel;
 use App\Models\MunaqosahKonfigurasiModel;
 use App\Models\MunaqosahBobotNilaiModel;
+use App\Models\MateriAlquranModel;
 
 class Nilai extends BaseController
 {
@@ -22,6 +23,7 @@ class Nilai extends BaseController
     protected $munaqosahNilaiModel;
     protected $munaqosahKonfigurasiModel;
     protected $munaqosahBobotNilaiModel;
+    protected $materiAlquranModel;
     protected $db;
 
     public function __construct()
@@ -35,6 +37,7 @@ class Nilai extends BaseController
         $this->munaqosahNilaiModel = new MunaqosahNilaiModel();
         $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
         $this->munaqosahBobotNilaiModel = new MunaqosahBobotNilaiModel();
+        $this->materiAlquranModel = new MateriAlquranModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -1443,5 +1446,202 @@ class Nilai extends BaseController
         ];
 
         return view('backend/nilai/ranking', $data);
+    }
+
+    /**
+     * Get ayat by IdMateri dari tbl_materi_alquran untuk penilaian semester
+     * Mirip dengan getAyahByMateri di Munaqosah, tapi menggunakan tbl_materi_alquran
+     */
+    public function getAyahByMateri()
+    {
+        try {
+            $idMateri = $this->request->getPost('IdMateri') ?? $this->request->getGet('IdMateri');
+
+            if (empty($idMateri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_ID_MATERI',
+                    'message' => 'IdMateri tidak boleh kosong',
+                    'details' => 'Parameter IdMateri harus diisi'
+                ]);
+            }
+
+            // Ambil data materi dari tbl_materi_alquran
+            $materiAlquran = $this->materiAlquranModel
+                ->where('IdMateri', $idMateri)
+                ->first();
+
+            if (empty($materiAlquran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'DATA_NOT_FOUND',
+                    'code' => 'MATERI_NOT_FOUND',
+                    'message' => 'Data materi tidak ditemukan',
+                    'details' => 'Materi dengan ID ' . $idMateri . ' tidak ditemukan di tabel tbl_materi_alquran'
+                ]);
+            }
+
+            // Cek apakah IdSurah tersedia
+            $idSurah = isset($materiAlquran['IdSurah']) ? (int)$materiAlquran['IdSurah'] : null;
+            $ayatMulai = isset($materiAlquran['AyatMulai']) ? (int)$materiAlquran['AyatMulai'] : null;
+            // AyatAkhir bisa null atau kosong, jadi cek dengan lebih hati-hati
+            $ayatAkhir = null;
+            if (isset($materiAlquran['AyatAkhir']) && $materiAlquran['AyatAkhir'] !== null && $materiAlquran['AyatAkhir'] !== '') {
+                $ayatAkhir = (int)$materiAlquran['AyatAkhir'];
+            }
+
+            if (empty($idSurah) || empty($ayatMulai)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'MISSING_SURAH_AYAT',
+                    'message' => 'IdSurah atau AyatMulai tidak tersedia',
+                    'details' => 'Materi dengan ID ' . $idMateri . ' tidak memiliki IdSurah atau AyatMulai yang valid'
+                ]);
+            }
+
+            // Validasi IdSurah (1-114)
+            if ($idSurah < 1 || $idSurah > 114) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'INVALID_SURAH',
+                    'message' => 'IdSurah tidak valid',
+                    'details' => 'IdSurah harus antara 1-114, diberikan: ' . $idSurah
+                ]);
+            }
+
+            // Validasi AyatMulai
+            if ($ayatMulai < 1) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'VALIDATION_ERROR',
+                    'code' => 'INVALID_AYAT',
+                    'message' => 'AyatMulai tidak valid',
+                    'details' => 'AyatMulai harus lebih dari 0, diberikan: ' . $ayatMulai
+                ]);
+            }
+
+            // Gunakan IslamicApiService untuk mengambil info surah terlebih dahulu
+            $islamicApiService = new \App\Libraries\IslamicApiService();
+            $edition = $this->request->getGet('edition') ?? 'quran-uthmani';
+
+            // Ambil info surah untuk mendapatkan jumlah ayat total
+            $surahInfo = $islamicApiService->getSurah($idSurah, $edition);
+            $totalAyahsInSurah = 0;
+            if ($surahInfo['success'] && isset($surahInfo['number_of_ayahs'])) {
+                $totalAyahsInSurah = (int)$surahInfo['number_of_ayahs'];
+            }
+
+            // Tentukan range ayat berdasarkan AyatMulai dan AyatAkhir
+            $ayahStart = $ayatMulai;
+
+            // Jika AyatAkhir tidak ada atau kosong, tampilkan semua ayat surah
+            if (empty($ayatAkhir) || $ayatAkhir <= $ayatMulai) {
+                // Ambil semua ayat surah menggunakan getSurah
+                $surahResult = $islamicApiService->getSurah($idSurah, $edition);
+
+                if (!$surahResult['success']) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'status' => 'API_ERROR',
+                        'code' => 'AYAH_FETCH_FAILED',
+                        'message' => 'Gagal mengambil surah dari API',
+                        'details' => $surahResult['error'] ?? 'Terjadi kesalahan saat mengambil surah'
+                    ]);
+                }
+
+                // Update totalAyahsInSurah dari hasil getSurah jika belum ada
+                if ($totalAyahsInSurah === 0 && isset($surahResult['number_of_ayahs'])) {
+                    $totalAyahsInSurah = (int)$surahResult['number_of_ayahs'];
+                }
+                $ayahEnd = $totalAyahsInSurah > 0 ? $totalAyahsInSurah : count($surahResult['ayahs'] ?? []);
+
+                // Transform data surah ke format yang sama dengan getAyahRange
+                // Data sudah diproses di IslamicApiService untuk menghapus bismillah
+                $ayahs = [];
+                if (isset($surahResult['ayahs']) && is_array($surahResult['ayahs'])) {
+                    foreach ($surahResult['ayahs'] as $ayahItem) {
+                        // Handle berbagai format data dari API
+                        $ayahs[] = [
+                            'surah_number' => $idSurah,
+                            'ayah_number' => $ayahItem['numberInSurah'] ?? $ayahItem['number'] ?? 0,
+                            'text' => $ayahItem['text'] ?? '', // Text sudah dibersihkan dari bismillah di service
+                            'number' => $ayahItem['number'] ?? 0,
+                            'number_in_surah' => $ayahItem['numberInSurah'] ?? $ayahItem['number'] ?? 0,
+                            'juz' => $ayahItem['juz'] ?? 0,
+                            'manzil' => $ayahItem['manzil'] ?? 0,
+                            'page' => $ayahItem['page'] ?? 0,
+                            'ruku' => $ayahItem['ruku'] ?? 0,
+                            'hizb_quarter' => $ayahItem['hizbQuarter'] ?? $ayahItem['hizb_quarter'] ?? 0,
+                        ];
+                    }
+                }
+
+                $result = [
+                    'success' => true,
+                    'surah_number' => $idSurah,
+                    'ayah_start' => $ayahStart,
+                    'ayah_end' => $ayahEnd,
+                    'surah_name' => $surahResult['surah_name_arabic'] ?? '',
+                    'surah_name_english' => $surahResult['surah_name_english'] ?? '',
+                    'total_ayahs' => count($ayahs),
+                    'ayahs' => $ayahs,
+                    'raw_data' => ['note' => 'Data diambil menggunakan getSurah (seluruh surah karena AyatAkhir tidak ada)']
+                ];
+            } else {
+                // Jika AyatAkhir ada, tampilkan sesuai range yang di-set
+                $ayahEnd = $ayatAkhir;
+
+                // Pastikan tidak melebihi jumlah ayat dalam surah
+                if ($totalAyahsInSurah > 0 && $ayahEnd > $totalAyahsInSurah) {
+                    $ayahEnd = $totalAyahsInSurah;
+                }
+
+                // Ambil range ayat menggunakan getAyahRange
+                $result = $islamicApiService->getAyahRange($idSurah, $ayahStart, $ayahEnd, $edition);
+            }
+
+            if (!$result['success']) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'status' => 'API_ERROR',
+                    'code' => 'AYAH_FETCH_FAILED',
+                    'message' => 'Gagal mengambil ayat dari API',
+                    'details' => $result['error'] ?? 'Terjadi kesalahan saat mengambil ayat'
+                ]);
+            }
+
+            // Tambahkan informasi materi ke response
+            $result['materi_info'] = [
+                'IdMateri' => $idMateri,
+                'NamaMateri' => $materiAlquran['NamaSurah'] ?? '',
+                'IdSurah' => $idSurah,
+                'AyatMulai' => $ayatMulai,
+                'AyatAkhir' => $ayatAkhir,
+                'AyahStart' => $ayahStart,
+                'AyahEnd' => $ayahEnd,
+                'IsBacaQuran' => false, // Untuk penilaian semester, bukan Baca Quran
+                'TotalAyahsInSurah' => $totalAyahsInSurah
+            ];
+
+            return $this->response->setJSON([
+                'success' => true,
+                'status' => 'SUCCESS',
+                'code' => 'AYAH_FETCHED',
+                'message' => 'Ayat berhasil diambil',
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getAyahByMateri (Nilai): ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'status' => 'SYSTEM_ERROR',
+                'code' => 'INTERNAL_ERROR',
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
     }
 }

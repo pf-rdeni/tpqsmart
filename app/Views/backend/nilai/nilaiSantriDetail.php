@@ -361,6 +361,8 @@ foreach ($nilai as $DataNilai) : ?>
                 <div class="modal-body">
                     <form action="<?= base_url('backend/nilai/update') ?>" method="POST">
                         <input type="hidden" name="Id" value=<?= $DataNilai->Id ?>>
+                        <input type="hidden" id="IdMateri-<?= $DataNilai->Id ?>" value="<?= $DataNilai->IdMateri ?>">
+                        <input type="hidden" id="IdKategori-<?= $DataNilai->Id ?>" value="<?= $DataNilai->IdKategori ?? '' ?>">
                         <div class="form-group">
                             <label for="FormProfilTpq">Kategori</label>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->Kategori ?></span>
@@ -370,6 +372,51 @@ foreach ($nilai as $DataNilai) : ?>
                             <label for="FormProfilTpq">Materi</label>
                             <span class="form-control" id="FormProfilTpq"><?= $DataNilai->IdMateri . ' - ' . $DataNilai->NamaMateri ?></span>
                         </div>
+
+                        <?php
+                        // Cek apakah kategori adalah KM002 (Surah Pendek) atau KM004 (Ayat Pilihan)
+                        $isAlquranKategori = false;
+                        if (isset($DataNilai->IdKategori)) {
+                            $isAlquranKategori = ($DataNilai->IdKategori == 'KM002' || $DataNilai->IdKategori == 'KM004');
+                        } else {
+                            // Fallback: cek dari nama kategori
+                            $kategoriUpper = strtoupper($DataNilai->Kategori ?? '');
+                            $isAlquranKategori = (strpos($kategoriUpper, 'AYAT PILIHAN') !== false || strpos($kategoriUpper, 'SURAT PENDEK') !== false || strpos($kategoriUpper, 'SURAH PENDEK') !== false);
+                        }
+                        ?>
+
+                        <?php if ($isAlquranKategori): ?>
+                            <!-- Section untuk menampilkan ayat Al-Quran -->
+                            <div id="ayatApiSection-<?= $DataNilai->Id ?>" class="mt-4" style="display: none;">
+                                <div class="card">
+                                    <div class="card-header bg-primary d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <h5 class="card-title mb-0 text-white" id="ayatApiTitle-<?= $DataNilai->Id ?>">Lihat Ayat Al-Qur'an</h5>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <button type="button" class="btn btn-sm btn-light" onclick="hideAyatApiSection(<?= $DataNilai->Id ?>)" title="Tutup">
+                                                <i class="fas fa-times"></i> Tutup
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                                        <div id="ayatApiContent-<?= $DataNilai->Id ?>">
+                                            <!-- Content akan diisi oleh JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Button untuk melihat ayat -->
+                            <div class="form-group">
+                                <button type="button" class="btn btn-info btn-sm btn-lihat-ayat"
+                                    data-id-nilai="<?= $DataNilai->Id ?>"
+                                    data-id-materi="<?= htmlspecialchars($DataNilai->IdMateri, ENT_QUOTES, 'UTF-8') ?>"
+                                    data-nama-materi="<?= htmlspecialchars($DataNilai->NamaMateri, ENT_QUOTES, 'UTF-8') ?>">
+                                    <i class="fas fa-book-quran"></i> Lihat Ayat Al-Qur'an
+                                </button>
+                            </div>
+                        <?php endif; ?>
                         <?= $isAlphabetKelas = false; ?>
                         <?php
                         $alphabetSettings = getAlphabetKelasSettings($settingNilai, $DataNilai->IdKelas);
@@ -1467,5 +1514,208 @@ foreach ($nilai as $DataNilai) : ?>
             $('.nilai-input-inline:focus').blur();
         }
     });
+
+    // ==================== AYAT API FUNCTIONS ====================
+    // Global variable untuk menyimpan semua data ayat dan pagination
+    let allAyahsDataNilai = [];
+    let currentPageNilai = 1;
+    const ayahsPerPageNilai = 6;
+
+    // Event listener untuk button lihat ayat (menggunakan data attribute untuk menghindari masalah escape)
+    $(document).on('click', '.btn-lihat-ayat', function() {
+        const idNilai = $(this).data('id-nilai');
+        const idMateri = $(this).data('id-materi');
+        const namaMateri = $(this).data('nama-materi');
+        showAyatApiModal(idNilai, idMateri, namaMateri);
+    });
+
+    // Fungsi untuk menampilkan ayat dari API
+    function showAyatApiModal(idNilai, idMateri, namaMateri) {
+        // Escape namaMateri untuk mencegah XSS dan menangani tanda petik
+        const safeNamaMateri = $('<div>').text(namaMateri).html();
+        $('#ayatApiTitle-' + idNilai).text('Lihat Ayat Al-Qur\'an - ' + safeNamaMateri);
+
+        // Show loading
+        Swal.fire({
+            title: 'Memuat...',
+            text: 'Sedang mengambil ayat dari API',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // AJAX call to get ayat from API
+        $.ajax({
+            url: '<?= base_url("backend/nilai/getAyahByMateri") ?>',
+            type: 'POST',
+            data: {
+                IdMateri: idMateri
+            },
+            dataType: 'json',
+            success: function(response) {
+                Swal.close();
+
+                if (response.success && response.data) {
+                    const data = response.data;
+                    const materiInfo = data.materi_info || {};
+
+                    // Simpan semua data ayat untuk pagination
+                    allAyahsDataNilai = data.ayahs || [];
+                    currentPageNilai = 1;
+
+                    // Render content dengan pagination
+                    renderAyahsWithPaginationNilai(idNilai, data, materiInfo);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Gagal mengambil ayat dari API'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                let errorMessage = 'Terjadi kesalahan koneksi';
+
+                try {
+                    const errorResponse = JSON.parse(xhr.responseText);
+                    if (errorResponse.message) {
+                        errorMessage = errorResponse.message;
+                    }
+                } catch (e) {
+                    // Use default error message
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Koneksi',
+                    text: errorMessage + ' (' + error + ')'
+                });
+            }
+        });
+    }
+
+    // Fungsi untuk render ayat dengan pagination
+    function renderAyahsWithPaginationNilai(idNilai, data, materiInfo) {
+        const totalAyahs = allAyahsDataNilai.length;
+        const totalPages = Math.ceil(totalAyahs / ayahsPerPageNilai);
+        const startIndex = (currentPageNilai - 1) * ayahsPerPageNilai;
+        const endIndex = Math.min(startIndex + ayahsPerPageNilai, totalAyahs);
+        const currentAyahs = allAyahsDataNilai.slice(startIndex, endIndex);
+
+        let contentHtml = '';
+
+        // Table untuk menampilkan ayat
+        if (currentAyahs.length > 0) {
+            contentHtml += `
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <tbody>
+            `;
+
+            currentAyahs.forEach(function(ayah, index) {
+                const ayahNumber = ayah.ayah_number || ayah.number || '';
+                const ayahText = ayah.text || '';
+
+                // Tampilkan ayat
+                contentHtml += `
+                    <tr data-ayah-number="${ayahNumber}">
+                        <td class="text-center align-middle" style="vertical-align: middle; width: 80px;">
+                            <strong style="font-size: 18px; color: #007bff;">
+                                ${ayahNumber}
+                            </strong>
+                        </td>
+                        <td class="ayah-text-api" style="text-align: right; direction: rtl; font-family: 'Amiri', 'Traditional Arabic', 'Arial', serif; padding: 10px 15px; font-size: 18px;">
+                            ${ayahText}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            contentHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Pagination controls
+            if (totalPages > 1) {
+                contentHtml += `
+                    <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+                        <div>
+                            <span class="text-muted">
+                                Menampilkan ${startIndex + 1} - ${endIndex} dari ${totalAyahs} ayat
+                            </span>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnPrevPageNilai-${idNilai}" ${currentPageNilai === 1 ? 'disabled' : ''}>
+                                <i class="fas fa-chevron-left"></i> Sebelumnya
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                                Halaman ${currentPageNilai} dari ${totalPages}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnNextPageNilai-${idNilai}" ${currentPageNilai === totalPages ? 'disabled' : ''}>
+                                Selanjutnya <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            contentHtml += '<p class="text-center text-muted">Tidak ada ayat yang ditemukan</p>';
+        }
+
+        $('#ayatApiContent-' + idNilai).html(contentHtml);
+        $('#ayatApiSection-' + idNilai).slideDown(300);
+
+        // Setup pagination button handlers
+        setupPaginationHandlersNilai(idNilai, data, materiInfo);
+
+        // Scroll ke section ayat
+        $('html, body').animate({
+            scrollTop: $('#ayatApiSection-' + idNilai).offset().top - 100
+        }, 500);
+    }
+
+    // Fungsi untuk setup pagination handlers
+    function setupPaginationHandlersNilai(idNilai, data, materiInfo) {
+        // Remove existing handlers
+        $('#btnPrevPageNilai-' + idNilai + ', #btnNextPageNilai-' + idNilai).off('click');
+
+        // Prev page handler
+        $('#btnPrevPageNilai-' + idNilai).on('click', function() {
+            if (currentPageNilai > 1) {
+                currentPageNilai--;
+                renderAyahsWithPaginationNilai(idNilai, data, materiInfo);
+                // Scroll ke atas tabel
+                $('html, body').animate({
+                    scrollTop: $('#ayatApiContent-' + idNilai).offset().top - 100
+                }, 300);
+            }
+        });
+
+        // Next page handler
+        $('#btnNextPageNilai-' + idNilai).on('click', function() {
+            const totalPages = Math.ceil(allAyahsDataNilai.length / ayahsPerPageNilai);
+            if (currentPageNilai < totalPages) {
+                currentPageNilai++;
+                renderAyahsWithPaginationNilai(idNilai, data, materiInfo);
+                // Scroll ke atas tabel
+                $('html, body').animate({
+                    scrollTop: $('#ayatApiContent-' + idNilai).offset().top - 100
+                }, 300);
+            }
+        });
+    }
+
+    // Fungsi untuk menyembunyikan section ayat API
+    function hideAyatApiSection(idNilai) {
+        $('#ayatApiSection-' + idNilai).slideUp(300, function() {
+            $('#ayatApiContent-' + idNilai).html('');
+            allAyahsDataNilai = [];
+            currentPageNilai = 1;
+        });
+    }
 </script>
 <?= $this->endSection(); ?>
