@@ -117,20 +117,39 @@ class MateriPelajaran extends BaseController
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
 
-        $dataMateriPelajaran = $this->materiModel
-        ->select('tbl_materi_pelajaran.*, tpq.NamaTpq')
-        ->join('tbl_tpq tpq', 'tpq.IdTpq = tbl_materi_pelajaran.IdTpq', 'left')
-        ->where('tbl_materi_pelajaran.IdTpq', $IdTpq)
-        ->orWhere('tbl_materi_pelajaran.IdTpq', null)
-            ->orderBy('tbl_materi_pelajaran.IdMateri', 'ASC')
-        ->findAll();
+        // Cek apakah user adalah Admin
+        $isAdmin = in_groups('Admin');
 
-        $kategori = $this->materiModel
-            ->select('Kategori')
-            ->where('IdTpq', $IdTpq)
-            ->orWhere('IdTpq', null)
-            ->groupBy('Kategori')
-            ->findAll();
+        // Query untuk mengambil data materi pelajaran
+        $builder = $this->materiModel
+            ->select('tbl_materi_pelajaran.*, tpq.NamaTpq')
+            ->join('tbl_tpq tpq', 'tpq.IdTpq = tbl_materi_pelajaran.IdTpq', 'left')
+            ->orderBy('tbl_materi_pelajaran.IdMateri', 'ASC');
+
+        // Jika Admin, tampilkan semua materi (IdTpq = 0/null atau yang punya IdTpq)
+        // Jika Operator, hanya tampilkan materi TPQ mereka sendiri dan FKPQ (IdTpq null)
+        if ($isAdmin) {
+            // Admin bisa lihat semua materi
+            $dataMateriPelajaran = $builder->findAll();
+        } else {
+            // Operator hanya bisa lihat materi TPQ mereka sendiri dan FKPQ
+            $dataMateriPelajaran = $builder
+                ->where('tbl_materi_pelajaran.IdTpq', $IdTpq)
+                ->orWhere('tbl_materi_pelajaran.IdTpq', null)
+                ->findAll();
+        }
+
+        // Query untuk kategori
+        $kategoriBuilder = $this->materiModel->select('Kategori');
+        if ($isAdmin) {
+            $kategori = $kategoriBuilder->groupBy('Kategori')->findAll();
+        } else {
+            $kategori = $kategoriBuilder
+                ->where('IdTpq', $IdTpq)
+                ->orWhere('IdTpq', null)
+                ->groupBy('Kategori')
+                ->findAll();
+        }
         
         $data = [
             'page_title' => 'Data Materi Pelajaran',
@@ -718,12 +737,22 @@ class MateriPelajaran extends BaseController
             $namaMateri = strtoupper($surah['Surah']);
             // Tambahkan kata SURAT di depan nama surah
             $namaMateri = 'SURAT ' . $namaMateri;
-            // Jika ada Awal Ayat dan Akhir Ayat: "AL-BAQARAH 23-50"
-            // Jika tidak ada akhir ayat: "AL-BAQARAH" (hanya nama surah)
-            if (!empty($data->AyatAkhir) && $data->AyatAkhir > $data->AyatAwal) {
-                $namaMateri .= ' ' . $data->AyatAwal . '-' . $data->AyatAkhir;
+
+            // Logika penamaan berdasarkan kondisi ayat:
+            // 1. Jika AyatAwal = 1 dan AyatAkhir = 0/null/empty → hanya nama surah (tidak tulis nomor ayat)
+            // 2. Jika AyatAwal > 1 dan AyatAkhir = 0/null/empty → tulis nomor ayat awal saja (contoh: "AL-BAQARAH 255")
+            // 3. Jika AyatAwal dan AyatAkhir ada dan AyatAkhir > AyatAwal → tulis range (contoh: "AL-BAQARAH 23-50")
+            $ayatAwal = !empty($data->AyatAwal) ? (int)$data->AyatAwal : 0;
+            $ayatAkhir = !empty($data->AyatAkhir) ? (int)$data->AyatAkhir : 0;
+
+            if ($ayatAkhir > 0 && $ayatAkhir > $ayatAwal) {
+                // Kondisi 3: Ada range ayat (AyatAwal dan AyatAkhir)
+                $namaMateri .= ' ' . $ayatAwal . '-' . $ayatAkhir;
+            } elseif ($ayatAwal > 1 && $ayatAkhir <= 0) {
+                // Kondisi 2: AyatAwal > 1 dan tidak ada AyatAkhir, tulis hanya AyatAwal
+                $namaMateri .= ' ' . $ayatAwal;
             }
-            // Jika tidak ada akhir ayat atau sama dengan awal, hanya nama surah saja
+            // Kondisi 1: AyatAwal = 1 dan tidak ada AyatAkhir, tidak perlu menambahkan nomor ayat (hanya nama surah)
 
             // Ambil Nama Kategori dari tbl_kategori_materi
             $kategori = $this->kategoriMateriModel
@@ -938,9 +967,22 @@ class MateriPelajaran extends BaseController
             $namaMateri = strtoupper($surah['Surah']);
             // Tambahkan kata SURAT di depan nama surah
             $namaMateri = 'SURAT ' . $namaMateri;
-            if (!empty($data->AyatAkhir) && $data->AyatAkhir > $data->AyatAwal) {
-                $namaMateri .= ' ' . $data->AyatAwal . '-' . $data->AyatAkhir;
+
+            // Logika penamaan berdasarkan kondisi ayat:
+            // 1. Jika AyatAwal = 1 dan AyatAkhir = 0/null/empty → hanya nama surah (tidak tulis nomor ayat)
+            // 2. Jika AyatAwal > 1 dan AyatAkhir = 0/null/empty → tulis nomor ayat awal saja (contoh: "AL-BAQARAH 255")
+            // 3. Jika AyatAwal dan AyatAkhir ada dan AyatAkhir > AyatAwal → tulis range (contoh: "AL-BAQARAH 23-50")
+            $ayatAwal = !empty($data->AyatAwal) ? (int)$data->AyatAwal : 0;
+            $ayatAkhir = !empty($data->AyatAkhir) ? (int)$data->AyatAkhir : 0;
+
+            if ($ayatAkhir > 0 && $ayatAkhir > $ayatAwal) {
+                // Kondisi 3: Ada range ayat (AyatAwal dan AyatAkhir)
+                $namaMateri .= ' ' . $ayatAwal . '-' . $ayatAkhir;
+            } elseif ($ayatAwal > 1 && $ayatAkhir <= 0) {
+                // Kondisi 2: AyatAwal > 1 dan tidak ada AyatAkhir, tulis hanya AyatAwal
+                $namaMateri .= ' ' . $ayatAwal;
             }
+            // Kondisi 1: AyatAwal = 1 dan tidak ada AyatAkhir, tidak perlu menambahkan nomor ayat (hanya nama surah)
 
             // Ambil Nama Kategori
             $kategori = $this->kategoriMateriModel

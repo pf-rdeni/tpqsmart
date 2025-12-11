@@ -98,6 +98,55 @@
                 </div>
                 <!-- /.card-header -->
                 <div class="card-body">
+                    <!-- Filter Section -->
+                    <div class="row mb-3" id="filterSection">
+                        <div class="col-md-6">
+                            <label for="filterTpq">Filter TPQ:</label>
+                            <select class="form-control form-control-sm select2" id="filterTpq" multiple style="width: 100%;">
+                                <?php
+                                // Ambil daftar TPQ unik dari data materi
+                                $uniqueTpq = [];
+                                foreach ($materiPelajaran as $row) {
+                                    $tpqKey = !empty($row['IdTpq']) ? $row['IdTpq'] : 'FKPQ';
+                                    $tpqLabel = !empty($row['IdTpq']) ? "TPQ " . $row['NamaTpq'] : "FKPQ";
+                                    if (!isset($uniqueTpq[$tpqKey])) {
+                                        $uniqueTpq[$tpqKey] = $tpqLabel;
+                                    }
+                                }
+                                // Sort by label
+                                asort($uniqueTpq);
+                                foreach ($uniqueTpq as $key => $label) {
+                                    echo '<option value="' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="filterKategori">Filter Kategori:</label>
+                            <select class="form-control form-control-sm select2" id="filterKategori" multiple style="width: 100%;">
+                                <?php
+                                // Ambil daftar kategori unik dari data materi
+                                $uniqueKategori = [];
+                                foreach ($materiPelajaran as $row) {
+                                    $kategoriKey = $row['Kategori'] ?? '';
+                                    if (!empty($kategoriKey) && !isset($uniqueKategori[$kategoriKey])) {
+                                        $uniqueKategori[$kategoriKey] = $kategoriKey;
+                                    }
+                                }
+                                // Sort by kategori
+                                asort($uniqueKategori);
+                                foreach ($uniqueKategori as $kategori) {
+                                    echo '<option value="' . htmlspecialchars($kategori, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($kategori, ENT_QUOTES, 'UTF-8') . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="btnResetFilter">
+                                <i class="fas fa-times"></i> Reset Filter
+                            </button>
+                        </div>
+                    </div>
                     <table id="tblMateri" class="table table-bordered table-striped">
                         <thead>
                             <tr>
@@ -111,7 +160,8 @@
                         <tbody>
                             <?php
                             foreach ($materiPelajaran as $row): ?>
-                                <tr>
+                                <tr data-tpq="<?= !empty($row['IdTpq']) ? htmlspecialchars($row['IdTpq'], ENT_QUOTES, 'UTF-8') : 'FKPQ' ?>"
+                                    data-kategori="<?= htmlspecialchars($row['Kategori'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                     <td><?= !empty($row['IdTpq']) ? "TPQ " . $row['NamaTpq'] : "FKPQ"; ?></td>
                                     <td><?= $row['IdMateri']; ?></td>
                                     <td><?= $row['NamaMateri']; ?></td>
@@ -119,16 +169,20 @@
                                     <td>
                                         <?php
                                         // Cek apakah user adalah admin atau operator
-                                        $isAdmin = in_groups('Admin') || (empty($IdTpq) || $IdTpq == 0);
+                                        $isAdmin = in_groups('Admin');
                                         $isOperator = in_groups('Operator');
 
-                                        // Logika: Admin bisa edit semua, Operator hanya bisa edit TPQ mereka sendiri
-                                        // Materi FKPQ (IdTpq null) hanya bisa diedit oleh admin
+                                        // Ambil IdTpq dari session untuk operator
+                                        $userTpq = session()->get('IdTpq') ?? null;
+
+                                        // Logika Edit:
+                                        // Admin: bisa edit semua materi (IdTpq = 0/null atau yang punya IdTpq)
+                                        // Operator: hanya bisa edit materi yang IdTpq sama dengan IdTpq mereka sendiri
                                         $canEdit = false;
                                         if ($isAdmin) {
-                                            // Admin bisa edit semua materi
+                                            // Admin bisa edit semua materi (termasuk IdTpq = 0 atau null)
                                             $canEdit = true;
-                                        } elseif ($isOperator && !empty($row['IdTpq']) && $row['IdTpq'] == $IdTpq) {
+                                        } elseif ($isOperator && !empty($row['IdTpq']) && $row['IdTpq'] == $userTpq) {
                                             // Operator hanya bisa edit materi TPQ mereka sendiri
                                             $canEdit = true;
                                         }
@@ -143,15 +197,15 @@
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <?php
-                                        // Logika delete sama dengan edit
+                                        // Logika Delete:
+                                        // Admin: bisa hapus semua materi (IdTpq = 0/null atau yang punya IdTpq)
+                                        // Operator: tidak bisa hapus (hanya bisa edit)
                                         $canDelete = false;
                                         if ($isAdmin) {
-                                            // Admin bisa delete semua materi
-                                            $canDelete = true;
-                                        } elseif ($isOperator && !empty($row['IdTpq']) && $row['IdTpq'] == $IdTpq) {
-                                            // Operator hanya bisa delete materi TPQ mereka sendiri
+                                            // Admin bisa hapus semua materi (termasuk IdTpq = 0 atau null)
                                             $canDelete = true;
                                         }
+                                        // Operator tidak bisa hapus materi
                                         ?>
                                         <button type="button" class="btn btn-danger btn-sm"
                                             onclick="<?= $canDelete ? "confirmDelete('" . $row['Id'] . "')" : 'void(0)' ?>"
@@ -605,7 +659,7 @@
             $('#selectIdSurah').select2('destroy');
         }
     });
-    
+
     // Pastikan Select2 di-initialize setelah modal fully shown
     $('#modal-tambah-step').on('shown.bs.modal', function() {
         // Prevent click event yang menyebabkan dropdown close
@@ -780,14 +834,14 @@
                         return null;
                     }
                 });
-                
+
                 // Prevent event bubbling yang menyebabkan dropdown close
                 select.on('select2:open', function() {
                     $(this).data('select2').$dropdown.off('mousedown').on('mousedown', function(e) {
                         e.stopPropagation();
                     });
                 });
-                
+
                 console.log('Select2 surah initialized');
             }, 200);
         }
@@ -1095,7 +1149,7 @@
             const $field = $(this);
             const $stepContent = $field.closest('.step-content');
             const $formAlquran = $field.closest('#formAlquran');
-            
+
             // Cek jika field berada di step yang tidak aktif
             if ($stepContent.length > 0 && ($stepContent.css('display') === 'none' || !$stepContent.is(':visible'))) {
                 $field.removeAttr('required');
@@ -1240,7 +1294,7 @@
         loadKategoriMateriForEdit();
         loadTpqListForEdit();
     });
-    
+
     // Pastikan Select2 di-initialize setelah modal fully shown
     $('#modal-edit-step').on('shown.bs.modal', function() {
         // Prevent click event yang menyebabkan dropdown close
@@ -1356,51 +1410,51 @@
             $('#editInfoMateri').show();
             $('#editInfoNamaMateri').text(infoNamaMateri);
             $('#editInfoKategori').text(infoKategori);
-            
+
             // Tampilkan info referensi di step 2 juga (dengan pesan yang sama)
             $('#editInfoMateriStep2').show();
             // Info sudah di-set di awal function
-            
+
             // Enable kategori selection
             $('#editSelectKategoriMateri').prop('disabled', false);
             $('#editHintKategori').text('Pilih kategori materi untuk menambahkan data alquran (KM002 atau KM004)');
-            
+
             // Set kategori saat ini sebagai default (jika ada)
             if (materi.IdKategori) {
                 $('#editSelectKategoriMateri').val(materi.IdKategori);
-                
+
                 // Cek apakah kategori adalah KM002 atau KM004, atau nama kategori mengandung "AYAT PILIHAN" atau "SURAT PENDEK"
                 const kategoriNama = (materi.Kategori || '').toUpperCase();
                 const isAyatPilihan = kategoriNama.includes('AYAT PILIHAN');
                 const isSuratPendek = kategoriNama.includes('SURAT PENDEK');
                 const isAlquranKategori = materi.IdKategori === 'KM002' || materi.IdKategori === 'KM004' || isAyatPilihan || isSuratPendek;
-                
+
                 if (isAlquranKategori) {
                     // Fungsi untuk auto-select dan ke step 2
                     const autoSelectAndGoToStep2 = (selectedIdKategori) => {
                         // Set kategori di dropdown
                         $('#editSelectKategoriMateri').val(selectedIdKategori);
-                        
+
                         // Set TPQ dari materi
                         const idTpq = materi.IdTpq || '0';
                         $('#editSelectIdTpq').val(idTpq || '0');
-                        
+
                         // Load surah dan langsung ke step 2
                         loadSurahAlquranForEdit().then(() => {
                             // Set kategori
                             $('#editIdKategori').val(selectedIdKategori);
-                            
+
                             // Clear form alquran (karena belum ada data)
                             $('#editSelectIdSurah').val('');
                             $('#editNamaSurah').val('');
                             $('#editAyatAwal').val('');
                             $('#editAyatAkhir').val('');
-                            
+
                             // Parse nama materi untuk extract ayat
                             const namaMateri = materi.NamaMateri || '';
                             let ayatAwal = '';
                             let ayatAkhir = '';
-                            
+
                             // Cek pola "284-286" (range ayat) - prioritas pertama
                             const rangePattern = /(\d+)-(\d+)/;
                             const rangeMatch = namaMateri.match(rangePattern);
@@ -1421,7 +1475,7 @@
                                     ayatAkhir = '';
                                 }
                             }
-                            
+
                             // Set ayat jika sudah ada surah yang dipilih
                             if (ayatAwal) {
                                 $('#editAyatAwal').val(ayatAwal);
@@ -1429,33 +1483,33 @@
                             if (ayatAkhir) {
                                 $('#editAyatAkhir').val(ayatAkhir);
                             }
-                            
+
                             // Langsung ke step 2
                             editCurrentStep = 2;
                             updateEditStepDisplay();
                             $('#editFormAlquran').show();
                         });
                     };
-                    
+
                     // Tunggu editKategoriData ter-load dulu (jika belum)
                     if (editKategoriData && editKategoriData.length > 0) {
                         // Cari IdKategori yang sesuai
                         let selectedIdKategori = materi.IdKategori;
-                        
+
                         // Jika IdKategori bukan KM002 atau KM004, cari dari nama kategori
                         if (selectedIdKategori !== 'KM002' && selectedIdKategori !== 'KM004') {
                             // Cari kategori yang sesuai berdasarkan nama
                             const foundKategori = editKategoriData.find(k => {
                                 const namaKategori = (k.NamaKategoriMateri || '').toUpperCase();
                                 return (isAyatPilihan && namaKategori.includes('AYAT PILIHAN')) ||
-                                       (isSuratPendek && namaKategori.includes('SURAT PENDEK'));
+                                    (isSuratPendek && namaKategori.includes('SURAT PENDEK'));
                             });
-                            
+
                             if (foundKategori) {
                                 selectedIdKategori = foundKategori.IdKategoriMateri;
                             }
                         }
-                        
+
                         // Auto-select kategori dan langsung ke step 2
                         editSelectedKategori = editKategoriData.find(k => k.IdKategoriMateri === selectedIdKategori);
                         autoSelectAndGoToStep2(selectedIdKategori);
@@ -1465,26 +1519,28 @@
                             if (editKategoriData && editKategoriData.length > 0) {
                                 // Cari IdKategori yang sesuai
                                 let selectedIdKategori = materi.IdKategori;
-                                
+
                                 // Jika IdKategori bukan KM002 atau KM004, cari dari nama kategori
                                 if (selectedIdKategori !== 'KM002' && selectedIdKategori !== 'KM004') {
                                     // Cari kategori yang sesuai berdasarkan nama
                                     const foundKategori = editKategoriData.find(k => {
                                         const namaKategori = (k.NamaKategoriMateri || '').toUpperCase();
                                         return (isAyatPilihan && namaKategori.includes('AYAT PILIHAN')) ||
-                                               (isSuratPendek && namaKategori.includes('SURAT PENDEK'));
+                                            (isSuratPendek && namaKategori.includes('SURAT PENDEK'));
                                     });
-                                    
+
                                     if (foundKategori) {
                                         selectedIdKategori = foundKategori.IdKategoriMateri;
                                     }
                                 }
-                                
+
                                 editSelectedKategori = editKategoriData.find(k => k.IdKategoriMateri === selectedIdKategori);
                                 autoSelectAndGoToStep2(selectedIdKategori);
                             } else {
                                 // Jika masih belum ter-load, tetap di step 1
-                                editSelectedKategori = { IdKategoriMateri: materi.IdKategori };
+                                editSelectedKategori = {
+                                    IdKategoriMateri: materi.IdKategori
+                                };
                                 const idTpq = materi.IdTpq || '0';
                                 $('#editSelectIdTpq').val(idTpq || '0');
                                 editCurrentStep = 1;
@@ -1494,19 +1550,21 @@
                     }
                 } else {
                     // Kategori bukan KM002 atau KM004, tetap di step 1
-                    editSelectedKategori = { IdKategoriMateri: materi.IdKategori };
-                    
+                    editSelectedKategori = {
+                        IdKategoriMateri: materi.IdKategori
+                    };
+
                     // Set TPQ dari materi
                     const idTpq = materi.IdTpq || '0';
                     $('#editSelectIdTpq').val(idTpq || '0');
-                    
+
                     // Clear form alquran
                     $('#editSelectIdSurah').val('');
                     $('#editNamaSurah').val('');
                     $('#editIdKategori').val('');
                     $('#editAyatAwal').val('');
                     $('#editAyatAkhir').val('');
-                    
+
                     // Tetap di step 1, user harus pilih kategori
                     editCurrentStep = 1;
                     updateEditStepDisplay();
@@ -1516,14 +1574,14 @@
                 // Set TPQ dari materi
                 const idTpq = materi.IdTpq || '0';
                 $('#editSelectIdTpq').val(idTpq || '0');
-                
+
                 // Clear form alquran
                 $('#editSelectIdSurah').val('');
                 $('#editNamaSurah').val('');
                 $('#editIdKategori').val('');
                 $('#editAyatAwal').val('');
                 $('#editAyatAkhir').val('');
-                
+
                 // Tetap di step 1, user harus pilih kategori
                 editCurrentStep = 1;
                 updateEditStepDisplay();
@@ -1531,12 +1589,14 @@
         } else {
             // Jika sudah ada data alquran, gunakan logika lama
             $('#editInfoMateri').hide();
-            
+
             // Set kategori (disabled jika sudah ada data)
             $('#editSelectKategoriMateri').val(materiAlquran.IdKategoriMateri || materi.IdKategori);
             $('#editSelectKategoriMateri').prop('disabled', true);
             $('#editHintKategori').text('Kategori tidak dapat diubah');
-            editSelectedKategori = { IdKategoriMateri: materiAlquran.IdKategoriMateri || materi.IdKategori };
+            editSelectedKategori = {
+                IdKategoriMateri: materiAlquran.IdKategoriMateri || materi.IdKategori
+            };
 
             // Set TPQ
             const idTpq = materiAlquran.IdTpq || materi.IdTpq || '0';
@@ -1679,7 +1739,7 @@
                                 return null;
                             }
                         });
-                        
+
                         // Prevent event bubbling yang menyebabkan dropdown close
                         select.on('select2:open', function() {
                             $(this).data('select2').$dropdown.off('mousedown').on('mousedown', function(e) {
@@ -1719,16 +1779,16 @@
                         select.append(`<option value="${tpq.IdTpq}">${displayText}</option>`);
                     });
 
-                     // Set TPQ berdasarkan data yang sudah ada
-                     if (editMateriData) {
-                         // Handle jika materiAlquran null (belum ada data alquran)
-                         const idTpq = (editMateriData.materiAlquran && editMateriData.materiAlquran.IdTpq) 
-                             ? editMateriData.materiAlquran.IdTpq 
-                             : (editMateriData.materi && editMateriData.materi.IdTpq) 
-                                 ? editMateriData.materi.IdTpq 
-                                 : '0';
-                         select.val(idTpq || '0');
-                     }
+                    // Set TPQ berdasarkan data yang sudah ada
+                    if (editMateriData) {
+                        // Handle jika materiAlquran null (belum ada data alquran)
+                        const idTpq = (editMateriData.materiAlquran && editMateriData.materiAlquran.IdTpq) ?
+                            editMateriData.materiAlquran.IdTpq :
+                            (editMateriData.materi && editMateriData.materi.IdTpq) ?
+                            editMateriData.materi.IdTpq :
+                            '0';
+                        select.val(idTpq || '0');
+                    }
 
                     if (isOperator && sessionIdTpq && sessionIdTpq != 0) {
                         select.prop('disabled', true);
@@ -1794,25 +1854,25 @@
             // Show appropriate form based on kategori
             if (idKategori === 'KM002' || idKategori === 'KM004') {
                 $('#editFormAlquran').show();
-                
+
                 // Tampilkan info referensi di step 2
                 $('#editInfoMateriStep2').show();
-                
+
                 // Load surah data
                 loadSurahAlquranForEdit().then(() => {
                     // Set kategori
                     $('#editIdKategori').val(idKategori);
-                    
+
                     // Jika belum ada data alquran, parse nama materi untuk extract ayat
                     if (!editMateriData || !editMateriData.hasAlquranData) {
                         $('#editSelectIdSurah').val('');
                         $('#editNamaSurah').val('');
-                        
+
                         // Parse nama materi untuk extract ayat
                         const namaMateri = editMateriData?.materi?.NamaMateri || '';
                         let ayatAwal = '';
                         let ayatAkhir = '';
-                        
+
                         // Cek pola "284-286" (range ayat) - prioritas pertama
                         const rangePattern = /(\d+)-(\d+)/;
                         const rangeMatch = namaMateri.match(rangePattern);
@@ -1833,7 +1893,7 @@
                                 ayatAkhir = '';
                             }
                         }
-                        
+
                         // Set ayat
                         if (ayatAwal) {
                             $('#editAyatAwal').val(ayatAwal);
@@ -1872,7 +1932,7 @@
             var $stepContent = $field.closest('.step-content');
             var $formAlquran = $field.closest('#editFormAlquran');
             var shouldRemove = false;
-            
+
             // Cek jika field berada di step yang tidak aktif
             if ($stepContent.length > 0) {
                 var stepDisplay = $stepContent.css('display');
@@ -1880,7 +1940,7 @@
                     shouldRemove = true;
                 }
             }
-            
+
             // Cek jika field berada di form alquran yang hidden
             if (!shouldRemove && $formAlquran.length > 0) {
                 var formDisplay = $formAlquran.css('display');
@@ -1888,30 +1948,30 @@
                     shouldRemove = true;
                 }
             }
-            
+
             // Cek jika field sendiri hidden
             if (!shouldRemove && !$field.is(':visible')) {
                 shouldRemove = true;
             }
-            
+
             if (shouldRemove) {
                 $field.removeAttr('required');
             }
         });
-        
+
         // Ambil kategori dari dropdown atau dari field yang sudah di-set di step 2
         let idKategori = $('#editSelectKategoriMateri').val();
         if (!idKategori) {
             // Jika tidak ada di dropdown, ambil dari field yang sudah di-set di step 2
             idKategori = $('#editIdKategori').val();
         }
-        
+
         // Validasi kategori hanya jika benar-benar kosong
         if (!idKategori) {
             Swal.fire('Peringatan', 'Silakan pilih kategori materi terlebih dahulu', 'warning');
             return;
         }
-        
+
         if (idKategori === 'KM002' || idKategori === 'KM004') {
             if (!validateEditAlquranForm()) {
                 return;
@@ -2012,6 +2072,342 @@
 
     // Initialize DataTable for #tblMateri
     initializeDataTableUmum("#tblMateri", true, true);
+
+    // Get DataTable instance setelah inisialisasi
+    var table = null;
+    $(document).ready(function() {
+        // Tunggu sebentar untuk memastikan DataTable sudah terinisialisasi
+        setTimeout(function() {
+            if ($.fn.DataTable.isDataTable("#tblMateri")) {
+                table = $("#tblMateri").DataTable();
+            } else {
+                console.error('DataTable belum terinisialisasi untuk #tblMateri');
+            }
+        }, 100);
+    });
+
+    // Key untuk localStorage
+    const filterStorageKey = 'materiPelajaran_filterTpq';
+    const filterKategoriStorageKey = 'materiPelajaran_filterKategori';
+
+    // Flag untuk mencegah save saat loading
+    var isLoadingFilter = false;
+
+    // Initialize Select2 untuk filter TPQ dan Kategori
+    $(document).ready(function() {
+        // Initialize Select2 untuk filter TPQ (multiple select)
+        $('#filterTpq').select2({
+            placeholder: 'Pilih TPQ (bisa pilih beberapa)...',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false
+        });
+
+        // Initialize Select2 untuk filter Kategori (multiple select)
+        $('#filterKategori').select2({
+            placeholder: 'Pilih Kategori (bisa pilih beberapa)...',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false
+        });
+    });
+
+    // Custom filter function untuk TPQ
+    var customFilterTpqFunction = null;
+    var customFilterKategoriFunction = null;
+
+    // Fungsi untuk menerapkan filter TPQ (multiple select)
+    function applyFilterTpq(selectedValues) {
+        if (!table) {
+            console.warn('Table not initialized');
+            return;
+        }
+
+        // Hapus custom filter TPQ function yang lama jika ada
+        if (customFilterTpqFunction) {
+            const searchFunctions = $.fn.dataTable.ext.search;
+            for (let i = searchFunctions.length - 1; i >= 0; i--) {
+                if (searchFunctions[i] === customFilterTpqFunction) {
+                    searchFunctions.splice(i, 1);
+                    break;
+                }
+            }
+            customFilterTpqFunction = null;
+        }
+
+        // Jika tidak ada filter, hapus filter dan redraw
+        if (!selectedValues || selectedValues.length === 0) {
+            // Hanya redraw jika filter kategori juga tidak ada
+            const selectedKategori = $('#filterKategori').val() || [];
+            if (!selectedKategori || selectedKategori.length === 0) {
+                table.draw();
+            } else {
+                table.draw();
+            }
+            return;
+        }
+
+        // Pastikan selectedValues adalah array
+        if (!Array.isArray(selectedValues)) {
+            selectedValues = [selectedValues];
+        }
+
+        // Buat custom filter TPQ function baru
+        customFilterTpqFunction = function(settings, data, dataIndex) {
+            // Hanya terapkan filter untuk tabel ini
+            if (!settings || !settings.nTable || settings.nTable.id !== 'tblMateri') {
+                return true;
+            }
+
+            try {
+                // Dapatkan row node langsung dari DataTable
+                const row = table.row(dataIndex).node();
+                if (!row) {
+                    return true;
+                }
+
+                // Ambil data-tpq dari row
+                const rowTpq = $(row).attr('data-tpq') || '';
+
+                // Cek apakah rowTpq ada dalam array selectedValues
+                return selectedValues.indexOf(rowTpq) !== -1;
+            } catch (e) {
+                console.error('Error in custom filter TPQ:', e, 'dataIndex:', dataIndex);
+                return true;
+            }
+        };
+
+        // Tambahkan custom filter TPQ function
+        $.fn.dataTable.ext.search.push(customFilterTpqFunction);
+
+        // Redraw tabel
+        table.draw();
+    }
+
+    // Fungsi untuk menerapkan filter Kategori (multiple select)
+    function applyFilterKategori(selectedValues) {
+        // Pastikan table sudah terinisialisasi
+        if (!table && $.fn.DataTable.isDataTable("#tblMateri")) {
+            table = $("#tblMateri").DataTable();
+        }
+
+        if (!table) {
+            console.warn('Table not initialized');
+            return;
+        }
+
+        // Hapus custom filter Kategori function yang lama jika ada
+        if (customFilterKategoriFunction) {
+            const searchFunctions = $.fn.dataTable.ext.search;
+            for (let i = searchFunctions.length - 1; i >= 0; i--) {
+                if (searchFunctions[i] === customFilterKategoriFunction) {
+                    searchFunctions.splice(i, 1);
+                    break;
+                }
+            }
+            customFilterKategoriFunction = null;
+        }
+
+        // Jika tidak ada filter, hapus filter dan redraw
+        if (!selectedValues || selectedValues.length === 0) {
+            // Hanya redraw jika filter TPQ juga tidak ada
+            const selectedTpq = $('#filterTpq').val() || [];
+            if (!selectedTpq || selectedTpq.length === 0) {
+                table.draw();
+            } else {
+                table.draw();
+            }
+            return;
+        }
+
+        // Pastikan selectedValues adalah array
+        if (!Array.isArray(selectedValues)) {
+            selectedValues = [selectedValues];
+        }
+
+        // Buat custom filter Kategori function baru
+        customFilterKategoriFunction = function(settings, data, dataIndex) {
+            // Hanya terapkan filter untuk tabel ini
+            if (!settings || !settings.nTable || settings.nTable.id !== 'tblMateri') {
+                return true;
+            }
+
+            try {
+                // Dapatkan row node langsung dari DataTable
+                const row = table.row(dataIndex).node();
+                if (!row) {
+                    return true;
+                }
+
+                // Ambil data-kategori dari row (gunakan attr untuk mendapatkan nilai asli)
+                // jQuery .data() akan mengkonversi ke camelCase dan mungkin mengubah nilai
+                // Gunakan .attr() untuk mendapatkan nilai string asli
+                let rowKategori = $(row).attr('data-kategori') || '';
+
+                // Jika data-kategori kosong, ambil dari cell text (kolom Kategori adalah index 3)
+                if (!rowKategori) {
+                    const $cell = $(row).find('td').eq(3);
+                    if ($cell.length) {
+                        rowKategori = $cell.text().trim();
+                    }
+                }
+
+                // Trim untuk menghilangkan whitespace
+                const normalizedRowKategori = String(rowKategori).trim();
+
+                // Cek apakah rowKategori ada dalam array selectedValues
+                // Normalisasi setiap nilai dalam selectedValues
+                const normalizedSelectedValues = selectedValues.map(function(val) {
+                    return String(val).trim();
+                });
+
+                return normalizedSelectedValues.indexOf(normalizedRowKategori) !== -1;
+            } catch (e) {
+                console.error('Error in custom filter Kategori:', e, 'dataIndex:', dataIndex);
+                return true;
+            }
+        };
+
+        // Tambahkan custom filter Kategori function
+        $.fn.dataTable.ext.search.push(customFilterKategoriFunction);
+
+        // Redraw tabel
+        table.draw();
+    }
+
+    // Fungsi untuk menyimpan filter ke localStorage
+    function saveFilterTpq(values) {
+        try {
+            if (values && values.length > 0) {
+                localStorage.setItem(filterStorageKey, JSON.stringify(values));
+            } else {
+                localStorage.removeItem(filterStorageKey);
+            }
+        } catch (e) {
+            console.error('Error saving filter TPQ:', e);
+        }
+    }
+
+    function saveFilterKategori(values) {
+        try {
+            if (values && values.length > 0) {
+                localStorage.setItem(filterKategoriStorageKey, JSON.stringify(values));
+            } else {
+                localStorage.removeItem(filterKategoriStorageKey);
+            }
+        } catch (e) {
+            console.error('Error saving filter Kategori:', e);
+        }
+    }
+
+    // Fungsi untuk memuat filter dari localStorage
+    function loadFilters() {
+        try {
+            isLoadingFilter = true;
+
+            // Load filter TPQ
+            const savedFilterTpq = localStorage.getItem(filterStorageKey);
+            if (savedFilterTpq) {
+                try {
+                    const filterTpqArray = JSON.parse(savedFilterTpq);
+                    if (Array.isArray(filterTpqArray) && filterTpqArray.length > 0) {
+                        $('#filterTpq').val(filterTpqArray).trigger('change');
+                        applyFilterTpq(filterTpqArray);
+                    }
+                } catch (e) {
+                    // Fallback untuk format lama (string tunggal)
+                    const oldValue = savedFilterTpq;
+                    if (oldValue) {
+                        $('#filterTpq').val([oldValue]).trigger('change');
+                        applyFilterTpq([oldValue]);
+                    }
+                }
+            }
+
+            // Load filter Kategori
+            const savedFilterKategori = localStorage.getItem(filterKategoriStorageKey);
+            if (savedFilterKategori) {
+                try {
+                    const filterKategoriArray = JSON.parse(savedFilterKategori);
+                    if (Array.isArray(filterKategoriArray) && filterKategoriArray.length > 0) {
+                        $('#filterKategori').val(filterKategoriArray).trigger('change');
+                        applyFilterKategori(filterKategoriArray);
+                    }
+                } catch (e) {
+                    // Fallback untuk format lama (string tunggal)
+                    const oldValue = savedFilterKategori;
+                    if (oldValue) {
+                        $('#filterKategori').val([oldValue]).trigger('change');
+                        applyFilterKategori([oldValue]);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error loading filters:', e);
+        } finally {
+            isLoadingFilter = false;
+        }
+    }
+
+    // Event listener untuk filter TPQ
+    $('#filterTpq').on('change', function() {
+        const selectedValues = $(this).val() || [];
+        // Simpan filter ke localStorage (kecuali saat loading)
+        if (!isLoadingFilter) {
+            saveFilterTpq(selectedValues);
+        }
+        // Terapkan filter
+        applyFilterTpq(selectedValues);
+    });
+
+    // Event listener untuk filter Kategori
+    $('#filterKategori').on('change', function() {
+        const selectedValues = $(this).val() || [];
+        // Simpan filter ke localStorage (kecuali saat loading)
+        if (!isLoadingFilter) {
+            saveFilterKategori(selectedValues);
+        }
+        // Terapkan filter
+        applyFilterKategori(selectedValues);
+    });
+
+    // Load filter saat halaman dimuat
+    $(document).ready(function() {
+        // Tunggu sebentar untuk memastikan DataTable sudah terinisialisasi
+        setTimeout(function() {
+            // Pastikan table sudah terinisialisasi
+            if (!table && $.fn.DataTable.isDataTable("#tblMateri")) {
+                table = $("#tblMateri").DataTable();
+            }
+
+            loadFilters();
+            // Update DataTable setelah filter dimuat
+            if (table) {
+                table.draw();
+            }
+        }, 300);
+    });
+
+    // Fungsi untuk reset filter
+    function resetFilters() {
+        // Pastikan table sudah terinisialisasi
+        if (!table && $.fn.DataTable.isDataTable("#tblMateri")) {
+            table = $("#tblMateri").DataTable();
+        }
+
+        $('#filterTpq').val('').trigger('change');
+        $('#filterKategori').val('').trigger('change');
+        localStorage.removeItem(filterStorageKey);
+        localStorage.removeItem(filterKategoriStorageKey);
+        if (table) {
+            table.draw();
+        }
+    }
+
+    // Event listener untuk button reset filter
+    $('#btnResetFilter').on('click', function() {
+        resetFilters();
+    });
 
     // Create Delete fungsi
     function confirmDelete(id) {
