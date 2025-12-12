@@ -910,6 +910,11 @@ if (!function_exists('prayer_schedule_js')) {
                             startCountdown();
                             if (loadingEl) loadingEl.style.display = "none";
                             if (contentEl) contentEl.style.display = "block";
+                            
+                            // Update prayer notification times
+                            if (typeof window.updatePrayerNotificationTimes === "function") {
+                                window.updatePrayerNotificationTimes(prayerTimes);
+                            }
 
                             const locationText = isDefault ? `${cityName} (Default)` : cityName;
                             const newLocation = `${isDefault ? "default" : "city"}:${cityName}`;
@@ -975,6 +980,11 @@ if (!function_exists('prayer_schedule_js')) {
 
                             currentLocation = newLocation;
                             isInitialLoad = false;
+                            
+                            // Update prayer notification times
+                            if (typeof window.updatePrayerNotificationTimes === "function") {
+                                window.updatePrayerNotificationTimes(prayerTimes);
+                            }
                         } else {
                             console.warn("Gagal mengambil jadwal berdasarkan koordinat, menggunakan default " + DEFAULT_CITY);
                             showWarningNotification(`Gagal mengambil jadwal berdasarkan koordinat. Beralih ke lokasi default: ${DEFAULT_CITY}`);
@@ -1250,6 +1260,641 @@ if (!function_exists('prayer_schedule_js')) {
 
             initLocationControls();
         });
+        </script>';
+    }
+}
+
+if (!function_exists('prayer_notification_floating')) {
+    /**
+     * Render floating notification untuk waktu sholat (HTML + CSS + JavaScript)
+     * Notifikasi muncul otomatis di semua halaman
+     * 
+     * @param string $baseUrl Base URL untuk API endpoint
+     * @return string HTML, CSS, dan JavaScript untuk floating notification
+     */
+    function prayer_notification_floating($baseUrl = '')
+    {
+        if (empty($baseUrl)) {
+            $baseUrl = base_url('backend/jadwal-sholat');
+        }
+        
+        return '
+        <style>
+        .prayer-notification-floating {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            min-width: 320px;
+            max-width: 400px;
+            cursor: move;
+            display: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .prayer-notification-floating.show {
+            display: block;
+            animation: slideInDown 0.5s ease-out;
+        }
+        
+        .prayer-notification-floating.hide {
+            animation: slideOutUp 0.3s ease-in forwards;
+        }
+        
+        @keyframes slideInDown {
+            from {
+                transform: translate(-50%, -60%);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutUp {
+            from {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
+            to {
+                transform: translate(-50%, -60%);
+                opacity: 0;
+            }
+        }
+        
+        .prayer-notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .prayer-notification-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .prayer-notification-title i {
+            font-size: 1.3rem;
+        }
+        
+        .prayer-notification-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            font-size: 1.1rem;
+            padding: 0;
+        }
+        
+        .prayer-notification-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .prayer-notification-body {
+            text-align: center;
+        }
+        
+        .prayer-notification-message {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .prayer-notification-countdown {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+            font-family: "Courier New", monospace;
+        }
+        
+        .prayer-notification-prayer-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        
+        .prayer-notification-time {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        </style>
+        
+        <div id="prayerNotificationFloating" class="prayer-notification-floating">
+            <div class="prayer-notification-header">
+                <div class="prayer-notification-title">
+                    <i class="fas fa-mosque"></i>
+                    <span>Waktu Sholat</span>
+                </div>
+                <button type="button" class="prayer-notification-close" id="prayerNotificationClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="prayer-notification-body">
+                <div class="prayer-notification-message" id="prayerNotificationMessage"></div>
+                <div class="prayer-notification-countdown" id="prayerNotificationCountdown" style="display: none;"></div>
+                <div class="prayer-notification-prayer-name" id="prayerNotificationPrayerName"></div>
+                <div class="prayer-notification-time" id="prayerNotificationTime"></div>
+            </div>
+        </div>
+        
+        <script>
+        (function() {
+            // Global state untuk prayer notification
+            window.prayerNotificationState = {
+                prayerTimes: {},
+                nextPrayerTime: null,
+                nextPrayerName: null,
+                notificationShown: {
+                    10: false,
+                    5: false,
+                    2: false,
+                    1: false
+                },
+                checkInterval: null,
+                countdownInterval: null,
+                isDragging: false,
+                dragOffset: { x: 0, y: 0 },
+                currentPosition: { x: 50, y: 50 } // percentage
+            };
+            
+            const state = window.prayerNotificationState;
+            const DEFAULT_CITY = "Bintan";
+            const LOCATION_SETTING_KEY = "prayerLocationSetting";
+            const prayerOrder = ["fajr", "shurooq", "dhuhr", "asr", "maghrib", "isha"];
+            const prayerNames = {
+                "fajr": "Subuh",
+                "shurooq": "Syuruq",
+                "dhuhr": "Dzuhur",
+                "asr": "Ashar",
+                "maghrib": "Maghrib",
+                "isha": "Isya"
+            };
+            
+            // Load saved position
+            function loadSavedPosition() {
+                try {
+                    const saved = localStorage.getItem("prayerNotificationPosition");
+                    if (saved) {
+                        const pos = JSON.parse(saved);
+                        state.currentPosition = pos;
+                        updateNotificationPosition();
+                    }
+                } catch (e) {
+                    console.warn("Error loading saved position:", e);
+                }
+            }
+            
+            // Save position
+            function savePosition() {
+                try {
+                    localStorage.setItem("prayerNotificationPosition", JSON.stringify(state.currentPosition));
+                } catch (e) {
+                    console.warn("Error saving position:", e);
+                }
+            }
+            
+            // Update notification position
+            function updateNotificationPosition() {
+                const notification = document.getElementById("prayerNotificationFloating");
+                if (notification) {
+                    notification.style.left = state.currentPosition.x + "%";
+                    notification.style.top = state.currentPosition.y + "%";
+                    notification.style.transform = "translate(-50%, -50%)";
+                }
+            }
+            
+            // Parse time string to minutes
+            function parseTimeToMinutes(timeString) {
+                if (!timeString) return null;
+                const trimmed = timeString.trim().toLowerCase();
+                const hasAm = trimmed.includes("am");
+                const hasPm = trimmed.includes("pm");
+                const timeOnly = trimmed.replace(/\s*(am|pm)\s*/gi, "");
+                const parts = timeOnly.split(":");
+                if (parts.length !== 2) return null;
+                
+                let hours = parseInt(parts[0]);
+                const minutes = parseInt(parts[1]);
+                if (isNaN(hours) || isNaN(minutes)) return null;
+                
+                if (hasPm && hours !== 12) {
+                    hours += 12;
+                } else if (hasAm && hours === 12) {
+                    hours = 0;
+                }
+                
+                return hours * 60 + minutes;
+            }
+            
+            // Get current time in minutes
+            function getCurrentTimeMinutes() {
+                const now = new Date();
+                return now.getHours() * 60 + now.getMinutes();
+            }
+            
+            // Get next prayer time
+            function getNextPrayerTime() {
+                const currentMinutes = getCurrentTimeMinutes();
+                let nextPrayer = null;
+                let nextPrayerName = null;
+                let nextPrayerMinutes = null;
+                
+                for (let i = 0; i < prayerOrder.length; i++) {
+                    const prayer = prayerOrder[i];
+                    const timeStr = state.prayerTimes[prayer];
+                    if (!timeStr) continue;
+                    
+                    const prayerMinutes = parseTimeToMinutes(timeStr);
+                    if (prayerMinutes === null) continue;
+                    
+                    if (prayerMinutes > currentMinutes) {
+                        nextPrayer = prayer;
+                        nextPrayerName = prayerNames[prayer];
+                        nextPrayerMinutes = prayerMinutes;
+                        break;
+                    }
+                }
+                
+                // If no next prayer today, use tomorrow\'s fajr
+                if (!nextPrayer) {
+                    const fajrTime = state.prayerTimes["fajr"];
+                    if (fajrTime) {
+                        const fajrMinutes = parseTimeToMinutes(fajrTime);
+                        if (fajrMinutes !== null) {
+                            nextPrayer = "fajr";
+                            nextPrayerName = "Subuh";
+                            nextPrayerMinutes = fajrMinutes + (24 * 60); // Add 24 hours
+                        }
+                    }
+                }
+                
+                return {
+                    prayer: nextPrayer,
+                    name: nextPrayerName,
+                    minutes: nextPrayerMinutes,
+                    timeStr: nextPrayer ? state.prayerTimes[nextPrayer] : null
+                };
+            }
+            
+            // Format time for display
+            function formatTime24(timeString) {
+                if (!timeString) return "-";
+                const trimmed = timeString.trim().toLowerCase();
+                const hasAm = trimmed.includes("am");
+                const hasPm = trimmed.includes("pm");
+                const timeOnly = trimmed.replace(/\s*(am|pm)\s*/gi, "");
+                const parts = timeOnly.split(":");
+                if (parts.length !== 2) return timeString;
+                
+                let hours = parseInt(parts[0]);
+                const minutes = parseInt(parts[1]);
+                if (isNaN(hours) || isNaN(minutes)) return timeString;
+                
+                if (hasPm && hours !== 12) {
+                    hours += 12;
+                } else if (hasAm && hours === 12) {
+                    hours = 0;
+                }
+                
+                return String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0");
+            }
+            
+            // Show notification
+            function showNotification(minutesLeft, nextPrayer) {
+                const notification = document.getElementById("prayerNotificationFloating");
+                const messageEl = document.getElementById("prayerNotificationMessage");
+                const countdownEl = document.getElementById("prayerNotificationCountdown");
+                const prayerNameEl = document.getElementById("prayerNotificationPrayerName");
+                const timeEl = document.getElementById("prayerNotificationTime");
+                
+                if (!notification || !nextPrayer) return;
+                
+                // Update content
+                if (minutesLeft === 1) {
+                    messageEl.textContent = "Waktu sholat akan masuk dalam:";
+                    countdownEl.style.display = "block";
+                    startCountdown(nextPrayer.minutes);
+                } else {
+                    messageEl.textContent = `Waktu sholat akan masuk dalam ${minutesLeft} menit`;
+                    countdownEl.style.display = "none";
+                    if (state.countdownInterval) {
+                        clearInterval(state.countdownInterval);
+                        state.countdownInterval = null;
+                    }
+                }
+                
+                prayerNameEl.textContent = nextPrayer.name;
+                timeEl.textContent = formatTime24(nextPrayer.timeStr);
+                
+                // Show notification
+                notification.classList.remove("hide");
+                notification.classList.add("show");
+            }
+            
+            // Hide notification
+            function hideNotification() {
+                const notification = document.getElementById("prayerNotificationFloating");
+                if (notification) {
+                    notification.classList.add("hide");
+                    setTimeout(() => {
+                        notification.classList.remove("show", "hide");
+                        if (state.countdownInterval) {
+                            clearInterval(state.countdownInterval);
+                            state.countdownInterval = null;
+                        }
+                    }, 300);
+                }
+            }
+            
+            // Start countdown from 60 seconds
+            function startCountdown(targetMinutes) {
+                if (state.countdownInterval) {
+                    clearInterval(state.countdownInterval);
+                }
+                
+                const countdownEl = document.getElementById("prayerNotificationCountdown");
+                if (!countdownEl) return;
+                
+                function updateCountdown() {
+                    const now = new Date();
+                    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                    const currentSeconds = now.getSeconds();
+                    const currentTotalSeconds = currentMinutes * 60 + currentSeconds;
+                    
+                    // Calculate target time
+                    const targetHours = Math.floor(targetMinutes / 60);
+                    const targetMins = targetMinutes % 60;
+                    const targetDate = new Date();
+                    targetDate.setHours(targetHours, targetMins, 0, 0);
+                    
+                    // If target is tomorrow
+                    if (targetMinutes < currentMinutes || (targetMinutes === currentMinutes && currentSeconds > 0)) {
+                        targetDate.setDate(targetDate.getDate() + 1);
+                    }
+                    
+                    const targetTotalSeconds = Math.floor(targetDate.getTime() / 1000);
+                    const diffSeconds = targetTotalSeconds - Math.floor(now.getTime() / 1000);
+                    
+                    if (diffSeconds <= 0) {
+                        countdownEl.textContent = "00:00";
+                        // Reset notification flags and hide after prayer time passes
+                        state.notificationShown = { 10: false, 5: false, 2: false, 1: false };
+                        setTimeout(() => {
+                            hideNotification();
+                        }, 5000); // Hide after 5 seconds
+                        return;
+                    }
+                    
+                    const mins = Math.floor(diffSeconds / 60);
+                    const secs = diffSeconds % 60;
+                    countdownEl.textContent = String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
+                }
+                
+                updateCountdown();
+                state.countdownInterval = setInterval(updateCountdown, 1000);
+            }
+            
+            // Check prayer time and show notification
+            function checkPrayerTime() {
+                if (!state.prayerTimes || Object.keys(state.prayerTimes).length === 0) {
+                    return;
+                }
+                
+                const nextPrayer = getNextPrayerTime();
+                if (!nextPrayer || !nextPrayer.minutes) {
+                    return;
+                }
+                
+                const currentMinutes = getCurrentTimeMinutes();
+                const currentSeconds = new Date().getSeconds();
+                const minutesLeft = nextPrayer.minutes - currentMinutes;
+                
+                // Check for 10, 5, 2, and 1 minute notifications
+                // Use exact minute check (e.g., exactly 10 minutes left, not 10.5)
+                if (minutesLeft === 10 && currentSeconds < 30 && !state.notificationShown[10]) {
+                    state.notificationShown[10] = true;
+                    showNotification(10, nextPrayer);
+                } else if (minutesLeft === 5 && currentSeconds < 30 && !state.notificationShown[5]) {
+                    state.notificationShown[5] = true;
+                    showNotification(5, nextPrayer);
+                } else if (minutesLeft === 2 && currentSeconds < 30 && !state.notificationShown[2]) {
+                    state.notificationShown[2] = true;
+                    showNotification(2, nextPrayer);
+                } else if (minutesLeft === 1 && currentSeconds < 30 && !state.notificationShown[1]) {
+                    state.notificationShown[1] = true;
+                    showNotification(1, nextPrayer);
+                }
+                
+                // Reset flags when prayer time passes
+                if (minutesLeft < 0) {
+                    state.notificationShown = { 10: false, 5: false, 2: false, 1: false };
+                    if (state.countdownInterval) {
+                        clearInterval(state.countdownInterval);
+                        state.countdownInterval = null;
+                    }
+                }
+            }
+            
+            // Fetch prayer times
+            function fetchPrayerTimesForNotification() {
+                function loadLocationSetting() {
+                    try {
+                        const saved = localStorage.getItem(LOCATION_SETTING_KEY);
+                        if (!saved) return { mode: "gps", city: DEFAULT_CITY };
+                        const parsed = JSON.parse(saved);
+                        if (!parsed.mode) return { mode: "gps", city: DEFAULT_CITY };
+                        return { mode: parsed.mode || "gps", city: parsed.city || DEFAULT_CITY };
+                    } catch (e) {
+                        return { mode: "gps", city: DEFAULT_CITY };
+                    }
+                }
+                
+                const setting = loadLocationSetting();
+                let url = "";
+                
+                if (setting.mode === "gps") {
+                    if (!navigator.geolocation) {
+                        url = `' . $baseUrl . '/${encodeURIComponent(DEFAULT_CITY)}?format=json`;
+                    } else {
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude;
+                                const lng = position.coords.longitude;
+                                url = `' . $baseUrl . '/${lat}/${lng}?format=json`;
+                                fetch(url)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success && data.prayer_times) {
+                                            state.prayerTimes = data.prayer_times;
+                                            state.nextPrayerTime = getNextPrayerTime();
+                                            checkPrayerTime();
+                                        }
+                                    })
+                                    .catch(() => {
+                                        url = `' . $baseUrl . '/${encodeURIComponent(DEFAULT_CITY)}?format=json`;
+                                        fetch(url)
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                if (data.success && data.prayer_times) {
+                                                    state.prayerTimes = data.prayer_times;
+                                                    state.nextPrayerTime = getNextPrayerTime();
+                                                    checkPrayerTime();
+                                                }
+                                            });
+                                    });
+                            },
+                            function() {
+                                url = `' . $baseUrl . '/${encodeURIComponent(DEFAULT_CITY)}?format=json`;
+                                fetch(url)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success && data.prayer_times) {
+                                            state.prayerTimes = data.prayer_times;
+                                            state.nextPrayerTime = getNextPrayerTime();
+                                            checkPrayerTime();
+                                        }
+                                    });
+                            }
+                        );
+                        return;
+                    }
+                } else {
+                    url = `' . $baseUrl . '/${encodeURIComponent(setting.city || DEFAULT_CITY)}?format=json`;
+                }
+                
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.prayer_times) {
+                            state.prayerTimes = data.prayer_times;
+                            state.nextPrayerTime = getNextPrayerTime();
+                            checkPrayerTime();
+                        }
+                    })
+                    .catch(() => {
+                        // Fallback to default
+                        fetch(`' . $baseUrl . '/${encodeURIComponent(DEFAULT_CITY)}?format=json`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success && data.prayer_times) {
+                                    state.prayerTimes = data.prayer_times;
+                                    state.nextPrayerTime = getNextPrayerTime();
+                                    checkPrayerTime();
+                                }
+                            });
+                    });
+            }
+            
+            // Initialize drag functionality
+            function initDrag() {
+                const notification = document.getElementById("prayerNotificationFloating");
+                if (!notification) return;
+                
+                const header = notification.querySelector(".prayer-notification-header");
+                if (!header) return;
+                
+                header.addEventListener("mousedown", function(e) {
+                    if (e.target.closest(".prayer-notification-close")) return;
+                    
+                    state.isDragging = true;
+                    const rect = notification.getBoundingClientRect();
+                    state.dragOffset.x = e.clientX - rect.left - rect.width / 2;
+                    state.dragOffset.y = e.clientY - rect.top - rect.height / 2;
+                    notification.style.cursor = "grabbing";
+                });
+                
+                document.addEventListener("mousemove", function(e) {
+                    if (!state.isDragging) return;
+                    
+                    const x = (e.clientX / window.innerWidth) * 100;
+                    const y = (e.clientY / window.innerHeight) * 100;
+                    
+                    // Constrain to viewport
+                    state.currentPosition.x = Math.max(10, Math.min(90, x));
+                    state.currentPosition.y = Math.max(10, Math.min(90, y));
+                    
+                    updateNotificationPosition();
+                });
+                
+                document.addEventListener("mouseup", function() {
+                    if (state.isDragging) {
+                        state.isDragging = false;
+                        const notification = document.getElementById("prayerNotificationFloating");
+                        if (notification) {
+                            notification.style.cursor = "move";
+                            savePosition();
+                        }
+                    }
+                });
+            }
+            
+            // Close button handler
+            function initCloseButton() {
+                const closeBtn = document.getElementById("prayerNotificationClose");
+                if (closeBtn) {
+                    closeBtn.addEventListener("click", function() {
+                        hideNotification();
+                    });
+                }
+            }
+            
+            // Initialize
+            function init() {
+                loadSavedPosition();
+                initDrag();
+                initCloseButton();
+                
+                // Fetch prayer times initially
+                fetchPrayerTimesForNotification();
+                
+                // Check every 10 seconds for more accurate timing
+                state.checkInterval = setInterval(function() {
+                    checkPrayerTime();
+                }, 10000);
+                
+                // Re-fetch prayer times every hour
+                setInterval(function() {
+                    fetchPrayerTimesForNotification();
+                }, 3600000);
+            }
+            
+            // Start when DOM is ready
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", init);
+            } else {
+                init();
+            }
+            
+            // Expose function to update prayer times from widget
+            window.updatePrayerNotificationTimes = function(prayerTimes) {
+                if (prayerTimes && Object.keys(prayerTimes).length > 0) {
+                    state.prayerTimes = prayerTimes;
+                    state.nextPrayerTime = getNextPrayerTime();
+                    checkPrayerTime();
+                }
+            };
+        })();
         </script>';
     }
 }

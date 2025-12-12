@@ -19,6 +19,7 @@ $bodyClass = 'hold-transition sidebar-mini layout-fixed';
     <?= $this->include('/backend/template/js'); ?>
     <?= $this->include('/backend/template/scripts'); ?>
     <?= $this->include('/backend/template/dashboardSelector'); ?>
+    <?= prayer_notification_floating(base_url('backend/jadwal-sholat')) ?>
     <?= $this->renderSection('scripts'); ?>
 </body>
 
