@@ -43,9 +43,9 @@
                             </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Simpan</strong>
+                            <strong>Register</strong>
                             <ul class="mt-1">
-                                <li>Klik tombol <strong>"Simpan"</strong> di bagian bawah</li>
+                                <li>Klik tombol <strong>"Register"</strong> di bagian bawah</li>
                                 <li>Konfirmasi jumlah santri yang akan diproses</li>
                                 <li>Sistem akan memproses santri yang dipilih dan mengaktifkannya di kelas yang ditentukan</li>
                             </ul>
@@ -334,7 +334,7 @@
                 </table>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary" id="btnSubmit">
-                        <i class="fas fa-save"></i> Simpan (<span id="submitCount">0</span>)
+                        <i class="fas fa-save"></i> Register <span id="submitCount">0</span>
                     </button>
                 </div>
             </form>
