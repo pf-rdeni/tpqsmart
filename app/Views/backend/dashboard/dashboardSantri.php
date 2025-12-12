@@ -58,6 +58,8 @@
                             </div>
                         </div>
 
+                        <?= prayer_schedule_widget() ?>
+
                         <!-- Info Cards -->
                         <div class="row">
                             <!-- Card Nilai -->
@@ -689,4 +691,6 @@ $(document).ready(function() {
     <?php endif; ?>
 });
 </script>
+<?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>
+<?= prayer_schedule_settings_js(base_url('backend/jadwal-sholat')) ?>
 <?= $this->endSection(); ?>

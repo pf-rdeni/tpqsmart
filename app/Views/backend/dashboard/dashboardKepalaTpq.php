@@ -53,6 +53,8 @@ function render_progress_bar($persentase, $height = 25)
                             </div>
                         </div>
 
+                        <?= prayer_schedule_widget() ?>
+
                         <!-- Statistik Overview -->
                         <div class="row">
                             <div class="col-lg-3 col-6">
@@ -1183,4 +1185,6 @@ function render_progress_bar($persentase, $height = 25)
         });
     });
 </script>
+<?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>
+<?= prayer_schedule_settings_js(base_url('backend/jadwal-sholat')) ?>
 <?= $this->endSection(); ?>

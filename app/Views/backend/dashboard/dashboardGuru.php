@@ -103,6 +103,8 @@ function render_progress_bar($persentase, $height = 25)
                             </div>
                         </div>
 
+                        <?= prayer_schedule_widget() ?>
+
                         <!-- Quick Access Cards -->
                         <?php
                         // Tentukan semester saat ini berdasarkan bulan untuk Quick Access Cards
@@ -577,6 +579,14 @@ function render_progress_bar($persentase, $height = 25)
                                                                                     <div>
                                                                                         <span class="text-muted small">ID: <?= esc($santri['IdSantri']) ?></span>
                                                                                     </div>
+                                                                                    <div class="mt-2">
+                                                                                        <div class="progress" style="height: 18px;">
+                                                                                            <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                                style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+                                                                                                <?= $santri['PersentaseSudah'] ?>%
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </a>
                                                                             </td>
                                                                             <td class="text-center">
@@ -591,14 +601,6 @@ function render_progress_bar($persentase, $height = 25)
                                                                                         <span class="ml-1"><?= number_format($santri['MateriBelum']) ?> Materi</span>
                                                                                     <?php endif; ?>
                                                                                 </span>
-                                                                            </td>
-                                                                            <td class="text-center">
-                                                                                <div class="progress" style="height: 18px;">
-                                                                                    <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                        style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
-                                                                                        <?= $santri['PersentaseSudah'] ?>%
-                                                                                    </div>
-                                                                                </div>
                                                                             </td>
                                                                         </tr>
                                                                     <?php endforeach; ?>
@@ -1337,4 +1339,6 @@ function render_progress_bar($persentase, $height = 25)
         }, 200);
     });
 </script>
+<?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>
+<?= prayer_schedule_settings_js(base_url('backend/jadwal-sholat')) ?>
 <?= $this->endSection(); ?>

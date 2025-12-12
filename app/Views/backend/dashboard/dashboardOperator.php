@@ -52,6 +52,8 @@ function render_progress_bar($persentase, $height = 25)
                             </div>
                         </div>
 
+                        <?= prayer_schedule_widget() ?>
+
                         <!-- Statistik Overview -->
                         <div class="row">
                             <div class="col-lg-3 col-6">
@@ -493,8 +495,8 @@ function render_progress_bar($persentase, $height = 25)
                                                                                         $photoUrl = base_url('images/no-photo.jpg');
                                                                                     }
                                                                                     ?>
-                                                                                    <img src="<?= $photoUrl ?>" 
-                                                                                        alt="Foto <?= esc($santri['NamaSantri']) ?>" 
+                                                                                    <img src="<?= $photoUrl ?>"
+                                                                                        alt="Foto <?= esc($santri['NamaSantri']) ?>"
                                                                                         style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6; cursor: pointer;"
                                                                                         onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
                                                                                 </a>
@@ -659,8 +661,8 @@ function render_progress_bar($persentase, $height = 25)
                                                                                         $photoUrl = base_url('images/no-photo.jpg');
                                                                                     }
                                                                                     ?>
-                                                                                    <img src="<?= $photoUrl ?>" 
-                                                                                        alt="Foto <?= esc($santri['NamaSantri']) ?>" 
+                                                                                    <img src="<?= $photoUrl ?>"
+                                                                                        alt="Foto <?= esc($santri['NamaSantri']) ?>"
                                                                                         style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6; cursor: pointer;"
                                                                                         onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
                                                                                 </a>
@@ -960,4 +962,6 @@ function render_progress_bar($persentase, $height = 25)
         });
     });
 </script>
+<?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>
+<?= prayer_schedule_settings_js(base_url('backend/jadwal-sholat')) ?>
 <?= $this->endSection(); ?>
