@@ -22,14 +22,17 @@
                         <div class="row mb-4">
                             <div class="col-12">
                                 <div class="card card-primary card-outline">
-                                    <div class="card-header">
+                                    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                                         <h3 class="card-title">
                                             <i class="fas fa-mosque"></i> Jadwal Sholat Hari Ini
                                         </h3>
-                                        <div class="card-tools">
-                                            <button type="button" class="btn btn-sm btn-primary" id="refreshPrayerTimes">
-                                                <i class="fas fa-sync-alt"></i> Refresh
-                                            </button>
+                                        <div class="card-tools d-flex align-items-center flex-wrap gap-2">
+                                            <select id="locationMode" class="form-control form-control-sm mr-2" style="min-width: 150px;">
+                                                <option value="gps">Lokasi GPS</option>
+                                                <option value="default">Default (Bintan)</option>
+                                                <option value="manual">Manual (Ketik Kota)</option>
+                                            </select>
+                                            <input type="text" id="manualCity" class="form-control form-control-sm mr-2" placeholder="Ketik kota..." style="min-width: 170px; display: none;">
                                         </div>
                                     </div>
                                     <div class="card-body">
@@ -40,61 +43,150 @@
                                             <i class="fas fa-exclamation-triangle"></i> <span id="prayerScheduleErrorMsg"></span>
                                         </div>
                                         <div id="prayerScheduleContent" style="display: none;">
+                                            <style>
+                                                .prayer-card {
+                                                    border: 1px solid #e3e6f0;
+                                                    border-radius: 10px;
+                                                    padding: 12px;
+                                                    background: #f8f9fa;
+                                                    transition: all 0.2s ease;
+                                                    height: 100%;
+                                                }
+
+                                                .prayer-card.bg-success {
+                                                    background: #28a745 !important;
+                                                    color: #fff !important;
+                                                    border: none;
+                                                }
+
+                                                .prayer-card.bg-success .prayer-title {
+                                                    color: #e8f5e9 !important;
+                                                }
+
+                                                .prayer-card .prayer-icon {
+                                                    display: none;
+                                                }
+
+                                                .prayer-card.bg-success .prayer-icon {
+                                                    display: inline-block;
+                                                    margin-right: 4px;
+                                                }
+
+                                                .prayer-card.bg-warning {
+                                                    background: #ffc107 !important;
+                                                    color: #212529 !important;
+                                                    border: none;
+                                                }
+
+                                                .prayer-card.bg-warning .prayer-title {
+                                                    color: #5c4a00 !important;
+                                                }
+
+                                                .prayer-card:hover {
+                                                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+                                                    transform: translateY(-2px);
+                                                }
+
+                                                .prayer-title {
+                                                    font-size: 0.7rem;
+                                                    letter-spacing: 0.3px;
+                                                }
+                                            </style>
                                             <div class="row mb-3">
                                                 <div class="col-12 text-center">
                                                     <small class="text-muted">
-                                                        <i class="fas fa-map-marker-alt"></i> 
+                                                        <i class="fas fa-map-marker-alt"></i>
                                                         <span id="prayerLocation">Lokasi: -</span>
                                                     </small>
+                                                    <div class="mt-1 text-secondary">
+                                                        <i class="far fa-clock"></i>
+                                                        <span id="currentDateTime">-</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="row">
+                                            <div class="row align-items-stretch">
+                                                <div class="col-12 col-lg-9">
+                                                    <div class="row">
+                                                        <div class="col-4 col-md-2 mb-3 d-flex">
+                                                            <div class="prayer-card text-center prayer-time w-100" data-prayer="fajr">
+                                                                <div class="prayer-title text-muted">
+                                                                    <i class="fas fa-mosque prayer-icon"></i>Subuh
+                                                                </div>
+                                                                <div class="h5 mb-0" id="time-fajr">-</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4 col-md-2 mb-3 d-flex">
+                                                            <div class="prayer-card text-center prayer-time w-100" data-prayer="shurooq">
+                                                                <div class="prayer-title text-muted">
+                                                                    <i class="fas fa-mosque prayer-icon"></i>Syuruq
+                                                                </div>
+                                                                <div class="h5 mb-0" id="time-shurooq">-</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4 col-md-2 mb-3 d-flex">
+                                                            <div class="prayer-card text-center prayer-time w-100" data-prayer="dhuhr">
+                                                                <div class="prayer-title text-muted">
+                                                                    <i class="fas fa-mosque prayer-icon"></i>Dzuhur
+                                                                </div>
+                                                                <div class="h5 mb-0" id="time-dhuhr">-</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4 col-md-2 mb-3 d-flex">
+                                                            <div class="prayer-card text-center prayer-time w-100" data-prayer="asr">
+                                                                <div class="prayer-title text-muted">
+                                                                    <i class="fas fa-mosque prayer-icon"></i>Ashar
+                                                                </div>
+                                                                <div class="h5 mb-0" id="time-asr">-</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4 col-md-2 mb-3 d-flex">
+                                                            <div class="prayer-card text-center prayer-time w-100" data-prayer="maghrib">
+                                                                <div class="prayer-title text-muted">
+                                                                    <i class="fas fa-mosque prayer-icon"></i>Maghrib
+                                                                </div>
+                                                                <div class="h5 mb-0" id="time-maghrib">-</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4 col-md-2 mb-3 d-flex">
+                                                            <div class="prayer-card text-center prayer-time w-100" data-prayer="isha">
+                                                                <div class="prayer-title text-muted">
+                                                                    <i class="fas fa-mosque prayer-icon"></i>Isya
+                                                                </div>
+                                                                <div class="h5 mb-0" id="time-isha">-</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-md-3 mb-3 d-flex">
+                                                    <div class="prayer-card text-center w-100 bg-info text-white">
+                                                        <div class="prayer-title" id="nextPrayerName">-</div>
+                                                        <div class="h5 mb-0" id="countdown">-</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-2">
                                                 <div class="col-12">
+                                                    <small class="text-muted d-block mb-1">Jadwal Besok <span id="nextDayDate">-</span></small>
                                                     <div class="table-responsive">
-                                                        <table class="table table-bordered table-sm mb-0">
-                                                            <thead class="bg-primary">
-                                                                <tr>
-                                                                    <th class="text-center" style="width: 12%;">Subuh</th>
-                                                                    <th class="text-center" style="width: 12%;">Syuruq</th>
-                                                                    <th class="text-center" style="width: 12%;">Dzuhur</th>
-                                                                    <th class="text-center" style="width: 12%;">Ashar</th>
-                                                                    <th class="text-center" style="width: 12%;">Maghrib</th>
-                                                                    <th class="text-center" style="width: 12%;">Isya</th>
-                                                                    <th class="text-center bg-info" style="width: 28%;">
-                                                                        <i class="fas fa-clock"></i> Waktu Sholat Berikutnya
-                                                                    </th>
+                                                        <table class="table table-sm table-bordered mb-0 text-center align-middle">
+                                                            <thead class="bg-light">
+                                                                <tr class="text-muted" style="font-size: 0.5rem;">
+                                                                    <th class="py-1">Subuh</th>
+                                                                    <th class="py-1">Syuruq</th>
+                                                                    <th class="py-1">Dzuhur</th>
+                                                                    <th class="py-1">Ashar</th>
+                                                                    <th class="py-1">Maghrib</th>
+                                                                    <th class="py-1">Isya</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
-                                                                <tr>
-                                                                    <td class="text-center prayer-time" data-prayer="fajr">
-                                                                        <strong id="time-fajr">-</strong>
-                                                                    </td>
-                                                                    <td class="text-center prayer-time" data-prayer="shurooq">
-                                                                        <strong id="time-shurooq">-</strong>
-                                                                    </td>
-                                                                    <td class="text-center prayer-time" data-prayer="dhuhr">
-                                                                        <strong id="time-dhuhr">-</strong>
-                                                                    </td>
-                                                                    <td class="text-center prayer-time" data-prayer="asr">
-                                                                        <strong id="time-asr">-</strong>
-                                                                    </td>
-                                                                    <td class="text-center prayer-time" data-prayer="maghrib">
-                                                                        <strong id="time-maghrib">-</strong>
-                                                                    </td>
-                                                                    <td class="text-center prayer-time" data-prayer="isha">
-                                                                        <strong id="time-isha">-</strong>
-                                                                    </td>
-                                                                    <td class="text-center bg-info">
-                                                                        <div id="nextPrayerInfo">
-                                                                            <div class="mb-1">
-                                                                                <strong id="nextPrayerName">-</strong>
-                                                                            </div>
-                                                                            <div class="countdown-timer">
-                                                                                <span id="countdown" class="h4 font-weight-bold">-</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </td>
+                                                                <tr class="small font-weight-bold">
+                                                                    <td class="py-1" id="nextday-time-fajr">-</td>
+                                                                    <td class="py-1" id="nextday-time-shurooq">-</td>
+                                                                    <td class="py-1" id="nextday-time-dhuhr">-</td>
+                                                                    <td class="py-1" id="nextday-time-asr">-</td>
+                                                                    <td class="py-1" id="nextday-time-maghrib">-</td>
+                                                                    <td class="py-1" id="nextday-time-isha">-</td>
                                                                 </tr>
                                                             </tbody>
                                                         </table>
@@ -1786,6 +1878,13 @@
         let currentPrayerIndex = -1;
         let nextPrayerIndex = -1;
         let countdownInterval = null;
+        let nextPrayerTimeStr = null;
+        let nextIsTomorrow = false;
+        let clockInterval = null;
+        let nextDayPrayerTimes = {};
+        let lastLocationSetting = null;
+        const DEFAULT_CITY = 'Bintan';
+        const LOCATION_SETTING_KEY = 'prayerLocationSetting';
 
         // Prayer order
         const prayerOrder = ['fajr', 'shurooq', 'dhuhr', 'asr', 'maghrib', 'isha'];
@@ -1807,10 +1906,10 @@
 
             // Update location display
             if (isDefault) {
-                document.getElementById('prayerLocation').textContent = 
+                document.getElementById('prayerLocation').textContent =
                     `Lokasi: ${cityName} (Default)`;
             } else {
-                document.getElementById('prayerLocation').textContent = 
+                document.getElementById('prayerLocation').textContent =
                     `Lokasi: ${cityName}`;
             }
 
@@ -1822,6 +1921,11 @@
                         prayerTimes = data.prayer_times;
                         displayPrayerTimes();
                         updateCurrentAndNextPrayer();
+                        fetchNextDayPrayerTimes({
+                            mode: 'city',
+                            city: cityName,
+                            isDefault
+                        });
                         startCountdown();
                         loadingEl.style.display = 'none';
                         contentEl.style.display = 'block';
@@ -1839,6 +1943,122 @@
                 });
         }
 
+        function loadLocationSetting() {
+            try {
+                const saved = localStorage.getItem(LOCATION_SETTING_KEY);
+                if (!saved) return {
+                    mode: 'gps',
+                    city: DEFAULT_CITY
+                };
+                const parsed = JSON.parse(saved);
+                if (!parsed.mode) return {
+                    mode: 'gps',
+                    city: DEFAULT_CITY
+                };
+                return {
+                    mode: parsed.mode || 'gps',
+                    city: parsed.city || DEFAULT_CITY
+                };
+            } catch (e) {
+                return {
+                    mode: 'gps',
+                    city: DEFAULT_CITY
+                };
+            }
+        }
+
+        function saveLocationSetting(setting) {
+            lastLocationSetting = setting;
+            localStorage.setItem(LOCATION_SETTING_KEY, JSON.stringify(setting));
+        }
+
+        function toggleManualInputVisibility(mode) {
+            const manualInput = document.getElementById('manualCity');
+            if (mode === 'manual') {
+                manualInput.style.display = 'block';
+                manualInput.focus();
+            } else {
+                manualInput.style.display = 'none';
+            }
+        }
+
+        function setLoadingState() {
+            const loadingEl = document.getElementById('prayerScheduleLoading');
+            const errorEl = document.getElementById('prayerScheduleError');
+            const contentEl = document.getElementById('prayerScheduleContent');
+            loadingEl.style.display = 'block';
+            errorEl.style.display = 'none';
+            contentEl.style.display = 'none';
+        }
+
+        function refreshPrayerTimesByMode() {
+            const modeEl = document.getElementById('locationMode');
+            const manualInput = document.getElementById('manualCity');
+            const mode = modeEl ? modeEl.value : 'gps';
+            const manualCity = manualInput ? manualInput.value.trim() : '';
+
+            setLoadingState();
+
+            if (mode === 'gps') {
+                saveLocationSetting({
+                    mode: 'gps',
+                    city: DEFAULT_CITY
+                });
+                getPrayerTimes();
+                return;
+            }
+
+            if (mode === 'default') {
+                saveLocationSetting({
+                    mode: 'default',
+                    city: DEFAULT_CITY
+                });
+                fetchPrayerTimesByCity(DEFAULT_CITY, true);
+                return;
+            }
+
+            // manual
+            const targetCity = manualCity || DEFAULT_CITY;
+            saveLocationSetting({
+                mode: 'manual',
+                city: targetCity
+            });
+            fetchPrayerTimesByCity(targetCity, false);
+        }
+
+        function initLocationControls() {
+            const modeEl = document.getElementById('locationMode');
+            const manualInput = document.getElementById('manualCity');
+            const saved = loadLocationSetting();
+            lastLocationSetting = saved;
+
+            if (modeEl) modeEl.value = saved.mode;
+            if (manualInput) manualInput.value = saved.city || '';
+            toggleManualInputVisibility(saved.mode);
+
+            if (modeEl) {
+                modeEl.addEventListener('change', function() {
+                    toggleManualInputVisibility(this.value);
+                });
+            }
+
+            const refreshBtn = document.getElementById('refreshPrayerTimes');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                    }
+                    if (clockInterval) {
+                        clearInterval(clockInterval);
+                    }
+                    refreshPrayerTimesByMode();
+                });
+            }
+
+            // Jalankan awal sesuai setting terakhir
+            refreshPrayerTimesByMode();
+        }
+
         // Fetch prayer times by coordinates
         function fetchPrayerTimesByCoordinate(lat, lng) {
             const loadingEl = document.getElementById('prayerScheduleLoading');
@@ -1847,7 +2067,7 @@
             const contentEl = document.getElementById('prayerScheduleContent');
 
             // Update location display
-            document.getElementById('prayerLocation').textContent = 
+            document.getElementById('prayerLocation').textContent =
                 `Lokasi: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 
             // Fetch prayer times
@@ -1858,19 +2078,25 @@
                         prayerTimes = data.prayer_times;
                         displayPrayerTimes();
                         updateCurrentAndNextPrayer();
+                        fetchNextDayPrayerTimes({
+                            mode: 'coordinate',
+                            lat,
+                            lng,
+                            isDefault: false
+                        });
                         startCountdown();
                         loadingEl.style.display = 'none';
                         contentEl.style.display = 'block';
                     } else {
-                        // If coordinate fetch fails, fallback to Bintan
-                        console.warn('Gagal mengambil jadwal berdasarkan koordinat, menggunakan default Bintan');
-                        fetchPrayerTimesByCity('Bintan', true);
+                        // If coordinate fetch fails, fallback to default city
+                        console.warn('Gagal mengambil jadwal berdasarkan koordinat, menggunakan default ' + DEFAULT_CITY);
+                        fetchPrayerTimesByCity(DEFAULT_CITY, true);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     // Fallback to Bintan on error
-                    fetchPrayerTimesByCity('Bintan', true);
+                    fetchPrayerTimesByCity(DEFAULT_CITY, true);
                 });
         }
 
@@ -1885,18 +2111,15 @@
             errorEl.style.display = 'none';
             contentEl.style.display = 'none';
 
-            // Default location: Kabupaten Bintan
-            const defaultCity = 'Bintan';
-
             if (!navigator.geolocation) {
                 // Geolocation not supported, use default city
-                console.warn('Geolocation tidak didukung, menggunakan default: ' + defaultCity);
+                console.warn('Geolocation tidak didukung, menggunakan default: ' + DEFAULT_CITY);
                 const errorEl = document.getElementById('prayerScheduleError');
                 const errorMsgEl = document.getElementById('prayerScheduleErrorMsg');
                 errorEl.className = 'alert alert-info';
                 errorEl.style.display = 'block';
-                errorMsgEl.innerHTML = '<i class="fas fa-info-circle"></i> Geolocation tidak didukung oleh browser. Menggunakan lokasi default: ' + defaultCity;
-                fetchPrayerTimesByCity(defaultCity, true);
+                errorMsgEl.innerHTML = '<i class="fas fa-info-circle"></i> Geolocation tidak didukung oleh browser. Menggunakan lokasi default: ' + DEFAULT_CITY;
+                fetchPrayerTimesByCity(DEFAULT_CITY, true);
                 return;
             }
 
@@ -1908,20 +2131,20 @@
                 },
                 function(error) {
                     // GPS error, use default city (Bintan)
-                    console.warn('Tidak dapat mengakses lokasi GPS, menggunakan default: ' + defaultCity);
+                    console.warn('Tidak dapat mengakses lokasi GPS, menggunakan default: ' + DEFAULT_CITY);
                     let errorMessage = '';
-                    switch(error.code) {
+                    switch (error.code) {
                         case error.PERMISSION_DENIED:
-                            errorMessage = 'Akses lokasi ditolak. Menggunakan lokasi default: ' + defaultCity;
+                            errorMessage = 'Akses lokasi ditolak. Menggunakan lokasi default: ' + DEFAULT_CITY;
                             break;
                         case error.POSITION_UNAVAILABLE:
-                            errorMessage = 'Informasi lokasi tidak tersedia. Menggunakan lokasi default: ' + defaultCity;
+                            errorMessage = 'Informasi lokasi tidak tersedia. Menggunakan lokasi default: ' + DEFAULT_CITY;
                             break;
                         case error.TIMEOUT:
-                            errorMessage = 'Waktu permintaan lokasi habis. Menggunakan lokasi default: ' + defaultCity;
+                            errorMessage = 'Waktu permintaan lokasi habis. Menggunakan lokasi default: ' + DEFAULT_CITY;
                             break;
                         default:
-                            errorMessage = 'Error tidak diketahui. Menggunakan lokasi default: ' + defaultCity;
+                            errorMessage = 'Error tidak diketahui. Menggunakan lokasi default: ' + DEFAULT_CITY;
                             break;
                     }
                     // Show info message but still load prayer times with default location
@@ -1930,11 +2153,10 @@
                     errorEl.className = 'alert alert-info';
                     errorEl.style.display = 'block';
                     errorMsgEl.innerHTML = '<i class="fas fa-info-circle"></i> ' + errorMessage;
-                    
+
                     // Fetch with default city
-                    fetchPrayerTimesByCity(defaultCity, true);
-                },
-                {
+                    fetchPrayerTimesByCity(DEFAULT_CITY, true);
+                }, {
                     enableHighAccuracy: true,
                     timeout: 10000,
                     maximumAge: 0
@@ -1958,19 +2180,131 @@
             prayerOrder.forEach(prayer => {
                 const timeEl = document.getElementById(`time-${prayer}`);
                 if (timeEl && prayerTimes[prayer]) {
-                    timeEl.textContent = prayerTimes[prayer];
+                    timeEl.textContent = formatTime24(prayerTimes[prayer]);
                 }
             });
         }
 
+        function displayNextDayPrayerTimes() {
+            prayerOrder.forEach(prayer => {
+                const el = document.getElementById(`nextday-time-${prayer}`);
+                if (el && nextDayPrayerTimes[prayer]) {
+                    el.textContent = formatTime24(nextDayPrayerTimes[prayer]);
+                } else if (el) {
+                    el.textContent = '-';
+                }
+            });
+        }
+
+        function formatTime24(timeString) {
+            const parsed = parseTime(timeString);
+            if (!parsed) return timeString || '-';
+            const hh = parsed.hours.toString().padStart(2, '0');
+            const mm = parsed.minutes.toString().padStart(2, '0');
+            return `${hh}:${mm}`;
+        }
+
+        function getTomorrowDates() {
+            const t = new Date();
+            t.setDate(t.getDate() + 1);
+            const y = t.getFullYear();
+            const m = String(t.getMonth() + 1).padStart(2, '0');
+            const d = String(t.getDate()).padStart(2, '0');
+            const iso = `${y}-${m}-${d}`; // for API
+            const display = t.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            return {
+                iso,
+                display
+            };
+        }
+
+        function fetchNextDayPrayerTimes(params) {
+            const {
+                mode,
+                city,
+                lat,
+                lng,
+                isDefault
+            } = params;
+            const {
+                iso,
+                display
+            } = getTomorrowDates();
+            const nextDayDateEl = document.getElementById('nextDayDate');
+            if (nextDayDateEl) {
+                nextDayDateEl.textContent = display;
+            }
+            let url = '';
+            if (mode === 'city') {
+                url = `<?= base_url('backend/jadwal-sholat') ?>/${encodeURIComponent(city)}?format=json&date=${iso}`;
+            } else {
+                url = `<?= base_url('backend/jadwal-sholat') ?>/${lat}/${lng}?format=json&date=${iso}`;
+            }
+
+            fetch(url)
+                .then(resp => resp.json())
+                .then(data => {
+                    if (data.success && data.prayer_times) {
+                        nextDayPrayerTimes = data.prayer_times;
+                        displayNextDayPrayerTimes();
+                    } else if (isDefault) {
+                        // fallback already default, keep previous display
+                        displayNextDayPrayerTimes();
+                    } else {
+                        // if city/coord fail, try default city for next day
+                        fetchNextDayPrayerTimes({
+                            mode: 'city',
+                            city: DEFAULT_CITY,
+                            isDefault: true
+                        });
+                    }
+                })
+                .catch(() => {
+                    if (!isDefault) {
+                        fetchNextDayPrayerTimes({
+                            mode: 'city',
+                            city: DEFAULT_CITY,
+                            isDefault: true
+                        });
+                    }
+                });
+        }
+
         function parseTime(timeString) {
             if (!timeString) return null;
-            const parts = timeString.split(':');
+
+            // Handle 12-hour format with AM/PM
+            const trimmed = timeString.trim().toLowerCase();
+            const hasAm = trimmed.includes('am');
+            const hasPm = trimmed.includes('pm');
+
+            // Remove AM/PM from string for parsing
+            const timeOnly = trimmed.replace(/\s*(am|pm)\s*/gi, '');
+            const parts = timeOnly.split(':');
             if (parts.length !== 2) return null;
-            const hours = parseInt(parts[0]);
+
+            let hours = parseInt(parts[0]);
             const minutes = parseInt(parts[1]);
             if (isNaN(hours) || isNaN(minutes)) return null;
-            return { hours, minutes };
+
+            // Convert to 24-hour format
+            if (hasPm && hours !== 12) {
+                hours += 12; // PM: add 12 hours (except 12 PM which stays 12)
+            } else if (hasAm && hours === 12) {
+                hours = 0; // 12 AM becomes 00:00
+            }
+            // If no AM/PM specified, assume 24-hour format
+
+            const result = {
+                hours,
+                minutes
+            };
+            return result;
         }
 
         function getCurrentTime() {
@@ -2003,7 +2337,7 @@
             // Find the most recent prayer that has passed (current prayer window)
             // and the next upcoming prayer
             let lastPassedIndex = -1;
-            
+
             for (let i = 0; i < prayerOrder.length; i++) {
                 const prayer = prayerOrder[i];
                 const timeStr = prayerTimes[prayer];
@@ -2014,8 +2348,9 @@
 
                 const prayerTotalMinutes = timeToMinutes(prayerTime);
                 const prayerEl = document.querySelector(`[data-prayer="${prayer}"]`);
+                const hasPassed = prayerTotalMinutes <= currentTotalMinutes;
 
-                if (prayerTotalMinutes <= currentTotalMinutes) {
+                if (hasPassed) {
                     // This prayer has passed
                     lastPassedIndex = i;
                 } else {
@@ -2029,20 +2364,13 @@
                 }
             }
 
-            // Set current prayer (the most recent one that passed, if within reasonable time)
+            // Set current prayer as the last passed prayer (aktif sampai masuk waktu berikutnya)
             if (lastPassedIndex >= 0) {
                 const lastPrayer = prayerOrder[lastPassedIndex];
-                const lastPrayerTime = parseTime(prayerTimes[lastPrayer]);
-                const lastPrayerTotalMinutes = timeToMinutes(lastPrayerTime);
-                const minutesSince = currentTotalMinutes - lastPrayerTotalMinutes;
-                
-                // Consider it current if within 2 hours (120 minutes) after prayer time
-                if (minutesSince <= 120) {
-                    currentPrayerIndex = lastPassedIndex;
-                    const prayerEl = document.querySelector(`[data-prayer="${lastPrayer}"]`);
-                    if (prayerEl) {
-                        prayerEl.classList.add('bg-success', 'text-white', 'font-weight-bold');
-                    }
+                currentPrayerIndex = lastPassedIndex;
+                const prayerEl = document.querySelector(`[data-prayer="${lastPrayer}"]`);
+                if (prayerEl) {
+                    prayerEl.classList.add('bg-success', 'text-white', 'font-weight-bold');
                 }
             }
 
@@ -2061,77 +2389,58 @@
         }
 
         function updateNextPrayerInfo() {
+            if (nextPrayerIndex < 0) {
+                nextPrayerIndex = 0;
+            }
+
             const nextPrayer = prayerOrder[nextPrayerIndex];
             const nextPrayerName = prayerNames[nextPrayer] || nextPrayer;
             const nextPrayerTime = prayerTimes[nextPrayer];
 
-            document.getElementById('nextPrayerName').textContent = nextPrayerName;
+            document.getElementById('nextPrayerName').textContent = 'Waktu Berikutnya: ' + nextPrayerName || '-';
 
             // Check if next prayer is tomorrow's fajr
             const now = getCurrentTime();
             const lastPrayer = prayerOrder[prayerOrder.length - 1]; // Isya
             const lastPrayerTime = parseTime(prayerTimes[lastPrayer]);
-            const isTomorrow = nextPrayerIndex === 0 && lastPrayerTime && 
-                              now.totalMinutes > timeToMinutes(lastPrayerTime);
+            nextIsTomorrow = nextPrayerIndex === 0 && lastPrayerTime &&
+                now.totalMinutes > timeToMinutes(lastPrayerTime);
+            nextPrayerTimeStr = nextPrayerTime;
 
-            updateCountdown(nextPrayerTime, isTomorrow);
+            updateCountdown(nextPrayerTime, nextIsTomorrow);
         }
 
         function updateCountdown(nextPrayerTimeStr, isTomorrow = false) {
-            if (!nextPrayerTimeStr) {
-                document.getElementById('countdown').textContent = '-';
+            const countdownEl = document.getElementById('countdown');
+            if (!nextPrayerTimeStr || !countdownEl) {
+                if (countdownEl) countdownEl.textContent = '-';
                 return;
             }
 
             const nextPrayerTime = parseTime(nextPrayerTimeStr);
             if (!nextPrayerTime) {
-                document.getElementById('countdown').textContent = '-';
+                countdownEl.textContent = '-';
                 return;
             }
 
-            const now = getCurrentTime();
-            let targetHours = nextPrayerTime.hours;
-            let targetMinutes = nextPrayerTime.minutes;
-
-            if (isTomorrow) {
-                // Add 24 hours (1440 minutes)
-                const targetTotalMinutes = (targetHours * 60 + targetMinutes) + 1440;
-                const currentTotalMinutes = now.hours * 60 + now.minutes;
-                let diffMinutes = targetTotalMinutes - currentTotalMinutes;
-
-                if (diffMinutes < 0) {
-                    diffMinutes = 0;
-                }
-
-                const hours = Math.floor(diffMinutes / 60);
-                const minutes = diffMinutes % 60;
-
-                const countdownEl = document.getElementById('countdown');
-                if (hours > 0) {
-                    countdownEl.textContent = `${hours} jam ${minutes} menit`;
-                } else {
-                    countdownEl.textContent = `${minutes} menit`;
-                }
-            } else {
-                // Today's prayer
-                const targetTotalMinutes = targetHours * 60 + targetMinutes;
-                const currentTotalMinutes = now.hours * 60 + now.minutes;
-                let diffMinutes = targetTotalMinutes - currentTotalMinutes;
-
-                if (diffMinutes < 0) {
-                    diffMinutes = 0;
-                }
-
-                const hours = Math.floor(diffMinutes / 60);
-                const minutes = diffMinutes % 60;
-
-                const countdownEl = document.getElementById('countdown');
-                if (hours > 0) {
-                    countdownEl.textContent = `${hours} jam ${minutes} menit`;
-                } else {
-                    countdownEl.textContent = `${minutes} menit`;
-                }
+            const now = new Date();
+            const target = new Date();
+            target.setHours(nextPrayerTime.hours, nextPrayerTime.minutes, 0, 0);
+            if (isTomorrow || target.getTime() <= now.getTime()) {
+                target.setDate(target.getDate() + 1); // roll to next day
             }
+
+            let diffSeconds = Math.floor((target.getTime() - now.getTime()) / 1000);
+            if (diffSeconds < 0) diffSeconds = 0;
+
+            const hours = Math.floor(diffSeconds / 3600);
+            const minutes = Math.floor((diffSeconds % 3600) / 60);
+            const seconds = diffSeconds % 60;
+
+            const hh = String(hours).padStart(2, '0');
+            const mm = String(minutes).padStart(2, '0');
+            const ss = String(seconds).padStart(2, '0');
+            countdownEl.textContent = `${hh}:${mm}:${ss}`;
         }
 
         function startCountdown() {
@@ -2139,26 +2448,48 @@
             if (countdownInterval) {
                 clearInterval(countdownInterval);
             }
+            if (clockInterval) {
+                clearInterval(clockInterval);
+            }
 
             // Update immediately
             updateCurrentAndNextPrayer();
+            updateCurrentDateTime();
 
-            // Update every minute
+            // Update countdown every second
             countdownInterval = setInterval(function() {
                 updateCurrentAndNextPrayer();
-            }, 60000); // Every 60 seconds
+            }, 1000); // Every second
+
+            // Update current time display every second
+            clockInterval = setInterval(function() {
+                updateCurrentDateTime();
+            }, 1000);
         }
 
-        // Refresh button
-        document.getElementById('refreshPrayerTimes').addEventListener('click', function() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
+        function updateCurrentDateTime() {
+            const now = new Date();
+            const optionsDate = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            const optionsTime = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const dateStr = now.toLocaleDateString('id-ID', optionsDate);
+            const timeStr = now.toLocaleTimeString('id-ID', optionsTime);
+            const el = document.getElementById('currentDateTime');
+            if (el) {
+                el.textContent = `${dateStr} | ${timeStr}`;
             }
-            getPrayerTimes();
-        });
+        }
 
-        // Initialize on page load
-        getPrayerTimes();
+        // Initialize on page load dengan setting lokasi tersimpan
+        initLocationControls();
     });
 </script>
 <?= $this->endSection(); ?>
