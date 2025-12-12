@@ -22,17 +22,14 @@
                         <div class="row mb-4">
                             <div class="col-12">
                                 <div class="card card-primary card-outline">
-                                    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                    <div class="card-header">
                                         <h3 class="card-title">
                                             <i class="fas fa-mosque"></i> Jadwal Sholat Hari Ini
                                         </h3>
-                                        <div class="card-tools d-flex align-items-center flex-wrap gap-2">
-                                            <select id="locationMode" class="form-control form-control-sm mr-2" style="min-width: 150px;">
-                                                <option value="gps">Lokasi GPS</option>
-                                                <option value="default">Default (Bintan)</option>
-                                                <option value="manual">Manual (Ketik Kota)</option>
-                                            </select>
-                                            <input type="text" id="manualCity" class="form-control form-control-sm mr-2" placeholder="Ketik kota..." style="min-width: 170px; display: none;">
+                                        <div class="card-tools">
+                                            <button type="button" id="openLocationSettings" class="btn btn-tool" title="Pengaturan Lokasi">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="card-body">
@@ -43,55 +40,7 @@
                                             <i class="fas fa-exclamation-triangle"></i> <span id="prayerScheduleErrorMsg"></span>
                                         </div>
                                         <div id="prayerScheduleContent" style="display: none;">
-                                            <style>
-                                                .prayer-card {
-                                                    border: 1px solid #e3e6f0;
-                                                    border-radius: 10px;
-                                                    padding: 12px;
-                                                    background: #f8f9fa;
-                                                    transition: all 0.2s ease;
-                                                    height: 100%;
-                                                }
-
-                                                .prayer-card.bg-success {
-                                                    background: #28a745 !important;
-                                                    color: #fff !important;
-                                                    border: none;
-                                                }
-
-                                                .prayer-card.bg-success .prayer-title {
-                                                    color: #e8f5e9 !important;
-                                                }
-
-                                                .prayer-card .prayer-icon {
-                                                    display: none;
-                                                }
-
-                                                .prayer-card.bg-success .prayer-icon {
-                                                    display: inline-block;
-                                                    margin-right: 4px;
-                                                }
-
-                                                .prayer-card.bg-warning {
-                                                    background: #ffc107 !important;
-                                                    color: #212529 !important;
-                                                    border: none;
-                                                }
-
-                                                .prayer-card.bg-warning .prayer-title {
-                                                    color: #5c4a00 !important;
-                                                }
-
-                                                .prayer-card:hover {
-                                                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-                                                    transform: translateY(-2px);
-                                                }
-
-                                                .prayer-title {
-                                                    font-size: 0.7rem;
-                                                    letter-spacing: 0.3px;
-                                                }
-                                            </style>
+                                            <?= prayer_schedule_css() ?>
                                             <div class="row mb-3">
                                                 <div class="col-12 text-center">
                                                     <small class="text-muted">
@@ -198,6 +147,8 @@
                                 </div>
                             </div>
                         </div>
+
+                        <?= prayer_schedule_modal() ?>
 
                         <!-- Welcome Message -->
                         <div class="row mb-4">
@@ -1883,8 +1834,26 @@
         let clockInterval = null;
         let nextDayPrayerTimes = {};
         let lastLocationSetting = null;
+        let manualInputTimeout = null;
+        let citySuggestionsTimeout = null;
+        let currentSuggestionIndex = -1;
+        let currentLocation = null; // Track current location untuk detect perubahan
+        let isInitialLoad = true; // Flag untuk initial load
         const DEFAULT_CITY = 'Bintan';
         const LOCATION_SETTING_KEY = 'prayerLocationSetting';
+        const LOCATION_CONTROLS_VISIBLE_KEY = 'prayerLocationControlsVisible';
+
+        // List kota populer untuk autocomplete
+        const popularCities = [
+            'Jakarta', 'Bandung', 'Surabaya', 'Medan', 'Semarang', 'Makassar', 'Palembang',
+            'Depok', 'Tangerang', 'Bekasi', 'Yogyakarta', 'Malang', 'Surakarta', 'Bogor',
+            'Batam', 'Pekanbaru', 'Padang', 'Denpasar', 'Banjarmasin', 'Pontianak', 'Bintan',
+            'Tanjung Pinang', 'Jakarta Selatan', 'Jakarta Utara', 'Jakarta Timur', 'Jakarta Barat',
+            'Jakarta Pusat', 'Bandung Barat', 'Surabaya Utara', 'Surabaya Selatan', 'Medan Selayang',
+            'Semarang Tengah', 'Makassar Utara', 'Palembang Ilir', 'Depok Timur', 'Tangerang Selatan',
+            'Bekasi Timur', 'Yogyakarta Utara', 'Malang Utara', 'Bogor Selatan', 'Batam Center',
+            'Pekanbaru Barat', 'Padang Barat', 'Denpasar Selatan', 'Banjarmasin Utara', 'Pontianak Utara'
+        ];
 
         // Prayer order
         const prayerOrder = ['fajr', 'shurooq', 'dhuhr', 'asr', 'maghrib', 'isha'];
@@ -1929,17 +1898,44 @@
                         startCountdown();
                         loadingEl.style.display = 'none';
                         contentEl.style.display = 'block';
+
+                        // Show success notification hanya jika lokasi berubah (bukan initial load)
+                        const locationText = isDefault ? `${cityName} (Default)` : cityName;
+                        const newLocation = `${isDefault ? 'default' : 'city'}:${cityName}`;
+
+                        if (!isInitialLoad && currentLocation !== newLocation) {
+                            showSuccessNotification(`Jadwal sholat untuk ${locationText} berhasil diperbarui`);
+                        }
+
+                        // Update current location
+                        currentLocation = newLocation;
+                        isInitialLoad = false;
+
                         // Keep info message visible if it's default location
                         if (isDefault && errorEl.style.display === 'block') {
                             // Info message already shown, keep it visible
                         }
                     } else {
-                        showError(data.error || 'Gagal mengambil jadwal sholat');
+                        // If city not found and not already default, fallback to default
+                        if (!isDefault) {
+                            const originalCity = cityName;
+                            showWarningNotification(`Kota "${originalCity}" tidak ditemukan. Beralih ke lokasi default: ${DEFAULT_CITY}`);
+                            // Fallback to default city
+                            fetchPrayerTimesByCity(DEFAULT_CITY, true);
+                        } else {
+                            showError(data.error || 'Gagal mengambil jadwal sholat');
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showError('Terjadi kesalahan saat mengambil jadwal sholat');
+                    // If not already default, fallback to default
+                    if (!isDefault) {
+                        showWarningNotification(`Terjadi kesalahan saat mengambil jadwal sholat. Beralih ke lokasi default: ${DEFAULT_CITY}`);
+                        fetchPrayerTimesByCity(DEFAULT_CITY, true);
+                    } else {
+                        showError('Terjadi kesalahan saat mengambil jadwal sholat');
+                    }
                 });
         }
 
@@ -1972,31 +1968,8 @@
             localStorage.setItem(LOCATION_SETTING_KEY, JSON.stringify(setting));
         }
 
-        function toggleManualInputVisibility(mode) {
-            const manualInput = document.getElementById('manualCity');
-            if (mode === 'manual') {
-                manualInput.style.display = 'block';
-                manualInput.focus();
-            } else {
-                manualInput.style.display = 'none';
-            }
-        }
-
-        function setLoadingState() {
-            const loadingEl = document.getElementById('prayerScheduleLoading');
-            const errorEl = document.getElementById('prayerScheduleError');
-            const contentEl = document.getElementById('prayerScheduleContent');
-            loadingEl.style.display = 'block';
-            errorEl.style.display = 'none';
-            contentEl.style.display = 'none';
-        }
-
-        function refreshPrayerTimesByMode() {
-            const modeEl = document.getElementById('locationMode');
-            const manualInput = document.getElementById('manualCity');
-            const mode = modeEl ? modeEl.value : 'gps';
-            const manualCity = manualInput ? manualInput.value.trim() : '';
-
+        // Function untuk refresh prayer times dari modal (dipanggil oleh helper)
+        window.refreshPrayerTimesByModeFromModal = function(mode, manualCity) {
             setLoadingState();
 
             if (mode === 'gps') {
@@ -2026,34 +1999,215 @@
             fetchPrayerTimesByCity(targetCity, false);
         }
 
-        function initLocationControls() {
-            const modeEl = document.getElementById('locationMode');
+        function toggleManualInputVisibility(mode) {
+            const manualInputContainer = document.getElementById('manualCityContainer');
             const manualInput = document.getElementById('manualCity');
+            const suggestionsEl = document.getElementById('citySuggestions');
+
+            if (mode === 'manual') {
+                manualInputContainer.style.display = 'block';
+                manualInput.focus();
+            } else {
+                manualInputContainer.style.display = 'none';
+                if (suggestionsEl) {
+                    suggestionsEl.style.display = 'none';
+                }
+            }
+        }
+
+        // Filter dan tampilkan suggestion kota
+        function showCitySuggestions(query) {
+            const suggestionsEl = document.getElementById('citySuggestions');
+            if (!suggestionsEl) return;
+
+            // Clear previous timeout
+            if (citySuggestionsTimeout) {
+                clearTimeout(citySuggestionsTimeout);
+            }
+
+            // Jika query kosong atau kurang dari 2 karakter, sembunyikan suggestion
+            if (!query || query.trim().length < 2) {
+                suggestionsEl.style.display = 'none';
+                currentSuggestionIndex = -1;
+                return;
+            }
+
+            // Filter kota berdasarkan query (case insensitive)
+            const queryLower = query.toLowerCase().trim();
+            const filtered = popularCities.filter(city =>
+                city.toLowerCase().includes(queryLower)
+            ).slice(0, 10); // Maksimal 10 suggestion
+
+            // Jika tidak ada hasil, sembunyikan
+            if (filtered.length === 0) {
+                suggestionsEl.style.display = 'none';
+                currentSuggestionIndex = -1;
+                return;
+            }
+
+            // Tampilkan suggestion
+            suggestionsEl.innerHTML = '';
+            filtered.forEach((city, index) => {
+                const item = document.createElement('div');
+                item.className = 'city-suggestion-item';
+                item.textContent = city;
+                item.dataset.city = city;
+
+                // Highlight matching text
+                const regex = new RegExp(`(${query})`, 'gi');
+                item.innerHTML = city.replace(regex, '<strong>$1</strong>');
+
+                // Click handler
+                item.addEventListener('click', function() {
+                    selectCity(city);
+                });
+
+                suggestionsEl.appendChild(item);
+            });
+
+            suggestionsEl.style.display = 'block';
+            currentSuggestionIndex = -1;
+        }
+
+        // Pilih kota dari suggestion
+        function selectCity(city) {
+            const manualInput = document.getElementById('manualCity');
+            const suggestionsEl = document.getElementById('citySuggestions');
+
+            if (manualInput) {
+                manualInput.value = city;
+            }
+
+            if (suggestionsEl) {
+                suggestionsEl.style.display = 'none';
+            }
+
+            currentSuggestionIndex = -1;
+
+            // Trigger refresh setelah memilih kota
+            const modeEl = document.getElementById('locationMode');
+            if (modeEl && modeEl.value === 'manual') {
+                // Clear intervals
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                }
+                if (clockInterval) {
+                    clearInterval(clockInterval);
+                }
+                refreshPrayerTimesByMode();
+            }
+        }
+
+
+        // Function to show success notification
+        function showSuccessNotification(message) {
+            // Check if toastr is available (AdminLTE)
+            if (typeof toastr !== 'undefined') {
+                toastr.success(message, '', {
+                    timeOut: 3000,
+                    closeButton: true,
+                    progressBar: true,
+                    positionClass: 'toast-top-right',
+                    preventDuplicates: true,
+                    newestOnTop: true
+                });
+            } else {
+                // Fallback: create simple notification
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success alert-dismissible fade show';
+                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 250px; max-width: 350px; font-size: 0.85rem; padding: 10px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);';
+                notification.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-check-circle" style="font-size: 1rem;"></i>
+                        <span style="flex: 1;">${message}</span>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="opacity: 0.7; font-size: 1.2rem;">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+
+                // Auto close after 3 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+        }
+
+        // Function to show warning/info notification
+        function showWarningNotification(message) {
+            // Check if toastr is available (AdminLTE)
+            if (typeof toastr !== 'undefined') {
+                toastr.warning(message, 'Peringatan', {
+                    timeOut: 4000,
+                    closeButton: true,
+                    progressBar: true
+                });
+            } else {
+                // Fallback: create simple notification
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-warning alert-dismissible fade show';
+                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                notification.innerHTML = `
+                    <strong>Peringatan!</strong> ${message}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                `;
+                document.body.appendChild(notification);
+
+                // Auto close after 4 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 4000);
+            }
+        }
+
+        function setLoadingState() {
+            const loadingEl = document.getElementById('prayerScheduleLoading');
+            const errorEl = document.getElementById('prayerScheduleError');
+            const contentEl = document.getElementById('prayerScheduleContent');
+            loadingEl.style.display = 'block';
+            errorEl.style.display = 'none';
+            contentEl.style.display = 'none';
+        }
+
+        function refreshPrayerTimesByMode() {
+            // Gunakan settingan dari localStorage
+            const saved = loadLocationSetting();
+            const mode = saved.mode || 'gps';
+            const manualCity = saved.city || DEFAULT_CITY;
+
+            setLoadingState();
+
+            if (mode === 'gps') {
+                getPrayerTimes();
+                return;
+            }
+
+            if (mode === 'default') {
+                fetchPrayerTimesByCity(DEFAULT_CITY, true);
+                return;
+            }
+
+            // manual
+            const targetCity = manualCity || DEFAULT_CITY;
+            fetchPrayerTimesByCity(targetCity, false);
+        }
+
+        function initLocationControls() {
             const saved = loadLocationSetting();
             lastLocationSetting = saved;
-
-            if (modeEl) modeEl.value = saved.mode;
-            if (manualInput) manualInput.value = saved.city || '';
-            toggleManualInputVisibility(saved.mode);
-
-            if (modeEl) {
-                modeEl.addEventListener('change', function() {
-                    toggleManualInputVisibility(this.value);
-                });
-            }
-
-            const refreshBtn = document.getElementById('refreshPrayerTimes');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', function() {
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
-                    }
-                    if (clockInterval) {
-                        clearInterval(clockInterval);
-                    }
-                    refreshPrayerTimesByMode();
-                });
-            }
 
             // Jalankan awal sesuai setting terakhir
             refreshPrayerTimesByMode();
@@ -2087,15 +2241,28 @@
                         startCountdown();
                         loadingEl.style.display = 'none';
                         contentEl.style.display = 'block';
+
+                        // Show success notification hanya jika lokasi berubah (bukan initial load)
+                        const newLocation = `gps:${lat.toFixed(4)},${lng.toFixed(4)}`;
+
+                        if (!isInitialLoad && currentLocation !== newLocation) {
+                            showSuccessNotification('Jadwal sholat berdasarkan lokasi GPS berhasil diperbarui');
+                        }
+
+                        // Update current location
+                        currentLocation = newLocation;
+                        isInitialLoad = false;
                     } else {
                         // If coordinate fetch fails, fallback to default city
                         console.warn('Gagal mengambil jadwal berdasarkan koordinat, menggunakan default ' + DEFAULT_CITY);
+                        showWarningNotification(`Gagal mengambil jadwal berdasarkan koordinat. Beralih ke lokasi default: ${DEFAULT_CITY}`);
                         fetchPrayerTimesByCity(DEFAULT_CITY, true);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     // Fallback to Bintan on error
+                    showWarningNotification(`Terjadi kesalahan saat mengambil jadwal. Beralih ke lokasi default: ${DEFAULT_CITY}`);
                     fetchPrayerTimesByCity(DEFAULT_CITY, true);
                 });
         }
@@ -2119,6 +2286,7 @@
                 errorEl.className = 'alert alert-info';
                 errorEl.style.display = 'block';
                 errorMsgEl.innerHTML = '<i class="fas fa-info-circle"></i> Geolocation tidak didukung oleh browser. Menggunakan lokasi default: ' + DEFAULT_CITY;
+                showWarningNotification(`Geolocation tidak didukung oleh browser. Beralih ke lokasi default: ${DEFAULT_CITY}`);
                 fetchPrayerTimesByCity(DEFAULT_CITY, true);
                 return;
             }
@@ -2153,6 +2321,9 @@
                     errorEl.className = 'alert alert-info';
                     errorEl.style.display = 'block';
                     errorMsgEl.innerHTML = '<i class="fas fa-info-circle"></i> ' + errorMessage;
+
+                    // Show warning notification
+                    showWarningNotification(errorMessage);
 
                     // Fetch with default city
                     fetchPrayerTimesByCity(DEFAULT_CITY, true);
@@ -2492,4 +2663,5 @@
         initLocationControls();
     });
 </script>
+<?= prayer_schedule_settings_js(base_url('backend/jadwal-sholat')) ?>
 <?= $this->endSection(); ?>

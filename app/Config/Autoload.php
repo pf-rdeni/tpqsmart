@@ -94,5 +94,6 @@ class Autoload extends AutoloadConfig
         'url',
         'form',
         'nilai',
+        'prayer_schedule',
     ];
 }
