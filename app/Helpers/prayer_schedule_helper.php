@@ -364,21 +364,21 @@ if (!function_exists('prayer_schedule_settings_js')) {
                 try {
                     const saved = localStorage.getItem(LOCATION_SETTING_KEY);
                     if (!saved) return {
-                        mode: "gps",
+                        mode: "default",
                         city: DEFAULT_CITY
                     };
                     const parsed = JSON.parse(saved);
                     if (!parsed.mode) return {
-                        mode: "gps",
+                        mode: "default",
                         city: DEFAULT_CITY
                     };
                     return {
-                        mode: parsed.mode || "gps",
+                        mode: parsed.mode || "default",
                         city: parsed.city || DEFAULT_CITY
                     };
                 } catch (e) {
                     return {
-                        mode: "gps",
+                        mode: "default",
                         city: DEFAULT_CITY
                     };
                 }
@@ -700,12 +700,12 @@ if (!function_exists('prayer_schedule_js')) {
             function loadLocationSetting() {
                 try {
                     const saved = localStorage.getItem(LOCATION_SETTING_KEY);
-                    if (!saved) return { mode: "gps", city: DEFAULT_CITY };
+                    if (!saved) return { mode: "default", city: DEFAULT_CITY };
                     const parsed = JSON.parse(saved);
-                    if (!parsed.mode) return { mode: "gps", city: DEFAULT_CITY };
-                    return { mode: parsed.mode || "gps", city: parsed.city || DEFAULT_CITY };
+                    if (!parsed.mode) return { mode: "default", city: DEFAULT_CITY };
+                    return { mode: parsed.mode || "default", city: parsed.city || DEFAULT_CITY };
                 } catch (e) {
-                    return { mode: "gps", city: DEFAULT_CITY };
+                    return { mode: "default", city: DEFAULT_CITY };
                 }
             }
 
@@ -1248,7 +1248,7 @@ if (!function_exists('prayer_schedule_js')) {
 
             function refreshPrayerTimesByMode() {
                 const saved = loadLocationSetting();
-                const mode = saved.mode || "gps";
+                const mode = saved.mode || "default";
                 const manualCity = saved.city || DEFAULT_CITY;
 
                 setLoadingState();
@@ -1756,12 +1756,12 @@ if (!function_exists('prayer_notification_floating')) {
                 function loadLocationSetting() {
                     try {
                         const saved = localStorage.getItem(LOCATION_SETTING_KEY);
-                        if (!saved) return { mode: "gps", city: DEFAULT_CITY };
+                        if (!saved) return { mode: "default", city: DEFAULT_CITY };
                         const parsed = JSON.parse(saved);
-                        if (!parsed.mode) return { mode: "gps", city: DEFAULT_CITY };
-                        return { mode: parsed.mode || "gps", city: parsed.city || DEFAULT_CITY };
+                        if (!parsed.mode) return { mode: "default", city: DEFAULT_CITY };
+                        return { mode: parsed.mode || "default", city: parsed.city || DEFAULT_CITY };
                     } catch (e) {
-                        return { mode: "gps", city: DEFAULT_CITY };
+                        return { mode: "default", city: DEFAULT_CITY };
                     }
                 }
                 
