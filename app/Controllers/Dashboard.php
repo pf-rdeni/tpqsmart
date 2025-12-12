@@ -2351,6 +2351,103 @@ class Dashboard extends BaseController
             ]);
         }
     }
+
+    /**
+     * AJAX endpoint untuk mengambil data materi per santri (sudah dinilai dan belum dinilai)
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function getMateriPerSantri()
+    {
+        try {
+            $idSantri = $this->request->getGet('IdSantri');
+            $idKelas = $this->request->getGet('IdKelas');
+            $semester = $this->request->getGet('Semester');
+            $idTpq = session()->get('IdTpq');
+            $idTahunAjaran = session()->get('IdTahunAjaran');
+
+            if (empty($idSantri) || empty($idKelas) || empty($semester)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Parameter tidak lengkap'
+                ])->setStatusCode(400);
+            }
+
+            // Ambil semua materi untuk kelas ini
+            $allMateri = $this->helpFunctionModel->getMateriPelajaranByKelas($idTpq, $idKelas, $semester);
+            
+            // Ambil semua nilai untuk santri ini (termasuk yang 0)
+            $builder = $this->db->table('tbl_nilai n');
+            $builder->select('n.IdMateri, n.Nilai, m.NamaMateri, m.Kategori, kmp.UrutanMateri');
+            $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
+            $builder->join('tbl_kelas_materi_pelajaran kmp', 'kmp.IdMateri = n.IdMateri AND kmp.IdKelas = n.IdKelas AND kmp.IdTpq = n.IdTpq', 'left');
+            $builder->where('n.IdSantri', $idSantri);
+            $builder->where('n.IdKelas', $idKelas);
+            $builder->where('n.IdTpq', $idTpq);
+            $builder->where('n.IdTahunAjaran', $idTahunAjaran);
+            $builder->where('n.Semester', $semester);
+            $builder->orderBy('kmp.UrutanMateri', 'ASC');
+            $allNilaiData = $builder->get()->getResultArray();
+
+            // Buat mapping nilai per materi
+            $nilaiMap = [];
+            foreach ($allNilaiData as $nilai) {
+                $nilaiMap[$nilai['IdMateri']] = $nilai;
+            }
+
+            // Pisahkan materi menjadi sudah dinilai dan belum dinilai
+            $materiSudahDinilai = [];
+            $materiBelumDinilai = [];
+
+            foreach ($allMateri as $materi) {
+                $materiData = [
+                    'IdMateri' => $materi->IdMateri,
+                    'NamaMateri' => $materi->NamaMateri,
+                    'Kategori' => $materi->Kategori ?? '',
+                    'UrutanMateri' => $materi->UrutanMateri ?? 0,
+                    'Nilai' => 0
+                ];
+
+                // Cek apakah materi ada di tabel nilai
+                if (isset($nilaiMap[$materi->IdMateri])) {
+                    $nilaiValue = (int)$nilaiMap[$materi->IdMateri]['Nilai'];
+                    $materiData['Nilai'] = $nilaiValue;
+                    
+                    // Sudah dinilai jika nilai > 0
+                    if ($nilaiValue > 0) {
+                        $materiSudahDinilai[] = $materiData;
+                    } else {
+                        // Belum dinilai jika nilai = 0
+                        $materiBelumDinilai[] = $materiData;
+                    }
+                } else {
+                    // Belum dinilai jika tidak ada di tabel nilai sama sekali
+                    $materiBelumDinilai[] = $materiData;
+                }
+            }
+
+            // Urutkan berdasarkan UrutanMateri
+            usort($materiSudahDinilai, function($a, $b) {
+                return ($a['UrutanMateri'] ?? 0) <=> ($b['UrutanMateri'] ?? 0);
+            });
+            usort($materiBelumDinilai, function($a, $b) {
+                return ($a['UrutanMateri'] ?? 0) <=> ($b['UrutanMateri'] ?? 0);
+            });
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [
+                    'sudahDinilai' => $materiSudahDinilai,
+                    'belumDinilai' => $materiBelumDinilai
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error getMateriPerSantri: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data materi'
+            ])->setStatusCode(500);
+        }
+    }
 }
 
 

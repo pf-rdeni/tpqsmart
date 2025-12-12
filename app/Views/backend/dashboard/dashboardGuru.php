@@ -262,7 +262,6 @@ function render_progress_bar($persentase, $height = 25)
                                                 <table id="tabelProgressNilaiGanjil" class="table table-bordered table-striped table-hover">
                                                     <thead class="thead-light">
                                                         <tr>
-                                                            <th class="text-center" style="width: 50px;">No</th>
                                                             <th style="width: 50px;"></th>
                                                             <th>Nama Kelas</th>
                                                             <th class="text-center">Total Santri</th>
@@ -272,7 +271,6 @@ function render_progress_bar($persentase, $height = 25)
                                                     </thead>
                                                     <tbody>
                                                         <?php if (!empty($StatistikProgressNilaiPerKelas['Ganjil'])): ?>
-                                                            <?php $no = 1; ?>
                                                             <?php foreach ($StatistikProgressNilaiPerKelas['Ganjil'] as $kelas): ?>
                                                                 <?php
                                                                 $kelasKey = md5($kelas['IdKelas']);
@@ -280,7 +278,6 @@ function render_progress_bar($persentase, $height = 25)
                                                                 ?>
                                                                 <!-- Row Kelas (Parent) - Tertutup secara default -->
                                                                 <tr class="kelas-row" data-kelas-key="<?= $kelasKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
-                                                                    <td class="text-center"><?= $no++ ?></td>
                                                                     <td class="text-center">
                                                                         <?php if ($hasSantri): ?>
                                                                             <i class="fas fa-chevron-right expand-icon-kelas" style="transition: transform 0.3s; color: #007bff;"></i>
@@ -330,8 +327,11 @@ function render_progress_bar($persentase, $height = 25)
                                                                 <!-- Detail Santri (Child rows - Tertutup secara default) -->
                                                                 <?php if ($hasSantri): ?>
                                                                     <?php foreach ($kelas['Santri'] as $santri): ?>
-                                                                        <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
-                                                                            <td></td>
+                                                                        <?php
+                                                                        $santriKey = md5($santri['IdSantri'] . '_' . $kelasKey);
+                                                                        $hasMateri = ($santri['TotalMateri'] ?? 0) > 0;
+                                                                        ?>
+                                                                        <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;" data-santri-key="<?= $santriKey ?>" data-santri-id="<?= $santri['IdSantri'] ?>" data-kelas-id="<?= $kelas['IdKelas'] ?>" data-semester="Ganjil">
                                                                             <td class="text-center">
                                                                                 <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
                                                                                     <?php
@@ -363,8 +363,13 @@ function render_progress_bar($persentase, $height = 25)
                                                                                         onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
                                                                                 </a>
                                                                             </td>
-                                                                            <td colspan="2" style="padding-left: 40px;">
-                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                            <td style="padding-left: 40px; cursor: pointer;" class="santri-expand-cell">
+                                                                                <?php if ($hasMateri): ?>
+                                                                                    <i class="fas fa-chevron-right expand-icon-santri" style="transition: transform 0.3s; color: #007bff; margin-right: 8px;"></i>
+                                                                                <?php else: ?>
+                                                                                    <i class="fas fa-minus" style="color: #ccc; margin-right: 8px;"></i>
+                                                                                <?php endif; ?>
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai" onclick="event.stopPropagation();">
                                                                                     <div>
                                                                                         <strong><?= esc($santri['NamaSantri']) ?></strong>
                                                                                     </div>
@@ -386,7 +391,7 @@ function render_progress_bar($persentase, $height = 25)
                                                                                     <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
                                                                                 </span>
                                                                             </td>
-                                                                            <td class="text-center">
+                                                                            <td colspan="2" class="text-center">
                                                                                 <span class="badge badge-info">
                                                                                     <?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?>
                                                                                     <?php if ($santri['MateriBelum'] > 0): ?>
@@ -395,12 +400,65 @@ function render_progress_bar($persentase, $height = 25)
                                                                                 </span>
                                                                             </td>
                                                                         </tr>
+                                                                        <!-- Group Sudah Dinilai dan Belum Dinilai (Tertutup secara default) -->
+                                                                        <?php if ($hasMateri): ?>
+                                                                            <!-- Group Sudah Dinilai -->
+                                                                            <?php if (($santri['MateriTerisi'] ?? 0) > 0): ?>
+                                                                                <tr class="group-nilai-row detail-<?= $santriKey ?>" style="display: none; background-color: #e8f5e9;" data-group-type="sudah" data-santri-key="<?= $santriKey ?>">
+                                                                                    <td></td>
+                                                                                    <td style="padding-left: 60px; cursor: pointer;" class="group-expand-cell">
+                                                                                        <i class="fas fa-chevron-right expand-icon-group" style="transition: transform 0.3s; color: #28a745; margin-right: 8px;"></i>
+                                                                                        <span class="badge badge-success">Sudah Dinilai</span>
+                                                                                        <span class="text-muted small ml-2"><?= number_format($santri['MateriTerisi']) ?> Materi</span>
+                                                                                    </td>
+                                                                                    <td colspan="3"></td>
+                                                                                </tr>
+                                                                                <!-- Individual Materi Sudah Dinilai (akan di-load via AJAX) -->
+                                                                                <tr class="materi-container detail-<?= $santriKey ?>-sudah" style="display: none;">
+                                                                                    <td></td>
+                                                                                    <td style="padding: 0;">
+                                                                                        <div class="materi-loading-<?= $santriKey ?>-sudah" style="text-align: center; padding: 20px;">
+                                                                                            <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                                                                        </div>
+                                                                                        <div class="materi-content-<?= $santriKey ?>-sudah" style="display: none;"></div>
+                                                                                    </td>
+                                                                                    <td colspan="3" style="padding: 0;">
+                                                                                        <div class="materi-nilai-<?= $santriKey ?>-sudah" style="display: none;"></div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            <?php endif; ?>
+                                                                            <!-- Group Belum Dinilai -->
+                                                                            <?php if (($santri['MateriBelum'] ?? 0) > 0): ?>
+                                                                                <tr class="group-nilai-row detail-<?= $santriKey ?>" style="display: none; background-color: #ffebee;" data-group-type="belum" data-santri-key="<?= $santriKey ?>">
+                                                                                    <td></td>
+                                                                                    <td style="padding-left: 60px; cursor: pointer;" class="group-expand-cell">
+                                                                                        <i class="fas fa-chevron-right expand-icon-group" style="transition: transform 0.3s; color: #dc3545; margin-right: 8px;"></i>
+                                                                                        <span class="badge badge-danger">Belum Dinilai</span>
+                                                                                        <span class="text-muted small ml-2"><?= number_format($santri['MateriBelum']) ?> Materi</span>
+                                                                                    </td>
+                                                                                    <td colspan="3"></td>
+                                                                                </tr>
+                                                                                <!-- Individual Materi Belum Dinilai (akan di-load via AJAX) -->
+                                                                                <tr class="materi-container detail-<?= $santriKey ?>-belum" style="display: none;">
+                                                                                    <td></td>
+                                                                                    <td style="padding: 0;">
+                                                                                        <div class="materi-loading-<?= $santriKey ?>-belum" style="text-align: center; padding: 20px;">
+                                                                                            <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                                                                        </div>
+                                                                                        <div class="materi-content-<?= $santriKey ?>-belum" style="display: none;"></div>
+                                                                                    </td>
+                                                                                    <td colspan="3" style="padding: 0;">
+                                                                                        <div class="materi-nilai-<?= $santriKey ?>-belum" style="display: none;"></div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            <?php endif; ?>
+                                                                        <?php endif; ?>
                                                                     <?php endforeach; ?>
                                                                 <?php endif; ?>
                                                             <?php endforeach; ?>
                                                         <?php else: ?>
                                                             <tr>
-                                                                <td colspan="6" class="text-center">Tidak ada data untuk semester Ganjil</td>
+                                                                <td colspan="5" class="text-center">Tidak ada data untuk semester Ganjil</td>
                                                             </tr>
                                                         <?php endif; ?>
                                                     </tbody>
@@ -470,7 +528,6 @@ function render_progress_bar($persentase, $height = 25)
                                                 <table id="tabelProgressNilaiGenap" class="table table-bordered table-striped table-hover">
                                                     <thead class="thead-light">
                                                         <tr>
-                                                            <th class="text-center" style="width: 50px;">No</th>
                                                             <th style="width: 50px;"></th>
                                                             <th>Nama Kelas</th>
                                                             <th class="text-center">Total Santri</th>
@@ -480,7 +537,6 @@ function render_progress_bar($persentase, $height = 25)
                                                     </thead>
                                                     <tbody>
                                                         <?php if (!empty($StatistikProgressNilaiPerKelas['Genap'])): ?>
-                                                            <?php $no = 1; ?>
                                                             <?php foreach ($StatistikProgressNilaiPerKelas['Genap'] as $kelas): ?>
                                                                 <?php
                                                                 $kelasKey = md5($kelas['IdKelas']);
@@ -488,7 +544,6 @@ function render_progress_bar($persentase, $height = 25)
                                                                 ?>
                                                                 <!-- Row Kelas (Parent) - Tertutup secara default -->
                                                                 <tr class="kelas-row" data-kelas-key="<?= $kelasKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
-                                                                    <td class="text-center"><?= $no++ ?></td>
                                                                     <td class="text-center">
                                                                         <?php if ($hasSantri): ?>
                                                                             <i class="fas fa-chevron-right expand-icon-kelas" style="transition: transform 0.3s; color: #007bff;"></i>
@@ -538,8 +593,11 @@ function render_progress_bar($persentase, $height = 25)
                                                                 <!-- Detail Santri (Child rows - Tertutup secara default) -->
                                                                 <?php if ($hasSantri): ?>
                                                                     <?php foreach ($kelas['Santri'] as $santri): ?>
-                                                                        <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
-                                                                            <td></td>
+                                                                        <?php
+                                                                        $santriKey = md5($santri['IdSantri'] . '_' . $kelasKey);
+                                                                        $hasMateri = ($santri['TotalMateri'] ?? 0) > 0;
+                                                                        ?>
+                                                                        <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;" data-santri-key="<?= $santriKey ?>" data-santri-id="<?= $santri['IdSantri'] ?>" data-kelas-id="<?= $kelas['IdKelas'] ?>" data-semester="Genap">
                                                                             <td class="text-center">
                                                                                 <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
                                                                                     <?php
@@ -571,8 +629,13 @@ function render_progress_bar($persentase, $height = 25)
                                                                                         onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
                                                                                 </a>
                                                                             </td>
-                                                                            <td colspan="2" style="padding-left: 40px;">
-                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                            <td style="padding-left: 40px; cursor: pointer;" class="santri-expand-cell">
+                                                                                <?php if ($hasMateri): ?>
+                                                                                    <i class="fas fa-chevron-right expand-icon-santri" style="transition: transform 0.3s; color: #007bff; margin-right: 8px;"></i>
+                                                                                <?php else: ?>
+                                                                                    <i class="fas fa-minus" style="color: #ccc; margin-right: 8px;"></i>
+                                                                                <?php endif; ?>
+                                                                                <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai" onclick="event.stopPropagation();">
                                                                                     <div>
                                                                                         <strong><?= esc($santri['NamaSantri']) ?></strong>
                                                                                     </div>
@@ -594,7 +657,7 @@ function render_progress_bar($persentase, $height = 25)
                                                                                     <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
                                                                                 </span>
                                                                             </td>
-                                                                            <td class="text-center">
+                                                                            <td colspan="2" class="text-center">
                                                                                 <span class="badge badge-info">
                                                                                     <?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?>
                                                                                     <?php if ($santri['MateriBelum'] > 0): ?>
@@ -603,12 +666,65 @@ function render_progress_bar($persentase, $height = 25)
                                                                                 </span>
                                                                             </td>
                                                                         </tr>
+                                                                        <!-- Group Sudah Dinilai dan Belum Dinilai (Tertutup secara default) -->
+                                                                        <?php if ($hasMateri): ?>
+                                                                            <!-- Group Sudah Dinilai -->
+                                                                            <?php if (($santri['MateriTerisi'] ?? 0) > 0): ?>
+                                                                                <tr class="group-nilai-row detail-<?= $santriKey ?>" style="display: none; background-color: #e8f5e9;" data-group-type="sudah" data-santri-key="<?= $santriKey ?>">
+                                                                                    <td></td>
+                                                                                    <td style="padding-left: 60px; cursor: pointer;" class="group-expand-cell">
+                                                                                        <i class="fas fa-chevron-right expand-icon-group" style="transition: transform 0.3s; color: #28a745; margin-right: 8px;"></i>
+                                                                                        <span class="badge badge-success">Sudah Dinilai</span>
+                                                                                        <span class="text-muted small ml-2"><?= number_format($santri['MateriTerisi']) ?> Materi</span>
+                                                                                    </td>
+                                                                                    <td colspan="3"></td>
+                                                                                </tr>
+                                                                                <!-- Individual Materi Sudah Dinilai (akan di-load via AJAX) -->
+                                                                                <tr class="materi-container detail-<?= $santriKey ?>-sudah" style="display: none;">
+                                                                                    <td></td>
+                                                                                    <td style="padding: 0;">
+                                                                                        <div class="materi-loading-<?= $santriKey ?>-sudah" style="text-align: center; padding: 20px;">
+                                                                                            <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                                                                        </div>
+                                                                                        <div class="materi-content-<?= $santriKey ?>-sudah" style="display: none;"></div>
+                                                                                    </td>
+                                                                                    <td colspan="3" style="padding: 0;">
+                                                                                        <div class="materi-nilai-<?= $santriKey ?>-sudah" style="display: none;"></div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            <?php endif; ?>
+                                                                            <!-- Group Belum Dinilai -->
+                                                                            <?php if (($santri['MateriBelum'] ?? 0) > 0): ?>
+                                                                                <tr class="group-nilai-row detail-<?= $santriKey ?>" style="display: none; background-color: #ffebee;" data-group-type="belum" data-santri-key="<?= $santriKey ?>">
+                                                                                    <td></td>
+                                                                                    <td style="padding-left: 60px; cursor: pointer;" class="group-expand-cell">
+                                                                                        <i class="fas fa-chevron-right expand-icon-group" style="transition: transform 0.3s; color: #dc3545; margin-right: 8px;"></i>
+                                                                                        <span class="badge badge-danger">Belum Dinilai</span>
+                                                                                        <span class="text-muted small ml-2"><?= number_format($santri['MateriBelum']) ?> Materi</span>
+                                                                                    </td>
+                                                                                    <td colspan="3"></td>
+                                                                                </tr>
+                                                                                <!-- Individual Materi Belum Dinilai (akan di-load via AJAX) -->
+                                                                                <tr class="materi-container detail-<?= $santriKey ?>-belum" style="display: none;">
+                                                                                    <td></td>
+                                                                                    <td style="padding: 0;">
+                                                                                        <div class="materi-loading-<?= $santriKey ?>-belum" style="text-align: center; padding: 20px;">
+                                                                                            <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                                                                        </div>
+                                                                                        <div class="materi-content-<?= $santriKey ?>-belum" style="display: none;"></div>
+                                                                                    </td>
+                                                                                    <td colspan="3" style="padding: 0;">
+                                                                                        <div class="materi-nilai-<?= $santriKey ?>-belum" style="display: none;"></div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            <?php endif; ?>
+                                                                        <?php endif; ?>
                                                                     <?php endforeach; ?>
                                                                 <?php endif; ?>
                                                             <?php endforeach; ?>
                                                         <?php else: ?>
                                                             <tr>
-                                                                <td colspan="6" class="text-center">Tidak ada data untuk semester Genap</td>
+                                                                <td colspan="5" class="text-center">Tidak ada data untuk semester Genap</td>
                                                             </tr>
                                                         <?php endif; ?>
                                                     </tbody>
@@ -1295,13 +1411,52 @@ function render_progress_bar($persentase, $height = 25)
 
         if (detailRows.length > 0) {
             if (detailRows.is(':visible')) {
-                detailRows.slideUp(300);
-                expandIcon.css('transform', 'rotate(0deg)');
-                $(this).removeClass('expanded');
-                // Simpan status ke localStorage
-                if (semester) {
-                    saveKelasExpandState(kelasKey, semester, false);
-                }
+                // Collapse kelas dan semua child rows
+                var $kelasRow = $(this);
+
+                // Tutup semua child rows (santri, group nilai, dan materi) terlebih dahulu
+                detailRows.each(function() {
+                    var $santriRow = $(this);
+                    if ($santriRow.hasClass('santri-row')) {
+                        var santriKey = $santriRow.data('santri-key');
+                        if (santriKey) {
+                            // Cari dalam scope tabel yang sama
+                            var $santriTable = $santriRow.closest('table');
+
+                            // Tutup materi container dalam tabel yang sama
+                            var $materiContainers = $santriTable.find('.materi-container.detail-' + santriKey + '-sudah, .materi-container.detail-' + santriKey + '-belum');
+                            $materiContainers.slideUp(200);
+
+                            // Tutup group nilai dalam tabel yang sama
+                            var $groupRows = $santriTable.find('.group-nilai-row.detail-' + santriKey);
+                            $groupRows.slideUp(200);
+                            $groupRows.removeClass('expanded');
+                            $groupRows.find('.expand-icon-group').css('transform', 'rotate(0deg)');
+
+                            // Reset icon expand santri
+                            $santriRow.find('.expand-icon-santri').css('transform', 'rotate(0deg)');
+                            $santriRow.removeClass('expanded');
+
+                            // Update localStorage untuk santri dan group
+                            var santriSemester = $santriRow.data('semester') || semester;
+                            saveSantriExpandState(santriKey, santriSemester, false);
+                            saveGroupExpandState(santriKey, 'sudah', santriSemester, false);
+                            saveGroupExpandState(santriKey, 'belum', santriSemester, false);
+                        }
+                    }
+                });
+
+                // Setelah semua child rows tertutup, tutup row santri
+                setTimeout(function() {
+                    detailRows.slideUp(300);
+                    expandIcon.css('transform', 'rotate(0deg)');
+                    $kelasRow.removeClass('expanded');
+
+                    // Simpan status ke localStorage
+                    if (semester) {
+                        saveKelasExpandState(kelasKey, semester, false);
+                    }
+                }, 250);
             } else {
                 detailRows.slideDown(300);
                 expandIcon.css('transform', 'rotate(90deg)');
@@ -1337,6 +1492,209 @@ function render_progress_bar($persentase, $height = 25)
                 }
             });
         }, 200);
+    });
+
+    // Key untuk localStorage santri dan group
+    const storageKeySantri = 'dashboardGuru_santriExpand';
+    const storageKeyGroup = 'dashboardGuru_groupExpand';
+
+    // Fungsi untuk menyimpan status expand santri ke localStorage
+    function saveSantriExpandState(santriKey, semester, isExpanded) {
+        var key = semester + '_' + santriKey;
+        var states = JSON.parse(localStorage.getItem(storageKeySantri) || '{}');
+        states[key] = isExpanded;
+        localStorage.setItem(storageKeySantri, JSON.stringify(states));
+    }
+
+    // Fungsi untuk memuat status expand santri dari localStorage
+    function loadSantriExpandState(santriKey, semester) {
+        var key = semester + '_' + santriKey;
+        var states = JSON.parse(localStorage.getItem(storageKeySantri) || '{}');
+        return states[key] === true;
+    }
+
+    // Fungsi untuk menyimpan status expand group ke localStorage
+    function saveGroupExpandState(santriKey, groupType, semester, isExpanded) {
+        var key = semester + '_' + santriKey + '_' + groupType;
+        var states = JSON.parse(localStorage.getItem(storageKeyGroup) || '{}');
+        states[key] = isExpanded;
+        localStorage.setItem(storageKeyGroup, JSON.stringify(states));
+    }
+
+    // Fungsi untuk memuat status expand group dari localStorage
+    function loadGroupExpandState(santriKey, groupType, semester) {
+        var key = semester + '_' + santriKey + '_' + groupType;
+        var states = JSON.parse(localStorage.getItem(storageKeyGroup) || '{}');
+        return states[key] === true;
+    }
+
+    // Handle expand/collapse untuk santri (level 2)
+    $(document).on('click', '.santri-expand-cell', function(e) {
+        e.stopPropagation();
+        var $santriRow = $(this).closest('.santri-row');
+        var santriKey = $santriRow.data('santri-key');
+        var semester = $santriRow.data('semester');
+        var $table = $santriRow.closest('table'); // Ambil tabel parent untuk membedakan semester
+        // Cari group rows dalam tabel yang sama
+        var $groupRows = $table.find('.group-nilai-row.detail-' + santriKey);
+        var expandIcon = $(this).find('.expand-icon-santri');
+
+        if ($groupRows.length > 0) {
+            if ($groupRows.is(':visible')) {
+                // Collapse semua group dan materi dalam tabel yang sama
+                $groupRows.slideUp(300);
+                $table.find('.materi-container.detail-' + santriKey + '-sudah, .materi-container.detail-' + santriKey + '-belum').slideUp(300);
+                expandIcon.css('transform', 'rotate(0deg)');
+                $santriRow.removeClass('expanded');
+                saveSantriExpandState(santriKey, semester, false);
+            } else {
+                // Expand group rows
+                $groupRows.slideDown(300);
+                expandIcon.css('transform', 'rotate(90deg)');
+                $santriRow.addClass('expanded');
+                saveSantriExpandState(santriKey, semester, true);
+            }
+        }
+    });
+
+    // Handle expand/collapse untuk group nilai (level 3)
+    $(document).on('click', '.group-expand-cell', function(e) {
+        e.stopPropagation();
+        var $groupRow = $(this).closest('.group-nilai-row');
+        var groupType = $groupRow.data('group-type');
+        var santriKey = $groupRow.data('santri-key');
+        var $table = $groupRow.closest('table'); // Ambil tabel parent untuk membedakan semester
+        // Cari santri row dalam tabel yang sama dan dengan santriKey yang sama
+        var $santriRow = $table.find('.santri-row[data-santri-key="' + santriKey + '"]');
+        var semester = $santriRow.data('semester');
+        // Cari materi container dalam tabel yang sama
+        var $materiContainer = $table.find('.materi-container.detail-' + santriKey + '-' + groupType);
+        var expandIcon = $(this).find('.expand-icon-group');
+
+        if ($materiContainer.length > 0) {
+            if ($materiContainer.is(':visible')) {
+                // Collapse materi
+                $materiContainer.slideUp(300);
+                expandIcon.css('transform', 'rotate(0deg)');
+                $groupRow.removeClass('expanded');
+                saveGroupExpandState(santriKey, groupType, semester, false);
+            } else {
+                // Expand materi dan load data jika belum di-load
+                $materiContainer.slideDown(300);
+                expandIcon.css('transform', 'rotate(90deg)');
+                $groupRow.addClass('expanded');
+                saveGroupExpandState(santriKey, groupType, semester, true);
+
+                // Load data materi via AJAX jika belum di-load
+                // Gunakan selector dalam scope tabel yang sama
+                var $loadingDiv = $table.find('.materi-loading-' + santriKey + '-' + groupType);
+                var $contentDiv = $table.find('.materi-content-' + santriKey + '-' + groupType);
+                var $nilaiDiv = $table.find('.materi-nilai-' + santriKey + '-' + groupType);
+
+                // Load data jika belum pernah di-load
+                if ($contentDiv.is(':empty') || $contentDiv.data('loaded') !== true) {
+                    var idSantri = $santriRow.data('santri-id');
+                    var idKelas = $santriRow.data('kelas-id');
+
+                    $loadingDiv.show();
+                    $contentDiv.hide();
+                    $nilaiDiv.hide();
+                    $nilaiDiv.hide();
+
+                    $.ajax({
+                        url: '<?= base_url('backend/dashboard/getMateriPerSantri') ?>',
+                        type: 'GET',
+                        data: {
+                            IdSantri: idSantri,
+                            IdKelas: idKelas,
+                            Semester: semester
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            $loadingDiv.hide();
+                            if (response && response.success) {
+                                var materiList = groupType === 'sudah' ? response.data.sudahDinilai : response.data.belumDinilai;
+                                var htmlNama = '';
+                                var htmlNilai = '';
+
+                                if (materiList.length > 0) {
+                                    materiList.forEach(function(materi) {
+                                        htmlNama += '<div style="padding: 8px 0; padding-left: 82px; border-bottom: 1px solid #dee2e6;">' + materi.NamaMateri + '</div>';
+
+                                        var nilaiHtml = '';
+                                        if (materi.Nilai > 0) {
+                                            nilaiHtml = '<span class="badge badge-success">' + materi.Nilai + '</span>';
+                                        } else {
+                                            nilaiHtml = '<span class="badge badge-secondary">0</span>';
+                                        }
+                                        htmlNilai += '<div style="padding: 8px 0; padding-left: 10px; text-align: left; border-bottom: 1px solid #dee2e6;">' + nilaiHtml + '</div>';
+                                    });
+                                } else {
+                                    htmlNama = '<div style="padding: 8px 0; padding-left: 82px; text-align: center; color: #6c757d;">Tidak ada data</div>';
+                                    htmlNilai = '<div style="padding: 8px 0; padding-left: 10px; text-align: left; color: #6c757d;">-</div>';
+                                }
+
+                                $contentDiv.html(htmlNama).show().data('loaded', true);
+                                $table.find('.materi-nilai-' + santriKey + '-' + groupType).html(htmlNilai).show();
+                            } else {
+                                $contentDiv.html('<div class="alert alert-warning" style="margin: 10px 80px;">Gagal memuat data materi</div>').show();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            $loadingDiv.hide();
+                            $contentDiv.html('<div class="alert alert-danger" style="margin: 10px 80px;">Error: ' + error + '</div>').show();
+                            console.error('[DASHBOARD] AJAX Error loading materi:', error);
+                        }
+                    });
+                } else {
+                    $contentDiv.show();
+                }
+            }
+        }
+    });
+
+    // Load status expand santri dan group saat page load
+    $(document).ready(function() {
+        setTimeout(function() {
+            $('.santri-row').each(function() {
+                var $santriRow = $(this);
+                var santriKey = $santriRow.data('santri-key');
+                var semester = $santriRow.data('semester');
+                var $table = $santriRow.closest('table'); // Ambil tabel parent untuk membedakan semester
+
+                if (santriKey && semester) {
+                    var isExpanded = loadSantriExpandState(santriKey, semester);
+                    if (isExpanded) {
+                        // Cari group rows dalam tabel yang sama
+                        var $groupRows = $table.find('.group-nilai-row.detail-' + santriKey);
+                        var expandIcon = $santriRow.find('.expand-icon-santri');
+
+                        if ($groupRows.length > 0) {
+                            $groupRows.show();
+                            expandIcon.css('transform', 'rotate(90deg)');
+                            $santriRow.addClass('expanded');
+
+                            // Group nilai selalu tertutup saat refresh (tidak load dari localStorage)
+                            // Pastikan semua materi container tertutup, tapi group rows tetap visible
+                            $groupRows.each(function() {
+                                var $groupRow = $(this);
+                                var groupType = $groupRow.data('group-type');
+                                var $materiContainer = $table.find('.materi-container.detail-' + santriKey + '-' + groupType);
+
+                                // Pastikan materi container tertutup (level 4)
+                                $materiContainer.hide();
+                                $groupRow.removeClass('expanded');
+                                $groupRow.find('.expand-icon-group').css('transform', 'rotate(0deg)');
+
+                                // Reset data loaded untuk memastikan data di-reload saat expand
+                                $table.find('.materi-content-' + santriKey + '-' + groupType).data('loaded', false);
+                                $table.find('.materi-nilai-' + santriKey + '-' + groupType).html('').hide();
+                            });
+                        }
+                    }
+                }
+            });
+        }, 300);
     });
 </script>
 <?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>
