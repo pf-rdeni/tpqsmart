@@ -211,8 +211,20 @@ if (!function_exists('prayer_schedule_css')) {
                 border-radius: 10px;
                 padding: 12px;
                 background: #f8f9fa;
+                color: #212529;
                 transition: all 0.2s ease;
                 height: 100%;
+            }
+
+            /* Dark mode support */
+            .dark-mode .prayer-card {
+                background: #2d3748;
+                border-color: #4a5568;
+                color: #e2e8f0;
+            }
+
+            .dark-mode .prayer-card .prayer-title {
+                color: #cbd5e0;
             }
 
             .prayer-card.bg-success {
@@ -249,6 +261,10 @@ if (!function_exists('prayer_schedule_css')) {
                 transform: translateY(-2px);
             }
 
+            .dark-mode .prayer-card:hover {
+                box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            }
+
             .prayer-title {
                 font-size: 0.7rem;
                 letter-spacing: 0.3px;
@@ -269,15 +285,30 @@ if (!function_exists('prayer_schedule_css')) {
                 margin-top: 2px;
             }
 
+            .dark-mode .city-suggestions {
+                background: #2d3748;
+                border-color: #4a5568;
+            }
+
             .city-suggestion-item {
                 padding: 8px 12px;
                 cursor: pointer;
                 border-bottom: 1px solid #f0f0f0;
                 transition: background-color 0.2s;
+                color: #212529;
+            }
+
+            .dark-mode .city-suggestion-item {
+                border-bottom-color: #4a5568;
+                color: #e2e8f0;
             }
 
             .city-suggestion-item:hover {
                 background-color: #f8f9fa;
+            }
+
+            .dark-mode .city-suggestion-item:hover {
+                background-color: #4a5568;
             }
 
             .city-suggestion-item:last-child {
@@ -286,6 +317,10 @@ if (!function_exists('prayer_schedule_css')) {
 
             .city-suggestion-item.highlight {
                 background-color: #e3f2fd;
+            }
+
+            .dark-mode .city-suggestion-item.highlight {
+                background-color: #2c5282;
             }
         </style>';
     }
