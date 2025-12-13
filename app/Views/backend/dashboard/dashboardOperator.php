@@ -580,7 +580,7 @@ function render_progress_bar($persentase, $height = 25)
                                                                                 <tr class="materi-container detail-<?= $santriKey ?>-sudah" style="display: none;">
                                                                                     <td></td>
                                                                                     <td colspan="4" style="padding: 0;">
-                                                                                        <div class="materi-loading-<?= $santriKey ?>-sudah" style="text-align: center; padding: 20px;">
+                                                                                        <div class="materi-loading-<?= $santriKey ?>-sudah" style="display: block; text-align: center; padding: 20px;">
                                                                                             <i class="fas fa-spinner fa-spin"></i> Memuat data...
                                                                                         </div>
                                                                                         <div class="materi-content-<?= $santriKey ?>-sudah" style="display: none;"></div>
@@ -602,7 +602,7 @@ function render_progress_bar($persentase, $height = 25)
                                                                                 <tr class="materi-container detail-<?= $santriKey ?>-belum" style="display: none;">
                                                                                     <td></td>
                                                                                     <td colspan="4" style="padding: 0;">
-                                                                                        <div class="materi-loading-<?= $santriKey ?>-belum" style="text-align: center; padding: 20px;">
+                                                                                        <div class="materi-loading-<?= $santriKey ?>-belum" style="display: block; text-align: center; padding: 20px;">
                                                                                             <i class="fas fa-spinner fa-spin"></i> Memuat data...
                                                                                         </div>
                                                                                         <div class="materi-content-<?= $santriKey ?>-belum" style="display: none;"></div>
@@ -823,7 +823,7 @@ function render_progress_bar($persentase, $height = 25)
                                                                                 <tr class="materi-container detail-<?= $santriKey ?>-sudah" style="display: none;">
                                                                                     <td></td>
                                                                                     <td colspan="4" style="padding: 0;">
-                                                                                        <div class="materi-loading-<?= $santriKey ?>-sudah" style="text-align: center; padding: 20px;">
+                                                                                        <div class="materi-loading-<?= $santriKey ?>-sudah" style="display: block; text-align: center; padding: 20px;">
                                                                                             <i class="fas fa-spinner fa-spin"></i> Memuat data...
                                                                                         </div>
                                                                                         <div class="materi-content-<?= $santriKey ?>-sudah" style="display: none;"></div>
@@ -845,7 +845,7 @@ function render_progress_bar($persentase, $height = 25)
                                                                                 <tr class="materi-container detail-<?= $santriKey ?>-belum" style="display: none;">
                                                                                     <td></td>
                                                                                     <td colspan="4" style="padding: 0;">
-                                                                                        <div class="materi-loading-<?= $santriKey ?>-belum" style="text-align: center; padding: 20px;">
+                                                                                        <div class="materi-loading-<?= $santriKey ?>-belum" style="display: block; text-align: center; padding: 20px;">
                                                                                             <i class="fas fa-spinner fa-spin"></i> Memuat data...
                                                                                         </div>
                                                                                         <div class="materi-content-<?= $santriKey ?>-belum" style="display: none;"></div>
@@ -1254,20 +1254,25 @@ function render_progress_bar($persentase, $height = 25)
                 $groupRow.removeClass('expanded');
                 saveGroupExpandState(santriKey, groupType, semester, false);
             } else {
-                $materiContainer.slideDown(300);
+                // Expand materi dan load data jika belum di-load
+                var $loadingDiv = $table.find('.materi-loading-' + santriKey + '-' + groupType);
+                var $contentDiv = $table.find('.materi-content-' + santriKey + '-' + groupType);
+
+                // Pastikan loading div visible sebelum container di-expand
+                $loadingDiv.css('display', 'block');
+                $contentDiv.hide();
+
+                $materiContainer.slideDown(300, function() {
+                    // Setelah container di-expand, pastikan loading div visible
+                    $loadingDiv.css('display', 'block');
+                });
                 expandIcon.css('transform', 'rotate(90deg)');
                 $groupRow.addClass('expanded');
                 saveGroupExpandState(santriKey, groupType, semester, true);
 
-                var $loadingDiv = $table.find('.materi-loading-' + santriKey + '-' + groupType);
-                var $contentDiv = $table.find('.materi-content-' + santriKey + '-' + groupType);
-
                 if ($contentDiv.is(':empty') || $contentDiv.data('loaded') !== true) {
                     var idSantri = $santriRow.data('santri-id');
                     var idKelas = $santriRow.data('kelas-id');
-
-                    $loadingDiv.show();
-                    $contentDiv.hide();
 
                     $.ajax({
                         url: '<?= base_url('backend/dashboard/getMateriPerSantri') ?>',
@@ -1284,7 +1289,7 @@ function render_progress_bar($persentase, $height = 25)
                                 var materiList = groupType === 'sudah' ? response.data.sudahDinilai : response.data.belumDinilai;
                                 var htmlContent = '';
 
-                                if (materiList.length > 0) {
+                                if (materiList && materiList.length > 0) {
                                     materiList.forEach(function(materi) {
                                         var badgeClass = materi.Nilai > 0 ? 'badge-success' : 'badge-danger';
                                         var nilaiText = materi.Nilai > 0 ? materi.Nilai : '0';
@@ -1302,12 +1307,14 @@ function render_progress_bar($persentase, $height = 25)
                         },
                         error: function(xhr, status, error) {
                             $loadingDiv.hide();
-                            $contentDiv.html('<div class="alert alert-danger" style="margin: 10px 80px;">Error: ' + error + '</div>').show();
-                            console.error('[DASHBOARD] AJAX Error loading materi:', error);
+                            var errorMsg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : error;
+                            $contentDiv.html('<div class="alert alert-danger" style="margin: 10px 80px;">Error: ' + errorMsg + '</div>').show();
+                            console.error('[DASHBOARD] AJAX Error loading materi:', error, xhr);
                         }
                     });
                 } else {
                     $contentDiv.show();
+                    $loadingDiv.hide();
                 }
             }
         }

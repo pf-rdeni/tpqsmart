@@ -2372,6 +2372,45 @@ class Dashboard extends BaseController
                 ])->setStatusCode(400);
             }
 
+            // Jika IdTpq tidak ada di session (misalnya untuk admin), ambil dari data santri
+            if (empty($idTpq)) {
+                // Coba ambil dari tbl_nilai berdasarkan IdSantri, IdKelas, dan Semester
+                $nilaiData = $this->db->table('tbl_nilai')
+                    ->select('IdTpq')
+                    ->where('IdSantri', $idSantri)
+                    ->where('IdKelas', $idKelas)
+                    ->where('Semester', $semester)
+                    ->where('IdTahunAjaran', $idTahunAjaran)
+                    ->limit(1)
+                    ->get()
+                    ->getRowArray();
+
+                if (!empty($nilaiData) && !empty($nilaiData['IdTpq'])) {
+                    $idTpq = $nilaiData['IdTpq'];
+                } else {
+                    // Fallback: ambil dari tbl_santri_baru
+                    $santriData = $this->db->table('tbl_santri_baru')
+                        ->select('IdTpq')
+                        ->where('IdSantri', $idSantri)
+                        ->where('Active', 1)
+                        ->limit(1)
+                        ->get()
+                        ->getRowArray();
+
+                    if (!empty($santriData) && !empty($santriData['IdTpq'])) {
+                        $idTpq = $santriData['IdTpq'];
+                    }
+                }
+            }
+
+            // Jika masih tidak ada IdTpq, return error
+            if (empty($idTpq)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdTpq tidak ditemukan untuk santri ini'
+                ])->setStatusCode(400);
+            }
+
             // Ambil semua materi untuk kelas ini
             $allMateri = $this->helpFunctionModel->getMateriPelajaranByKelas($idTpq, $idKelas, $semester);
             

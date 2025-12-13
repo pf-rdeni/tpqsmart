@@ -636,459 +636,325 @@
                                             $isSemesterGenap = isSemesterGenap();
                                             ?>
 
-                                            <!-- Semester Ganjil -->
-                                            <div class="mb-4">
-                                                <div class="card card-outline card-secondary <?= !$isSemesterGanjil ? 'collapsed-card' : '' ?>">
-                                                    <div class="card-header">
-                                                        <h5 class="mb-0">
-                                                            <i class="fas fa-book-reader"></i> Semester Ganjil TA <?= esc($TahunAjaran ?? '') ?>
-                                                        </h5>
-                                                        <div class="card-tools">
-                                                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                                                <i class="fas <?= !$isSemesterGanjil ? 'fa-plus' : 'fa-minus' ?>"></i>
-                                                            </button>
+                                            <?php
+                                            // Loop untuk kedua semester (Ganjil dan Genap)
+                                            $semesterList = [
+                                                'Ganjil' => [
+                                                    'data' => $StatistikProgressNilaiPerTpq['Ganjil'] ?? [],
+                                                    'isActive' => $isSemesterGanjil,
+                                                    'tableId' => 'tabelProgressNilaiGanjil'
+                                                ],
+                                                'Genap' => [
+                                                    'data' => $StatistikProgressNilaiPerTpq['Genap'] ?? [],
+                                                    'isActive' => $isSemesterGenap,
+                                                    'tableId' => 'tabelProgressNilaiGenap'
+                                                ]
+                                            ];
+                                            ?>
+                                            <?php foreach ($semesterList as $semesterName => $semesterData): ?>
+                                                <!-- Semester <?= $semesterName ?> -->
+                                                <div class="mb-4">
+                                                    <div class="card card-outline card-secondary <?= !$semesterData['isActive'] ? 'collapsed-card' : '' ?>">
+                                                        <div class="card-header">
+                                                            <h5 class="mb-0">
+                                                                <i class="fas fa-book-reader"></i> Semester <?= $semesterName ?> TA <?= esc($TahunAjaran ?? '') ?>
+                                                            </h5>
+                                                            <div class="card-tools">
+                                                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                                    <i class="fas <?= !$semesterData['isActive'] ? 'fa-plus' : 'fa-minus' ?>"></i>
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <div class="table-responsive">
-                                                            <table id="tabelProgressNilaiGanjil" class="table table-bordered table-striped table-hover">
-                                                                <thead class="thead-light">
-                                                                    <tr>
-                                                                        <th class="text-center" style="width: 50px;">No</th>
-                                                                        <th style="width: 50px;"></th>
-                                                                        <th>Nama TPQ</th>
-                                                                        <th>Kelurahan/Desa</th>
-                                                                        <th class="text-center">Total Santri</th>
-                                                                        <th class="text-center">Sudah Dinilai</th>
-                                                                        <th class="text-center">Belum Dinilai</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <?php if (!empty($StatistikProgressNilaiPerTpq['Ganjil'])): ?>
-                                                                        <?php $no = 1; ?>
-                                                                        <?php foreach ($StatistikProgressNilaiPerTpq['Ganjil'] as $tpq): ?>
-                                                                            <?php
-                                                                            $tpqKey = md5($tpq['IdTpq']);
-                                                                            $hasDetail = !empty($tpq['Kelas']) && count($tpq['Kelas']) > 0;
-                                                                            ?>
-                                                                            <!-- Row TPQ (Parent) -->
-                                                                            <tr class="tpq-row" data-tpq-key="<?= $tpqKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
-                                                                                <td class="text-center"><?= $no++ ?></td>
-                                                                                <td class="text-center">
-                                                                                    <?php if ($hasDetail): ?>
-                                                                                        <i class="fas fa-chevron-right expand-icon" style="transition: transform 0.3s;"></i>
-                                                                                    <?php else: ?>
-                                                                                        <i class="fas fa-minus" style="color: #ccc;"></i>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <div>
-                                                                                        <strong><?= esc($tpq['NamaTpq']) ?></strong>
-                                                                                    </div>
-                                                                                    <?php if (empty($tpq['StatusTpq'])): ?>
-                                                                                        <div class="mt-2">
-                                                                                            <div class="progress" style="height: 25px;">
-                                                                                                <div class="progress-bar <?= $tpq['PersentaseSudah'] < 50 ? 'bg-danger' : ($tpq['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                                    style="width: <?= $tpq['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center;">
-                                                                                                    <?= $tpq['PersentaseSudah'] ?>%
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    <?php else: ?>
-                                                                                        <div class="mt-1">
-                                                                                            <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
-                                                                                        </div>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                                <td><?= esc($tpq['KelurahanDesa']) ?></td>
-                                                                                <td class="text-center">
-                                                                                    <span class="badge badge-info"><?= number_format($tpq['TotalSantri']) ?></span>
-                                                                                </td>
-                                                                                <td class="text-center">
-                                                                                    <?php if (!empty($tpq['StatusTpq'])): ?>
-                                                                                        <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
-                                                                                    <?php elseif ($tpq['TotalSudahDinilai'] > 0): ?>
-                                                                                        <span class="badge badge-success"><?= number_format($tpq['TotalSudahDinilai']) ?></span>
-                                                                                    <?php else: ?>
-                                                                                        <span class="badge badge-secondary">-</span>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                                <td class="text-center">
-                                                                                    <?php if (!empty($tpq['StatusTpq'])): ?>
-                                                                                        <span class="badge badge-secondary">-</span>
-                                                                                    <?php else: ?>
-                                                                                        <span class="badge badge-danger"><?= number_format($tpq['TotalBelumDinilai']) ?></span>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                            </tr>
-                                                                            <!-- Detail Kelas (Child rows - hidden by default) -->
-                                                                            <?php if ($hasDetail): ?>
-                                                                                <?php foreach ($tpq['Kelas'] as $kelas): ?>
-                                                                                    <?php
-                                                                                    $kelasKey = md5($tpq['IdTpq'] . '_' . $kelas['IdKelas']);
-                                                                                    $hasSantri = !empty($kelas['Santri']) && count($kelas['Santri']) > 0;
-                                                                                    ?>
-                                                                                    <tr class="kelas-row detail-<?= $tpqKey ?>" data-kelas-key="<?= $kelasKey ?>" style="display: none; background-color: #ffffff; cursor: pointer;">
-                                                                                        <td></td>
-                                                                                        <td class="text-center">
-                                                                                            <?php if ($hasSantri): ?>
-                                                                                                <i class="fas fa-chevron-right expand-icon-kelas" style="transition: transform 0.3s; color: #007bff;"></i>
-                                                                                            <?php else: ?>
-                                                                                                <i class="fas fa-angle-right text-muted"></i>
-                                                                                            <?php endif; ?>
-                                                                                        </td>
-                                                                                        <td colspan="2" style="padding-left: 40px;">
-                                                                                            <div>
-                                                                                                <strong><?= esc($kelas['NamaKelas']) ?></strong>
-                                                                                            </div>
-                                                                                            <?php if (empty($kelas['StatusKelas'])): ?>
-                                                                                                <div class="mt-2">
-                                                                                                    <div class="progress" style="height: 20px;">
-                                                                                                        <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                                            style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
-                                                                                                            <?= $kelas['PersentaseSudah'] ?>%
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            <?php else: ?>
-                                                                                                <div class="mt-1">
-                                                                                                    <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
-                                                                                                </div>
-                                                                                            <?php endif; ?>
-                                                                                        </td>
-                                                                                        <td class="text-center">
-                                                                                            <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
-                                                                                        </td>
-                                                                                        <td class="text-center">
-                                                                                            <?php if (!empty($kelas['StatusKelas'])): ?>
-                                                                                                <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
-                                                                                            <?php elseif ($kelas['SudahDinilai'] > 0): ?>
-                                                                                                <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
-                                                                                            <?php else: ?>
-                                                                                                <span class="badge badge-secondary">-</span>
-                                                                                            <?php endif; ?>
-                                                                                        </td>
-                                                                                        <td class="text-center">
-                                                                                            <?php if (!empty($kelas['StatusKelas'])): ?>
-                                                                                                <span class="badge badge-secondary">-</span>
-                                                                                            <?php else: ?>
-                                                                                                <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
-                                                                                            <?php endif; ?>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                    <!-- Detail Santri (Grandchild rows - hidden by default) -->
-                                                                                    <?php if ($hasSantri): ?>
-                                                                                        <?php foreach ($kelas['Santri'] as $santri): ?>
-                                                                                            <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
-                                                                                                <td></td>
-                                                                                                <td class="text-center">
-                                                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
-                                                                                                        <?php
-                                                                                                        // Ambil foto profil santri
-                                                                                                        $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
-                                                                                                        $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
-                                                                                                        $photoProfil = $santri['PhotoProfil'] ?? null;
-                                                                                                        if (!empty($photoProfil)) {
-                                                                                                            $thumbnailFile = 'thumb_' . $photoProfil;
-                                                                                                            $thumbnailFullPath = FCPATH . 'uploads/santri/thumbnails/' . $thumbnailFile;
-                                                                                                            if (file_exists($thumbnailFullPath)) {
-                                                                                                                $photoUrl = $thumbnailPath . $thumbnailFile;
-                                                                                                            } else {
-                                                                                                                // Fallback ke foto asli jika thumbnail tidak ada
-                                                                                                                $photoFullPath = FCPATH . 'uploads/santri/' . $photoProfil;
-                                                                                                                if (file_exists($photoFullPath)) {
-                                                                                                                    $photoUrl = $uploadPath . $photoProfil;
-                                                                                                                } else {
-                                                                                                                    $photoUrl = base_url('images/no-photo.jpg');
-                                                                                                                }
-                                                                                                            }
-                                                                                                        } else {
-                                                                                                            $photoUrl = base_url('images/no-photo.jpg');
-                                                                                                        }
-                                                                                                        ?>
-                                                                                                        <img src="<?= $photoUrl ?>"
-                                                                                                            alt="Foto <?= esc($santri['NamaSantri']) ?>"
-                                                                                                            style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6; cursor: pointer;"
-                                                                                                            onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
-                                                                                                    </a>
-                                                                                                </td>
-                                                                                                <td colspan="2" style="padding-left: 80px;">
-                                                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Ganjil') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
-                                                                                                        <div>
-                                                                                                            <strong><?= esc($santri['NamaSantri']) ?></strong>
-                                                                                                        </div>
-                                                                                                        <div>
-                                                                                                            <span class="text-muted small">ID: <?= esc($santri['IdSantri']) ?></span>
-                                                                                                        </div>
-                                                                                                        <div class="mt-2">
-                                                                                                            <div class="progress" style="height: 18px;">
-                                                                                                                <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                                                    style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
-                                                                                                                    <?= $santri['PersentaseSudah'] ?>%
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                    </a>
-                                                                                                </td>
-                                                                                                <td class="text-center">
-                                                                                                    <span class="badge badge-<?= esc($santri['StatusColor'] ?? 'secondary') ?>">
-                                                                                                        <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
-                                                                                                    </span>
-                                                                                                </td>
-                                                                                                <td class="text-center">
-                                                                                                    <span class="badge badge-info"><?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?></span>
-                                                                                                </td>
-                                                                                                <td class="text-center">
-                                                                                                    <?php if ($santri['MateriBelum'] > 0): ?>
-                                                                                                        <span class="badge badge-warning"><?= number_format($santri['MateriBelum']) ?> Materi</span>
-                                                                                                    <?php else: ?>
-                                                                                                        <span class="badge badge-success">Lengkap</span>
-                                                                                                    <?php endif; ?>
-                                                                                                </td>
-                                                                                            </tr>
-                                                                                        <?php endforeach; ?>
-                                                                                    <?php endif; ?>
-                                                                                <?php endforeach; ?>
-                                                                            <?php endif; ?>
-                                                                        <?php endforeach; ?>
-                                                                    <?php else: ?>
+                                                        <div class="card-body">
+                                                            <div class="table-responsive">
+                                                                <table id="<?= $semesterData['tableId'] ?>" class="table table-bordered table-striped table-hover">
+                                                                    <thead class="thead-light">
                                                                         <tr>
-                                                                            <td colspan="7" class="text-center">Tidak ada data untuk semester Ganjil</td>
+                                                                            <th style="width: 50px;"></th>
+                                                                            <th>Nama TPQ</th>
+                                                                            <th>Kelurahan/Desa</th>
+                                                                            <th class="text-center">Total Santri</th>
+                                                                            <th class="text-center">Sudah Dinilai</th>
+                                                                            <th class="text-center">Belum Dinilai</th>
                                                                         </tr>
-                                                                    <?php endif; ?>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <?php if (!empty($semesterData['data'])): ?>
+                                                                            <?php foreach ($semesterData['data'] as $tpq): ?>
+                                                                                <?php
+                                                                                $tpqKey = md5($tpq['IdTpq']);
+                                                                                $hasDetail = !empty($tpq['Kelas']) && count($tpq['Kelas']) > 0;
+                                                                                ?>
+                                                                                <!-- Row TPQ (Parent) -->
+                                                                                <tr class="tpq-row" data-tpq-key="<?= $tpqKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
+                                                                                    <td class="text-center">
+                                                                                        <?php if ($hasDetail): ?>
+                                                                                            <i class="fas fa-chevron-right expand-icon" style="transition: transform 0.3s;"></i>
+                                                                                        <?php else: ?>
+                                                                                            <i class="fas fa-minus" style="color: #ccc;"></i>
+                                                                                        <?php endif; ?>
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <div>
+                                                                                            <strong><?= esc($tpq['NamaTpq']) ?></strong>
+                                                                                        </div>
+                                                                                        <?php if (empty($tpq['StatusTpq'])): ?>
+                                                                                            <div class="mt-2">
+                                                                                                <div class="progress" style="height: 25px; position: relative;">
+                                                                                                    <div class="progress-bar <?= $tpq['PersentaseSudah'] < 50 ? 'bg-danger' : ($tpq['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                                        style="width: <?= $tpq['PersentaseSudah'] ?>%;">
+                                                                                                    </div>
+                                                                                                    <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 15px; font-weight: 500; line-height: 25px; pointer-events: none;">
+                                                                                                        <?= $tpq['PersentaseSudah'] ?>%
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        <?php else: ?>
+                                                                                            <div class="mt-1">
+                                                                                                <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
+                                                                                            </div>
+                                                                                        <?php endif; ?>
+                                                                                    </td>
+                                                                                    <td><?= esc($tpq['KelurahanDesa']) ?></td>
+                                                                                    <td class="text-center">
+                                                                                        <span class="badge badge-info"><?= number_format($tpq['TotalSantri']) ?></span>
+                                                                                    </td>
+                                                                                    <td class="text-center">
+                                                                                        <?php if (!empty($tpq['StatusTpq'])): ?>
+                                                                                            <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
+                                                                                        <?php elseif ($tpq['TotalSudahDinilai'] > 0): ?>
+                                                                                            <span class="badge badge-success"><?= number_format($tpq['TotalSudahDinilai']) ?></span>
+                                                                                        <?php else: ?>
+                                                                                            <span class="badge badge-secondary">-</span>
+                                                                                        <?php endif; ?>
+                                                                                    </td>
+                                                                                    <td class="text-center">
+                                                                                        <?php if (!empty($tpq['StatusTpq'])): ?>
+                                                                                            <span class="badge badge-secondary">-</span>
+                                                                                        <?php else: ?>
+                                                                                            <span class="badge badge-danger"><?= number_format($tpq['TotalBelumDinilai']) ?></span>
+                                                                                        <?php endif; ?>
+                                                                                    </td>
+                                                                                </tr>
+                                                                                <!-- Detail Kelas (Child rows - hidden by default) -->
+                                                                                <?php if ($hasDetail): ?>
+                                                                                    <?php foreach ($tpq['Kelas'] as $kelas): ?>
+                                                                                        <?php
+                                                                                        $kelasKey = md5($tpq['IdTpq'] . '_' . $kelas['IdKelas']);
+                                                                                        $hasSantri = !empty($kelas['Santri']) && count($kelas['Santri']) > 0;
 
-                                            <!-- Semester Genap -->
-                                            <div class="mb-4">
-                                                <div class="card card-outline card-secondary <?= !$isSemesterGenap ? 'collapsed-card' : '' ?>">
-                                                    <div class="card-header">
-                                                        <h5 class="mb-0">
-                                                            <i class="fas fa-book-reader"></i> Semester Genap TA <?= esc($TahunAjaran ?? '') ?>
-                                                        </h5>
-                                                        <div class="card-tools">
-                                                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                                                <i class="fas <?= !$isSemesterGenap ? 'fa-plus' : 'fa-minus' ?>"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <div class="table-responsive">
-                                                            <table id="tabelProgressNilaiGenap" class="table table-bordered table-striped table-hover">
-                                                                <thead class="thead-light">
-                                                                    <tr>
-                                                                        <th class="text-center" style="width: 50px;">No</th>
-                                                                        <th style="width: 50px;"></th>
-                                                                        <th>Nama TPQ</th>
-                                                                        <th>Kelurahan/Desa</th>
-                                                                        <th class="text-center">Total Santri</th>
-                                                                        <th class="text-center">Sudah Dinilai</th>
-                                                                        <th class="text-center">Belum Dinilai</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <?php if (!empty($StatistikProgressNilaiPerTpq['Genap'])): ?>
-                                                                        <?php $no = 1; ?>
-                                                                        <?php foreach ($StatistikProgressNilaiPerTpq['Genap'] as $tpq): ?>
-                                                                            <?php
-                                                                            $tpqKey = md5($tpq['IdTpq']);
-                                                                            $hasDetail = !empty($tpq['Kelas']) && count($tpq['Kelas']) > 0;
-                                                                            ?>
-                                                                            <!-- Row TPQ (Parent) -->
-                                                                            <tr class="tpq-row" data-tpq-key="<?= $tpqKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
-                                                                                <td class="text-center"><?= $no++ ?></td>
-                                                                                <td class="text-center">
-                                                                                    <?php if ($hasDetail): ?>
-                                                                                        <i class="fas fa-chevron-right expand-icon" style="transition: transform 0.3s;"></i>
-                                                                                    <?php else: ?>
-                                                                                        <i class="fas fa-minus" style="color: #ccc;"></i>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <div>
-                                                                                        <strong><?= esc($tpq['NamaTpq']) ?></strong>
-                                                                                    </div>
-                                                                                    <?php if (empty($tpq['StatusTpq'])): ?>
-                                                                                        <div class="mt-2">
-                                                                                            <div class="progress" style="height: 25px;">
-                                                                                                <div class="progress-bar <?= $tpq['PersentaseSudah'] < 50 ? 'bg-danger' : ($tpq['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                                    style="width: <?= $tpq['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center;">
-                                                                                                    <?= $tpq['PersentaseSudah'] ?>%
+                                                                                        // Hitung total materi dan materi terisi per kelas
+                                                                                        $totalMateriKelas = 0;
+                                                                                        $materiTerisiKelas = 0;
+                                                                                        if ($hasSantri) {
+                                                                                            foreach ($kelas['Santri'] as $santri) {
+                                                                                                $totalMateriKelas += ($santri['TotalMateri'] ?? 0);
+                                                                                                $materiTerisiKelas += ($santri['MateriTerisi'] ?? 0);
+                                                                                            }
+                                                                                        }
+                                                                                        $persentaseMateriKelas = $totalMateriKelas > 0 ? round(($materiTerisiKelas / $totalMateriKelas) * 100, 1) : 0;
+                                                                                        ?>
+                                                                                        <tr class="kelas-row detail-<?= $tpqKey ?>" data-kelas-key="<?= $kelasKey ?>" style="display: none; background-color: #ffffff; cursor: pointer;">
+                                                                                            <td class="text-center">
+                                                                                                <?php if ($hasSantri): ?>
+                                                                                                    <i class="fas fa-chevron-right expand-icon-kelas" style="transition: transform 0.3s; color: #007bff;"></i>
+                                                                                                <?php else: ?>
+                                                                                                    <i class="fas fa-angle-right text-muted"></i>
+                                                                                                <?php endif; ?>
+                                                                                            </td>
+                                                                                            <td colspan="2" style="padding-left: 40px;">
+                                                                                                <div>
+                                                                                                    <strong><?= esc($kelas['NamaKelas']) ?></strong>
                                                                                                 </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    <?php else: ?>
-                                                                                        <div class="mt-1">
-                                                                                            <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
-                                                                                        </div>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                                <td><?= esc($tpq['KelurahanDesa']) ?></td>
-                                                                                <td class="text-center">
-                                                                                    <span class="badge badge-info"><?= number_format($tpq['TotalSantri']) ?></span>
-                                                                                </td>
-                                                                                <td class="text-center">
-                                                                                    <?php if (!empty($tpq['StatusTpq'])): ?>
-                                                                                        <span class="badge badge-<?= esc($tpq['StatusTpqColor']) ?>"><?= esc($tpq['StatusTpq']) ?></span>
-                                                                                    <?php elseif ($tpq['TotalSudahDinilai'] > 0): ?>
-                                                                                        <span class="badge badge-success"><?= number_format($tpq['TotalSudahDinilai']) ?></span>
-                                                                                    <?php else: ?>
-                                                                                        <span class="badge badge-secondary">-</span>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                                <td class="text-center">
-                                                                                    <?php if (!empty($tpq['StatusTpq'])): ?>
-                                                                                        <span class="badge badge-secondary">-</span>
-                                                                                    <?php else: ?>
-                                                                                        <span class="badge badge-danger"><?= number_format($tpq['TotalBelumDinilai']) ?></span>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                            </tr>
-                                                                            <!-- Detail Kelas (Child rows - hidden by default) -->
-                                                                            <?php if ($hasDetail): ?>
-                                                                                <?php foreach ($tpq['Kelas'] as $kelas): ?>
-                                                                                    <?php
-                                                                                    $kelasKey = md5($tpq['IdTpq'] . '_' . $kelas['IdKelas']);
-                                                                                    $hasSantri = !empty($kelas['Santri']) && count($kelas['Santri']) > 0;
-                                                                                    ?>
-                                                                                    <tr class="kelas-row detail-<?= $tpqKey ?>" data-kelas-key="<?= $kelasKey ?>" style="display: none; background-color: #ffffff; cursor: pointer;">
-                                                                                        <td></td>
-                                                                                        <td class="text-center">
-                                                                                            <?php if ($hasSantri): ?>
-                                                                                                <i class="fas fa-chevron-right expand-icon-kelas" style="transition: transform 0.3s; color: #007bff;"></i>
-                                                                                            <?php else: ?>
-                                                                                                <i class="fas fa-angle-right text-muted"></i>
-                                                                                            <?php endif; ?>
-                                                                                        </td>
-                                                                                        <td colspan="2" style="padding-left: 40px;">
-                                                                                            <div>
-                                                                                                <strong><?= esc($kelas['NamaKelas']) ?></strong>
-                                                                                            </div>
-                                                                                            <?php if (empty($kelas['StatusKelas'])): ?>
                                                                                                 <div class="mt-2">
-                                                                                                    <div class="progress" style="height: 20px;">
-                                                                                                        <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                                            style="width: <?= $kelas['PersentaseSudah'] ?>%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
-                                                                                                            <?= $kelas['PersentaseSudah'] ?>%
+                                                                                                    <?php if (empty($kelas['StatusKelas'])): ?>
+                                                                                                        <div class="progress" style="height: 20px; margin-bottom: 5px; position: relative;">
+                                                                                                            <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                                                style="width: <?= $kelas['PersentaseSudah'] ?>%;">
+                                                                                                            </div>
+                                                                                                            <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 12px; font-weight: 500; line-height: 20px; pointer-events: none;">
+                                                                                                                <?= $kelas['PersentaseSudah'] ?>% (Santri)
+                                                                                                            </span>
                                                                                                         </div>
-                                                                                                    </div>
+                                                                                                    <?php else: ?>
+                                                                                                        <div style="margin-bottom: 5px;">
+                                                                                                            <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
+                                                                                                        </div>
+                                                                                                    <?php endif; ?>
+                                                                                                    <?php if ($hasSantri && $totalMateriKelas > 0): ?>
+                                                                                                        <div class="progress" style="height: 20px; position: relative;">
+                                                                                                            <div class="progress-bar <?= $persentaseMateriKelas < 50 ? 'bg-danger' : ($persentaseMateriKelas < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                                                style="width: <?= $persentaseMateriKelas ?>%;">
+                                                                                                            </div>
+                                                                                                            <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 12px; font-weight: 500; line-height: 20px; pointer-events: none;">
+                                                                                                                <?= $persentaseMateriKelas ?>% (Materi)
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                    <?php endif; ?>
                                                                                                 </div>
-                                                                                            <?php else: ?>
-                                                                                                <div class="mt-1">
+                                                                                            </td>
+                                                                                            <td class="text-center">
+                                                                                                <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
+                                                                                            </td>
+                                                                                            <td class="text-center">
+                                                                                                <?php if (!empty($kelas['StatusKelas'])): ?>
                                                                                                     <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
-                                                                                                </div>
-                                                                                            <?php endif; ?>
-                                                                                        </td>
-                                                                                        <td class="text-center">
-                                                                                            <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
-                                                                                        </td>
-                                                                                        <td class="text-center">
-                                                                                            <?php if (!empty($kelas['StatusKelas'])): ?>
-                                                                                                <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
-                                                                                            <?php elseif ($kelas['SudahDinilai'] > 0): ?>
-                                                                                                <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
-                                                                                            <?php else: ?>
-                                                                                                <span class="badge badge-secondary">-</span>
-                                                                                            <?php endif; ?>
-                                                                                        </td>
-                                                                                        <td class="text-center">
-                                                                                            <?php if (!empty($kelas['StatusKelas'])): ?>
-                                                                                                <span class="badge badge-secondary">-</span>
-                                                                                            <?php else: ?>
-                                                                                                <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
-                                                                                            <?php endif; ?>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                    <!-- Detail Santri (Grandchild rows - hidden by default) -->
-                                                                                    <?php if ($hasSantri): ?>
-                                                                                        <?php foreach ($kelas['Santri'] as $santri): ?>
-                                                                                            <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;">
-                                                                                                <td></td>
-                                                                                                <td class="text-center">
-                                                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
-                                                                                                        <?php
-                                                                                                        // Ambil foto profil santri
-                                                                                                        $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
-                                                                                                        $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
-                                                                                                        $photoProfil = $santri['PhotoProfil'] ?? null;
-                                                                                                        if (!empty($photoProfil)) {
-                                                                                                            $thumbnailFile = 'thumb_' . $photoProfil;
-                                                                                                            $thumbnailFullPath = FCPATH . 'uploads/santri/thumbnails/' . $thumbnailFile;
-                                                                                                            if (file_exists($thumbnailFullPath)) {
-                                                                                                                $photoUrl = $thumbnailPath . $thumbnailFile;
-                                                                                                            } else {
-                                                                                                                // Fallback ke foto asli jika thumbnail tidak ada
-                                                                                                                $photoFullPath = FCPATH . 'uploads/santri/' . $photoProfil;
-                                                                                                                if (file_exists($photoFullPath)) {
-                                                                                                                    $photoUrl = $uploadPath . $photoProfil;
+                                                                                                <?php elseif ($kelas['SudahDinilai'] > 0): ?>
+                                                                                                    <span class="badge badge-success"><?= number_format($kelas['SudahDinilai']) ?></span>
+                                                                                                <?php else: ?>
+                                                                                                    <span class="badge badge-secondary">-</span>
+                                                                                                <?php endif; ?>
+                                                                                            </td>
+                                                                                            <td class="text-center">
+                                                                                                <?php if (!empty($kelas['StatusKelas'])): ?>
+                                                                                                    <span class="badge badge-secondary">-</span>
+                                                                                                <?php else: ?>
+                                                                                                    <span class="badge badge-danger"><?= number_format($kelas['BelumDinilai']) ?></span>
+                                                                                                <?php endif; ?>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                        <!-- Detail Santri (Grandchild rows - hidden by default) -->
+                                                                                        <?php if ($hasSantri): ?>
+                                                                                            <?php foreach ($kelas['Santri'] as $santri): ?>
+                                                                                                <?php
+                                                                                                $santriKey = md5($santri['IdSantri'] . '_' . $kelasKey);
+                                                                                                $hasMateri = ($santri['TotalMateri'] ?? 0) > 0;
+                                                                                                ?>
+                                                                                                <tr class="santri-row detail-<?= $kelasKey ?>" style="display: none; background-color: #f8f9fa;" data-santri-key="<?= $santriKey ?>" data-santri-id="<?= $santri['IdSantri'] ?>" data-kelas-id="<?= $kelas['IdKelas'] ?>" data-semester="<?= $semesterName ?>">
+                                                                                                    <td class="text-center">
+                                                                                                        <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/' . $semesterName) ?>" style="text-decoration: none; cursor: pointer;" title="Input Nilai">
+                                                                                                            <?php
+                                                                                                            // Ambil foto profil santri
+                                                                                                            $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
+                                                                                                            $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                                                                                                            $photoProfil = $santri['PhotoProfil'] ?? null;
+                                                                                                            if (!empty($photoProfil)) {
+                                                                                                                $thumbnailFile = 'thumb_' . $photoProfil;
+                                                                                                                $thumbnailFullPath = FCPATH . 'uploads/santri/thumbnails/' . $thumbnailFile;
+                                                                                                                if (file_exists($thumbnailFullPath)) {
+                                                                                                                    $photoUrl = $thumbnailPath . $thumbnailFile;
                                                                                                                 } else {
-                                                                                                                    $photoUrl = base_url('images/no-photo.jpg');
+                                                                                                                    // Fallback ke foto asli jika thumbnail tidak ada
+                                                                                                                    $photoFullPath = FCPATH . 'uploads/santri/' . $photoProfil;
+                                                                                                                    if (file_exists($photoFullPath)) {
+                                                                                                                        $photoUrl = $uploadPath . $photoProfil;
+                                                                                                                    } else {
+                                                                                                                        $photoUrl = base_url('images/no-photo.jpg');
+                                                                                                                    }
                                                                                                                 }
+                                                                                                            } else {
+                                                                                                                $photoUrl = base_url('images/no-photo.jpg');
                                                                                                             }
-                                                                                                        } else {
-                                                                                                            $photoUrl = base_url('images/no-photo.jpg');
-                                                                                                        }
-                                                                                                        ?>
-                                                                                                        <img src="<?= $photoUrl ?>"
-                                                                                                            alt="Foto <?= esc($santri['NamaSantri']) ?>"
-                                                                                                            style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6; cursor: pointer;"
-                                                                                                            onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
-                                                                                                    </a>
-                                                                                                </td>
-                                                                                                <td colspan="2" style="padding-left: 80px;">
-                                                                                                    <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/Genap') ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai">
-                                                                                                        <div>
-                                                                                                            <strong><?= esc($santri['NamaSantri']) ?></strong>
-                                                                                                        </div>
-                                                                                                        <div>
-                                                                                                            <span class="text-muted small">ID: <?= esc($santri['IdSantri']) ?></span>
-                                                                                                        </div>
-                                                                                                        <div class="mt-2">
-                                                                                                            <div class="progress" style="height: 18px;">
-                                                                                                                <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                                                    style="width: <?= min(100, $santri['PersentaseSudah']) ?>%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
-                                                                                                                    <?= $santri['PersentaseSudah'] ?>%
+                                                                                                            ?>
+                                                                                                            <img src="<?= $photoUrl ?>"
+                                                                                                                alt="Foto <?= esc($santri['NamaSantri']) ?>"
+                                                                                                                style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dee2e6; cursor: pointer;"
+                                                                                                                onerror="this.src='<?= base_url('images/no-photo.jpg') ?>'">
+                                                                                                        </a>
+                                                                                                    </td>
+                                                                                                    <td colspan="2" style="padding-left: 80px; cursor: pointer;" class="santri-expand-cell">
+                                                                                                        <?php if ($hasMateri): ?>
+                                                                                                            <i class="fas fa-chevron-right expand-icon-santri" style="transition: transform 0.3s; color: #007bff; margin-right: 8px;"></i>
+                                                                                                        <?php else: ?>
+                                                                                                            <i class="fas fa-minus" style="color: #ccc; margin-right: 8px;"></i>
+                                                                                                        <?php endif; ?>
+                                                                                                        <a href="<?= base_url('backend/nilai/showDetail/' . $santri['IdSantri'] . '/' . $semesterName) ?>" style="color: inherit; text-decoration: none; cursor: pointer;" title="Input Nilai" onclick="event.stopPropagation();">
+                                                                                                            <div>
+                                                                                                                <strong><?= esc($santri['NamaSantri']) ?></strong>
+                                                                                                            </div>
+                                                                                                            <div>
+                                                                                                                <span class="text-muted small">ID: <?= esc($santri['IdSantri']) ?></span>
+                                                                                                            </div>
+                                                                                                            <div class="mt-2">
+                                                                                                                <div class="progress" style="height: 18px; position: relative;">
+                                                                                                                    <div class="progress-bar <?= $santri['PersentaseSudah'] < 50 ? 'bg-danger' : ($santri['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                                                        style="width: <?= min(100, $santri['PersentaseSudah']) ?>%;">
+                                                                                                                    </div>
+                                                                                                                    <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 11px; font-weight: 500; line-height: 18px; pointer-events: none;">
+                                                                                                                        <?= $santri['PersentaseSudah'] ?>%
+                                                                                                                    </span>
                                                                                                                 </div>
                                                                                                             </div>
-                                                                                                        </div>
-                                                                                                    </a>
-                                                                                                </td>
-                                                                                                <td class="text-center">
-                                                                                                    <span class="badge badge-<?= esc($santri['StatusColor'] ?? 'secondary') ?>">
-                                                                                                        <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
-                                                                                                    </span>
-                                                                                                </td>
-                                                                                                <td class="text-center">
-                                                                                                    <span class="badge badge-info"><?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?></span>
-                                                                                                </td>
-                                                                                                <td class="text-center">
-                                                                                                    <?php if ($santri['MateriBelum'] > 0): ?>
-                                                                                                        <span class="badge badge-warning"><?= number_format($santri['MateriBelum']) ?> Materi</span>
-                                                                                                    <?php else: ?>
-                                                                                                        <span class="badge badge-success">Lengkap</span>
+                                                                                                        </a>
+                                                                                                    </td>
+                                                                                                    <td class="text-center">
+                                                                                                        <span class="badge badge-<?= esc($santri['StatusColor'] ?? 'secondary') ?>">
+                                                                                                            <?= esc($santri['StatusSantri'] ?? 'Belum Dinilai') ?>
+                                                                                                        </span>
+                                                                                                    </td>
+                                                                                                    <td colspan="2" class="text-center">
+                                                                                                        <span class="badge badge-info">
+                                                                                                            <?= number_format($santri['MateriTerisi']) ?>/<?= number_format($santri['TotalMateri']) ?>
+                                                                                                            <?php if ($santri['MateriBelum'] > 0): ?>
+                                                                                                                <span class="ml-1"><?= number_format($santri['MateriBelum']) ?> Materi</span>
+                                                                                                            <?php endif; ?>
+                                                                                                        </span>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                                <!-- Group Sudah Dinilai dan Belum Dinilai (Tertutup secara default) -->
+                                                                                                <?php if ($hasMateri): ?>
+                                                                                                    <!-- Group Sudah Dinilai -->
+                                                                                                    <?php if (($santri['MateriTerisi'] ?? 0) > 0): ?>
+                                                                                                        <tr class="group-nilai-row detail-<?= $santriKey ?>" style="display: none; background-color: #e8f5e9;" data-group-type="sudah" data-santri-key="<?= $santriKey ?>">
+                                                                                                            <td></td>
+                                                                                                            <td style="padding-left: 100px; cursor: pointer;" class="group-expand-cell">
+                                                                                                                <i class="fas fa-chevron-right expand-icon-group" style="transition: transform 0.3s; color: #28a745; margin-right: 8px;"></i>
+                                                                                                                <span class="badge badge-success">Sudah Dinilai</span>
+                                                                                                                <span class="text-muted small ml-2"><?= number_format($santri['MateriTerisi']) ?> Materi</span>
+                                                                                                            </td>
+                                                                                                            <td colspan="4"></td>
+                                                                                                        </tr>
+                                                                                                        <!-- Individual Materi Sudah Dinilai (akan di-load via AJAX) -->
+                                                                                                        <tr class="materi-container detail-<?= $santriKey ?>-sudah" style="display: none;">
+                                                                                                            <td></td>
+                                                                                                            <td colspan="5" style="padding: 0;">
+                                                                                                                <div class="materi-loading-<?= $santriKey ?>-sudah" style="display: block; text-align: center; padding: 20px;">
+                                                                                                                    <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                                                                                                </div>
+                                                                                                                <div class="materi-content-<?= $santriKey ?>-sudah" style="display: none;"></div>
+                                                                                                            </td>
+                                                                                                        </tr>
                                                                                                     <?php endif; ?>
-                                                                                                </td>
-                                                                                            </tr>
-                                                                                        <?php endforeach; ?>
-                                                                                    <?php endif; ?>
-                                                                                <?php endforeach; ?>
-                                                                            <?php endif; ?>
-                                                                        <?php endforeach; ?>
-                                                                    <?php else: ?>
-                                                                        <tr>
-                                                                            <td colspan="7" class="text-center">Tidak ada data untuk semester Genap</td>
-                                                                        </tr>
-                                                                    <?php endif; ?>
-                                                                </tbody>
-                                                            </table>
+                                                                                                    <!-- Group Belum Dinilai -->
+                                                                                                    <?php if (($santri['MateriBelum'] ?? 0) > 0): ?>
+                                                                                                        <tr class="group-nilai-row detail-<?= $santriKey ?>" style="display: none; background-color: #ffebee;" data-group-type="belum" data-santri-key="<?= $santriKey ?>">
+                                                                                                            <td></td>
+                                                                                                            <td style="padding-left: 100px; cursor: pointer;" class="group-expand-cell">
+                                                                                                                <i class="fas fa-chevron-right expand-icon-group" style="transition: transform 0.3s; color: #dc3545; margin-right: 8px;"></i>
+                                                                                                                <span class="badge badge-danger">Belum Dinilai</span>
+                                                                                                                <span class="text-muted small ml-2"><?= number_format($santri['MateriBelum']) ?> Materi</span>
+                                                                                                            </td>
+                                                                                                            <td colspan="4"></td>
+                                                                                                        </tr>
+                                                                                                        <!-- Individual Materi Belum Dinilai (akan di-load via AJAX) -->
+                                                                                                        <tr class="materi-container detail-<?= $santriKey ?>-belum" style="display: none;">
+                                                                                                            <td></td>
+                                                                                                            <td colspan="5" style="padding: 0;">
+                                                                                                                <div class="materi-loading-<?= $santriKey ?>-belum" style="display: block; text-align: center; padding: 20px;">
+                                                                                                                    <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                                                                                                                </div>
+                                                                                                                <div class="materi-content-<?= $santriKey ?>-belum" style="display: none;"></div>
+                                                                                                            </td>
+                                                                                                        </tr>
+                                                                                                    <?php endif; ?>
+                                                                                                <?php endif; ?>
+                                                                                            <?php endforeach; ?>
+                                                                                        <?php endif; ?>
+                                                                                    <?php endforeach; ?>
+                                                                                <?php endif; ?>
+                                                                            <?php endforeach; ?>
+                                                                        <?php else: ?>
+                                                                            <tr>
+                                                                                <td colspan="6" class="text-center">Tidak ada data untuk semester <?= $semesterName ?></td>
+                                                                            </tr>
+                                                                        <?php endif; ?>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            <?php endforeach; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -1422,6 +1288,8 @@
         const storageKeyCard = 'dashboardAdmin_cardExpand';
         const storageKeyTpq = 'dashboardAdmin_tpqExpand';
         const storageKeyKelas = 'dashboardAdmin_kelasExpand';
+        const storageKeySantri = 'dashboardAdmin_santriExpand';
+        const storageKeyGroup = 'dashboardAdmin_groupExpand';
 
         // Fungsi untuk menyimpan status expand card ke localStorage
         function saveCardExpandState(cardId, isExpanded) {
@@ -1463,6 +1331,36 @@
         function loadKelasExpandState(kelasKey, semester) {
             var key = semester + '_' + kelasKey;
             var states = JSON.parse(localStorage.getItem(storageKeyKelas) || '{}');
+            return states[key] === true;
+        }
+
+        // Fungsi untuk menyimpan status expand santri ke localStorage
+        function saveSantriExpandState(santriKey, semester, isExpanded) {
+            var key = semester + '_' + santriKey;
+            var states = JSON.parse(localStorage.getItem(storageKeySantri) || '{}');
+            states[key] = isExpanded;
+            localStorage.setItem(storageKeySantri, JSON.stringify(states));
+        }
+
+        // Fungsi untuk memuat status expand santri dari localStorage
+        function loadSantriExpandState(santriKey, semester) {
+            var key = semester + '_' + santriKey;
+            var states = JSON.parse(localStorage.getItem(storageKeySantri) || '{}');
+            return states[key] === true;
+        }
+
+        // Fungsi untuk menyimpan status expand group ke localStorage
+        function saveGroupExpandState(santriKey, groupType, semester, isExpanded) {
+            var key = semester + '_' + santriKey + '_' + groupType;
+            var states = JSON.parse(localStorage.getItem(storageKeyGroup) || '{}');
+            states[key] = isExpanded;
+            localStorage.setItem(storageKeyGroup, JSON.stringify(states));
+        }
+
+        // Fungsi untuk memuat status expand group dari localStorage
+        function loadGroupExpandState(santriKey, groupType, semester) {
+            var key = semester + '_' + santriKey + '_' + groupType;
+            var states = JSON.parse(localStorage.getItem(storageKeyGroup) || '{}');
             return states[key] === true;
         }
 
@@ -1543,15 +1441,46 @@
 
             if (detailRows.length > 0) {
                 if (detailRows.is(':visible')) {
-                    // Collapse - tutup semua level kelas dan santri yang terkait
+                    // Collapse - tutup semua level kelas, santri, group nilai, dan materi
+                    var $tpqRow = $(this);
+
                     detailRows.each(function() {
                         var $kelasRow = $(this);
                         var kelasKey = $kelasRow.data('kelas-key');
 
-                        // Jika ini adalah kelas-row yang expanded, collapse juga santri-rows-nya
+                        // Jika ini adalah kelas-row yang expanded, collapse juga semua child-nya
                         if ($kelasRow.hasClass('kelas-row') && kelasKey) {
                             var santriRows = $table.find('.detail-' + kelasKey);
-                            if (santriRows.length > 0 && santriRows.is(':visible')) {
+                            if (santriRows.length > 0) {
+                                santriRows.each(function() {
+                                    var $santriRow = $(this);
+                                    if ($santriRow.hasClass('santri-row')) {
+                                        var santriKey = $santriRow.data('santri-key');
+                                        if (santriKey) {
+                                            // Tutup materi container
+                                            var $materiContainers = $table.find('.materi-container.detail-' + santriKey + '-sudah, .materi-container.detail-' + santriKey + '-belum');
+                                            $materiContainers.slideUp(200);
+
+                                            // Tutup group nilai
+                                            var $groupRows = $table.find('.group-nilai-row.detail-' + santriKey);
+                                            $groupRows.slideUp(200);
+                                            $groupRows.removeClass('expanded');
+                                            $groupRows.find('.expand-icon-group').css('transform', 'rotate(0deg)');
+
+                                            // Reset icon expand santri
+                                            $santriRow.find('.expand-icon-santri').css('transform', 'rotate(0deg)');
+                                            $santriRow.removeClass('expanded');
+
+                                            // Update localStorage untuk santri dan group
+                                            var santriSemester = $santriRow.data('semester') || semester;
+                                            saveSantriExpandState(santriKey, santriSemester, false);
+                                            saveGroupExpandState(santriKey, 'sudah', santriSemester, false);
+                                            saveGroupExpandState(santriKey, 'belum', santriSemester, false);
+                                        }
+                                    }
+                                });
+
+                                // Tutup santri rows
                                 santriRows.slideUp(200);
                                 var kelasExpandIcon = $kelasRow.find('.expand-icon-kelas');
                                 kelasExpandIcon.css('transform', 'rotate(0deg)');
@@ -1563,17 +1492,15 @@
                         }
                     });
 
-                    // Collapse semua detail rows (kelas) - pastikan semua santri rows juga tertutup
-                    detailRows.slideUp(300, function() {
-                        // Setelah kelas rows tertutup, pastikan semua santri rows juga tertutup
-                        var allSantriRows = $table.find('.santri-row');
-                        allSantriRows.hide();
-                    });
-                    expandIcon.css('transform', 'rotate(0deg)');
-                    $(this).removeClass('expanded');
-                    if (semester) {
-                        saveTpqExpandState(tpqKey, semester, false);
-                    }
+                    // Collapse semua detail rows (kelas) setelah semua child tertutup
+                    setTimeout(function() {
+                        detailRows.slideUp(300);
+                        expandIcon.css('transform', 'rotate(0deg)');
+                        $tpqRow.removeClass('expanded');
+                        if (semester) {
+                            saveTpqExpandState(tpqKey, semester, false);
+                        }
+                    }, 250);
                 } else {
                     // Expand
                     detailRows.slideDown(300);
@@ -1634,13 +1561,37 @@
 
             if (santriRows.length > 0) {
                 if (santriRows.is(':visible')) {
-                    // Collapse
-                    santriRows.slideUp(300);
-                    expandIcon.css('transform', 'rotate(0deg)');
-                    $(this).removeClass('expanded');
-                    if (semester) {
-                        saveKelasExpandState(kelasKey, semester, false);
-                    }
+                    // Collapse - tutup semua child rows (santri, group nilai, dan materi)
+                    var $kelasRow = $(this);
+                    santriRows.each(function() {
+                        var $santriRow = $(this);
+                        if ($santriRow.hasClass('santri-row')) {
+                            var santriKey = $santriRow.data('santri-key');
+                            if (santriKey) {
+                                var $santriTable = $santriRow.closest('table');
+                                var $materiContainers = $santriTable.find('.materi-container.detail-' + santriKey + '-sudah, .materi-container.detail-' + santriKey + '-belum');
+                                $materiContainers.slideUp(200);
+                                var $groupRows = $santriTable.find('.group-nilai-row.detail-' + santriKey);
+                                $groupRows.slideUp(200);
+                                $groupRows.removeClass('expanded');
+                                $groupRows.find('.expand-icon-group').css('transform', 'rotate(0deg)');
+                                $santriRow.find('.expand-icon-santri').css('transform', 'rotate(0deg)');
+                                $santriRow.removeClass('expanded');
+                                var santriSemester = $santriRow.data('semester') || semester;
+                                saveSantriExpandState(santriKey, santriSemester, false);
+                                saveGroupExpandState(santriKey, 'sudah', santriSemester, false);
+                                saveGroupExpandState(santriKey, 'belum', santriSemester, false);
+                            }
+                        }
+                    });
+                    setTimeout(function() {
+                        santriRows.slideUp(300);
+                        expandIcon.css('transform', 'rotate(0deg)');
+                        $kelasRow.removeClass('expanded');
+                        if (semester) {
+                            saveKelasExpandState(kelasKey, semester, false);
+                        }
+                    }, 250);
                 } else {
                     // Expand
                     santriRows.slideDown(300);
@@ -1692,6 +1643,209 @@
             } else {
                 $(this).css('background-color', '#ffffff');
             }
+        });
+
+        // Handle expand/collapse untuk santri
+        $(document).on('click', '.santri-expand-cell', function(e) {
+            e.stopPropagation();
+            var $santriRow = $(this).closest('.santri-row');
+            var santriKey = $santriRow.data('santri-key');
+            var semester = $santriRow.data('semester');
+            var $table = $santriRow.closest('table');
+            var $groupRows = $table.find('.group-nilai-row.detail-' + santriKey);
+            var expandIcon = $(this).find('.expand-icon-santri');
+
+            if ($groupRows.length > 0) {
+                if ($groupRows.is(':visible')) {
+                    $groupRows.slideUp(300);
+                    $table.find('.materi-container.detail-' + santriKey + '-sudah, .materi-container.detail-' + santriKey + '-belum').slideUp(300);
+                    expandIcon.css('transform', 'rotate(0deg)');
+                    $santriRow.removeClass('expanded');
+                    saveSantriExpandState(santriKey, semester, false);
+                } else {
+                    $groupRows.slideDown(300);
+                    expandIcon.css('transform', 'rotate(90deg)');
+                    $santriRow.addClass('expanded');
+                    saveSantriExpandState(santriKey, semester, true);
+                }
+            }
+        });
+
+        // Handle expand/collapse untuk group nilai
+        $(document).on('click', '.group-expand-cell', function(e) {
+            e.stopPropagation();
+            var $groupRow = $(this).closest('.group-nilai-row');
+            var groupType = $groupRow.data('group-type');
+            var santriKey = $groupRow.data('santri-key');
+            var $table = $groupRow.closest('table');
+            var $santriRow = $table.find('.santri-row[data-santri-key="' + santriKey + '"]');
+
+            // Pastikan santri row ditemukan
+            if ($santriRow.length === 0) {
+                console.error('[DASHBOARD ADMIN] Santri row tidak ditemukan untuk santriKey:', santriKey);
+                return;
+            }
+
+            var semester = $santriRow.data('semester');
+
+            // Jika semester tidak ditemukan dari data attribute, coba dari tabel
+            if (!semester) {
+                semester = getSemesterFromTable($table);
+            }
+
+            var $materiContainer = $table.find('.materi-container.detail-' + santriKey + '-' + groupType);
+            var expandIcon = $(this).find('.expand-icon-group');
+
+            if ($materiContainer.length > 0) {
+                if ($materiContainer.is(':visible')) {
+                    $materiContainer.slideUp(300);
+                    expandIcon.css('transform', 'rotate(0deg)');
+                    $groupRow.removeClass('expanded');
+                    saveGroupExpandState(santriKey, groupType, semester, false);
+                } else {
+                    // Expand materi dan load data jika belum di-load
+                    var $loadingDiv = $table.find('.materi-loading-' + santriKey + '-' + groupType);
+                    var $contentDiv = $table.find('.materi-content-' + santriKey + '-' + groupType);
+
+                    // Cek apakah data sudah di-load
+                    var isDataLoaded = !$contentDiv.is(':empty') && $contentDiv.data('loaded') === true;
+
+                    if (isDataLoaded) {
+                        // Jika data sudah di-load, langsung tampilkan content dan hide loading
+                        $loadingDiv.hide();
+                        $contentDiv.show();
+                    } else {
+                        // Jika data belum di-load, tampilkan loading dan load data
+                        $loadingDiv.css('display', 'block');
+                        $contentDiv.hide();
+                    }
+
+                    expandIcon.css('transform', 'rotate(90deg)');
+                    $groupRow.addClass('expanded');
+                    saveGroupExpandState(santriKey, groupType, semester, true);
+
+                    // Expand container
+                    $materiContainer.slideDown(300);
+
+                    if (!isDataLoaded) {
+                        var idSantri = $santriRow.data('santri-id');
+                        var idKelas = $santriRow.data('kelas-id');
+
+                        // Debug logging
+                        console.log('[DASHBOARD ADMIN] Loading materi:', {
+                            idSantri: idSantri,
+                            idKelas: idKelas,
+                            semester: semester,
+                            groupType: groupType,
+                            santriKey: santriKey
+                        });
+
+                        if (!idSantri || !idKelas || !semester) {
+                            $loadingDiv.hide();
+                            $contentDiv.html('<div class="alert alert-danger" style="margin: 10px 80px;">Error: Parameter tidak lengkap (IdSantri: ' + idSantri + ', IdKelas: ' + idKelas + ', Semester: ' + semester + ')</div>').show();
+                            return;
+                        }
+
+                        $.ajax({
+                            url: '<?= base_url('backend/dashboard/getMateriPerSantri') ?>',
+                            type: 'GET',
+                            data: {
+                                IdSantri: idSantri,
+                                IdKelas: idKelas,
+                                Semester: semester
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                console.log('[DASHBOARD ADMIN] AJAX Success:', response);
+                                $loadingDiv.hide();
+                                if (response && response.success) {
+                                    var materiList = groupType === 'sudah' ? response.data.sudahDinilai : response.data.belumDinilai;
+                                    console.log('[DASHBOARD ADMIN] Materi List (' + groupType + '):', materiList);
+                                    var htmlContent = '';
+
+                                    if (materiList && materiList.length > 0) {
+                                        materiList.forEach(function(materi) {
+                                            var badgeClass = materi.Nilai > 0 ? 'badge-success' : 'badge-danger';
+                                            var nilaiText = materi.Nilai > 0 ? materi.Nilai : '0';
+                                            var badgeHtml = '<span class="badge ' + badgeClass + '">' + nilaiText + '</span>';
+                                            htmlContent += '<div style="padding: 8px 0; padding-left: 41px; border-bottom: 1px solid #dee2e6;">Nilai ' + badgeHtml + ' - ' + materi.NamaMateri + '</div>';
+                                        });
+                                    } else {
+                                        htmlContent = '<div style="padding: 8px 0; padding-left: 41px; text-align: center; color: #6c757d;">Tidak ada data</div>';
+                                    }
+
+                                    $contentDiv.html(htmlContent).show().data('loaded', true);
+                                } else {
+                                    var errorMsg = response && response.message ? response.message : 'Gagal memuat data materi';
+                                    $contentDiv.html('<div class="alert alert-warning" style="margin: 10px 80px;">' + errorMsg + '</div>').show();
+                                    console.error('[DASHBOARD ADMIN] Response tidak sukses:', response);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                $loadingDiv.hide();
+                                var errorMsg = 'Error: ' + error;
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMsg = xhr.responseJSON.message;
+                                } else if (xhr.responseText) {
+                                    try {
+                                        var errorResponse = JSON.parse(xhr.responseText);
+                                        if (errorResponse.message) {
+                                            errorMsg = errorResponse.message;
+                                        }
+                                    } catch (e) {
+                                        errorMsg = 'Error: ' + xhr.status + ' ' + xhr.statusText;
+                                    }
+                                }
+                                $contentDiv.html('<div class="alert alert-danger" style="margin: 10px 80px;">' + errorMsg + '</div>').show();
+                                console.error('[DASHBOARD ADMIN] AJAX Error loading materi:', {
+                                    error: error,
+                                    status: status,
+                                    xhr: xhr,
+                                    responseText: xhr.responseText,
+                                    statusCode: xhr.status
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        // Load status expand santri dan group saat page load
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('.santri-row').each(function() {
+                    var $santriRow = $(this);
+                    var santriKey = $santriRow.data('santri-key');
+                    var semester = $santriRow.data('semester');
+                    var $table = $santriRow.closest('table');
+
+                    if (santriKey && semester) {
+                        var isExpanded = loadSantriExpandState(santriKey, semester);
+                        if (isExpanded) {
+                            var $groupRows = $table.find('.group-nilai-row.detail-' + santriKey);
+                            var expandIcon = $santriRow.find('.expand-icon-santri');
+
+                            if ($groupRows.length > 0) {
+                                $groupRows.show();
+                                expandIcon.css('transform', 'rotate(90deg)');
+                                $santriRow.addClass('expanded');
+
+                                $groupRows.each(function() {
+                                    var $groupRow = $(this);
+                                    var groupType = $groupRow.data('group-type');
+                                    var $materiContainer = $table.find('.materi-container.detail-' + santriKey + '-' + groupType);
+
+                                    $materiContainer.hide();
+                                    $groupRow.removeClass('expanded');
+                                    $groupRow.find('.expand-icon-group').css('transform', 'rotate(0deg)');
+                                    $table.find('.materi-content-' + santriKey + '-' + groupType).data('loaded', false);
+                                });
+                            }
+                        }
+                    }
+                });
+            }, 300);
         });
 
         // Jadwal Sholat - moved to helper function
