@@ -1605,15 +1605,35 @@
             // Load surah dan set values
             loadSurahAlquranForEdit().then(() => {
                 if (surah && surah.IdSurah) {
-                    $('#editSelectIdSurah').val(surah.IdSurah).trigger('change');
-                    $('#editNamaSurah').val(surah.Surah);
-                    $('#editIdKategori').val(materiAlquran.IdKategoriMateri || materi.IdKategori);
+                    // Verifikasi bahwa surah ada di dropdown
+                    const surahOption = $('#editSelectIdSurah').find(`option[value="${surah.IdSurah}"]`);
+                    if (surahOption.length > 0) {
+                        $('#editSelectIdSurah').val(surah.IdSurah).trigger('change');
+                        $('#editNamaSurah').val(surah.Surah || surah.NamaSurah);
+                        $('#editIdKategori').val(materiAlquran.IdKategoriMateri || materi.IdKategori);
 
-                    // Set max ayat
-                    if (surah.JumlahAyat) {
-                        $('#editAyatAwal').attr('max', surah.JumlahAyat);
-                        $('#editAyatAkhir').attr('max', surah.JumlahAyat);
-                        $('#editHintAyatAkhir').text(`Kosongkan jika hanya satu ayat (Maksimal: ${surah.JumlahAyat} ayat)`);
+                        // Set max ayat
+                        if (surah.JumlahAyat) {
+                            $('#editAyatAwal').attr('max', surah.JumlahAyat);
+                            $('#editAyatAkhir').attr('max', surah.JumlahAyat);
+                            $('#editHintAyatAkhir').text(`Kosongkan jika hanya satu ayat (Maksimal: ${surah.JumlahAyat} ayat)`);
+                        }
+                    } else {
+                        console.warn('Surah dengan IdSurah ' + surah.IdSurah + ' tidak ditemukan di dropdown');
+                        // Coba cari berdasarkan NoSurah sebagai fallback
+                        const surahByNo = editSurahData.find(s => (s.NoSurah || s.noSurah) == (surah.NoSurah || materiAlquran.IdSurah));
+                        if (surahByNo && surahByNo.IdSurah) {
+                            $('#editSelectIdSurah').val(surahByNo.IdSurah).trigger('change');
+                            $('#editNamaSurah').val(surahByNo.NamaSurah || surahByNo.Surah);
+                        } else {
+                            // Jika masih tidak ditemukan, set nama surah dari data yang ada
+                            $('#editNamaSurah').val(surah.Surah || surah.NamaSurah || materiAlquran.NamaSurah);
+                        }
+                    }
+                } else {
+                    // Jika surah tidak ditemukan, set nama surah dari materiAlquran
+                    if (materiAlquran.NamaSurah) {
+                        $('#editNamaSurah').val(materiAlquran.NamaSurah);
                     }
                 }
 

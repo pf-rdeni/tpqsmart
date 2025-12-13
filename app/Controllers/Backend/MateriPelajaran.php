@@ -890,10 +890,11 @@ class MateriPelajaran extends BaseController
             }
 
             // Ambil detail surah dari tbl_alquran
+            // Catatan: IdSurah di tbl_materi_alquran menyimpan NoSurah, bukan primary key id
             $db = \Config\Database::connect();
             $surah = $db->table('tbl_alquran')
-                ->select('id as IdSurah, NoSurah, Surah, JumlahAyat')
-                ->where('id', $materiAlquran['IdSurah'])
+                ->select('id as IdSurah, NoSurah, Surah, Surah as NamaSurah, JumlahAyat')
+                ->where('NoSurah', $materiAlquran['IdSurah'])
                 ->get()
                 ->getRowArray();
 
