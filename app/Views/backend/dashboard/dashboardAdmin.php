@@ -743,16 +743,24 @@
                                                                                         $kelasKey = md5($tpq['IdTpq'] . '_' . $kelas['IdKelas']);
                                                                                         $hasSantri = !empty($kelas['Santri']) && count($kelas['Santri']) > 0;
 
-                                                                                        // Hitung total materi dan materi terisi per kelas
+                                                                                        // Hitung progress materi per kelas
+                                                                                        // Progress Materi = total materi terisi dari total materi keseluruhan (total santri × total materi per santri)
+                                                                                        $persentaseMateriKelas = 0;
                                                                                         $totalMateriKelas = 0;
-                                                                                        $materiTerisiKelas = 0;
                                                                                         if ($hasSantri) {
+                                                                                            $totalMateriTerisi = 0;
+                                                                                            $totalMateriKeseluruhan = 0;
                                                                                             foreach ($kelas['Santri'] as $santri) {
-                                                                                                $totalMateriKelas += ($santri['TotalMateri'] ?? 0);
-                                                                                                $materiTerisiKelas += ($santri['MateriTerisi'] ?? 0);
+                                                                                                $totalMateri = ($santri['TotalMateri'] ?? 0);
+                                                                                                $materiTerisi = ($santri['MateriTerisi'] ?? 0);
+                                                                                                $totalMateriKeseluruhan += $totalMateri;
+                                                                                                $totalMateriTerisi += $materiTerisi;
+                                                                                            }
+                                                                                            $totalMateriKelas = $totalMateriKeseluruhan;
+                                                                                            if ($totalMateriKeseluruhan > 0) {
+                                                                                                $persentaseMateriKelas = round(($totalMateriTerisi / $totalMateriKeseluruhan) * 100, 1);
                                                                                             }
                                                                                         }
-                                                                                        $persentaseMateriKelas = $totalMateriKelas > 0 ? round(($materiTerisiKelas / $totalMateriKelas) * 100, 1) : 0;
                                                                                         ?>
                                                                                         <tr class="kelas-row detail-<?= $tpqKey ?>" data-kelas-key="<?= $kelasKey ?>" style="display: none; background-color: #ffffff; cursor: pointer;">
                                                                                             <td class="text-center">
@@ -768,27 +776,56 @@
                                                                                                 </div>
                                                                                                 <div class="mt-2">
                                                                                                     <?php if (empty($kelas['StatusKelas'])): ?>
-                                                                                                        <div class="progress" style="height: 20px; margin-bottom: 5px; position: relative;">
-                                                                                                            <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                                                style="width: <?= $kelas['PersentaseSudah'] ?>%;">
+                                                                                                        <?php
+                                                                                                        // Cek apakah progress Santri dan Materi sama 100% atau sama 0%
+                                                                                                        $isBoth100 = ($kelas['PersentaseSudah'] == 100 && $persentaseMateriKelas == 100 && $hasSantri && $totalMateriKelas > 0);
+                                                                                                        $isBoth0 = ($kelas['PersentaseSudah'] == 0 && $persentaseMateriKelas == 0 && $hasSantri && $totalMateriKelas > 0);
+                                                                                                        ?>
+                                                                                                        <?php if ($isBoth100): ?>
+                                                                                                            <!-- Tampilkan satu progress bar jika keduanya 100% -->
+                                                                                                            <div class="progress" style="height: 20px; position: relative;">
+                                                                                                                <div class="progress-bar bg-success"
+                                                                                                                    style="width: 100%;">
+                                                                                                                </div>
+                                                                                                                <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 12px; font-weight: 500; line-height: 20px; pointer-events: none;">
+                                                                                                                    100%
+                                                                                                                </span>
                                                                                                             </div>
-                                                                                                            <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 12px; font-weight: 500; line-height: 20px; pointer-events: none;">
-                                                                                                                <?= $kelas['PersentaseSudah'] ?>% (Santri)
-                                                                                                            </span>
-                                                                                                        </div>
+                                                                                                        <?php elseif ($isBoth0): ?>
+                                                                                                            <!-- Tampilkan satu progress bar jika keduanya 0% -->
+                                                                                                            <div class="progress" style="height: 20px; position: relative;">
+                                                                                                                <div class="progress-bar bg-danger"
+                                                                                                                    style="width: 0%;">
+                                                                                                                </div>
+                                                                                                                <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 12px; font-weight: 500; line-height: 20px; pointer-events: none;">
+                                                                                                                    0%
+                                                                                                                </span>
+                                                                                                            </div>
+                                                                                                        <?php else: ?>
+                                                                                                            <!-- Tampilkan progress bar Santri -->
+                                                                                                            <div class="progress" style="height: 20px; margin-bottom: 5px; position: relative;">
+                                                                                                                <div class="progress-bar <?= $kelas['PersentaseSudah'] < 50 ? 'bg-danger' : ($kelas['PersentaseSudah'] < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                                                    style="width: <?= $kelas['PersentaseSudah'] ?>%;">
+                                                                                                                </div>
+                                                                                                                <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 12px; font-weight: 500; line-height: 20px; pointer-events: none;">
+                                                                                                                    <?= $kelas['PersentaseSudah'] ?>% (Santri)
+                                                                                                                </span>
+                                                                                                            </div>
+                                                                                                            <!-- Tampilkan progress bar Materi jika ada -->
+                                                                                                            <?php if ($hasSantri && $totalMateriKelas > 0): ?>
+                                                                                                                <div class="progress" style="height: 20px; position: relative;">
+                                                                                                                    <div class="progress-bar <?= $persentaseMateriKelas < 50 ? 'bg-danger' : ($persentaseMateriKelas < 90 ? 'bg-warning' : 'bg-success') ?>"
+                                                                                                                        style="width: <?= $persentaseMateriKelas ?>%;">
+                                                                                                                    </div>
+                                                                                                                    <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 12px; font-weight: 500; line-height: 20px; pointer-events: none;">
+                                                                                                                        <?= $persentaseMateriKelas ?>% (Materi)
+                                                                                                                    </span>
+                                                                                                                </div>
+                                                                                                            <?php endif; ?>
+                                                                                                        <?php endif; ?>
                                                                                                     <?php else: ?>
                                                                                                         <div style="margin-bottom: 5px;">
                                                                                                             <span class="badge badge-<?= esc($kelas['StatusKelasColor']) ?>"><?= esc($kelas['StatusKelas']) ?></span>
-                                                                                                        </div>
-                                                                                                    <?php endif; ?>
-                                                                                                    <?php if ($hasSantri && $totalMateriKelas > 0): ?>
-                                                                                                        <div class="progress" style="height: 20px; position: relative;">
-                                                                                                            <div class="progress-bar <?= $persentaseMateriKelas < 50 ? 'bg-danger' : ($persentaseMateriKelas < 90 ? 'bg-warning' : 'bg-success') ?>"
-                                                                                                                style="width: <?= $persentaseMateriKelas ?>%;">
-                                                                                                            </div>
-                                                                                                            <span style="position: absolute; left: 50%; transform: translateX(-50%); color: #000; font-size: 12px; font-weight: 500; line-height: 20px; pointer-events: none;">
-                                                                                                                <?= $persentaseMateriKelas ?>% (Materi)
-                                                                                                            </span>
                                                                                                         </div>
                                                                                                     <?php endif; ?>
                                                                                                 </div>
