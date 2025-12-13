@@ -735,8 +735,8 @@ class MateriPelajaran extends BaseController
 
             // Generate NamaMateri
             $namaMateri = strtoupper($surah['Surah']);
-            // Tambahkan kata SURAT di depan nama surah
-            $namaMateri = 'SURAT ' . $namaMateri;
+            // Tambahkan kata SURAH di depan nama surah
+            $namaMateri = 'SURAH ' . $namaMateri;
 
             // Logika penamaan berdasarkan kondisi ayat:
             // 1. Jika AyatAwal = 1 dan AyatAkhir = 0/null/empty → hanya nama surah (tidak tulis nomor ayat)
@@ -965,8 +965,8 @@ class MateriPelajaran extends BaseController
 
             // Generate NamaMateri
             $namaMateri = strtoupper($surah['Surah']);
-            // Tambahkan kata SURAT di depan nama surah
-            $namaMateri = 'SURAT ' . $namaMateri;
+            // Tambahkan kata SURAH di depan nama surah
+            $namaMateri = 'SURAH ' . $namaMateri;
 
             // Logika penamaan berdasarkan kondisi ayat:
             // 1. Jika AyatAwal = 1 dan AyatAkhir = 0/null/empty → hanya nama surah (tidak tulis nomor ayat)
