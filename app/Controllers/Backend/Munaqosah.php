@@ -1233,12 +1233,13 @@ class Munaqosah extends BaseController
                 $roomValidationInfo['maxJuri'] = $maxJuriPerRoom;
 
                 if ($currentJuriCount >= $maxJuriPerRoom) {
+                    $settingKey = 'MaxJuriPerRoom_' . $idGrupMateriUjian;
                     return $this->response->setJSON([
                         'success' => false,
                         'status' => 'ROOM_VALIDATION_ERROR',
                         'code' => 'MAX_JURI_EXCEEDED',
                         'message' => 'Maksimal juri sudah tercapai',
-                        'details' => "Peserta {$noPeserta} sudah dinilai oleh {$currentJuriCount} juri (maksimal {$maxJuriPerRoom}).",
+                        'details' => "Peserta {$noPeserta} sudah dinilai oleh {$currentJuriCount} juri (maksimal {$maxJuriPerRoom}).\nSettingKey: {$settingKey} = {$maxJuriPerRoom}",
                         'roomInfo' => [
                             'currentCount' => $currentJuriCount,
                             'maxCount' => $maxJuriPerRoom
@@ -1466,8 +1467,11 @@ class Munaqosah extends BaseController
                 $idGrupMateriUjian = $juriData['IdGrupMateriUjian'];
 
                 if ($idGrupMateriUjian) {
+                    // Ambil IdTpq dari data juri, jika tidak ada gunakan default
+                    $juriIdTpq = $juriData['IdTpq'] ?? null;
+                    $configIdTpq = (!empty($juriIdTpq) && $juriIdTpq != 0) ? (string)$juriIdTpq : 'default';
+
                     // Cek apakah room validation aktif untuk grup materi ini
-                    $configIdTpq = $IdTpq ?? 'default';
                     $enableRoomValidation = $this->munaqosahKonfigurasiModel->getSetting(
                         $configIdTpq,
                         'EnableRoomValidation_' . $idGrupMateriUjian
@@ -1496,6 +1500,7 @@ class Munaqosah extends BaseController
                         }
 
                         // Cek maksimal juri per room untuk grup materi ini
+                        // $configIdTpq sudah didefinisikan di atas (baris 1472) dengan pengecekan IdTpq dari juri
                         $maxJuriPerRoom = $this->munaqosahKonfigurasiModel->getSettingAsInt(
                             $configIdTpq,
                             'MaxJuriPerRoom_' . $idGrupMateriUjian,
@@ -1510,12 +1515,13 @@ class Munaqosah extends BaseController
                         );
 
                         if ($currentJuriCount >= $maxJuriPerRoom) {
+                            $settingKey = 'MaxJuriPerRoom_' . $idGrupMateriUjian;
                             return $this->response->setJSON([
                                 'success' => false,
                                 'status' => 'ROOM_VALIDATION_ERROR',
                                 'code' => 'MAX_JURI_EXCEEDED',
                                 'message' => 'Maksimal juri sudah tercapai',
-                                'details' => "Peserta {$NoPeserta} sudah dinilai oleh {$currentJuriCount} juri (maksimal {$maxJuriPerRoom})."
+                                'details' => "Peserta {$NoPeserta} sudah dinilai oleh {$currentJuriCount} juri (maksimal {$maxJuriPerRoom}).\nSettingKey: {$settingKey} = {$maxJuriPerRoom}"
                             ]);
                         }
 
