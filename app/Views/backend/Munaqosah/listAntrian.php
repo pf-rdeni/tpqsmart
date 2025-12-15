@@ -640,6 +640,7 @@
                                 <thead>
                                     <tr>
                                         <th>No</th>
+                                        <th>Aksi</th>
                                         <th>Group Peserta</th>
                                         <th>No Peserta</th>
                                         <th>Nama Peserta</th>
@@ -647,7 +648,6 @@
                                         <th>Status</th>
                                         <th>Type Ujian</th>
                                         <th>Tanggal Dibuat</th>
-                                        <th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -693,28 +693,6 @@
                                         <tr>
                                             <td><?= $no++ ?></td>
                                             <td>
-                                                <?php
-                                                $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
-                                                // Ambil warna dari mapping dinamis, fallback ke secondary
-                                                $badgeColor = $groupColorMap[$groupPeserta] ?? 'badge-secondary';
-                                                ?>
-                                                <span class="badge <?= $badgeColor ?>"><?= $groupPeserta ?></span>
-                                            </td>
-                                            <td><?= $row['NoPeserta'] ?></td>
-                                            <td><?= $row['NamaSantri'] ?? '-' ?></td>
-                                            <td>
-                                                <?php if (!empty($row['RoomId'])): ?>
-                                                    <span class="badge badge-info"><?= $row['RoomId'] ?></span>
-                                                <?php else: ?>
-                                                    <span class="text-muted">-</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
-                                            </td>
-                                            <td><?= $typeResolved ?></td>
-                                            <td><?= !empty($row['created_at']) ? date('d/m/Y H:i', strtotime($row['created_at'])) : '-' ?></td>
-                                            <td>
                                                 <div class="btn-group" role="group">
                                                     <?php if ($status === 0): ?>
                                                         <button type="button" class="btn btn-sm btn-danger btn-open-room"
@@ -748,6 +726,28 @@
                                                     </a>
                                                 </div>
                                             </td>
+                                            <td>
+                                                <?php
+                                                $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
+                                                // Ambil warna dari mapping dinamis, fallback ke secondary
+                                                $badgeColor = $groupColorMap[$groupPeserta] ?? 'badge-secondary';
+                                                ?>
+                                                <span class="badge <?= $badgeColor ?>"><?= $groupPeserta ?></span>
+                                            </td>
+                                            <td><?= $row['NoPeserta'] ?></td>
+                                            <td><?= $row['NamaSantri'] ?? '-' ?></td>
+                                            <td>
+                                                <?php if (!empty($row['RoomId'])): ?>
+                                                    <span class="badge badge-info"><?= $row['RoomId'] ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
+                                            </td>
+                                            <td><?= $typeResolved ?></td>
+                                            <td><?= !empty($row['created_at']) ? date('d/m/Y H:i', strtotime($row['created_at'])) : '-' ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -898,6 +898,17 @@
         let isInitializing = true; // Flag untuk mencegah auto submit saat inisialisasi
         let isUserChange = false; // Flag untuk mengetahui apakah perubahan dari user
 
+        // Fungsi untuk mendapatkan parameter URL
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                tpq: params.get('tpq') || '',
+                group: params.get('group') || '',
+                type: params.get('type') || '',
+                tahun: params.get('tahun') || ''
+            };
+        }
+
         // Fungsi untuk menyimpan filter ke localStorage
         function saveFilterToStorage() {
             const filterData = {
@@ -909,7 +920,7 @@
             localStorage.setItem(filterStorageKey, JSON.stringify(filterData));
         }
 
-        // Fungsi untuk mendapatkan nilai filter saat ini dari URL atau form
+        // Fungsi untuk mendapatkan nilai filter saat ini dari form
         function getCurrentFilterValues() {
             return {
                 tpq: $('#tpq').length ? ($('#tpq').val() || '') : '',
@@ -917,6 +928,37 @@
                 type: $('#type').length ? ($('#type').val() || '') : '',
                 tahun: $('#tahun').val() || ''
             };
+        }
+
+        // Fungsi untuk memuat filter dari localStorage ke form
+        function loadFilterFromStorage() {
+            const savedFilterStr = localStorage.getItem(filterStorageKey);
+            if (!savedFilterStr) {
+                return null;
+            }
+
+            try {
+                return JSON.parse(savedFilterStr);
+            } catch (e) {
+                console.error('Error parsing filter from localStorage:', e);
+                return null;
+            }
+        }
+
+        // Fungsi untuk menerapkan filter ke form
+        function applyFilterToForm(filterData) {
+            if (filterData.tpq && $('#tpq').length) {
+                $('#tpq').val(filterData.tpq);
+            }
+            if (filterData.group && $('#group').length) {
+                $('#group').val(filterData.group);
+            }
+            if (filterData.type && $('#type').length) {
+                $('#type').val(filterData.type);
+            }
+            if (filterData.tahun && $('#tahun').length) {
+                $('#tahun').val(filterData.tahun);
+            }
         }
 
         // Fungsi untuk apply filter (submit form)
@@ -928,33 +970,50 @@
             $('form[method="get"]').submit();
         }
 
-        // Simpan nilai awal dari URL/form ke localStorage (jika belum ada atau berbeda)
-        const currentValues = getCurrentFilterValues();
-        const savedFilterStr = localStorage.getItem(filterStorageKey);
-        let savedFilter = null;
+        // Cek apakah ada parameter URL
+        const urlParams = getUrlParams();
+        const hasUrlParams = urlParams.tpq || urlParams.group || urlParams.type || urlParams.tahun;
 
-        if (savedFilterStr) {
-            try {
-                savedFilter = JSON.parse(savedFilterStr);
-            } catch (e) {
-                console.error('Error parsing filter from localStorage:', e);
-            }
-        }
-
-        // Jika belum ada filter yang disimpan, simpan nilai saat ini
-        if (!savedFilter) {
-            saveFilterToStorage();
+        // Jika ada parameter URL, gunakan parameter URL (prioritas) dan simpan ke localStorage
+        if (hasUrlParams) {
+            // Simpan parameter URL ke localStorage
+            localStorage.setItem(filterStorageKey, JSON.stringify(urlParams));
         } else {
-            // Bandingkan dengan nilai saat ini, jika berbeda update localStorage
-            const hasChanges = (
-                (savedFilter.tpq !== currentValues.tpq) ||
-                (savedFilter.group !== currentValues.group) ||
-                (savedFilter.type !== currentValues.type) ||
-                (savedFilter.tahun !== currentValues.tahun)
-            );
+            // Jika tidak ada parameter URL, coba muat dari localStorage
+            const savedFilter = loadFilterFromStorage();
+            if (savedFilter) {
+                // Terapkan filter dari localStorage ke form
+                applyFilterToForm(savedFilter);
 
-            if (hasChanges) {
-                // Update localStorage dengan nilai saat ini
+                // Cek apakah nilai dari localStorage berbeda dengan nilai default saat ini
+                const currentValues = getCurrentFilterValues();
+                const hasChanges = (
+                    (savedFilter.tpq && savedFilter.tpq !== currentValues.tpq) ||
+                    (savedFilter.group && savedFilter.group !== currentValues.group) ||
+                    (savedFilter.type && savedFilter.type !== currentValues.type) ||
+                    (savedFilter.tahun && savedFilter.tahun !== currentValues.tahun)
+                );
+
+                if (hasChanges) {
+                    // Build URL dengan parameter filter dari localStorage
+                    const baseUrl = '<?= base_url("backend/munaqosah/antrian") ?>';
+                    const params = [];
+                    if (savedFilter.tpq) params.push('tpq=' + encodeURIComponent(savedFilter.tpq));
+                    if (savedFilter.group) params.push('group=' + encodeURIComponent(savedFilter.group));
+                    if (savedFilter.type) params.push('type=' + encodeURIComponent(savedFilter.type));
+                    if (savedFilter.tahun) params.push('tahun=' + encodeURIComponent(savedFilter.tahun));
+
+                    if (params.length > 0) {
+                        // Redirect ke URL dengan parameter filter
+                        window.location.href = baseUrl + '?' + params.join('&');
+                        return; // Keluar dari fungsi untuk mencegah eksekusi lebih lanjut
+                    }
+                } else {
+                    // Jika tidak ada perubahan, tetap simpan nilai saat ini
+                    saveFilterToStorage();
+                }
+            } else {
+                // Jika tidak ada filter yang disimpan, simpan nilai saat ini
                 saveFilterToStorage();
             }
         }
@@ -962,12 +1021,14 @@
         // Set flag inisialisasi selesai setelah delay
         setTimeout(function() {
             isInitializing = false;
-        }, 300);
+        }, 500);
 
-        // Event handler untuk perubahan filter - Auto Apply
+        // Event handler untuk perubahan filter - Auto Apply dan Simpan ke localStorage
         $('#tpq, #group, #type').on('change', function() {
             if (!isInitializing) {
                 isUserChange = true;
+                // Simpan ke localStorage setiap kali ada perubahan
+                saveFilterToStorage();
                 applyFilter();
             }
         });

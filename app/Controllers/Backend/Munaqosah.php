@@ -2429,17 +2429,26 @@ class Munaqosah extends BaseController
             $occupiedQuery->where('TypeUjian', $typeUjian);
         }
 
-        // Filter IdTpq - perlu handle case IdTpq = 0 (panitia) dan null
-        if ($idTpq !== null) {
-            if ($idTpq == 0) {
-                // Untuk panitia, filter berdasarkan IdTpq mereka
-                $occupiedQuery->groupStart()
-                    ->where('IdTpq', 0)
-                    ->orWhere('IdTpq IS NULL', null, false)
-                    ->groupEnd();
-            } else {
-                // Untuk operator/admin dengan IdTpq tertentu
-                $occupiedQuery->where('IdTpq', $idTpq);
+        // Filter IdTpq berdasarkan TypeUjian
+        // Untuk Munaqosah: tidak filter IdTpq (semua peserta Munaqosah dihitung bersama)
+        // Untuk pra-munaqosah: filter berdasarkan IdTpq
+        if ($typeUjian === 'munaqosah') {
+            // Untuk Munaqosah, hitung semua peserta tanpa filter IdTpq
+            // Semua peserta Munaqosah (dengan berbagai IdTpq) dihitung bersama dalam satu ruangan
+            // Tidak perlu filter IdTpq
+        } else {
+            // Untuk pra-munaqosah, filter berdasarkan IdTpq
+            if ($idTpq !== null) {
+                if ($idTpq == 0) {
+                    // Untuk panitia, filter berdasarkan IdTpq mereka
+                    $occupiedQuery->groupStart()
+                        ->where('IdTpq', 0)
+                        ->orWhere('IdTpq IS NULL', null, false)
+                        ->groupEnd();
+                } else {
+                    // Untuk operator/admin dengan IdTpq tertentu
+                    $occupiedQuery->where('IdTpq', $idTpq);
+                }
             }
         }
 
