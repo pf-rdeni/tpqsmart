@@ -175,6 +175,25 @@ function render_progress_bar($persentase, $height = 25)
                             </div>
                         </div>
 
+                        <!-- Card Serah Terima Rapor -->
+                        <div class="row mt-3">
+                            <div class="col-lg-3 col-6 mb-3 mb-lg-0">
+                                <div class="small-box" style="background-color: #17a2b8; color: white;">
+                                    <div class="inner">
+                                        <h3 class="mobile-h3"><i class="fas fa-exchange-alt"></i></h3>
+                                        <p class="mb-1">Serah Terima Rapor</p>
+                                        <small class="d-block">Tracking Rapor</small>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <a href="<?= base_url('backend/rapor/serah-terima/' . getSemesterSaatIni()) ?>" class="small-box-footer" style="background: rgba(0,0,0,.1); color: rgba(255,255,255,.8);">
+                                        <span>Kelola Serah Terima </span><i class="fas fa-arrow-circle-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Statistik Kehadiran Per Minggu -->
                         <div class="row mt-3 mt-md-4">
                             <div class="col-12">

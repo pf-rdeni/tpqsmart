@@ -31,6 +31,7 @@ class Rapor extends BaseController
     protected $raportSettingModel;
     protected $absensiModel;
     protected $rombelWalikelasModel;
+    protected $serahTerimaRaporModel;
 
     public function __construct()
     {
@@ -46,6 +47,7 @@ class Rapor extends BaseController
         $this->raportSettingModel = new RaportSettingModel();
         $this->absensiModel = new AbsensiModel();
         $this->rombelWalikelasModel = new \App\Models\RombelWalikelasModel();
+        $this->serahTerimaRaporModel = new \App\Models\SerahTerimaRaporModel();
         ini_set('memory_limit', '256M');
         set_time_limit(300);
         mb_internal_encoding('UTF-8');
@@ -949,26 +951,112 @@ class Rapor extends BaseController
 
     public function getSantriByKelas($IdKelas)
     {
-        $IdTpq = session()->get('IdTpq');
-        $santriList = $this->santriBaruModel->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')->where([
-            'tbl_santri_baru.IdTpq' => $IdTpq,
-            'tbl_santri_baru.IdKelas' => $IdKelas,
-            'tbl_santri_baru.Active' => 1
-        ])->select('tbl_santri_baru.*, tbl_kelas.NamaKelas')->findAll();
+        try {
+            $IdTpq = session()->get('IdTpq');
+            $IdGuru = session()->get('IdGuru');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
 
-        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
-        foreach ($santriList as $santri) {
-            $namaKelasOriginal = $santri->NamaKelas;
+            if (empty($IdTpq) || empty($IdKelas)) {
+                return $this->response->setJSON([]);
+            }
 
-            // Check MDA mapping dan convert nama kelas jika sesuai
-            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
-            $santri->NamaKelas = $this->helpFunctionModel->convertKelasToMda(
-                $namaKelasOriginal,
-                $mdaCheckResult['mappedMdaKelas']
-            );
+            // Cek apakah user adalah Admin atau Operator
+            $isAdmin = in_groups('Admin');
+            $isOperator = in_groups('Operator');
+
+            // Cek apakah user adalah Kepala Sekolah
+            $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+            $isKepalaSekolah = false;
+            if (!empty($jabatanData)) {
+                foreach ($jabatanData as $jabatan) {
+                    $jabatanArray = is_object($jabatan) ? (array)$jabatan : $jabatan;
+                    if (isset($jabatanArray['NamaJabatan']) && $jabatanArray['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaSekolah = true;
+                        break;
+                    }
+                }
+            }
+
+            // Jika bukan Admin/Operator/Kepala Sekolah, validasi bahwa kelas tersebut diajar oleh guru
+            if (!($isAdmin || $isOperator || $isKepalaSekolah) && !empty($IdGuru)) {
+                $guruKelasData = $this->helpFunctionModel->getDataGuruKelas(
+                    IdGuru: $IdGuru,
+                    IdTpq: $IdTpq,
+                    IdTahunAjaran: $IdTahunAjaran
+                );
+
+                // Cek apakah IdKelas ada di kelas yang diajar
+                $isKelasDiajar = false;
+                foreach ($guruKelasData as $gk) {
+                    $gkArray = is_object($gk) ? (array)$gk : $gk;
+                    $namaJabatan = $gkArray['NamaJabatan'] ?? '';
+                    $idKelasGuru = $gkArray['IdKelas'] ?? '';
+                    if (($namaJabatan === 'Guru Kelas' || $namaJabatan === 'Wali Kelas') && $idKelasGuru == $IdKelas) {
+                        $isKelasDiajar = true;
+                        break;
+                    }
+                }
+
+                // Jika kelas tidak diajar, return empty
+                if (!$isKelasDiajar) {
+                    return $this->response->setJSON([]);
+                }
+            }
+
+            $santriList = $this->santriBaruModel->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')->where([
+                'tbl_santri_baru.IdTpq' => $IdTpq,
+                'tbl_santri_baru.IdKelas' => $IdKelas,
+                'tbl_santri_baru.Active' => 1
+            ])->select('tbl_santri_baru.*, tbl_kelas.NamaKelas')->findAll();
+
+            // Tambahkan nama Ayah dan Ibu ke response
+            foreach ($santriList as &$santri) {
+                $santriArray = is_object($santri) ? (array)$santri : $santri;
+                if (is_object($santri)) {
+                    $santri->NamaAyah = $santri->NamaAyah ?? '';
+                    $santri->NamaIbu = $santri->NamaIbu ?? '';
+                    $santri->StatusAyah = $santri->StatusAyah ?? '';
+                    $santri->StatusIbu = $santri->StatusIbu ?? '';
+                } else {
+                    $santri['NamaAyah'] = $santriArray['NamaAyah'] ?? '';
+                    $santri['NamaIbu'] = $santriArray['NamaIbu'] ?? '';
+                    $santri['StatusAyah'] = $santriArray['StatusAyah'] ?? '';
+                    $santri['StatusIbu'] = $santriArray['StatusIbu'] ?? '';
+                }
+            }
+
+            // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+            foreach ($santriList as &$santri) {
+                $santriArray = is_object($santri) ? (array)$santri : $santri;
+                $namaKelasOriginal = $santriArray['NamaKelas'] ?? '';
+
+                if (!empty($namaKelasOriginal)) {
+                    // Check MDA mapping dan convert nama kelas jika sesuai
+                    $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $namaKelasConverted = $this->helpFunctionModel->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+
+                    // Update nama kelas
+                    if (is_object($santri)) {
+                        $santri->NamaKelas = $namaKelasConverted;
+                    } else {
+                        $santri['NamaKelas'] = $namaKelasConverted;
+                    }
+                }
+            }
+            unset($santri); // Unset reference
+
+            return $this->response->setJSON($santriList);
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: getSantriByKelas - Error: ' . $e->getMessage());
+            log_message('error', 'Rapor: getSantriByKelas - Stack trace: ' . $e->getTraceAsString());
+            return $this->response->setJSON([
+                'error' => true,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ])->setStatusCode(500);
         }
-
-        return $this->response->setJSON($santriList);
     }
 
     public function printPdf($IdSantri, $semester)
@@ -3130,5 +3218,484 @@ class Rapor extends BaseController
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Halaman utama serah terima rapor
+     */
+    public function serahTerimaRapor($semester = null)
+    {
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $IdGuru = session()->get('IdGuru');
+
+        // Default semester jika tidak ada
+        if (empty($semester)) {
+            $currentMonth = (int)date('m');
+            $semester = ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
+        }
+
+        // Cek apakah user adalah Admin atau Operator
+        $isAdmin = in_groups('Admin');
+        $isOperator = in_groups('Operator');
+
+        // Cek apakah user adalah Kepala Sekolah
+        $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+        $isKepalaSekolah = false;
+        if (!empty($jabatanData)) {
+            foreach ($jabatanData as $jabatan) {
+                if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    $isKepalaSekolah = true;
+                    break;
+                }
+            }
+        }
+
+        // Ambil data santri per kelas
+        $dataSantri = [];
+        if ($isAdmin || $isOperator || $isKepalaSekolah) {
+            // Admin/Operator/Kepala Sekolah: ambil semua santri di TPQ
+            $dataSantri = $this->santriBaruModel->GetDataSantriPerKelas($IdTahunAjaran, 0, null);
+            // Filter berdasarkan IdTpq
+            $dataSantri = array_filter($dataSantri, function ($santri) use ($IdTpq) {
+                $santriArray = is_object($santri) ? (array)$santri : $santri;
+                return ($santriArray['IdTpq'] ?? '') == $IdTpq;
+            });
+        } else {
+            // Guru/Wali Kelas: ambil santri dari kelas yang diajar
+            $dataSantri = $this->santriBaruModel->GetDataSantriPerKelas($IdTahunAjaran, 0, $IdGuru);
+            // Filter berdasarkan IdTpq
+            $dataSantri = array_filter($dataSantri, function ($santri) use ($IdTpq) {
+                $santriArray = is_object($santri) ? (array)$santri : $santri;
+                return ($santriArray['IdTpq'] ?? '') == $IdTpq;
+            });
+        }
+
+        // Kelompokkan santri berdasarkan kelas (pastikan tidak ada duplikasi)
+        $santriPerKelas = [];
+        $dataKelas = [];
+        $santriProcessed = []; // Track santri yang sudah diproses per kelas
+
+        foreach ($dataSantri as $santri) {
+            $santriArray = is_object($santri) ? (array)$santri : $santri;
+            $idKelas = $santriArray['IdKelas'] ?? '';
+            $namaKelas = $santriArray['NamaKelas'] ?? '';
+            $idSantri = $santriArray['IdSantri'] ?? '';
+
+            if (empty($idKelas) || empty($idSantri)) {
+                continue;
+            }
+
+            // Cek apakah santri ini sudah ada di kelas ini (untuk menghindari duplikasi)
+            $santriKey = $idKelas . '_' . $idSantri;
+            if (isset($santriProcessed[$santriKey])) {
+                continue; // Skip jika sudah diproses
+            }
+            $santriProcessed[$santriKey] = true;
+
+            // Simpan kelas ke dataKelas
+            if (!isset($dataKelas[$idKelas])) {
+                $dataKelas[$idKelas] = $namaKelas;
+            }
+
+            // Kelompokkan santri per kelas
+            if (!isset($santriPerKelas[$idKelas])) {
+                $santriPerKelas[$idKelas] = [];
+            }
+
+            // Ambil status serah terima untuk setiap santri
+            $statusSerahTerima = $this->serahTerimaRaporModel->getLatestStatus(
+                $idSantri,
+                $IdTahunAjaran,
+                $semester
+            );
+
+            $santriArray['StatusSerahTerima'] = $statusSerahTerima;
+            $santriPerKelas[$idKelas][] = $santriArray;
+        }
+
+        // Filter kelas aktif (bukan Alumni)
+        $dataKelasFiltered = [];
+        $santriPerKelasFiltered = [];
+
+        foreach ($dataKelas as $idKelas => $namaKelas) {
+            // Cek apakah kelas adalah Alumni (case-insensitive)
+            // Filter: ALUMNI, Alumni, alumni, atau variasi lainnya
+            $namaKelasTrimmed = trim($namaKelas);
+            $namaKelasLower = strtolower($namaKelasTrimmed);
+            if ($namaKelasLower === 'alumni' || strpos($namaKelasLower, 'alumni') !== false) {
+                continue; // Skip kelas Alumni
+            }
+
+            $dataKelasFiltered[$idKelas] = $namaKelas;
+            if (isset($santriPerKelas[$idKelas])) {
+                $santriPerKelasFiltered[$idKelas] = $santriPerKelas[$idKelas];
+            }
+        }
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        foreach ($dataKelasFiltered as $idKelas => $namaKelas) {
+            $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($IdTpq, $namaKelas);
+            $dataKelasFiltered[$idKelas] = $this->helpFunctionModel->convertKelasToMda(
+                $namaKelas,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+        }
+
+        // Ambil data untuk view
+        $data = [
+            'page_title' => 'Serah Terima Rapor',
+            'dataKelas' => $dataKelasFiltered,
+            'santriPerKelas' => $santriPerKelasFiltered,
+            'semester' => $semester,
+            'IdTpq' => $IdTpq,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'IdGuru' => $IdGuru
+        ];
+
+        return view('backend/rapor/SerahTerimaRapor', $data);
+    }
+
+    /**
+     * Get data serah terima untuk datatable (AJAX)
+     */
+    public function getSerahTerimaData()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $IdGuru = session()->get('IdGuru');
+
+            // Cek apakah user adalah Admin atau Operator
+            $isAdmin = in_groups('Admin');
+            $isOperator = in_groups('Operator');
+
+            // Cek apakah user adalah Kepala Sekolah
+            $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
+            $isKepalaSekolah = false;
+            if (!empty($jabatanData)) {
+                foreach ($jabatanData as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaSekolah = true;
+                        break;
+                    }
+                }
+            }
+
+            $filters = [
+                'IdTpq' => $IdTpq,
+                'idTahunAjaran' => $IdTahunAjaran
+            ];
+
+            // Filter dari request
+            $IdKelas = $this->request->getPost('IdKelas');
+            $semester = $this->request->getPost('Semester');
+            $status = $this->request->getPost('Status');
+            $transaksi = $this->request->getPost('Transaksi');
+
+            // Jika bukan Admin/Operator/Kepala Sekolah, filter berdasarkan kelas yang diajar
+            if (!($isAdmin || $isOperator || $isKepalaSekolah) && !empty($IdGuru)) {
+                $guruKelasData = $this->helpFunctionModel->getDataGuruKelas(
+                    IdGuru: $IdGuru,
+                    IdTpq: $IdTpq,
+                    IdTahunAjaran: $IdTahunAjaran
+                );
+
+                // Ambil IdKelas yang diajar oleh guru
+                $listIdKelas = [];
+                foreach ($guruKelasData as $gk) {
+                    $gkArray = is_object($gk) ? (array)$gk : $gk;
+                    $namaJabatan = $gkArray['NamaJabatan'] ?? '';
+                    // Ambil kelas jika jabatan adalah Guru Kelas atau Wali Kelas
+                    if ($namaJabatan === 'Guru Kelas' || $namaJabatan === 'Wali Kelas') {
+                        if (!empty($gkArray['IdKelas'])) {
+                            $listIdKelas[] = $gkArray['IdKelas'];
+                        }
+                    }
+                }
+
+                // Jika ada filter IdKelas dari request, pastikan kelas tersebut ada di list kelas yang diajar
+                if (!empty($IdKelas)) {
+                    if (!in_array($IdKelas, $listIdKelas)) {
+                        // Jika kelas yang difilter tidak ada di kelas yang diajar, return empty
+                        return $this->response->setJSON([
+                            'status' => 'success',
+                            'data' => []
+                        ]);
+                    }
+                    $filters['IdKelas'] = $IdKelas;
+                } else {
+                    // Jika tidak ada filter IdKelas, filter berdasarkan semua kelas yang diajar
+                    if (!empty($listIdKelas)) {
+                        $filters['IdKelas'] = $listIdKelas; // Array untuk whereIn
+                    } else {
+                        // Jika tidak ada kelas yang diajar, return empty
+                        return $this->response->setJSON([
+                            'status' => 'success',
+                            'data' => []
+                        ]);
+                    }
+                }
+            } else {
+                // Admin/Operator/Kepala Sekolah: bisa filter atau tidak
+                if (!empty($IdKelas)) {
+                    $filters['IdKelas'] = $IdKelas;
+                }
+            }
+
+            if (!empty($semester)) {
+                $filters['Semester'] = $semester;
+            }
+
+            if (!empty($status)) {
+                $filters['Status'] = $status;
+            }
+
+            if (!empty($transaksi)) {
+                $filters['Transaksi'] = $transaksi;
+            }
+
+            $data = $this->serahTerimaRaporModel->getWithDetails($filters);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $data
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: getSerahTerimaData - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Simpan transaksi serah terima rapor
+     */
+    public function saveSerahTerima()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $IdGuru = session()->get('IdGuru');
+
+            if (empty($IdGuru)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'ID Guru tidak ditemukan di session'
+                ]);
+            }
+
+            // Ambil data dari POST
+            $IdSantri = $this->request->getPost('IdSantri');
+            $IdKelas = $this->request->getPost('IdKelas');
+            $semester = $this->request->getPost('Semester');
+            $namaWaliSantri = $this->request->getPost('NamaWaliSantri');
+            $tanggalTransaksi = $this->request->getPost('TanggalTransaksi');
+            
+            // Handle upload foto bukti (opsional)
+            $fotoBukti = null;
+            $fileFoto = $this->request->getFile('FotoBukti');
+            if ($fileFoto && $fileFoto->isValid() && !$fileFoto->hasMoved()) {
+                // Validasi ukuran file (max 5MB)
+                if ($fileFoto->getSize() > 5 * 1024 * 1024) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Ukuran file foto terlalu besar. Maksimal 5MB'
+                    ]);
+                }
+
+                // Validasi tipe file
+                $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!in_array($fileFoto->getMimeType(), $allowedTypes)) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Tipe file tidak diizinkan. Hanya JPG, PNG, atau GIF'
+                    ]);
+                }
+
+                // Generate nama file unik
+                $newName = $fileFoto->getRandomName();
+                $uploadPath = FCPATH . 'uploads/serah_terima_rapor/';
+                
+                // Buat folder jika belum ada
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                }
+
+                // Pindahkan file
+                if ($fileFoto->move($uploadPath, $newName)) {
+                    $fotoBukti = $newName;
+                } else {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Gagal mengupload foto bukti'
+                    ]);
+                }
+            }
+
+            // Validasi
+            if (empty($IdSantri) || empty($IdKelas) || empty($semester) || empty($namaWaliSantri)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Semua field harus diisi'
+                ]);
+            }
+
+            // Tentukan transaksi otomatis berdasarkan status saat ini
+            $latestStatus = $this->serahTerimaRaporModel->getLatestStatus($IdSantri, $IdTahunAjaran, $semester);
+
+            // Cek apakah sudah ada transaksi Serah
+            $hasSerah = $this->serahTerimaRaporModel->hasSerahTransaction($IdSantri, $IdTahunAjaran, $semester);
+
+            // Tentukan transaksi: jika belum ada serah -> Serah, jika sudah ada serah -> Terima
+            if (!$hasSerah) {
+                // Belum ada transaksi serah, lakukan transaksi Serah
+                $transaksi = 'Serah';
+            } else {
+                // Sudah ada transaksi serah, lakukan transaksi Terima
+                // Cek apakah sudah dikembalikan
+                if ($latestStatus && $latestStatus['Status'] === 'Sudah Dikembalikan') {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Rapor sudah dikembalikan sebelumnya.'
+                    ]);
+                }
+                $transaksi = 'Terima';
+            }
+
+            // Generate atau ambil HasKey untuk tahun ajaran ini
+            // HasKey digunakan untuk tracking per tahun ajaran (bisa untuk semester Ganjil dan Genap)
+            // Satu HasKey untuk satu IdSantri + IdTahunAjaran, digunakan untuk semua transaksi dalam tahun ajaran tersebut
+            $hasKey = null;
+
+            // Cek apakah sudah ada HasKey untuk IdSantri + IdTahunAjaran ini (tanpa filter Semester)
+            // Ini memastikan satu HasKey untuk satu tahun ajaran, bisa digunakan untuk tracking semester Ganjil dan Genap
+            $existingRecord = $this->serahTerimaRaporModel
+                ->where('IdSantri', $IdSantri)
+                ->where('idTahunAjaran', $IdTahunAjaran)
+                ->where('(HasKey IS NOT NULL AND HasKey != \'\')', null, false)
+                ->orderBy('TanggalTransaksi', 'ASC') // Ambil yang pertama (transaksi Serah pertama)
+                ->first();
+
+            if ($existingRecord && !empty($existingRecord['HasKey'])) {
+                // Jika sudah ada HasKey untuk tahun ajaran ini, gunakan yang sama
+                // Ini berlaku untuk semua transaksi (Serah dan Terima) dalam tahun ajaran yang sama
+                $hasKey = $existingRecord['HasKey'];
+            } else {
+                // Jika belum ada HasKey, generate baru (hanya untuk transaksi Serah pertama)
+                if ($transaksi === 'Serah') {
+                    $hasKey = $this->generateUniqueHasKey();
+                } else {
+                    // Untuk transaksi Terima, jika belum ada HasKey, berarti belum ada transaksi Serah
+                    // Ini seharusnya tidak terjadi karena logika controller sudah cek status sebelumnya
+                    // Tapi untuk safety, return error
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Tidak dapat melakukan transaksi Terima karena belum ada transaksi Serah untuk tahun ajaran ini.'
+                    ]);
+                }
+            }
+
+            // Tentukan status
+            $status = 'Belum Diserahkan';
+            if ($transaksi === 'Serah') {
+                $status = 'Sudah Diserahkan';
+            } elseif ($transaksi === 'Terima') {
+                $status = 'Sudah Dikembalikan';
+            }
+
+            // Format tanggal transaksi
+            if (empty($tanggalTransaksi)) {
+                // Jika kosong, gunakan tanggal hari ini dengan waktu 00:00:00
+                $tanggalTransaksi = date('Y-m-d') . ' 00:00:00';
+            } else {
+                // Handle format date (YYYY-MM-DD) atau datetime (YYYY-MM-DD HH:mm:ss)
+                if (strpos($tanggalTransaksi, ' ') === false && strpos($tanggalTransaksi, 'T') === false) {
+                    // Format date saja: YYYY-MM-DD, tambahkan waktu 00:00:00
+                    $tanggalTransaksi = $tanggalTransaksi . ' 00:00:00';
+                } elseif (strpos($tanggalTransaksi, 'T') !== false) {
+                    // Format datetime-local: YYYY-MM-DDTHH:mm
+                    $tanggalTransaksi = str_replace('T', ' ', $tanggalTransaksi);
+                    if (substr_count($tanggalTransaksi, ':') == 1) {
+                        $tanggalTransaksi .= ':00'; // Tambahkan detik jika belum ada
+                    }
+                }
+                // Pastikan format datetime
+                $tanggalTransaksi = date('Y-m-d H:i:s', strtotime($tanggalTransaksi));
+            }
+
+            // Simpan data
+            $data = [
+                'IdSantri' => $IdSantri,
+                'IdTpq' => $IdTpq,
+                'IdKelas' => $IdKelas,
+                'idTahunAjaran' => $IdTahunAjaran,
+                'Semester' => $semester,
+                'TanggalTransaksi' => $tanggalTransaksi,
+                'Transaksi' => $transaksi,
+                'IdGuru' => $IdGuru,
+                'NamaWaliSantri' => $namaWaliSantri,
+                'FotoBukti' => $fotoBukti,
+                'HasKey' => $hasKey,
+                'Status' => $status
+            ];
+
+            if ($this->serahTerimaRaporModel->save($data)) {
+                $insertId = $this->serahTerimaRaporModel->getInsertID();
+
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Data serah terima rapor berhasil disimpan',
+                    'data' => [
+                        'id' => $insertId,
+                        'HasKey' => $hasKey,
+                        'status' => $status
+                    ]
+                ]);
+            } else {
+                $errors = $this->serahTerimaRaporModel->errors();
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal menyimpan data',
+                    'errors' => $errors
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: saveSerahTerima - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Generate unique HasKey untuk serah terima rapor
+     */
+    private function generateUniqueHasKey()
+    {
+        do {
+            $hasKey = base64_encode(random_bytes(24));
+            $hasKey = str_replace(['+', '/', '='], ['-', '_', ''], $hasKey); // URL-safe
+
+        } while ($this->serahTerimaRaporModel->where('HasKey', $hasKey)->first());
+
+        return $hasKey;
     }
 }

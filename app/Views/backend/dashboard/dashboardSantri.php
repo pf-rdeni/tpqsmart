@@ -134,6 +134,80 @@
                             </div>
                         </div>
 
+                        <!-- Card Status Serah Terima Rapor -->
+                        <?php
+                        $serahTerimaRapor = $serahTerimaRapor ?? null;
+                        if ($serahTerimaRapor):
+                            // Tentukan semester saat ini
+                            $currentMonth = (int)date('m');
+                            $semesterSaatIni = ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
+                            $statusSaatIni = $serahTerimaRapor[$semesterSaatIni]['status'] ?? null;
+                            $hasKey = $statusSaatIni['HasKey'] ?? null;
+                            $statusText = $statusSaatIni['Status'] ?? 'Belum Diserahkan';
+                            
+                            // Tentukan warna badge
+                            $badgeClass = 'badge-warning';
+                            if ($statusText === 'Sudah Diserahkan') {
+                                $badgeClass = 'badge-info';
+                            } elseif ($statusText === 'Sudah Dikembalikan') {
+                                $badgeClass = 'badge-success';
+                            }
+                        ?>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card card-info card-outline">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="fas fa-file-alt"></i> Status Serah Terima Rapor
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h5>Semester <?= $semesterSaatIni ?></h5>
+                                                <p><strong>Status:</strong> <span class="badge <?= $badgeClass ?>"><?= esc($statusText) ?></span></p>
+                                                <?php if ($statusSaatIni): ?>
+                                                    <?php if (!empty($statusSaatIni['TanggalTransaksi'])): ?>
+                                                        <p><strong>Tanggal:</strong> <?= date('d F Y, H:i', strtotime($statusSaatIni['TanggalTransaksi'])) ?></p>
+                                                    <?php endif; ?>
+                                                    <?php if ($hasKey): ?>
+                                                        <p>
+                                                            <strong>Link Status:</strong><br>
+                                                            <small class="text-muted"><?= base_url('cek-status-rapor/' . $hasKey) ?></small>
+                                                            <button class="btn btn-sm btn-primary ml-2" onclick="copyToClipboard('<?= base_url('cek-status-rapor/' . $hasKey) ?>')">
+                                                                <i class="fas fa-copy"></i> Copy
+                                                            </button>
+                                                        </p>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h5>Semester <?= ($semesterSaatIni === 'Ganjil') ? 'Genap' : 'Ganjil' ?></h5>
+                                                <?php
+                                                $semesterLain = ($semesterSaatIni === 'Ganjil') ? 'Genap' : 'Ganjil';
+                                                $statusLain = $serahTerimaRapor[$semesterLain]['status'] ?? null;
+                                                $statusTextLain = $statusLain['Status'] ?? 'Belum Diserahkan';
+                                                
+                                                $badgeClassLain = 'badge-warning';
+                                                if ($statusTextLain === 'Sudah Diserahkan') {
+                                                    $badgeClassLain = 'badge-info';
+                                                } elseif ($statusTextLain === 'Sudah Dikembalikan') {
+                                                    $badgeClassLain = 'badge-success';
+                                                }
+                                                ?>
+                                                <p><strong>Status:</strong> <span class="badge <?= $badgeClassLain ?>"><?= esc($statusTextLain) ?></span></p>
+                                                <?php if ($statusLain && !empty($statusLain['TanggalTransaksi'])): ?>
+                                                    <p><strong>Tanggal:</strong> <?= date('d F Y, H:i', strtotime($statusLain['TanggalTransaksi'])) ?></p>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        </div>
+
                         <!-- Grafik Statistik Absensi -->
                         <?php
                         // Pastikan variabel hideGenap tersedia
@@ -494,6 +568,25 @@
 
 <?= $this->section('scripts'); ?>
 <script>
+function copyToClipboard(text) {
+    // Create a temporary input element
+    const tempInput = document.createElement('input');
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    
+    // Show feedback
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Link berhasil disalin ke clipboard',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
 $(document).ready(function() {
     // Data absensi dari PHP
     var absensiGanjil = {

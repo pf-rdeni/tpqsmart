@@ -547,6 +547,20 @@ class Search extends BaseController
                 'description' => 'Rapor semester genap',
             ];
             $menus[] = [
+                'title' => 'Serah Terima Semester Ganjil',
+                'url' => base_url('backend/rapor/serah-terima/Ganjil'),
+                'icon' => 'fas fa-exchange-alt',
+                'category' => 'Raport',
+                'description' => 'Serah terima rapor semester ganjil',
+            ];
+            $menus[] = [
+                'title' => 'Serah Terima Semester Genap',
+                'url' => base_url('backend/rapor/serah-terima/Genap'),
+                'icon' => 'fas fa-exchange-alt',
+                'category' => 'Raport',
+                'description' => 'Serah terima rapor semester genap',
+            ];
+            $menus[] = [
                 'title' => 'Kriteria Catatan Rapor',
                 'url' => base_url('backend/rapor/kriteriaCatatanRapor'),
                 'icon' => 'fas fa-clipboard-list',
@@ -1127,6 +1141,20 @@ class Search extends BaseController
                 'icon' => 'fas fa-file-alt',
                 'category' => 'Penilaian',
                 'description' => 'Rapor nilai semester genap',
+            ];
+            $menus[] = [
+                'title' => 'Serah Terima Semester Ganjil',
+                'url' => base_url('backend/rapor/serah-terima/Ganjil'),
+                'icon' => 'fas fa-exchange-alt',
+                'category' => 'Penilaian',
+                'description' => 'Serah terima rapor semester ganjil',
+            ];
+            $menus[] = [
+                'title' => 'Serah Terima Semester Genap',
+                'url' => base_url('backend/rapor/serah-terima/Genap'),
+                'icon' => 'fas fa-exchange-alt',
+                'category' => 'Penilaian',
+                'description' => 'Serah terima rapor semester genap',
             ];
             $menus[] = [
                 'title' => 'Kriteria Catatan Rapor',

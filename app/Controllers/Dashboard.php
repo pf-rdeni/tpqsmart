@@ -998,6 +998,10 @@ class Dashboard extends BaseController
         $prestasiModel = new \App\Models\PrestasiModel();
         $data['prestasi'] = $this->getPrestasiSantri($idSantri, $idTpq, $idTahunAjaran);
 
+        // Ambil data status serah terima rapor
+        $serahTerimaRaporModel = new \App\Models\SerahTerimaRaporModel();
+        $data['serahTerimaRapor'] = $this->getSerahTerimaRaporSantri($idSantri, $idTahunAjaran);
+
         return $data;
     }
 
@@ -1036,6 +1040,33 @@ class Dashboard extends BaseController
             'total' => $totalPrestasi,
             'terbaru' => $prestasiTerbaru,
             'byJenis' => $prestasiByJenis
+        ];
+    }
+
+    /**
+     * Ambil data serah terima rapor untuk santri
+     */
+    private function getSerahTerimaRaporSantri($idSantri, $idTahunAjaran)
+    {
+        $serahTerimaRaporModel = new \App\Models\SerahTerimaRaporModel();
+        
+        // Ambil status untuk semester Ganjil dan Genap
+        $statusGanjil = $serahTerimaRaporModel->getLatestStatus($idSantri, $idTahunAjaran, 'Ganjil');
+        $statusGenap = $serahTerimaRaporModel->getLatestStatus($idSantri, $idTahunAjaran, 'Genap');
+        
+        // Ambil semua transaksi untuk kedua semester
+        $allTransactionsGanjil = $serahTerimaRaporModel->getBySantri($idSantri, $idTahunAjaran, 'Ganjil');
+        $allTransactionsGenap = $serahTerimaRaporModel->getBySantri($idSantri, $idTahunAjaran, 'Genap');
+        
+        return [
+            'ganjil' => [
+                'status' => $statusGanjil,
+                'transactions' => $allTransactionsGanjil
+            ],
+            'genap' => [
+                'status' => $statusGenap,
+                'transactions' => $allTransactionsGenap
+            ]
         ];
     }
 

@@ -67,6 +67,10 @@ $routes->get('cek-status/(:segment)', 'Frontend\StatusUjianMunaqosah::index/$1')
 $routes->get('munaqosah/cek-status', 'Frontend\StatusUjianMunaqosah::index');
 $routes->get('munaqosah/cek-status/(:segment)', 'Frontend\StatusUjianMunaqosah::index/$1');
 $routes->post('munaqosah/verify-hashkey', 'Frontend\StatusUjianMunaqosah::verifyHashKey');
+
+// Routes untuk cek status rapor (public access)
+$routes->get('cek-status-rapor', 'Frontend\StatusRapor::index');
+$routes->get('cek-status-rapor/(:segment)', 'Frontend\StatusRapor::index/$1');
 $routes->get('munaqosah/konfirmasi-data', 'Frontend\StatusUjianMunaqosah::konfirmasiData');
 $routes->post('munaqosah/process-konfirmasi', 'Frontend\StatusUjianMunaqosah::processKonfirmasi');
 $routes->post('munaqosah/verifikasi-data', 'Frontend\StatusUjianMunaqosah::verifikasiData');
@@ -192,6 +196,12 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('rapor/settingMappingWaliKelas/(:num)', 'Rapor::settingMappingWaliKelas/$1');
     $routes->post('rapor/saveMappingWaliKelas', 'Rapor::saveMappingWaliKelas');
     $routes->post('rapor/deleteMappingWaliKelas', 'Rapor::deleteMappingWaliKelas');
+
+    // Routes untuk Serah Terima Rapor
+    $routes->get('rapor/serah-terima', 'Rapor::serahTerimaRapor');
+    $routes->get('rapor/serah-terima/(:segment)', 'Rapor::serahTerimaRapor/$1');
+    $routes->post('rapor/getSerahTerimaData', 'Rapor::getSerahTerimaData');
+    $routes->post('rapor/saveSerahTerima', 'Rapor::saveSerahTerima');
 
     // Routes untuk Group Kategori Rapor
     $routes->get('raporGroupKategori', 'RaporGroupKategori::index');

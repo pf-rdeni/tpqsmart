@@ -93,6 +93,8 @@ class Filters extends BaseFilters
                     'munaqosah/status-proses',
                     'munaqosah/kelulusan',
                     'munaqosah/generate-surat-kelulusan',
+                    'cek-status-rapor',  // Cek status rapor publik
+                    'cek-status-rapor/*', // Cek status rapor publik dengan parameter
                     'auth/logout', // untuk logout
                     'helpers/js/*', // JavaScript helper files (public access)
                     'helpers/js/(:segment)', // JavaScript helper files dengan segment (public access)
