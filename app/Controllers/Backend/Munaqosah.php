@@ -1845,6 +1845,10 @@ class Munaqosah extends BaseController
         // Ambil data antrian dengan detail lengkap berdasarkan filter
         $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
 
+        // Sort queue dengan prioritas waktu (Pagi/Siang)
+        // Prioritas: Status -> PrioritasWaktu (Pagi=1, Siang=2) -> created_at
+        $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $selectedTahun, $selectedType);
+
         // Ambil jumlah peserta per status (untuk statistik)
         $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
 
@@ -2701,6 +2705,10 @@ class Munaqosah extends BaseController
         }
 
         $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+
+        // Sort queue dengan prioritas waktu (Pagi/Siang)
+        $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $selectedTahun, $selectedType);
+
         $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
 
         $totalPeserta = array_sum($statusCounts);
@@ -3281,6 +3289,10 @@ class Munaqosah extends BaseController
         }
 
         $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+
+        // Sort queue dengan prioritas waktu (Pagi/Siang)
+        $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $selectedTahun, $selectedType);
+
         $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
 
         $totalPeserta = array_sum($statusCounts);
@@ -5519,7 +5531,7 @@ class Munaqosah extends BaseController
 
             // Ambil data peserta munaqosah dengan relasi ke tabel santri
             $builder = $this->db->table('tbl_munaqosah_peserta mp');
-            $builder->select('mp.*, s.*, t.NamaTpq, k.NamaKelas, 
+            $builder->select('mp.*, s.*, mp.IdTpq, t.NamaTpq, t.KelurahanDesa, k.NamaKelas, 
                             mn_munaqosah.NoPeserta as NoPesertaMunaqosah,
                             mn_pra.NoPeserta as NoPesertaPraMunaqosah');
             // Note: HasKey diambil dari tbl_munaqosah_peserta (mp) melalui mp.*
@@ -9249,6 +9261,9 @@ class Munaqosah extends BaseController
 
             $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
             $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+
+            // Sort queue dengan prioritas waktu (Pagi/Siang)
+            $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $currentTahunAjaran, $selectedType);
 
             $totalPeserta = array_sum($statusCounts);
             $totalSelesai = $statusCounts[2] ?? 0;

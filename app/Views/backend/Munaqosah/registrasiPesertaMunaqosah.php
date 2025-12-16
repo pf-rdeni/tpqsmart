@@ -295,6 +295,8 @@
                                                             <th width="17%">Nama Santri</th>
                                                             <th width="10%">Kelas</th>
                                                             <th width="10%">TPQ</th>
+                                                            <th width="8%">IdTpq</th>
+                                                            <th width="12%">Kelurahan/Desa</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody id="santriTableBody">
@@ -365,13 +367,19 @@
             return;
         }
 
+        // Hitung total jumlah peserta
+        let totalPeserta = 0;
+
         tpqData.forEach(function(tpq, index) {
+            const jumlahPeserta = parseInt(tpq.jumlah_peserta || 0);
+            totalPeserta += jumlahPeserta;
+
             const row = `
                 <tr>
                     <td class="text-center">${index + 1}</td>
                     <td>${tpq.NamaTpq || '-'}</td>
                     <td class="text-center">
-                        <span class="badge badge-info">${tpq.jumlah_peserta || 0}</span>
+                        <span class="badge badge-info">${jumlahPeserta}</span>
                     </td>
                     <td class="text-center">
                         <button type="button" class="btn btn-sm btn-primary print-tpq-btn" 
@@ -385,6 +393,20 @@
             `;
             tbody.append(row);
         });
+
+        // Tambahkan baris total di akhir
+        const totalRow = `
+            <tr style="background-color: #f8f9fa; font-weight: bold;">
+                <td class="text-center" colspan="2">
+                    <strong>TOTAL</strong>
+                </td>
+                <td class="text-center">
+                    <span class="badge badge-success" style="font-size: 1em;">${totalPeserta}</span>
+                </td>
+                <td class="text-center">-</td>
+            </tr>
+        `;
+        tbody.append(totalRow);
     }
 
     // Handle print button click per TPQ
@@ -668,6 +690,19 @@
             transform: scale(1.4);
         }
     }
+
+    /* DataTables Buttons Styling */
+    .dt-buttons {
+        margin-bottom: 10px;
+    }
+
+    .dt-buttons .btn {
+        margin-right: 5px;
+    }
+
+    .dt-buttons .btn i {
+        margin-right: 5px;
+    }
 </style>
 <script>
     $(document).ready(function() {
@@ -779,7 +814,7 @@
             destroyDataTable();
 
             // Show loading in table immediately
-            $('#santriTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data berdasarkan filter baru...</td></tr>');
+            $('#santriTableBody').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data berdasarkan filter baru...</td></tr>');
 
             // Load data with loading indicator
             loadSantriData();
@@ -1022,7 +1057,7 @@ ${text}
             });
 
             // Show table loading state
-            $('#santriTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+            $('#santriTableBody').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
 
             $.ajax({
                 url: '<?= base_url('backend/munaqosah/getSantriForRegistrasi') ?>',
@@ -1441,6 +1476,23 @@ ${text}
             }
         }
 
+        // Fungsi untuk mendapatkan info export
+        function getExportInfo() {
+            const filterTpqText = $('#filterTpq option:selected').text();
+            const filterKelasText = $('#filterKelas option:selected').text();
+            const typeUjianText = $('#typeUjian option:selected').text();
+            const tahunAjaran = $('#tahunAjaran').val();
+            const dateStr = new Date().toISOString().split('T')[0];
+            
+            const title = `Data Peserta Munaqosah - ${typeUjianText}`;
+            const filename = `Data_Peserta_Munaqosah_${typeUjianText.replace(/\s+/g, '_')}_${dateStr}`;
+            
+            return {
+                title: title,
+                filename: filename
+            };
+        }
+
         // Fungsi untuk inisialisasi DataTable
         function initializeSantriDataTable() {
             // Destroy DataTable lama jika ada
@@ -1458,6 +1510,51 @@ ${text}
                         [10, 20, 30, 50, 100, -1],
                         [10, 20, 30, 50, 100, "Semua"]
                     ],
+                    "dom": "Blfrtip",
+                    "buttons": [{
+                        extend: 'excel',
+                        text: '<i class="fas fa-file-excel"></i> Excel',
+                        className: 'btn btn-success btn-sm',
+                        action: function(e, dt, button, config) {
+                            const exportInfo = getExportInfo();
+                            config.title = exportInfo.title;
+                            config.filename = exportInfo.filename;
+                            $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
+                        },
+                        exportOptions: {
+                            columns: ':visible',
+                            modifier: {
+                                filter: 'applied',
+                                search: 'applied'
+                            },
+                            format: {
+                                body: function(data, row, column, node) {
+                                    // Hapus tag HTML dari data (seperti badge, button, icon, dll)
+                                    if (node) {
+                                        // Untuk kolom status (kolom 1), ambil text dari badge
+                                        if (column === 1) {
+                                            const badge = $(node).find('.badge');
+                                            if (badge.length) {
+                                                const hasCheckIcon = badge.find('.fa-check-circle.text-success').length > 0;
+                                                return hasCheckIcon ? 'Sudah Terdaftar' : 'Belum Terdaftar';
+                                            }
+                                            return $(node).text().trim() || data;
+                                        }
+                                        
+                                        // Untuk kolom checkbox (kolom 0), skip
+                                        if (column === 0) {
+                                            return '';
+                                        }
+                                        
+                                        // Untuk kolom lainnya, ambil text dari node
+                                        const text = $(node).text().trim();
+                                        return text || data;
+                                    }
+                                    return data;
+                                }
+                            }
+                        }
+                    }],
                     "language": {
                         "search": "Pencarian:",
                         "paginate": {
@@ -1468,7 +1565,10 @@ ${text}
                         "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
                         "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
                         "infoFiltered": "(disaring dari _MAX_ total entri)",
-                        "zeroRecords": "Tidak ada data yang ditemukan"
+                        "zeroRecords": "Tidak ada data yang ditemukan",
+                        "buttons": {
+                            "excel": "Export ke Excel"
+                        }
                     },
                     "order": [
                         [3, 'asc']
@@ -1520,7 +1620,7 @@ ${text}
             // Cek apakah data adalah array
             if (!Array.isArray(santriData)) {
                 console.error('Invalid data format:', santriData);
-                tbody.html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Format data tidak valid</td></tr>');
+                tbody.html('<tr><td colspan="8" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Format data tidak valid</td></tr>');
                 // Inisialisasi DataTable meskipun ada error untuk tetap menampilkan pesan error dengan fitur DataTable
                 setTimeout(() => {
                     initializeSantriDataTable();
@@ -1532,7 +1632,7 @@ ${text}
             const typeUjianText = typeUjian === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
 
             if (santriData.length === 0) {
-                tbody.html('<tr><td colspan="6" class="text-center text-muted"><i class="fas fa-info-circle"></i> Tidak ada data santri untuk filter yang dipilih</td></tr>');
+                tbody.html('<tr><td colspan="8" class="text-center text-muted"><i class="fas fa-info-circle"></i> Tidak ada data santri untuk filter yang dipilih</td></tr>');
 
                 // Show info toast
                 Swal.fire({
@@ -1614,6 +1714,8 @@ ${text}
                     <td>${santri.NamaSantri}</td>
                     <td>${santri.NamaKelas}</td>
                     <td>${santri.NamaTpq}</td>
+                    <td class="text-center">${santri.IdTpq || '-'}</td>
+                    <td>${santri.KelurahanDesa || '-'}</td>
                 </tr>
             `;
                 tbody.append(row);
@@ -2017,7 +2119,7 @@ ${text}
 
             // Destroy DataTable dan reload data
             destroyDataTable();
-            $('#santriTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+            $('#santriTableBody').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
             loadSantriData();
 
             updateProcessButton();
