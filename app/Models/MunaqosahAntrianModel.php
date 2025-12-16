@@ -362,4 +362,79 @@ class MunaqosahAntrianModel extends Model
 
         return !empty($result) ? $result[0] : null;
     }
+
+    /**
+     * Sort queue dengan prioritas waktu (Pagi/Siang)
+     * Prioritas: Status -> PrioritasWaktu (Pagi=1, Siang=2) -> created_at
+     * 
+     * @param array $queue Array data antrian
+     * @param string $idTahunAjaran ID Tahun Ajaran (untuk kompatibilitas)
+     * @param string $typeUjian Type Ujian (untuk kompatibilitas)
+     * @return array Array yang sudah diurutkan
+     */
+    public function sortQueueByTimePriority($queue, $idTahunAjaran = null, $typeUjian = null)
+    {
+        if (empty($queue) || !is_array($queue)) {
+            return $queue;
+        }
+
+        usort($queue, function ($a, $b) {
+            // Prioritas 1: Status (0=menunggu, 1=proses, 2=selesai)
+            // Urutkan: 0 (menunggu) -> 1 (proses) -> 2 (selesai)
+            $statusA = isset($a['Status']) ? (int)$a['Status'] : 0;
+            $statusB = isset($b['Status']) ? (int)$b['Status'] : 0;
+
+            if ($statusA !== $statusB) {
+                return $statusA <=> $statusB;
+            }
+
+            // Prioritas 2: PrioritasWaktu (Pagi=1, Siang=2)
+            // Jika field PrioritasWaktu ada, gunakan untuk sorting
+            // Jika tidak ada, skip ke prioritas berikutnya
+            $prioritasWaktuA = null;
+            $prioritasWaktuB = null;
+
+            // Cek apakah ada field PrioritasWaktu di data
+            if (isset($a['PrioritasWaktu'])) {
+                $prioritasWaktuA = (int)$a['PrioritasWaktu'];
+            } elseif (isset($a['prioritas_waktu'])) {
+                $prioritasWaktuA = (int)$a['prioritas_waktu'];
+            }
+
+            if (isset($b['PrioritasWaktu'])) {
+                $prioritasWaktuB = (int)$b['PrioritasWaktu'];
+            } elseif (isset($b['prioritas_waktu'])) {
+                $prioritasWaktuB = (int)$b['prioritas_waktu'];
+            }
+
+            // Jika kedua data memiliki PrioritasWaktu, bandingkan
+            if ($prioritasWaktuA !== null && $prioritasWaktuB !== null) {
+                if ($prioritasWaktuA !== $prioritasWaktuB) {
+                    return $prioritasWaktuA <=> $prioritasWaktuB;
+                }
+            } elseif ($prioritasWaktuA !== null) {
+                // A punya PrioritasWaktu, B tidak -> A lebih dulu (Pagi lebih prioritas)
+                return -1;
+            } elseif ($prioritasWaktuB !== null) {
+                // B punya PrioritasWaktu, A tidak -> B lebih dulu
+                return 1;
+            }
+
+            // Prioritas 3: created_at (yang lebih lama lebih dulu)
+            $createdAtA = isset($a['created_at']) ? strtotime($a['created_at']) : 0;
+            $createdAtB = isset($b['created_at']) ? strtotime($b['created_at']) : 0;
+
+            if ($createdAtA !== $createdAtB) {
+                return $createdAtA <=> $createdAtB;
+            }
+
+            // Jika semua sama, urutkan berdasarkan ID
+            $idA = isset($a['id']) ? (int)$a['id'] : 0;
+            $idB = isset($b['id']) ? (int)$b['id'] : 0;
+
+            return $idA <=> $idB;
+        });
+
+        return $queue;
+    }
 }
