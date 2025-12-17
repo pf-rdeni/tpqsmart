@@ -4856,12 +4856,55 @@ class Munaqosah extends BaseController
         try {
             $dataTerkait = [];
             $db = \Config\Database::connect();
-            
-            // Cek di tbl_nilai_munaqosah
-            $nilaiMunaqosah = $db->table('tbl_munaqosah_nilai')
-                ->where('IdSantri', $idSantri)
-                ->get()
-                ->getResultArray();
+
+            // Ambil data peserta untuk mendapatkan IdTahunAjaran
+            $peserta = $this->pesertaMunaqosahModel->where('IdSantri', $idSantri)->first();
+            if (!$peserta) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data peserta tidak ditemukan'
+                ]);
+            }
+
+            $idTahunAjaran = $peserta['IdTahunAjaran'] ?? null;
+
+            // Cek di tbl_munaqosah_registrasi_uji
+            $registrasiBuilder = $db->table('tbl_munaqosah_registrasi_uji')
+                ->where('IdSantri', $idSantri);
+
+            if ($idTahunAjaran) {
+                $registrasiBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+
+            $registrasiUji = $registrasiBuilder->get()->getResultArray();
+
+            if (!empty($registrasiUji)) {
+                // Hitung jumlah registrasi per type ujian
+                $registrasiByType = [];
+                foreach ($registrasiUji as $reg) {
+                    $type = $reg['TypeUjian'] ?? 'unknown';
+                    if (!isset($registrasiByType[$type])) {
+                        $registrasiByType[$type] = 0;
+                    }
+                    $registrasiByType[$type]++;
+                }
+
+                $dataTerkait['registrasi_uji'] = [
+                    'count' => count($registrasiUji),
+                    'data' => $registrasiUji,
+                    'by_type' => $registrasiByType
+                ];
+            }
+
+            // Cek di tbl_munaqosah_nilai
+            $nilaiBuilder = $db->table('tbl_munaqosah_nilai')
+                ->where('IdSantri', $idSantri);
+
+            if ($idTahunAjaran) {
+                $nilaiBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+
+            $nilaiMunaqosah = $nilaiBuilder->get()->getResultArray();
             
             if (!empty($nilaiMunaqosah)) {
                 $dataTerkait['nilai_munaqosah'] = [
@@ -4869,12 +4912,16 @@ class Munaqosah extends BaseController
                     'data' => $nilaiMunaqosah
                 ];
             }
-            
+
             // Cek di tbl_munaqosah_antrian
-            $antrianMunaqosah = $db->table('tbl_munaqosah_antrian')
-                ->where('IdSantri', $idSantri)
-                ->get()
-                ->getResultArray();
+            $antrianBuilder = $db->table('tbl_munaqosah_antrian')
+                ->where('IdSantri', $idSantri);
+
+            if ($idTahunAjaran) {
+                $antrianBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+
+            $antrianMunaqosah = $antrianBuilder->get()->getResultArray();
             
             if (!empty($antrianMunaqosah)) {
                 $dataTerkait['antrian_munaqosah'] = [
@@ -4882,11 +4929,19 @@ class Munaqosah extends BaseController
                     'data' => $antrianMunaqosah
                 ];
             }
-            
+
+            // Tentukan status aman/tidak aman
+            $isAman = empty($dataTerkait);
+            $statusColor = $isAman ? 'success' : 'danger';
+            $statusText = $isAman ? 'Aman untuk dihapus' : 'Tidak aman untuk dihapus';
+
             return $this->response->setJSON([
                 'success' => true,
                 'data_terkait' => $dataTerkait,
-                'total_terkait' => count($dataTerkait)
+                'total_terkait' => count($dataTerkait),
+                'is_aman' => $isAman,
+                'status_color' => $statusColor,
+                'status_text' => $statusText
             ]);
             
         } catch (\Exception $e) {
@@ -4942,19 +4997,52 @@ class Munaqosah extends BaseController
                     'message' => 'Data peserta tidak ditemukan'
                 ]);
             }
-            
+
+            $idTahunAjaran = $peserta['IdTahunAjaran'] ?? null;
             $db = \Config\Database::connect();
-            
-            // Hapus data terkait terlebih dahulu
-            $db->table('tbl_munaqosah_nilai')->where('IdSantri', $idSantri)->delete();
-            $db->table('tbl_munaqosah_antrian')->where('IdSantri', $idSantri)->delete();
-            
-            // Hapus peserta munaqosah
+
+            // Mulai transaksi
+            $db->transStart();
+
+            // Hapus data terkait terlebih dahulu (dengan filter tahun ajaran jika ada)
+
+            // 1. Hapus data nilai
+            $nilaiBuilder = $db->table('tbl_munaqosah_nilai')->where('IdSantri', $idSantri);
+            if ($idTahunAjaran) {
+                $nilaiBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+            $nilaiBuilder->delete();
+
+            // 2. Hapus data antrian
+            $antrianBuilder = $db->table('tbl_munaqosah_antrian')->where('IdSantri', $idSantri);
+            if ($idTahunAjaran) {
+                $antrianBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+            $antrianBuilder->delete();
+
+            // 3. Hapus data registrasi uji
+            $registrasiBuilder = $db->table('tbl_munaqosah_registrasi_uji')->where('IdSantri', $idSantri);
+            if ($idTahunAjaran) {
+                $registrasiBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+            $registrasiBuilder->delete();
+
+            // 4. Hapus peserta munaqosah
             $this->pesertaMunaqosahModel->where('IdSantri', $idSantri)->delete();
-            
+
+            // Selesaikan transaksi
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menghapus data. Transaksi database gagal.'
+                ]);
+            }
+
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Peserta dan semua data terkait berhasil dihapus'
+                'message' => 'Peserta dan semua data terkait (registrasi, nilai, antrian) berhasil dihapus'
             ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
