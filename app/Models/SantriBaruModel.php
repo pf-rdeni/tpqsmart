@@ -248,13 +248,17 @@ class SantriBaruModel extends Model
         $db = db_connect();
         $builder = $db->table('tbl_kelas_santri ks');
 
-        // Gunakan pendekatan yang lebih sederhana untuk menghindari duplikasi
-        // Karena join dengan tbl_guru_kelas bisa menghasilkan multiple rows untuk satu santri
-        $builder->select('ks.IdTahunAjaran, k.IdKelas, k.NamaKelas, 
-                        s.IdSantri, s.NamaSantri, s.JenisKelamin, t.IdTpq, t.NamaTpq, t.Alamat')
+        $builder->select('ks.IdTahunAjaran, k.IdKelas, k.NamaKelas, g.IdGuru, g.Nama AS GuruNama, 
+                        s.IdSantri, s.NamaSantri, s.JenisKelamin, t.IdTpq, t.NamaTpq, t.Alamat, 
+                        w.IdJabatan, j.NamaJabatan')
+            ->distinct()
             ->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas')
             ->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri')
             ->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq')
+            // Tambahkan filter IdTahunAjaran di JOIN untuk menghindari duplikasi saat guru memiliki multiple kelas
+            ->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq AND w.IdTahunAjaran = ks.IdTahunAjaran', 'left')
+            ->join('tbl_guru g', 'w.IdGuru = g.IdGuru', 'left')
+            ->join('tbl_jabatan j', 'w.IdJabatan = j.IdJabatan', 'left')
             ->where('s.Active', 1);
 
         if (!empty($IdTahunAjaran)) {
@@ -265,6 +269,10 @@ class SantriBaruModel extends Model
             }
         }
 
+        if (!empty($IdGuru)) {
+            $builder->where('w.IdGuru', $IdGuru);
+        }
+
         if (!empty($IdKelas)) {
             if (is_array($IdKelas)) {
                 $builder->whereIn('k.IdKelas', $IdKelas);
@@ -273,19 +281,6 @@ class SantriBaruModel extends Model
             }
         }
 
-        // Filter berdasarkan guru jika ada - gunakan subquery untuk menghindari duplikasi
-        if (!empty($IdGuru)) {
-            $builder->whereIn('ks.IdKelas', function($query) use ($IdGuru, $IdTahunAjaran) {
-                $query->select('w.IdKelas')
-                    ->from('tbl_guru_kelas w')
-                    ->where('w.IdGuru', $IdGuru)
-                    ->where('w.IdTahunAjaran', $IdTahunAjaran);
-            });
-        }
-
-        // Group by untuk memastikan tidak ada duplikasi santri per kelas
-        // Group by IdSantri dan IdKelas untuk memastikan satu santri hanya muncul sekali per kelas
-        $builder->groupBy('ks.IdSantri, ks.IdKelas');
         $builder->orderBy('k.NamaKelas ASC, s.NamaSantri ASC');
 
         return $builder->get()->getResultObject();

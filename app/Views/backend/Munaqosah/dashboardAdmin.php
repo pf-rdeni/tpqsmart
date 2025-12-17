@@ -230,14 +230,14 @@
                         <!-- Tabel Peserta Munaqosah Per TPQ -->
                         <div class="row mt-4">
                             <div class="col-12">
-                                <div class="card card-info">
+                                <div class="card card-info collapsed-card">
                                     <div class="card-header">
                                         <h3 class="card-title">
                                             <i class="fas fa-table"></i> Informasi Peserta Munaqosah Per TPQ
                                         </h3>
                                         <div class="card-tools">
                                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                                <i class="fas fa-minus"></i>
+                                                <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
                                     </div>

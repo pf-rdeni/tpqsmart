@@ -359,6 +359,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/api/peserta/(:segment)', 'Munaqosah::getPesertaByTpq/$1');
 
     // Juri Munaqosah Routes
+    $routes->post('munaqosah/print-info-juri', 'Munaqosah::printInfoJuri');
+    $routes->post('munaqosah/print-all-info-juri', 'Munaqosah::printAllInfoJuri');
     $routes->get('munaqosah/juri', 'Munaqosah::listUserJuriMunaqosah');
     $routes->get('munaqosah/get-juri-data', 'Munaqosah::getJuriData');
     $routes->get('munaqosah/get-grup-materi-ujian', 'Munaqosah::getGrupMateriUjian');

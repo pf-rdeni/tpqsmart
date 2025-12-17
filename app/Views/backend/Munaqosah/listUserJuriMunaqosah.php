@@ -41,7 +41,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                         <div class="row">
                             <div class="col-md-12">
                                 <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
-                                
+
                                 <h6 class="mt-4 mb-2"><i class="fas fa-gavel text-warning"></i> <strong>Data Juri Munaqosah:</strong></h6>
                                 <ol class="mb-4">
                                     <li class="mb-2">
@@ -188,6 +188,49 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                 </div>
             </div>
             <div class="card-body">
+                <!-- Filter TPQ dan TypeUjian -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="filterTpqPanitia"><i class="fas fa-school"></i> Filter TPQ</label>
+                            <select class="form-control" id="filterTpqPanitia" name="filterTpqPanitia" <?= (!$isAdmin) ? 'disabled' : '' ?>>
+                                <option value="">Semua TPQ</option>
+                                <?php if ($isAdmin): ?>
+                                    <?php foreach ($tpqDropdown as $tpq): ?>
+                                        <option value="<?= $tpq['IdTpq'] ?>"><?= esc($tpq['NamaTpq']) ?></option>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <?php foreach ($tpqDropdown as $tpq): ?>
+                                        <option value="<?= $tpq['IdTpq'] ?>" <?= ($tpq['IdTpq'] == $sessionIdTpq) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                            <?php if (!$isAdmin): ?>
+                                <small class="form-text text-muted">Operator TPQ hanya dapat melihat TPQ sendiri</small>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="filterTypeUjianPanitia"><i class="fas fa-book"></i> Filter Type Ujian</label>
+                            <select class="form-control" id="filterTypeUjianPanitia" name="filterTypeUjianPanitia">
+                                <option value="">Semua Type Ujian</option>
+                                <option value="pra-munaqosah">Pra-Munaqosah</option>
+                                <option value="munaqosah">Munaqosah</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <div>
+                                <button type="button" class="btn btn-success btn-block" id="btnPrintAllPanitia">
+                                    <i class="fas fa-print"></i> Print All (Filtered)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table id="tablePanitia" class="table table-bordered table-striped">
                         <thead>
@@ -204,15 +247,17 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                             <?php if (!empty($panitia)): ?>
                                 <?php $no = 1; ?>
                                 <?php foreach ($panitia as $p): ?>
-                                    <tr>
+                                    <?php
+                                    // Tentukan TypeUjian dari IdTpq
+                                    $typeUjianPanitia = (!empty($p['IdTpq']) && $p['IdTpq'] != 0) ? 'pra-munaqosah' : 'munaqosah';
+                                    // Normalisasi untuk filter
+                                    $typeUjianPanitiaNormalized = strtolower(trim($typeUjianPanitia));
+                                    ?>
+                                    <tr data-tpq="<?= esc($p['IdTpq'] ?? '') ?>" data-type-ujian="<?= esc($typeUjianPanitiaNormalized) ?>" data-type-ujian-raw="<?= esc($typeUjianPanitia) ?>">
                                         <td><?= $no++ ?></td>
                                         <td><?= $p['username'] ?></td>
                                         <td>
-                                            <?php
-                                            // Tentukan TypeUjian dari IdTpq
-                                            $typeUjian = (!empty($p['IdTpq']) && $p['IdTpq'] != 0) ? 'pra-munaqosah' : 'munaqosah';
-                                            ?>
-                                            <span class="badge badge-info"><?= $typeUjian ?></span>
+                                            <span class="badge badge-info"><?= $typeUjianPanitia ?></span>
                                         </td>
                                         <td><?= $p['NamaTpq'] ?? '-' ?></td>
                                         <td>
@@ -255,6 +300,49 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                 </div>
             </div>
             <div class="card-body">
+                <!-- Filter TPQ dan TypeUjian -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="filterTpq"><i class="fas fa-school"></i> Filter TPQ</label>
+                            <select class="form-control" id="filterTpq" name="filterTpq" <?= (!$isAdmin) ? 'disabled' : '' ?>>
+                                <option value="">Semua TPQ</option>
+                                <?php if ($isAdmin): ?>
+                                    <?php foreach ($tpqDropdown as $tpq): ?>
+                                        <option value="<?= $tpq['IdTpq'] ?>"><?= esc($tpq['NamaTpq']) ?></option>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <?php foreach ($tpqDropdown as $tpq): ?>
+                                        <option value="<?= $tpq['IdTpq'] ?>" <?= ($tpq['IdTpq'] == $sessionIdTpq) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                            <?php if (!$isAdmin): ?>
+                                <small class="form-text text-muted">Operator TPQ hanya dapat melihat TPQ sendiri</small>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="filterTypeUjian"><i class="fas fa-book"></i> Filter Type Ujian</label>
+                            <select class="form-control" id="filterTypeUjian" name="filterTypeUjian">
+                                <option value="">Semua Type Ujian</option>
+                                <option value="pra-munaqosah">Pra-Munaqosah</option>
+                                <option value="munaqosah">Munaqosah</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <div>
+                                <button type="button" class="btn btn-success btn-block" id="btnPrintAllJuri">
+                                    <i class="fas fa-print"></i> Print All (Filtered)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table id="tableJuri" class="table table-bordered table-striped">
                         <thead>
@@ -274,7 +362,20 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                             <?php if (!empty($juri)): ?>
                                 <?php $no = 1; ?>
                                 <?php foreach ($juri as $j): ?>
-                                    <tr>
+                                    <?php
+                                    // Normalisasi TypeUjian untuk filter
+                                    $typeUjianRaw = $j['TypeUjian'] ?? '';
+                                    $typeUjian = strtolower(trim($typeUjianRaw));
+                                    // Normalisasi variasi penulisan
+                                    if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah' || $typeUjian === 'pra munaqosah') {
+                                        $typeUjian = 'pra-munaqosah';
+                                    } elseif ($typeUjian === 'munaqosah') {
+                                        $typeUjian = 'munaqosah';
+                                    }
+                                    // Log untuk debugging (hanya di development)
+                                    // echo "<!-- Debug: IdJuri={$j['IdJuri']}, TypeUjian Raw={$typeUjianRaw}, TypeUjian Normalized={$typeUjian}, IdTpq={$j['IdTpq']} -->";
+                                    ?>
+                                    <tr data-tpq="<?= esc($j['IdTpq'] ?? '') ?>" data-type-ujian="<?= esc($typeUjian) ?>" data-type-ujian-raw="<?= esc($typeUjianRaw) ?>">
                                         <td><?= $no++ ?></td>
                                         <td><?= $j['IdJuri'] ?></td>
                                         <td><?= $j['UsernameJuri'] ?></td>
@@ -295,6 +396,9 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                                             <span class="badge <?= $statusBadgeClass ?>"><?= $j['Status'] ?></span>
                                         </td>
                                         <td>
+                                            <button class="btn btn-sm btn-success btn-print-juri" data-id="<?= $j['id'] ?>" data-username="<?= htmlspecialchars($j['UsernameJuri'], ENT_QUOTES, 'UTF-8') ?>" title="Print Informasi Login">
+                                                <i class="fas fa-print"></i>
+                                            </button>
                                             <button class="btn btn-sm btn-info btn-edit-password" data-id="<?= $j['id'] ?>" data-username="<?= htmlspecialchars($j['UsernameJuri'], ENT_QUOTES, 'UTF-8') ?>" title="Ubah Password">
                                                 <i class="fas fa-key"></i>
                                             </button>
@@ -749,6 +853,9 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
 
                                 // Simpan instance DataTable
                                 tableJuri = $('#tableJuri').DataTable();
+
+                                // Setup filter dan localstorage
+                                setupFilterAndLocalStorage();
                             } catch (e) {
                                 console.error('Error calling initializeDataTableUmum:', e);
                             }
@@ -762,6 +869,301 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
             }
         } catch (e) {
             console.error('Error initializing DataTable:', e);
+        }
+
+        // Fungsi untuk setup filter dan localstorage
+        let customFilterFunction = null;
+
+        function setupFilterAndLocalStorage() {
+            const storageKey = 'juriMunaqosahFilter';
+            const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
+            const sessionIdTpq = '<?= $sessionIdTpq ?? '' ?>';
+
+            // Load filter dari localstorage
+            const savedFilter = localStorage.getItem(storageKey);
+            if (savedFilter) {
+                try {
+                    const filter = JSON.parse(savedFilter);
+                    // Untuk Admin, load filter TPQ dari localstorage
+                    if (isAdmin && filter.filterTpq !== undefined) {
+                        $('#filterTpq').val(filter.filterTpq);
+                    }
+                    // Untuk Operator, selalu set ke TPQ sendiri
+                    if (!isAdmin && sessionIdTpq) {
+                        $('#filterTpq').val(sessionIdTpq);
+                    }
+                    // Load filter TypeUjian
+                    if (filter.filterTypeUjian !== undefined) {
+                        $('#filterTypeUjian').val(filter.filterTypeUjian);
+                    }
+                } catch (e) {
+                    console.error('Error loading filter from localStorage:', e);
+                }
+            } else {
+                // Jika tidak ada filter tersimpan, untuk Operator set ke TPQ sendiri
+                if (!isAdmin && sessionIdTpq) {
+                    $('#filterTpq').val(sessionIdTpq);
+                }
+            }
+
+            // Fungsi untuk menyimpan filter ke localstorage
+            function saveFilter() {
+                // Untuk Operator, selalu set filter TPQ ke TPQ sendiri
+                if (!isAdmin && sessionIdTpq) {
+                    $('#filterTpq').val(sessionIdTpq);
+                }
+
+                const filter = {
+                    filterTpq: $('#filterTpq').val() || '',
+                    filterTypeUjian: $('#filterTypeUjian').val() || ''
+                };
+                localStorage.setItem(storageKey, JSON.stringify(filter));
+            }
+
+            // Fungsi untuk filter tabel
+            function applyFilter() {
+                // Untuk Operator, selalu set filter TPQ ke TPQ sendiri
+                if (!isAdmin && sessionIdTpq) {
+                    $('#filterTpq').val(sessionIdTpq);
+                }
+
+                const filterTpq = $('#filterTpq').val();
+                const filterTypeUjian = $('#filterTypeUjian').val();
+
+                // Log filter yang diterapkan
+                console.log('=== Apply Filter ===');
+                console.log('Filter TPQ:', filterTpq);
+                console.log('Filter TypeUjian:', filterTypeUjian);
+
+                // Log semua data row untuk debugging (menggunakan DataTables API untuk mendapatkan semua data)
+                if (tableJuri && $.fn.DataTable.isDataTable('#tableJuri')) {
+                    console.log('Total rows in DataTable:', tableJuri.rows().count());
+                    tableJuri.rows().every(function(rowIdx, tableLoop, rowLoop) {
+                        const row = $(this.node());
+                        const rowTpq = String(row.data('tpq') || '').trim();
+                        const rowTypeUjian = String(row.data('type-ujian') || '').trim();
+                        console.log('Row', rowIdx, '- TPQ:', rowTpq, '- TypeUjian:', rowTypeUjian);
+                    });
+                }
+
+                // Jika DataTable sudah diinisialisasi, gunakan DataTable API
+                if (tableJuri && $.fn.DataTable.isDataTable('#tableJuri')) {
+                    // Hapus custom filter yang lama jika ada
+                    if (customFilterFunction !== null) {
+                        const index = $.fn.dataTable.ext.search.indexOf(customFilterFunction);
+                        if (index !== -1) {
+                            $.fn.dataTable.ext.search.splice(index, 1);
+                        }
+                    }
+
+                    // Buat custom filter function baru
+                    customFilterFunction = function(settings, data, dataIndex) {
+                        if (settings.nTable.id !== 'tableJuri') {
+                            return true;
+                        }
+
+                        // Gunakan DataTables API untuk mendapatkan row node yang benar
+                        // DataTables ext.search akan memanggil function ini untuk SEMUA data, bukan hanya yang terlihat
+                        const api = new $.fn.dataTable.Api(settings);
+                        const rowNode = api.row(dataIndex).node();
+
+                        if (!rowNode) {
+                            // Jika node belum ada (belum di-render), gunakan data dari DataTables internal
+                            // Tapi karena kita menggunakan data attributes, kita perlu node yang sudah di-render
+                            // DataTables akan memanggil filter ini untuk semua data termasuk yang belum di-render
+                            // Jadi kita perlu mengakses data dari settings.aoData
+                            const rowData = settings.aoData[dataIndex];
+                            if (rowData && rowData.nTr) {
+                                const row = $(rowData.nTr);
+                                const rowTpq = String(row.data('tpq') || '').trim();
+                                const rowTypeUjianDataAttr = String(row.data('type-ujian') || '').trim();
+                                let rowTypeUjian = rowTypeUjianDataAttr.toLowerCase();
+
+                                // Normalisasi dan filter (sama seperti di bawah)
+                                if (rowTypeUjian) {
+                                    if (rowTypeUjian === 'pramunaqsah' || rowTypeUjian === 'pra-munaqosah' || rowTypeUjian === 'pra munaqosah') {
+                                        rowTypeUjian = 'pra-munaqosah';
+                                    } else if (rowTypeUjian === 'munaqosah') {
+                                        rowTypeUjian = 'munaqosah';
+                                    }
+                                }
+
+                                let normalizedFilterTypeUjian = '';
+                                if (filterTypeUjian && filterTypeUjian !== '') {
+                                    normalizedFilterTypeUjian = filterTypeUjian.trim().toLowerCase();
+                                    if (normalizedFilterTypeUjian === 'pramunaqsah' || normalizedFilterTypeUjian === 'pra-munaqosah' || normalizedFilterTypeUjian === 'pra munaqosah') {
+                                        normalizedFilterTypeUjian = 'pra-munaqosah';
+                                    } else if (normalizedFilterTypeUjian === 'munaqosah') {
+                                        normalizedFilterTypeUjian = 'munaqosah';
+                                    }
+                                }
+
+                                if (filterTpq && filterTpq !== '') {
+                                    if (rowTpq !== String(filterTpq).trim()) {
+                                        return false;
+                                    }
+                                }
+
+                                if (normalizedFilterTypeUjian !== '') {
+                                    if (!rowTypeUjian || rowTypeUjian === '' || rowTypeUjian !== normalizedFilterTypeUjian) {
+                                        return false;
+                                    }
+                                }
+
+                                return true;
+                            }
+                            return true; // Jika tidak ada data, terima row ini
+                        }
+
+                        const row = $(rowNode);
+                        const rowTpq = String(row.data('tpq') || '').trim();
+                        const rowTypeUjianRaw = String(row.data('type-ujian-raw') || row.data('type-ujian') || '').trim();
+                        const rowTypeUjianDataAttr = String(row.data('type-ujian') || '').trim();
+                        let rowTypeUjian = rowTypeUjianDataAttr.toLowerCase();
+
+                        // Log untuk debugging
+                        console.log('=== Filter Debug - Row Index:', dataIndex, '===');
+                        console.log('  - Row TPQ (raw):', row.data('tpq'));
+                        console.log('  - Row TPQ (normalized):', rowTpq);
+                        console.log('  - Row TypeUjian (data-attr):', rowTypeUjianDataAttr);
+                        console.log('  - Row TypeUjian (raw from DB):', rowTypeUjianRaw);
+                        console.log('  - Row TypeUjian (before normalization):', rowTypeUjian);
+
+                        // Normalisasi TypeUjian dari data (handle berbagai variasi)
+                        if (rowTypeUjian) {
+                            if (rowTypeUjian === 'pramunaqsah' || rowTypeUjian === 'pra-munaqosah' || rowTypeUjian === 'pra munaqosah') {
+                                rowTypeUjian = 'pra-munaqosah';
+                            } else if (rowTypeUjian === 'munaqosah') {
+                                rowTypeUjian = 'munaqosah';
+                            }
+                        }
+                        console.log('  - Row TypeUjian (after normalization):', rowTypeUjian);
+
+                        // Normalisasi filter TypeUjian
+                        let normalizedFilterTypeUjian = '';
+                        if (filterTypeUjian && filterTypeUjian !== '') {
+                            normalizedFilterTypeUjian = filterTypeUjian.trim().toLowerCase();
+                            console.log('  - Filter TypeUjian (raw):', filterTypeUjian);
+                            console.log('  - Filter TypeUjian (before normalization):', normalizedFilterTypeUjian);
+                            if (normalizedFilterTypeUjian === 'pramunaqsah' || normalizedFilterTypeUjian === 'pra-munaqosah' || normalizedFilterTypeUjian === 'pra munaqosah') {
+                                normalizedFilterTypeUjian = 'pra-munaqosah';
+                            } else if (normalizedFilterTypeUjian === 'munaqosah') {
+                                normalizedFilterTypeUjian = 'munaqosah';
+                            }
+                            console.log('  - Filter TypeUjian (after normalization):', normalizedFilterTypeUjian);
+                        } else {
+                            console.log('  - Filter TypeUjian: EMPTY (no filter)');
+                        }
+
+                        // Filter TPQ
+                        if (filterTpq && filterTpq !== '') {
+                            console.log('  - Filter TPQ:', filterTpq);
+                            if (rowTpq !== String(filterTpq).trim()) {
+                                console.log('  - TPQ Filter: REJECTED (rowTpq:', rowTpq, '!== filterTpq:', String(filterTpq).trim(), ')');
+                                return false;
+                            }
+                            console.log('  - TPQ Filter: PASSED');
+                        } else {
+                            console.log('  - Filter TPQ: EMPTY (no filter)');
+                        }
+
+                        // Filter TypeUjian (case-insensitive dengan normalisasi)
+                        if (normalizedFilterTypeUjian !== '') {
+                            // Jika filter diisi tapi rowTypeUjian kosong, skip row ini
+                            if (!rowTypeUjian || rowTypeUjian === '') {
+                                console.log('  - TypeUjian Filter: REJECTED (rowTypeUjian is empty)');
+                                return false;
+                            }
+                            console.log('  - TypeUjian Comparison: rowTypeUjian =', rowTypeUjian, ', normalizedFilterTypeUjian =', normalizedFilterTypeUjian);
+                            console.log('  - TypeUjian Comparison (strict):', rowTypeUjian === normalizedFilterTypeUjian);
+                            if (rowTypeUjian !== normalizedFilterTypeUjian) {
+                                console.log('  - TypeUjian Filter: REJECTED (not matching)');
+                                return false;
+                            }
+                            console.log('  - TypeUjian Filter: PASSED');
+                        }
+
+                        console.log('  - Final Result: ACCEPTED');
+                        return true;
+                    };
+
+                    // Tambahkan filter function
+                    $.fn.dataTable.ext.search.push(customFilterFunction);
+
+                    // Redraw tabel
+                    tableJuri.draw();
+                } else {
+                    // Jika DataTable belum diinisialisasi, gunakan jQuery filter
+                    $('#tableJuri tbody tr').each(function() {
+                        const row = $(this);
+                        const rowTpq = String(row.data('tpq') || '').trim();
+                        let rowTypeUjian = String(row.data('type-ujian') || '').trim().toLowerCase();
+
+                        // Normalisasi TypeUjian dari data (handle berbagai variasi)
+                        if (rowTypeUjian) {
+                            if (rowTypeUjian === 'pramunaqsah' || rowTypeUjian === 'pra-munaqosah' || rowTypeUjian === 'pra munaqosah') {
+                                rowTypeUjian = 'pra-munaqosah';
+                            } else if (rowTypeUjian === 'munaqosah') {
+                                rowTypeUjian = 'munaqosah';
+                            }
+                        }
+
+                        // Normalisasi filter TypeUjian
+                        let normalizedFilterTypeUjian = '';
+                        if (filterTypeUjian && filterTypeUjian !== '') {
+                            normalizedFilterTypeUjian = filterTypeUjian.trim().toLowerCase();
+                            if (normalizedFilterTypeUjian === 'pramunaqsah' || normalizedFilterTypeUjian === 'pra-munaqosah' || normalizedFilterTypeUjian === 'pra munaqosah') {
+                                normalizedFilterTypeUjian = 'pra-munaqosah';
+                            } else if (normalizedFilterTypeUjian === 'munaqosah') {
+                                normalizedFilterTypeUjian = 'munaqosah';
+                            }
+                        }
+
+                        let show = true;
+
+                        // Filter TPQ
+                        if (filterTpq && filterTpq !== '') {
+                            if (rowTpq !== String(filterTpq).trim()) {
+                                show = false;
+                            }
+                        }
+
+                        // Filter TypeUjian (case-insensitive dengan normalisasi)
+                        if (normalizedFilterTypeUjian !== '') {
+                            // Jika filter diisi tapi rowTypeUjian kosong, hide row ini
+                            if (!rowTypeUjian || rowTypeUjian === '') {
+                                show = false;
+                            } else if (rowTypeUjian !== normalizedFilterTypeUjian) {
+                                show = false;
+                            }
+                        }
+
+                        if (show) {
+                            row.show();
+                        } else {
+                            row.hide();
+                        }
+                    });
+                }
+            }
+
+            // Event handler untuk perubahan filter
+            $('#filterTpq, #filterTypeUjian').on('change', function() {
+                const filterName = $(this).attr('id');
+                const filterValue = $(this).val();
+                console.log('=== Filter Changed ===');
+                console.log('Filter Name:', filterName);
+                console.log('Filter Value:', filterValue);
+
+                // Simpan ke localstorage
+                saveFilter();
+
+                // Apply filter baru
+                applyFilter();
+            });
+
+            // Apply filter saat pertama kali load
+            applyFilter();
         }
 
         // Pendekatan baru: Generate Username menggunakan vanilla JavaScript untuk kompatibilitas maksimal
@@ -1201,6 +1603,106 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
             });
         });
 
+        // Print Juri Button
+        $(document).on('click', '.btn-print-juri', function() {
+            const juriId = $(this).data('id');
+            const username = $(this).data('username');
+
+            // Create form and submit to print endpoint
+            const form = $('<form>', {
+                'method': 'POST',
+                'action': '<?= base_url('backend/munaqosah/print-info-juri') ?>',
+                'target': '_blank'
+            });
+
+            // Add CSRF token
+            form.append($('<input>', {
+                'type': 'hidden',
+                'name': '<?= csrf_token() ?>',
+                'value': '<?= csrf_hash() ?>'
+            }));
+
+            // Add juri ID
+            form.append($('<input>', {
+                'type': 'hidden',
+                'name': 'juriId',
+                'value': juriId
+            }));
+
+            // Append to body and submit
+            $('body').append(form);
+            form.submit();
+            form.remove();
+        });
+
+        // Print All Juri Button (Filtered)
+        $(document).on('click', '#btnPrintAllJuri', function() {
+            // Get all visible/filtered rows from DataTable
+            if (!tableJuri || !$.fn.DataTable.isDataTable('#tableJuri')) {
+                showAlert('Tabel belum siap. Silakan tunggu sebentar.', 'warning');
+                return;
+            }
+
+            // Get all visible rows (after filter)
+            const visibleRows = tableJuri.rows({
+                filter: 'applied'
+            }).nodes();
+            const juriIds = [];
+
+            $(visibleRows).each(function() {
+                const row = $(this);
+                const juriId = row.find('.btn-print-juri').data('id');
+                if (juriId) {
+                    juriIds.push(juriId);
+                }
+            });
+
+            if (juriIds.length === 0) {
+                showAlert('Tidak ada data juri yang terfilter untuk dicetak.', 'warning');
+                return;
+            }
+
+            // Show confirmation
+            Swal.fire({
+                title: 'Konfirmasi Print',
+                text: 'Anda akan mencetak informasi login untuk ' + juriIds.length + ' juri yang terfilter. Lanjutkan?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Print',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create form and submit to print all endpoint
+                    const form = $('<form>', {
+                        'method': 'POST',
+                        'action': '<?= base_url('backend/munaqosah/print-all-info-juri') ?>',
+                        'target': '_blank'
+                    });
+
+                    // Add CSRF token
+                    form.append($('<input>', {
+                        'type': 'hidden',
+                        'name': '<?= csrf_token() ?>',
+                        'value': '<?= csrf_hash() ?>'
+                    }));
+
+                    // Add juri IDs as JSON
+                    form.append($('<input>', {
+                        'type': 'hidden',
+                        'name': 'juriIds',
+                        'value': JSON.stringify(juriIds)
+                    }));
+
+                    // Append to body and submit
+                    $('body').append(form);
+                    form.submit();
+                    form.remove();
+                }
+            });
+        });
+
         // Delete Button
         $(document).on('click', '.btn-delete', function() {
             currentJuriId = $(this).data('id');
@@ -1369,6 +1871,9 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                                     }]
                                 });
                                 tablePanitia = $('#tablePanitia').DataTable();
+
+                                // Setup filter untuk Panitia
+                                setupFilterPanitia();
                             } catch (e) {
                                 console.error('Error calling initializeDataTableUmum:', e);
                             }
@@ -1378,6 +1883,187 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
             }
         } catch (e) {
             console.error('Error initializing DataTable:', e);
+        }
+
+        // Fungsi untuk setup filter Panitia
+        let customFilterFunctionPanitia = null;
+
+        function setupFilterPanitia() {
+            const storageKey = 'panitiaMunaqosahFilter';
+            const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
+            const sessionIdTpq = '<?= $sessionIdTpq ?? '' ?>';
+
+            // Load filter dari localstorage
+            const savedFilter = localStorage.getItem(storageKey);
+            if (savedFilter) {
+                try {
+                    const filter = JSON.parse(savedFilter);
+                    if (isAdmin && filter.filterTpqPanitia !== undefined) {
+                        $('#filterTpqPanitia').val(filter.filterTpqPanitia);
+                    }
+                    if (!isAdmin && sessionIdTpq) {
+                        $('#filterTpqPanitia').val(sessionIdTpq);
+                    }
+                    if (filter.filterTypeUjianPanitia !== undefined) {
+                        $('#filterTypeUjianPanitia').val(filter.filterTypeUjianPanitia);
+                    }
+                } catch (e) {
+                    console.error('Error loading filter from localStorage:', e);
+                }
+            } else {
+                if (!isAdmin && sessionIdTpq) {
+                    $('#filterTpqPanitia').val(sessionIdTpq);
+                }
+            }
+
+            // Fungsi untuk menyimpan filter ke localstorage
+            function saveFilterPanitia() {
+                if (!isAdmin && sessionIdTpq) {
+                    $('#filterTpqPanitia').val(sessionIdTpq);
+                }
+
+                const filter = {
+                    filterTpqPanitia: $('#filterTpqPanitia').val() || '',
+                    filterTypeUjianPanitia: $('#filterTypeUjianPanitia').val() || ''
+                };
+                localStorage.setItem(storageKey, JSON.stringify(filter));
+            }
+
+            // Fungsi untuk filter tabel Panitia
+            function applyFilterPanitia() {
+                if (!isAdmin && sessionIdTpq) {
+                    $('#filterTpqPanitia').val(sessionIdTpq);
+                }
+
+                const filterTpq = $('#filterTpqPanitia').val();
+                const filterTypeUjian = $('#filterTypeUjianPanitia').val();
+
+                console.log('=== Apply Filter Panitia ===');
+                console.log('Filter TPQ:', filterTpq);
+                console.log('Filter TypeUjian:', filterTypeUjian);
+
+                if (tablePanitia && $.fn.DataTable.isDataTable('#tablePanitia')) {
+                    // Hapus custom filter yang lama jika ada
+                    if (customFilterFunctionPanitia !== null) {
+                        const index = $.fn.dataTable.ext.search.indexOf(customFilterFunctionPanitia);
+                        if (index !== -1) {
+                            $.fn.dataTable.ext.search.splice(index, 1);
+                        }
+                    }
+
+                    // Buat custom filter function baru
+                    customFilterFunctionPanitia = function(settings, data, dataIndex) {
+                        if (settings.nTable.id !== 'tablePanitia') {
+                            return true;
+                        }
+
+                        // Gunakan DataTables API untuk mendapatkan row node
+                        const api = new $.fn.dataTable.Api(settings);
+                        const rowNode = api.row(dataIndex).node();
+
+                        if (!rowNode) {
+                            const rowData = settings.aoData[dataIndex];
+                            if (rowData && rowData.nTr) {
+                                const row = $(rowData.nTr);
+                                const rowTpq = String(row.data('tpq') || '').trim();
+                                const rowTypeUjianDataAttr = String(row.data('type-ujian') || '').trim();
+                                let rowTypeUjian = rowTypeUjianDataAttr.toLowerCase();
+
+                                if (rowTypeUjian) {
+                                    if (rowTypeUjian === 'pramunaqsah' || rowTypeUjian === 'pra-munaqosah' || rowTypeUjian === 'pra munaqosah') {
+                                        rowTypeUjian = 'pra-munaqosah';
+                                    } else if (rowTypeUjian === 'munaqosah') {
+                                        rowTypeUjian = 'munaqosah';
+                                    }
+                                }
+
+                                let normalizedFilterTypeUjian = '';
+                                if (filterTypeUjian && filterTypeUjian !== '') {
+                                    normalizedFilterTypeUjian = filterTypeUjian.trim().toLowerCase();
+                                    if (normalizedFilterTypeUjian === 'pramunaqsah' || normalizedFilterTypeUjian === 'pra-munaqosah' || normalizedFilterTypeUjian === 'pra munaqosah') {
+                                        normalizedFilterTypeUjian = 'pra-munaqosah';
+                                    } else if (normalizedFilterTypeUjian === 'munaqosah') {
+                                        normalizedFilterTypeUjian = 'munaqosah';
+                                    }
+                                }
+
+                                if (filterTpq && filterTpq !== '') {
+                                    if (rowTpq !== String(filterTpq).trim()) {
+                                        return false;
+                                    }
+                                }
+
+                                if (normalizedFilterTypeUjian !== '') {
+                                    if (!rowTypeUjian || rowTypeUjian === '' || rowTypeUjian !== normalizedFilterTypeUjian) {
+                                        return false;
+                                    }
+                                }
+
+                                return true;
+                            }
+                            return true;
+                        }
+
+                        const row = $(rowNode);
+                        const rowTpq = String(row.data('tpq') || '').trim();
+                        const rowTypeUjianDataAttr = String(row.data('type-ujian') || '').trim();
+                        let rowTypeUjian = rowTypeUjianDataAttr.toLowerCase();
+
+                        // Normalisasi TypeUjian
+                        if (rowTypeUjian) {
+                            if (rowTypeUjian === 'pramunaqsah' || rowTypeUjian === 'pra-munaqosah' || rowTypeUjian === 'pra munaqosah') {
+                                rowTypeUjian = 'pra-munaqosah';
+                            } else if (rowTypeUjian === 'munaqosah') {
+                                rowTypeUjian = 'munaqosah';
+                            }
+                        }
+
+                        // Normalisasi filter TypeUjian
+                        let normalizedFilterTypeUjian = '';
+                        if (filterTypeUjian && filterTypeUjian !== '') {
+                            normalizedFilterTypeUjian = filterTypeUjian.trim().toLowerCase();
+                            if (normalizedFilterTypeUjian === 'pramunaqsah' || normalizedFilterTypeUjian === 'pra-munaqosah' || normalizedFilterTypeUjian === 'pra munaqosah') {
+                                normalizedFilterTypeUjian = 'pra-munaqosah';
+                            } else if (normalizedFilterTypeUjian === 'munaqosah') {
+                                normalizedFilterTypeUjian = 'munaqosah';
+                            }
+                        }
+
+                        // Filter TPQ
+                        if (filterTpq && filterTpq !== '') {
+                            if (rowTpq !== String(filterTpq).trim()) {
+                                return false;
+                            }
+                        }
+
+                        // Filter TypeUjian
+                        if (normalizedFilterTypeUjian !== '') {
+                            if (!rowTypeUjian || rowTypeUjian === '' || rowTypeUjian !== normalizedFilterTypeUjian) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    };
+
+                    // Tambahkan filter function
+                    $.fn.dataTable.ext.search.push(customFilterFunctionPanitia);
+
+                    // Redraw tabel
+                    tablePanitia.draw();
+                }
+            }
+
+            // Event handler untuk perubahan filter Panitia
+            $('#filterTpqPanitia, #filterTypeUjianPanitia').on('change', function() {
+                saveFilterPanitia();
+                applyFilterPanitia();
+            });
+
+            // Apply filter saat pertama kali load
+            setTimeout(function() {
+                applyFilterPanitia();
+            }, 200);
         }
 
         // Generate Username Panitia
@@ -1632,6 +2318,74 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                 error: function() {
                     Swal.close();
                     showAlert('Terjadi kesalahan saat mengupdate password', 'error');
+                }
+            });
+        });
+
+        // Print All Panitia Button (Filtered)
+        $(document).on('click', '#btnPrintAllPanitia', function() {
+            // Get all visible/filtered rows from DataTable
+            if (!tablePanitia || !$.fn.DataTable.isDataTable('#tablePanitia')) {
+                showAlert('Tabel belum siap. Silakan tunggu sebentar.', 'warning');
+                return;
+            }
+
+            // Get all visible rows (after filter)
+            const visibleRows = tablePanitia.rows({
+                filter: 'applied'
+            }).nodes();
+            const panitiaIds = [];
+
+            $(visibleRows).each(function() {
+                const row = $(this);
+                const panitiaId = row.find('.btn-edit-password-panitia').data('id');
+                if (panitiaId) {
+                    panitiaIds.push(panitiaId);
+                }
+            });
+
+            if (panitiaIds.length === 0) {
+                showAlert('Tidak ada data panitia yang terfilter untuk dicetak.', 'warning');
+                return;
+            }
+
+            // Show confirmation
+            Swal.fire({
+                title: 'Konfirmasi Print',
+                text: 'Anda akan mencetak informasi login untuk ' + panitiaIds.length + ' panitia yang terfilter. Lanjutkan?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Print',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create form and submit to print all endpoint
+                    const form = $('<form>', {
+                        'method': 'POST',
+                        'action': '<?= base_url('backend/munaqosah/print-all-info-panitia') ?>',
+                        'target': '_blank'
+                    });
+
+                    // Add CSRF token
+                    form.append($('<input>', {
+                        'type': 'hidden',
+                        'name': '<?= csrf_token() ?>',
+                        'value': '<?= csrf_hash() ?>'
+                    }));
+
+                    // Add panitia IDs as JSON
+                    form.append($('<input>', {
+                        'type': 'hidden',
+                        'name': 'panitiaIds',
+                        'value': JSON.stringify(panitiaIds)
+                    }));
+
+                    // Append to body and submit
+                    $('body').append(form);
+                    form.submit();
+                    form.remove();
                 }
             });
         });

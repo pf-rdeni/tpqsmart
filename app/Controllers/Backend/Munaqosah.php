@@ -6892,14 +6892,30 @@ class Munaqosah extends BaseController
     {
         // Ambil IdTpq dari session
         $idTpq = session()->get('IdTpq');
+
+        // Cek apakah user adalah Admin atau Operator
+        $isAdmin = in_groups('Admin') || (empty($idTpq) || $idTpq == 0);
+        $isOperator = in_groups('Operator');
+
         // Ambil data grup materi ujian langsung dari model
         $DataGrupMateriUjian = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
-        // Ambil data TPQ untuk dropdown dari HelpFunctionModel
-        $DataTpqDropdown = $this->helpFunction->getDataTpq($idTpq);
+
+        // Ambil data TPQ untuk dropdown
+        // Jika Admin, ambil semua TPQ; jika Operator, hanya TPQ sendiri
+        if ($isAdmin) {
+            // Ambil semua TPQ untuk admin
+            $DataTpqDropdown = $this->helpFunction->getDataTpq(null);
+        } else {
+            // Operator hanya TPQ sendiri
+            $DataTpqDropdown = $this->helpFunction->getDataTpq($idTpq);
+        }
+
         // Ambil data juri dengan relasi untuk ditampilkan langsung
-        $DataJuri = $this->munaqosahJuriModel->getJuriWithRelations($idTpq);
+        // Untuk filter, kita akan ambil semua data dulu, kemudian filter di frontend
+        $DataJuri = $this->munaqosahJuriModel->getJuriWithRelations($isAdmin ? null : $idTpq);
+
         // Ambil data panitia dari users table dengan group_id = 6
-        $DataPanitia = $this->getPanitiaFromUsers($idTpq);
+        $DataPanitia = $this->getPanitiaFromUsers($isAdmin ? null : $idTpq);
 
         $roomConfig = $this->getRoomIdRange($idTpq);
 
@@ -6912,6 +6928,9 @@ class Munaqosah extends BaseController
             'roomOptions' => $roomConfig['rooms'],
             'roomIdMin' => $roomConfig['min'],
             'roomIdMax' => $roomConfig['max'],
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+            'sessionIdTpq' => $idTpq,
         ];
         return view('backend/Munaqosah/listUserJuriMunaqosah', $data);
     }
@@ -8160,6 +8179,213 @@ class Munaqosah extends BaseController
                 'success' => false,
                 'message' => 'Gagal menghapus data juri: ' . $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Print informasi username, password, dan tata cara login untuk juri
+     */
+    public function printInfoJuri()
+    {
+        try {
+            $juriId = $this->request->getPost('juriId');
+
+            if (empty($juriId)) {
+                return redirect()->back()->with('error', 'ID Juri tidak ditemukan');
+            }
+
+            // Get juri data with relations by ID
+            $builder = $this->db->table('tbl_munaqosah_juri j');
+            $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup');
+            $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
+            $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+            $builder->where('j.id', $juriId);
+            $juri = $builder->get()->getRowArray();
+
+            if (!$juri) {
+                return redirect()->back()->with('error', 'Data juri tidak ditemukan');
+            }
+
+            // Get user data to check password
+            $userModel = new \App\Models\UserModel();
+            $user = $userModel->where('username', $juri['UsernameJuri'])->first();
+
+            if (!$user) {
+                return redirect()->back()->with('error', 'Data user tidak ditemukan');
+            }
+
+            // Check if password is default password
+            $passwordLib = new \Myth\Auth\Password();
+            $password = '********'; // Default hidden
+            $isDefaultPassword = false;
+
+            // Check if password matches default
+            if ($passwordLib->verify('JuriTpqSmart', $user['password_hash'])) {
+                $password = 'JuriTpqSmart';
+                $isDefaultPassword = true;
+            }
+
+            // Prepare data for view
+            $data = [
+                'juri' => $juri,
+                'username' => $juri['UsernameJuri'],
+                'password' => $password,
+                'isDefaultPassword' => $isDefaultPassword
+            ];
+
+            // Load view
+            $html = view('backend/Munaqosah/printInfoJuri', $data);
+
+            // Setup Dompdf
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', false);
+            $options->set('defaultFont', 'Arial');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+            $options->set('isCssFloatEnabled', true);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Output PDF
+            $filename = 'info_login_juri_' . $juri['UsernameJuri'] . '_' . date('Y-m-d') . '.pdf';
+
+            // Clear output buffer
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printInfoJuri - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Print informasi username, password, dan tata cara login untuk semua juri (filtered)
+     */
+    public function printAllInfoJuri()
+    {
+        try {
+            $juriIdsJson = $this->request->getPost('juriIds');
+
+            if (empty($juriIdsJson)) {
+                return redirect()->back()->with('error', 'Tidak ada juri yang dipilih');
+            }
+
+            // Decode JSON
+            $juriIds = json_decode($juriIdsJson, true);
+
+            if (!is_array($juriIds) || empty($juriIds)) {
+                return redirect()->back()->with('error', 'Data juri tidak valid');
+            }
+
+            // Get all juri data with relations
+            $builder = $this->db->table('tbl_munaqosah_juri j');
+            $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup');
+            $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
+            $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+            $builder->whereIn('j.id', $juriIds);
+            $builder->orderBy('j.RoomId', 'ASC');
+            $builder->orderBy('j.UsernameJuri', 'ASC');
+            $juriList = $builder->get()->getResultArray();
+
+            if (empty($juriList)) {
+                return redirect()->back()->with('error', 'Data juri tidak ditemukan');
+            }
+
+            // Get user data to check passwords
+            $userModel = new \App\Models\UserModel();
+            $passwordLib = new \Myth\Auth\Password();
+
+            $juriDataList = [];
+            foreach ($juriList as $juri) {
+                // Get user data
+                $user = $userModel->where('username', $juri['UsernameJuri'])->first();
+
+                if (!$user) {
+                    continue; // Skip if user not found
+                }
+
+                // Check if password is default password
+                $password = '********';
+                $isDefaultPassword = false;
+
+                if ($passwordLib->verify('JuriTpqSmart', $user['password_hash'])) {
+                    $password = 'JuriTpqSmart';
+                    $isDefaultPassword = true;
+                }
+
+                $juriDataList[] = [
+                    'juri' => $juri,
+                    'username' => $juri['UsernameJuri'],
+                    'password' => $password,
+                    'isDefaultPassword' => $isDefaultPassword
+                ];
+            }
+
+            if (empty($juriDataList)) {
+                return redirect()->back()->with('error', 'Tidak ada data juri yang valid untuk dicetak');
+            }
+
+            // Prepare data for view
+            $data = [
+                'juriList' => $juriDataList
+            ];
+
+            // Load view
+            $html = view('backend/Munaqosah/printAllInfoJuri', $data);
+
+            // Setup Dompdf
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', false);
+            $options->set('defaultFont', 'Arial');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+            $options->set('isCssFloatEnabled', true);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Output PDF
+            $filename = 'info_login_juri_all_' . date('Y-m-d_H-i-s') . '.pdf';
+
+            // Clear output buffer
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printAllInfoJuri - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
 
