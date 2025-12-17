@@ -1337,6 +1337,71 @@
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
 
+        // Fungsi untuk menyimpan filter ke localStorage
+        function saveFiltersToLocalStorage() {
+            const isJuri = $('#isJuri').val() === 'true';
+            const filters = {
+                tpq: $('#filterTpq').val() || '0',
+                type: isJuri ? ($('#filterTypeHidden').val() || 'pra-munaqosah') : ($('#filterType').val() || 'pra-munaqosah'),
+                refreshInterval: $('#filterRefreshInterval').val() || '10'
+            };
+            localStorage.setItem('dashboardMonitoringFilters', JSON.stringify(filters));
+        }
+
+        // Fungsi untuk memuat filter dari localStorage
+        function loadFiltersFromLocalStorage() {
+            try {
+                const savedFilters = localStorage.getItem('dashboardMonitoringFilters');
+                if (savedFilters) {
+                    const filters = JSON.parse(savedFilters);
+                    
+                    // Load filter TPQ (jika tidak disabled dan ada di options)
+                    const $tpqSel = $('#filterTpq');
+                    if ($tpqSel.length && !$tpqSel.prop('disabled')) {
+                        const optionExists = $tpqSel.find('option[value="' + filters.tpq + '"]').length > 0;
+                        if (optionExists && filters.tpq) {
+                            $tpqSel.val(filters.tpq);
+                        }
+                    }
+                    
+                    // Load filter Type (jika tidak disabled)
+                    const isJuri = $('#isJuri').val() === 'true';
+                    if (!isJuri) {
+                        const $typeSel = $('#filterType');
+                        if ($typeSel.length && !$typeSel.prop('disabled')) {
+                            const optionExists = $typeSel.find('option[value="' + filters.type + '"]').length > 0;
+                            if (optionExists && filters.type) {
+                                $typeSel.val(filters.type);
+                            }
+                        }
+                    }
+                    
+                    // Load refresh interval
+                    const $refreshSel = $('#filterRefreshInterval');
+                    if ($refreshSel.length && filters.refreshInterval) {
+                        const optionExists = $refreshSel.find('option[value="' + filters.refreshInterval + '"]').length > 0;
+                        if (optionExists) {
+                            $refreshSel.val(filters.refreshInterval);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading filters from localStorage:', e);
+            }
+        }
+
+        // Load filter dari localStorage saat halaman dimuat (hanya jika tidak ada URL parameter)
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasUrlParams = urlParams.has('tpq') || urlParams.has('type');
+        
+        // Jika tidak ada URL parameter, load dari localStorage
+        if (!hasUrlParams) {
+            loadFiltersFromLocalStorage();
+        } else {
+            // Jika ada URL parameter, simpan ke localStorage
+            saveFiltersToLocalStorage();
+        }
+
         // Jika TPQ hanya satu, set otomatis
         const $tpqSel = $('#filterTpq');
         if ($tpqSel.length) {
@@ -1350,10 +1415,12 @@
         }
 
         $('#btnReload').on('click', function() {
+            saveFiltersToLocalStorage();
             window.location.reload();
         });
 
         $('#filterTpq').on('change', function() {
+            saveFiltersToLocalStorage();
             const tpq = $(this).val();
             const params = new URLSearchParams(window.location.search);
             if (tpq && tpq !== '0') {
@@ -1365,6 +1432,7 @@
         });
 
         $('#filterType').on('change', function() {
+            saveFiltersToLocalStorage();
             const isJuri = $('#isJuri').val() === 'true';
             // Jika Juri, gunakan nilai dari hidden input
             const type = isJuri ? $('#filterTypeHidden').val() : $(this).val();
@@ -1379,6 +1447,7 @@
 
         // Handler untuk perubahan interval refresh
         $('#filterRefreshInterval').on('change', function() {
+            saveFiltersToLocalStorage();
             const intervalSeconds = getRefreshInterval();
             startAutoRefresh(intervalSeconds);
         });

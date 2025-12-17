@@ -115,15 +115,36 @@ class Munaqosah extends BaseController
             $typeUjian = $juriData->TypeUjian;
             $idJuri = $juriData->IdJuri;
 
-            // Statistik untuk Juri
-            $totalPesertaTerdaftar = $this->munaqosahRegistrasiUjiModel->getTotalRegisteredParticipants(
-                $currentTahunAjaran,
-                $typeUjian,
-                $juriIdTpq ?? 0
-            );
+            // Statistik untuk Juri - Total Peserta Terdaftar (hanya yang ada di tbl_munaqosah_peserta)
+            // Filter untuk memastikan hanya peserta yang valid yang dihitung
+            // Handle juri umum (IdTpq null atau 0): jangan filter IdTpq karena data sudah memiliki IdTpq yang valid
+            if ($juriIdTpq && $juriIdTpq != 0) {
+                // Untuk juri TPQ tertentu, filter berdasarkan IdTpq
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT r.NoPeserta) as total 
+                    FROM tbl_munaqosah_registrasi_uji r
+                    INNER JOIN tbl_munaqosah_peserta p ON p.IdSantri = r.IdSantri AND p.IdTahunAjaran = r.IdTahunAjaran
+                    WHERE r.IdTahunAjaran = ? 
+                    AND r.TypeUjian = ?
+                    AND r.IdTpq = ?
+                ", [$currentTahunAjaran, $typeUjian, $juriIdTpq]);
+            } else {
+                // Untuk juri umum (IdTpq null atau 0), jangan filter IdTpq
+                // Data di database sudah memiliki IdTpq yang valid
+                $query = $this->db->query("
+                    SELECT COUNT(DISTINCT r.NoPeserta) as total 
+                    FROM tbl_munaqosah_registrasi_uji r
+                    INNER JOIN tbl_munaqosah_peserta p ON p.IdSantri = r.IdSantri AND p.IdTahunAjaran = r.IdTahunAjaran
+                    WHERE r.IdTahunAjaran = ? 
+                    AND r.TypeUjian = ?
+                ", [$currentTahunAjaran, $typeUjian]);
+            }
+            $result = $query->getRow();
+            $totalPesertaTerdaftar = $result ? (int)$result->total : 0;
 
-            // Query untuk total peserta sudah dinilai (handle null IdTpq)
-            if ($juriIdTpq) {
+            // Query untuk total peserta sudah dinilai oleh juri ini (handle null IdTpq)
+            if ($juriIdTpq && $juriIdTpq != 0) {
+                // Untuk juri TPQ tertentu, filter berdasarkan IdTpq
                 $totalPesertaSudahDinilai = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
                     $juriIdTpq,
                     $idJuri,
@@ -131,12 +152,12 @@ class Munaqosah extends BaseController
                     $typeUjian
                 );
             } else {
-                // Jika IdTpq null, hitung tanpa filter IdTpq
+                // Untuk juri umum (IdTpq null atau 0), jangan filter IdTpq
+                // Data di database sudah memiliki IdTpq yang valid
                 $builder = $this->db->table('tbl_munaqosah_nilai');
                 $totalPesertaSudahDinilai = $builder->where('IdJuri', $idJuri)
                     ->where('IdTahunAjaran', $currentTahunAjaran)
                     ->where('TypeUjian', $typeUjian)
-                    ->where('IdTpq IS NULL')
                     ->distinct()
                     ->countAllResults('NoPeserta');
             }
@@ -856,6 +877,7 @@ class Munaqosah extends BaseController
      */
     public function inputNilaiJuri()
     {
+        helper('munaqosah');
 
         // Ambil tahun ajaran saat ini dari HelpFunctionModel
         $helpFunctionModel = new \App\Models\HelpFunctionModel();
@@ -877,35 +899,29 @@ class Munaqosah extends BaseController
             $typeUjian
         );
         // Ambil total peserta yang terdaftar di tbl_munaqosah_registrasi_uji
+        // Handle juri umum (IdTpq null atau 0): jangan filter IdTpq
         $totalPesertaYangTerregister = $this->munaqosahRegistrasiUjiModel->getTotalRegisteredParticipants(
             $currentTahunAjaran,
             $typeUjian,
-            $idTpq
+            $idTpq ?? 0
         );
-        // Ambil total peserta yang sudah dinilai oleh juri
+
+        // Ambil total peserta yang sudah dinilai oleh juri ini
+        // Handle juri umum (IdTpq null atau 0): jangan filter IdTpq
         $totalPesertaSudahDinilaiJuriIni = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
-            $idTpq,
+            $idTpq ?? 0,
             $juriData->IdJuri,
             $currentTahunAjaran,
             $typeUjian
         );
 
-        // Ambil total peserta yang sudah dinilai oleh semua juri
-        if ($idTpq) {
-            $totalPesertaSudahDinilaiSemuaJuri = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
-                $idTpq,
-                0,
-                $currentTahunAjaran,
-                $typeUjian
-            );
+        // Ambil total peserta yang sudah dinilai oleh semua juri di SEMUA kategori
+        // Menggunakan helper function yang sudah mempertimbangkan semua juri per kategori
+        if ($idTpq && $idTpq != 0) {
+            $totalPesertaSudahDinilaiSemuaJuri = getTotalPesertaSudahDinilaiSemuaKategori($currentTahunAjaran, $typeUjian, $idTpq);
         } else {
-            // Jika tidak ada id tpq, hitung tanpa filter IdTpq
-            $totalPesertaSudahDinilaiSemuaJuri = $this->nilaiMunaqosahModel->getTotalPesertaByJuri(
-                0,
-                0,
-                $currentTahunAjaran,
-                $typeUjian
-            );
+            // Untuk juri umum (IdTpq null atau 0), jangan filter IdTpq
+            $totalPesertaSudahDinilaiSemuaJuri = getTotalPesertaSudahDinilaiSemuaKategori($currentTahunAjaran, $typeUjian, 0);
         }
 
         $totalPesertaBelumDinilai = $totalPesertaYangTerregister - $totalPesertaSudahDinilaiSemuaJuri;

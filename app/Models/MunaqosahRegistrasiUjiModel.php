@@ -335,14 +335,22 @@ class MunaqosahRegistrasiUjiModel extends Model
 
     /**
      * Get total unique participants registered per tahun ajaran, type ujian, and TPQ
+     * Hanya menghitung peserta yang ada di tbl_munaqosah_peserta (peserta valid)
+     * Handle juri/panitia umum (IdTpq = 0): jangan filter IdTpq karena data sudah memiliki IdTpq yang valid
      */
     public function getTotalRegisteredParticipants($idTahunAjaran, $typeUjian, $idTpq = 0)
     {
-        $builder = $this->db->table($this->table);
-        $builder->select('COUNT(DISTINCT NoPeserta) as count');
-        $builder->where('IdTahunAjaran', $idTahunAjaran);
-        $builder->where('TypeUjian', $typeUjian);
-        $builder->where('IdTpq', $idTpq);
+        $builder = $this->db->table($this->table . ' r');
+        $builder->select('COUNT(DISTINCT r.NoPeserta) as count');
+        $builder->join('tbl_munaqosah_peserta p', 'p.IdSantri = r.IdSantri AND p.IdTahunAjaran = r.IdTahunAjaran', 'inner');
+        $builder->where('r.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('r.TypeUjian', $typeUjian);
+
+        // Hanya filter IdTpq jika bukan juri/panitia umum
+        // Untuk juri/panitia umum (IdTpq = 0), jangan filter IdTpq karena data sudah memiliki IdTpq yang valid
+        if ($idTpq != 0) {
+            $builder->where('r.IdTpq', $idTpq);
+        }
 
         return $builder->get()->getRow()->count;
     }

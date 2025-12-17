@@ -224,13 +224,11 @@ if (!function_exists('getTotalPesertaSudahDinilaiSemuaKategori')) {
         $builder->select('r.NoPeserta, r.IdKategoriMateri, r.IdGrupMateriUjian');
         $builder->where('r.IdTahunAjaran', $idTahunAjaran);
         $builder->where('r.TypeUjian', $typeUjian);
-        
-        if ($idTpq !== null) {
-            if ($idTpq == 0) {
-                $builder->where('r.IdTpq IS NULL');
-            } else {
-                $builder->where('r.IdTpq', $idTpq);
-            }
+
+        if ($idTpq !== null && $idTpq != 0) {
+            // Hanya filter IdTpq jika bukan juri/panitia umum
+            // Untuk juri/panitia umum (IdTpq = 0), jangan filter IdTpq karena data sudah memiliki IdTpq yang valid
+            $builder->where('r.IdTpq', $idTpq);
         }
         
         $registrasiRows = $builder->get()->getResultArray();
@@ -296,13 +294,11 @@ if (!function_exists('getTotalPesertaSudahDinilaiSemuaKategori')) {
         $nilaiBuilder->where('n.TypeUjian', $typeUjian);
         $nilaiBuilder->where('n.Nilai >', 0);
         $nilaiBuilder->whereIn('n.NoPeserta', $noPesertaList);
-        
-        if ($idTpq !== null) {
-            if ($idTpq == 0) {
-                $nilaiBuilder->where('n.IdTpq IS NULL');
-            } else {
-                $nilaiBuilder->where('n.IdTpq', $idTpq);
-            }
+
+        if ($idTpq !== null && $idTpq != 0) {
+            // Hanya filter IdTpq jika bukan juri/panitia umum
+            // Untuk juri/panitia umum (IdTpq = 0), jangan filter IdTpq karena data sudah memiliki IdTpq yang valid
+            $nilaiBuilder->where('n.IdTpq', $idTpq);
         }
         
         $nilaiRows = $nilaiBuilder->get()->getResultArray();

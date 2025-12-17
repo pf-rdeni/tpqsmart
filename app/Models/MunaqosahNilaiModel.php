@@ -178,11 +178,17 @@ class MunaqosahNilaiModel extends Model
 
     public function getTotalPesertaByJuri($IdTpq, $idJuri, $idTahunAjaran, $typeUjian)
     {
-        return $this->where('IdTpq', $IdTpq)
-            ->where('IdJuri', $idJuri)
+        $builder = $this->where('IdJuri', $idJuri)
             ->where('IdTahunAjaran', $idTahunAjaran)
-            ->where('TypeUjian', $typeUjian)
-            ->groupBy('NoPeserta')
+            ->where('TypeUjian', $typeUjian);
+
+        // Hanya filter IdTpq jika bukan juri umum (IdTpq != 0)
+        // Untuk juri umum (IdTpq = 0), jangan filter IdTpq karena data sudah memiliki IdTpq yang valid
+        if ($IdTpq != 0) {
+            $builder->where('IdTpq', $IdTpq);
+        }
+
+        return $builder->groupBy('NoPeserta')
             ->distinct()
             ->countAllResults('NoPeserta');
     }

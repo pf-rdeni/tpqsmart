@@ -87,9 +87,9 @@
                                                     </div>
                                                     <div class="card-body">
                                                         <?php
-                                                        $total = $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai;
-                                                        $pctSelesai = $total > 0 ? round(($total_peserta_sudah_dinilai / $total) * 100) : 0;
-                                                        $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100) : 0;
+$total = $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai;
+$pctSelesai = $total > 0 ? round(($total_peserta_sudah_dinilai / $total) * 100, 2) : 0;
+$pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2) : 0;
                                                         ?>
                                                         <div class="row">
                                                             <div class="col-md-3 col-sm-6 mb-3">
