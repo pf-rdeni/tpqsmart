@@ -35,8 +35,8 @@
                                         <strong>Lihat Statistik Penilaian:</strong>
                                         <ul class="mt-2">
                                             <li><strong>Total Peserta:</strong> Jumlah total peserta yang terdaftar</li>
-                                            <li><strong>Sudah Dinilai:</strong> Jumlah peserta yang sudah dinilai minimal 1 kategori</li>
-                                            <li><strong>Belum Dinilai:</strong> Jumlah peserta yang belum dinilai sama sekali</li>
+                                            <li><strong>Sudah Dinilai:</strong> Jumlah peserta yang semua kategorinya sudah dinilai oleh semua juri</li>
+                                            <li><strong>Belum Dinilai:</strong> Jumlah peserta yang belum dinilai sama sekali atau belum lengkap</li>
                                             <li><strong>Progress:</strong> Persentase peserta yang sudah dinilai (sudah dinilai / total peserta)</li>
                                         </ul>
                                     </li>
@@ -101,8 +101,9 @@
                                     <ul class="mb-0">
                                         <li><strong>Status Penilaian:</strong>
                                             <ul>
-                                                <li>Peserta dianggap <strong>Sudah Dinilai</strong> jika minimal 1 kategori sudah ada nilai dari minimal 1 juri</li>
-                                                <li>Peserta dianggap <strong>Selesai</strong> jika semua kategori sudah dinilai oleh semua juri</li>
+                                                <li>Peserta dianggap <strong>Sudah Dinilai</strong> jika semua kategori sudah dinilai oleh semua juri (sesuai konfigurasi maxJuri per kategori)</li>
+                                                <li>Peserta dianggap <strong>Belum Dinilai</strong> jika ada kategori yang belum dinilai atau belum dinilai oleh semua juri</li>
+                                                <li>Setiap kategori harus memiliki nilai dari semua juri yang dikonfigurasi untuk dihitung sebagai "sudah dinilai"</li>
                                             </ul>
                                         </li>
                                         <li><strong>Kolom Dinamis:</strong> Jumlah kolom per kategori tergantung jumlah juri yang ditetapkan (default: 2 juri per kategori)</li>
@@ -504,23 +505,26 @@
             const totalPeserta = data.rows.length;
             let sudah = 0;
             data.rows.forEach(r => {
-                // dianggap sudah dinilai jika semua kategori punya minimal 1 nilai > 0
+                // dianggap sudah dinilai jika semua kategori sudah dinilai oleh semua juri
                 let doneAll = true;
                 headerCategories.forEach(cat => {
                     const key = cat.id || cat.IdKategoriMateri || cat;
                     const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
                     const sc = r.nilai[key] || [];
 
-                    // Cek apakah ada minimal satu nilai > 0 untuk kategori ini
-                    let hasValue = false;
+                    // Cek apakah semua juri (sesuai maxJuri) sudah memberikan nilai
+                    // Setiap juri harus memiliki nilai > 0
+                    let allJuriHasValue = true;
                     for (let i = 0; i < maxJuri; i++) {
-                        if ((sc[i] || 0) > 0) {
-                            hasValue = true;
+                        const nilaiJuri = (sc[i] || 0);
+                        if (nilaiJuri <= 0) {
+                            allJuriHasValue = false;
                             break;
                         }
                     }
 
-                    if (!hasValue) {
+                    // Jika kategori ini tidak memiliki nilai dari semua juri, maka belum selesai
+                    if (!allJuriHasValue) {
                         doneAll = false;
                     }
                 });
@@ -614,10 +618,50 @@
         return parseInt($('#filterRefreshInterval').val()) || 10;
     }
 
+    // Fungsi untuk menyimpan filter ke localStorage
+    function saveFiltersToLocalStorage() {
+        const filters = {
+            tahunAjaran: $('#filterTahunAjaran').val().trim(),
+            tpq: $('#filterTpq').val(),
+            typeUjian: $('#filterTypeUjian').val(),
+            refreshInterval: $('#filterRefreshInterval').val()
+        };
+        localStorage.setItem('munaqosah_monitoring_filters', JSON.stringify(filters));
+    }
+
+    // Fungsi untuk memuat filter dari localStorage
+    function loadFiltersFromLocalStorage() {
+        const savedFilters = localStorage.getItem('munaqosah_monitoring_filters');
+        if (savedFilters) {
+            try {
+                const filters = JSON.parse(savedFilters);
+                
+                // Set nilai filter jika ada di localStorage
+                if (filters.tahunAjaran) {
+                    $('#filterTahunAjaran').val(filters.tahunAjaran);
+                }
+                if (filters.tpq && $('#filterTpq option[value="' + filters.tpq + '"]').length > 0) {
+                    $('#filterTpq').val(filters.tpq);
+                }
+                if (filters.typeUjian && $('#filterTypeUjian option[value="' + filters.typeUjian + '"]').length > 0) {
+                    $('#filterTypeUjian').val(filters.typeUjian);
+                }
+                if (filters.refreshInterval && $('#filterRefreshInterval option[value="' + filters.refreshInterval + '"]').length > 0) {
+                    $('#filterRefreshInterval').val(filters.refreshInterval);
+                }
+            } catch (e) {
+                console.error('Error loading filters from localStorage:', e);
+            }
+        }
+    }
+
     $(function() {
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
         const isPanitiaTpq = $('#isPanitiaTpq').val() === '1';
+
+        // Load filter dari localStorage terlebih dahulu
+        loadFiltersFromLocalStorage();
 
         // Jika TPQ hanya satu, set otomatis
         const $tpqSel = $('#filterTpq');
@@ -638,18 +682,30 @@
             }
         }
 
+        // Event handler untuk menyimpan filter ke localStorage saat berubah
+        $('#filterTahunAjaran').on('change', function() {
+            saveFiltersToLocalStorage();
+            loadMonitoring();
+        });
+        $('#filterTpq').on('change', function() {
+            saveFiltersToLocalStorage();
+            loadMonitoring();
+        });
+        $('#filterTypeUjian').on('change', function() {
+            saveFiltersToLocalStorage();
+            loadMonitoring();
+        });
+        $('#filterRefreshInterval').on('change', function() {
+            saveFiltersToLocalStorage();
+            const intervalMinutes = getRefreshInterval();
+            startAutoRefresh(intervalMinutes);
+        });
+
         $('#btnReload').on('click', function() {
+            saveFiltersToLocalStorage();
             loadMonitoring();
             // Reset countdown setelah manual reload
             startCountdown(getRefreshInterval());
-        });
-        $('#filterTypeUjian').on('change', loadMonitoring);
-        $('#filterTpq').on('change', loadMonitoring);
-
-        // Handler untuk perubahan interval refresh
-        $('#filterRefreshInterval').on('change', function() {
-            const intervalMinutes = getRefreshInterval();
-            startAutoRefresh(intervalMinutes);
         });
 
         // Mulai auto-refresh dengan interval default

@@ -621,15 +621,19 @@
                     const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
                     const sc = r.nilai[key] || [];
 
-                    let hasValue = false;
+                    // Cek apakah semua juri (sesuai maxJuri) sudah memberikan nilai
+                    // Setiap juri harus memiliki nilai > 0
+                    let allJuriHasValue = true;
                     for (let i = 0; i < maxJuri; i++) {
-                        if ((sc[i] || 0) > 0) {
-                            hasValue = true;
+                        const nilaiJuri = (sc[i] || 0);
+                        if (nilaiJuri <= 0) {
+                            allJuriHasValue = false;
                             break;
                         }
                     }
 
-                    if (!hasValue) {
+                    // Jika kategori ini tidak memiliki nilai dari semua juri, maka belum selesai
+                    if (!allJuriHasValue) {
                         doneAll = false;
                     }
                 });

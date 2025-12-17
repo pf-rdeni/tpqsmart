@@ -2790,11 +2790,24 @@
                 if (response.success) {
                     var dataTerkait = response.data_terkait;
                     var totalTerkait = response.total_terkait;
+                    var isAman = response.is_aman;
 
                     if (totalTerkait > 0) {
                         // Ada data terkait, tampilkan konfirmasi detail
                         var detailMessage = 'Peserta <strong>' + namaSantri + '</strong> memiliki data terkait:<br><br>';
 
+                        if (dataTerkait.registrasi_uji) {
+                            detailMessage += '• <strong>' + dataTerkait.registrasi_uji.count + '</strong> data registrasi uji';
+                            if (dataTerkait.registrasi_uji.by_type) {
+                                var typeDetails = [];
+                                for (var type in dataTerkait.registrasi_uji.by_type) {
+                                    typeDetails.push(type + ': ' + dataTerkait.registrasi_uji.by_type[type]);
+                                }
+                                detailMessage += ' (' + typeDetails.join(', ') + ')<br>';
+                            } else {
+                                detailMessage += '<br>';
+                            }
+                        }
                         if (dataTerkait.nilai_munaqosah) {
                             detailMessage += '• <strong>' + dataTerkait.nilai_munaqosah.count + '</strong> data nilai munaqosah<br>';
                         }
@@ -2803,7 +2816,8 @@
                         }
 
                         detailMessage += '<br><span class="text-danger"><strong>Semua data terkait akan dihapus juga!</strong></span>';
-                        detailMessage += '<br><br><div class="alert alert-success"><i class="fas fa-info-circle"></i> <strong>Info:</strong> Data santri utama tidak akan dihapus, hanya dihapus dari daftar peserta munaqosah.</div>';
+                        detailMessage += '<br><br><div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> <strong>Peringatan:</strong> Data registrasi, nilai, dan antrian akan ikut terhapus.</div>';
+                        detailMessage += '<br><div class="alert alert-info"><i class="fas fa-info-circle"></i> <strong>Info:</strong> Data santri utama tidak akan dihapus, hanya dihapus dari daftar peserta munaqosah.</div>';
 
                         Swal.fire({
                             title: 'Konfirmasi Hapus Data Terkait',
@@ -2820,13 +2834,13 @@
                             }
                         });
                     } else {
-                        // Tidak ada data terkait, hapus langsung
+                        // Tidak ada data terkait, hapus langsung dengan pesan hijau
                         Swal.fire({
                             title: 'Konfirmasi Hapus',
-                            html: `Apakah Anda yakin ingin menghapus peserta <strong>${namaSantri}</strong>?<br><br><span class="text-success">✓ Tidak ada data terkait yang akan terpengaruh.</span><br><br><div class="alert alert-success"><i class="fas fa-info-circle"></i> <strong>Info:</strong> Data santri utama tidak akan dihapus, hanya dihapus dari daftar peserta munaqosah.</div>`,
+                            html: `Apakah Anda yakin ingin menghapus peserta <strong>${namaSantri}</strong>?<br><br><span class="badge badge-success"><i class="fas fa-check-circle"></i> Tidak ada data terkait yang akan terpengaruh. Aman untuk dihapus.</span><br><br><div class="alert alert-success"><i class="fas fa-info-circle"></i> <strong>Info:</strong> Data santri utama tidak akan dihapus, hanya dihapus dari daftar peserta munaqosah.</div>`,
                             icon: 'question',
                             showCancelButton: true,
-                            confirmButtonColor: '#d33',
+                            confirmButtonColor: '#28a745',
                             cancelButtonColor: '#3085d6',
                             confirmButtonText: 'Ya, Hapus!',
                             cancelButtonText: 'Batal',
