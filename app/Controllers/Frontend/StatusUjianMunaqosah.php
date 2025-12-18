@@ -45,11 +45,20 @@ class StatusUjianMunaqosah extends BaseController
     /**
      * Halaman input HashKey untuk cek status munaqosah
      * Dapat menerima HashKey sebagai parameter di URL: /cek-status/{hashKey}
+     * Juga dapat menerima query parameter dengan URL lengkap
      */
     public function index($hasKey = null)
     {
         // Jika HashKey diberikan langsung di URL, langsung verifikasi dan redirect
         if (!empty($hasKey)) {
+            // Validasi dan ekstrak hashKey jika diperlukan (untuk kompatibilitas)
+            $hasKey = $this->extractHashKeyFromUrl($hasKey);
+            
+            if (empty($hasKey)) {
+                return redirect()->to(base_url('cek-status'))
+                    ->with('error', 'HashKey tidak ditemukan dalam URL. Pastikan URL berisi format: .../cek-status/{hashKey}');
+            }
+
             $peserta = $this->getPesertaByHashKey($hasKey);
             
             if (empty($peserta)) {
@@ -96,6 +105,9 @@ class StatusUjianMunaqosah extends BaseController
     /**
      * Verifikasi HashKey dan redirect ke halaman konfirmasi
      * Digunakan untuk form POST submission
+     * Dapat menerima hashKey langsung atau URL lengkap seperti:
+     * - https://tpqsmart.simpedis.com/cek-status/lKE7-J4Yx_HuL74DkpyJDOb-7BzC4L5B
+     * - http://localhost:8080/cek-status/lKE7-J4Yx_HuL74DkpyJDOb-7BzC4L5B
      */
     public function verifyHashKey()
     {
@@ -105,6 +117,16 @@ class StatusUjianMunaqosah extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'HashKey harus diisi'
+            ]);
+        }
+
+        // Validasi dan ekstrak hashKey dari URL lengkap jika diperlukan
+        $hasKey = $this->extractHashKeyFromUrl($hasKey);
+
+        if (empty($hasKey)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'HashKey tidak ditemukan dalam URL. Pastikan URL berisi format: .../cek-status/{hashKey}'
             ]);
         }
 
@@ -126,6 +148,56 @@ class StatusUjianMunaqosah extends BaseController
             'success' => true,
             'redirect' => base_url('munaqosah/konfirmasi-data')
         ]);
+    }
+
+    /**
+     * Ekstrak hashKey dari URL lengkap
+     * Menerima format:
+     * - https://tpqsmart.simpedis.com/cek-status/lKE7-J4Yx_HuL74DkpyJDOb-7BzC4L5B
+     * - http://localhost:8080/cek-status/lKE7-J4Yx_HuL74DkpyJDOb-7BzC4L5B
+     * - lKE7-J4Yx_HuL74DkpyJDOb-7BzC4L5B (hashKey langsung)
+     * 
+     * @param string $input Input yang bisa berupa URL lengkap atau hashKey langsung
+     * @return string|null HashKey yang diekstrak atau null jika tidak ditemukan
+     */
+    private function extractHashKeyFromUrl($input)
+    {
+        if (empty($input)) {
+            return null;
+        }
+
+        $input = trim($input);
+
+        // Jika input sudah berupa hashKey langsung (tidak mengandung 'cek-status'), return langsung
+        if (strpos($input, 'cek-status') === false) {
+            return $input;
+        }
+
+        // Ekstrak hashKey dari URL
+        // Pattern: .../cek-status/{hashKey}
+        $pattern = '/cek-status\/([^\/\?\#]+)/i';
+        
+        if (preg_match($pattern, $input, $matches)) {
+            if (isset($matches[1]) && !empty($matches[1])) {
+                return trim($matches[1]);
+            }
+        }
+
+        // Fallback: coba split manual
+        $parts = explode('cek-status/', $input);
+        if (count($parts) > 1) {
+            $hashKey = $parts[1];
+            // Hapus query string dan fragment jika ada
+            $hashKey = explode('?', $hashKey)[0];
+            $hashKey = explode('#', $hashKey)[0];
+            $hashKey = trim($hashKey);
+            
+            if (!empty($hashKey)) {
+                return $hashKey;
+            }
+        }
+
+        return null;
     }
 
     /**

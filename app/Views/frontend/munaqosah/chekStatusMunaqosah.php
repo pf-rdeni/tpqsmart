@@ -113,6 +113,109 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
     .btn-check:active {
         background-color: #3d8b40;
     }
+
+    .scan-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .scan-divider {
+        text-align: center;
+        margin: 20px 0;
+        position: relative;
+    }
+
+    .scan-divider::before,
+    .scan-divider::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 45%;
+        height: 1px;
+        background-color: #ddd;
+    }
+
+    .scan-divider::before {
+        left: 0;
+    }
+
+    .scan-divider::after {
+        right: 0;
+    }
+
+    .scan-divider span {
+        background-color: white;
+        padding: 0 15px;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .btn-scan {
+        width: 100%;
+        padding: 12px 30px;
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-scan:hover {
+        background-color: #1976D2;
+    }
+
+    .btn-scan:active {
+        background-color: #1565C0;
+    }
+
+    .btn-scan:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+
+    #qr-reader {
+        width: 100%;
+        margin: 20px 0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    #qr-reader__dashboard {
+        padding: 15px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+    }
+
+    .scan-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .btn-stop-scan {
+        width: 100%;
+        padding: 12px 30px;
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .btn-stop-scan:hover {
+        background-color: #c82333;
+    }
 </style>
 
 <div class="status-card">
@@ -144,7 +247,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                         id="hasKey"
                         name="hasKey"
                         class="form-input"
-                        placeholder="Ketikkan hashkey"
+                        placeholder="Ketikkan hashkey atau scan QR code"
                         required
                         autocomplete="off">
                 </div>
@@ -154,23 +257,50 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             </div>
         </div>
     </form>
+
+    <div class="scan-section">
+        <div class="scan-divider">
+            <span>ATAU</span>
+        </div>
+        <button type="button" class="btn-scan" id="btnScanQR">
+            <i class="fas fa-qrcode"></i> Scan QR Code
+        </button>
+        <div id="qr-reader" style="display: none;"></div>
+        <div class="scan-actions" id="scanActions" style="display: none;">
+            <button type="button" class="btn-stop-scan" id="btnStopScan">
+                <i class="fas fa-stop"></i> Stop Scan
+            </button>
+        </div>
+    </div>
 </div>
 
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
+<!-- Library untuk scan QR Code -->
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
-    $(document).ready(function() {
-        $('#hashKeyForm').on('submit', function(e) {
-            e.preventDefault();
+    let html5QrCode = null;
+    let isScanning = false;
 
-            const hasKey = $('#hasKey').val().trim();
+    $(document).ready(function() {
+        // Fungsi untuk memproses hashKey (dari input manual atau QR scan)
+        function processHashKey(inputValue) {
+            let hasKey = inputValue.trim();
+
+            // Jika input adalah URL lengkap, ekstrak hashKey-nya
+            if (hasKey.includes('cek-status/')) {
+                const urlParts = hasKey.split('cek-status/');
+                if (urlParts.length > 1) {
+                    hasKey = urlParts[1].split('?')[0].split('#')[0].trim();
+                }
+            }
 
             if (!hasKey) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Perhatian',
-                    text: 'HashKey harus diisi'
+                    text: 'HashKey tidak ditemukan. Pastikan QR code berisi URL yang valid.'
                 });
                 return;
             }
@@ -193,6 +323,10 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
+                        // Stop scan jika sedang berjalan
+                        if (isScanning) {
+                            stopScan();
+                        }
                         window.location.href = response.redirect;
                     } else {
                         Swal.fire({
@@ -210,6 +344,105 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                     });
                 }
             });
+        }
+
+        // Form submit untuk input manual
+        $('#hashKeyForm').on('submit', function(e) {
+            e.preventDefault();
+            const hasKey = $('#hasKey').val().trim();
+            
+            if (!hasKey) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'HashKey harus diisi'
+                });
+                return;
+            }
+
+            processHashKey(hasKey);
+        });
+
+        // Tombol scan QR code
+        $('#btnScanQR').on('click', function() {
+            startScan();
+        });
+
+        // Tombol stop scan
+        $('#btnStopScan').on('click', function() {
+            stopScan();
+        });
+
+        // Fungsi untuk memulai scan
+        function startScan() {
+            if (isScanning) {
+                return;
+            }
+
+            isScanning = true;
+            $('#btnScanQR').prop('disabled', true);
+            $('#qr-reader').show();
+            $('#scanActions').show();
+
+            html5QrCode = new Html5Qrcode("qr-reader");
+            
+            html5QrCode.start(
+                { facingMode: "environment" }, // Gunakan kamera belakang jika tersedia
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                function(decodedText, decodedResult) {
+                    // QR code berhasil di-scan
+                    console.log("QR Code berhasil di-scan:", decodedText);
+                    processHashKey(decodedText);
+                },
+                function(errorMessage) {
+                    // Error handling (biasanya karena belum ada QR code yang terdeteksi)
+                    // Tidak perlu menampilkan error, biarkan terus scan
+                }
+            ).catch(function(err) {
+                // Error saat memulai kamera
+                isScanning = false;
+                $('#btnScanQR').prop('disabled', false);
+                $('#qr-reader').hide();
+                $('#scanActions').hide();
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Tidak dapat mengakses kamera. Pastikan Anda memberikan izin akses kamera.'
+                });
+            });
+        }
+
+        // Fungsi untuk menghentikan scan
+        function stopScan() {
+            if (!isScanning || !html5QrCode) {
+                return;
+            }
+
+            html5QrCode.stop().then(function() {
+                html5QrCode.clear();
+                html5QrCode = null;
+                isScanning = false;
+                $('#btnScanQR').prop('disabled', false);
+                $('#qr-reader').hide();
+                $('#scanActions').hide();
+            }).catch(function(err) {
+                console.error("Error stopping scan:", err);
+                isScanning = false;
+                $('#btnScanQR').prop('disabled', false);
+                $('#qr-reader').hide();
+                $('#scanActions').hide();
+            });
+        }
+
+        // Cleanup saat halaman ditutup
+        $(window).on('beforeunload', function() {
+            if (isScanning && html5QrCode) {
+                stopScan();
+            }
         });
     });
 </script>
