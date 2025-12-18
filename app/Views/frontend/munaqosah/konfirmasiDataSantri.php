@@ -131,9 +131,20 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
         margin: 30px 0;
     }
 
+    @keyframes blink-border {
+        0%, 100% {
+            border-color: #2196F3;
+            box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7);
+        }
+        50% {
+            border-color: #64b5f6;
+            box-shadow: 0 0 0 4px rgba(100, 181, 246, 0.4);
+        }
+    }
+
     .btn-verifikasi {
         padding: 14px 40px;
-        border: none;
+        border: 3px solid #2196F3;
         border-radius: 8px;
         font-weight: 600;
         font-size: 16px;
@@ -145,23 +156,28 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
         display: inline-flex;
         align-items: center;
         gap: 10px;
+        animation: blink-border 2s ease-in-out infinite;
     }
 
     .btn-verifikasi:hover {
         background: linear-gradient(135deg, #ffb300 0%, #ffa000 100%);
         box-shadow: 0 6px 12px rgba(255, 193, 7, 0.4);
         transform: translateY(-2px);
+        animation: none;
+        border-color: #2196F3;
     }
 
     .btn-verifikasi:active {
         transform: translateY(0);
         box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+        animation: none;
     }
 
     .btn-verifikasi:disabled {
         opacity: 0.6;
         cursor: not-allowed;
         transform: none;
+        animation: none;
     }
 
     .btn-verifikasi i {
@@ -363,27 +379,53 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
         <?php endif; ?>
         <!-- Jika status sudah ada (valid atau perlu_perbaikan), tombol verifikasi tidak ditampilkan karena status sudah ditampilkan di status-box di atas -->
 
-        <div class="button-group">
-            <!-- Tombol Status selalu aktif (tidak bergantung pada status verified) -->
-            <button type="button" class="btn-action btn-status" onclick="processAction('status')" id="btnStatus">
-                <i class="fas fa-tasks"></i> Lihat Status Munaqosah
-            </button>
-            <!-- Tombol Kelulusan bergantung pada status verified dan aktiveTombolKelulusan per type ujian -->
-            <button
-                type="button"
-                class="btn-action btn-kelulusan"
-                onclick="processAction('kelulusan')"
-                id="btnKelulusan"
-                data-aktive-per-type='<?= json_encode($aktiveTombolKelulusanPerType) ?>'>
-                <i class="fas fa-graduation-cap"></i> Lihat Kelulusan
-            </button>
-        </div>
+        <?php if ($isVerified || $isPerluPerbaikan): ?>
+            <!-- Tombol Status dan Kelulusan hanya ditampilkan setelah verifikasi (setelah memilih Ya atau Tidak) -->
+            <div class="button-group">
+                <!-- Tombol Status selalu aktif (tidak bergantung pada status verified) -->
+                <button type="button" class="btn-action btn-status" onclick="processAction('status')" id="btnStatus">
+                    <i class="fas fa-tasks"></i> Lihat Status Munaqosah
+                </button>
+                <!-- Tombol Kelulusan bergantung pada status verified dan aktiveTombolKelulusan per type ujian -->
+                <button
+                    type="button"
+                    class="btn-action btn-kelulusan"
+                    onclick="processAction('kelulusan')"
+                    id="btnKelulusan"
+                    data-aktive-per-type='<?= json_encode($aktiveTombolKelulusanPerType) ?>'>
+                    <i class="fas fa-graduation-cap"></i> Lihat Kelulusan
+                </button>
+            </div>
 
-        <!-- Info untuk tombol kelulusan yang dinamis -->
-        <div class="info-disabled" id="infoKelulusan" style="display: none;">
-            <i class="fas fa-info-circle"></i>
-            <span>Tombol "Lihat Kelulusan" saat ini tidak aktif berdasarkan pengaturan sistem untuk type ujian yang dipilih. Silakan hubungi admin lembaga untuk informasi lebih lanjut.</span>
-        </div>
+            <!-- Info untuk tombol kelulusan yang dinamis -->
+            <div class="info-disabled" id="infoKelulusan" style="display: none;">
+                <i class="fas fa-info-circle"></i>
+                <span>Tombol "Lihat Kelulusan" saat ini tidak aktif berdasarkan pengaturan sistem untuk type ujian yang dipilih. Silakan hubungi admin lembaga untuk informasi lebih lanjut.</span>
+            </div>
+        <?php else: ?>
+            <!-- Tombol disembunyikan sebelum verifikasi -->
+            <div class="button-group" id="buttonGroup" style="display: none;">
+                <!-- Tombol Status selalu aktif (tidak bergantung pada status verified) -->
+                <button type="button" class="btn-action btn-status" onclick="processAction('status')" id="btnStatus">
+                    <i class="fas fa-tasks"></i> Lihat Status Munaqosah
+                </button>
+                <!-- Tombol Kelulusan bergantung pada status verified dan aktiveTombolKelulusan per type ujian -->
+                <button
+                    type="button"
+                    class="btn-action btn-kelulusan"
+                    onclick="processAction('kelulusan')"
+                    id="btnKelulusan"
+                    data-aktive-per-type='<?= json_encode($aktiveTombolKelulusanPerType) ?>'>
+                    <i class="fas fa-graduation-cap"></i> Lihat Kelulusan
+                </button>
+            </div>
+
+            <!-- Info untuk tombol kelulusan yang dinamis -->
+            <div class="info-disabled" id="infoKelulusan" style="display: none;">
+                <i class="fas fa-info-circle"></i>
+                <span>Tombol "Lihat Kelulusan" saat ini tidak aktif berdasarkan pengaturan sistem untuk type ujian yang dipilih. Silakan hubungi admin lembaga untuk informasi lebih lanjut.</span>
+            </div>
+        <?php endif; ?>
     </form>
 </div>
 
@@ -942,13 +984,22 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
                     Swal.close();
 
                     if (response && response.success) {
+                        // Tampilkan tombol setelah verifikasi berhasil (sebelum reload)
+                        const buttonGroup = $('#buttonGroup');
+                        if (buttonGroup.length > 0) {
+                            buttonGroup.fadeIn(300);
+                            // Inisialisasi tombol status
+                            $('#btnStatus').prop('disabled', false);
+                            // Tombol kelulusan akan diinisialisasi setelah reload
+                        }
+                        
                         Swal.fire({
                             icon: 'success',
                             title: 'Berhasil!',
                             text: response.message || 'Data berhasil disimpan',
                             confirmButtonText: 'OK'
                         }).then(() => {
-                            // Reload halaman untuk menampilkan status terbaru
+                            // Reload halaman untuk menampilkan status terbaru dan menginisialisasi tombol dengan benar
                             location.reload();
                         });
                     } else {

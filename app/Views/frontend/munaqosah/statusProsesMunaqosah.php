@@ -287,15 +287,30 @@ $pageTitle = 'Status Proses ' . $typeUjianLabel;
         <?php endif; ?>
     </div>
 
-    <div class="note-section">
-        <div class="note-title">
-            <i class="fas fa-info-circle"></i>
-            <span>Catatan Penting</span>
+    <?php
+    // Cek apakah ada grup yang belum selesai
+    $adaYangBelumSelesai = false;
+    if (!empty($statusGrup)) {
+        foreach ($statusGrup as $item) {
+            if (!$item['selesai']) {
+                $adaYangBelumSelesai = true;
+                break;
+            }
+        }
+    }
+    ?>
+    
+    <?php if ($adaYangBelumSelesai): ?>
+        <div class="note-section">
+            <div class="note-title">
+                <i class="fas fa-info-circle"></i>
+                <span>Catatan Penting</span>
+            </div>
+            <p class="note-content">
+                Apabila Ananda melihat status silang (belum selesai) pada grup materi ujian di atas, hal tersebut dapat berarti bahwa proses input nilai belum sepenuhnya selesai dilakukan karena memerlukan waktu dalam memproses data. Ananda dapat melihat dan memperbarui status secara berkala melalui halaman ini. Selain itu, Ananda juga dapat merujuk pada <strong>manual checklist dari panitia pada kartu peserta ujian</strong> yang menunjukkan bahwa Ananda sudah melakukan proses ujian munaqosah untuk memastikan kelengkapan data.
+            </p>
         </div>
-        <p class="note-content">
-            Apabila Ananda melihat status silang (belum selesai) pada grup materi ujian di atas, hal tersebut dapat berarti bahwa proses input nilai belum sepenuhnya selesai dilakukan karena memerlukan waktu dalam memproses data. Ananda dapat melihat dan memperbarui status secara berkala melalui halaman ini. Selain itu, Ananda juga dapat merujuk pada <strong>manual checklist dari panitia pada kartu peserta ujian</strong> yang menunjukkan bahwa Ananda sudah melakukan proses ujian munaqosah untuk memastikan kelengkapan data.
-        </p>
-    </div>
+    <?php endif; ?>
 
     <div class="btn-back">
         <a href="<?= base_url('munaqosah/konfirmasi-data') ?>">
