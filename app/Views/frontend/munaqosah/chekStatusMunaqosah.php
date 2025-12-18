@@ -216,6 +216,47 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
     .btn-stop-scan:hover {
         background-color: #c82333;
     }
+
+    #qr-reader {
+        position: relative;
+    }
+
+    #qr-reader video {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+
+    .focus-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(33, 150, 243, 0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: bold;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 1000;
+    }
+
+    .focus-indicator.show {
+        opacity: 1;
+    }
+
+    .scan-hint {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 12px;
+        color: #666;
+        padding: 8px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+    }
 </style>
 
 <div class="status-card">
@@ -265,7 +306,14 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
         <button type="button" class="btn-scan" id="btnScanQR">
             <i class="fas fa-qrcode"></i> Scan QR Code
         </button>
-        <div id="qr-reader" style="display: none;"></div>
+        <div id="qr-reader" style="display: none;">
+            <div class="focus-indicator" id="focusIndicator">
+                <i class="fas fa-crosshairs"></i> Fokus...
+            </div>
+        </div>
+        <div class="scan-hint" id="scanHint" style="display: none;">
+            <i class="fas fa-info-circle"></i> Ketuk dua kali pada layar untuk fokus kamera
+        </div>
         <div class="scan-actions" id="scanActions" style="display: none;">
             <button type="button" class="btn-stop-scan" id="btnStopScan">
                 <i class="fas fa-stop"></i> Stop Scan
@@ -466,6 +514,103 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             stopScan();
         });
 
+        // Fungsi untuk trigger fokus kamera
+        function triggerCameraFocus() {
+            if (!html5QrCode || !isScanning) {
+                return;
+            }
+
+            try {
+                // Coba akses video element untuk trigger focus
+                const videoElement = document.querySelector('#qr-reader video');
+                if (videoElement && videoElement.srcObject) {
+                    const stream = videoElement.srcObject;
+                    const videoTrack = stream.getVideoTracks()[0];
+
+                    if (videoTrack && typeof videoTrack.getCapabilities === 'function') {
+                        const capabilities = videoTrack.getCapabilities();
+
+                        // Cek apakah kamera mendukung focus
+                        if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                            // Set focus mode ke continuous untuk auto focus
+                            videoTrack.applyConstraints({
+                                advanced: [{
+                                    focusMode: 'continuous'
+                                }]
+                            }).then(() => {
+                                console.log('Auto focus enabled');
+                            }).catch(err => {
+                                console.log('Focus constraint not supported:', err);
+                            });
+                        } else if (capabilities.focusMode && capabilities.focusMode.includes('single-shot')) {
+                            // Trigger single-shot focus
+                            videoTrack.applyConstraints({
+                                advanced: [{
+                                    focusMode: 'single-shot'
+                                }]
+                            }).then(() => {
+                                // Kembalikan ke continuous setelah focus
+                                setTimeout(() => {
+                                    if (capabilities.focusMode.includes('continuous')) {
+                                        videoTrack.applyConstraints({
+                                            advanced: [{
+                                                focusMode: 'continuous'
+                                            }]
+                                        });
+                                    }
+                                }, 1000);
+                            }).catch(err => {
+                                console.log('Focus trigger failed:', err);
+                            });
+                        }
+                    }
+                }
+
+                // Tampilkan indicator fokus
+                const focusIndicator = $('#focusIndicator');
+                focusIndicator.addClass('show');
+                setTimeout(() => {
+                    focusIndicator.removeClass('show');
+                }, 1000);
+            } catch (error) {
+                console.log('Focus trigger error:', error);
+            }
+        }
+
+        // Fungsi untuk scroll ke area scan
+        function scrollToScanArea() {
+            const qrReader = document.getElementById('qr-reader');
+            if (qrReader) {
+                // Tunggu sedikit agar element sudah ter-render
+                setTimeout(() => {
+                    // Gunakan scrollIntoView untuk kompatibilitas yang lebih baik, terutama mobile
+                    qrReader.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center', // Center element di viewport
+                        inline: 'nearest'
+                    });
+
+                    // Fallback untuk browser yang tidak support scrollIntoView dengan options
+                    // Atau jika perlu fine-tuning posisi
+                    setTimeout(() => {
+                        const qrReaderRect = qrReader.getBoundingClientRect();
+                        const viewportHeight = window.innerHeight;
+                        const elementHeight = qrReaderRect.height;
+                        const currentTop = qrReaderRect.top;
+                        const targetTop = (viewportHeight / 2) - (elementHeight / 2);
+                        const scrollOffset = currentTop - targetTop;
+
+                        if (Math.abs(scrollOffset) > 10) { // Hanya scroll jika offset > 10px
+                            window.scrollBy({
+                                top: scrollOffset,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 100);
+                }, 300); // Delay untuk memastikan element sudah ter-render
+            }
+        }
+
         // Fungsi untuk memulai scan
         function startScan() {
             if (isScanning) {
@@ -476,7 +621,11 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             isProcessing = false; // Reset processing flag
             $('#btnScanQR').prop('disabled', true);
             $('#qr-reader').show();
+            $('#scanHint').show();
             $('#scanActions').show();
+
+            // Auto scroll ke area scan (terutama untuk mobile)
+            scrollToScanArea();
 
             // Clear previous instance jika ada
             if (html5QrCode) {
@@ -485,16 +634,50 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
             html5QrCode = new Html5Qrcode("qr-reader");
 
-            html5QrCode.start({
-                    facingMode: "environment"
-                }, // Gunakan kamera belakang jika tersedia
-                {
-                    fps: 10,
-                    qrbox: {
-                        width: 250,
-                        height: 250
+            // Konfigurasi kamera dengan auto focus
+            const cameraConfig = {
+                facingMode: "environment" // Gunakan kamera belakang jika tersedia
+            };
+
+            // Video constraints untuk auto focus (jika didukung)
+            let videoConstraints = {
+                facingMode: "environment"
+            };
+
+            // Coba tambahkan focus mode jika didukung
+            try {
+                // Untuk perangkat yang mendukung, tambahkan focus mode
+                if (navigator.mediaDevices && navigator.mediaDevices.getSupportedConstraints) {
+                    const supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+                    if (supportedConstraints.focusMode) {
+                        videoConstraints.focusMode = "continuous";
                     }
+                }
+            } catch (e) {
+                console.log('Focus mode constraint not available');
+            }
+
+            // Konfigurasi scan yang dioptimalkan
+            const scanConfig = {
+                fps: 15, // Meningkatkan FPS untuk capture lebih cepat
+                qrbox: function(viewfinderWidth, viewfinderHeight) {
+                    // QR box yang lebih besar untuk capture lebih mudah
+                    let minEdgePercentage = 0.7; // 70% dari viewfinder
+                    let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                    let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+                    return {
+                        width: qrboxSize,
+                        height: qrboxSize
+                    };
                 },
+                aspectRatio: 1.0, // Square aspect ratio untuk QR code
+                disableFlip: false, // Biarkan flip untuk QR code yang terbalik
+                videoConstraints: videoConstraints
+            };
+
+            html5QrCode.start(
+                cameraConfig,
+                scanConfig,
                 function(decodedText, decodedResult) {
                     // QR code berhasil di-scan
                     console.log("QR Code berhasil di-scan:", decodedText);
@@ -512,18 +695,62 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                         console.log("Scan error (non-critical):", errorMessage);
                     }
                 }
-            ).catch(function(err) {
+            ).then(() => {
+                // Setelah kamera berhasil dimulai, scroll lagi untuk memastikan posisi optimal
+                setTimeout(() => {
+                    scrollToScanArea();
+                }, 800);
+
+                // Setelah kamera berhasil dimulai, coba enable auto focus
+                setTimeout(() => {
+                    triggerCameraFocus();
+                }, 500);
+
+                // Tambahkan event listener untuk double tap pada qr-reader
+                const qrReaderElement = document.getElementById('qr-reader');
+                if (qrReaderElement) {
+                    let lastTap = 0;
+                    qrReaderElement.addEventListener('touchend', function(e) {
+                        const currentTime = new Date().getTime();
+                        const tapLength = currentTime - lastTap;
+                        
+                        if (tapLength < 300 && tapLength > 0) {
+                            // Double tap detected
+                            e.preventDefault();
+                            triggerCameraFocus();
+                        }
+                        lastTap = currentTime;
+                    });
+
+                    // Juga support untuk mouse double click (untuk desktop testing)
+                    qrReaderElement.addEventListener('dblclick', function(e) {
+                        e.preventDefault();
+                        triggerCameraFocus();
+                    });
+                }
+            }).catch(function(err) {
                 // Error saat memulai kamera
                 isScanning = false;
                 isProcessing = false;
                 $('#btnScanQR').prop('disabled', false);
                 $('#qr-reader').hide();
+                $('#scanHint').hide();
                 $('#scanActions').hide();
+
+                let errorMessage = 'Tidak dapat mengakses kamera. Pastikan Anda memberikan izin akses kamera.';
+
+                if (err && err.message) {
+                    if (err.message.includes('Permission denied')) {
+                        errorMessage = 'Akses kamera ditolak. Silakan berikan izin akses kamera di pengaturan browser.';
+                    } else if (err.message.includes('NotFoundError')) {
+                        errorMessage = 'Kamera tidak ditemukan. Pastikan perangkat memiliki kamera yang aktif.';
+                    }
+                }
 
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Tidak dapat mengakses kamera. Pastikan Anda memberikan izin akses kamera.',
+                    text: errorMessage,
                     confirmButtonText: 'OK'
                 });
             });
@@ -536,12 +763,21 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             }
 
             isProcessing = false; // Reset processing flag
+
+            // Hapus event listeners
+            const qrReaderElement = document.getElementById('qr-reader');
+            if (qrReaderElement) {
+                const newElement = qrReaderElement.cloneNode(true);
+                qrReaderElement.parentNode.replaceChild(newElement, qrReaderElement);
+            }
+
             html5QrCode.stop().then(function() {
                 html5QrCode.clear();
                 html5QrCode = null;
                 isScanning = false;
                 $('#btnScanQR').prop('disabled', false);
                 $('#qr-reader').hide();
+                $('#scanHint').hide();
                 $('#scanActions').hide();
             }).catch(function(err) {
                 console.error("Error stopping scan:", err);
@@ -549,6 +785,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 isProcessing = false;
                 $('#btnScanQR').prop('disabled', false);
                 $('#qr-reader').hide();
+                $('#scanHint').hide();
                 $('#scanActions').hide();
             });
         }
