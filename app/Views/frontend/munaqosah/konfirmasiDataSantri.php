@@ -358,8 +358,14 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
         <div class="info-box">
             <p>
                 <strong>Informasi Penting:</strong><br>
-                Pastikan data di atas sudah benar. Data ini akan digunakan untuk menampilkan status munaqosah dan hasil kelulusan ujian Ananda.
-                Jika data di atas tidak benar, silakan klik tombol "Verifikasi Data" di bawah dan pilih "Tidak, Perlu Perbaikan" untuk mengajukan permintaan perbaikan data.
+                Ananda <strong>harus memverifikasi data</strong> dengan mengklik tombol <strong>"Verifikasi Data"</strong> di bawah ini. 
+                Di popup verifikasi, pilih:
+                <br><br>
+                • <strong>"Ya, Data Benar"</strong> - Jika data sudah sesuai
+                <br>
+                • <strong>"Tidak, Perlu Perbaikan"</strong> - Jika ada data yang perlu diperbaiki
+                <br><br>
+                Tombol "Lihat Status" dan "Lihat Kelulusan" akan muncul setelah verifikasi selesai.
             </p>
         </div>
     <?php endif; ?>
