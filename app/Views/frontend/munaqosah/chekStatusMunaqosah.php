@@ -282,10 +282,16 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 <script>
     let html5QrCode = null;
     let isScanning = false;
+    let isProcessing = false; // Flag untuk mencegah multiple processing
 
     $(document).ready(function() {
         // Fungsi untuk memproses hashKey (dari input manual atau QR scan)
-        function processHashKey(inputValue) {
+        function processHashKey(inputValue, fromScan = false) {
+            // Mencegah multiple processing
+            if (isProcessing) {
+                return;
+            }
+
             let hasKey = inputValue.trim();
 
             // Jika input adalah URL lengkap, ekstrak hashKey-nya
@@ -296,14 +302,51 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 }
             }
 
-            if (!hasKey) {
+            // Validasi: Jika hashKey terlalu pendek (3 digit atau kurang), kemungkinan itu QR untuk nomor
+            if (hasKey.length <= 3) {
+                isProcessing = false;
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Perhatian',
-                    text: 'HashKey tidak ditemukan. Pastikan QR code berisi URL yang valid.'
+                    title: 'QR Code Salah',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>Anda memindai QR Code yang salah!</strong></p>
+                            <p style="margin-top: 15px;">QR Code yang Anda pindai adalah untuk <strong>Nomor Peserta</strong> (biasanya 3 digit atau kurang).</p>
+                            <p style="margin-top: 15px;"><strong>Instruksi:</strong></p>
+                            <ul style="margin-top: 10px; padding-left: 20px;">
+                                <li>Jangan pindai QR Code yang berada di <strong>tengah kartu</strong> (untuk nomor)</li>
+                                <li>Pindai QR Code yang berada di <strong>samping bawah kiri kartu</strong> (untuk verifikasi data)</li>
+                            </ul>
+                            <p style="margin-top: 15px; color: #dc3545;"><strong>Silakan scan ulang QR Code yang benar.</strong></p>
+                        </div>
+                    `,
+                    confirmButtonText: 'OK, Scan Ulang',
+                    confirmButtonColor: '#2196F3',
+                    allowOutsideClick: false
+                }).then(() => {
+                    // Setelah OK, scan akan dilanjutkan otomatis (tidak perlu restart karena masih scanning)
+                    isProcessing = false;
                 });
                 return;
             }
+
+            if (!hasKey) {
+                isProcessing = false;
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'HashKey tidak ditemukan. Pastikan QR code berisi URL yang valid.',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    isProcessing = false;
+                    if (fromScan) {
+                        // Scan akan dilanjutkan otomatis
+                    }
+                });
+                return;
+            }
+
+            isProcessing = true;
 
             // Show loading
             Swal.fire({
@@ -329,18 +372,68 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                         }
                         window.location.href = response.redirect;
                     } else {
+                        isProcessing = false;
                         Swal.fire({
                             icon: 'error',
-                            title: 'Gagal',
-                            text: response.message || 'HashKey tidak valid'
+                            title: 'HashKey Tidak Valid',
+                            html: `
+                                <div style="text-align: left;">
+                                    <p><strong>QR Code yang Anda pindai tidak valid!</strong></p>
+                                    <p style="margin-top: 15px;">${response.message || 'HashKey tidak valid atau tidak ditemukan.'}</p>
+                                    <p style="margin-top: 15px;"><strong>Pastikan Anda memindai QR Code yang benar:</strong></p>
+                                    <ul style="margin-top: 10px; padding-left: 20px;">
+                                        <li>QR Code berada di <strong>samping bawah kiri kartu</strong></li>
+                                        <li>Bukan QR Code yang di tengah kartu (untuk nomor)</li>
+                                    </ul>
+                                    <p style="margin-top: 15px; color: #dc3545;"><strong>Silakan scan ulang QR Code yang benar.</strong></p>
+                                </div>
+                            `,
+                            confirmButtonText: 'OK, Scan Ulang',
+                            confirmButtonColor: '#2196F3',
+                            allowOutsideClick: false
+                        }).then(() => {
+                            // Setelah OK, scan akan dilanjutkan otomatis
+                            if (fromScan && isScanning) {
+                                // Scan masih berjalan, tidak perlu restart
+                            }
                         });
                     }
                 },
                 error: function(xhr, status, error) {
+                    isProcessing = false;
+                    let errorMessage = 'Terjadi kesalahan saat memproses data. Silakan coba lagi.';
+
+                    // Coba ambil pesan error dari response
+                    try {
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Terjadi kesalahan saat memproses data. Silakan coba lagi.'
+                        html: `
+                            <div style="text-align: left;">
+                                <p><strong>Terjadi kesalahan!</strong></p>
+                                <p style="margin-top: 15px;">${errorMessage}</p>
+                                <p style="margin-top: 15px;"><strong>Silakan coba:</strong></p>
+                                <ul style="margin-top: 10px; padding-left: 20px;">
+                                    <li>Pastikan QR Code yang dipindai adalah QR Code yang benar (samping bawah kiri kartu)</li>
+                                    <li>Scan ulang QR Code</li>
+                                    <li>Atau masukkan HashKey secara manual</li>
+                                </ul>
+                            </div>
+                        `,
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2196F3',
+                        allowOutsideClick: false
+                    }).then(() => {
+                        if (fromScan && isScanning) {
+                            // Scan akan dilanjutkan otomatis
+                        }
                     });
                 }
             });
@@ -350,7 +443,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
         $('#hashKeyForm').on('submit', function(e) {
             e.preventDefault();
             const hasKey = $('#hasKey').val().trim();
-            
+
             if (!hasKey) {
                 Swal.fire({
                     icon: 'warning',
@@ -360,7 +453,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 return;
             }
 
-            processHashKey(hasKey);
+            processHashKey(hasKey, false); // false = dari input manual, bukan scan
         });
 
         // Tombol scan QR code
@@ -380,38 +473,58 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             }
 
             isScanning = true;
+            isProcessing = false; // Reset processing flag
             $('#btnScanQR').prop('disabled', true);
             $('#qr-reader').show();
             $('#scanActions').show();
 
+            // Clear previous instance jika ada
+            if (html5QrCode) {
+                html5QrCode.clear();
+            }
+
             html5QrCode = new Html5Qrcode("qr-reader");
-            
-            html5QrCode.start(
-                { facingMode: "environment" }, // Gunakan kamera belakang jika tersedia
+
+            html5QrCode.start({
+                    facingMode: "environment"
+                }, // Gunakan kamera belakang jika tersedia
                 {
                     fps: 10,
-                    qrbox: { width: 250, height: 250 }
+                    qrbox: {
+                        width: 250,
+                        height: 250
+                    }
                 },
                 function(decodedText, decodedResult) {
                     // QR code berhasil di-scan
                     console.log("QR Code berhasil di-scan:", decodedText);
-                    processHashKey(decodedText);
+
+                    // Hanya proses jika tidak sedang memproses yang lain
+                    if (!isProcessing) {
+                        processHashKey(decodedText, true); // true = dari scan
+                    }
                 },
                 function(errorMessage) {
                     // Error handling (biasanya karena belum ada QR code yang terdeteksi)
                     // Tidak perlu menampilkan error, biarkan terus scan
+                    // Hanya log untuk debugging
+                    if (errorMessage && !errorMessage.includes('No QR code found')) {
+                        console.log("Scan error (non-critical):", errorMessage);
+                    }
                 }
             ).catch(function(err) {
                 // Error saat memulai kamera
                 isScanning = false;
+                isProcessing = false;
                 $('#btnScanQR').prop('disabled', false);
                 $('#qr-reader').hide();
                 $('#scanActions').hide();
-                
+
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Tidak dapat mengakses kamera. Pastikan Anda memberikan izin akses kamera.'
+                    text: 'Tidak dapat mengakses kamera. Pastikan Anda memberikan izin akses kamera.',
+                    confirmButtonText: 'OK'
                 });
             });
         }
@@ -422,6 +535,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 return;
             }
 
+            isProcessing = false; // Reset processing flag
             html5QrCode.stop().then(function() {
                 html5QrCode.clear();
                 html5QrCode = null;
@@ -432,6 +546,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             }).catch(function(err) {
                 console.error("Error stopping scan:", err);
                 isScanning = false;
+                isProcessing = false;
                 $('#btnScanQR').prop('disabled', false);
                 $('#qr-reader').hide();
                 $('#scanActions').hide();
