@@ -257,6 +257,65 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
         background-color: #f0f0f0;
         border-radius: 4px;
     }
+
+    .camera-selector {
+        margin-top: 15px;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+    }
+
+    .camera-selector label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+
+    .camera-selector select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+    }
+
+    .camera-selector select:focus {
+        outline: none;
+        border-color: #2196F3;
+        box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.25);
+    }
+
+    .btn-switch-camera {
+        width: 100%;
+        padding: 10px 20px;
+        background-color: #17a2b8;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-switch-camera:hover {
+        background-color: #138496;
+    }
+
+    .btn-switch-camera:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
 </style>
 
 <div class="status-card">
@@ -311,10 +370,21 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 <i class="fas fa-crosshairs"></i> Fokus...
             </div>
         </div>
+        <div class="camera-selector" id="cameraSelector" style="display: none;">
+            <label for="cameraSelect">
+                <i class="fas fa-camera"></i> Pilih Kamera:
+            </label>
+            <select id="cameraSelect">
+                <option value="">Memuat kamera...</option>
+            </select>
+        </div>
         <div class="scan-hint" id="scanHint" style="display: none;">
             <i class="fas fa-info-circle"></i> Ketuk dua kali pada layar untuk fokus kamera
         </div>
         <div class="scan-actions" id="scanActions" style="display: none;">
+            <button type="button" class="btn-switch-camera" id="btnSwitchCamera" style="display: none;">
+                <i class="fas fa-sync-alt"></i> Ganti Kamera
+            </button>
             <button type="button" class="btn-stop-scan" id="btnStopScan">
                 <i class="fas fa-stop"></i> Stop Scan
             </button>
@@ -331,6 +401,8 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
     let html5QrCode = null;
     let isScanning = false;
     let isProcessing = false; // Flag untuk mencegah multiple processing
+    let availableCameras = []; // Array untuk menyimpan daftar kamera yang tersedia
+    let currentCameraId = null; // ID kamera yang sedang digunakan
 
     $(document).ready(function() {
         // Fungsi untuk memproses hashKey (dari input manual atau QR scan)
@@ -506,13 +578,170 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
         // Tombol scan QR code
         $('#btnScanQR').on('click', function() {
-            startScan();
+            detectCameras().then(() => {
+                startScan();
+            }).catch((err) => {
+                console.error('Error detecting cameras:', err);
+                // Tetap lanjutkan scan dengan default camera
+                startScan();
+            });
         });
 
         // Tombol stop scan
         $('#btnStopScan').on('click', function() {
             stopScan();
         });
+
+        // Tombol switch camera
+        $('#btnSwitchCamera').on('click', function() {
+            switchCamera();
+        });
+
+        // Event listener untuk perubahan pilihan kamera
+        $('#cameraSelect').on('change', function() {
+            if (isScanning && $(this).val()) {
+                switchCamera();
+            }
+        });
+
+        // Fungsi untuk mendeteksi semua kamera yang tersedia
+        async function detectCameras() {
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                    console.log('Camera enumeration not supported');
+                    return;
+                }
+
+                // Request permission dulu dengan getUserMedia untuk mendapatkan label kamera
+                // (tanpa permission, label kamera akan kosong)
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: true
+                    });
+                    // Stop stream setelah mendapatkan permission
+                    stream.getTracks().forEach(track => track.stop());
+                } catch (err) {
+                    console.log('Permission request failed or denied:', err);
+                    // Tetap lanjutkan, mungkin label tidak akan muncul tapi deviceId tetap bisa digunakan
+                }
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                availableCameras = devices.filter(device => device.kind === 'videoinput');
+
+                if (availableCameras.length === 0) {
+                    console.log('No cameras found');
+                    return;
+                }
+
+                // Update dropdown kamera
+                const cameraSelect = $('#cameraSelect');
+                cameraSelect.empty();
+
+                if (availableCameras.length > 1) {
+                    // Tampilkan selector jika ada lebih dari satu kamera
+                    $('#cameraSelector').show();
+                    $('#btnSwitchCamera').show();
+
+                    availableCameras.forEach((camera, index) => {
+                        let label = camera.label || `Kamera ${index + 1}`;
+
+                        // Coba identifikasi jenis kamera dari label
+                        if (camera.label) {
+                            const labelLower = camera.label.toLowerCase();
+                            if (labelLower.includes('back') ||
+                                labelLower.includes('rear') ||
+                                labelLower.includes('belakang') ||
+                                labelLower.includes('environment')) {
+                                label = '📷 ' + label + ' (Belakang)';
+                            } else if (labelLower.includes('front') ||
+                                labelLower.includes('user') ||
+                                labelLower.includes('depan')) {
+                                label = '📷 ' + label + ' (Depan)';
+                            } else {
+                                label = '📷 ' + label;
+                            }
+                        } else {
+                            // Jika tidak ada label, coba deteksi dari deviceId atau index
+                            // Biasanya kamera belakang adalah yang pertama
+                            if (index === 0) {
+                                label = `📷 Kamera ${index + 1} (Belakang - Default)`;
+                            } else {
+                                label = `📷 Kamera ${index + 1} (Alternatif)`;
+                            }
+                        }
+
+                        cameraSelect.append(`<option value="${camera.deviceId}">${label}</option>`);
+                    });
+
+                    // Set default ke kamera pertama (biasanya belakang)
+                    if (availableCameras.length > 0) {
+                        currentCameraId = availableCameras[0].deviceId;
+                        cameraSelect.val(currentCameraId);
+                    }
+                } else {
+                    // Sembunyikan selector jika hanya ada satu kamera
+                    $('#cameraSelector').hide();
+                    $('#btnSwitchCamera').hide();
+                    if (availableCameras.length > 0) {
+                        currentCameraId = availableCameras[0].deviceId;
+                    }
+                }
+            } catch (error) {
+                console.error('Error detecting cameras:', error);
+                throw error;
+            }
+        }
+
+        // Fungsi untuk switch kamera
+        function switchCamera() {
+            if (!isScanning) {
+                return;
+            }
+
+            const selectedCameraId = $('#cameraSelect').val();
+            if (!selectedCameraId || selectedCameraId === currentCameraId) {
+                return;
+            }
+
+            // Tampilkan loading
+            Swal.fire({
+                title: 'Mengganti kamera...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Stop scan saat ini
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    html5QrCode = null;
+                    currentCameraId = selectedCameraId;
+
+                    // Tunggu sebentar sebelum restart
+                    setTimeout(() => {
+                        Swal.close();
+                        // Restart scan dengan kamera baru
+                        startScanWithCamera(selectedCameraId);
+                    }, 300);
+                }).catch((err) => {
+                    console.error('Error stopping camera:', err);
+                    Swal.close();
+                    // Tetap coba restart dengan kamera baru
+                    currentCameraId = selectedCameraId;
+                    html5QrCode = null;
+                    setTimeout(() => {
+                        startScanWithCamera(selectedCameraId);
+                    }, 300);
+                });
+            } else {
+                // Jika html5QrCode null, langsung start dengan kamera baru
+                Swal.close();
+                currentCameraId = selectedCameraId;
+                startScanWithCamera(selectedCameraId);
+            }
+        }
 
         // Fungsi untuk trigger fokus kamera
         function triggerCameraFocus() {
@@ -611,18 +840,21 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             }
         }
 
-        // Fungsi untuk memulai scan
-        function startScan() {
-            if (isScanning) {
+        // Fungsi untuk memulai scan dengan kamera tertentu
+        function startScanWithCamera(cameraId = null) {
+            if (isScanning && !cameraId) {
                 return;
             }
 
-            isScanning = true;
-            isProcessing = false; // Reset processing flag
-            $('#btnScanQR').prop('disabled', true);
-            $('#qr-reader').show();
-            $('#scanHint').show();
-            $('#scanActions').show();
+            // Jika sedang scan dan cameraId diberikan, berarti sedang switch camera
+            if (!cameraId) {
+                isScanning = true;
+                isProcessing = false; // Reset processing flag
+                $('#btnScanQR').prop('disabled', true);
+                $('#qr-reader').show();
+                $('#scanHint').show();
+                $('#scanActions').show();
+            }
 
             // Auto scroll ke area scan (terutama untuk mobile)
             scrollToScanArea();
@@ -634,15 +866,42 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
             html5QrCode = new Html5Qrcode("qr-reader");
 
-            // Konfigurasi kamera dengan auto focus
-            const cameraConfig = {
-                facingMode: "environment" // Gunakan kamera belakang jika tersedia
-            };
+            // Konfigurasi kamera
+            let cameraConfig;
+            if (cameraId) {
+                // Gunakan deviceId jika tersedia
+                cameraConfig = {
+                    deviceId: {
+                        exact: cameraId
+                    }
+                };
+                currentCameraId = cameraId;
+            } else {
+                // Default: gunakan kamera belakang
+                cameraConfig = {
+                    facingMode: "environment"
+                };
+                // Jika ada kamera yang terdeteksi, gunakan yang pertama
+                if (availableCameras.length > 0 && !currentCameraId) {
+                    currentCameraId = availableCameras[0].deviceId;
+                    cameraConfig = {
+                        deviceId: {
+                            exact: currentCameraId
+                        }
+                    };
+                }
+            }
 
             // Video constraints untuk auto focus (jika didukung)
-            let videoConstraints = {
-                facingMode: "environment"
-            };
+            let videoConstraints = {};
+
+            if (cameraId) {
+                videoConstraints.deviceId = {
+                    exact: cameraId
+                };
+            } else {
+                videoConstraints.facingMode = "environment";
+            }
 
             // Coba tambahkan focus mode jika didukung
             try {
@@ -713,7 +972,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                     qrReaderElement.addEventListener('touchend', function(e) {
                         const currentTime = new Date().getTime();
                         const tapLength = currentTime - lastTap;
-                        
+
                         if (tapLength < 300 && tapLength > 0) {
                             // Double tap detected
                             e.preventDefault();
@@ -730,12 +989,29 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 }
             }).catch(function(err) {
                 // Error saat memulai kamera
+                console.error('Camera start error:', err);
+
+                // Jika error dan ada kamera lain, coba kamera lain
+                if (availableCameras.length > 1 && currentCameraId) {
+                    const currentIndex = availableCameras.findIndex(cam => cam.deviceId === currentCameraId);
+                    if (currentIndex >= 0 && currentIndex < availableCameras.length - 1) {
+                        // Coba kamera berikutnya
+                        const nextCamera = availableCameras[currentIndex + 1];
+                        $('#cameraSelect').val(nextCamera.deviceId);
+                        setTimeout(() => {
+                            startScanWithCamera(nextCamera.deviceId);
+                        }, 500);
+                        return;
+                    }
+                }
+
                 isScanning = false;
                 isProcessing = false;
                 $('#btnScanQR').prop('disabled', false);
                 $('#qr-reader').hide();
                 $('#scanHint').hide();
                 $('#scanActions').hide();
+                $('#cameraSelector').hide();
 
                 let errorMessage = 'Tidak dapat mengakses kamera. Pastikan Anda memberikan izin akses kamera.';
 
@@ -744,16 +1020,28 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                         errorMessage = 'Akses kamera ditolak. Silakan berikan izin akses kamera di pengaturan browser.';
                     } else if (err.message.includes('NotFoundError')) {
                         errorMessage = 'Kamera tidak ditemukan. Pastikan perangkat memiliki kamera yang aktif.';
+                    } else if (err.message.includes('NotReadableError')) {
+                        errorMessage = 'Kamera sedang digunakan oleh aplikasi lain. Silakan tutup aplikasi lain yang menggunakan kamera.';
                     }
                 }
 
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: errorMessage,
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>${errorMessage}</strong></p>
+                            ${availableCameras.length > 1 ? '<p style="margin-top: 10px;">Anda dapat mencoba kamera lain dengan memilih dari dropdown di atas.</p>' : ''}
+                        </div>
+                    `,
                     confirmButtonText: 'OK'
                 });
             });
+        }
+
+        // Fungsi untuk memulai scan (wrapper untuk startScanWithCamera)
+        function startScan() {
+            startScanWithCamera(currentCameraId);
         }
 
         // Fungsi untuk menghentikan scan
@@ -763,6 +1051,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             }
 
             isProcessing = false; // Reset processing flag
+            currentCameraId = null; // Reset camera ID
 
             // Hapus event listeners
             const qrReaderElement = document.getElementById('qr-reader');
@@ -779,14 +1068,17 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 $('#qr-reader').hide();
                 $('#scanHint').hide();
                 $('#scanActions').hide();
+                $('#cameraSelector').hide();
             }).catch(function(err) {
                 console.error("Error stopping scan:", err);
                 isScanning = false;
                 isProcessing = false;
+                currentCameraId = null;
                 $('#btnScanQR').prop('disabled', false);
                 $('#qr-reader').hide();
                 $('#scanHint').hide();
                 $('#scanActions').hide();
+                $('#cameraSelector').hide();
             });
         }
 
