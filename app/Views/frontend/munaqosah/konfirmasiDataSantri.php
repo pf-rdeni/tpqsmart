@@ -125,39 +125,47 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
         font-size: 14px;
     }
 
-    .checkbox-wrapper {
+    .verification-button-wrapper {
         display: flex;
-        align-items: flex-start;
+        justify-content: center;
+        margin: 30px 0;
+    }
+
+    .btn-verifikasi {
+        padding: 14px 40px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+        color: #212529;
+        box-shadow: 0 4px 6px rgba(255, 193, 7, 0.3);
+        display: inline-flex;
+        align-items: center;
         gap: 10px;
-        margin: 25px 0;
-        padding: 15px;
-        background-color: #f9f9f9;
-        border-radius: 6px;
     }
 
-    .checkbox-wrapper input[type="checkbox"] {
-        margin-top: 3px;
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
+    .btn-verifikasi:hover {
+        background: linear-gradient(135deg, #ffb300 0%, #ffa000 100%);
+        box-shadow: 0 6px 12px rgba(255, 193, 7, 0.4);
+        transform: translateY(-2px);
     }
 
-    .checkbox-wrapper input[type="checkbox"]:disabled {
-        cursor: not-allowed;
+    .btn-verifikasi:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+    }
+
+    .btn-verifikasi:disabled {
         opacity: 0.6;
-        background-color: #e9ecef;
-    }
-
-    .checkbox-wrapper label {
-        cursor: pointer;
-        font-size: 14px;
-        color: #333;
-        line-height: 1.5;
-    }
-
-    .checkbox-wrapper label.disabled-label {
-        opacity: 0.7;
         cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-verifikasi i {
+        font-size: 18px;
     }
 
     .button-group {
@@ -335,7 +343,7 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
             <p>
                 <strong>Informasi Penting:</strong><br>
                 Pastikan data di atas sudah benar. Data ini akan digunakan untuk menampilkan status munaqosah dan hasil kelulusan ujian Ananda.
-                Jika data di atas tidak benar, silakan centang checkbox di bawah dan pilih "Tidak, Perlu Perbaikan" untuk mengajukan permintaan perbaikan data.
+                Jika data di atas tidak benar, silakan klik tombol "Verifikasi Data" di bawah dan pilih "Tidak, Perlu Perbaikan" untuk mengajukan permintaan perbaikan data.
             </p>
         </div>
     <?php endif; ?>
@@ -346,15 +354,14 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
 
     <form id="confirmationForm">
         <?php if (!$isVerified && !$isPerluPerbaikan): ?>
-            <!-- Checkbox hanya ditampilkan jika belum ada status verifikasi (belum verified dan tidak perlu perbaikan) -->
-            <div class="checkbox-wrapper">
-                <input type="checkbox" id="confirmed" name="confirmed" required>
-                <label for="confirmed">
-                    Saya menyetujui bahwa data di atas sudah benar. Dengan menyetujui, saya akan dapat melihat status munaqosah dan hasil kelulusan ujian setelah data diverifikasi. Informasi tersebut hanya dapat dilihat oleh Ananda sendiri.
-                </label>
+            <!-- Tombol Verifikasi hanya ditampilkan jika belum ada status verifikasi (belum verified dan tidak perlu perbaikan) -->
+            <div class="verification-button-wrapper">
+                <button type="button" class="btn-verifikasi" id="btnVerifikasi" onclick="showVerifikasiPopup()">
+                    <i class="fas fa-check-circle"></i> Verifikasi Data
+                </button>
             </div>
         <?php endif; ?>
-        <!-- Jika status sudah ada (valid atau perlu_perbaikan), checkbox tidak ditampilkan karena status sudah ditampilkan di status-box di atas -->
+        <!-- Jika status sudah ada (valid atau perlu_perbaikan), tombol verifikasi tidak ditampilkan karena status sudah ditampilkan di status-box di atas -->
 
         <div class="button-group">
             <!-- Tombol Status selalu aktif (tidak bergantung pada status verified) -->
@@ -465,25 +472,6 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
 
         // Inisialisasi tombol kelulusan
         updateTombolKelulusan();
-
-        // Event handler hanya jika checkbox ada (belum verified dan tidak perlu perbaikan)
-        // Jika status sudah valid, checkbox tidak ditampilkan, jadi tidak perlu event handler
-        if (!isVerified && !isPerluPerbaikan) {
-            // Pastikan checkbox ada sebelum menambahkan event handler
-            if ($('#confirmed').length > 0) {
-                $('#confirmed').on('change', function() {
-                    const isChecked = $(this).is(':checked');
-
-                    if (isChecked) {
-                        // Tampilkan popup konfirmasi
-                        showVerifikasiPopup();
-                    } else {
-                        // Jika unchecked, update tombol kelulusan (tombol status tetap aktif)
-                        updateTombolKelulusan();
-                    }
-                });
-            }
-        }
     });
 
     function showVerifikasiPopup() {
@@ -549,6 +537,7 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
             `,
             icon: 'question',
             width: '600px',
+            showCloseButton: true,
             showCancelButton: true,
             confirmButtonText: '<i class="fas fa-check"></i> Ya, Data Benar',
             cancelButtonText: '<i class="fas fa-times"></i> Tidak, Perlu Perbaikan',
@@ -564,9 +553,6 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
             } else if (result.dismiss === Swal.DismissReason.cancel) {
                 // Data perlu perbaikan - tampilkan form
                 showFormPerbaikan();
-            } else {
-                // User menutup popup, uncheck checkbox
-                $('#confirmed').prop('checked', false);
             }
         });
     }
@@ -877,17 +863,11 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
                         title: 'Error',
                         text: 'Terjadi kesalahan saat memproses data. Silakan coba lagi.',
                         confirmButtonText: 'OK'
-                    }).then(() => {
-                        $('#confirmed').prop('checked', false);
                     });
                 }
             } else if (result && result.dismiss) {
                 // User membatalkan atau menutup popup
                 console.log('User membatalkan atau menutup popup');
-                $('#confirmed').prop('checked', false);
-            } else {
-                // Fallback: uncheck checkbox
-                $('#confirmed').prop('checked', false);
             }
         }).catch((error) => {
             console.error('Error di form perbaikan:', error);
@@ -896,8 +876,6 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
                 title: 'Error',
                 text: 'Terjadi kesalahan saat memproses form. Silakan coba lagi.',
                 confirmButtonText: 'OK'
-            }).then(() => {
-                $('#confirmed').prop('checked', false);
             });
         });
     }
@@ -979,9 +957,6 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
                             title: 'Gagal',
                             text: (response && response.message) ? response.message : 'Terjadi kesalahan saat memproses verifikasi',
                             confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Uncheck checkbox jika gagal
-                            $('#confirmed').prop('checked', false);
                         });
                     }
                 },
@@ -1035,9 +1010,6 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
                         title: 'Error',
                         text: errorMessage,
                         confirmButtonText: 'OK'
-                    }).then(() => {
-                        // Uncheck checkbox jika error
-                        $('#confirmed').prop('checked', false);
                     });
                 },
                 complete: function() {
@@ -1055,9 +1027,6 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
                 title: 'Error',
                 text: 'Terjadi kesalahan saat memproses verifikasi. Silakan coba lagi.',
                 confirmButtonText: 'OK'
-            }).then(() => {
-                // Uncheck checkbox jika error
-                $('#confirmed').prop('checked', false);
             });
         }
     }
