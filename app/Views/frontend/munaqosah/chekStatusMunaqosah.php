@@ -626,12 +626,51 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 }
 
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                availableCameras = devices.filter(device => device.kind === 'videoinput');
+                let allCameras = devices.filter(device => device.kind === 'videoinput');
 
-                if (availableCameras.length === 0) {
+                if (allCameras.length === 0) {
                     console.log('No cameras found');
                     return;
                 }
+
+                // Urutkan kamera: kamera belakang di urutan pertama, kemudian kamera depan
+                availableCameras = allCameras.sort((a, b) => {
+                    const aLabel = (a.label || '').toLowerCase();
+                    const bLabel = (b.label || '').toLowerCase();
+
+                    // Cek apakah kamera belakang
+                    const aIsBack = aLabel.includes('back') ||
+                        aLabel.includes('rear') ||
+                        aLabel.includes('belakang') ||
+                        aLabel.includes('environment');
+                    const bIsBack = bLabel.includes('back') ||
+                        bLabel.includes('rear') ||
+                        bLabel.includes('belakang') ||
+                        bLabel.includes('environment');
+
+                    // Cek apakah kamera depan
+                    const aIsFront = aLabel.includes('front') ||
+                        aLabel.includes('user') ||
+                        aLabel.includes('depan');
+                    const bIsFront = bLabel.includes('front') ||
+                        bLabel.includes('user') ||
+                        bLabel.includes('depan');
+
+                    // Prioritas: belakang > depan > lainnya
+                    // Jika tidak ada label, index 0 dianggap belakang (kamera utama)
+                    if (aIsBack && !bIsBack) return -1;
+                    if (!aIsBack && bIsBack) return 1;
+                    if (aIsFront && !bIsFront) return 1;
+                    if (!aIsFront && bIsFront) return -1;
+
+                    // Jika tidak ada label, index 0 (kamera pertama) dianggap utama/belakang
+                    const aIndex = allCameras.indexOf(a);
+                    const bIndex = allCameras.indexOf(b);
+                    if (aIndex === 0 && bIndex !== 0) return -1;
+                    if (aIndex !== 0 && bIndex === 0) return 1;
+
+                    return 0;
+                });
 
                 // Update dropdown kamera
                 const cameraSelect = $('#cameraSelect');
@@ -644,6 +683,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
                     availableCameras.forEach((camera, index) => {
                         let label = camera.label || `Kamera ${index + 1}`;
+                        let isBackCamera = false;
 
                         // Coba identifikasi jenis kamera dari label
                         if (camera.label) {
@@ -653,6 +693,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                                 labelLower.includes('belakang') ||
                                 labelLower.includes('environment')) {
                                 label = '📷 ' + label + ' (Belakang)';
+                                isBackCamera = true;
                             } else if (labelLower.includes('front') ||
                                 labelLower.includes('user') ||
                                 labelLower.includes('depan')) {
@@ -661,10 +702,10 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                                 label = '📷 ' + label;
                             }
                         } else {
-                            // Jika tidak ada label, coba deteksi dari deviceId atau index
-                            // Biasanya kamera belakang adalah yang pertama
+                            // Jika tidak ada label, index 0 dianggap kamera belakang (utama)
                             if (index === 0) {
-                                label = `📷 Kamera ${index + 1} (Belakang - Default)`;
+                                label = `📷 Kamera ${index + 1} (Belakang - Utama)`;
+                                isBackCamera = true;
                             } else {
                                 label = `📷 Kamera ${index + 1} (Alternatif)`;
                             }
@@ -673,8 +714,27 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                         cameraSelect.append(`<option value="${camera.deviceId}">${label}</option>`);
                     });
 
-                    // Set default ke kamera pertama (biasanya belakang)
-                    if (availableCameras.length > 0) {
+                    // Set default ke kamera pertama (yang sudah diurutkan, biasanya belakang)
+                    // Prioritas: kamera belakang atau index 0
+                    let defaultCamera = availableCameras[0];
+                    for (let i = 0; i < availableCameras.length; i++) {
+                        const camera = availableCameras[i];
+                        const label = (camera.label || '').toLowerCase();
+                        const isBack = label.includes('back') ||
+                            label.includes('rear') ||
+                            label.includes('belakang') ||
+                            label.includes('environment');
+                        if (isBack || i === 0) {
+                            defaultCamera = camera;
+                            break;
+                        }
+                    }
+
+                    if (defaultCamera) {
+                        currentCameraId = defaultCamera.deviceId;
+                        cameraSelect.val(currentCameraId);
+                    } else if (availableCameras.length > 0) {
+                        // Fallback ke kamera pertama
                         currentCameraId = availableCameras[0].deviceId;
                         cameraSelect.val(currentCameraId);
                     }
@@ -683,6 +743,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                     $('#cameraSelector').hide();
                     $('#btnSwitchCamera').hide();
                     if (availableCameras.length > 0) {
+                        // Gunakan kamera pertama (index 0, biasanya belakang/utama)
                         currentCameraId = availableCameras[0].deviceId;
                     }
                 }
@@ -953,16 +1014,28 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 currentCameraId = cameraId;
             } else {
                 // Default: gunakan kamera belakang
-                cameraConfig = {
-                    facingMode: "environment"
-                };
-                // Jika ada kamera yang terdeteksi, gunakan yang pertama
-                if (availableCameras.length > 0 && !currentCameraId) {
-                    currentCameraId = availableCameras[0].deviceId;
+                // Prioritas: currentCameraId > kamera pertama (index 0, biasanya belakang) > facingMode environment
+                if (availableCameras.length > 0) {
+                    // Gunakan currentCameraId jika sudah di-set (biasanya kamera belakang dari detectCameras)
+                    if (currentCameraId) {
+                        cameraConfig = {
+                            deviceId: {
+                                exact: currentCameraId
+                            }
+                        };
+                    } else {
+                        // Gunakan kamera pertama (index 0, biasanya belakang/utama)
+                        currentCameraId = availableCameras[0].deviceId;
+                        cameraConfig = {
+                            deviceId: {
+                                exact: currentCameraId
+                            }
+                        };
+                    }
+                } else {
+                    // Fallback ke facingMode jika tidak ada kamera yang terdeteksi
                     cameraConfig = {
-                        deviceId: {
-                            exact: currentCameraId
-                        }
+                        facingMode: "environment"
                     };
                 }
             }
@@ -974,7 +1047,13 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 videoConstraints.deviceId = {
                     exact: cameraId
                 };
+            } else if (currentCameraId && availableCameras.length > 0) {
+                // Gunakan currentCameraId jika tersedia (biasanya kamera belakang)
+                videoConstraints.deviceId = {
+                    exact: currentCameraId
+                };
             } else {
+                // Fallback ke facingMode environment (kamera belakang)
                 videoConstraints.facingMode = "environment";
             }
 
