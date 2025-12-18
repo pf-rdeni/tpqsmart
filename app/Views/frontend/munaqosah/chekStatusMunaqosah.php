@@ -713,10 +713,16 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             });
 
             // Stop scan saat ini
-            if (html5QrCode) {
+            if (html5QrCode && isScanning) {
                 html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
+                    // Setelah stop, baru bisa clear
+                    try {
+                        html5QrCode.clear();
+                    } catch (clearErr) {
+                        console.error('Error clearing after stop:', clearErr);
+                    }
                     html5QrCode = null;
+                    isScanning = false; // Reset flag
                     currentCameraId = selectedCameraId;
 
                     // Tunggu sebentar sebelum restart
@@ -729,15 +735,32 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                     console.error('Error stopping camera:', err);
                     Swal.close();
                     // Tetap coba restart dengan kamera baru
-                    currentCameraId = selectedCameraId;
+                    try {
+                        if (html5QrCode) {
+                            html5QrCode.clear();
+                        }
+                    } catch (clearErr) {
+                        console.error('Error clearing:', clearErr);
+                    }
                     html5QrCode = null;
+                    isScanning = false;
+                    currentCameraId = selectedCameraId;
                     setTimeout(() => {
                         startScanWithCamera(selectedCameraId);
                     }, 300);
                 });
             } else {
-                // Jika html5QrCode null, langsung start dengan kamera baru
+                // Jika html5QrCode null atau tidak sedang scan, langsung start dengan kamera baru
                 Swal.close();
+                if (html5QrCode) {
+                    try {
+                        html5QrCode.clear();
+                    } catch (clearErr) {
+                        console.error('Error clearing:', clearErr);
+                    }
+                    html5QrCode = null;
+                }
+                isScanning = false;
                 currentCameraId = selectedCameraId;
                 startScanWithCamera(selectedCameraId);
             }
@@ -842,12 +865,16 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
         // Fungsi untuk memulai scan dengan kamera tertentu
         function startScanWithCamera(cameraId = null) {
-            if (isScanning && !cameraId) {
-                return;
-            }
+            // Simpan cameraId untuk digunakan di callback
+            const targetCameraId = cameraId || currentCameraId;
 
             // Jika sedang scan dan cameraId diberikan, berarti sedang switch camera
-            if (!cameraId) {
+            if (!cameraId && isScanning) {
+                return; // Jangan restart jika sudah scan dan tidak ada cameraId baru
+            }
+
+            // Jika tidak sedang scan, setup UI
+            if (!isScanning) {
                 isScanning = true;
                 isProcessing = false; // Reset processing flag
                 $('#btnScanQR').prop('disabled', true);
@@ -859,12 +886,60 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
             // Auto scroll ke area scan (terutama untuk mobile)
             scrollToScanArea();
 
-            // Clear previous instance jika ada
-            if (html5QrCode) {
-                html5QrCode.clear();
+            // Clear previous instance jika ada (harus stop dulu jika sedang scan)
+            if (html5QrCode && isScanning) {
+                // Stop scan terlebih dahulu sebelum clear
+                html5QrCode.stop().then(() => {
+                    try {
+                        html5QrCode.clear();
+                    } catch (clearErr) {
+                        console.error('Error clearing after stop:', clearErr);
+                    }
+                    html5QrCode = null;
+                    isScanning = false;
+                    // Tunggu sebentar sebelum initialize baru
+                    setTimeout(() => {
+                        // Lanjutkan dengan instance baru
+                        initializeQrCode(targetCameraId);
+                    }, 100);
+                }).catch((err) => {
+                    console.error('Error stopping previous scan:', err);
+                    // Tetap coba clear dan lanjutkan
+                    try {
+                        if (html5QrCode) {
+                            html5QrCode.clear();
+                        }
+                    } catch (clearErr) {
+                        console.error('Error clearing:', clearErr);
+                    }
+                    html5QrCode = null;
+                    isScanning = false;
+                    // Tunggu sebentar sebelum initialize baru
+                    setTimeout(() => {
+                        initializeQrCode(targetCameraId);
+                    }, 100);
+                });
+                return; // Return karena akan dilanjutkan di callback
+            } else if (html5QrCode && !isScanning) {
+                // Jika ada instance tapi tidak sedang scan, clear dulu
+                try {
+                    html5QrCode.clear();
+                } catch (clearErr) {
+                    console.error('Error clearing:', clearErr);
+                }
+                html5QrCode = null;
             }
 
-            html5QrCode = new Html5Qrcode("qr-reader");
+            // Initialize QR code dengan cameraId yang diberikan atau currentCameraId
+            initializeQrCode(targetCameraId);
+        }
+
+        // Fungsi untuk initialize QR code (dipisahkan untuk reusable)
+        function initializeQrCode(cameraId = null) {
+            // Pastikan html5QrCode diinisialisasi
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
 
             // Konfigurasi kamera
             let cameraConfig;
@@ -924,6 +999,26 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                     let minEdgePercentage = 0.7; // 70% dari viewfinder
                     let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
                     let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+
+                    // Pastikan minimum 50px (requirement html5-qrcode)
+                    const MIN_QRBOX_SIZE = 50;
+                    if (qrboxSize < MIN_QRBOX_SIZE) {
+                        qrboxSize = MIN_QRBOX_SIZE;
+                    }
+
+                    // Pastikan tidak melebihi viewfinder size
+                    if (qrboxSize > viewfinderWidth) {
+                        qrboxSize = Math.floor(viewfinderWidth * 0.9);
+                    }
+                    if (qrboxSize > viewfinderHeight) {
+                        qrboxSize = Math.floor(viewfinderHeight * 0.9);
+                    }
+
+                    // Pastikan masih minimum 50px setelah adjustment
+                    if (qrboxSize < MIN_QRBOX_SIZE) {
+                        qrboxSize = MIN_QRBOX_SIZE;
+                    }
+
                     return {
                         width: qrboxSize,
                         height: qrboxSize
@@ -1046,31 +1141,21 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
         // Fungsi untuk menghentikan scan
         function stopScan() {
-            if (!isScanning || !html5QrCode) {
-                return;
-            }
-
-            isProcessing = false; // Reset processing flag
-            currentCameraId = null; // Reset camera ID
-
-            // Hapus event listeners
-            const qrReaderElement = document.getElementById('qr-reader');
-            if (qrReaderElement) {
-                const newElement = qrReaderElement.cloneNode(true);
-                qrReaderElement.parentNode.replaceChild(newElement, qrReaderElement);
-            }
-
-            html5QrCode.stop().then(function() {
-                html5QrCode.clear();
+            if (!isScanning) {
+                // Reset state meskipun tidak sedang scan
+                isProcessing = false;
+                currentCameraId = null;
                 html5QrCode = null;
-                isScanning = false;
                 $('#btnScanQR').prop('disabled', false);
                 $('#qr-reader').hide();
                 $('#scanHint').hide();
                 $('#scanActions').hide();
                 $('#cameraSelector').hide();
-            }).catch(function(err) {
-                console.error("Error stopping scan:", err);
+                return;
+            }
+
+            if (!html5QrCode) {
+                // Jika html5QrCode null, langsung reset state
                 isScanning = false;
                 isProcessing = false;
                 currentCameraId = null;
@@ -1079,6 +1164,70 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                 $('#scanHint').hide();
                 $('#scanActions').hide();
                 $('#cameraSelector').hide();
+                return;
+            }
+
+            // Set flag dulu untuk mencegah operasi lain
+            isProcessing = false;
+            const wasScanning = isScanning;
+            isScanning = false; // Set false dulu untuk mencegah operasi lain
+
+            // Simpan reference untuk cleanup
+            const qrCodeInstance = html5QrCode;
+            html5QrCode = null; // Set null dulu untuk mencegah penggunaan lebih lanjut
+
+            // Stop scan dengan error handling yang lebih baik
+            qrCodeInstance.stop().then(function() {
+                // Tunggu sedikit untuk memastikan stop benar-benar selesai
+                setTimeout(() => {
+                    try {
+                        // Coba clear hanya jika instance masih valid
+                        if (qrCodeInstance) {
+                            qrCodeInstance.clear();
+                        }
+                    } catch (clearErr) {
+                        // Ignore clear error, sudah stop jadi tidak masalah
+                        console.log('Clear after stop (non-critical):', clearErr.message);
+                    }
+
+                    // Reset semua state
+                    isScanning = false;
+                    isProcessing = false;
+                    currentCameraId = null;
+                    $('#btnScanQR').prop('disabled', false);
+                    $('#qr-reader').hide();
+                    $('#scanHint').hide();
+                    $('#scanActions').hide();
+                    $('#cameraSelector').hide();
+                }, 200); // Delay untuk memastikan stop selesai
+            }).catch(function(err) {
+                console.error("Error stopping scan:", err);
+
+                // Meskipun error, tetap reset state
+                // Jangan coba clear jika stop gagal karena akan error lagi
+                setTimeout(() => {
+                    try {
+                        // Coba clear hanya jika tidak ada error "ongoing"
+                        if (err && !err.message && !err.toString().includes('ongoing')) {
+                            if (qrCodeInstance) {
+                                qrCodeInstance.clear();
+                            }
+                        }
+                    } catch (clearErr) {
+                        // Ignore clear error
+                        console.log('Clear error (non-critical):', clearErr.message);
+                    }
+
+                    // Reset semua state
+                    isScanning = false;
+                    isProcessing = false;
+                    currentCameraId = null;
+                    $('#btnScanQR').prop('disabled', false);
+                    $('#qr-reader').hide();
+                    $('#scanHint').hide();
+                    $('#scanActions').hide();
+                    $('#cameraSelector').hide();
+                }, 200);
             });
         }
 
