@@ -633,8 +633,43 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                     return;
                 }
 
-                // Urutkan kamera: kamera belakang di urutan pertama, kemudian kamera depan
-                availableCameras = allCameras.sort((a, b) => {
+                // Filter: Hanya ambil kamera belakang, exclude kamera depan/front
+                availableCameras = allCameras.filter((camera, index) => {
+                    const label = (camera.label || '').toLowerCase();
+
+                    // Cek apakah kamera depan - EXCLUDE ini
+                    const isFront = label.includes('front') ||
+                        label.includes('user') ||
+                        label.includes('depan');
+
+                    if (isFront) {
+                        return false; // Exclude kamera depan
+                    }
+
+                    // Cek apakah kamera belakang - INCLUDE ini
+                    const isBack = label.includes('back') ||
+                        label.includes('rear') ||
+                        label.includes('belakang') ||
+                        label.includes('environment');
+
+                    if (isBack) {
+                        return true; // Include kamera belakang
+                    }
+
+                    // Jika tidak ada label, index 0 dianggap kamera belakang/utama - INCLUDE
+                    // Index lainnya dianggap alternatif (bisa belakang atau lainnya) - INCLUDE juga
+                    // Tapi lebih baik hanya include index 0 jika tidak ada label yang jelas
+                    if (!camera.label || camera.label.trim() === '') {
+                        // Jika tidak ada label, hanya include index 0 (kamera utama/belakang)
+                        return index === 0;
+                    }
+
+                    // Jika ada label tapi tidak jelas, include (bisa jadi kamera belakang)
+                    return true;
+                });
+
+                // Urutkan kamera: kamera belakang di urutan pertama
+                availableCameras = availableCameras.sort((a, b) => {
                     const aLabel = (a.label || '').toLowerCase();
                     const bLabel = (b.label || '').toLowerCase();
 
@@ -648,20 +683,9 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                         bLabel.includes('belakang') ||
                         bLabel.includes('environment');
 
-                    // Cek apakah kamera depan
-                    const aIsFront = aLabel.includes('front') ||
-                        aLabel.includes('user') ||
-                        aLabel.includes('depan');
-                    const bIsFront = bLabel.includes('front') ||
-                        bLabel.includes('user') ||
-                        bLabel.includes('depan');
-
-                    // Prioritas: belakang > depan > lainnya
-                    // Jika tidak ada label, index 0 dianggap belakang (kamera utama)
+                    // Prioritas: belakang > lainnya
                     if (aIsBack && !bIsBack) return -1;
                     if (!aIsBack && bIsBack) return 1;
-                    if (aIsFront && !bIsFront) return 1;
-                    if (!aIsFront && bIsFront) return -1;
 
                     // Jika tidak ada label, index 0 (kamera pertama) dianggap utama/belakang
                     const aIndex = allCameras.indexOf(a);
@@ -671,6 +695,22 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
                     return 0;
                 });
+
+                // Jika tidak ada kamera yang tersedia setelah filter, gunakan semua kecuali yang jelas depan
+                if (availableCameras.length === 0) {
+                    availableCameras = allCameras.filter((camera) => {
+                        const label = (camera.label || '').toLowerCase();
+                        // Exclude yang jelas-jelas depan
+                        return !(label.includes('front') ||
+                            label.includes('user') ||
+                            label.includes('depan'));
+                    });
+
+                    // Jika masih kosong, ambil index 0 saja (kamera utama)
+                    if (availableCameras.length === 0 && allCameras.length > 0) {
+                        availableCameras = [allCameras[0]];
+                    }
+                }
 
                 // Update dropdown kamera
                 const cameraSelect = $('#cameraSelect');
@@ -683,9 +723,9 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
                     availableCameras.forEach((camera, index) => {
                         let label = camera.label || `Kamera ${index + 1}`;
-                        let isBackCamera = false;
 
                         // Coba identifikasi jenis kamera dari label
+                        // Karena sudah di-filter, semua kamera di sini adalah belakang atau alternatif (bukan depan)
                         if (camera.label) {
                             const labelLower = camera.label.toLowerCase();
                             if (labelLower.includes('back') ||
@@ -693,21 +733,16 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
                                 labelLower.includes('belakang') ||
                                 labelLower.includes('environment')) {
                                 label = '📷 ' + label + ' (Belakang)';
-                                isBackCamera = true;
-                            } else if (labelLower.includes('front') ||
-                                labelLower.includes('user') ||
-                                labelLower.includes('depan')) {
-                                label = '📷 ' + label + ' (Depan)';
                             } else {
-                                label = '📷 ' + label;
+                                // Jika tidak jelas, anggap sebagai kamera belakang alternatif
+                                label = '📷 ' + label + ' (Belakang)';
                             }
                         } else {
-                            // Jika tidak ada label, index 0 dianggap kamera belakang (utama)
+                            // Jika tidak ada label, semua dianggap kamera belakang
                             if (index === 0) {
                                 label = `📷 Kamera ${index + 1} (Belakang - Utama)`;
-                                isBackCamera = true;
                             } else {
-                                label = `📷 Kamera ${index + 1} (Alternatif)`;
+                                label = `📷 Kamera ${index + 1} (Belakang - Alternatif)`;
                             }
                         }
 
