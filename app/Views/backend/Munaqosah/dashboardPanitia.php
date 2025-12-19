@@ -23,11 +23,21 @@
                         </div>
 
                         <!-- Toggle AktiveTombolKelulusan -->
+                        <?php 
+                        // Untuk typeUjian munaqosah (IdTpq = '0'), hanya Admin yang bisa melihat dan mengubah pengaturan
+                        // Untuk pra-munaqosah (IdTpq != '0'), semua panitia bisa melihat dan mengubah
+                        $showToggle = true;
+                        if (isset($id_tpq_setting) && $id_tpq_setting === '0') {
+                            // Untuk munaqosah, hanya Admin yang bisa melihat toggle
+                            $showToggle = isset($is_admin) && $is_admin && in_groups('Admin');
+                        }
+                        ?>
+                        <?php if ($showToggle): ?>
                         <div class="row mb-4">
                             <div class="col-12">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h3 class="card-title"><i class="fas fa-toggle-on"></i> Pengaturan Tombol Kelulusan</h3>
+                                        <h3 class="card-title"><i class="fas fa-toggle-on"></i> Pengaturan Tombol Kelulusan<?= (isset($id_tpq_setting) && $id_tpq_setting === '0') ? ' (Munaqosah)' : '' ?></h3>
                                     </div>
                                     <div class="card-body">
                                         <div class="form-group">
@@ -39,8 +49,10 @@
                                                                class="toggle-switch-input" 
                                                                id="toggleAktiveTombolKelulusan"
                                                                <?= $aktive_tombol_kelulusan_exists ? ($aktive_tombol_kelulusan_value ? 'checked' : '') : 'disabled' ?>
+                                                               <?= (isset($can_edit_munaqosah_setting) && !$can_edit_munaqosah_setting) ? 'disabled' : '' ?>
                                                                data-id-tpq="<?= esc($id_tpq_setting) ?>"
-                                                               <?= !$aktive_tombol_kelulusan_exists ? 'title="Setting belum tersedia. Konfigurasi perlu disetting di akun operator lembaga."' : '' ?>>
+                                                               <?= !$aktive_tombol_kelulusan_exists ? 'title="Setting belum tersedia. Konfigurasi perlu disetting di akun operator lembaga."' : '' ?>
+                                                               <?= (isset($can_edit_munaqosah_setting) && !$can_edit_munaqosah_setting) ? 'title="Hanya Admin yang dapat mengubah pengaturan tombol kelulusan untuk typeUjian munaqosah."' : '' ?>>
                                                         <span class="toggle-switch-slider">
                                                             <span class="toggle-switch-label-on">AKTIF</span>
                                                             <span class="toggle-switch-label-off">TIDAK</span>
@@ -57,6 +69,10 @@
                                                 <small class="form-text text-muted mt-2">
                                                     <i class="fas fa-info-circle"></i> Setting belum tersedia. Konfigurasi perlu disetting di akun operator lembaga.
                                                 </small>
+                                            <?php elseif (isset($id_tpq_setting) && $id_tpq_setting === '0'): ?>
+                                                <small class="form-text text-muted mt-2">
+                                                    <i class="fas fa-info-circle"></i> Toggle ini mengaktifkan/menonaktifkan tombol "Lihat Kelulusan" di halaman konfirmasi data santri untuk typeUjian Munaqosah. <strong>Hanya Admin yang dapat mengubah pengaturan ini.</strong>
+                                                </small>
                                             <?php else: ?>
                                                 <small class="form-text text-muted mt-2">
                                                     <i class="fas fa-info-circle"></i> Toggle ini mengaktifkan/menonaktifkan tombol "Lihat Kelulusan" di halaman konfirmasi data santri.
@@ -67,6 +83,7 @@
                                 </div>
                             </div>
                         </div>
+                        <?php endif; ?>
 
                         <!-- Menu Quick Access -->
                         <div class="row mt-4">

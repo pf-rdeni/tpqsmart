@@ -19,11 +19,12 @@
                         </div>
 
                         <!-- Toggle AktiveTombolKelulusan -->
+                        <?php if (in_groups('Admin')): ?>
                         <div class="row mb-4">
                             <div class="col-12">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h3 class="card-title"><i class="fas fa-toggle-on"></i> Pengaturan Tombol Kelulusan</h3>
+                                        <h3 class="card-title"><i class="fas fa-toggle-on"></i> Pengaturan Tombol Kelulusan (Munaqosah)</h3>
                                     </div>
                                     <div class="card-body">
                                         <div class="form-group">
@@ -55,7 +56,7 @@
                                                 </small>
                                             <?php else: ?>
                                                 <small class="form-text text-muted mt-2">
-                                                    <i class="fas fa-info-circle"></i> Toggle ini mengaktifkan/menonaktifkan tombol "Lihat Kelulusan" di halaman konfirmasi data santri.
+                                                    <i class="fas fa-info-circle"></i> Toggle ini mengaktifkan/menonaktifkan tombol "Lihat Kelulusan" di halaman konfirmasi data santri untuk typeUjian Munaqosah. <strong>Hanya Admin yang dapat mengubah pengaturan ini.</strong>
                                                 </small>
                                             <?php endif; ?>
                                         </div>
@@ -63,6 +64,7 @@
                                 </div>
                             </div>
                         </div>
+                        <?php endif; ?>
 
                         <!-- Statistik Card -->
                         <div class="row">

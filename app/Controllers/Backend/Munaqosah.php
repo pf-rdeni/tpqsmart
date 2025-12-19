@@ -382,6 +382,7 @@ class Munaqosah extends BaseController
                 'menu_items' => $menuItems,
                 'statistik' => $statistik,
                 'peserta_per_tpq' => $pesertaPerTpq,
+                'is_admin' => $isAdmin,
             ];
 
             return view('backend/Munaqosah/dashboardAdmin', $data);
@@ -807,6 +808,19 @@ class Munaqosah extends BaseController
 
             // Cek setting AktiveTombolKelulusan untuk Panitia
             $idTpqForSetting = ($idTpqPanitia && $idTpqPanitia != 0) ? (string)$idTpqPanitia : '0';
+
+            // Untuk typeUjian munaqosah (IdTpq = '0'), hanya Admin yang bisa mengubah pengaturan
+            $isAdmin = in_groups('Admin');
+            $canEditMunaqosahSetting = false;
+
+            // Jika IdTpq = '0' (munaqosah), hanya Admin yang bisa edit
+            if ($idTpqForSetting === '0') {
+                $canEditMunaqosahSetting = $isAdmin;
+            } else {
+                // Untuk pra-munaqosah (IdTpq != '0'), panitia bisa edit
+                $canEditMunaqosahSetting = true;
+            }
+
             $aktiveTombolKelulusanSetting = $this->munaqosahKonfigurasiModel
                 ->where('IdTpq', $idTpqForSetting)
                 ->where('SettingKey', 'AktiveTombolKelulusan')
@@ -863,6 +877,8 @@ class Munaqosah extends BaseController
                 'statistik' => $statistik,
                 'peserta_per_tpq' => $pesertaPerTpq,
                 'is_panitia_umum' => (!$idTpqPanitia || $idTpqPanitia == 0),
+                'is_admin' => $isAdmin,
+                'can_edit_munaqosah_setting' => $canEditMunaqosahSetting,
             ];
 
             return view('backend/Munaqosah/dashboardPanitia', $data);
@@ -9440,6 +9456,14 @@ class Munaqosah extends BaseController
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'IdTpq tidak boleh kosong'
+                ]);
+            }
+
+            // Untuk typeUjian munaqosah (IdTpq = '0' atau 0), hanya Admin yang bisa mengubah pengaturan
+            if (($idTpq === '0' || $idTpq === 0) && !in_groups('Admin')) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Hanya Admin yang dapat mengubah pengaturan tombol kelulusan untuk typeUjian munaqosah'
                 ]);
             }
 
