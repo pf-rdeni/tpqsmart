@@ -1106,17 +1106,15 @@ class Dashboard extends BaseController
             $semester = ($currentMonth >= 7 && $currentMonth <= 12) ? 'Ganjil' : 'Genap';
         }
 
-        // Ambil semua santri aktif per kelas (kecuali Alumni)
+        // Ambil semua santri aktif per kelas dari tbl_kelas_santri (kecuali Alumni)
+        // Pastikan: ks.Status = 1 (aktif di kelas)
         $builder = $db->table('tbl_kelas_santri ks');
         $builder->select('ks.IdKelas, k.NamaKelas, ks.IdSantri');
         $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');
         $builder->where('ks.IdTpq', $idTpq);
         $builder->where('ks.IdTahunAjaran', $idTahunAjaran);
-        $builder->where('ks.Status', 1);
-        
-        // Filter kelas Alumni (case-insensitive)
-        $builder->where("LOWER(k.NamaKelas) != 'alumni'", null, false);
-        
+        $builder->where('ks.Status', 1); // Status aktif di tbl_kelas_santri
+
         // Filter kelas jika diberikan
         if (!empty($idKelas)) {
             if (is_array($idKelas)) {

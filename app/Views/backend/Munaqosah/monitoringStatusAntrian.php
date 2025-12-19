@@ -3,6 +3,8 @@
 <?= $this->section('content') ?>
 <section class="content">
     <div class="container-fluid">
+
+
         <div class="row">
             <div class="col-12">
                 <div class="card card-outline card-primary">
@@ -27,8 +29,8 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="card-body">
-                        <!-- Filter (Read Only untuk display) -->
                         <div class="alert alert-info mb-3">
                             <strong>Grup Materi Ujian:</strong>
                             <?php
@@ -76,208 +78,212 @@
                             | <strong>Waktu Update:</strong> <span id="lastUpdate">-</span>
                         </div>
 
-                        <!-- Status Peserta -->
+                        <!-- Card Daftar Antrian dan Info Grafis -->
                         <div class="row mb-3">
-                            <?php
-                            $total = $statistics['total'];
-                            $completed = $statistics['completed'];
-                            $queueing = $statistics['queueing'];
-                            $inProgress = $statistics['in_progress'] ?? 0;
-                            $progress = $statistics['progress'];
-
-                            $pctCompleted = $total > 0 ? round(($completed / max($total, 1)) * 100) : 0;
-                            $pctQueueing = $total > 0 ? round(($queueing / max($total, 1)) * 100) : 0;
-                            $pctInProgress = $total > 0 ? round(($inProgress / max($total, 1)) * 100) : 0;
-                            ?>
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-info">
-                                    <span class="info-box-icon"><i class="fas fa-users"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Total Peserta</span>
-                                        <span class="info-box-number" id="statTotal"><?= $total ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: 100%"></div>
-                                        </div>
-                                        <span class="progress-description">Teregister</span>
+                            <div class="col-4">
+                                <div class="card card-outline card-primary">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Daftar Antrian</h3>
                                     </div>
-                                </div>
-                            </div>
+                                    <div class="card-body">
+                                        <!-- Daftar Antrian -->
+                                        <div class="table-responsive">
+                                            <table id="tableAntrian" class="table table-bordered table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Status</th>
+                                                        <th>Grup Peserta</th>
+                                                        <th>Peserta</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tableAntrianBody">
+                                                    <?php foreach ($queue as $row): ?>
+                                                        <?php
+                                                        $status = (int) ($row['Status'] ?? 0);
+                                                        $statusLabel = 'Menunggu';
+                                                        $badgeClass = 'badge-warning';
+                                                        if ($status === 1) {
+                                                            $statusLabel = 'Sedang Ujian';
+                                                            $badgeClass = 'badge-danger';
+                                                        } elseif ($status === 2) {
+                                                            $statusLabel = 'Selesai';
+                                                            $badgeClass = 'badge-success';
+                                                        }
+                                                        $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
 
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-success">
-                                    <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Sudah diuji</span>
-                                        <span class="info-box-number" id="statCompleted"><?= $completed ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" id="barCompleted" style="width: <?= $pctCompleted ?>%"></div>
-                                        </div>
-                                        <span class="progress-description"><span id="descCompleted"><?= $pctCompleted ?>%</span> selesai</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-warning">
-                                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Antrian ujian</span>
-                                        <span class="info-box-number" id="statQueueing"><?= $queueing ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" id="barQueueing" style="width: <?= $pctQueueing ?>%"></div>
-                                        </div>
-                                        <span class="progress-description"><span id="descQueueing"><?= $pctQueueing ?>%</span> menunggu</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-primary">
-                                    <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Progress</span>
-                                        <span class="info-box-number" id="statProgress"><?= $progress ?>%</span>
-                                        <div class="progress">
-                                            <div class="progress-bar" id="barProgress" style="width: <?= $progress ?>%"></div>
-                                        </div>
-                                        <span class="progress-description">Tingkat penyelesaian</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Status Ruangan -->
-                        <h5 class="mt-4 mb-3">Status Ruangan</h5>
-                        <div id="roomsContainer" class="row">
-                            <?php if (!empty($rooms)): ?>
-                                <?php
-                                $totalRooms = count($rooms);
-                                // Jika hanya 1 ruangan, gunakan full width, jika lebih gunakan grid responsif
-                                // Desktop: 1 ruangan = full, >1 = 3 kolom | Tablet: 2 kolom | Mobile: 1 kolom
-                                $colClass = $totalRooms === 1
-                                    ? 'col-12'
-                                    : 'col-12 col-sm-6 col-lg-4';
-                                ?>
-                                <?php foreach ($rooms as $room): ?>
-                                    <?php
-                                    $isOccupied = $room['occupied'] ?? false;
-                                    $participantCount = $room['participant_count'] ?? 0;
-                                    $maxCapacity = $room['max_capacity'] ?? 1;
-                                    $isFull = $room['is_full'] ?? false;
-                                    $participants = $room['participants'] ?? [];
-                                    ?>
-                                    <div class="<?= $colClass ?> mb-3">
-                                        <div class="p-3 rounded shadow-sm room-card <?= $isFull ? 'bg-danger text-white' : ($isOccupied ? 'bg-warning text-dark' : 'bg-success text-white') ?>">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?></h5>
-                                                <?php if ($isFull): ?>
-                                                    <span class="badge badge-light badge-pill">
-                                                        <i class="fas fa-users"></i> Penuh
-                                                    </span>
-                                                <?php elseif ($isOccupied): ?>
-                                                    <span class="badge badge-light badge-pill">
-                                                        <i class="fas fa-user"></i> Digunakan
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="badge badge-light badge-pill">
-                                                        <i class="fas fa-door-open"></i> Kosong
-                                                    </span>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="mb-2">
-                                                <small>
-                                                    <strong>Kapasitas:</strong> <?= $participantCount ?> / <?= $maxCapacity ?>
-                                                </small>
-                                            </div>
-                                            <?php if ($isOccupied && !empty($participants)): ?>
-                                                <div class="room-participant mb-2">
-                                                    <?php foreach ($participants as $participant): ?>
-                                                        <div class="mb-1">
-                                                            <small>
-                                                                <strong>No Peserta:</strong> <?= $participant['NoPeserta'] ?> -
-                                                                <?= $participant['NamaSantri'] ?? '-' ?>
-                                                            </small>
-                                                        </div>
+                                                        // Array warna Bootstrap yang bisa diulang
+                                                        $groupColors = ['badge-primary', 'badge-success', 'badge-warning', 'badge-danger', 'badge-info', 'badge-dark', 'badge-secondary'];
+                                                        // Ambil warna berdasarkan hash sederhana dari nama grup
+                                                        $colorIndex = crc32($groupPeserta) % count($groupColors);
+                                                        $groupBadgeClass = $groupColors[abs($colorIndex)];
+                                                        ?>
+                                                        <tr>
+                                                            <td>
+                                                                <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge <?= $groupBadgeClass ?>"><?= htmlspecialchars($groupPeserta) ?></span>
+                                                            </td>
+                                                            <td><?= $row['NoPeserta'] ?>- <?= $row['NamaSantri'] ?? '-' ?></td>
+                                                        </tr>
                                                     <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-8">
+                                <div class="card card-outline card-primary">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Info Grafis</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Status Peserta -->
+                                        <div class="row mb-3">
+                                            <?php
+                                            $total = $statistics['total'];
+                                            $completed = $statistics['completed'];
+                                            $queueing = $statistics['queueing'];
+                                            $inProgress = $statistics['in_progress'] ?? 0;
+                                            $progress = $statistics['progress'];
+
+                                            $pctCompleted = $total > 0 ? round(($completed / max($total, 1)) * 100) : 0;
+                                            $pctQueueing = $total > 0 ? round(($queueing / max($total, 1)) * 100) : 0;
+                                            $pctInProgress = $total > 0 ? round(($inProgress / max($total, 1)) * 100) : 0;
+                                            ?>
+                                            <div class="col-md-3 col-sm-6 mb-3">
+                                                <div class="info-box bg-info">
+                                                    <span class="info-box-icon"><i class="fas fa-users"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">Total Peserta</span>
+                                                        <span class="info-box-number" id="statTotal"><?= $total ?></span>
+                                                        <div class="progress">
+                                                            <div class="progress-bar" style="width: 100%"></div>
+                                                        </div>
+                                                        <span class="progress-description">Teregister</span>
+                                                    </div>
                                                 </div>
+                                            </div>
+
+                                            <div class="col-md-3 col-sm-6 mb-3">
+                                                <div class="info-box bg-success">
+                                                    <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">Sudah diuji</span>
+                                                        <span class="info-box-number" id="statCompleted"><?= $completed ?></span>
+                                                        <div class="progress">
+                                                            <div class="progress-bar" id="barCompleted" style="width: <?= $pctCompleted ?>%"></div>
+                                                        </div>
+                                                        <span class="progress-description"><span id="descCompleted"><?= $pctCompleted ?>%</span> selesai</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3 col-sm-6 mb-3">
+                                                <div class="info-box bg-warning">
+                                                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">Antrian ujian</span>
+                                                        <span class="info-box-number" id="statQueueing"><?= $queueing ?></span>
+                                                        <div class="progress">
+                                                            <div class="progress-bar" id="barQueueing" style="width: <?= $pctQueueing ?>%"></div>
+                                                        </div>
+                                                        <span class="progress-description"><span id="descQueueing"><?= $pctQueueing ?>%</span> menunggu</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3 col-sm-6 mb-3">
+                                                <div class="info-box bg-primary">
+                                                    <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">Progress</span>
+                                                        <span class="info-box-number" id="statProgress"><?= $progress ?>%</span>
+                                                        <div class="progress">
+                                                            <div class="progress-bar" id="barProgress" style="width: <?= $progress ?>%"></div>
+                                                        </div>
+                                                        <span class="progress-description">Tingkat penyelesaian</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div> <!-- Kosong untuk sekarang -->
+
+                                        <!-- Status Ruangan -->
+                                        <h5 class="mt-4 mb-3">Status Ruangan</h5>
+                                        <div id="roomsContainer" class="row">
+                                            <?php if (!empty($rooms)): ?>
+                                                <?php
+                                                $totalRooms = count($rooms);
+                                                // Jika hanya 1 ruangan, gunakan full width, jika lebih gunakan grid responsif
+                                                // Desktop: 1 ruangan = full, >1 = 3 kolom | Tablet: 2 kolom | Mobile: 1 kolom
+                                                $colClass = $totalRooms === 1
+                                                    ? 'col-12'
+                                                    : 'col-12 col-sm-6 col-lg-4';
+                                                ?>
+                                                <?php foreach ($rooms as $room): ?>
+                                                    <?php
+                                                    $isOccupied = $room['occupied'] ?? false;
+                                                    $participantCount = $room['participant_count'] ?? 0;
+                                                    $maxCapacity = $room['max_capacity'] ?? 1;
+                                                    $isFull = $room['is_full'] ?? false;
+                                                    $participants = $room['participants'] ?? [];
+                                                    ?>
+                                                    <div class="<?= $colClass ?> mb-3">
+                                                        <div class="p-3 rounded shadow-sm room-card <?= $isFull ? 'bg-danger text-white' : ($isOccupied ? 'bg-warning text-dark' : 'bg-success text-white') ?>">
+                                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?></h5>
+                                                                <?php if ($isFull): ?>
+                                                                    <span class="badge badge-light badge-pill">
+                                                                        <i class="fas fa-users"></i> Penuh
+                                                                    </span>
+                                                                <?php elseif ($isOccupied): ?>
+                                                                    <span class="badge badge-light badge-pill">
+                                                                        <i class="fas fa-user"></i> Digunakan
+                                                                    </span>
+                                                                <?php else: ?>
+                                                                    <span class="badge badge-light badge-pill">
+                                                                        <i class="fas fa-door-open"></i> Kosong
+                                                                    </span>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <small>
+                                                                    <strong>Kapasitas:</strong> <?= $participantCount ?> / <?= $maxCapacity ?>
+                                                                </small>
+                                                            </div>
+                                                            <?php if ($isOccupied && !empty($participants)): ?>
+                                                                <div class="room-participant mb-2">
+                                                                    <?php foreach ($participants as $participant): ?>
+                                                                        <div class="mb-1">
+                                                                            <small>
+                                                                                <strong>No Peserta:</strong> <?= $participant['NoPeserta'] ?> -
+                                                                                <?= $participant['NamaSantri'] ?? '-' ?>
+                                                                            </small>
+                                                                        </div>
+                                                                    <?php endforeach; ?>
+                                                                </div>
+                                                            <?php else: ?>
+                                                                <p class="mb-0">
+                                                                    <i class="fas fa-door-open mr-1"></i>Ruangan tersedia
+                                                                </p>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
                                             <?php else: ?>
-                                                <p class="mb-0">
-                                                    <i class="fas fa-door-open mr-1"></i>Ruangan tersedia
-                                                </p>
+                                                <div class="col-12">
+                                                    <div class="alert alert-info">
+                                                        Belum ada ruangan terdaftar untuk grup materi dan tipe ujian ini.
+                                                    </div>
+                                                </div>
                                             <?php endif; ?>
                                         </div>
                                     </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <div class="col-12">
-                                    <div class="alert alert-info">
-                                        Belum ada ruangan terdaftar untuk grup materi dan tipe ujian ini.
-                                    </div>
                                 </div>
-                            <?php endif; ?>
+                            </div>
                         </div>
-
-                        <!-- Daftar Antrian -->
-                        <h5 class="mt-4 mb-3">Daftar Antrian</h5>
-                        <div class="table-responsive">
-                            <table id="tableAntrian" class="table table-bordered table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Grup Peserta</th>
-                                        <th>No Peserta</th>
-                                        <th>Nama Peserta</th>
-                                        <th>Room</th>
-                                        <th>Status</th>
-                                        <th>Type Ujian</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tableAntrianBody">
-                                    <?php $no = 1; ?>
-                                    <?php foreach ($queue as $row): ?>
-                                        <?php
-                                        $status = (int) ($row['Status'] ?? 0);
-                                        $statusLabel = 'Menunggu';
-                                        $badgeClass = 'badge-warning';
-                                        if ($status === 1) {
-                                            $statusLabel = 'Sedang Ujian';
-                                            $badgeClass = 'badge-danger';
-                                        } elseif ($status === 2) {
-                                            $statusLabel = 'Selesai';
-                                            $badgeClass = 'badge-success';
-                                        }
-                                        $typeResolved = $row['TypeUjian'] ?? ($row['TypeUjianResolved'] ?? '-');
-                                        $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
-
-                                        // Array warna Bootstrap yang bisa diulang
-                                        $groupColors = ['badge-primary', 'badge-success', 'badge-warning', 'badge-danger', 'badge-info', 'badge-dark', 'badge-secondary'];
-                                        // Ambil warna berdasarkan hash sederhana dari nama grup
-                                        $colorIndex = crc32($groupPeserta) % count($groupColors);
-                                        $groupBadgeClass = $groupColors[abs($colorIndex)];
-                                        ?>
-                                        <tr>
-                                            <td><?= $no++ ?></td>
-                                            <td>
-                                                <span class="badge <?= $groupBadgeClass ?>"><?= htmlspecialchars($groupPeserta) ?></span>
-                                            </td>
-                                            <td><?= $row['NoPeserta'] ?></td>
-                                            <td><?= $row['NamaSantri'] ?? '-' ?></td>
-                                            <td>
-                                                <?php if (!empty($row['RoomId'])): ?>
-                                                    <span class="badge badge-info"><?= $row['RoomId'] ?></span>
-                                                <?php else: ?>
-                                                    <span class="text-muted">-</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
-                                            </td>
-                                            <td><?= $typeResolved ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                        <!-- Filter (Read Only untuk display) -->
                     </div>
                 </div>
             </div>
