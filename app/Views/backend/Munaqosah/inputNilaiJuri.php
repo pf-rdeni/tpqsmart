@@ -87,9 +87,9 @@
                                                     </div>
                                                     <div class="card-body">
                                                         <?php
-$total = $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai;
-$pctSelesai = $total > 0 ? round(($total_peserta_sudah_dinilai / $total) * 100, 2) : 0;
-$pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2) : 0;
+                                                        $total = $total_peserta_sudah_dinilai + $total_peserta_belum_dinilai;
+                                                        $pctSelesai = $total > 0 ? round(($total_peserta_sudah_dinilai / $total) * 100, 2) : 0;
+                                                        $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2) : 0;
                                                         ?>
                                                         <div class="row">
                                                             <div class="col-md-3 col-sm-6 mb-3">
@@ -173,7 +173,6 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
                                                                             <th>Waktu</th>
                                                                             <th>Durasi</th>
                                                                             <th>Juri</th>
-                                                                            <th>Aksi</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
@@ -186,11 +185,6 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
                                                                                     <span class="<?= $peserta['duration_class'] ?>"><?= $peserta['duration'] ?></span>
                                                                                 </td>
                                                                                 <td><?= $peserta['UsernameJuri'] ?></td>
-                                                                                <td class="text-center">
-                                                                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setNoPeserta('<?= $peserta['NoPeserta'] ?>')">
-                                                                                        <i class="fas fa-edit"></i> Ubah Nilai
-                                                                                    </button>
-                                                                                </td>
                                                                             </tr>
                                                                         <?php endforeach; ?>
                                                                     </tbody>
@@ -201,55 +195,6 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
                                                 </div>
                                             </div>
                                         <?php endif; ?>
-
-                                        <!-- Dialog Edit Nilai -->
-                                        <div class="modal fade" id="modalEditNilai" tabindex="-1" role="dialog">
-                                            <div class="modal-dialog" role="document">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Nilai Sudah Ada</h5>
-                                                        <button type="button" class="close" data-dismiss="modal">
-                                                            <span>&times;</span>
-                                                        </button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <p>Nilai untuk peserta ini sudah pernah diinput. Apakah Anda ingin mengedit nilai yang sudah ada?</p>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                                                        <button type="button" class="btn btn-warning" id="btnEditNilai">Edit Nilai</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Dialog Approval Admin -->
-                                        <div class="modal fade" id="modalApprovalAdmin" tabindex="-1" role="dialog">
-                                            <div class="modal-dialog" role="document">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Persetujuan Admin</h5>
-                                                        <button type="button" class="close" data-dismiss="modal">
-                                                            <span>&times;</span>
-                                                        </button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="form-group">
-                                                            <label for="adminUsername">Username Admin</label>
-                                                            <input type="text" class="form-control" id="adminUsername" name="adminUsername" required>
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label for="adminPassword">Password Admin</label>
-                                                            <input type="password" class="form-control" id="adminPassword" name="adminPassword" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                                                        <button type="button" class="btn btn-primary" id="btnConfirmEdit">Konfirmasi Edit</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <!-- Step 2: Input Nilai -->
@@ -640,7 +585,6 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
         let currentJuriData = null;
         let currentMateriData = null;
         let errorCategoriesByKategori = {};
-        let isEditMode = false;
 
         // Get current juri data from controller
         function getCurrentJuriData() {
@@ -772,13 +716,8 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
                         // Show peserta info with room validation info dan status nilai
                         showPesertaInfo(response.data.peserta, response.data.roomValidation, response.data.nilaiExists || false);
 
-                        // Check if nilai already exists
-                        if (response.data.nilaiExists) {
-                            $('#modalEditNilai').modal('show');
-                        } else {
-                            // Proceed to step 2
-                            proceedToStep2();
-                        }
+                        // Proceed to step 2
+                        proceedToStep2();
                     } else {
                         // Handle different error types with detailed messages
                         let errorTitle = 'Error';
@@ -1805,7 +1744,6 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
                 IdTahunAjaran: tahunAjaran,
                 IdJuri: getCurrentJuriData().IdJuri || 'J001',
                 TypeUjian: getTypeUjian(),
-                isEditMode: isEditMode,
                 nilai: {},
                 catatan: {}
             };
@@ -1938,112 +1876,6 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
             });
         }
 
-        // Edit nilai handlers
-        $('#btnEditNilai').click(function() {
-            $('#modalEditNilai').modal('hide');
-            $('#modalApprovalAdmin').modal('show');
-        });
-
-        $('#btnConfirmEdit').click(function() {
-            const adminUsername = $('#adminUsername').val();
-            const adminPassword = $('#adminPassword').val();
-
-            if (!adminUsername || !adminPassword) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Peringatan',
-                    text: 'Username dan password admin harus diisi'
-                });
-                return;
-            }
-
-            // Show loading
-            Swal.fire({
-                title: 'Memverifikasi...',
-                text: 'Memverifikasi kredensial admin',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // AJAX call to verify admin credentials
-            $.ajax({
-                url: '<?= base_url("backend/munaqosah/verifyAdminCredentials") ?>',
-                type: 'POST',
-                data: {
-                    username: adminUsername,
-                    password: adminPassword
-                },
-                dataType: 'json',
-                success: function(response) {
-                    Swal.close();
-
-                    if (response.success) {
-                        isEditMode = true;
-                        $('#modalApprovalAdmin').modal('hide');
-                        proceedToStep2();
-                    } else {
-                        // Handle different error types with detailed messages
-                        let errorTitle = 'Error';
-                        let errorMessage = response.message || 'Kredensial admin tidak valid';
-                        let errorDetails = response.details || '';
-
-                        // Customize error message based on status
-                        switch (response.status) {
-                            case 'VALIDATION_ERROR':
-                                errorTitle = 'Validasi Error';
-                                break;
-                            case 'AUTHENTICATION_ERROR':
-                                errorTitle = 'Error Autentikasi';
-                                break;
-                            case 'AUTHORIZATION_ERROR':
-                                errorTitle = 'Error Otorisasi';
-                                break;
-                            case 'SYSTEM_ERROR':
-                                errorTitle = 'Error Sistem';
-                                break;
-                            default:
-                                errorTitle = 'Error';
-                        }
-
-                        // Show detailed error message
-                        Swal.fire({
-                            icon: 'error',
-                            title: errorTitle,
-                            html: `
-                            <div style="text-align: left;">
-                                <p><strong>${errorMessage}</strong></p>
-                                ${errorDetails ? `<p><small>Detail: ${errorDetails}</small></p>` : ''}
-                                ${response.code ? `<p><small>Kode Error: ${response.code}</small></p>` : ''}
-                            </div>
-                        `
-                        });
-                    }
-                },
-                error: function(xhr, status, error) {
-                    Swal.close();
-                    let errorMessage = 'Terjadi kesalahan koneksi';
-
-                    // Try to parse error response
-                    try {
-                        const errorResponse = JSON.parse(xhr.responseText);
-                        if (errorResponse.message) {
-                            errorMessage = errorResponse.message;
-                        }
-                    } catch (e) {
-                        // Use default error message
-                    }
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error Koneksi',
-                        text: errorMessage + ' (' + error + ')'
-                    });
-                }
-            });
-        });
-
         // Reset form
         function resetForm() {
             $('#noPeserta').val('');
@@ -2056,7 +1888,6 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
             currentJuriData = null;
             currentMateriData = null;
             errorCategoriesByKategori = {};
-            isEditMode = false;
 
             // Mulai check antrian lagi saat reset form
             startCheckAntrian();
@@ -2320,14 +2151,9 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
                 ],
                 responsive: true,
                 columnDefs: [{
-                        targets: [3, 5], // Durasi, Aksi
-                        orderable: false
-                    },
-                    {
-                        targets: [5], // Aksi
-                        searchable: false
-                    }
-                ],
+                    targets: [3], // Durasi
+                    orderable: false
+                }],
                 language: {
                     decimal: ",",
                     emptyTable: "Tidak ada data yang tersedia",
@@ -2414,12 +2240,6 @@ $pctBelum = $total > 0 ? round(($total_peserta_belum_dinilai / $total) * 100, 2)
         }
     }
 
-    // Fungsi untuk set No Peserta dari tabel peserta terakhir
-    function setNoPeserta(noPeserta) {
-        $('#noPeserta').val(noPeserta);
-        // Trigger cek peserta otomatis
-        $('#btnCekPeserta').click();
-    }
 
     // ==================== AYAT API FUNCTIONS ====================
     // Global variable untuk menyimpan IdMateri yang sedang dilihat
