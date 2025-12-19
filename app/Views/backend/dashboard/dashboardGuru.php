@@ -605,6 +605,115 @@ function render_progress_bar($persentase, $height = 25)
             </div>
         </div>
     <?php endif; ?>
+
+    <!-- Statistik Serah Terima Rapor per Kelas -->
+    <?php if (!empty($StatistikSerahTerimaRapor)): ?>
+        <div class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-primary card-outline">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-exchange-alt"></i> Statistik Serah Terima Rapor per Kelas
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-primary btn-sm" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>Informasi:</strong> Tabel ini menampilkan statistik status serah terima rapor per kelas yang Anda ajar.
+                                </p>
+
+                                <?php
+                                // Tentukan semester saat ini menggunakan helper function
+                                $isSemesterGanjil = isSemesterGanjil();
+                                $isSemesterGenap = isSemesterGenap();
+
+                                // Array semester untuk loop
+                                $semesterList = [
+                                    'Ganjil' => [
+                                        'isActive' => $isSemesterGanjil,
+                                        'data' => $StatistikSerahTerimaRapor['Ganjil'] ?? []
+                                    ],
+                                    'Genap' => [
+                                        'isActive' => $isSemesterGenap,
+                                        'data' => $StatistikSerahTerimaRapor['Genap'] ?? []
+                                    ]
+                                ];
+                                ?>
+
+                                <?php foreach ($semesterList as $semester => $semesterData): ?>
+                                    <?php
+                                    $isActiveSemester = $semesterData['isActive'];
+                                    $semesterDataList = $semesterData['data'];
+                                    ?>
+                                    <div class="mb-4">
+                                        <div class="card card-outline card-secondary <?= !$isActiveSemester ? 'collapsed-card' : '' ?>">
+                                            <div class="card-header">
+                                                <h5 class="mb-0">
+                                                    <i class="fas fa-book"></i> Semester <?= esc($semester) ?> TA <?= esc($TahunAjaran ?? '') ?>
+                                                </h5>
+                                                <div class="card-tools">
+                                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                        <i class="fas <?= !$isActiveSemester ? 'fa-plus' : 'fa-minus' ?>"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-striped table-hover">
+                                                        <thead class="thead-light">
+                                                            <tr>
+                                                                <th>Nama Kelas</th>
+                                                                <th class="text-center">Total Santri</th>
+                                                                <th class="text-center">Belum Diserahkan</th>
+                                                                <th class="text-center">Sudah Diserahkan</th>
+                                                                <th class="text-center">Sudah Dikembalikan</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php if (!empty($semesterDataList)): ?>
+                                                                <?php foreach ($semesterDataList as $kelas): ?>
+                                                                    <tr>
+                                                                        <td><strong><?= esc($kelas['NamaKelas']) ?></strong></td>
+                                                                        <td class="text-center">
+                                                                            <span class="badge badge-info"><?= number_format($kelas['TotalSantri']) ?></span>
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <span class="badge badge-warning"><?= number_format($kelas['BelumDiserahkan']) ?></span>
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <span class="badge badge-info"><?= number_format($kelas['SudahDiserahkan']) ?></span>
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <span class="badge badge-success"><?= number_format($kelas['SudahDikembalikan']) ?></span>
+                                                                        </td>
+                                                                    </tr>
+                                                                <?php endforeach; ?>
+                                                            <?php else: ?>
+                                                                <tr>
+                                                                    <td colspan="5" class="text-center">Tidak ada data untuk semester <?= esc($semester) ?></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </section>
 
 <?= $this->endSection(); ?>

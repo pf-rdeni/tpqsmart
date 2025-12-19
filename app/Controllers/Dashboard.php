@@ -721,6 +721,15 @@ class Dashboard extends BaseController
         }
 
         $data = $this->getGuruDashboardData($idTpq, $idTahunAjaran, $idKelas, $idGuru);
+        
+        // Statistik serah terima rapor per kelas (hanya kelas yang diajar)
+        $statistikSerahTerimaRaporGanjil = $this->getStatistikSerahTerimaRaporPerKelas($idTpq, $idTahunAjaran, $idKelas, 'Ganjil');
+        $statistikSerahTerimaRaporGenap = $this->getStatistikSerahTerimaRaporPerKelas($idTpq, $idTahunAjaran, $idKelas, 'Genap');
+        $data['StatistikSerahTerimaRapor'] = [
+            'Ganjil' => $statistikSerahTerimaRaporGanjil,
+            'Genap' => $statistikSerahTerimaRaporGenap
+        ];
+        
         $data = array_merge($data, $userInfo);
 
         // Jika wali kelas, kumpulkan daftar nama kelas yang diwalikan
@@ -789,6 +798,14 @@ class Dashboard extends BaseController
         // Statistik progress penilaian per TPQ dan per kelas (untuk TPQ mereka saja)
         $statistikProgressNilaiPerTpq = $this->getStatistikProgressNilaiPerTpqSingle($idTahunAjaran, $idTpq);
         $data['StatistikProgressNilaiPerTpq'] = $statistikProgressNilaiPerTpq;
+
+        // Statistik serah terima rapor per kelas (semua kelas kecuali Alumni)
+        $statistikSerahTerimaRaporGanjil = $this->getStatistikSerahTerimaRaporPerKelas($idTpq, $idTahunAjaran, null, 'Ganjil');
+        $statistikSerahTerimaRaporGenap = $this->getStatistikSerahTerimaRaporPerKelas($idTpq, $idTahunAjaran, null, 'Genap');
+        $data['StatistikSerahTerimaRapor'] = [
+            'Ganjil' => $statistikSerahTerimaRaporGanjil,
+            'Genap' => $statistikSerahTerimaRaporGenap
+        ];
 
         $data = array_merge($data, $userInfo);
 
@@ -1068,6 +1085,128 @@ class Dashboard extends BaseController
                 'transactions' => $allTransactionsGenap
             ]
         ];
+    }
+
+    /**
+     * Ambil statistik serah terima rapor per kelas
+     * @param mixed $idTpq
+     * @param mixed $idTahunAjaran
+     * @param mixed $idKelas Array of kelas IDs atau null untuk semua kelas (kecuali Alumni)
+     * @param mixed $semester 'Ganjil' atau 'Genap'
+     * @return array Statistik per kelas
+     */
+    private function getStatistikSerahTerimaRaporPerKelas($idTpq, $idTahunAjaran, $idKelas = null, $semester = null)
+    {
+        $serahTerimaRaporModel = new \App\Models\SerahTerimaRaporModel();
+        $db = \Config\Database::connect();
+
+        // Jika semester tidak diberikan, gunakan semester saat ini
+        if (empty($semester)) {
+            $currentMonth = (int)date('n');
+            $semester = ($currentMonth >= 7 && $currentMonth <= 12) ? 'Ganjil' : 'Genap';
+        }
+
+        // Ambil semua santri aktif per kelas (kecuali Alumni)
+        $builder = $db->table('tbl_kelas_santri ks');
+        $builder->select('ks.IdKelas, k.NamaKelas, ks.IdSantri');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');
+        $builder->where('ks.IdTpq', $idTpq);
+        $builder->where('ks.IdTahunAjaran', $idTahunAjaran);
+        $builder->where('ks.Status', 1);
+        
+        // Filter kelas Alumni (case-insensitive)
+        $builder->where("LOWER(k.NamaKelas) != 'alumni'", null, false);
+        
+        // Filter kelas jika diberikan
+        if (!empty($idKelas)) {
+            if (is_array($idKelas)) {
+                $builder->whereIn('ks.IdKelas', $idKelas);
+            } else {
+                $builder->where('ks.IdKelas', $idKelas);
+            }
+        }
+        
+        $santriPerKelas = $builder->get()->getResultArray();
+
+        // Kelompokkan santri per kelas
+        $kelasData = [];
+        foreach ($santriPerKelas as $row) {
+            $idKelasRow = $row['IdKelas'];
+            $namaKelas = $row['NamaKelas'];
+            $idSantri = $row['IdSantri'];
+
+            if (!isset($kelasData[$idKelasRow])) {
+                $kelasData[$idKelasRow] = [
+                    'IdKelas' => $idKelasRow,
+                    'NamaKelas' => $namaKelas,
+                    'TotalSantri' => 0,
+                    'BelumDiserahkan' => 0,
+                    'SudahDiserahkan' => 0,
+                    'SudahDikembalikan' => 0
+                ];
+            }
+
+            $kelasData[$idKelasRow]['TotalSantri']++;
+        }
+
+        // Ambil status terbaru untuk setiap santri
+        foreach ($kelasData as $idKelasRow => &$kelas) {
+            // Ambil semua santri di kelas ini
+            $santriIds = [];
+            foreach ($santriPerKelas as $row) {
+                if ($row['IdKelas'] == $idKelasRow) {
+                    $santriIds[] = $row['IdSantri'];
+                }
+            }
+
+            if (empty($santriIds)) {
+                continue;
+            }
+
+            // Ambil status terbaru untuk semua santri menggunakan subquery untuk efisiensi
+            // Gunakan window function approach dengan subquery
+            $subquery = $db->table('tbl_serah_terima_rapor str2');
+            $subquery->select('str2.IdSantri, str2.Status, str2.TanggalTransaksi');
+            $subquery->whereIn('str2.IdSantri', $santriIds);
+            $subquery->where('str2.idTahunAjaran', $idTahunAjaran);
+            $subquery->where('str2.Semester', $semester);
+            $subquery->orderBy('str2.TanggalTransaksi', 'DESC');
+            
+            // Ambil status terbaru per santri (ambil yang pertama setelah diurutkan)
+            $allStatus = $subquery->get()->getResultArray();
+
+            // Kelompokkan status per santri (ambil yang terbaru berdasarkan TanggalTransaksi)
+            $statusPerSantri = [];
+            foreach ($allStatus as $statusRow) {
+                $idSantri = $statusRow['IdSantri'];
+                if (!isset($statusPerSantri[$idSantri])) {
+                    $statusPerSantri[$idSantri] = $statusRow['Status'];
+                }
+            }
+
+            // Hitung statistik
+            foreach ($santriIds as $idSantri) {
+                $status = $statusPerSantri[$idSantri] ?? 'Belum Diserahkan';
+                
+                if ($status === 'Belum Diserahkan') {
+                    $kelas['BelumDiserahkan']++;
+                } elseif ($status === 'Sudah Diserahkan') {
+                    $kelas['SudahDiserahkan']++;
+                } elseif ($status === 'Sudah Dikembalikan') {
+                    $kelas['SudahDikembalikan']++;
+                }
+            }
+        }
+
+        // Konversi ke array indexed
+        $result = array_values($kelasData);
+        
+        // Urutkan berdasarkan NamaKelas
+        usort($result, function($a, $b) {
+            return strcmp($a['NamaKelas'], $b['NamaKelas']);
+        });
+
+        return $result;
     }
 
     /**
