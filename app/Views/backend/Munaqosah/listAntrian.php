@@ -22,99 +22,48 @@
                             <div class="col-md-12">
                                 <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
                                 <ol class="mb-4">
-                                    <li class="mb-2">
-                                        <strong>Filter Data Antrian:</strong>
-                                        <ul class="mt-2">
-                                            <li>Pilih <strong>TPQ</strong> (jika admin) atau otomatis terisi untuk TPQ/Panitia</li>
-                                            <li>Pilih <strong>Grup Materi Ujian</strong> yang ingin dilihat antriannya</li>
-                                            <li>Pilih <strong>Type Ujian</strong> (Munaqosah/Pra-Munaqosah) - otomatis terisi untuk Operator/Panitia</li>
-                                            <li><strong>Tahun Ajaran</strong> otomatis terisi dan tidak dapat diubah</li>
-                                            <li>Data antrian akan otomatis terfilter sesuai pilihan</li>
+                                    <li class="mb-3">
+                                        <strong>Filter Data Antrian</strong> (Card bisa di-collapse)
+                                        <ul class="mt-2 mb-0">
+                                            <li>Pilih <strong>TPQ</strong>, <strong>Grup Materi Ujian</strong>, dan <strong>Type Ujian</strong></li>
+                                            <li>Filter otomatis tersimpan dan diterapkan saat halaman dimuat</li>
                                         </ul>
                                     </li>
-                                    <li class="mb-2">
-                                        <strong>Registrasi Peserta ke Antrian:</strong>
-                                        <ul class="mt-2">
-                                            <li>Masukkan atau scan <strong>No Peserta</strong> di input field</li>
-                                            <li>Gunakan tombol <span class="badge badge-warning"><i class="fas fa-qrcode"></i> Scan QR</span> untuk scan QR code dari kartu peserta</li>
-                                            <li>Klik tombol <span class="badge badge-primary"><i class="fas fa-user-plus"></i> Registrasi</span> atau tekan <strong>Enter</strong></li>
-                                            <li>Auto registrasi akan aktif setelah 3 digit dimasukkan</li>
-                                            <li>Gunakan tombol <span class="badge badge-danger">Reset</span> untuk mengosongkan input</li>
+                                    <li class="mb-3">
+                                        <strong>Lihat Statistik Antrian</strong> (Card bisa di-collapse)
+                                        <ul class="mt-2 mb-0">
+                                            <li>Total Peserta, Sudah diuji, Antrian ujian, dan Progress</li>
+                                            <li>Settingan collapsed tersimpan otomatis</li>
                                         </ul>
                                     </li>
-                                    <li class="mb-2">
-                                        <strong>Lihat Statistik Antrian:</strong>
-                                        <ul class="mt-2">
-                                            <li><strong>Total Peserta:</strong> Jumlah total peserta yang terdaftar di antrian</li>
-                                            <li><strong>Sudah diuji:</strong> Jumlah peserta yang sudah selesai ujian (Status: Selesai)</li>
-                                            <li><strong>Antrian ujian:</strong> Jumlah peserta yang menunggu untuk diuji (Status: Menunggu)</li>
-                                            <li><strong>Progress:</strong> Persentase penyelesaian ujian (peserta selesai / total peserta)</li>
+                                    <li class="mb-3">
+                                        <strong>Registrasi Peserta</strong>
+                                        <ul class="mt-2 mb-0">
+                                            <li>Masukkan atau scan <strong>No Peserta</strong></li>
+                                            <li>Auto registrasi aktif setelah 3 digit atau tekan <strong>Enter</strong></li>
+                                            <li>Validasi otomatis: cek peserta sudah di antrian, sudah selesai, atau masih antri di grup lain</li>
                                         </ul>
                                     </li>
-                                    <li class="mb-2">
-                                        <strong>Monitor Status Ruangan:</strong>
-                                        <ul class="mt-2">
-                                            <li>Lihat daftar ruangan dan jumlah peserta per ruangan</li>
-                                            <li>Status ruangan menampilkan:
-                                                <ul>
-                                                    <li>Peserta yang <strong>Sedang Ujian</strong> (Status: Proses) di ruangan tersebut</li>
-                                                    <li>Peserta yang <strong>Menunggu</strong> (Status: Menunggu) untuk masuk ruangan</li>
-                                                </ul>
-                                            </li>
-                                            <li>Gunakan tombol <span class="badge badge-success">Finish Room</span> untuk menyelesaikan semua peserta di ruangan</li>
-                                            <li>Gunakan tombol <span class="badge badge-warning">Exit Room</span> untuk mengeluarkan peserta dari ruangan</li>
-                                        </ul>
-                                    </li>
-                                    <li class="mb-2">
-                                        <strong>Kelola Antrian di Tabel:</strong>
-                                        <ul class="mt-2">
-                                            <li>Tabel menampilkan semua peserta dalam antrian dengan informasi:
-                                                <ul>
-                                                    <li><strong>Group Peserta:</strong> Grup pengelompokan peserta (dengan badge warna berbeda)</li>
-                                                    <li><strong>No Peserta:</strong> Nomor peserta ujian</li>
-                                                    <li><strong>Nama Peserta:</strong> Nama lengkap peserta</li>
-                                                    <li><strong>Room:</strong> Ruangan tempat peserta ujian</li>
-                                                    <li><strong>Status:</strong> Status peserta (Menunggu, Sedang Ujian, Selesai)</li>
-                                                    <li><strong>Type Ujian:</strong> Jenis ujian (Munaqosah/Pra-Munaqosah)</li>
-                                                    <li><strong>Tanggal Dibuat:</strong> Waktu registrasi ke antrian</li>
-                                                </ul>
-                                            </li>
-                                            <li>Gunakan kolom <strong>Aksi</strong> untuk mengelola status peserta</li>
-                                        </ul>
-                                    </li>
-                                    <li class="mb-2">
-                                        <strong>Fitur Tambahan:</strong>
-                                        <ul class="mt-2">
-                                            <li><strong>Auto Refresh:</strong> Aktifkan untuk refresh otomatis data antrian (10 detik - 5 menit)</li>
-                                            <li><strong>Monitoring:</strong> Buka halaman monitoring di tab baru untuk tampilan layar penuh</li>
-                                            <li><strong>Input Registrasi:</strong> Buka halaman khusus untuk input registrasi peserta</li>
+                                    <li class="mb-3">
+                                        <strong>Kelola Antrian</strong>
+                                        <ul class="mt-2 mb-0">
+                                            <li>Monitor status ruangan dan kelola peserta di tabel</li>
+                                            <li>Gunakan tombol aksi untuk update status peserta</li>
                                         </ul>
                                     </li>
                                 </ol>
 
                                 <div class="alert alert-info mb-0">
-                                    <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips:</h5>
+                                    <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips Penting:</h5>
                                     <ul class="mb-0">
                                         <li><strong>Status Antrian:</strong>
-                                            <ul>
-                                                <li><span class="badge badge-warning">Menunggu</span> = Peserta sudah terdaftar, menunggu giliran ujian</li>
-                                                <li><span class="badge badge-danger">Sedang Ujian</span> = Peserta sedang dalam proses ujian di ruangan</li>
-                                                <li><span class="badge badge-success">Selesai</span> = Peserta sudah selesai ujian</li>
-                                            </ul>
+                                            <span class="badge badge-warning">Menunggu</span> →
+                                            <span class="badge badge-danger">Sedang Ujian</span> →
+                                            <span class="badge badge-success">Selesai</span>
                                         </li>
-                                        <li><strong>Group Peserta:</strong> Setiap grup memiliki badge warna berbeda untuk memudahkan identifikasi</li>
-                                        <li><strong>Scan QR Code:</strong> Gunakan fitur scan QR untuk registrasi cepat tanpa mengetik manual</li>
-                                        <li><strong>Auto Refresh:</strong> Aktifkan auto refresh dengan interval 30 detik untuk update real-time tanpa refresh manual</li>
-                                        <li><strong>Filter Berdasarkan Role:</strong>
-                                            <ul>
-                                                <li><strong>Admin:</strong> Dapat memilih semua TPQ dan Type Ujian</li>
-                                                <li><strong>Operator:</strong> Hanya melihat Pra-Munaqosah, TPQ otomatis terisi</li>
-                                                <li><strong>Panitia:</strong> Type Ujian otomatis sesuai IdTpq (munaqosah/pra-munaqosah)</li>
-                                            </ul>
-                                        </li>
-                                        <li><strong>Status Ruangan:</strong> Monitor jumlah peserta per ruangan untuk mengatur alur ujian</li>
-                                        <li><strong>Progress Tracking:</strong> Gunakan statistik progress untuk memantau tingkat penyelesaian ujian</li>
-                                        <li><strong>Monitoring Screen:</strong> Buka di tab terpisah untuk tampilan layar besar (display monitor)</li>
+                                        <li><strong>Validasi Registrasi:</strong> Peserta tidak bisa masuk antrian jika sudah selesai atau masih antri di grup lain</li>
+                                        <li><strong>Auto Refresh:</strong> Aktifkan untuk update otomatis (10 detik - 5 menit)</li>
+                                        <li><strong>Scan QR:</strong> Gunakan untuk registrasi cepat tanpa mengetik</li>
                                     </ul>
                                 </div>
                             </div>
@@ -188,198 +137,300 @@
                             </div>
                         <?php endif; ?>
 
-                        <form method="get" action="<?= base_url('backend/munaqosah/antrian') ?>" class="mb-4">
-                            <div class="form-row align-items-end">
-                                <?php
-                                // Tentukan role user
-                                $isOperator = in_groups('Operator');
-                                $isPanitia = in_groups('Panitia');
-                                $isAdmin = in_groups('Admin');
+                        <!-- Card Filter -->
+                        <div class="card card-primary collapsed-card mb-4">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-filter"></i> Filter Data Antrian
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <form method="get" action="<?= base_url('backend/munaqosah/antrian') ?>">
+                                    <div class="form-row align-items-end">
+                                        <?php
+                                        // Tentukan role user
+                                        $isOperator = in_groups('Operator');
+                                        $isPanitia = in_groups('Panitia');
+                                        $isAdmin = in_groups('Admin');
 
-                                // Gunakan variabel dari controller jika ada, jika tidak tentukan sendiri
-                                $isPanitiaUmum = $is_panitia_umum ?? false;
+                                        // Gunakan variabel dari controller jika ada, jika tidak tentukan sendiri
+                                        $isPanitiaUmum = $is_panitia_umum ?? false;
 
-                                // Untuk Panitia, tentukan TypeUjian berdasarkan IdTpq dari username
-                                $panitiaTypeUjian = 'munaqosah'; // Default untuk panitia umum
-                                if ($isPanitia) {
-                                    if ($isPanitiaUmum) {
-                                        $panitiaTypeUjian = 'munaqosah';
-                                    } else {
-                                        $panitiaTypeUjian = 'pra-munaqosah';
-                                    }
-                                }
+                                        // Untuk Panitia, tentukan TypeUjian berdasarkan IdTpq dari username
+                                        $panitiaTypeUjian = 'munaqosah'; // Default untuk panitia umum
+                                        if ($isPanitia) {
+                                            if ($isPanitiaUmum) {
+                                                $panitiaTypeUjian = 'munaqosah';
+                                            } else {
+                                                $panitiaTypeUjian = 'pra-munaqosah';
+                                            }
+                                        }
 
-                                // Tentukan apakah TypeUjian harus disabled
-                                $typeDisabled = ($isOperator || $isPanitia) && !$isAdmin;
-                                $typeRequiredValue = $isOperator ? 'pra-munaqosah' : ($isPanitia ? $panitiaTypeUjian : null);
-                                $typeDisabledStyle = $typeDisabled ? 'background-color: #e9ecef; cursor: not-allowed;' : '';
-                                ?>
+                                        // Tentukan apakah TypeUjian harus disabled
+                                        $typeDisabled = ($isOperator || $isPanitia) && !$isAdmin;
+                                        $typeRequiredValue = $isOperator ? 'pra-munaqosah' : ($isPanitia ? $panitiaTypeUjian : null);
+                                        $typeDisabledStyle = $typeDisabled ? 'background-color: #e9ecef; cursor: not-allowed;' : '';
+                                        ?>
 
-                                <?php if (empty($session_id_tpq) && empty($is_panitia_tpq ?? false) && !$isPanitia): ?>
-                                    <!-- Jika admin super, tampilkan dropdown TPQ -->
-                                    <div class="form-group col-md-3">
-                                        <label for="tpq">TPQ</label>
-                                        <select name="tpq" id="tpq" class="form-control">
-                                            <option value="">Semua TPQ</option>
-                                            <?php foreach ($tpq_list as $tpq): ?>
-                                                <?php
-                                                $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
-                                                $tpqNama = is_array($tpq) ? ($tpq['NamaTpq'] ?? '') : ($tpq->NamaTpq ?? '');
-                                                ?>
-                                                <option value="<?= $tpqId ?>" <?= ($selected_tpq === $tpqId) ? 'selected' : '' ?>>
-                                                    <?= $tpqId ?> - <?= $tpqNama ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <label for="group">Grup Materi Ujian</label>
-                                        <select name="group" id="group" class="form-control">
-                                            <?php foreach ($groups as $group): ?>
-                                                <option value="<?= $group['IdGrupMateriUjian'] ?>"
-                                                    <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
-                                                    <?= $group['NamaMateriGrup'] ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <label for="type">Type Ujian</label>
-                                        <select name="type" id="type" class="form-control">
-                                            <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                <option value="<?= $typeValue ?>" <?= ($selected_type === $typeValue) ? 'selected' : '' ?>>
-                                                    <?= $typeLabel ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <label for="tahun">Tahun Ajaran</label>
-                                        <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
-                                    </div>
-                                <?php elseif ($isPanitia && $isPanitiaUmum): ?>
-                                    <!-- Jika panitia umum, tampilkan TypeUjian (disabled, default munaqosah) dan Grup Materi -->
-                                    <input type="hidden" name="tpq" value="0">
-                                    <div class="form-group col-md-4">
-                                        <label for="group">Grup Materi Ujian</label>
-                                        <select name="group" id="group" class="form-control">
-                                            <?php foreach ($groups as $group): ?>
-                                                <option value="<?= $group['IdGrupMateriUjian'] ?>"
-                                                    <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
-                                                    <?= $group['NamaMateriGrup'] ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label for="type">Type Ujian</label>
-                                        <input type="hidden" name="type" id="type" value="munaqosah">
-                                        <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
-                                            <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                <?php if ($typeValue === 'munaqosah'): ?>
-                                                    <option value="<?= $typeValue ?>" selected>
-                                                        <?= $typeLabel ?>
-                                                    </option>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label for="tahun">Tahun Ajaran</label>
-                                        <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
-                                    </div>
-                                <?php elseif (!empty($is_panitia_tpq ?? false) || ($isPanitia && !$isPanitiaUmum)): ?>
-                                    <!-- Jika panitia TPQ, tampilkan TPQ mereka (disabled), TypeUjian (disabled, default pra-munaqosah) dan Grup Materi -->
-                                    <div class="form-group col-md-3">
-                                        <label for="tpq">TPQ</label>
-                                        <input type="hidden" name="tpq" value="<?= $selected_tpq ?>">
-                                        <select id="tpq" class="form-control" disabled style="background-color: #e9ecef; cursor: not-allowed;">
-                                            <?php foreach ($tpq_list as $tpq): ?>
-                                                <?php
-                                                $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
-                                                $tpqNama = is_array($tpq) ? ($tpq['NamaTpq'] ?? '') : ($tpq->NamaTpq ?? '');
-                                                ?>
-                                                <option value="<?= $tpqId ?>" <?= ($selected_tpq === $tpqId) ? 'selected' : '' ?>>
-                                                    <?= $tpqId ?> - <?= $tpqNama ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <label for="group">Grup Materi Ujian</label>
-                                        <select name="group" id="group" class="form-control">
-                                            <?php foreach ($groups as $group): ?>
-                                                <option value="<?= $group['IdGrupMateriUjian'] ?>"
-                                                    <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
-                                                    <?= $group['NamaMateriGrup'] ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <label for="type">Type Ujian</label>
-                                        <input type="hidden" name="type" id="type" value="pra-munaqosah">
-                                        <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
-                                            <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                <?php if ($typeValue === 'pra-munaqosah'): ?>
-                                                    <option value="<?= $typeValue ?>" selected>
-                                                        <?= $typeLabel ?>
-                                                    </option>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <label for="tahun">Tahun Ajaran</label>
-                                        <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
-                                    </div>
-                                <?php else: ?>
-                                    <!-- Jika admin TPQ atau Operator, tampilkan Grup Materi dan TypeUjian (disabled untuk Operator) -->
-                                    <input type="hidden" name="tpq" value="<?= $session_id_tpq ?>">
-                                    <div class="form-group col-md-4">
-                                        <label for="group">Grup Materi Ujian</label>
-                                        <select name="group" id="group" class="form-control">
-                                            <?php foreach ($groups as $group): ?>
-                                                <option value="<?= $group['IdGrupMateriUjian'] ?>"
-                                                    <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
-                                                    <?= $group['NamaMateriGrup'] ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label for="type">Type Ujian</label>
-                                        <?php if ($isOperator): ?>
-                                            <input type="hidden" name="type" id="type" value="pra-munaqosah">
-                                            <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
-                                                <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                    <?php if ($typeValue === 'pra-munaqosah'): ?>
-                                                        <option value="<?= $typeValue ?>" selected>
+                                        <?php if (empty($session_id_tpq) && empty($is_panitia_tpq ?? false) && !$isPanitia): ?>
+                                            <!-- Jika admin super, tampilkan dropdown TPQ -->
+                                            <div class="form-group col-md-3">
+                                                <label for="tpq">TPQ</label>
+                                                <select name="tpq" id="tpq" class="form-control">
+                                                    <option value="">Semua TPQ</option>
+                                                    <?php foreach ($tpq_list as $tpq): ?>
+                                                        <?php
+                                                        $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
+                                                        $tpqNama = is_array($tpq) ? ($tpq['NamaTpq'] ?? '') : ($tpq->NamaTpq ?? '');
+                                                        ?>
+                                                        <option value="<?= $tpqId ?>" <?= ($selected_tpq === $tpqId) ? 'selected' : '' ?>>
+                                                            <?= $tpqId ?> - <?= $tpqNama ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label for="group">Grup Materi Ujian</label>
+                                                <select name="group" id="group" class="form-control">
+                                                    <?php foreach ($groups as $group): ?>
+                                                        <option value="<?= $group['IdGrupMateriUjian'] ?>"
+                                                            <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
+                                                            <?= $group['NamaMateriGrup'] ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label for="type">Type Ujian</label>
+                                                <select name="type" id="type" class="form-control">
+                                                    <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                        <option value="<?= $typeValue ?>" <?= ($selected_type === $typeValue) ? 'selected' : '' ?>>
                                                             <?= $typeLabel ?>
                                                         </option>
-                                                    <?php endif; ?>
-                                                <?php endforeach; ?>
-                                            </select>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label for="tahun">Tahun Ajaran</label>
+                                                <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                                            </div>
+                                        <?php elseif ($isPanitia && $isPanitiaUmum): ?>
+                                            <!-- Jika panitia umum, tampilkan TypeUjian (disabled, default munaqosah) dan Grup Materi -->
+                                            <input type="hidden" name="tpq" value="0">
+                                            <div class="form-group col-md-4">
+                                                <label for="group">Grup Materi Ujian</label>
+                                                <select name="group" id="group" class="form-control">
+                                                    <?php foreach ($groups as $group): ?>
+                                                        <option value="<?= $group['IdGrupMateriUjian'] ?>"
+                                                            <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
+                                                            <?= $group['NamaMateriGrup'] ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label for="type">Type Ujian</label>
+                                                <input type="hidden" name="type" id="type" value="munaqosah">
+                                                <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
+                                                    <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                        <?php if ($typeValue === 'munaqosah'): ?>
+                                                            <option value="<?= $typeValue ?>" selected>
+                                                                <?= $typeLabel ?>
+                                                            </option>
+                                                        <?php endif; ?>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label for="tahun">Tahun Ajaran</label>
+                                                <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                                            </div>
+                                        <?php elseif (!empty($is_panitia_tpq ?? false) || ($isPanitia && !$isPanitiaUmum)): ?>
+                                            <!-- Jika panitia TPQ, tampilkan TPQ mereka (disabled), TypeUjian (disabled, default pra-munaqosah) dan Grup Materi -->
+                                            <div class="form-group col-md-3">
+                                                <label for="tpq">TPQ</label>
+                                                <input type="hidden" name="tpq" value="<?= $selected_tpq ?>">
+                                                <select id="tpq" class="form-control" disabled style="background-color: #e9ecef; cursor: not-allowed;">
+                                                    <?php foreach ($tpq_list as $tpq): ?>
+                                                        <?php
+                                                        $tpqId = is_array($tpq) ? $tpq['IdTpq'] : $tpq->IdTpq;
+                                                        $tpqNama = is_array($tpq) ? ($tpq['NamaTpq'] ?? '') : ($tpq->NamaTpq ?? '');
+                                                        ?>
+                                                        <option value="<?= $tpqId ?>" <?= ($selected_tpq === $tpqId) ? 'selected' : '' ?>>
+                                                            <?= $tpqId ?> - <?= $tpqNama ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label for="group">Grup Materi Ujian</label>
+                                                <select name="group" id="group" class="form-control">
+                                                    <?php foreach ($groups as $group): ?>
+                                                        <option value="<?= $group['IdGrupMateriUjian'] ?>"
+                                                            <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
+                                                            <?= $group['NamaMateriGrup'] ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label for="type">Type Ujian</label>
+                                                <input type="hidden" name="type" id="type" value="pra-munaqosah">
+                                                <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
+                                                    <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                        <?php if ($typeValue === 'pra-munaqosah'): ?>
+                                                            <option value="<?= $typeValue ?>" selected>
+                                                                <?= $typeLabel ?>
+                                                            </option>
+                                                        <?php endif; ?>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-3">
+                                                <label for="tahun">Tahun Ajaran</label>
+                                                <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                                            </div>
                                         <?php else: ?>
-                                            <input type="hidden" id="type" name="type" value="pra-munaqosah">
-                                            <select class="form-control" disabled style="background-color: #e9ecef; cursor: not-allowed;">
-                                                <?php foreach ($types as $typeValue => $typeLabel): ?>
-                                                    <?php if ($typeValue === 'pra-munaqosah'): ?>
-                                                        <option value="<?= $typeValue ?>" selected>
-                                                            <?= $typeLabel ?>
+                                            <!-- Jika admin TPQ atau Operator, tampilkan Grup Materi dan TypeUjian (disabled untuk Operator) -->
+                                            <input type="hidden" name="tpq" value="<?= $session_id_tpq ?>">
+                                            <div class="form-group col-md-4">
+                                                <label for="group">Grup Materi Ujian</label>
+                                                <select name="group" id="group" class="form-control">
+                                                    <?php foreach ($groups as $group): ?>
+                                                        <option value="<?= $group['IdGrupMateriUjian'] ?>"
+                                                            <?= ($selected_group === $group['IdGrupMateriUjian']) ? 'selected' : '' ?>>
+                                                            <?= $group['NamaMateriGrup'] ?>
                                                         </option>
-                                                    <?php endif; ?>
-                                                <?php endforeach; ?>
-                                            </select>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label for="type">Type Ujian</label>
+                                                <?php if ($isOperator): ?>
+                                                    <input type="hidden" name="type" id="type" value="pra-munaqosah">
+                                                    <select class="form-control" disabled style="<?= $typeDisabledStyle ?>">
+                                                        <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                            <?php if ($typeValue === 'pra-munaqosah'): ?>
+                                                                <option value="<?= $typeValue ?>" selected>
+                                                                    <?= $typeLabel ?>
+                                                                </option>
+                                                            <?php endif; ?>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                <?php else: ?>
+                                                    <input type="hidden" id="type" name="type" value="pra-munaqosah">
+                                                    <select class="form-control" disabled style="background-color: #e9ecef; cursor: not-allowed;">
+                                                        <?php foreach ($types as $typeValue => $typeLabel): ?>
+                                                            <?php if ($typeValue === 'pra-munaqosah'): ?>
+                                                                <option value="<?= $typeValue ?>" selected>
+                                                                    <?= $typeLabel ?>
+                                                                </option>
+                                                            <?php endif; ?>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label for="tahun">Tahun Ajaran</label>
+                                                <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                                            </div>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="form-group col-md-4">
-                                        <label for="tahun">Tahun Ajaran</label>
-                                        <input type="text" id="tahun" name="tahun" class="form-control" value="<?= $selected_tahun ?>" readonly style="background-color: #e9ecef; cursor: not-allowed;">
-                                    </div>
-                                <?php endif; ?>
+                                </form>
                             </div>
-                        </form>
+                        </div>
+                        <!-- End Card Filter -->
+
+                        <!-- Card Statistik -->
+                        <div class="card card-success collapsed-card mb-4">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-chart-bar"></i> Statistik Antrian
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <?php
+                                    $total = $statistics['total'];
+                                    $completed = $statistics['completed'];
+                                    $queueing = $statistics['queueing'];
+                                    $inProgress = $statistics['in_progress'] ?? 0;
+                                    $progress = $statistics['progress'];
+
+                                    $pctCompleted = $total > 0 ? round(($completed / max($total, 1)) * 100) : 0;
+                                    $pctQueueing = $total > 0 ? round(($queueing / max($total, 1)) * 100) : 0;
+                                    $pctInProgress = $total > 0 ? round(($inProgress / max($total, 1)) * 100) : 0;
+                                    ?>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="info-box bg-info">
+                                            <span class="info-box-icon"><i class="fas fa-users"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Total Peserta</span>
+                                                <span class="info-box-number"><?= $total ?></span>
+                                                <div class="progress">
+                                                    <div class="progress-bar" style="width: 100%"></div>
+                                                </div>
+                                                <span class="progress-description">Teregister</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="info-box bg-success">
+                                            <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Sudah diuji</span>
+                                                <span class="info-box-number"><?= $completed ?></span>
+                                                <div class="progress">
+                                                    <div class="progress-bar" style="width: <?= $pctCompleted ?>%"></div>
+                                                </div>
+                                                <span class="progress-description"><?= $pctCompleted ?>% selesai</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="info-box bg-warning">
+                                            <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Antrian ujian</span>
+                                                <span class="info-box-number"><?= $queueing ?></span>
+                                                <div class="progress">
+                                                    <div class="progress-bar" style="width: <?= $pctQueueing ?>%"></div>
+                                                </div>
+                                                <span class="progress-description"><?= $pctQueueing ?>% menunggu</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="info-box bg-primary">
+                                            <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Progress</span>
+                                                <span class="info-box-number"><?= $progress ?>%</span>
+                                                <div class="progress">
+                                                    <div class="progress-bar" style="width: <?= $progress ?>%"></div>
+                                                </div>
+                                                <span class="progress-description">Tingkat penyelesaian</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- End Card Statistik -->
+
                         <!-- Input Registrasi -->
                         <div class="input-group my-4">
                             <input type="text" id="queueSearch" class="form-control" placeholder="Ketik atau scan QR no peserta untuk registrasi">
@@ -396,75 +447,7 @@
                         <small class="form-text text-muted mb-3">
                             <span class="text-info"><i class="fas fa-info-circle"></i> Auto registrasi akan aktif setelah 3 digit, atau tekan Enter</span>
                         </small>
-                        <!-- Status Peserta -->
-                        <div class="row mb-3">
-                            <?php
-                            $total = $statistics['total'];
-                            $completed = $statistics['completed'];
-                            $queueing = $statistics['queueing'];
-                            $inProgress = $statistics['in_progress'] ?? 0;
-                            $progress = $statistics['progress'];
 
-                            $pctCompleted = $total > 0 ? round(($completed / max($total, 1)) * 100) : 0;
-                            $pctQueueing = $total > 0 ? round(($queueing / max($total, 1)) * 100) : 0;
-                            $pctInProgress = $total > 0 ? round(($inProgress / max($total, 1)) * 100) : 0;
-                            ?>
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-info">
-                                    <span class="info-box-icon"><i class="fas fa-users"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Total Peserta</span>
-                                        <span class="info-box-number"><?= $total ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: 100%"></div>
-                                        </div>
-                                        <span class="progress-description">Teregister</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-success">
-                                    <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Sudah diuji</span>
-                                        <span class="info-box-number"><?= $completed ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: <?= $pctCompleted ?>%"></div>
-                                        </div>
-                                        <span class="progress-description"><?= $pctCompleted ?>% selesai</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-warning">
-                                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Antrian ujian</span>
-                                        <span class="info-box-number"><?= $queueing ?></span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: <?= $pctQueueing ?>%"></div>
-                                        </div>
-                                        <span class="progress-description"><?= $pctQueueing ?>% menunggu</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="info-box bg-primary">
-                                    <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text">Progress</span>
-                                        <span class="info-box-number"><?= $progress ?>%</span>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: <?= $progress ?>%"></div>
-                                        </div>
-                                        <span class="progress-description">Tingkat penyelesaian</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         <!-- Status Ruangan -->
                         <h5 class="mt-4">Status Ruangan</h5>
                         <?php if (!empty($rooms)): ?>
@@ -636,10 +619,10 @@
                             <table id="tableAntrian" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
+                                        <th class="no-sort">No</th>
                                         <th class="no-sort">Aksi</th>
                                         <th class="no-sort">Group Peserta</th>
-                                        <th class="no-sort">No Peserta</th>
-                                        <th class="no-sort">Nama Peserta</th>
+                                        <th class="no-sort">No Peserta - Nama Peserta</th>
                                         <th class="no-sort">Room</th>
                                         <th class="no-sort">Status</th>
                                         <th class="no-sort">Type Ujian</th>
@@ -670,7 +653,9 @@
                                         $groupColorMap[$group] = $baseColors[$colorIndex];
                                     }
                                     ?>
-                                    <?php foreach ($queue as $row): ?>
+                                    <?php
+                                    $no = 1;
+                                    foreach ($queue as $row): ?>
                                         <?php
                                         $status = (int) ($row['Status'] ?? 0);
                                         $statusLabel = 'Menunggu';
@@ -685,6 +670,7 @@
                                         $typeResolved = $row['TypeUjian'] ?? ($row['TypeUjianResolved'] ?? '-');
                                         ?>
                                         <tr>
+                                            <td><?= $no++ ?></td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <?php if ($status === 0): ?>
@@ -727,8 +713,7 @@
                                                 ?>
                                                 <span class="badge <?= $badgeColor ?>"><?= $groupPeserta ?></span>
                                             </td>
-                                            <td><?= $row['NoPeserta'] ?></td>
-                                            <td><?= $row['NamaSantri'] ?? '-' ?></td>
+                                            <td><?= $row['NoPeserta'] ?> - <?= $row['NamaSantri'] ?? '-' ?></td>
                                             <td>
                                                 <?php if (!empty($row['RoomId'])): ?>
                                                     <span class="badge badge-info"><?= $row['RoomId'] ?></span>
@@ -886,6 +871,117 @@
     const roomStatuses = <?= json_encode($rooms ?? []) ?>;
 
     $(function() {
+        // ==================== COLLAPSED CARD STATE MANAGEMENT ====================
+        const collapsedStateKey = 'listAntrian_collapsedState';
+
+        // Fungsi untuk menyimpan state collapsed card
+        function saveCollapsedState() {
+            const filterCard = $('.card-primary');
+            const statistikCard = $('.card-success');
+            const state = {
+                filterCard: filterCard.length > 0 ? filterCard.hasClass('collapsed-card') : true,
+                statistikCard: statistikCard.length > 0 ? statistikCard.hasClass('collapsed-card') : true
+            };
+            localStorage.setItem(collapsedStateKey, JSON.stringify(state));
+        }
+
+        // Fungsi untuk memuat state collapsed card
+        function loadCollapsedState() {
+            const savedStateStr = localStorage.getItem(collapsedStateKey);
+            if (!savedStateStr) {
+                return null;
+            }
+
+            try {
+                return JSON.parse(savedStateStr);
+            } catch (e) {
+                console.error('Error parsing collapsed state from localStorage:', e);
+                return null;
+            }
+        }
+
+        // Fungsi untuk menerapkan state collapsed card
+        function applyCollapsedState() {
+            const savedState = loadCollapsedState();
+            if (!savedState) {
+                return; // Gunakan default state (collapsed)
+            }
+
+            // Terapkan state untuk Filter Card
+            const filterCard = $('.card-primary');
+            if (filterCard.length) {
+                if (savedState.filterCard) {
+                    // Card harus collapsed
+                    if (!filterCard.hasClass('collapsed-card')) {
+                        filterCard.addClass('collapsed-card');
+                        filterCard.find('.card-body').slideUp();
+                        filterCard.find('.card-tools .btn-tool i').removeClass('fa-minus').addClass('fa-plus');
+                    }
+                } else {
+                    // Card harus expanded
+                    if (filterCard.hasClass('collapsed-card')) {
+                        filterCard.removeClass('collapsed-card');
+                        filterCard.find('.card-body').slideDown();
+                        filterCard.find('.card-tools .btn-tool i').removeClass('fa-plus').addClass('fa-minus');
+                    }
+                }
+            }
+
+            // Terapkan state untuk Statistik Card
+            const statistikCard = $('.card-success');
+            if (statistikCard.length) {
+                if (savedState.statistikCard) {
+                    // Card harus collapsed
+                    if (!statistikCard.hasClass('collapsed-card')) {
+                        statistikCard.addClass('collapsed-card');
+                        statistikCard.find('.card-body').slideUp();
+                        statistikCard.find('.card-tools .btn-tool i').removeClass('fa-minus').addClass('fa-plus');
+                    }
+                } else {
+                    // Card harus expanded
+                    if (statistikCard.hasClass('collapsed-card')) {
+                        statistikCard.removeClass('collapsed-card');
+                        statistikCard.find('.card-body').slideDown();
+                        statistikCard.find('.card-tools .btn-tool i').removeClass('fa-plus').addClass('fa-minus');
+                    }
+                }
+            }
+        }
+
+        // Event listener untuk perubahan state collapsed card
+        // Menggunakan MutationObserver untuk mendeteksi perubahan class
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const target = $(mutation.target);
+                    if (target.hasClass('card-primary') || target.hasClass('card-success')) {
+                        saveCollapsedState();
+                    }
+                }
+            });
+        });
+
+        // Observe perubahan pada card Filter dan Statistik
+        $('.card-primary.collapsed-card, .card-success.collapsed-card').each(function() {
+            observer.observe(this, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        });
+
+        // Juga gunakan event click pada tombol collapse sebagai backup
+        $(document).on('click', '.card-primary .card-tools .btn-tool[data-card-widget="collapse"], .card-success .card-tools .btn-tool[data-card-widget="collapse"]', function() {
+            setTimeout(function() {
+                saveCollapsedState();
+            }, 100); // Delay sedikit untuk memastikan class sudah berubah
+        });
+
+        // Terapkan state saat halaman dimuat (setelah card widget diinisialisasi)
+        setTimeout(function() {
+            applyCollapsedState();
+        }, 100);
+
+        // ==================== AUTO APPLY FILTER DENGAN LOCALSTORAGE ====================
         // Auto Apply Filter dengan localStorage
         const filterStorageKey = 'listAntrian_filter';
         let isInitializing = true; // Flag untuk mencegah auto submit saat inisialisasi

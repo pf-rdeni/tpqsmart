@@ -60,7 +60,7 @@
                                             </li>
                                             <li>Lihat peserta yang sedang ujian di setiap ruangan</li>
                                             <li>Gunakan tombol <span class="badge badge-success"><i class="fas fa-check"></i> Selesai</span> untuk menyelesaikan ujian peserta di ruangan</li>
-                                            <li>Gunakan tombol <span class="badge badge-warning"><i class="fas fa-sign-out-alt"></i> Keluar</span> untuk mengeluarkan peserta dari ruangan</li>
+                                            <li>Gunakan tombol <span class="badge badge-warning"><i class="fas fa-times"></i> Batal</span> untuk membatalkan peserta dari ruangan</li>
                                         </ul>
                                     </li>
                                     <li class="mb-2">
@@ -106,7 +106,7 @@
                                             <ul>
                                                 <li>Monitor kapasitas ruangan untuk mengatur alur ujian</li>
                                                 <li>Ruangan penuh tidak dapat menerima peserta baru</li>
-                                                <li>Gunakan tombol "Keluar" jika peserta perlu dipindahkan ke ruangan lain</li>
+                                                <li>Gunakan tombol "Batal" jika peserta perlu dibatalkan dari ruangan</li>
                                             </ul>
                                         </li>
                                         <li><strong>Alur Ujian:</strong>
@@ -206,10 +206,13 @@
                             </div>
                             <div class="card-body">
                                 <div class="input-group">
-                                    <input type="text" id="queueSearch" class="form-control form-control-lg" placeholder="Ketikkan atau scan QR No Peserta untuk registrasi (3 digit)" inputmode="numeric" maxlength="3">
+                                    <input type="text" id="queueSearch" class="form-control form-control-lg" placeholder="Ketik atau scan QR no peserta untuk registrasi" inputmode="numeric" maxlength="3">
                                     <div class="input-group-append">
                                         <button class="btn btn-warning" type="button" id="btnScanQR">
                                             <i class="fas fa-qrcode"></i> Scan QR
+                                        </button>
+                                        <button class="btn btn-primary" type="button" id="btnQueueRegister">
+                                            <i class="fas fa-user-plus"></i> Registrasi
                                         </button>
                                         <button class="btn btn-danger" type="button" id="btnQueueReset">Reset</button>
                                     </div>
@@ -332,8 +335,8 @@
                                                                         data-id="<?= $participant['id'] ?? '' ?>"
                                                                         data-nopeserta="<?= $participant['NoPeserta'] ?? '' ?>"
                                                                         data-nama="<?= $participant['NamaSantri'] ?? '-' ?>"
-                                                                        title="Keluar">
-                                                                        <i class="fas fa-sign-out-alt"></i> Keluar
+                                                                        title="Batal">
+                                                                        <i class="fas fa-times"></i> Batal
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -390,7 +393,7 @@
                                                                 </div>
                                                                 <div class="btn-group btn-group-sm w-100" role="group">
                                                                     <button type="button"
-                                                                        class="btn btn-light btn-finish-room text-dark"
+                                                                        class="btn btn-success btn-finish-room"
                                                                         data-id="<?= $participant['id'] ?? '' ?>"
                                                                         data-nopeserta="<?= $participant['NoPeserta'] ?? '' ?>"
                                                                         data-nama="<?= $participant['NamaSantri'] ?? '-' ?>">
@@ -401,7 +404,7 @@
                                                                         data-id="<?= $participant['id'] ?? '' ?>"
                                                                         data-nopeserta="<?= $participant['NoPeserta'] ?? '' ?>"
                                                                         data-nama="<?= $participant['NamaSantri'] ?? '-' ?>">
-                                                                        <i class="fas fa-sign-out-alt"></i> Keluar
+                                                                        <i class="fas fa-times"></i> Batal
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -430,9 +433,9 @@
                                 <thead>
                                     <tr>
                                         <th>No</th>
+                                        <th>Aksi</th>
                                         <th>Group Peserta</th>
                                         <th>No Peserta - Nama Santri</th>
-                                        <th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -478,15 +481,6 @@
                                         <tr>
                                             <td><?= $no++ ?></td>
                                             <td>
-                                                <?php
-                                                $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
-                                                // Ambil warna dari mapping dinamis, fallback ke secondary
-                                                $badgeColor = $groupColorMap[$groupPeserta] ?? 'badge-secondary';
-                                                ?>
-                                                <span class="badge <?= $badgeColor ?>"><?= $groupPeserta ?></span>
-                                            </td>
-                                            <td><?= $row['NoPeserta'] ?> - <?= $row['NamaSantri'] ?? '-' ?></td>
-                                            <td>
                                                 <div class="btn-group" role="group">
                                                     <?php if ($status === 0): ?>
                                                         <button type="button" class="btn btn-sm btn-warning btn-open-room"
@@ -506,7 +500,7 @@
                                                             data-id="<?= $row['id'] ?>"
                                                             data-nopeserta="<?= $row['NoPeserta'] ?>"
                                                             data-nama="<?= $row['NamaSantri'] ?? '-' ?>">
-                                                            Keluar
+                                                            Batal
                                                         </button>
                                                     <?php elseif ($status === 2): ?>
                                                         <button type="button" class="btn btn-sm btn-danger btn-wait-row"
@@ -518,6 +512,15 @@
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
+                                            <td>
+                                                <?php
+                                                $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
+                                                // Ambil warna dari mapping dinamis, fallback ke secondary
+                                                $badgeColor = $groupColorMap[$groupPeserta] ?? 'badge-secondary';
+                                                ?>
+                                                <span class="badge <?= $badgeColor ?>"><?= $groupPeserta ?></span>
+                                            </td>
+                                            <td><?= $row['NoPeserta'] ?> - <?= $row['NamaSantri'] ?? '-' ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -711,7 +714,7 @@
             } else {
                 // Remove visual indicator if less than 3 digits
                 $(this).removeClass('border-info');
-                $(this).attr('placeholder', 'Ketikkan atau scan QR No Peserta untuk registrasi (3 digit)');
+                $(this).attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
             }
         });
 
@@ -755,7 +758,7 @@
                 clearInterval(window.autoSearchCountdown);
             }
             $('#queueSearch').removeClass('border-info');
-            $('#queueSearch').attr('placeholder', 'Ketikkan atau scan QR No Peserta untuk registrasi (3 digit)');
+            $('#queueSearch').attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
 
             const noPeserta = $('#queueSearch').val().trim();
             const idGrupMateri = $('#group').val() || $('input#group').val();
@@ -912,40 +915,22 @@
                                 });
                             }
 
-                            // Tampilkan popup informasi
+                            // Tampilkan popup informasi - format standar
                             Swal.fire({
                                 icon: 'info',
                                 title: 'Peserta Sudah di Antrian',
                                 html: `
                                     <div class="text-left">
-                                        <p><strong>Peserta sudah terdaftar di antrian aktif untuk grup dan tipe ujian ini:</strong></p>
-                                        <ul class="list-unstyled mt-3">
+                                        <div class="alert alert-info mb-3">
+                                            <strong><i class="fas fa-info-circle"></i> Alasan:</strong> Peserta sudah terdaftar di antrian untuk grup ini
+                                        </div>
+                                        <p class="mb-3"><strong>Detail:</strong></p>
+                                        <ul class="list-unstyled mb-0">
                                             <li><strong>No Peserta:</strong> ${queueData.no_peserta}</li>
                                             <li><strong>Nama:</strong> ${queueData.nama_santri}</li>
                                             <li><strong>Grup Materi:</strong> ${queueData.grup_materi}</li>
-                                            <li><strong>Type Ujian:</strong> ${typeUjianBadge}</li>
-                                            <li><strong>Status Antrian:</strong> ${statusBadge}</li>
-                                            <li><strong>Ruangan:</strong> ${roomBadge}</li>
-                                            <li><strong>Status Nilai:</strong> ${nilaiBadge}</li>
-                                            <li><strong>Tanggal Registrasi:</strong> ${tanggalDibuat}</li>
+                                            <li><strong>Status:</strong> ${statusBadge}</li>
                                         </ul>
-                                        <div class="alert alert-info mt-3 mb-2">
-                                            <small>
-                                                <i class="fas fa-info-circle"></i> 
-                                                <strong>Informasi:</strong> 
-                                                Peserta sudah terdaftar di antrian untuk grup materi dan tipe ujian ini. 
-                                                Tidak perlu melakukan registrasi ulang.
-                                            </small>
-                                        </div>
-                                        ${queueData.is_tulis_al_quran === true && queueData.has_nilai === false ? 
-                                            '<div class="alert alert-warning mt-2 mb-0">' +
-                                                '<small>' +
-                                                    '<i class="fas fa-exclamation-triangle"></i> ' +
-                                                    '<strong>Catatan Khusus Tulis Al-Quran:</strong> ' +
-                                                    'Untuk ujian Tulis Al-Quran, juri membutuhkan waktu yang cukup lama untuk memasukkan nilai. ' +
-                                                    'Oleh karena itu, nilai mungkin belum ada meskipun peserta sudah menyelesaikan ujian tertulis.' +
-                                                '</small>' +
-                                            '</div>' : ''}
                                     </div>
                                 `,
                                 confirmButtonText: '<i class="fas fa-check"></i> Mengerti',
@@ -1049,20 +1034,58 @@
                                 }
                                 // Jika cancel, tidak ada yang dilakukan
                             });
-                        } else {
-                            // Error biasa - format standard
-                            const errorMessage = response.message || 'Terjadi kesalahan saat registrasi';
+                        } 
+                        // Cek apakah peserta sudah selesai di grup yang sama
+                        else if (response.already_completed && response.queue_data) {
+                            const queueData = response.queue_data;
+                            const statusBadge = '<span class="badge badge-success">Selesai</span>';
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Gagal Registrasi',
+                                html: `
+                                    <div class="text-left">
+                                        <div class="alert alert-warning mb-3">
+                                            <strong><i class="fas fa-exclamation-triangle"></i> Alasan:</strong> Peserta sudah menyelesaikan ujian di grup ini
+                                        </div>
+                                        <p class="mb-3"><strong>Detail:</strong></p>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>No Peserta:</strong> ${queueData.no_peserta}</li>
+                                            <li><strong>Nama:</strong> ${queueData.nama_santri}</li>
+                                            <li><strong>Grup Materi:</strong> ${queueData.grup_materi}</li>
+                                            <li><strong>Status:</strong> ${statusBadge}</li>
+                                        </ul>
+                                    </div>
+                                `,
+                                confirmButtonText: '<i class="fas fa-check"></i> Mengerti',
+                                confirmButtonColor: '#ffc107'
+                            });
+                        }
+                        // Cek apakah peserta masih antri di grup lain
+                        else if (response.blocked_by_other_group && response.conflict_data) {
+                            const conflictData = response.conflict_data;
+                            const statusBadge = conflictData.status == 1 ?
+                                '<span class="badge badge-danger">Sedang Ujian</span>' :
+                                '<span class="badge badge-warning">Menunggu</span>';
+
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Gagal Registrasi',
                                 html: `
                                     <div class="text-left">
-                                        <p>${errorMessage}</p>
-                                        <div class="alert alert-warning mt-3 mb-0">
+                                        <div class="alert alert-danger mb-3">
+                                            <strong><i class="fas fa-times-circle"></i> Alasan:</strong> Peserta masih berada di antrian grup lain
+                                        </div>
+                                        <p class="mb-3"><strong>Detail:</strong></p>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>No Peserta:</strong> ${conflictData.no_peserta}</li>
+                                            <li><strong>Nama:</strong> ${conflictData.nama_santri}</li>
+                                            <li><strong>Grup Materi:</strong> ${conflictData.grup_materi_lain}</li>
+                                            <li><strong>Status:</strong> ${statusBadge}</li>
+                                        </ul>
+                                        <div class="alert alert-info mt-3 mb-0">
                                             <small>
-                                                <i class="fas fa-exclamation-triangle"></i> 
-                                                <strong>Tips:</strong> 
-                                                Pastikan semua data sudah benar dan peserta belum terdaftar di antrian sebelumnya.
+                                                <i class="fas fa-info-circle"></i> 
+                                                Selesaikan antrian di grup tersebut terlebih dahulu
                                             </small>
                                         </div>
                                     </div>
@@ -1071,34 +1094,33 @@
                                 confirmButtonColor: '#dc3545'
                             });
                         }
+                        // Error biasa - format simple
+                        else {
+                            const errorMessage = response.message || 'Gagal registrasi';
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal Registrasi',
+                                text: errorMessage,
+                                confirmButtonText: '<i class="fas fa-check"></i> Mengerti',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
                     Swal.close();
-                    let errorMessage = 'Terjadi kesalahan saat registrasi';
+                    let errorMessage = 'Gagal registrasi';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     } else if (xhr.status === 0) {
-                        errorMessage = 'Tidak dapat terhubung ke server. Pastikan koneksi internet Anda stabil.';
+                        errorMessage = 'Tidak dapat terhubung ke server';
                     } else if (xhr.status === 500) {
-                        errorMessage = 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.';
+                        errorMessage = 'Terjadi kesalahan pada server';
                     }
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal Registrasi',
-                        html: `
-                            <div class="text-left">
-                                <p>${errorMessage}</p>
-                                <div class="alert alert-warning mt-3 mb-0">
-                                    <small>
-                                        <i class="fas fa-exclamation-triangle"></i> 
-                                        <strong>Tips:</strong> 
-                                        Pastikan semua data sudah benar dan koneksi internet stabil. 
-                                        Jika masalah berlanjut, hubungi administrator sistem.
-                                    </small>
-                                </div>
-                            </div>
-                        `,
+                        text: errorMessage,
                         confirmButtonText: '<i class="fas fa-check"></i> Mengerti',
                         confirmButtonColor: '#dc3545'
                     });
@@ -1130,7 +1152,7 @@
             }
             $('#queueSearch').val('');
             $('#queueSearch').removeClass('border-info');
-            $('#queueSearch').attr('placeholder', 'Ketikkan atau scan QR No Peserta untuk registrasi (3 digit)');
+            $('#queueSearch').attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
         });
 
         // QR Scanner
@@ -1205,7 +1227,7 @@
                 clearInterval(window.autoSearchCountdown);
             }
             $(this).removeClass('border-info');
-            $(this).attr('placeholder', 'Ketikkan atau scan QR No Peserta untuk registrasi (3 digit)');
+            $(this).attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
         });
 
         // Clear indicators when user clicks away
@@ -1217,7 +1239,7 @@
                 clearInterval(window.autoSearchCountdown);
             }
             $(this).removeClass('border-info');
-            $(this).attr('placeholder', 'Ketikkan atau scan QR No Peserta untuk registrasi (3 digit)');
+            $(this).attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
         });
 
         // Event handler untuk delete antrian dengan SweetAlert2
@@ -1384,7 +1406,7 @@
             });
         });
 
-        // Event handler untuk button Keluar dari room card
+        // Event handler untuk button Batal dari room card
         $('.btn-exit-room').on('click', function() {
             const id = $(this).data('id');
             const noPeserta = $(this).data('nopeserta');
@@ -1401,12 +1423,12 @@
 
             Swal.fire({
                 title: 'Konfirmasi',
-                text: `Keluarkan peserta ${noPeserta} - ${nama} dari ruangan?`,
+                text: `Batalkan peserta ${noPeserta} - ${nama} dari ruangan?`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ffc107',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Keluarkan',
+                confirmButtonText: 'Ya, Batalkan',
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -1537,7 +1559,7 @@
             });
         });
 
-        // Event handler untuk button Keluar dari tabel
+        // Event handler untuk button Batal dari tabel
         $('.btn-exit-row').on('click', function() {
             const id = $(this).data('id');
             const noPeserta = $(this).data('nopeserta');
@@ -1545,12 +1567,12 @@
 
             Swal.fire({
                 title: 'Konfirmasi',
-                text: `Keluarkan peserta ${noPeserta} - ${nama} dari ruangan?`,
+                text: `Batalkan peserta ${noPeserta} - ${nama} dari ruangan?`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ffc107',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Keluarkan',
+                confirmButtonText: 'Ya, Batalkan',
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
