@@ -2784,6 +2784,102 @@ class Munaqosah extends BaseController
             }
         }
 
+        // Data antrian untuk semua grup (untuk card Monitoring Antrian per Grup Materi)
+        $antrianData = [];
+
+        // Ambil statistik antrian untuk setiap grup
+        foreach ($grupList as $grup) {
+            $grupFilters = [
+                'IdTahunAjaran' => $selectedTahun,
+                'IdGrupMateriUjian' => $grup['IdGrupMateriUjian'],
+                'TypeUjian' => $selectedType,
+            ];
+
+            if (!empty($selectedTpq)) {
+                $grupFilters['IdTpq'] = $selectedTpq;
+            }
+
+            $grupStatusCounts = $this->antrianMunaqosahModel->getStatusCounts($grupFilters);
+            $grupQueue = $this->antrianMunaqosahModel->getQueueWithDetails($grupFilters);
+
+            // Sort queue dengan prioritas waktu (Pagi/Siang)
+            $grupQueue = $this->antrianMunaqosahModel->sortQueueByTimePriority($grupQueue, $selectedTahun, $selectedType);
+
+            $grupTotalPeserta = array_sum($grupStatusCounts);
+            $grupTotalSelesai = $grupStatusCounts[2] ?? 0;
+            $grupTotalProses = $grupStatusCounts[1] ?? 0;
+            $grupTotalMenunggu = $grupStatusCounts[0] ?? 0;
+            $grupProgressPersentase = $grupTotalPeserta > 0 ? round(($grupTotalSelesai / $grupTotalPeserta) * 100) : 0;
+
+            // Ambil status ruangan untuk grup ini
+            $grupRooms = [];
+            if ($grup['IdGrupMateriUjian']) {
+                // Ambil kapasitas maksimal ruangan dari konfigurasi berdasarkan grup materi
+                $configIdTpq = $selectedTpq ?? '0';
+                $settingKey = 'KapasitasRuanganMaksimal_' . $grup['IdGrupMateriUjian'];
+                $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+                if ($kapasitasMaksimal <= 0) {
+                    $kapasitasMaksimal = 1;
+                }
+
+                $grupRoomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($grup['IdGrupMateriUjian'], $selectedType, $selectedTpq ?? null);
+                $grupRoomStatuses = [];
+
+                foreach ($grupRoomRows as $roomRow) {
+                    $roomId = $roomRow['RoomId'];
+                    $grupRoomStatuses[$roomId] = [
+                        'RoomId' => $roomId,
+                        'occupied' => false,
+                        'participant_count' => 0,
+                        'participants' => [],
+                        'max_capacity' => $kapasitasMaksimal,
+                        'is_full' => false,
+                    ];
+                }
+
+                // Hitung jumlah peserta per ruangan
+                foreach ($grupQueue as $row) {
+                    if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
+                        $roomId = $row['RoomId'];
+                        if (!isset($grupRoomStatuses[$roomId])) {
+                            $grupRoomStatuses[$roomId] = [
+                                'RoomId' => $roomId,
+                                'occupied' => false,
+                                'participant_count' => 0,
+                                'participants' => [],
+                                'max_capacity' => $kapasitasMaksimal,
+                                'is_full' => false,
+                            ];
+                        }
+
+                        $grupRoomStatuses[$roomId]['participant_count']++;
+                        $grupRoomStatuses[$roomId]['participants'][] = $row;
+                        $grupRoomStatuses[$roomId]['occupied'] = true;
+
+                        // Tandai ruangan penuh jika mencapai kapasitas maksimal
+                        if ($grupRoomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
+                            $grupRoomStatuses[$roomId]['is_full'] = true;
+                        }
+                    }
+                }
+
+                $grupRooms = array_values($grupRoomStatuses);
+            }
+
+            $antrianData[] = [
+                'grup' => $grup,
+                'statistics' => [
+                    'total' => $grupTotalPeserta,
+                    'completed' => $grupTotalSelesai,
+                    'waiting' => $grupTotalMenunggu,
+                    'in_progress' => $grupTotalProses,
+                    'progress' => $grupProgressPersentase,
+                ],
+                'rooms' => $grupRooms,
+                'queue' => array_slice($grupQueue, 0, 10), // Ambil 10 teratas saja untuk preview
+            ];
+        }
+
         $data = [
             'page_title' => 'Monitoring Status Antrian',
             'queue' => $queue,
@@ -2800,6 +2896,7 @@ class Munaqosah extends BaseController
             'available_rooms' => $availableRooms,
             'refresh_interval' => $refreshInterval,
             'is_panitia_tpq' => $isPanitiaTpq,
+            'antrianData' => $antrianData,
             'statistics' => [
                 'total' => $totalPeserta,
                 'completed' => $totalSelesai,

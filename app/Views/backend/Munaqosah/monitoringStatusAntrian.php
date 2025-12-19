@@ -80,10 +80,21 @@
 
                         <!-- Card Daftar Antrian dan Info Grafis -->
                         <div class="row mb-3">
+                            <?php
+                            // Ambil nama grup materi yang dipilih
+                            $selectedGroupName = '-';
+                            foreach ($groups as $group) {
+                                if ($group['IdGrupMateriUjian'] === $selected_group) {
+                                    $selectedGroupName = $group['NamaMateriGrup'];
+                                    break;
+                                }
+                            }
+                            ?>
                             <div class="col-4">
                                 <div class="card card-outline card-primary">
-                                    <div class="card-header">
-                                        <h3 class="card-title">Daftar Antrian</h3>
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h3 class="card-title mb-0">Daftar Antrian</h3>
+                                        <span class="badge badge-primary"><?= esc($selectedGroupName) ?></span>
                                     </div>
                                     <div class="card-body">
                                         <!-- Daftar Antrian -->
@@ -91,12 +102,18 @@
                                             <table id="tableAntrian" class="table table-bordered table-striped">
                                                 <thead>
                                                     <tr>
-                                                        <th>Status</th>
-                                                        <th>Grup Peserta</th>
                                                         <th>Peserta</th>
+                                                        <th>Status</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tableAntrianBody">
+                                                    <?php
+                                                    // Hitung jumlah ruangan total
+                                                    $totalRooms = count($rooms);
+
+                                                    // Counter untuk menghitung urutan antrian menunggu
+                                                    $currentWaitingOrder = 0;
+                                                    ?>
                                                     <?php foreach ($queue as $row): ?>
                                                         <?php
                                                         $status = (int) ($row['Status'] ?? 0);
@@ -116,15 +133,51 @@
                                                         // Ambil warna berdasarkan hash sederhana dari nama grup
                                                         $colorIndex = crc32($groupPeserta) % count($groupColors);
                                                         $groupBadgeClass = $groupColors[abs($colorIndex)];
+
+                                                        // Tentukan warna badge No Peserta berdasarkan status dan urutan antrian
+                                                        $noPesertaBadgeClass = 'badge-info'; // Default
+                                                        $isTopQueue = false; // Flag untuk badge urutan teratas
+
+                                                        if ($status === 0) {
+                                                            // Status menunggu - hitung urutan dalam antrian menunggu
+                                                            $currentWaitingOrder++;
+                                                            if ($totalRooms > 0) {
+                                                                if ($currentWaitingOrder <= $totalRooms) {
+                                                                    // Urutan 1 sampai jumlah ruangan = hijau (akan segera dipanggil)
+                                                                    $noPesertaBadgeClass = 'badge-success';
+                                                                    // Urutan pertama (1) akan berkedip
+                                                                    if ($currentWaitingOrder === 1) {
+                                                                        $isTopQueue = true;
+                                                                    }
+                                                                } elseif ($currentWaitingOrder <= ($totalRooms * 2)) {
+                                                                    // Urutan (jumlah_ruangan + 1) sampai (jumlah_ruangan * 2) = kuning (bersiap)
+                                                                    $noPesertaBadgeClass = 'badge-warning';
+                                                                } else {
+                                                                    // Lainnya = default
+                                                                    $noPesertaBadgeClass = 'badge-info';
+                                                                }
+                                                            }
+                                                        } elseif ($status === 1) {
+                                                            // Sedang ujian = merah
+                                                            $noPesertaBadgeClass = 'badge-danger';
+                                                        } elseif ($status === 2) {
+                                                            // Selesai = abu-abu
+                                                            $noPesertaBadgeClass = 'badge-secondary';
+                                                        }
                                                         ?>
                                                         <tr>
                                                             <td>
-                                                                <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
+                                                                <div style="display: flex; align-items: flex-start;">
+                                                                    <span class="badge <?= $noPesertaBadgeClass ?> <?= $isTopQueue ? 'badge-blink' : '' ?>" style="font-size: 2em; margin-right: 8px;"><?= $row['NoPeserta'] ?></span>
+                                                                    <div>
+                                                                        <div><?= $row['NamaSantri'] ?? '-' ?></div>
+                                                                        <div><span class="badge <?= $groupBadgeClass ?>"><?= htmlspecialchars($groupPeserta) ?></span></div>
+                                                                    </div>
+                                                                </div>
                                                             </td>
                                                             <td>
-                                                                <span class="badge <?= $groupBadgeClass ?>"><?= htmlspecialchars($groupPeserta) ?></span>
+                                                                <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
                                                             </td>
-                                                            <td><?= $row['NoPeserta'] ?>- <?= $row['NamaSantri'] ?? '-' ?></td>
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 </tbody>
@@ -135,8 +188,9 @@
                             </div>
                             <div class="col-8">
                                 <div class="card card-outline card-primary">
-                                    <div class="card-header">
-                                        <h3 class="card-title">Info Grafis</h3>
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h3 class="card-title mb-0">Info Grafis</h3>
+                                        <span class="badge badge-primary"><?= esc($selectedGroupName) ?></span>
                                     </div>
                                     <div class="card-body">
                                         <!-- Status Peserta -->
@@ -279,6 +333,124 @@
                                                 </div>
                                             <?php endif; ?>
                                         </div>
+
+                                        <!-- Monitoring Antrian per Grup Materi -->
+                                        <div class="mb-4 mt-4" id="sectionAntrian">
+                                            <h5 class="mt-4 mb-3">Monitoring Antrian per Grup Materi</h5>
+                                            <div id="antrianContainer">
+                                                <?php if (!empty($antrianData ?? [])): ?>
+                                                    <div class="row">
+                                                        <?php foreach ($antrianData as $index => $antrian): ?>
+                                                            <?php
+                                                            $inputAntrianUrl = 'backend/munaqosah/input-registrasi-antrian';
+                                                            $inputAntrianParams = [];
+                                                            $inputAntrianParams[] = 'tahun=' . urlencode($current_tahun);
+                                                            if (!empty($selected_type)) {
+                                                                $inputAntrianParams[] = 'type=' . urlencode($selected_type);
+                                                            }
+                                                            $inputAntrianParams[] = 'group=' . urlencode($antrian['grup']['IdGrupMateriUjian']);
+                                                            if (!empty($selected_tpq)) {
+                                                                $inputAntrianParams[] = 'tpq=' . urlencode($selected_tpq);
+                                                            }
+                                                            $inputAntrianUrl .= '?' . implode('&', $inputAntrianParams);
+
+                                                            $detailAntrianUrl = 'backend/munaqosah/monitoring-status-antrian?group=' . urlencode($antrian['grup']['IdGrupMateriUjian']) . ($selected_type ? '&type=' . urlencode($selected_type) : '') . ($selected_tpq ? '&tpq=' . urlencode($selected_tpq) : '');
+
+                                                            $progressColor = $antrian['statistics']['progress'] >= 80 ? 'bg-success' : ($antrian['statistics']['progress'] >= 50 ? 'bg-warning' : 'bg-danger');
+
+                                                            // Tentukan background color berdasarkan index (rotasi 8 warna)
+                                                            $bgClass = 'card-group-bg-' . (($index % 8) + 1);
+                                                            ?>
+                                                            <div class="col-md-6 col-lg-4 mb-3">
+                                                                <div class="card <?= $bgClass ?>">
+                                                                    <div class="card-body">
+                                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                            <h6 class="card-title mb-0">
+                                                                                <i class="fas fa-layer-group"></i> <?= esc($antrian['grup']['NamaMateriGrup']) ?>
+                                                                                <small class="text-muted d-block"><i class="fas fa-tag"></i> <?= esc($antrian['grup']['IdGrupMateriUjian']) ?></small>
+                                                                            </h6>
+                                                                            <div class="btn-group btn-group-sm">
+                                                                                <a href="<?= base_url($inputAntrianUrl) ?>" class="btn btn-success" title="Input Antrian">
+                                                                                    <i class="fas fa-plus"></i>
+                                                                                </a>
+                                                                                <a href="<?= base_url($detailAntrianUrl) ?>" class="btn btn-warning" title="Lihat Detail Antrian">
+                                                                                    <i class="fas fa-eye"></i>
+                                                                                </a>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="mb-2">
+                                                                            <div class="d-flex justify-content-between mb-1">
+                                                                                <span class="small">Progress Antrian</span>
+                                                                                <span class="small font-weight-bold"><?= $antrian['statistics']['progress'] ?>%</span>
+                                                                            </div>
+                                                                            <div class="progress" style="height: 20px;">
+                                                                                <div class="progress-bar <?= $progressColor ?>" role="progressbar" style="width: <?= $antrian['statistics']['progress'] ?>%">
+                                                                                    <?= $antrian['statistics']['progress'] ?>%
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="row text-center mt-2 mb-2">
+                                                                            <div class="col-3">
+                                                                                <small class="text-muted d-block">Total</small>
+                                                                                <strong><?= $antrian['statistics']['total'] ?></strong>
+                                                                            </div>
+                                                                            <div class="col-3">
+                                                                                <small class="text-muted d-block">Selesai</small>
+                                                                                <strong class="text-success"><?= $antrian['statistics']['completed'] ?></strong>
+                                                                            </div>
+                                                                            <div class="col-3">
+                                                                                <small class="text-muted d-block">Menunggu</small>
+                                                                                <strong class="text-warning"><?= $antrian['statistics']['waiting'] ?></strong>
+                                                                            </div>
+                                                                            <div class="col-3">
+                                                                                <small class="text-muted d-block">Ujian</small>
+                                                                                <strong class="text-danger"><?= $antrian['statistics']['in_progress'] ?></strong>
+                                                                            </div>
+                                                                        </div>
+                                                                        <?php if (!empty($antrian['rooms'])): ?>
+                                                                            <?php
+                                                                            $occupiedCount = 0;
+                                                                            $fullCount = 0;
+                                                                            $totalParticipants = 0;
+                                                                            foreach ($antrian['rooms'] as $room) {
+                                                                                if ($room['occupied'] ?? false) $occupiedCount++;
+                                                                                if ($room['is_full'] ?? false) $fullCount++;
+                                                                                $totalParticipants += ($room['participant_count'] ?? 0);
+                                                                            }
+                                                                            ?>
+                                                                            <div class="mt-2 pt-2 border-top">
+                                                                                <small class="text-muted d-block mb-1">Status Ruangan:</small>
+                                                                                <div class="d-flex flex-nowrap align-items-center" style="gap: 0.5rem;">
+                                                                                    <?php foreach ($antrian['rooms'] as $room): ?>
+                                                                                        <?php
+                                                                                        $isFull = $room['is_full'] ?? false;
+                                                                                        $isOccupied = $room['occupied'] ?? false;
+                                                                                        $participantCount = $room['participant_count'] ?? 0;
+                                                                                        $maxCapacity = $room['max_capacity'] ?? 1;
+                                                                                        ?>
+                                                                                        <span class="badge <?= $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success') ?>" style="white-space: nowrap; flex-shrink: 0;" title="Kapasitas: <?= $participantCount ?>/<?= $maxCapacity ?>">
+                                                                                            <i class="fas fa-<?= $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open') ?>"></i>
+                                                                                            <?= $room['RoomId'] ?> (<?= $participantCount ?>/<?= $maxCapacity ?>)
+                                                                                        </span>
+                                                                                    <?php endforeach; ?>
+                                                                                </div>
+                                                                                <small class="text-muted">
+                                                                                    <?= $totalParticipants ?> peserta di <?= $occupiedCount ?> ruangan (<?= $fullCount ?> penuh)
+                                                                                </small>
+                                                                            </div>
+                                                                        <?php endif; ?>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="alert alert-info">
+                                                        <i class="fas fa-info-circle"></i> Belum ada data antrian untuk grup materi aktif.
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -316,6 +488,28 @@
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
     }
 
+    /* Animasi berkedip untuk badge urutan teratas */
+    @keyframes badgeBlink {
+
+        0%,
+        100% {
+            background-color: #28a745;
+            border: 3px solid #28a745;
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+        }
+
+        50% {
+            background-color: #5cb85c;
+            border: 3px solid #fff;
+            box-shadow: 0 0 10px 3px rgba(40, 167, 69, 0.9);
+        }
+    }
+
+    .badge-blink {
+        animation: badgeBlink 2s ease-in-out infinite;
+        border: 3px solid #28a745;
+    }
+
     @media (max-width: 576px) {
         .room-card {
             margin-bottom: 0.75rem;
@@ -324,6 +518,46 @@
         .room-card h5 {
             font-size: 1rem;
         }
+    }
+
+    .card-group-bg-1 {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-left: 3px solid #6c757d;
+    }
+
+    .card-group-bg-2 {
+        background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+        border-left: 3px solid #dc3545;
+    }
+
+    .card-group-bg-3 {
+        background: linear-gradient(135deg, #f0f8ff 0%, #e0f0ff 100%);
+        border-left: 3px solid #007bff;
+    }
+
+    .card-group-bg-4 {
+        background: linear-gradient(135deg, #f5fff0 0%, #e8ffe8 100%);
+        border-left: 3px solid #28a745;
+    }
+
+    .card-group-bg-5 {
+        background: linear-gradient(135deg, #fff8f0 0%, #ffe8e0 100%);
+        border-left: 3px solid #ffc107;
+    }
+
+    .card-group-bg-6 {
+        background: linear-gradient(135deg, #f8f0ff 0%, #f0e0ff 100%);
+        border-left: 3px solid #6f42c1;
+    }
+
+    .card-group-bg-7 {
+        background: linear-gradient(135deg, #f0fff8 0%, #e0ffe8 100%);
+        border-left: 3px solid #20c997;
+    }
+
+    .card-group-bg-8 {
+        background: linear-gradient(135deg, #fff0f8 0%, #ffe0f0 100%);
+        border-left: 3px solid #e91e63;
     }
 </style>
 <script>
