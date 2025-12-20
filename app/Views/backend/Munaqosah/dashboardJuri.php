@@ -30,6 +30,8 @@
                             </div>
                         </div>
 
+                        <?= prayer_schedule_widget() ?>
+
                         <!-- Menu Quick Access -->
                         <div class="row mt-4">
                             <div class="col-12">
@@ -235,4 +237,6 @@
         $('#tablePesertaTerakhir').DataTable();
     });
 </script>
+<?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>
+<?= prayer_schedule_settings_js(base_url('backend/jadwal-sholat')) ?>
 <?= $this->endSection(); ?>

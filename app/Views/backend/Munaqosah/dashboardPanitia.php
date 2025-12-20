@@ -22,6 +22,8 @@
                             </div>
                         </div>
 
+                        <?= prayer_schedule_widget() ?>
+
                         <!-- Toggle AktiveTombolKelulusan -->
                         <?php 
                         // Untuk typeUjian munaqosah (IdTpq = '0'), hanya Admin yang bisa melihat dan mengubah pengaturan
@@ -632,4 +634,6 @@ $(document).ready(function() {
     <?php endif; ?>
 });
 </script>
+<?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>
+<?= prayer_schedule_settings_js(base_url('backend/jadwal-sholat')) ?>
 <?= $this->endSection(); ?>

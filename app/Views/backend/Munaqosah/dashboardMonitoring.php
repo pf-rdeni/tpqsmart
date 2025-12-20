@@ -99,6 +99,9 @@
                                 <i class="fas fa-chart-bar"></i> Monitoring Lengkap
                             </a>
                         </div>
+
+                        <?= prayer_schedule_widget() ?>
+
                         <div class="row mb-4">
                             <div class="col-md-3 col-sm-6 mb-3">
                                 <div class="info-box bg-info">
@@ -1474,4 +1477,6 @@
         });
     });
 </script>
+<?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>
+<?= prayer_schedule_settings_js(base_url('backend/jadwal-sholat')) ?>
 <?= $this->endSection(); ?>

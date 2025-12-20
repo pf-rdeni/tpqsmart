@@ -314,6 +314,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/dashboard-monitoring', 'Munaqosah::dashboardMonitoring');
     $routes->get('munaqosah/monitoring-penilaian-juri-pasangan', 'Munaqosah::monitoringPenilaianJuriPasangan');
     $routes->get('munaqosah/monitoring-penilaian-juri-pasangan-data', 'Munaqosah::getMonitoringPenilaianJuriPasanganData');
+    $routes->post('munaqosah/delete-nilai-penilaian-juri-pasangan', 'Munaqosah::deleteNilaiPenilaianJuriPasangan');
     $routes->get('munaqosah/get-statistik-group-peserta', 'Munaqosah::getStatistikGroupPeserta');
     $routes->get('munaqosah/get-statistik-per-group-materi', 'Munaqosah::getStatistikPerGroupMateri');
     $routes->get('munaqosah/get-statistik-penilaian-per-juri', 'Munaqosah::getStatistikPenilaianPerJuri');

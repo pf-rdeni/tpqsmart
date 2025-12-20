@@ -9917,6 +9917,76 @@ class Munaqosah extends BaseController
         }
     }
 
+    public function deleteNilaiPenilaianJuriPasangan()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        // Cek apakah user adalah Admin
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Akses ditolak. Hanya Admin yang dapat menghapus nilai.'
+            ]);
+        }
+
+        try {
+            $noPeserta = $this->request->getPost('NoPeserta');
+            $idGrupMateriUjian = $this->request->getPost('IdGrupMateriUjian');
+            $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
+            $typeUjian = $this->request->getPost('TypeUjian');
+
+            // Validasi input
+            if (empty($noPeserta) || empty($idGrupMateriUjian) || empty($idTahunAjaran) || empty($typeUjian)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Parameter tidak lengkap'
+                ]);
+            }
+
+            // Hapus nilai berdasarkan NoPeserta, IdGrupMateriUjian, IdTahunAjaran, dan TypeUjian
+            // Hanya menghapus nilai untuk grup materi tertentu, bukan semua nilai peserta
+            $builder = $this->db->table('tbl_munaqosah_nilai');
+            $builder->where('NoPeserta', $noPeserta);
+            $builder->where('IdGrupMateriUjian', $idGrupMateriUjian);
+            $builder->where('IdTahunAjaran', $idTahunAjaran);
+            $builder->where('TypeUjian', $typeUjian);
+
+            $affectedRows = $builder->delete();
+
+            if ($affectedRows > 0) {
+                // Clear cache jika ada
+                if (function_exists('cache')) {
+                    cache()->clean();
+                }
+
+                log_message('info', "Admin menghapus nilai untuk NoPeserta: {$noPeserta}, IdGrupMateriUjian: {$idGrupMateriUjian}, IdTahunAjaran: {$idTahunAjaran}, TypeUjian: {$typeUjian}");
+
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => "Berhasil menghapus {$affectedRows} nilai untuk grup materi ini",
+                    'affected_rows' => $affectedRows
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada data nilai yang ditemukan untuk dihapus'
+                ]);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in deleteNilaiPenilaianJuriPasangan: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem saat menghapus nilai',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
     public function kelulusanUjian()
     {
         helper('munaqosah');

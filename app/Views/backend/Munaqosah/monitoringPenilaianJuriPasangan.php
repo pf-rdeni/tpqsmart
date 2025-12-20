@@ -111,11 +111,12 @@
                                                 <th>Grup Materi</th>
                                                 <th>Room ID</th>
                                                 <th>Detail Juri Pasangan & Nilai</th>
+                                                <th>Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbodyMonitoring">
                                             <tr>
-                                                <td colspan="5" class="text-center text-muted">
+                                                <td colspan="6" class="text-center text-muted">
                                                     <i class="fas fa-spinner fa-spin"></i> Memuat data...
                                                 </td>
                                             </tr>
@@ -133,11 +134,12 @@
                                                 <th>Grup Materi</th>
                                                 <th>Room ID</th>
                                                 <th>Detail Juri Pasangan & Nilai</th>
+                                                <th>Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbodyMonitoringComplete">
                                             <tr>
-                                                <td colspan="5" class="text-center text-muted">
+                                                <td colspan="6" class="text-center text-muted">
                                                     Klik tab "Lengkap" untuk melihat data
                                                 </td>
                                             </tr>
@@ -155,11 +157,12 @@
                                                 <th>Grup Materi</th>
                                                 <th>Room ID</th>
                                                 <th>Detail Juri Pasangan & Nilai</th>
+                                                <th>Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbodyMonitoringIncomplete">
                                             <tr>
-                                                <td colspan="5" class="text-center text-muted">
+                                                <td colspan="6" class="text-center text-muted">
                                                     Klik tab "Belum Lengkap" untuk melihat data
                                                 </td>
                                             </tr>
@@ -185,6 +188,11 @@
     let countdownInterval = null;
     let remainingSeconds = 0;
     let autoRefreshEnabled = true; // Default enabled
+    
+    // DataTables instances
+    let dataTableAll = null;
+    let dataTableComplete = null;
+    let dataTableIncomplete = null;
 
     // Fungsi untuk format waktu countdown
     function formatTime(seconds) {
@@ -351,6 +359,89 @@
         }
     }
 
+    // Fungsi untuk menghapus nilai
+    function deleteNilai(noPeserta, idGrupMateriUjian, namaSantri, namaMateriGrup) {
+        Swal.fire({
+            title: 'Konfirmasi Hapus Nilai',
+            html: `Apakah Anda yakin ingin menghapus nilai untuk:<br><br>
+                   <strong>${noPeserta} - ${namaSantri}</strong><br>
+                   <small>Grup Materi: ${namaMateriGrup}</small><br><br>
+                   <span class="text-danger">Tindakan ini tidak dapat dibatalkan!</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Menghapus...',
+                    text: 'Sedang menghapus nilai, harap tunggu',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const th = $('#filterTahunAjaran').val().trim();
+                const ty = $('#filterType').val() || 'munaqosah';
+
+                // Kirim request hapus
+                $.ajax({
+                    url: '<?= base_url("backend/munaqosah/delete-nilai-penilaian-juri-pasangan") ?>',
+                    type: 'POST',
+                    data: {
+                        NoPeserta: noPeserta,
+                        IdGrupMateriUjian: idGrupMateriUjian,
+                        IdTahunAjaran: th,
+                        TypeUjian: ty
+                    },
+                    dataType: 'json',
+                    success: function(resp) {
+                        Swal.close();
+                        if (resp.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: resp.message || 'Nilai berhasil dihapus',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            // Reload data
+                            loadData();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: resp.message || 'Gagal menghapus nilai'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        let errorMsg = 'Terjadi kesalahan saat menghapus nilai';
+                        try {
+                            const errorResponse = JSON.parse(xhr.responseText);
+                            if (errorResponse.message) {
+                                errorMsg = errorResponse.message;
+                            }
+                        } catch (e) {
+                            // Use default error message
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: errorMsg
+                        });
+                    }
+                });
+            }
+        });
+    }
+
     function loadData() {
         const th = $('#filterTahunAjaran').val().trim();
         const ty = $('#filterType').val() || 'munaqosah';
@@ -362,9 +453,25 @@
                     (grup ? `&IdGrupMateriUjian=${encodeURIComponent(grup)}` : '') +
                     (tpq !== '0' ? `&IdTpq=${encodeURIComponent(tpq)}` : '');
 
-        $('#tbodyMonitoring').html('<tr><td colspan="5" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
-        $('#tbodyMonitoringComplete').html('<tr><td colspan="5" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
-        $('#tbodyMonitoringIncomplete').html('<tr><td colspan="5" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+        // Destroy DataTables sebelum load data baru
+        if ($.fn.DataTable) {
+            if (dataTableAll && $.fn.DataTable.isDataTable('#tabelMonitoring')) {
+                dataTableAll.destroy();
+                dataTableAll = null;
+            }
+            if (dataTableComplete && $.fn.DataTable.isDataTable('#tabelMonitoringComplete')) {
+                dataTableComplete.destroy();
+                dataTableComplete = null;
+            }
+            if (dataTableIncomplete && $.fn.DataTable.isDataTable('#tabelMonitoringIncomplete')) {
+                dataTableIncomplete.destroy();
+                dataTableIncomplete = null;
+            }
+        }
+
+        $('#tbodyMonitoring').html('<tr><td colspan="6" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+        $('#tbodyMonitoringComplete').html('<tr><td colspan="6" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
+        $('#tbodyMonitoringIncomplete').html('<tr><td colspan="6" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>');
 
         $.getJSON(url, function(resp) {
             if (!resp.success) {
@@ -373,9 +480,9 @@
                 if (resp.details) {
                     errorMsg += '<br><small>' + resp.details + '</small>';
                 }
-                $('#tbodyMonitoring').html('<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
-                $('#tbodyMonitoringComplete').html('<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
-                $('#tbodyMonitoringIncomplete').html('<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
+                $('#tbodyMonitoring').html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
+                $('#tbodyMonitoringComplete').html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
+                $('#tbodyMonitoringIncomplete').html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
                 return;
             }
 
@@ -423,9 +530,9 @@
             } catch (e) {
                 // Use default error message
             }
-            $('#tbodyMonitoring').html('<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
-            $('#tbodyMonitoringComplete').html('<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
-            $('#tbodyMonitoringIncomplete').html('<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
+            $('#tbodyMonitoring').html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
+            $('#tbodyMonitoringComplete').html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
+            $('#tbodyMonitoringIncomplete').html('<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> ' + errorMsg + '</td></tr>');
         });
     }
 
@@ -439,7 +546,7 @@
         const tbody = $(tbodyId);
         
         if (data.length === 0) {
-            tbody.html('<tr><td colspan="5" class="text-center text-muted">Tidak ada data</td></tr>');
+            tbody.html('<tr><td colspan="6" class="text-center text-muted">Tidak ada data</td></tr>');
             return;
         }
 
@@ -495,6 +602,11 @@
                     ${statusBadge}
                 </div>
             </div>`;
+
+            // Tombol hapus nilai
+            const btnHapus = `<button class="btn btn-danger btn-sm" onclick="deleteNilai('${item.NoPeserta}', '${item.IdGrupMateriUjian}', '${item.NamaSantri.replace(/'/g, "\\'")}', '${item.NamaMateriGrup.replace(/'/g, "\\'")}')" title="Hapus nilai untuk grup materi ini">
+                <i class="fas fa-trash-alt"></i> Hapus Nilai
+            </button>`;
             
             html += `<tr class="${rowClass}">
                 <td>${index + 1}</td>
@@ -502,10 +614,92 @@
                 <td>${item.NamaMateriGrup}</td>
                 <td><span class="badge badge-info">${item.RoomId}</span></td>
                 <td>${detailJuri}</td>
+                <td>${btnHapus}</td>
             </tr>`;
         });
 
         tbody.html(html);
+        
+        // Inisialisasi atau re-inisialisasi DataTables
+        initializeDataTable(type);
+    }
+
+    // Fungsi untuk inisialisasi DataTables
+    function initializeDataTable(type) {
+        let tableId = '#tabelMonitoring';
+        
+        if (type === 'complete') {
+            tableId = '#tabelMonitoringComplete';
+            // Destroy existing instance jika ada
+            if (dataTableComplete && $.fn.DataTable.isDataTable('#tabelMonitoringComplete')) {
+                dataTableComplete.destroy();
+                dataTableComplete = null;
+            }
+        } else if (type === 'incomplete') {
+            tableId = '#tabelMonitoringIncomplete';
+            // Destroy existing instance jika ada
+            if (dataTableIncomplete && $.fn.DataTable.isDataTable('#tabelMonitoringIncomplete')) {
+                dataTableIncomplete.destroy();
+                dataTableIncomplete = null;
+            }
+        } else {
+            // Destroy existing instance jika ada
+            if (dataTableAll && $.fn.DataTable.isDataTable('#tabelMonitoring')) {
+                dataTableAll.destroy();
+                dataTableAll = null;
+            }
+        }
+
+        // Cek apakah DataTables library tersedia dan tabel ada
+        if ($.fn.DataTable && $(tableId).length > 0) {
+            // Cek apakah tabel sudah di-inisialisasi
+            if ($.fn.DataTable.isDataTable(tableId)) {
+                return; // Sudah di-inisialisasi, skip
+            }
+
+            const table = $(tableId).DataTable({
+                responsive: true,
+                pageLength: 25,
+                lengthMenu: [
+                    [10, 25, 50, 100, -1],
+                    [10, 25, 50, 100, "Semua"]
+                ],
+                order: [[0, 'asc']], // Sort by No column
+                columnDefs: [
+                    { orderable: false, targets: [5] } // Kolom Aksi tidak bisa di-sort
+                ],
+                language: {
+                    decimal: ",",
+                    emptyTable: "Tidak ada data yang tersedia",
+                    info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                    infoEmpty: "Menampilkan 0 sampai 0 dari 0 data",
+                    infoFiltered: "(disaring dari _MAX_ total data)",
+                    infoPostFix: "",
+                    thousands: ".",
+                    lengthMenu: "Tampilkan _MENU_ data",
+                    loadingRecords: "Memuat...",
+                    processing: "Memproses...",
+                    search: "Cari:",
+                    zeroRecords: "Tidak ada data yang cocok",
+                    paginate: {
+                        first: "Pertama",
+                        last: "Terakhir",
+                        next: "Selanjutnya",
+                        previous: "Sebelumnya"
+                    }
+                },
+                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+            });
+
+            // Simpan instance
+            if (type === 'complete') {
+                dataTableComplete = table;
+            } else if (type === 'incomplete') {
+                dataTableIncomplete = table;
+            } else {
+                dataTableAll = table;
+            }
+        }
     }
 
     $(function() {
@@ -570,11 +764,23 @@
             }
         });
 
-        // Tab change handler - simpan tab aktif ke localStorage
+        // Tab change handler - simpan tab aktif ke localStorage dan reinitialize DataTables jika perlu
         $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             const targetTab = $(e.target).attr('href'); // e.g., "#all" or "#incomplete"
-            const tabId = targetTab.substring(1); // Remove # to get "all" or "incomplete"
+            const tabId = targetTab.substring(1); // Remove # to get "all", "complete", or "incomplete"
             saveActiveTabToLocalStorage(tabId);
+            
+            // Reinitialize DataTables untuk tab yang aktif
+            // Tunggu sedikit agar tab content sudah ter-render
+            setTimeout(function() {
+                if (tabId === 'complete' && completeData.length > 0) {
+                    initializeDataTable('complete');
+                } else if (tabId === 'incomplete' && incompleteData.length > 0) {
+                    initializeDataTable('incomplete');
+                } else if (tabId === 'all' && allData.length > 0) {
+                    initializeDataTable('all');
+                }
+            }, 100);
         });
 
         // Export Excel (placeholder)
