@@ -4,74 +4,6 @@
 <section class="content">
     <div class="container-fluid">
         <div class="row">
-            <!-- Card Informasi Alur Proses -->
-            <div class="col-12">
-                <div class="card card-info collapsed-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-info-circle"></i> Panduan Alur Proses Antrian Grup Materi Ujian
-                        </h3>
-                        <div class="card-tools">
-                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-12">
-                                <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
-                                <ol class="mb-4">
-                                    <li class="mb-3">
-                                        <strong>Filter Data Antrian</strong> (Card bisa di-collapse)
-                                        <ul class="mt-2 mb-0">
-                                            <li>Pilih <strong>TPQ</strong>, <strong>Grup Materi Ujian</strong>, dan <strong>Type Ujian</strong></li>
-                                            <li>Filter otomatis tersimpan dan diterapkan saat halaman dimuat</li>
-                                        </ul>
-                                    </li>
-                                    <li class="mb-3">
-                                        <strong>Lihat Statistik Antrian</strong> (Card bisa di-collapse)
-                                        <ul class="mt-2 mb-0">
-                                            <li>Total Peserta, Sudah diuji, Antrian ujian, dan Progress</li>
-                                            <li>Settingan collapsed tersimpan otomatis</li>
-                                        </ul>
-                                    </li>
-                                    <li class="mb-3">
-                                        <strong>Registrasi Peserta</strong>
-                                        <ul class="mt-2 mb-0">
-                                            <li>Masukkan atau scan <strong>No Peserta</strong></li>
-                                            <li>Auto registrasi aktif setelah 3 digit atau tekan <strong>Enter</strong></li>
-                                            <li>Validasi otomatis: cek peserta sudah di antrian, sudah selesai, atau masih antri di grup lain</li>
-                                        </ul>
-                                    </li>
-                                    <li class="mb-3">
-                                        <strong>Kelola Antrian</strong>
-                                        <ul class="mt-2 mb-0">
-                                            <li>Monitor status ruangan dan kelola peserta di tabel</li>
-                                            <li>Gunakan tombol aksi untuk update status peserta</li>
-                                        </ul>
-                                    </li>
-                                </ol>
-
-                                <div class="alert alert-info mb-0">
-                                    <h5 class="alert-heading"><i class="fas fa-lightbulb"></i> Tips Penting:</h5>
-                                    <ul class="mb-0">
-                                        <li><strong>Status Antrian:</strong>
-                                            <span class="badge badge-warning">Menunggu</span> →
-                                            <span class="badge badge-danger">Sedang Ujian</span> →
-                                            <span class="badge badge-success">Selesai</span>
-                                        </li>
-                                        <li><strong>Validasi Registrasi:</strong> Peserta tidak bisa masuk antrian jika sudah selesai atau masih antri di grup lain</li>
-                                        <li><strong>Auto Refresh:</strong> Aktifkan untuk update otomatis (10 detik - 5 menit)</li>
-                                        <li><strong>Scan QR:</strong> Gunakan untuk registrasi cepat tanpa mengetik</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="col-12">
                 <div class="card card-outline card-primary">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
@@ -137,11 +69,11 @@
                             </div>
                         <?php endif; ?>
 
-                        <!-- Card Filter -->
+                        <!-- Card Filter & Statistik -->
                         <div class="card card-primary collapsed-card mb-4">
                             <div class="card-header">
                                 <h3 class="card-title">
-                                    <i class="fas fa-filter"></i> Filter Data Antrian
+                                    <i class="fas fa-filter"></i> Filter & Statistik Antrian
                                 </h3>
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -150,6 +82,8 @@
                                 </div>
                             </div>
                             <div class="card-body">
+                                <!-- Filter Data Antrian -->
+                                <h5 class="mb-3"><i class="fas fa-filter"></i> Filter Data Antrian</h5>
                                 <form method="get" action="<?= base_url('backend/munaqosah/antrian') ?>">
                                     <div class="form-row align-items-end">
                                         <?php
@@ -342,23 +276,11 @@
                                         <?php endif; ?>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                        <!-- End Card Filter -->
 
-                        <!-- Card Statistik -->
-                        <div class="card card-success collapsed-card mb-4">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-chart-bar"></i> Statistik Antrian
-                                </h3>
-                                <div class="card-tools">
-                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body">
+                                <hr class="my-4">
+
+                                <!-- Statistik Antrian -->
+                                <h5 class="mb-3"><i class="fas fa-chart-bar"></i> Statistik Antrian</h5>
                                 <div class="row">
                                     <?php
                                     $total = $statistics['total'];
@@ -429,7 +351,7 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- End Card Statistik -->
+                        <!-- End Card Filter & Statistik -->
 
                         <!-- Input Registrasi -->
                         <div class="input-group my-4">
@@ -444,10 +366,6 @@
                                 <button class="btn btn-danger" type="button" id="btnQueueReset">Reset</button>
                             </div>
                         </div>
-                        <small class="form-text text-muted mb-3">
-                            <span class="text-info"><i class="fas fa-info-circle"></i> Auto registrasi akan aktif setelah 3 digit, atau tekan Enter</span>
-                        </small>
-
                         <!-- Status Ruangan -->
                         <h5 class="mt-4">Status Ruangan</h5>
                         <?php if (!empty($rooms)): ?>
@@ -479,8 +397,7 @@
                                 <div class="card border-<?= $isFull ? 'danger' : ($isOccupied ? 'warning' : 'success') ?> mb-3">
                                     <div class="card-header bg-<?= $isFull ? 'danger' : ($isOccupied ? 'warning' : 'success') ?> text-<?= $isFull || !$isOccupied ? 'white' : 'dark' ?> d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h5 class="mb-0"><i class="fas fa-door-open"></i> Ruangan <?= $room['RoomId'] ?></h5>
-                                            <small>Kapasitas: <?= $participantCount ?> / <?= $maxCapacity ?></small>
+                                            <h5 class="mb-0"><i class="fas fa-door-open"></i> Ruangan <?= $room['RoomId'] ?><?= $maxCapacity > 1 ? ' (Kapasitas: ' . $participantCount . ' / ' . $maxCapacity . ')' : '' ?></h5>
                                         </div>
                                         <?php if ($isFull): ?>
                                             <span class="badge badge-light badge-pill">
@@ -501,16 +418,14 @@
                                             <table class="table table-sm table-hover mb-0">
                                                 <thead class="thead-light">
                                                     <tr>
-                                                        <th style="width: 15%;">No Peserta</th>
-                                                        <th style="width: 35%;">Nama Santri</th>
+                                                        <th style="width: 60%;">Peserta</th>
                                                         <th style="width: 40%;" class="text-center">Aksi</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     <?php foreach ($participants as $participant): ?>
                                                         <tr>
-                                                            <td><strong><?= $participant['NoPeserta'] ?></strong></td>
-                                                            <td><?= $participant['NamaSantri'] ?? '-' ?></td>
+                                                            <td><strong>Peserta: <?= $participant['NoPeserta'] ?> - <?= $participant['NamaSantri'] ?? '-' ?></strong></td>
                                                             <td>
                                                                 <div class="btn-group btn-group-sm" role="group">
                                                                     <button type="button"
@@ -552,7 +467,7 @@
                                         <div class="<?= $colClass ?> mb-3">
                                             <div class="p-3 rounded shadow-sm room-card <?= $isFull ? 'bg-danger text-white' : ($isOccupied ? 'bg-warning text-dark' : 'bg-success text-white') ?>">
                                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?></h5>
+                                                    <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?><?= $maxCapacity > 1 ? ' (Kapasitas: ' . $participantCount . ' / ' . $maxCapacity . ')' : '' ?></h5>
                                                     <?php if ($isFull): ?>
                                                         <span class="badge badge-light badge-pill">
                                                             <i class="fas fa-users"></i> Penuh
@@ -567,20 +482,12 @@
                                                         </span>
                                                     <?php endif; ?>
                                                 </div>
-                                                <div class="mb-2">
-                                                    <small>
-                                                        <strong>Kapasitas:</strong> <?= $participantCount ?> / <?= $maxCapacity ?>
-                                                    </small>
-                                                </div>
                                                 <?php if ($isOccupied && !empty($participants)): ?>
                                                     <div class="room-participant mb-3">
                                                         <?php foreach ($participants as $participant): ?>
                                                             <div class="mb-2 border-bottom pb-2">
-                                                                <div class="mb-1">
-                                                                    <strong>No Peserta:</strong> <?= $participant['NoPeserta'] ?>
-                                                                </div>
-                                                                <div class="mb-1">
-                                                                    <small><?= $participant['NamaSantri'] ?? '-' ?></small>
+                                                                <div class="mb-2">
+                                                                    <strong>Peserta: <?= $participant['NoPeserta'] ?> - <?= $participant['NamaSantri'] ?? '-' ?></strong>
                                                                 </div>
                                                                 <div class="btn-group btn-group-sm w-100" role="group">
                                                                     <button type="button"
