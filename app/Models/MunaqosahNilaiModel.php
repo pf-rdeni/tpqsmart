@@ -337,16 +337,18 @@ class MunaqosahNilaiModel extends Model
             $totalPeserta = $totalPeserta ? (int)$totalPeserta['total_peserta'] : 0;
 
             // Hitung total peserta yang sudah dinilai untuk grup materi ini
-            // Gunakan subquery untuk mendapatkan peserta yang sudah dinilai di grup materi ini
+            // PERBAIKAN: Filter nilai berdasarkan IdGrupMateriUjian di tabel nilai
+            // untuk memastikan hanya menghitung nilai yang sesuai dengan grup materi yang sedang diproses
             $sql = "SELECT COUNT(DISTINCT n.NoPeserta) as total_dinilai
                     FROM {$this->table} n
                     INNER JOIN tbl_munaqosah_registrasi_uji r ON r.NoPeserta = n.NoPeserta 
                         AND r.IdTahunAjaran = n.IdTahunAjaran 
                         AND r.TypeUjian = n.TypeUjian
                         AND r.IdGrupMateriUjian = ?
-                    WHERE n.IdTahunAjaran = ?";
+                    WHERE n.IdTahunAjaran = ?
+                        AND n.IdGrupMateriUjian = ?";
 
-            $params = [$idGrupMateriUjian, $idTahunAjaran];
+            $params = [$idGrupMateriUjian, $idTahunAjaran, $idGrupMateriUjian];
 
             if (!empty($typeUjian)) {
                 $sql .= " AND n.TypeUjian = ?";

@@ -319,7 +319,7 @@
                                                                     ?>
                                                                     <div class="mt-2 pt-2 border-top">
                                                                         <small class="text-muted d-block mb-1">Status Ruangan:</small>
-                                                                        <div class="d-flex flex-wrap">
+                                                                        <div class="d-flex flex-nowrap align-items-center" style="gap: 0.5rem; overflow-x: auto;">
                                                                             <?php foreach ($antrian['rooms'] as $room): ?>
                                                                                 <?php
                                                                                 $isFull = $room['is_full'] ?? false;
@@ -327,9 +327,9 @@
                                                                                 $participantCount = $room['participant_count'] ?? 0;
                                                                                 $maxCapacity = $room['max_capacity'] ?? 1;
                                                                                 ?>
-                                                                                <span class="badge <?= $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success') ?> mr-1 mb-1" title="Kapasitas: <?= $participantCount ?>/<?= $maxCapacity ?>">
+                                                                                <span class="badge <?= $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success') ?>" style="white-space: nowrap; flex-shrink: 0;" title="Kapasitas: <?= $participantCount ?>/<?= $maxCapacity ?>">
                                                                                     <i class="fas fa-<?= $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open') ?>"></i>
-                                                                                    R<?= $room['RoomId'] ?> (<?= $participantCount ?>/<?= $maxCapacity ?>)
+                                                                                    <?= $room['RoomId'] ?><?= $maxCapacity > 1 ? ' (' . $participantCount . '/' . $maxCapacity . ')' : '' ?>
                                                                                 </span>
                                                                             <?php endforeach; ?>
                                                                         </div>
@@ -352,8 +352,8 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Statistik Monitoring per Group Peserta (Hanya untuk Admin) -->
-                        <?php if (in_groups('Admin')): ?>
+                        <!-- Statistik Monitoring per Group Peserta (Hanya untuk Admin atau Panitia Umum) -->
+                        <?php if (in_groups('Admin') || (in_groups('Panitia') && empty($is_panitia_tpq ?? false))): ?>
                             <div class="mb-4 mt-4" id="sectionGroupPeserta">
                                 <div class="card" id="cardGroupPeserta">
                                     <div class="card-header">
@@ -654,9 +654,10 @@
             $('#statProgress').text(pct + '%');
             $('#barProgress').css('width', pct + '%');
 
-            // Load statistik Group Peserta (hanya untuk Admin)
+            // Load statistik Group Peserta (hanya untuk Admin atau Panitia Umum)
             const isAdmin = '<?= in_groups("Admin") ? "true" : "false" ?>' === 'true';
-            if (isAdmin) {
+            const isPanitiaUmum = '<?= (in_groups("Panitia") && empty($is_panitia_tpq ?? false)) ? "true" : "false" ?>' === 'true';
+            if (isAdmin || isPanitiaUmum) {
                 loadStatistikGroupPeserta();
             }
 
@@ -1354,7 +1355,7 @@
                 const savedFilters = localStorage.getItem('dashboardMonitoringFilters');
                 if (savedFilters) {
                     const filters = JSON.parse(savedFilters);
-                    
+
                     // Load filter TPQ (jika tidak disabled dan ada di options)
                     const $tpqSel = $('#filterTpq');
                     if ($tpqSel.length && !$tpqSel.prop('disabled')) {
@@ -1363,7 +1364,7 @@
                             $tpqSel.val(filters.tpq);
                         }
                     }
-                    
+
                     // Load filter Type (jika tidak disabled)
                     const isJuri = $('#isJuri').val() === 'true';
                     if (!isJuri) {
@@ -1375,7 +1376,7 @@
                             }
                         }
                     }
-                    
+
                     // Load refresh interval
                     const $refreshSel = $('#filterRefreshInterval');
                     if ($refreshSel.length && filters.refreshInterval) {
@@ -1393,7 +1394,7 @@
         // Load filter dari localStorage saat halaman dimuat (hanya jika tidak ada URL parameter)
         const urlParams = new URLSearchParams(window.location.search);
         const hasUrlParams = urlParams.has('tpq') || urlParams.has('type');
-        
+
         // Jika tidak ada URL parameter, load dari localStorage
         if (!hasUrlParams) {
             loadFiltersFromLocalStorage();
@@ -1461,9 +1462,10 @@
             startAutoRefresh(defaultInterval);
         }, 1000);
 
-        // Load statistik Group Peserta pertama kali (hanya untuk Admin)
+        // Load statistik Group Peserta pertama kali (hanya untuk Admin atau Panitia Umum)
         const isAdmin = '<?= in_groups("Admin") ? "true" : "false" ?>' === 'true';
-        if (isAdmin) {
+        const isPanitiaUmum = '<?= (in_groups("Panitia") && empty($is_panitia_tpq ?? false)) ? "true" : "false" ?>' === 'true';
+        if (isAdmin || isPanitiaUmum) {
             loadStatistikGroupPeserta();
         }
 
