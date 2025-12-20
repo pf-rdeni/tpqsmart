@@ -9805,6 +9805,118 @@ class Munaqosah extends BaseController
         return view('backend/Munaqosah/dashboardMonitoring', $data);
     }
 
+    public function monitoringPenilaianJuriPasangan()
+    {
+        // Cek apakah user adalah Admin
+        if (!in_groups('Admin')) {
+            return redirect()->to('/auth/index')->with('error', 'Akses ditolak. Halaman ini khusus untuk Admin.');
+        }
+
+        helper('munaqosah');
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        // Ambil filter dari URL
+        $selectedType = $this->request->getGet('type') ?? 'munaqosah';
+        $selectedGrupMateri = $this->request->getGet('grup') ?? '';
+        $selectedTpq = $this->request->getGet('tpq') ?? '';
+
+        // Ambil semua grup materi aktif
+        $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+
+        // Ambil data TPQ dari query grouped tabel tbl_munaqosah_registrasi_uji
+        $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+        $builder->select('r.IdTpq, t.NamaTpq');
+        $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
+        $builder->where('r.IdTahunAjaran', $currentTahunAjaran);
+        $builder->where('r.TypeUjian', $selectedType);
+
+        $builder->groupBy('r.IdTpq');
+        $builder->orderBy('t.NamaTpq', 'ASC');
+        $dataTpq = $builder->get()->getResultArray();
+
+        $typeOptions = [
+            'pra-munaqosah' => 'Pra Munaqosah',
+            'munaqosah' => 'Munaqosah'
+        ];
+
+        $data = [
+            'page_title' => 'Monitoring Penilaian Juri Pasangan',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'grupList' => $grupList,
+            'tpqDropdown' => $dataTpq,
+            'types' => $typeOptions,
+            'selected_type' => $selectedType,
+            'selected_grup_materi' => $selectedGrupMateri,
+            'selected_tpq' => $selectedTpq,
+        ];
+
+        return view('backend/Munaqosah/monitoringPenilaianJuriPasangan', $data);
+    }
+
+    public function getMonitoringPenilaianJuriPasanganData()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        // Cek apakah user adalah Admin
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Akses ditolak'
+            ]);
+        }
+
+        try {
+            $helpFunctionModel = new \App\Models\HelpFunctionModel();
+            $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+            $idTahunAjaran = $this->request->getGet('IdTahunAjaran') ?? $currentTahunAjaran;
+            $typeUjian = $this->request->getGet('TypeUjian') ?? 'munaqosah';
+            $idGrupMateriUjian = $this->request->getGet('IdGrupMateriUjian');
+            $idTpqParam = $this->request->getGet('IdTpq');
+            $idTpq = ($idTpqParam === null || $idTpqParam === '' || $idTpqParam === '0') ? null : (int)$idTpqParam;
+
+            // Ambil data peserta dengan status juri pasangan
+            $data = $this->nilaiMunaqosahModel->getPesertaDenganStatusJuriPasangan(
+                $idTahunAjaran,
+                $typeUjian,
+                $idGrupMateriUjian,
+                $idTpq
+            );
+
+            // Debug info (bisa dihapus setelah testing)
+            log_message('debug', 'Monitoring Penilaian Juri Pasangan - Total data: ' . count($data));
+            log_message('debug', 'Filter: IdTahunAjaran=' . $idTahunAjaran . ', TypeUjian=' . $typeUjian . ', IdGrupMateriUjian=' . ($idGrupMateriUjian ?? 'null') . ', IdTpq=' . ($idTpq ?? 'null'));
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $data,
+                'debug' => [
+                    'total' => count($data),
+                    'filters' => [
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'TypeUjian' => $typeUjian,
+                        'IdGrupMateriUjian' => $idGrupMateriUjian,
+                        'IdTpq' => $idTpq
+                    ]
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getMonitoringPenilaianJuriPasanganData: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
     public function kelulusanUjian()
     {
         helper('munaqosah');

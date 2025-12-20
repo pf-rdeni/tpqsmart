@@ -292,4 +292,80 @@ class MunaqosahJuriModel extends Model
             return null;
         }
     }
+
+    /**
+     * Get pasangan juri berdasarkan RoomId dan TypeUjian
+     * Pasangan juri = Juri dengan RoomId dan TypeUjian yang sama
+     * 
+     * @param string $roomId
+     * @param string $typeUjian
+     * @param string|null $idGrupMateriUjian
+     * @return array
+     */
+    public function getPasanganJuriByRoom($roomId, $typeUjian, $idGrupMateriUjian = null)
+    {
+        $builder = $this->db->table($this->table);
+        $builder->select('IdJuri, UsernameJuri, RoomId, IdGrupMateriUjian, TypeUjian, IdTpq');
+        $builder->where('RoomId', $roomId);
+        $builder->where('TypeUjian', $typeUjian);
+        $builder->where('Status', 'Aktif');
+
+        if (!empty($idGrupMateriUjian)) {
+            $builder->where('IdGrupMateriUjian', $idGrupMateriUjian);
+        }
+
+        $builder->orderBy('UsernameJuri', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Get semua pasangan juri (grouped by RoomId)
+     * 
+     * @param string $idTahunAjaran (untuk filter, tidak digunakan langsung tapi untuk konsistensi)
+     * @param string $typeUjian
+     * @param string|null $idGrupMateriUjian
+     * @param int|null $idTpq
+     * @return array Struktur: [RoomId => [juri1, juri2, ...]]
+     */
+    public function getAllPasanganJuri($idTahunAjaran, $typeUjian, $idGrupMateriUjian = null, $idTpq = null)
+    {
+        $builder = $this->db->table($this->table);
+        $builder->select('IdJuri, UsernameJuri, RoomId, IdGrupMateriUjian, TypeUjian, IdTpq');
+        $builder->where('TypeUjian', $typeUjian);
+        $builder->where('Status', 'Aktif');
+        $builder->where('RoomId IS NOT NULL');
+        $builder->where('RoomId !=', '');
+
+        if (!empty($idGrupMateriUjian)) {
+            $builder->where('IdGrupMateriUjian', $idGrupMateriUjian);
+        }
+
+        // Filter IdTpq berdasarkan TypeUjian
+        // PERBAIKAN: Untuk Admin, jika tidak memilih TPQ (idTpq = null atau 0), 
+        // tampilkan SEMUA TPQ (tidak filter IdTpq sama sekali)
+        if (!empty($idTpq)) {
+            // Jika Admin memilih TPQ tertentu, filter by IdTpq
+            $builder->where('IdTpq', $idTpq);
+        }
+        // Jika idTpq kosong/null, TIDAK filter IdTpq (tampilkan semua TPQ)
+        // Ini berlaku untuk Admin yang ingin melihat semua TPQ
+
+        $builder->orderBy('RoomId', 'ASC');
+        $builder->orderBy('UsernameJuri', 'ASC');
+
+        $results = $builder->get()->getResultArray();
+
+        // Group by RoomId
+        $grouped = [];
+        foreach ($results as $juri) {
+            $roomId = $juri['RoomId'];
+            if (!isset($grouped[$roomId])) {
+                $grouped[$roomId] = [];
+            }
+            $grouped[$roomId][] = $juri;
+        }
+
+        return $grouped;
+    }
 }

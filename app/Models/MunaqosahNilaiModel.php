@@ -675,4 +675,209 @@ class MunaqosahNilaiModel extends Model
             throw $e;
         }
     }
+
+    /**
+     * Get peserta yang sudah dinilai dengan status penilaian per pasangan juri
+     * 
+     * @param string $idTahunAjaran
+     * @param string $typeUjian
+     * @param string|null $idGrupMateriUjian
+     * @param int|null $idTpq
+     * @return array
+     */
+    public function getPesertaDenganStatusJuriPasangan($idTahunAjaran, $typeUjian, $idGrupMateriUjian = null, $idTpq = null)
+    {
+        try {
+            // Ambil model juri untuk mendapatkan pasangan juri
+            $juriModel = new \App\Models\MunaqosahJuriModel();
+
+            // Ambil semua pasangan juri (grouped by RoomId)
+            // PERBAIKAN: Ambil pasangan juri tanpa filter IdGrupMateriUjian dulu, 
+            // karena peserta mungkin dinilai di grup materi yang berbeda
+            $allPasanganJuri = $juriModel->getAllPasanganJuri($idTahunAjaran, $typeUjian, null, $idTpq);
+
+            // Ambil semua peserta yang sudah dinilai minimal 1 juri
+            // Gunakan groupBy untuk mendapatkan unique kombinasi NoPeserta, RoomId, dan IdGrupMateriUjian
+            $builder = $this->db->table($this->table . ' mn');
+            $builder->select('mn.NoPeserta, mn.IdGrupMateriUjian, mn.RoomId, mn.IdTahunAjaran, mn.TypeUjian');
+            $builder->where('mn.IdTahunAjaran', $idTahunAjaran);
+            $builder->where('mn.TypeUjian', $typeUjian);
+            $builder->where('mn.RoomId IS NOT NULL');
+            $builder->where('mn.RoomId !=', '');
+
+            if (!empty($idGrupMateriUjian)) {
+                $builder->where('mn.IdGrupMateriUjian', $idGrupMateriUjian);
+            }
+
+            // Filter IdTpq
+            // PERBAIKAN: Untuk Admin, jika tidak memilih TPQ (idTpq = null atau 0), 
+            // tampilkan SEMUA TPQ (tidak filter IdTpq sama sekali)
+            if (!empty($idTpq)) {
+                // Jika Admin memilih TPQ tertentu, filter by IdTpq
+                $builder->where('mn.IdTpq', $idTpq);
+            }
+            // Jika idTpq kosong/null, TIDAK filter IdTpq (tampilkan semua TPQ)
+            // Ini berlaku untuk Admin yang ingin melihat semua TPQ
+
+            // GroupBy harus mencakup semua kolom di SELECT (kecuali aggregate)
+            $builder->groupBy('mn.NoPeserta, mn.IdGrupMateriUjian, mn.RoomId, mn.IdTahunAjaran, mn.TypeUjian');
+            $builder->orderBy('mn.NoPeserta', 'ASC');
+            $pesertaList = $builder->get()->getResultArray();
+
+            // Debug: Log jumlah peserta yang ditemukan
+            log_message('debug', 'getPesertaDenganStatusJuriPasangan - Jumlah peserta ditemukan: ' . count($pesertaList));
+            log_message('debug', 'getPesertaDenganStatusJuriPasangan - Filter: IdTahunAjaran=' . $idTahunAjaran . ', TypeUjian=' . $typeUjian . ', IdGrupMateriUjian=' . ($idGrupMateriUjian ?? 'null') . ', IdTpq=' . ($idTpq ?? 'null'));
+
+            // Optimasi: Ambil semua data santri dan grup materi sekaligus
+            $noPesertaList = array_column($pesertaList, 'NoPeserta');
+            $idGrupMateriList = array_unique(array_column($pesertaList, 'IdGrupMateriUjian'));
+
+            // Ambil semua nama santri sekaligus
+            $santriMap = [];
+            if (!empty($noPesertaList)) {
+                $santriBuilder = $this->db->table('tbl_munaqosah_registrasi_uji r');
+                $santriBuilder->select('r.NoPeserta, s.NamaSantri');
+                $santriBuilder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
+                $santriBuilder->whereIn('r.NoPeserta', $noPesertaList);
+                $santriBuilder->where('r.IdTahunAjaran', $idTahunAjaran);
+                $santriDataList = $santriBuilder->get()->getResultArray();
+                foreach ($santriDataList as $santri) {
+                    $santriMap[$santri['NoPeserta']] = $santri['NamaSantri'] ?? '-';
+                }
+            }
+
+            // Ambil semua nama grup materi sekaligus
+            $grupMateriMap = [];
+            if (!empty($idGrupMateriList)) {
+                $grupBuilder = $this->db->table('tbl_munaqosah_grup_materi_uji');
+                $grupBuilder->select('IdGrupMateriUjian, NamaMateriGrup');
+                $grupBuilder->whereIn('IdGrupMateriUjian', $idGrupMateriList);
+                $grupDataList = $grupBuilder->get()->getResultArray();
+                foreach ($grupDataList as $grup) {
+                    $grupMateriMap[$grup['IdGrupMateriUjian']] = $grup['NamaMateriGrup'] ?? $grup['IdGrupMateriUjian'];
+                }
+            }
+
+            $result = [];
+
+            foreach ($pesertaList as $peserta) {
+                $noPeserta = $peserta['NoPeserta'];
+                $roomId = $peserta['RoomId'];
+                $idGrupMateri = $peserta['IdGrupMateriUjian'];
+
+                // Ambil pasangan juri untuk RoomId ini
+                // PERBAIKAN: Ambil pasangan juri berdasarkan RoomId dan IdGrupMateriUjian
+                // Gunakan method getPasanganJuriByRoom untuk mendapatkan pasangan juri yang tepat
+                $pasanganJuri = $juriModel->getPasanganJuriByRoom($roomId, $typeUjian, $idGrupMateri);
+
+                // Jika tidak ada pasangan juri dengan filter IdGrupMateriUjian, 
+                // coba ambil semua pasangan juri di RoomId ini (tanpa filter IdGrupMateriUjian)
+                if (empty($pasanganJuri)) {
+                    $pasanganJuriRaw = $allPasanganJuri[$roomId] ?? [];
+                    // Jika filter IdGrupMateriUjian diberikan, filter manual
+                    if (!empty($idGrupMateriUjian) && !empty($pasanganJuriRaw)) {
+                        foreach ($pasanganJuriRaw as $juri) {
+                            if ($juri['IdGrupMateriUjian'] == $idGrupMateri) {
+                                $pasanganJuri[] = $juri;
+                            }
+                        }
+                    } else {
+                        // Jika tidak ada filter, ambil semua juri di RoomId ini
+                        $pasanganJuri = $pasanganJuriRaw;
+                    }
+                }
+
+                // Jika tidak ada pasangan juri di RoomId ini, tetap tampilkan dengan catatan
+                // (bukan skip) agar user tahu ada peserta yang dinilai di room tanpa pasangan juri
+                if (empty($pasanganJuri)) {
+                    // Tetap tampilkan tapi dengan status khusus
+                    $result[] = [
+                        'NoPeserta' => $noPeserta,
+                        'NamaSantri' => $namaSantri,
+                        'IdGrupMateriUjian' => $idGrupMateri,
+                        'NamaMateriGrup' => $namaMateriGrup,
+                        'RoomId' => $roomId,
+                        'pasangan_juri' => [],
+                        'status' => 'tidak_ada_pasangan',
+                        'total_pasangan' => 0,
+                        'total_sudah_nilai' => 0
+                    ];
+                    continue;
+                }
+
+                // Ambil data dari map yang sudah di-load
+                $namaSantri = $santriMap[$noPeserta] ?? '-';
+                $namaMateriGrup = $grupMateriMap[$idGrupMateri] ?? $idGrupMateri;
+
+                // Cek status penilaian per pasangan juri
+                $pasanganJuriStatus = [];
+                $allComplete = true;
+
+                // Ambil semua IdJuri dari pasangan juri
+                $idJuriList = array_column($pasanganJuri, 'IdJuri');
+
+                // Ambil semua nilai sekaligus untuk peserta ini dan semua pasangan juri
+                $nilaiMap = [];
+                if (!empty($idJuriList)) {
+                    $nilaiBuilder = $this->db->table($this->table);
+                    $nilaiBuilder->select('IdJuri, Nilai, updated_at');
+                    $nilaiBuilder->where('NoPeserta', $noPeserta);
+                    $nilaiBuilder->whereIn('IdJuri', $idJuriList);
+                    $nilaiBuilder->where('IdGrupMateriUjian', $idGrupMateri);
+                    $nilaiBuilder->where('IdTahunAjaran', $idTahunAjaran);
+                    $nilaiBuilder->where('TypeUjian', $typeUjian);
+                    $nilaiDataList = $nilaiBuilder->get()->getResultArray();
+                    foreach ($nilaiDataList as $nilaiData) {
+                        $nilaiMap[$nilaiData['IdJuri']] = [
+                            'Nilai' => (float)$nilaiData['Nilai'],
+                            'updated_at' => $nilaiData['updated_at']
+                        ];
+                    }
+                }
+
+                foreach ($pasanganJuri as $juri) {
+                    $idJuri = $juri['IdJuri'];
+                    $usernameJuri = $juri['UsernameJuri'];
+
+                    // Cek apakah juri ini sudah menilai peserta ini dari map
+                    $nilaiData = $nilaiMap[$idJuri] ?? null;
+                    $sudahNilai = !empty($nilaiData);
+                    $nilai = $sudahNilai ? $nilaiData['Nilai'] : null;
+                    $updatedAt = $sudahNilai ? $nilaiData['updated_at'] : null;
+
+                    if (!$sudahNilai) {
+                        $allComplete = false;
+                    }
+
+                    $pasanganJuriStatus[] = [
+                        'IdJuri' => $idJuri,
+                        'UsernameJuri' => $usernameJuri,
+                        'sudah_nilai' => $sudahNilai,
+                        'Nilai' => $nilai,
+                        'updated_at' => $updatedAt
+                    ];
+                }
+
+                $result[] = [
+                    'NoPeserta' => $noPeserta,
+                    'NamaSantri' => $namaSantri,
+                    'IdGrupMateriUjian' => $idGrupMateri,
+                    'NamaMateriGrup' => $namaMateriGrup,
+                    'RoomId' => $roomId,
+                    'pasangan_juri' => $pasanganJuriStatus,
+                    'status' => $allComplete ? 'lengkap' : 'belum_lengkap',
+                    'total_pasangan' => count($pasanganJuri),
+                    'total_sudah_nilai' => count(array_filter($pasanganJuriStatus, function ($j) {
+                        return $j['sudah_nilai'];
+                    }))
+                ];
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getPesertaDenganStatusJuriPasangan: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            throw $e;
+        }
+    }
 }
