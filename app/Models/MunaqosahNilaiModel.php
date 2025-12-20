@@ -272,18 +272,29 @@ class MunaqosahNilaiModel extends Model
             $pesertaSelesai = $this->db->query($sql, $params)->getResultArray();
             $totalSelesai = count($pesertaSelesai);
 
-            // Hitung total peserta yang sudah dinilai untuk minimal 1 grup materi
-            $builder2 = $this->db->table($this->table . ' mn');
-            $builder2->select('COUNT(DISTINCT mn.NoPeserta) as total_dinilai');
-            $builder2->where('mn.IdTahunAjaran', $idTahunAjaran);
-            $builder2->where('mn.IdTpq', $idTpqGroup);
+            // PERBAIKAN: Hitung total peserta yang sudah dinilai di SEMUA grup materi
+            // (bukan minimal 1 grup) agar konsisten dengan total_selesai
+            // Ini akan membuat "Progress Penilaian" menunjukkan persentase peserta
+            // yang sudah selesai dinilai di semua grup materi, bukan hanya minimal 1 grup
+            $sql2 = "SELECT COUNT(DISTINCT peserta_selesai.NoPeserta) as total_dinilai
+                    FROM (
+                        SELECT mn.IdTpq, mn.NoPeserta, COUNT(DISTINCT mn.IdGrupMateriUjian) as grup_materi_count
+                        FROM {$this->table} mn
+                        WHERE mn.IdTahunAjaran = ? AND mn.IdTpq = ?";
+            $params2 = [$idTahunAjaran, $idTpqGroup];
 
             if (!empty($typeUjian)) {
-                $builder2->where('mn.TypeUjian', $typeUjian);
+                $sql2 .= " AND mn.TypeUjian = ?";
+                $params2[] = $typeUjian;
             }
 
-            $totalDinilai = $builder2->get()->getRowArray();
-            $totalDinilai = $totalDinilai ? (int)$totalDinilai['total_dinilai'] : 0;
+            $sql2 .= " GROUP BY mn.IdTpq, mn.NoPeserta
+                      HAVING grup_materi_count = ?
+                    ) as peserta_selesai";
+            $params2[] = $totalGrupMateri;
+
+            $totalDinilaiResult = $this->db->query($sql2, $params2)->getRowArray();
+            $totalDinilai = $totalDinilaiResult ? (int)$totalDinilaiResult['total_dinilai'] : 0;
 
             $result[] = [
                 'GroupPeserta' => $groupPeserta,

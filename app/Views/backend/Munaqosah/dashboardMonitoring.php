@@ -374,7 +374,6 @@
                                                     <?php foreach ($statistikGroupPeserta as $index => $stat): ?>
                                                         <?php
                                                         $progressPct = $stat['total_peserta'] > 0 ? round(($stat['total_dinilai'] / $stat['total_peserta']) * 100) : 0;
-                                                        $selesaiPct = $stat['total_peserta'] > 0 ? round(($stat['total_selesai'] / $stat['total_peserta']) * 100) : 0;
                                                         $progressColor = $progressPct >= 80 ? 'bg-success' : ($progressPct >= 50 ? 'bg-warning' : 'bg-danger');
 
                                                         // Tentukan background color berdasarkan index (rotasi 8 warna)
@@ -422,16 +421,9 @@
                                                                     </div>
                                                                     <?php if ($stat['total_selesai'] > 0): ?>
                                                                         <div class="mt-2 pt-2 border-top">
-                                                                            <div class="d-flex justify-content-between mb-1">
-                                                                                <span class="small">Progress Selesai Semua Grup</span>
-                                                                                <span class="small font-weight-bold"><?= $selesaiPct ?>%</span>
-                                                                            </div>
-                                                                            <div class="progress" style="height: 20px;">
-                                                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?= $selesaiPct ?>%">
-                                                                                    <?= $selesaiPct ?>%
-                                                                                </div>
-                                                                            </div>
-                                                                            <small class="text-muted"><?= $stat['total_selesai'] ?> peserta sudah selesai dinilai untuk semua grup materi</small>
+                                                                            <small class="text-muted">
+                                                                                <i class="fas fa-info-circle"></i> <?= $stat['total_selesai'] ?> peserta sudah selesai dinilai untuk semua grup materi
+                                                                            </small>
                                                                         </div>
                                                                     <?php endif; ?>
                                                                 </div>
@@ -795,7 +787,6 @@
             let html = '<div class="row">';
             data.forEach(function(stat, index) {
                 const progressPct = stat.total_peserta > 0 ? Math.round((stat.total_dinilai / stat.total_peserta) * 100) : 0;
-                const selesaiPct = stat.total_peserta > 0 ? Math.round((stat.total_selesai / stat.total_peserta) * 100) : 0;
                 const progressColor = progressPct >= 80 ? 'bg-success' : (progressPct >= 50 ? 'bg-warning' : 'bg-danger');
                 // Tentukan background color berdasarkan index (rotasi 8 warna)
                 const bgClass = 'card-group-bg-' + ((index % 8) + 1);
@@ -843,16 +834,9 @@
                                 </div>
                                 ${stat.total_selesai > 0 ? `
                                 <div class="mt-2 pt-2 border-top">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="small">Progress Selesai Semua Grup</span>
-                                        <span class="small font-weight-bold">${selesaiPct}%</span>
-                                    </div>
-                                    <div class="progress" style="height: 20px;">
-                                        <div class="progress-bar bg-primary" role="progressbar" style="width: ${selesaiPct}%">
-                                            ${selesaiPct}%
-                                        </div>
-                                    </div>
-                                    <small class="text-muted">${stat.total_selesai} peserta sudah selesai dinilai untuk semua grup materi</small>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> ${stat.total_selesai} peserta sudah selesai dinilai untuk semua grup materi
+                                    </small>
                                 </div>
                                 ` : ''}
                             </div>
