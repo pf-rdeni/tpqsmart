@@ -718,10 +718,28 @@
                         currentMateriData = response.data.materi;
                         errorCategoriesByKategori = (response.data.error_categories && typeof response.data.error_categories === 'object') ? response.data.error_categories : {};
 
-                        // Show peserta info with room validation info dan status nilai
-                        showPesertaInfo(response.data.peserta, response.data.roomValidation, response.data.nilaiExists || false);
+                        // Cek apakah sudah dinilai
+                        const nilaiExists = response.data.nilaiExists || false;
 
-                        // Proceed to step 2
+                        // Show peserta info with room validation info dan status nilai
+                        showPesertaInfo(response.data.peserta, response.data.roomValidation, nilaiExists);
+
+                        // Validasi: jika sudah dinilai, jangan lanjut ke step 2
+                        if (nilaiExists) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Peserta Sudah Dinilai',
+                                html: `
+                                    <p>Peserta dengan No Peserta <strong>${response.data.peserta.NoPeserta}</strong> sudah dinilai.</p>
+                                    <p>Silakan pilih peserta lain yang belum dinilai.</p>
+                                `,
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#3085d6'
+                            });
+                            return; // Jangan lanjut ke step 2
+                        }
+
+                        // Proceed to step 2 hanya jika belum dinilai
                         proceedToStep2();
                     } else {
                         // Handle different error types with detailed messages
