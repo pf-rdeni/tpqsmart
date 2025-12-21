@@ -301,18 +301,19 @@
                                                                     </span>
                                                                 <?php endif; ?>
                                                             </div>
+                                                            <?php if ($maxCapacity > 1): ?>
                                                             <div class="mb-2">
                                                                 <small>
                                                                     <strong>Kapasitas:</strong> <?= $participantCount ?> / <?= $maxCapacity ?>
                                                                 </small>
                                                             </div>
+                                                            <?php endif; ?>
                                                             <?php if ($isOccupied && !empty($participants)): ?>
                                                                 <div class="room-participant mb-2">
                                                                     <?php foreach ($participants as $participant): ?>
                                                                         <div class="mb-1">
                                                                             <small>
-                                                                                <strong>No Peserta:</strong> <?= $participant['NoPeserta'] ?> -
-                                                                                <?= $participant['NamaSantri'] ?? '-' ?>
+                                                                                <?= $participant['NoPeserta'] ?> - <?= $participant['NamaSantri'] ?? '-' ?>
                                                                             </small>
                                                                         </div>
                                                                     <?php endforeach; ?>
@@ -781,11 +782,16 @@
                 if (isOccupied && participants.length > 0) {
                     participantsHtml = '<div class="room-participant mb-2">';
                     participants.forEach(function(participant) {
-                        participantsHtml += '<div class="mb-1"><small><strong>No Peserta:</strong> ' + participant.NoPeserta + ' - ' + (participant.NamaSantri || '-') + '</small></div>';
+                        participantsHtml += '<div class="mb-1"><small>' + participant.NoPeserta + ' - ' + (participant.NamaSantri || '-') + '</small></div>';
                     });
                     participantsHtml += '</div>';
                 } else {
                     participantsHtml = '<p class="mb-0"><i class="fas fa-door-open mr-1"></i>Ruangan tersedia</p>';
+                }
+
+                let capacityHtml = '';
+                if (maxCapacity > 1) {
+                    capacityHtml = '<div class="mb-2"><small><strong>Kapasitas:</strong> ' + participantCount + ' / ' + maxCapacity + '</small></div>';
                 }
 
                 const roomCard = $('<div>').addClass(colClass + ' mb-3').html(
@@ -794,7 +800,7 @@
                     '<h5 class="mb-0">Ruangan ' + room.RoomId + '</h5>' +
                     badgeHtml +
                     '</div>' +
-                    '<div class="mb-2"><small><strong>Kapasitas:</strong> ' + participantCount + ' / ' + maxCapacity + '</small></div>' +
+                    capacityHtml +
                     participantsHtml +
                     '</div>'
                 );

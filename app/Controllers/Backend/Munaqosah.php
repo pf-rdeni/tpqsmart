@@ -9952,7 +9952,15 @@ class Munaqosah extends BaseController
         }
         // Jika user login sebagai admin TPQ/Operator
         elseif (!empty($sessionIdTpq) && !$isPanitia) {
-            $selectedTpq = $sessionIdTpq;
+            // Jika admin TPQ/Operator, gunakan sessionIdTpq kecuali ada filter dari URL
+            if (empty($selectedTpq) || $selectedTpq == '0') {
+                $selectedTpq = $sessionIdTpq;
+            }
+        }
+        // Jika admin super (tidak ada sessionIdTpq), dan selectedTpq dari URL adalah 0 atau kosong
+        // Maka set selectedTpq menjadi null/empty untuk menampilkan semua TPQ
+        elseif (empty($sessionIdTpq) && ($selectedTpq == '0' || $selectedTpq === null || $selectedTpq === '')) {
+            $selectedTpq = null;
         }
 
         $typeOptions = [
@@ -9992,7 +10000,9 @@ class Munaqosah extends BaseController
                 'TypeUjian' => $selectedType,
             ];
 
-            if (!empty($selectedTpq)) {
+            // Hanya tambahkan filter IdTpq jika selectedTpq tidak null dan bukan 0
+            // Ini memastikan admin super bisa melihat semua grup untuk semua TPQ
+            if (!empty($selectedTpq) && $selectedTpq != '0' && $selectedTpq !== 0) {
                 $filters['IdTpq'] = $selectedTpq;
             }
 
