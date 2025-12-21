@@ -223,7 +223,12 @@
                                                 </div>
                                                 <div class="card-body p-0">
                                                     <div id="iframeContainer">
-                                                        <iframe id="iframeAyat" src="" style="width: 100%; height: 500px; border: none;"></iframe>
+                                                        <iframe id="iframeAyat"
+                                                            src=""
+                                                            style="width: 100%; height: 500px; border: none;"
+                                                            referrerpolicy="no-referrer-when-downgrade"
+                                                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                                                            loading="lazy"></iframe>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1315,6 +1320,7 @@
             });
 
             // Setup event listeners untuk checkbox auto-open ayat
+            console.log('[AutoOpenAyat] Form generated, setting up checkbox and auto-open');
             setupAutoOpenAyatCheckbox();
 
             // Auto-open ayat jika settingan aktif
@@ -2534,88 +2540,137 @@
 
     // Fungsi untuk setup checkbox auto-open ayat
     function setupAutoOpenAyatCheckbox() {
-        // Load saved settings dari localStorage
-        const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || '{}');
+        console.log('[AutoOpenAyat] setupAutoOpenAyatCheckbox() called');
+
+        // Load saved settings dari localStorage - hanya menyimpan type (web atau api)
+        const savedType = localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || null;
+        console.log('[AutoOpenAyat] Loaded type from localStorage:', savedType);
 
         // Set checkbox sesuai settingan yang tersimpan
-        $('.auto-open-ayat-checkbox').each(function() {
-            const materiId = $(this).data('materi-id');
-            const type = $(this).data('type'); // 'web' atau 'api'
-            const key = materiId + '_' + type;
+        // Gunakan setTimeout untuk memastikan checkbox sudah ter-render
+        setTimeout(function() {
+            const checkboxes = $('.auto-open-ayat-checkbox');
+            console.log('[AutoOpenAyat] Found checkboxes in DOM:', checkboxes.length);
 
-            if (savedSettings[key]) {
-                $(this).prop('checked', true);
-            }
-        });
+            checkboxes.each(function() {
+                const materiId = $(this).data('materi-id');
+                const type = $(this).data('type'); // 'web' atau 'api'
+
+                console.log('[AutoOpenAyat] Processing checkbox - materiId:', materiId, 'type:', type);
+
+                // Centang checkbox jika type-nya sesuai dengan yang tersimpan di localStorage
+                if (savedType && savedType === type) {
+                    $(this).prop('checked', true);
+                    console.log('[AutoOpenAyat] ✓ Checkbox checked for type:', type);
+                } else {
+                    $(this).prop('checked', false);
+                    console.log('[AutoOpenAyat] ✗ Checkbox unchecked for type:', type);
+                }
+            });
+
+            console.log('[AutoOpenAyat] Checkbox restoration completed');
+        }, 100);
 
         // Event listener untuk checkbox - mutual exclusive per materi
+        // Dipasang di luar setTimeout agar selalu tersedia
         $(document).off('change', '.auto-open-ayat-checkbox').on('change', '.auto-open-ayat-checkbox', function() {
             const materiId = $(this).data('materi-id');
             const type = $(this).data('type'); // 'web' atau 'api'
             const isChecked = $(this).is(':checked');
-            const key = materiId + '_' + type;
 
             // Jika checkbox dicentang, uncheck yang lain untuk materi yang sama
             if (isChecked) {
                 $(`.auto-open-ayat-checkbox[name="autoOpen_${materiId}"]`).not(this).prop('checked', false);
-            }
 
-            // Simpan settingan ke localStorage
-            const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || '{}');
+                // Simpan hanya type ke localStorage (tanpa materiId)
+                localStorage.setItem(STORAGE_KEY_AUTO_OPEN_AYAT, type);
 
-            if (isChecked) {
-                // Simpan settingan untuk type yang dipilih
-                savedSettings[key] = {
-                    materiId: materiId,
-                    type: type,
-                    idSurah: $(this).data('id-surah'),
-                    idAyat: $(this).data('id-ayat')
-                };
+                // Centang semua checkbox dengan type yang sama
+                $(`.auto-open-ayat-checkbox[data-type="${type}"]`).prop('checked', true);
 
-                // Hapus settingan untuk type lain dari materi yang sama
+                // Uncheck semua checkbox dengan type yang berbeda
                 const otherType = type === 'web' ? 'api' : 'web';
-                const otherKey = materiId + '_' + otherType;
-                delete savedSettings[otherKey];
+                $(`.auto-open-ayat-checkbox[data-type="${otherType}"]`).prop('checked', false);
             } else {
-                // Hapus settingan jika di-uncheck
-                delete savedSettings[key];
+                // Jika di-uncheck, cek apakah masih ada checkbox lain dengan type yang sama yang tercentang
+                const sameTypeChecked = $(`.auto-open-ayat-checkbox[data-type="${type}"]:checked`).length > 0;
+
+                if (!sameTypeChecked) {
+                    // Jika tidak ada lagi checkbox dengan type ini yang tercentang, hapus dari localStorage
+                    localStorage.removeItem(STORAGE_KEY_AUTO_OPEN_AYAT);
+                }
             }
 
-            localStorage.setItem(STORAGE_KEY_AUTO_OPEN_AYAT, JSON.stringify(savedSettings));
+            // Log untuk debugging
+            console.log('[AutoOpenAyat] Checkbox changed - materiId:', materiId, 'type:', type, 'checked:', isChecked);
+            console.log('[AutoOpenAyat] Saved type to localStorage:', localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT));
         });
     }
 
     // Fungsi untuk auto-open ayat jika settingan aktif
     function autoOpenAyatIfEnabled() {
-        const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || '{}');
+        console.log('[AutoOpenAyat] autoOpenAyatIfEnabled() called');
 
-        // Iterate melalui semua settingan yang tersimpan di localStorage
-        // Jangan bergantung pada checkbox state, langsung cek localStorage
-        Object.keys(savedSettings).forEach(function(key) {
-            const setting = savedSettings[key];
-            
-            if (setting && setting.materiId && setting.type) {
-                const materiId = setting.materiId;
-                const type = setting.type;
-                
-                // Delay sedikit untuk memastikan form sudah ter-render
-                setTimeout(function() {
-                    if (type === 'api' && setting.idSurah && setting.idAyat) {
-                        // Buka ayat API
-                        const apiButton = $(`.btn-lihat-ayat-api[data-materi-id="${materiId}"]`);
-                        if (apiButton.length > 0) {
+        // Load saved type dari localStorage (hanya type, tanpa materiId)
+        const savedType = localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT);
+        console.log('[AutoOpenAyat] Saved type from localStorage:', savedType);
+
+        if (!savedType) {
+            console.log('[AutoOpenAyat] No active type found, skipping auto-open');
+            return;
+        }
+
+        // Delay sedikit untuk memastikan form sudah ter-render
+        setTimeout(function() {
+            console.log('[AutoOpenAyat] Attempting to open ayat for all materi with type:', savedType);
+
+            if (savedType === 'api') {
+                // Buka semua ayat API yang memiliki checkbox tercentang
+                $('.auto-open-ayat-checkbox[data-type="api"]:checked').each(function() {
+                    const materiId = $(this).data('materi-id');
+                    const apiButton = $(`.btn-lihat-ayat-api[data-materi-id="${materiId}"]`);
+
+                    console.log('[AutoOpenAyat] Processing API button for materiId:', materiId);
+                    console.log('[AutoOpenAyat] API button found:', apiButton.length > 0);
+
+                    if (apiButton.length > 0) {
+                        // Ambil idSurah dan idAyat dari button (spesifik untuk peserta saat ini)
+                        const idSurah = apiButton.data('id-surah');
+                        const idAyat = apiButton.data('id-ayat');
+                        console.log('[AutoOpenAyat] Button data - idSurah:', idSurah, 'idAyat:', idAyat);
+
+                        if (idSurah && idAyat) {
+                            console.log('[AutoOpenAyat] ✓ Triggering click on API button for materiId:', materiId);
                             apiButton.trigger('click');
+                        } else {
+                            console.log('[AutoOpenAyat] ✗ API button missing idSurah or idAyat data');
                         }
-                    } else if (type === 'web') {
-                        // Buka ayat Web
-                        const webButton = $(`.btn-lihat-ayat-card[data-materi-id="${materiId}"]`);
-                        if (webButton.length > 0) {
-                            webButton.trigger('click');
-                        }
+                    } else {
+                        console.log('[AutoOpenAyat] ✗ API button NOT found for materiId:', materiId);
                     }
-                }, 500); // Delay 500ms untuk memastikan semua sudah ter-render
+                });
+            } else if (savedType === 'web') {
+                // Buka semua ayat Web yang memiliki checkbox tercentang
+                $('.auto-open-ayat-checkbox[data-type="web"]:checked').each(function() {
+                    const materiId = $(this).data('materi-id');
+                    const webButton = $(`.btn-lihat-ayat-card[data-materi-id="${materiId}"]`);
+
+                    console.log('[AutoOpenAyat] Processing Web button for materiId:', materiId);
+                    console.log('[AutoOpenAyat] Web button found:', webButton.length > 0);
+
+                    if (webButton.length > 0) {
+                        console.log('[AutoOpenAyat] ✓ Triggering click on Web button for materiId:', materiId);
+                        webButton.trigger('click');
+                    } else {
+                        console.log('[AutoOpenAyat] ✗ Web button NOT found for materiId:', materiId);
+                    }
+                });
+            } else {
+                console.log('[AutoOpenAyat] ✗ Invalid type:', savedType);
             }
-        });
+
+            console.log('[AutoOpenAyat] autoOpenAyatIfEnabled() completed');
+        }, 600); // Delay 600ms untuk memastikan semua sudah ter-render
     }
 
     // ==================== ZOOM FUNCTIONS ====================
