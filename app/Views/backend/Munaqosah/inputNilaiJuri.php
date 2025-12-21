@@ -2589,23 +2589,24 @@
     function autoOpenAyatIfEnabled() {
         const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || '{}');
 
-        // Cari checkbox yang tercentang
-        $('.auto-open-ayat-checkbox:checked').each(function() {
-            const materiId = $(this).data('materi-id');
-            const type = $(this).data('type'); // 'web' atau 'api'
-            const key = materiId + '_' + type;
+        // Iterate melalui semua settingan yang tersimpan di localStorage
+        // Jangan bergantung pada checkbox state, langsung cek localStorage
+        Object.keys(savedSettings).forEach(function(key) {
             const setting = savedSettings[key];
-
-            if (setting && setting.type) {
+            
+            if (setting && setting.materiId && setting.type) {
+                const materiId = setting.materiId;
+                const type = setting.type;
+                
                 // Delay sedikit untuk memastikan form sudah ter-render
                 setTimeout(function() {
-                    if (setting.type === 'api' && setting.idSurah && setting.idAyat) {
+                    if (type === 'api' && setting.idSurah && setting.idAyat) {
                         // Buka ayat API
                         const apiButton = $(`.btn-lihat-ayat-api[data-materi-id="${materiId}"]`);
                         if (apiButton.length > 0) {
                             apiButton.trigger('click');
                         }
-                    } else if (setting.type === 'web') {
+                    } else if (type === 'web') {
                         // Buka ayat Web
                         const webButton = $(`.btn-lihat-ayat-card[data-materi-id="${materiId}"]`);
                         if (webButton.length > 0) {
