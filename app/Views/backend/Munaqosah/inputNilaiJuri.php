@@ -199,6 +199,11 @@
 
                                     <!-- Step 2: Input Nilai -->
                                     <div id="step2" class="content" role="tabpanel" aria-labelledby="stepper2-trigger">
+                                        <!-- Info Box Khusus untuk Grup Praktek Sholat -->
+                                        <div id="infoPraktekSholat" class="alert alert-warning mb-3" style="display: none;">
+                                            <i class="fas fa-info-circle"></i> <strong id="infoPraktekSholatText"></strong>
+                                        </div>
+
                                         <div id="formNilaiContainer">
                                             <!-- Form nilai akan di-generate secara dinamis -->
                                         </div>
@@ -959,6 +964,8 @@
                     $('#btnKirimNilaiContainer').hide();
                     // Sembunyikan section ayat jika terbuka
                     $('#ayatSection').hide();
+                    // Sembunyikan info praktek sholat
+                    $('#infoPraktekSholat').hide();
 
                     // Reset tampilan ayat API
                     resetAyatApiView();
@@ -1297,6 +1304,9 @@
 
             $('#formNilaiContainer').html(formHtml);
 
+            // Tampilkan info khusus untuk grup praktek sholat
+            showInfoPraktekSholat();
+
             // Setup event listeners for nilai inputs
             setupNilaiInputListeners();
             setupErrorCategoryToggles();
@@ -1343,6 +1353,80 @@
 
             // Auto-open ayat jika settingan aktif
             autoOpenAyatIfEnabled();
+        }
+
+        // Fungsi untuk menampilkan info khusus grup praktek sholat
+        function showInfoPraktekSholat() {
+            // Cek apakah grup materi adalah praktek sholat
+            if (!currentJuriData || !currentJuriData.NamaMateriGrup) {
+                $('#infoPraktekSholat').hide();
+                return;
+            }
+
+            const namaGrup = currentJuriData.NamaMateriGrup.toLowerCase();
+            const isPraktekSholat = namaGrup.includes('sholat') || namaGrup.includes('praktek') || namaGrup.includes('praktik');
+
+            if (!isPraktekSholat) {
+                $('#infoPraktekSholat').hide();
+                return;
+            }
+
+            // Cari materi dengan kategori SURAH PENDEK dan AYAT PILIHAN
+            let surahPendek = null;
+            let ayatPilihan = null;
+
+            if (currentMateriData && currentMateriData.length > 0) {
+                currentMateriData.forEach(materi => {
+                    const kategori = materi.KategoriMateriUjian || '';
+                    const kategoriUpper = kategori.toUpperCase();
+
+                    // Cari SURAH PENDEK
+                    if (kategoriUpper.includes('SURAH PENDEK') || kategoriUpper.includes('SURAHPENDEK')) {
+                        // Ambil nama surah dari NamaMateri atau NamaSurah
+                        surahPendek = materi.NamaSurah || materi.NamaMateri || 'Tidak Ditemukan';
+                    }
+
+                    // Cari AYAT PILIHAN
+                    if (kategoriUpper.includes('AYAT PILIHAN') || kategoriUpper.includes('AYATPILIHAN')) {
+                        // Format: NamaSurah ayat IdAyat atau NamaMateri
+                        if (materi.NamaSurah && materi.IdAyat) {
+                            ayatPilihan = materi.NamaSurah + ' ayat ' + materi.IdAyat;
+                        } else if (materi.NamaMateri) {
+                            ayatPilihan = materi.NamaMateri;
+                        } else {
+                            ayatPilihan = 'Tidak Ditemukan';
+                        }
+                    }
+                });
+            }
+
+            // Tampilkan info box jika ada data
+            if (surahPendek || ayatPilihan) {
+                let infoHtml = '';
+
+                if (surahPendek && ayatPilihan) {
+                    // Escape untuk keamanan
+                    const escapedSurahPendek = $('<div>').text(surahPendek).html();
+                    const escapedAyatPilihan = $('<div>').text(ayatPilihan).html();
+
+                    infoHtml = `Surah Pedek: <span class="badge badge-primary">${escapedSurahPendek}</span> Ayat Pilihan: <span class="badge badge-success">${escapedAyatPilihan}</span>`;
+                } else if (surahPendek) {
+                    const escapedSurahPendek = $('<div>').text(surahPendek).html();
+                    infoHtml = `Surah Pedek: <span class="badge badge-primary">${escapedSurahPendek}</span>`;
+                } else if (ayatPilihan) {
+                    const escapedAyatPilihan = $('<div>').text(ayatPilihan).html();
+                    infoHtml = `Ayat Pilihan: <span class="badge badge-success">${escapedAyatPilihan}</span>`;
+                }
+
+                if (infoHtml) {
+                    $('#infoPraktekSholatText').html(infoHtml);
+                    $('#infoPraktekSholat').show();
+                } else {
+                    $('#infoPraktekSholat').hide();
+                }
+            } else {
+                $('#infoPraktekSholat').hide();
+            }
         }
 
         // Function to get error categories for a kategori from preloaded data
