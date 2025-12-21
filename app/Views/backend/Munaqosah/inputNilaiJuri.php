@@ -35,6 +35,16 @@
                                 </div>
                             </div>
                             <div class="bs-stepper-content">
+                                <!-- Popup Info Praktek Sholat (Draggable) -->
+                                <div id="infoPraktekSholatPopup">
+                                    <div class="popup-body">
+                                        <div id="infoPraktekSholatText"></div>
+                                        <button type="button" class="popup-close" title="Tutup">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <form id="formInputNilai">
                                     <!-- Step 1: Input No Peserta -->
                                     <div id="step1" class="content" role="tabpanel" aria-labelledby="stepper1-trigger">
@@ -43,7 +53,15 @@
                                                 <div class="form-group">
                                                     <label for="noPeserta">No Peserta <span class="text-danger">*</span></label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" id="noPeserta" name="noPeserta" placeholder="Ketikkan atau scan QR No Peserta" required>
+                                                        <input type="number"
+                                                            class="form-control"
+                                                            id="noPeserta"
+                                                            name="noPeserta"
+                                                            placeholder="Ketikkan atau scan QR No Peserta"
+                                                            pattern="[0-9]*"
+                                                            inputmode="numeric"
+                                                            onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                                                            required>
                                                         <div class="input-group-append">
                                                             <button class="btn btn-outline-secondary" type="button" id="btnScanQR">
                                                                 <i class="fas fa-qrcode"></i> Scan QR
@@ -199,11 +217,6 @@
 
                                     <!-- Step 2: Input Nilai -->
                                     <div id="step2" class="content" role="tabpanel" aria-labelledby="stepper2-trigger">
-                                        <!-- Info Box Khusus untuk Grup Praktek Sholat -->
-                                        <div id="infoPraktekSholat" class="alert alert-warning mb-3" style="display: none;">
-                                            <i class="fas fa-info-circle"></i> <strong id="infoPraktekSholatText"></strong>
-                                        </div>
-
                                         <div id="formNilaiContainer">
                                             <!-- Form nilai akan di-generate secara dinamis -->
                                         </div>
@@ -582,6 +595,57 @@
     .duration-none {
         color: #6c757d;
         font-style: italic;
+    }
+
+    /* Styling untuk popup info praktek sholat */
+    #infoPraktekSholatPopup {
+        position: fixed;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 500px;
+        background-color: rgba(255, 193, 7, 0.8);
+        /* Transparan 80% */
+        border: 2px solid rgba(255, 152, 0, 0.8);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        cursor: move;
+        display: none;
+    }
+
+    #infoPraktekSholatPopup .popup-body {
+        padding: 12px 15px;
+        color: #333;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        position: relative;
+    }
+
+    #infoPraktekSholatPopup .popup-body #infoPraktekSholatText {
+        flex: 1;
+    }
+
+    #infoPraktekSholatPopup .popup-close {
+        background: rgba(255, 255, 255, 0.3);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        color: #333;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        flex-shrink: 0;
+    }
+
+    #infoPraktekSholatPopup .popup-close:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    #infoPraktekSholatPopup .popup-body .badge {
+        font-size: 12px;
+        padding: 5px 8px;
     }
 </style>
 
@@ -964,8 +1028,8 @@
                     $('#btnKirimNilaiContainer').hide();
                     // Sembunyikan section ayat jika terbuka
                     $('#ayatSection').hide();
-                    // Sembunyikan info praktek sholat
-                    $('#infoPraktekSholat').hide();
+                    // Auto close popup info praktek sholat
+                    closeInfoPraktekSholat();
 
                     // Reset tampilan ayat API
                     resetAyatApiView();
@@ -1086,6 +1150,7 @@
                     const escapedMateriId = $('<div>').text(materi.IdMateri || '').html();
                     const escapedIdSurah = idSurah ? $('<div>').text(idSurah).html() : '';
                     const escapedIdAyat = idAyat ? $('<div>').text(idAyat).html() : '';
+                    const escapedKategori = $('<div>').text(kategori).html();
 
                     formHtml += `
                      <div class="row mb-4">
@@ -1133,6 +1198,7 @@
                                                         id="autoOpenWeb_${escapedMateriId}"
                                                         data-materi-id="${escapedMateriId}"
                                                         data-type="web"
+                                                        data-kategori="${escapedKategori}"
                                                         name="autoOpen_${escapedMateriId}">
                                                  <label class="form-check-label small text-muted" for="autoOpenWeb_${escapedMateriId}">
                                                      Auto Buka (Web)
@@ -1148,6 +1214,7 @@
                                                         data-type="api"
                                                         data-id-surah="${escapedIdSurah}"
                                                         data-id-ayat="${escapedIdAyat}"
+                                                        data-kategori="${escapedKategori}"
                                                         name="autoOpen_${escapedMateriId}">
                                                  <label class="form-check-label small text-muted" for="autoOpenApi_${escapedMateriId}">
                                                      Auto Buka (API)
@@ -1355,19 +1422,139 @@
             autoOpenAyatIfEnabled();
         }
 
+        // ==================== INFO PRAKTEK SHOLAT POPUP ====================
+        const STORAGE_KEY_INFO_POPUP_POS = 'munaqosah_info_popup_position';
+
+        // Fungsi untuk load posisi popup dari localStorage
+        function loadInfoPopupPosition() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY_INFO_POPUP_POS);
+                if (saved) {
+                    const pos = JSON.parse(saved);
+                    if (pos && typeof pos.top !== 'undefined' && typeof pos.left !== 'undefined') {
+                        $('#infoPraktekSholatPopup').css({
+                            top: pos.top + 'px',
+                            left: pos.left + 'px',
+                            right: 'auto'
+                        });
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.log('[InfoPopup] Error loading position:', e);
+            }
+            return false;
+        }
+
+        // Fungsi untuk save posisi popup ke localStorage
+        function saveInfoPopupPosition() {
+            const popup = $('#infoPraktekSholatPopup');
+            if (popup.is(':visible')) {
+                const pos = {
+                    top: parseInt(popup.css('top')) || 20,
+                    left: parseInt(popup.css('left')) || ($(window).width() - 320)
+                };
+                localStorage.setItem(STORAGE_KEY_INFO_POPUP_POS, JSON.stringify(pos));
+            }
+        }
+
+        // Setup draggable untuk popup
+        function setupInfoPopupDraggable() {
+            const popup = $('#infoPraktekSholatPopup');
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+            let xOffset = 0;
+            let yOffset = 0;
+
+            // Load posisi terakhir
+            if (!loadInfoPopupPosition()) {
+                // Default position: pojok kanan atas
+                popup.css({
+                    top: '20px',
+                    right: '20px',
+                    left: 'auto'
+                });
+            }
+
+            // Mouse down pada body (karena tidak ada header lagi)
+            popup.find('.popup-body').on('mousedown', function(e) {
+                if (e.target.classList.contains('popup-close') || e.target.closest('.popup-close')) {
+                    return; // Jangan drag jika klik tombol close
+                }
+
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+
+                if (e.button === 0) { // Left mouse button
+                    isDragging = true;
+                    popup.css('cursor', 'grabbing');
+                }
+            });
+
+            // Mouse move
+            $(document).on('mousemove', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+
+                    xOffset = currentX;
+                    yOffset = currentY;
+
+                    // Update posisi
+                    popup.css({
+                        top: currentY + 'px',
+                        left: currentX + 'px',
+                        right: 'auto'
+                    });
+                }
+            });
+
+            // Mouse up
+            $(document).on('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    popup.css('cursor', 'move');
+                    saveInfoPopupPosition(); // Save posisi setelah drag
+                }
+            });
+        }
+
+        // Fungsi untuk menutup popup (global scope)
+        window.closeInfoPraktekSholat = function() {
+            $('#infoPraktekSholatPopup').fadeOut(300);
+            saveInfoPopupPosition();
+        };
+
+        // Setup event listener untuk tombol close (alternatif jika onclick tidak bekerja)
+        $(document).on('click', '#infoPraktekSholatPopup .popup-close', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.closeInfoPraktekSholat();
+        });
+
         // Fungsi untuk menampilkan info khusus grup praktek sholat
         function showInfoPraktekSholat() {
+            console.log('[InfoPopup] showInfoPraktekSholat() called');
+            console.log('[InfoPopup] currentJuriData:', currentJuriData);
+
             // Cek apakah grup materi adalah praktek sholat
             if (!currentJuriData || !currentJuriData.NamaMateriGrup) {
-                $('#infoPraktekSholat').hide();
+                console.log('[InfoPopup] No currentJuriData or NamaMateriGrup');
+                $('#infoPraktekSholatPopup').hide();
                 return;
             }
 
             const namaGrup = currentJuriData.NamaMateriGrup.toLowerCase();
             const isPraktekSholat = namaGrup.includes('sholat') || namaGrup.includes('praktek') || namaGrup.includes('praktik');
+            console.log('[InfoPopup] namaGrup:', namaGrup, 'isPraktekSholat:', isPraktekSholat);
 
             if (!isPraktekSholat) {
-                $('#infoPraktekSholat').hide();
+                console.log('[InfoPopup] Not praktek sholat group');
+                $('#infoPraktekSholatPopup').hide();
                 return;
             }
 
@@ -1375,8 +1562,33 @@
             let surahPendek = null;
             let ayatPilihan = null;
 
-            if (currentMateriData && currentMateriData.length > 0) {
-                currentMateriData.forEach(materi => {
+            // Cek apakah currentMateriData tersedia, jika tidak coba ambil dari DOM
+            let materiDataToUse = currentMateriData;
+            if (!materiDataToUse || materiDataToUse.length === 0) {
+                // Coba ambil dari form yang sudah di-generate
+                materiDataToUse = [];
+                $('.nilai-input').each(function() {
+                    const materiId = $(this).data('materi-id');
+                    if (materiId) {
+                        // Cari kategori dari card header
+                        const card = $(this).closest('.card');
+                        const kategori = card.find('.card-header .card-title').text().trim();
+                        // Cari button untuk mendapatkan data surah/ayat
+                        const apiButton = $(`.btn-lihat-ayat-api[data-materi-id="${materiId}"]`);
+                        const webButton = $(`.btn-lihat-ayat-card[data-materi-id="${materiId}"]`);
+                        materiDataToUse.push({
+                            IdMateri: materiId,
+                            KategoriMateriUjian: kategori,
+                            NamaMateri: $(this).prev('label').text() || '',
+                            NamaSurah: apiButton.length > 0 ? (apiButton.data('id-surah') ? 'Surah ' + apiButton.data('id-surah') : null) : null,
+                            IdAyat: apiButton.length > 0 ? apiButton.data('id-ayat') : null
+                        });
+                    }
+                });
+            }
+
+            if (materiDataToUse && materiDataToUse.length > 0) {
+                materiDataToUse.forEach(materi => {
                     const kategori = materi.KategoriMateriUjian || '';
                     const kategoriUpper = kategori.toUpperCase();
 
@@ -1400,7 +1612,7 @@
                 });
             }
 
-            // Tampilkan info box jika ada data
+            // Tampilkan popup jika ada data
             if (surahPendek || ayatPilihan) {
                 let infoHtml = '';
 
@@ -1419,13 +1631,43 @@
                 }
 
                 if (infoHtml) {
+                    // Pastikan popup ada di DOM
+                    const popup = $('#infoPraktekSholatPopup');
+                    if (popup.length === 0) {
+                        console.error('[InfoPopup] Popup element not found in DOM');
+                        return;
+                    }
+
                     $('#infoPraktekSholatText').html(infoHtml);
-                    $('#infoPraktekSholat').show();
+
+                    // Setup draggable jika belum
+                    if (!popup.data('draggable-setup')) {
+                        setupInfoPopupDraggable();
+                        popup.data('draggable-setup', true);
+                    }
+
+                    // Load posisi terakhir setelah setup
+                    loadInfoPopupPosition();
+
+                    // Tampilkan popup
+                    console.log('[InfoPopup] Showing popup with content:', infoHtml);
+                    console.log('[InfoPopup] Popup element:', popup);
+                    console.log('[InfoPopup] Popup CSS:', {
+                        display: popup.css('display'),
+                        position: popup.css('position'),
+                        zIndex: popup.css('z-index'),
+                        top: popup.css('top'),
+                        left: popup.css('left'),
+                        right: popup.css('right')
+                    });
+                    popup.fadeIn(300);
                 } else {
-                    $('#infoPraktekSholat').hide();
+                    console.log('[InfoPopup] No info to display');
+                    $('#infoPraktekSholatPopup').hide();
                 }
             } else {
-                $('#infoPraktekSholat').hide();
+                console.log('[InfoPopup] No surah pendek or ayat pilihan found');
+                $('#infoPraktekSholatPopup').hide();
             }
         }
 
@@ -2024,7 +2266,9 @@
         });
 
         function onScanSuccess(decodedText, decodedResult) {
-            $('#noPeserta').val(decodedText);
+            // Filter hanya angka dari hasil scan
+            const numericOnly = decodedText.replace(/[^0-9]/g, '');
+            $('#noPeserta').val(numericOnly);
             $('#modalQRScanner').modal('hide');
 
             // Auto check peserta after QR scan
@@ -2036,9 +2280,14 @@
             console.log('QR Scan failed:', error);
         }
 
-        // Auto search when typing 3+ digits
+        // Blokir input non-numeric untuk no peserta
         $('#noPeserta').on('input', function() {
-            const noPeserta = $(this).val().trim();
+            // Hanya izinkan angka
+            let value = $(this).val();
+            value = value.replace(/[^0-9]/g, '');
+            $(this).val(value);
+
+            const noPeserta = value.trim();
 
             // Clear any existing timeout and countdown
             if (window.autoSearchTimeout) {
@@ -2640,13 +2889,42 @@
     // ==================== AUTO OPEN AYAT FUNCTIONS ====================
     const STORAGE_KEY_AUTO_OPEN_AYAT = 'munaqosah_auto_open_ayat';
 
+    // Fungsi helper untuk membaca settings dari localStorage dengan error handling
+    function getAutoOpenAyatSettings() {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT);
+            if (!stored) {
+                return {};
+            }
+
+            // Coba parse sebagai JSON
+            const parsed = JSON.parse(stored);
+
+            // Jika hasilnya adalah object, return
+            if (typeof parsed === 'object' && parsed !== null) {
+                return parsed;
+            }
+
+            // Jika hasilnya adalah string (format lama: "web" atau "api"), clear dan return {}
+            // Format lama tidak kompatibel dengan format baru
+            console.log('[AutoOpenAyat] Found old format, clearing...');
+            localStorage.removeItem(STORAGE_KEY_AUTO_OPEN_AYAT);
+            return {};
+        } catch (e) {
+            // Jika error parsing, kemungkinan format lama atau corrupt
+            console.log('[AutoOpenAyat] Error parsing localStorage, clearing:', e);
+            localStorage.removeItem(STORAGE_KEY_AUTO_OPEN_AYAT);
+            return {};
+        }
+    }
+
     // Fungsi untuk setup checkbox auto-open ayat
     function setupAutoOpenAyatCheckbox() {
         console.log('[AutoOpenAyat] setupAutoOpenAyatCheckbox() called');
 
-        // Load saved settings dari localStorage - hanya menyimpan type (web atau api)
-        const savedType = localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT) || null;
-        console.log('[AutoOpenAyat] Loaded type from localStorage:', savedType);
+        // Load saved settings dari localStorage - format: JSON dengan kategori dan type
+        const savedSettings = getAutoOpenAyatSettings();
+        console.log('[AutoOpenAyat] Loaded settings from localStorage:', savedSettings);
 
         // Set checkbox sesuai settingan yang tersimpan
         // Gunakan setTimeout untuk memastikan checkbox sudah ter-render
@@ -2655,57 +2933,71 @@
             console.log('[AutoOpenAyat] Found checkboxes in DOM:', checkboxes.length);
 
             checkboxes.each(function() {
-                const materiId = $(this).data('materi-id');
+                const kategori = $(this).data('kategori') || '';
                 const type = $(this).data('type'); // 'web' atau 'api'
+                const key = kategori + '_' + type;
 
-                console.log('[AutoOpenAyat] Processing checkbox - materiId:', materiId, 'type:', type);
+                console.log('[AutoOpenAyat] Processing checkbox - kategori:', kategori, 'type:', type, 'key:', key);
 
-                // Centang checkbox jika type-nya sesuai dengan yang tersimpan di localStorage
-                if (savedType && savedType === type) {
+                // Centang checkbox jika kategori dan type-nya sesuai dengan yang tersimpan di localStorage
+                if (savedSettings[key]) {
                     $(this).prop('checked', true);
-                    console.log('[AutoOpenAyat] ✓ Checkbox checked for type:', type);
+                    console.log('[AutoOpenAyat] ✓ Checkbox checked for key:', key);
                 } else {
                     $(this).prop('checked', false);
-                    console.log('[AutoOpenAyat] ✗ Checkbox unchecked for type:', type);
+                    console.log('[AutoOpenAyat] ✗ Checkbox unchecked for key:', key);
                 }
             });
 
             console.log('[AutoOpenAyat] Checkbox restoration completed');
         }, 100);
 
-        // Event listener untuk checkbox - mutual exclusive per materi
+        // Event listener untuk checkbox - berdasarkan kategori
         // Dipasang di luar setTimeout agar selalu tersedia
         $(document).off('change', '.auto-open-ayat-checkbox').on('change', '.auto-open-ayat-checkbox', function() {
-            const materiId = $(this).data('materi-id');
+            const kategori = $(this).data('kategori') || '';
             const type = $(this).data('type'); // 'web' atau 'api'
             const isChecked = $(this).is(':checked');
+            const key = kategori + '_' + type;
 
-            // Jika checkbox dicentang, uncheck yang lain untuk materi yang sama
+            // Load saved settings
+            const savedSettings = getAutoOpenAyatSettings();
+
             if (isChecked) {
+                // Jika checkbox dicentang, uncheck yang lain untuk kategori dan materi yang sama
+                const materiId = $(this).data('materi-id');
                 $(`.auto-open-ayat-checkbox[name="autoOpen_${materiId}"]`).not(this).prop('checked', false);
 
-                // Simpan hanya type ke localStorage (tanpa materiId)
-                localStorage.setItem(STORAGE_KEY_AUTO_OPEN_AYAT, type);
+                // Simpan kategori dan type ke localStorage
+                savedSettings[key] = {
+                    kategori: kategori,
+                    type: type
+                };
 
-                // Centang semua checkbox dengan type yang sama
-                $(`.auto-open-ayat-checkbox[data-type="${type}"]`).prop('checked', true);
-
-                // Uncheck semua checkbox dengan type yang berbeda
+                // Hapus setting untuk type lain dari kategori yang sama
                 const otherType = type === 'web' ? 'api' : 'web';
-                $(`.auto-open-ayat-checkbox[data-type="${otherType}"]`).prop('checked', false);
-            } else {
-                // Jika di-uncheck, cek apakah masih ada checkbox lain dengan type yang sama yang tercentang
-                const sameTypeChecked = $(`.auto-open-ayat-checkbox[data-type="${type}"]:checked`).length > 0;
+                const otherKey = kategori + '_' + otherType;
+                delete savedSettings[otherKey];
 
-                if (!sameTypeChecked) {
-                    // Jika tidak ada lagi checkbox dengan type ini yang tercentang, hapus dari localStorage
-                    localStorage.removeItem(STORAGE_KEY_AUTO_OPEN_AYAT);
-                }
+                // Centang semua checkbox dengan kategori dan type yang sama
+                $(`.auto-open-ayat-checkbox[data-kategori="${kategori}"][data-type="${type}"]`).prop('checked', true);
+
+                // Uncheck semua checkbox dengan kategori yang sama tapi type berbeda
+                $(`.auto-open-ayat-checkbox[data-kategori="${kategori}"][data-type="${otherType}"]`).prop('checked', false);
+            } else {
+                // Jika di-uncheck, hapus setting untuk kategori dan type ini
+                delete savedSettings[key];
+
+                // Uncheck semua checkbox dengan kategori dan type yang sama
+                $(`.auto-open-ayat-checkbox[data-kategori="${kategori}"][data-type="${type}"]`).prop('checked', false);
             }
 
+            // Simpan ke localStorage
+            localStorage.setItem(STORAGE_KEY_AUTO_OPEN_AYAT, JSON.stringify(savedSettings));
+
             // Log untuk debugging
-            console.log('[AutoOpenAyat] Checkbox changed - materiId:', materiId, 'type:', type, 'checked:', isChecked);
-            console.log('[AutoOpenAyat] Saved type to localStorage:', localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT));
+            console.log('[AutoOpenAyat] Checkbox changed - kategori:', kategori, 'type:', type, 'checked:', isChecked);
+            console.log('[AutoOpenAyat] Saved settings to localStorage:', savedSettings);
         });
     }
 
@@ -2713,65 +3005,118 @@
     function autoOpenAyatIfEnabled() {
         console.log('[AutoOpenAyat] autoOpenAyatIfEnabled() called');
 
-        // Load saved type dari localStorage (hanya type, tanpa materiId)
-        const savedType = localStorage.getItem(STORAGE_KEY_AUTO_OPEN_AYAT);
-        console.log('[AutoOpenAyat] Saved type from localStorage:', savedType);
+        // Load saved settings dari localStorage (format: JSON dengan kategori dan type)
+        const savedSettings = getAutoOpenAyatSettings();
+        console.log('[AutoOpenAyat] Saved settings from localStorage:', savedSettings);
 
-        if (!savedType) {
-            console.log('[AutoOpenAyat] No active type found, skipping auto-open');
+        if (Object.keys(savedSettings).length === 0) {
+            console.log('[AutoOpenAyat] No active settings found, skipping auto-open');
             return;
         }
 
         // Delay sedikit untuk memastikan form sudah ter-render
         setTimeout(function() {
-            console.log('[AutoOpenAyat] Attempting to open ayat for all materi with type:', savedType);
+            console.log('[AutoOpenAyat] Attempting to open ayat for saved settings');
 
+            // Kumpulkan semua checkbox yang tercentang dengan data lengkap
+            const checkedItems = [];
+            $('.auto-open-ayat-checkbox:checked').each(function() {
+                const materiId = $(this).data('materi-id');
+                const kategori = $(this).data('kategori') || '';
+                const type = $(this).data('type');
+                const key = kategori + '_' + type;
+
+                // Hanya proses jika ada di savedSettings
+                if (savedSettings[key]) {
+                    checkedItems.push({
+                        materiId: materiId,
+                        kategori: kategori,
+                        type: type,
+                        checkbox: $(this)
+                    });
+                }
+            });
+
+            console.log('[AutoOpenAyat] Found checked checkboxes:', checkedItems.length);
+
+            if (checkedItems.length === 0) {
+                console.log('[AutoOpenAyat] No checked checkboxes found');
+                return;
+            }
+
+            // Urutkan berdasarkan prioritas: SURAH PENDEK dulu, baru AYAT PILIHAN
+            checkedItems.sort(function(a, b) {
+                const kategoriA = (a.kategori || '').toUpperCase();
+                const kategoriB = (b.kategori || '').toUpperCase();
+
+                const isSurahPendekA = kategoriA.includes('SURAH PENDEK') || kategoriA.includes('SURAHPENDEK');
+                const isSurahPendekB = kategoriB.includes('SURAH PENDEK') || kategoriB.includes('SURAHPENDEK');
+                const isAyatPilihanA = kategoriA.includes('AYAT PILIHAN') || kategoriA.includes('AYATPILIHAN');
+                const isAyatPilihanB = kategoriB.includes('AYAT PILIHAN') || kategoriB.includes('AYATPILIHAN');
+
+                // Prioritas: SURAH PENDEK (1) > AYAT PILIHAN (2) > lainnya (3)
+                let priorityA = 3;
+                let priorityB = 3;
+
+                if (isSurahPendekA) priorityA = 1;
+                else if (isAyatPilihanA) priorityA = 2;
+
+                if (isSurahPendekB) priorityB = 1;
+                else if (isAyatPilihanB) priorityB = 2;
+
+                return priorityA - priorityB;
+            });
+
+            // Ambil hanya item dengan prioritas tertinggi (yang pertama setelah diurutkan)
+            const priorityItem = checkedItems[0];
+            const materiId = priorityItem.materiId;
+            const savedType = priorityItem.type;
+
+            console.log('[AutoOpenAyat] Selected priority item:', {
+                materiId: materiId,
+                kategori: priorityItem.kategori,
+                type: savedType
+            });
+
+            // Buka hanya ayat dengan prioritas tertinggi
             if (savedType === 'api') {
-                // Buka semua ayat API yang memiliki checkbox tercentang
-                $('.auto-open-ayat-checkbox[data-type="api"]:checked').each(function() {
-                    const materiId = $(this).data('materi-id');
-                    const apiButton = $(`.btn-lihat-ayat-api[data-materi-id="${materiId}"]`);
+                const apiButton = $(`.btn-lihat-ayat-api[data-materi-id="${materiId}"]`);
 
-                    console.log('[AutoOpenAyat] Processing API button for materiId:', materiId);
-                    console.log('[AutoOpenAyat] API button found:', apiButton.length > 0);
+                console.log('[AutoOpenAyat] Processing API button for materiId:', materiId);
+                console.log('[AutoOpenAyat] API button found:', apiButton.length > 0);
 
-                    if (apiButton.length > 0) {
-                        // Ambil idSurah dan idAyat dari button (spesifik untuk peserta saat ini)
-                        const idSurah = apiButton.data('id-surah');
-                        const idAyat = apiButton.data('id-ayat');
-                        console.log('[AutoOpenAyat] Button data - idSurah:', idSurah, 'idAyat:', idAyat);
+                if (apiButton.length > 0) {
+                    // Ambil idSurah dan idAyat dari button (spesifik untuk peserta saat ini)
+                    const idSurah = apiButton.data('id-surah');
+                    const idAyat = apiButton.data('id-ayat');
+                    console.log('[AutoOpenAyat] Button data - idSurah:', idSurah, 'idAyat:', idAyat);
 
-                        if (idSurah && idAyat) {
-                            console.log('[AutoOpenAyat] ✓ Triggering click on API button for materiId:', materiId);
-                            apiButton.trigger('click');
-                        } else {
-                            console.log('[AutoOpenAyat] ✗ API button missing idSurah or idAyat data');
-                        }
+                    if (idSurah && idAyat) {
+                        console.log('[AutoOpenAyat] ✓ Triggering click on API button for materiId:', materiId, '(kategori:', priorityItem.kategori + ')');
+                        apiButton.trigger('click');
                     } else {
-                        console.log('[AutoOpenAyat] ✗ API button NOT found for materiId:', materiId);
+                        console.log('[AutoOpenAyat] ✗ API button missing idSurah or idAyat data');
                     }
-                });
+                } else {
+                    console.log('[AutoOpenAyat] ✗ API button NOT found for materiId:', materiId);
+                }
             } else if (savedType === 'web') {
-                // Buka semua ayat Web yang memiliki checkbox tercentang
-                $('.auto-open-ayat-checkbox[data-type="web"]:checked').each(function() {
-                    const materiId = $(this).data('materi-id');
-                    const webButton = $(`.btn-lihat-ayat-card[data-materi-id="${materiId}"]`);
+                const webButton = $(`.btn-lihat-ayat-card[data-materi-id="${materiId}"]`);
 
-                    console.log('[AutoOpenAyat] Processing Web button for materiId:', materiId);
-                    console.log('[AutoOpenAyat] Web button found:', webButton.length > 0);
+                console.log('[AutoOpenAyat] Processing Web button for materiId:', materiId);
+                console.log('[AutoOpenAyat] Web button found:', webButton.length > 0);
 
-                    if (webButton.length > 0) {
-                        console.log('[AutoOpenAyat] ✓ Triggering click on Web button for materiId:', materiId);
-                        webButton.trigger('click');
-                    } else {
-                        console.log('[AutoOpenAyat] ✗ Web button NOT found for materiId:', materiId);
-                    }
-                });
+                if (webButton.length > 0) {
+                    console.log('[AutoOpenAyat] ✓ Triggering click on Web button for materiId:', materiId, '(kategori:', priorityItem.kategori + ')');
+                    webButton.trigger('click');
+                } else {
+                    console.log('[AutoOpenAyat] ✗ Web button NOT found for materiId:', materiId);
+                }
             } else {
                 console.log('[AutoOpenAyat] ✗ Invalid type:', savedType);
             }
 
-            console.log('[AutoOpenAyat] autoOpenAyatIfEnabled() completed');
+            console.log('[AutoOpenAyat] autoOpenAyatIfEnabled() completed - opened priority ayat only');
         }, 600); // Delay 600ms untuk memastikan semua sudah ter-render
     }
 
