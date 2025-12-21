@@ -355,7 +355,7 @@
 
                         <!-- Input Registrasi -->
                         <div class="input-group my-4">
-                            <input type="text" id="queueSearch" class="form-control" placeholder="Ketik atau scan QR no peserta untuk registrasi">
+                            <input type="number" id="queueSearch" class="form-control" placeholder="Ketik atau scan QR no peserta untuk registrasi" pattern="[0-9]*" inputmode="numeric" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
                             <div class="input-group-append">
                                 <button class="btn btn-warning" type="button" id="btnScanQR">
                                     <i class="fas fa-qrcode"></i> Scan QR
@@ -1542,11 +1542,15 @@
         });
 
         function onScanSuccess(decodedText, decodedResult) {
-            $('#queueSearch').val(decodedText);
+            // Hanya ambil karakter numeric dari hasil scan
+            const numericOnly = decodedText.replace(/[^0-9]/g, '');
+            $('#queueSearch').val(numericOnly);
             $('#modalQRScanner').modal('hide');
 
             // Auto register antrian after QR scan
-            registerAntrian();
+            if (numericOnly) {
+                registerAntrian();
+            }
         }
 
         function onScanFailure(error) {
@@ -1554,9 +1558,24 @@
             // console.log('QR Scan failed:', error);
         }
 
-        // Auto search when typing 3+ digits
+        // Blokir input non-numeric untuk no peserta
+        $('#queueSearch').on('keypress', function(e) {
+            // Hanya izinkan angka (0-9)
+            const charCode = e.which ? e.which : e.keyCode;
+            if (charCode < 48 || charCode > 57) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Filter non-numeric characters on input
         $('#queueSearch').on('input', function() {
-            const noPeserta = $(this).val().trim();
+            let value = $(this).val();
+            // Hapus semua karakter non-numeric
+            value = value.replace(/[^0-9]/g, '');
+            $(this).val(value);
+
+            const noPeserta = value.trim();
 
             // Clear any existing timeout and countdown
             if (window.autoSearchTimeout) {
@@ -1632,6 +1651,19 @@
             }
             $(this).removeClass('border-info');
             $(this).attr('placeholder', 'Ketik atau scan QR no peserta untuk registrasi');
+        });
+
+        // Prevent paste non-numeric characters
+        $('#queueSearch').on('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.originalEvent || e).clipboardData.getData('text/plain');
+            // Hanya ambil karakter numeric
+            const numericOnly = pastedText.replace(/[^0-9]/g, '');
+            if (numericOnly) {
+                $(this).val(numericOnly);
+                // Trigger input event untuk auto search
+                $(this).trigger('input');
+            }
         });
 
         // Event handler untuk form update status dengan SweetAlert2
