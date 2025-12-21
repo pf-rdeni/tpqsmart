@@ -176,7 +176,34 @@
                                                                 </div>
                                                             </td>
                                                             <td>
-                                                                <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
+                                                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                                                    <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
+                                                                    <?php
+                                                                    // Ambil foto profil santri jika ada
+                                                                    $photoUrl = null;
+                                                                    $hasPhotoProfil = !empty($row['PhotoProfil']);
+                                                                    if ($hasPhotoProfil) {
+                                                                        $photoPath = FCPATH . 'uploads/santri/' . $row['PhotoProfil'];
+                                                                        if (file_exists($photoPath)) {
+                                                                            $photoUrl = base_url('uploads/santri/' . $row['PhotoProfil']);
+                                                                        }
+                                                                    }
+                                                                    ?>
+                                                                    <?php if ($photoUrl): ?>
+                                                                        <img src="<?= $photoUrl ?>" 
+                                                                            alt="Foto Profil" 
+                                                                            class="photo-profil-thumb"
+                                                                            style="width: 45px; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 8px; border: 2px solid #dee2e6;"
+                                                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                                        <div class="photo-profil-placeholder" style="width: 45px; height: 60px; border-radius: 4px; margin-top: 8px; border: 2px solid #dee2e6; background-color: #e9ecef; display: none; align-items: center; justify-content: center; font-size: 9px; color: #6c757d; text-align: center; flex-shrink: 0; line-height: 1.2;">
+                                                                            no profil
+                                                                        </div>
+                                                                    <?php else: ?>
+                                                                        <div style="width: 45px; height: 60px; border-radius: 4px; margin-top: 8px; border: 2px solid #dee2e6; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #6c757d; text-align: center; flex-shrink: 0; line-height: 1.2;">
+                                                                            no profil
+                                                                        </div>
+                                                                    <?php endif; ?>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     <?php endforeach; ?>
@@ -725,6 +752,23 @@
                 }
 
                 const badgeBlinkClass = isTopQueue ? 'badge-blink' : '';
+                
+                // Buat HTML untuk foto profil atau placeholder
+                let photoHtml = '';
+                if (row.PhotoProfil) {
+                    // Cek apakah file ada dengan AJAX atau langsung coba load
+                    // Jika gagal load, onerror akan menampilkan placeholder
+                    const photoUrl = '<?= base_url('uploads/santri/') ?>' + row.PhotoProfil;
+                    photoHtml = '<img src="' + photoUrl + '" ' +
+                        'alt="Foto Profil" ' +
+                        'class="photo-profil-thumb" ' +
+                        'style="width: 45px; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 8px; border: 2px solid #dee2e6;" ' +
+                        'onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">' +
+                        '<div class="photo-profil-placeholder" style="width: 45px; height: 60px; border-radius: 4px; margin-top: 8px; border: 2px solid #dee2e6; background-color: #e9ecef; display: none; align-items: center; justify-content: center; font-size: 9px; color: #6c757d; text-align: center; flex-shrink: 0; line-height: 1.2;">no profil</div>';
+                } else {
+                    photoHtml = '<div style="width: 45px; height: 60px; border-radius: 4px; margin-top: 8px; border: 2px solid #dee2e6; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #6c757d; text-align: center; flex-shrink: 0; line-height: 1.2;">no profil</div>';
+                }
+                
                 const tr = $('<tr>');
                 tr.append(
                     $('<td>').html(
@@ -738,7 +782,12 @@
                     )
                 );
                 tr.append(
-                    $('<td>').html('<span class="badge ' + badgeClass + '">' + statusLabel + '</span>')
+                    $('<td>').html(
+                        '<div style="display: flex; flex-direction: column; align-items: center;">' +
+                        '<span class="badge ' + badgeClass + '">' + statusLabel + '</span>' +
+                        photoHtml +
+                        '</div>'
+                    )
                 );
                 tbody.append(tr);
             });

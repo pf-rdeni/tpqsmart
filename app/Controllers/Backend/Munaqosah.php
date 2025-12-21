@@ -3198,6 +3198,7 @@ class Munaqosah extends BaseController
             $formattedQueue[] = [
                 'NoPeserta' => $row['NoPeserta'],
                 'NamaSantri' => $row['NamaSantri'] ?? '-',
+                'PhotoProfil' => $row['PhotoProfil'] ?? null,
                 'GroupPeserta' => $groupPeserta,
                 'Status' => $status,
                 'statusLabel' => $statusLabel,

@@ -97,7 +97,7 @@ class MunaqosahAntrianModel extends Model
     public function getQueueWithDetails(array $filters = [])
     {
         $builder = $this->db->table($this->table . ' q');
-        $builder->select('q.*, COALESCE(q.IdGrupMateriUjian, r.IdGrupMateriUjian) as IdGrupMateriResolved, COALESCE(q.TypeUjian, r.TypeUjian) as TypeUjianResolved, COALESCE(q.IdKategoriMateri, r.IdKategoriMateri) as IdKategoriMateriResolved, COALESCE(q.IdTpq, r.IdTpq) as IdTpqResolved, COALESCE(q.IdSantri, r.IdSantri) as IdSantriResolved, r.IdSantri, r.IdTpq, r.IdGrupMateriUjian, r.IdKategoriMateri, r.TypeUjian, s.NamaSantri, t.NamaTpq, km.NamaKategoriMateri');
+        $builder->select('q.*, COALESCE(q.IdGrupMateriUjian, r.IdGrupMateriUjian) as IdGrupMateriResolved, COALESCE(q.TypeUjian, r.TypeUjian) as TypeUjianResolved, COALESCE(q.IdKategoriMateri, r.IdKategoriMateri) as IdKategoriMateriResolved, COALESCE(q.IdTpq, r.IdTpq) as IdTpqResolved, COALESCE(q.IdSantri, r.IdSantri) as IdSantriResolved, r.IdSantri, r.IdTpq, r.IdGrupMateriUjian, r.IdKategoriMateri, r.TypeUjian, s.NamaSantri, s.PhotoProfil, t.NamaTpq, km.NamaKategoriMateri');
 
         // JOIN dengan tabel registrasi
         // Jika filter TypeUjian diberikan, tambahkan kondisi TypeUjian dalam JOIN
