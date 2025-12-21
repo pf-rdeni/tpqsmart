@@ -2927,6 +2927,305 @@ class Munaqosah extends BaseController
     }
 
     /**
+     * AJAX endpoint untuk mendapatkan data monitoring status antrian (tanpa reload halaman)
+     */
+    public function getMonitoringStatusAntrianAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
+        $selectedGroup = $this->request->getGet('group');
+        $selectedTpq = $this->request->getGet('tpq');
+
+        // Ambil IdTpq dari session (untuk admin TPQ)
+        $sessionIdTpq = session()->get('IdTpq');
+        $isPanitia = in_groups('Panitia');
+        $isPanitiaTpq = false;
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $selectedType = 'pra-munaqosah';
+                $selectedTpq = $idTpqPanitia;
+                $selectedTahun = $currentTahunAjaran;
+                $isPanitiaTpq = true;
+            } else {
+                $selectedType = 'munaqosah';
+                $selectedTpq = 0;
+                $selectedTahun = $currentTahunAjaran;
+            }
+        } elseif (!empty($sessionIdTpq)) {
+            if (empty($selectedTpq)) {
+                $selectedTpq = $sessionIdTpq;
+            }
+            $selectedType = 'pra-munaqosah';
+            $selectedTahun = $currentTahunAjaran;
+        }
+
+        $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+
+        if (!$selectedGroup && !empty($grupList)) {
+            $selectedGroup = $grupList[0]['IdGrupMateriUjian'];
+        }
+
+        $filters = [
+            'IdTahunAjaran' => $selectedTahun,
+            'IdGrupMateriUjian' => $selectedGroup,
+            'TypeUjian' => $selectedType,
+        ];
+
+        if (!empty($selectedTpq)) {
+            $filters['IdTpq'] = $selectedTpq;
+        }
+
+        $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+        $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $selectedTahun, $selectedType);
+
+        $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
+
+        $totalPeserta = array_sum($statusCounts);
+        $totalSelesai = $statusCounts[2] ?? 0;
+        $totalProses = $statusCounts[1] ?? 0;
+        $totalMenunggu = $statusCounts[0] ?? 0;
+        $totalAntrianAktif = max($totalPeserta - $totalSelesai, 0);
+        $progressPersentase = $totalPeserta > 0 ? round(($totalSelesai / $totalPeserta) * 100) : 0;
+
+        $rooms = [];
+        $availableRooms = [];
+
+        if ($selectedGroup) {
+            $configIdTpq = $selectedTpq ?? '0';
+            $settingKey = 'KapasitasRuanganMaksimal_' . $selectedGroup;
+            $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+            if ($kapasitasMaksimal <= 0) {
+                $kapasitasMaksimal = 1;
+            }
+
+            $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
+            $roomStatuses = [];
+
+            foreach ($roomRows as $roomRow) {
+                $roomId = $roomRow['RoomId'];
+                $roomStatuses[$roomId] = [
+                    'RoomId' => $roomId,
+                    'occupied' => false,
+                    'participant_count' => 0,
+                    'participants' => [],
+                    'max_capacity' => $kapasitasMaksimal,
+                    'is_full' => false,
+                ];
+            }
+
+            foreach ($queue as $row) {
+                if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
+                    $roomId = $row['RoomId'];
+                    if (!isset($roomStatuses[$roomId])) {
+                        $roomStatuses[$roomId] = [
+                            'RoomId' => $roomId,
+                            'occupied' => false,
+                            'participant_count' => 0,
+                            'participants' => [],
+                            'max_capacity' => $kapasitasMaksimal,
+                            'is_full' => false,
+                        ];
+                    }
+
+                    $roomStatuses[$roomId]['participant_count']++;
+                    $roomStatuses[$roomId]['participants'][] = [
+                        'NoPeserta' => $row['NoPeserta'],
+                        'NamaSantri' => $row['NamaSantri'] ?? '-',
+                    ];
+                    $roomStatuses[$roomId]['occupied'] = true;
+
+                    if ($roomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
+                        $roomStatuses[$roomId]['is_full'] = true;
+                    }
+                }
+            }
+
+            $rooms = array_values($roomStatuses);
+
+            foreach ($roomStatuses as $roomStatus) {
+                if (!$roomStatus['is_full']) {
+                    $availableRooms[] = $roomStatus['RoomId'];
+                }
+            }
+        }
+
+        // Data antrian untuk semua grup
+        $antrianData = [];
+
+        foreach ($grupList as $grup) {
+            $grupFilters = [
+                'IdTahunAjaran' => $selectedTahun,
+                'IdGrupMateriUjian' => $grup['IdGrupMateriUjian'],
+                'TypeUjian' => $selectedType,
+            ];
+
+            if (!empty($selectedTpq)) {
+                $grupFilters['IdTpq'] = $selectedTpq;
+            }
+
+            $grupStatusCounts = $this->antrianMunaqosahModel->getStatusCounts($grupFilters);
+            $grupQueue = $this->antrianMunaqosahModel->getQueueWithDetails($grupFilters);
+            $grupQueue = $this->antrianMunaqosahModel->sortQueueByTimePriority($grupQueue, $selectedTahun, $selectedType);
+
+            $grupTotalPeserta = array_sum($grupStatusCounts);
+            $grupTotalSelesai = $grupStatusCounts[2] ?? 0;
+            $grupTotalProses = $grupStatusCounts[1] ?? 0;
+            $grupTotalMenunggu = $grupStatusCounts[0] ?? 0;
+            $grupProgressPersentase = $grupTotalPeserta > 0 ? round(($grupTotalSelesai / $grupTotalPeserta) * 100) : 0;
+
+            $grupRooms = [];
+            if ($grup['IdGrupMateriUjian']) {
+                $configIdTpq = $selectedTpq ?? '0';
+                $settingKey = 'KapasitasRuanganMaksimal_' . $grup['IdGrupMateriUjian'];
+                $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+                if ($kapasitasMaksimal <= 0) {
+                    $kapasitasMaksimal = 1;
+                }
+
+                $grupRoomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($grup['IdGrupMateriUjian'], $selectedType, $selectedTpq ?? null);
+                $grupRoomStatuses = [];
+
+                foreach ($grupRoomRows as $roomRow) {
+                    $roomId = $roomRow['RoomId'];
+                    $grupRoomStatuses[$roomId] = [
+                        'RoomId' => $roomId,
+                        'occupied' => false,
+                        'participant_count' => 0,
+                        'participants' => [],
+                        'max_capacity' => $kapasitasMaksimal,
+                        'is_full' => false,
+                    ];
+                }
+
+                foreach ($grupQueue as $row) {
+                    if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
+                        $roomId = $row['RoomId'];
+                        if (!isset($grupRoomStatuses[$roomId])) {
+                            $grupRoomStatuses[$roomId] = [
+                                'RoomId' => $roomId,
+                                'occupied' => false,
+                                'participant_count' => 0,
+                                'participants' => [],
+                                'max_capacity' => $kapasitasMaksimal,
+                                'is_full' => false,
+                            ];
+                        }
+
+                        $grupRoomStatuses[$roomId]['participant_count']++;
+                        $grupRoomStatuses[$roomId]['participants'][] = $row;
+                        $grupRoomStatuses[$roomId]['occupied'] = true;
+
+                        if ($grupRoomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
+                            $grupRoomStatuses[$roomId]['is_full'] = true;
+                        }
+                    }
+                }
+
+                $grupRooms = array_values($grupRoomStatuses);
+            }
+
+            $antrianData[] = [
+                'grup' => $grup,
+                'statistics' => [
+                    'total' => $grupTotalPeserta,
+                    'completed' => $grupTotalSelesai,
+                    'waiting' => $grupTotalMenunggu,
+                    'in_progress' => $grupTotalProses,
+                    'progress' => $grupProgressPersentase,
+                ],
+                'rooms' => $grupRooms,
+            ];
+        }
+
+        // Format queue untuk response
+        $formattedQueue = [];
+        $totalRooms = count($rooms);
+        $currentWaitingOrder = 0;
+
+        foreach ($queue as $row) {
+            $status = (int) ($row['Status'] ?? 0);
+            $statusLabel = 'Menunggu';
+            $badgeClass = 'badge-warning';
+            if ($status === 1) {
+                $statusLabel = 'Sedang Ujian';
+                $badgeClass = 'badge-danger';
+            } elseif ($status === 2) {
+                $statusLabel = 'Selesai';
+                $badgeClass = 'badge-success';
+            }
+
+            $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
+            $groupColors = ['badge-primary', 'badge-success', 'badge-warning', 'badge-danger', 'badge-info', 'badge-dark', 'badge-secondary'];
+            $colorIndex = crc32($groupPeserta) % count($groupColors);
+            $groupBadgeClass = $groupColors[abs($colorIndex)];
+
+            $noPesertaBadgeClass = 'badge-info';
+            $isTopQueue = false;
+
+            if ($status === 0) {
+                $currentWaitingOrder++;
+                if ($totalRooms > 0) {
+                    if ($currentWaitingOrder <= $totalRooms) {
+                        $noPesertaBadgeClass = 'badge-success';
+                        if ($currentWaitingOrder === 1) {
+                            $isTopQueue = true;
+                        }
+                    } elseif ($currentWaitingOrder <= ($totalRooms * 2)) {
+                        $noPesertaBadgeClass = 'badge-warning';
+                    } else {
+                        $noPesertaBadgeClass = 'badge-info';
+                    }
+                }
+            } elseif ($status === 1) {
+                $noPesertaBadgeClass = 'badge-danger';
+            } elseif ($status === 2) {
+                $noPesertaBadgeClass = 'badge-secondary';
+            }
+
+            $formattedQueue[] = [
+                'NoPeserta' => $row['NoPeserta'],
+                'NamaSantri' => $row['NamaSantri'] ?? '-',
+                'GroupPeserta' => $groupPeserta,
+                'Status' => $status,
+                'statusLabel' => $statusLabel,
+                'badgeClass' => $badgeClass,
+                'groupBadgeClass' => $groupBadgeClass,
+                'noPesertaBadgeClass' => $noPesertaBadgeClass,
+                'isTopQueue' => $isTopQueue,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'queue' => $formattedQueue,
+            'rooms' => $rooms,
+            'statistics' => [
+                'total' => $totalPeserta,
+                'completed' => $totalSelesai,
+                'waiting' => $totalMenunggu,
+                'in_progress' => $totalProses,
+                'queueing' => $totalAntrianAktif,
+                'progress' => $progressPersentase,
+            ],
+            'antrianData' => $antrianData,
+            'timestamp' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /**
      * Monitoring Antrian Peserta Ruangan untuk Juri
      * Menampilkan peserta yang masuk ke ruangan juri yang sedang login
      */

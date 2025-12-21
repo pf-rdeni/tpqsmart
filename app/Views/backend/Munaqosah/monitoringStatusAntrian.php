@@ -636,6 +636,296 @@
             }
         }
 
+        // Fungsi untuk update data via AJAX tanpa reload
+        function refreshDataAjax() {
+            // Cek apakah ada modal atau popup yang terbuka
+            const hasOpenModal = $('.modal.show').length > 0;
+            const hasSwalOpen = $('.swal2-container').length > 0;
+
+            // Jangan refresh jika ada modal/popup terbuka
+            if (hasOpenModal || hasSwalOpen) {
+                return;
+            }
+
+            // Ambil parameter dari URL
+            const params = new URLSearchParams(window.location.search);
+            const ajaxUrl = '<?= base_url('backend/munaqosah/get-monitoring-status-antrian-ajax') ?>?' + params.toString();
+
+            $.ajax({
+                url: ajaxUrl,
+                type: 'GET',
+                dataType: 'json',
+                beforeSend: function() {
+                    // Tampilkan indikator loading (opsional)
+                    $('#autoRefreshStatus').find('i').addClass('fa-spin');
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Update waktu terakhir update
+                        updateLastUpdateTime();
+
+                        // Update statistics
+                        $('#statTotal').text(response.statistics.total);
+                        $('#statCompleted').text(response.statistics.completed);
+                        $('#statQueueing').text(response.statistics.waiting);
+                        $('#statProgress').text(response.statistics.progress + '%');
+
+                        // Update progress bars
+                        const pctCompleted = response.statistics.total > 0 
+                            ? Math.round((response.statistics.completed / response.statistics.total) * 100) 
+                            : 0;
+                        const pctQueueing = response.statistics.total > 0 
+                            ? Math.round((response.statistics.waiting / response.statistics.total) * 100) 
+                            : 0;
+
+                        $('#barCompleted').css('width', pctCompleted + '%');
+                        $('#barQueueing').css('width', pctQueueing + '%');
+                        $('#barProgress').css('width', response.statistics.progress + '%');
+                        $('#descCompleted').text(pctCompleted + '%');
+                        $('#descQueueing').text(pctQueueing + '%');
+
+                        // Update table antrian
+                        updateTableAntrian(response.queue);
+
+                        // Update rooms
+                        updateRooms(response.rooms);
+
+                        // Update antrian per grup
+                        updateAntrianPerGrup(response.antrianData);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error refreshing data:', error);
+                },
+                complete: function() {
+                    // Hapus indikator loading
+                    $('#autoRefreshStatus').find('i').removeClass('fa-spin');
+                }
+            });
+        }
+
+        // Fungsi untuk update table antrian
+        function updateTableAntrian(queue) {
+            const tbody = $('#tableAntrianBody');
+            tbody.empty();
+
+            const totalRooms = $('.room-card').length;
+            let currentWaitingOrder = 0;
+
+            queue.forEach(function(row) {
+                const statusLabel = row.statusLabel;
+                const badgeClass = row.badgeClass;
+                const groupBadgeClass = row.groupBadgeClass;
+                const noPesertaBadgeClass = row.noPesertaBadgeClass;
+                const isTopQueue = row.isTopQueue;
+
+                if (row.Status === 0) {
+                    currentWaitingOrder++;
+                }
+
+                const badgeBlinkClass = isTopQueue ? 'badge-blink' : '';
+                const tr = $('<tr>');
+                tr.append(
+                    $('<td>').html(
+                        '<div style="display: flex; align-items: flex-start;">' +
+                        '<span class="badge ' + noPesertaBadgeClass + ' ' + badgeBlinkClass + '" style="font-size: 2em; margin-right: 8px;">' + row.NoPeserta + '</span>' +
+                        '<div>' +
+                        '<div>' + (row.NamaSantri || '-') + '</div>' +
+                        '<div><span class="badge ' + groupBadgeClass + '">' + $('<div>').text(row.GroupPeserta).html() + '</span></div>' +
+                        '</div>' +
+                        '</div>'
+                    )
+                );
+                tr.append(
+                    $('<td>').html('<span class="badge ' + badgeClass + '">' + statusLabel + '</span>')
+                );
+                tbody.append(tr);
+            });
+        }
+
+        // Fungsi untuk update rooms
+        function updateRooms(rooms) {
+            const container = $('#roomsContainer');
+            container.empty();
+
+            if (rooms.length === 0) {
+                container.append(
+                    '<div class="col-12">' +
+                    '<div class="alert alert-info">Belum ada ruangan terdaftar untuk grup materi dan tipe ujian ini.</div>' +
+                    '</div>'
+                );
+                return;
+            }
+
+            const totalRooms = rooms.length;
+            const colClass = totalRooms === 1 ? 'col-12' : 'col-12 col-sm-6 col-lg-4';
+
+            rooms.forEach(function(room) {
+                const isOccupied = room.occupied || false;
+                const participantCount = room.participant_count || 0;
+                const maxCapacity = room.max_capacity || 1;
+                const isFull = room.is_full || false;
+                const participants = room.participants || [];
+
+                let roomClass = 'bg-success text-white';
+                let badgeHtml = '<span class="badge badge-light badge-pill"><i class="fas fa-door-open"></i> Kosong</span>';
+                if (isFull) {
+                    roomClass = 'bg-danger text-white';
+                    badgeHtml = '<span class="badge badge-light badge-pill"><i class="fas fa-users"></i> Penuh</span>';
+                } else if (isOccupied) {
+                    roomClass = 'bg-warning text-dark';
+                    badgeHtml = '<span class="badge badge-light badge-pill"><i class="fas fa-user"></i> Digunakan</span>';
+                }
+
+                let participantsHtml = '';
+                if (isOccupied && participants.length > 0) {
+                    participantsHtml = '<div class="room-participant mb-2">';
+                    participants.forEach(function(participant) {
+                        participantsHtml += '<div class="mb-1"><small><strong>No Peserta:</strong> ' + participant.NoPeserta + ' - ' + (participant.NamaSantri || '-') + '</small></div>';
+                    });
+                    participantsHtml += '</div>';
+                } else {
+                    participantsHtml = '<p class="mb-0"><i class="fas fa-door-open mr-1"></i>Ruangan tersedia</p>';
+                }
+
+                const roomCard = $('<div>').addClass(colClass + ' mb-3').html(
+                    '<div class="p-3 rounded shadow-sm room-card ' + roomClass + '">' +
+                    '<div class="d-flex justify-content-between align-items-start mb-2">' +
+                    '<h5 class="mb-0">Ruangan ' + room.RoomId + '</h5>' +
+                    badgeHtml +
+                    '</div>' +
+                    '<div class="mb-2"><small><strong>Kapasitas:</strong> ' + participantCount + ' / ' + maxCapacity + '</small></div>' +
+                    participantsHtml +
+                    '</div>'
+                );
+
+                container.append(roomCard);
+            });
+        }
+
+        // Fungsi untuk update antrian per grup
+        function updateAntrianPerGrup(antrianData) {
+            const container = $('#antrianContainer');
+            container.empty();
+
+            if (!antrianData || antrianData.length === 0) {
+                container.append(
+                    '<div class="alert alert-info">' +
+                    '<i class="fas fa-info-circle"></i> Belum ada data antrian untuk grup materi aktif.' +
+                    '</div>'
+                );
+                return;
+            }
+
+            const row = $('<div>').addClass('row');
+
+            antrianData.forEach(function(antrian, index) {
+                const grup = antrian.grup;
+                const stats = antrian.statistics;
+                const rooms = antrian.rooms || [];
+
+                const inputAntrianUrl = 'backend/munaqosah/input-registrasi-antrian';
+                const inputAntrianParams = [];
+                const urlParams = new URLSearchParams(window.location.search);
+                inputAntrianParams.push('tahun=' + encodeURIComponent(urlParams.get('tahun') || ''));
+                if (urlParams.get('type')) {
+                    inputAntrianParams.push('type=' + encodeURIComponent(urlParams.get('type')));
+                }
+                inputAntrianParams.push('group=' + encodeURIComponent(grup.IdGrupMateriUjian));
+                if (urlParams.get('tpq')) {
+                    inputAntrianParams.push('tpq=' + encodeURIComponent(urlParams.get('tpq')));
+                }
+                const fullInputUrl = inputAntrianUrl + '?' + inputAntrianParams.join('&');
+
+                let detailAntrianUrl = 'backend/munaqosah/monitoring-status-antrian?group=' + encodeURIComponent(grup.IdGrupMateriUjian);
+                if (urlParams.get('type')) {
+                    detailAntrianUrl += '&type=' + encodeURIComponent(urlParams.get('type'));
+                }
+                if (urlParams.get('tpq')) {
+                    detailAntrianUrl += '&tpq=' + encodeURIComponent(urlParams.get('tpq'));
+                }
+
+                const progressColor = stats.progress >= 80 ? 'bg-success' : (stats.progress >= 50 ? 'bg-warning' : 'bg-danger');
+                const bgClass = 'card-group-bg-' + ((index % 8) + 1);
+
+                let roomsHtml = '';
+                if (rooms.length > 0) {
+                    let occupiedCount = 0;
+                    let fullCount = 0;
+                    let totalParticipants = 0;
+
+                    rooms.forEach(function(room) {
+                        if (room.occupied) occupiedCount++;
+                        if (room.is_full) fullCount++;
+                        totalParticipants += (room.participant_count || 0);
+                    });
+
+                    roomsHtml = '<div class="mt-2 pt-2 border-top">' +
+                        '<small class="text-muted d-block mb-1">Status Ruangan:</small>' +
+                        '<div class="d-flex flex-nowrap align-items-center" style="gap: 0.5rem;">';
+
+                    rooms.forEach(function(room) {
+                        const isFull = room.is_full || false;
+                        const isOccupied = room.occupied || false;
+                        const participantCount = room.participant_count || 0;
+                        const maxCapacity = room.max_capacity || 1;
+
+                        const badgeClass = isFull ? 'badge-danger' : (isOccupied ? 'badge-warning' : 'badge-success');
+                        const icon = isFull ? 'users' : (isOccupied ? 'user' : 'door-open');
+
+                        roomsHtml += '<span class="badge ' + badgeClass + '" style="white-space: nowrap; flex-shrink: 0;" title="Kapasitas: ' + participantCount + '/' + maxCapacity + '">' +
+                            '<i class="fas fa-' + icon + '"></i> ' + room.RoomId + ' (' + participantCount + '/' + maxCapacity + ')' +
+                            '</span>';
+                    });
+
+                    roomsHtml += '</div>' +
+                        '<small class="text-muted">' + totalParticipants + ' peserta di ' + occupiedCount + ' ruangan (' + fullCount + ' penuh)</small>' +
+                        '</div>';
+                }
+
+                const card = $('<div>').addClass('col-md-6 col-lg-4 mb-3').html(
+                    '<div class="card ' + bgClass + '">' +
+                    '<div class="card-body">' +
+                    '<div class="d-flex justify-content-between align-items-start mb-2">' +
+                    '<h6 class="card-title mb-0">' +
+                    '<i class="fas fa-layer-group"></i> ' + $('<div>').text(grup.NamaMateriGrup).html() + ' ' +
+                    '<small class="text-muted d-block"><i class="fas fa-tag"></i> ' + grup.IdGrupMateriUjian + '</small>' +
+                    '</h6>' +
+                    '<div class="btn-group btn-group-sm">' +
+                    '<a href="<?= base_url() ?>' + fullInputUrl + '" class="btn btn-success" title="Input Antrian">' +
+                    '<i class="fas fa-plus"></i>' +
+                    '</a>' +
+                    '<a href="<?= base_url() ?>' + detailAntrianUrl + '" class="btn btn-warning" title="Lihat Detail Antrian">' +
+                    '<i class="fas fa-eye"></i>' +
+                    '</a>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="mb-2">' +
+                    '<div class="d-flex justify-content-between mb-1">' +
+                    '<span class="small">Progress Antrian</span>' +
+                    '<span class="small font-weight-bold">' + stats.progress + '%</span>' +
+                    '</div>' +
+                    '<div class="progress" style="height: 20px;">' +
+                    '<div class="progress-bar ' + progressColor + '" role="progressbar" style="width: ' + stats.progress + '%">' + stats.progress + '%</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="row text-center mt-2 mb-2">' +
+                    '<div class="col-3"><small class="text-muted d-block">Total</small><strong>' + stats.total + '</strong></div>' +
+                    '<div class="col-3"><small class="text-muted d-block">Selesai</small><strong class="text-success">' + stats.completed + '</strong></div>' +
+                    '<div class="col-3"><small class="text-muted d-block">Menunggu</small><strong class="text-warning">' + stats.waiting + '</strong></div>' +
+                    '<div class="col-3"><small class="text-muted d-block">Ujian</small><strong class="text-danger">' + stats.in_progress + '</strong></div>' +
+                    '</div>' +
+                    roomsHtml +
+                    '</div>' +
+                    '</div>'
+                );
+
+                row.append(card);
+            });
+
+            container.append(row);
+        }
+
         // Fungsi untuk memulai auto refresh
         function startAutoRefresh() {
             stopAutoRefresh(); // Hentikan yang lama jika ada
@@ -657,35 +947,17 @@
                 $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
 
                 if (countdownSeconds <= 0) {
-                    // Cek apakah ada modal atau popup yang terbuka
-                    const hasOpenModal = $('.modal.show').length > 0;
-                    const hasSwalOpen = $('.swal2-container').length > 0;
-
-                    // Jangan refresh jika ada modal/popup terbuka
-                    if (!hasOpenModal && !hasSwalOpen) {
-                        // Reload halaman dengan parameter yang sama
-                        const params = new URLSearchParams(window.location.search);
-                        params.set('interval', autoRefreshSeconds);
-                        window.location.href = window.location.pathname + '?' + params.toString();
-                    } else {
-                        // Reset countdown jika tidak bisa refresh
-                        countdownSeconds = autoRefreshSeconds;
-                        $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
-                    }
+                    // Refresh data via AJAX
+                    refreshDataAjax();
+                    // Reset countdown
+                    countdownSeconds = autoRefreshSeconds;
+                    $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
                 }
             }, 1000);
 
             // Backup refresh interval (jika countdown terlewat)
             autoRefreshInterval = setInterval(function() {
-                const hasOpenModal = $('.modal.show').length > 0;
-                const hasSwalOpen = $('.swal2-container').length > 0;
-
-                if (!hasOpenModal && !hasSwalOpen) {
-                    // Reload halaman dengan parameter yang sama
-                    const params = new URLSearchParams(window.location.search);
-                    params.set('interval', autoRefreshSeconds);
-                    window.location.href = window.location.pathname + '?' + params.toString();
-                }
+                refreshDataAjax();
             }, autoRefreshSeconds * 1000);
         }
 
