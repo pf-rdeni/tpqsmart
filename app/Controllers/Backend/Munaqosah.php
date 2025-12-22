@@ -2036,6 +2036,219 @@ class Munaqosah extends BaseController
         return view('backend/Munaqosah/listAntrian', $data);
     }
 
+    /**
+     * AJAX endpoint untuk mendapatkan data antrian (tanpa reload halaman)
+     */
+    public function getAntrianAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah';
+        $selectedGroup = $this->request->getGet('group');
+        $selectedTpq = $this->request->getGet('tpq');
+
+        // Ambil IdTpq dari session (untuk admin TPQ)
+        $sessionIdTpq = session()->get('IdTpq');
+        $isPanitia = in_groups('Panitia');
+        $isPanitiaTpq = false;
+        $isPanitiaUmum = false;
+
+        // Jika user adalah Panitia, ambil IdTpq dari username
+        if ($isPanitia) {
+            $usernamePanitia = user()->username;
+            $idTpqPanitia = $this->getIdTpqFromPanitiaUsername($usernamePanitia);
+
+            if ($idTpqPanitia && $idTpqPanitia != 0) {
+                $selectedType = 'pra-munaqosah';
+                $selectedTpq = $idTpqPanitia;
+                $selectedTahun = $currentTahunAjaran;
+                $isPanitiaTpq = true;
+            } else {
+                $selectedType = 'munaqosah';
+                $selectedTpq = 0;
+                $selectedTahun = $currentTahunAjaran;
+                $isPanitiaUmum = true;
+            }
+        } elseif (!empty($sessionIdTpq)) {
+            if (empty($selectedTpq)) {
+                $selectedTpq = $sessionIdTpq;
+            }
+            $selectedType = 'pra-munaqosah';
+            $selectedTahun = $currentTahunAjaran;
+        }
+
+        $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
+
+        if (!$selectedGroup && !empty($grupList)) {
+            $selectedGroup = $grupList[0]['IdGrupMateriUjian'];
+        }
+
+        $filters = [
+            'IdTahunAjaran' => $selectedTahun,
+            'IdGrupMateriUjian' => $selectedGroup,
+            'TypeUjian' => $selectedType,
+        ];
+
+        if (!empty($selectedTpq)) {
+            $filters['IdTpq'] = $selectedTpq;
+        }
+
+        $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
+        $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $selectedTahun, $selectedType);
+
+        $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
+
+        $totalPeserta = array_sum($statusCounts);
+        $totalSelesai = $statusCounts[2] ?? 0;
+        $totalProses = $statusCounts[1] ?? 0;
+        $totalMenunggu = $statusCounts[0] ?? 0;
+        $totalAntrianAktif = max($totalPeserta - $totalSelesai, 0);
+        $progressPersentase = $totalPeserta > 0 ? round(($totalSelesai / $totalPeserta) * 100) : 0;
+
+        $rooms = [];
+        $availableRooms = [];
+
+        if ($selectedGroup) {
+            $configIdTpq = $selectedTpq ?? '0';
+            $settingKey = 'KapasitasRuanganMaksimal_' . $selectedGroup;
+            $kapasitasMaksimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configIdTpq, $settingKey, 1);
+            if ($kapasitasMaksimal <= 0) {
+                $kapasitasMaksimal = 1;
+            }
+
+            $roomRows = $this->munaqosahJuriModel->getRoomsByGrupAndType($selectedGroup, $selectedType, $selectedTpq);
+            $roomStatuses = [];
+
+            foreach ($roomRows as $roomRow) {
+                $roomId = $roomRow['RoomId'];
+                $roomStatuses[$roomId] = [
+                    'RoomId' => $roomId,
+                    'occupied' => false,
+                    'participant_count' => 0,
+                    'participants' => [],
+                    'max_capacity' => $kapasitasMaksimal,
+                    'is_full' => false,
+                ];
+            }
+
+            foreach ($queue as $row) {
+                if ((int) ($row['Status'] ?? 0) === 1 && !empty($row['RoomId'])) {
+                    $roomId = $row['RoomId'];
+                    if (!isset($roomStatuses[$roomId])) {
+                        $roomStatuses[$roomId] = [
+                            'RoomId' => $roomId,
+                            'occupied' => false,
+                            'participant_count' => 0,
+                            'participants' => [],
+                            'max_capacity' => $kapasitasMaksimal,
+                            'is_full' => false,
+                        ];
+                    }
+
+                    $roomStatuses[$roomId]['participant_count']++;
+                    $roomStatuses[$roomId]['participants'][] = [
+                        'id' => $row['id'] ?? null,
+                        'NoPeserta' => $row['NoPeserta'],
+                        'NamaSantri' => $row['NamaSantri'] ?? '-',
+                    ];
+                    $roomStatuses[$roomId]['occupied'] = true;
+
+                    if ($roomStatuses[$roomId]['participant_count'] >= $kapasitasMaksimal) {
+                        $roomStatuses[$roomId]['is_full'] = true;
+                    }
+                }
+            }
+
+            $rooms = array_values($roomStatuses);
+
+            foreach ($roomStatuses as $roomStatus) {
+                if (!$roomStatus['is_full']) {
+                    $availableRooms[] = $roomStatus['RoomId'];
+                }
+            }
+        }
+
+        // Format queue untuk response
+        $formattedQueue = [];
+        $totalRooms = count($rooms);
+        $currentWaitingOrder = 0;
+
+        // Kumpulkan semua unique GroupPeserta dari data queue
+        $uniqueGroups = [];
+        foreach ($queue as $q) {
+            $group = $q['GroupPeserta'] ?? 'Group 1';
+            if (!in_array($group, $uniqueGroups)) {
+                $uniqueGroups[] = $group;
+            }
+        }
+        sort($uniqueGroups);
+
+        // Array warna Bootstrap yang bisa diulang
+        $baseColors = ['badge-primary', 'badge-success', 'badge-warning', 'badge-danger', 'badge-info', 'badge-dark', 'badge-secondary'];
+
+        // Buat mapping warna dinamis untuk setiap group
+        $groupColorMap = [];
+        foreach ($uniqueGroups as $index => $group) {
+            $colorIndex = $index % count($baseColors);
+            $groupColorMap[$group] = $baseColors[$colorIndex];
+        }
+
+        foreach ($queue as $row) {
+            $status = (int) ($row['Status'] ?? 0);
+            $statusLabel = 'Menunggu';
+            $badgeClass = 'badge-warning';
+            if ($status === 1) {
+                $statusLabel = 'Sedang Ujian';
+                $badgeClass = 'badge-danger';
+            } elseif ($status === 2) {
+                $statusLabel = 'Selesai';
+                $badgeClass = 'badge-success';
+            }
+
+            $groupPeserta = $row['GroupPeserta'] ?? 'Group 1';
+            $groupBadgeClass = $groupColorMap[$groupPeserta] ?? 'badge-secondary';
+
+            $typeResolved = $row['TypeUjian'] ?? ($row['TypeUjianResolved'] ?? '-');
+
+            $formattedQueue[] = [
+                'id' => $row['id'] ?? null,
+                'NoPeserta' => $row['NoPeserta'],
+                'NamaSantri' => $row['NamaSantri'] ?? '-',
+                'GroupPeserta' => $groupPeserta,
+                'groupBadgeClass' => $groupBadgeClass,
+                'Status' => $status,
+                'statusLabel' => $statusLabel,
+                'badgeClass' => $badgeClass,
+                'RoomId' => $row['RoomId'] ?? null,
+                'TypeUjian' => $typeResolved,
+                'created_at' => $row['created_at'] ?? null,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'queue' => $formattedQueue,
+            'rooms' => $rooms,
+            'available_rooms' => $availableRooms,
+            'statistics' => [
+                'total' => $totalPeserta,
+                'completed' => $totalSelesai,
+                'waiting' => $totalMenunggu,
+                'in_progress' => $totalProses,
+                'queueing' => $totalAntrianAktif,
+                'progress' => $progressPersentase,
+            ],
+            'timestamp' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
     public function registerAntrianAjax()
     {
         if (!$this->request->isAJAX()) {
@@ -2573,15 +2786,28 @@ class Munaqosah extends BaseController
     {
         $status = (int) $this->request->getPost('status');
         $roomId = $this->request->getPost('room_id');
+        $isAjax = $this->request->isAJAX();
 
         $antrian = $this->antrianMunaqosahModel->find($id);
 
         if (!$antrian) {
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data antrian tidak ditemukan.'
+                ]);
+            }
             return redirect()->to('/backend/munaqosah/antrian')->with('error', 'Data antrian tidak ditemukan.');
         }
 
         if ($status === 1) {
             if (empty($roomId)) {
+                if ($isAjax) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Pilih ruangan terlebih dahulu sebelum peserta masuk.'
+                    ]);
+                }
                 return redirect()->back()->with('error', 'Pilih ruangan terlebih dahulu sebelum peserta masuk.');
             }
 
@@ -2607,13 +2833,31 @@ class Munaqosah extends BaseController
             $occupied = $occupiedQuery->first();
 
             if ($occupied && (int) $occupied['id'] !== (int) $id) {
+                if ($isAjax) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => "Ruangan {$roomId} sedang digunakan peserta lain."
+                    ]);
+                }
                 return redirect()->back()->with('error', "Ruangan {$roomId} sedang digunakan peserta lain.");
             }
 
             if ($this->antrianMunaqosahModel->updateStatus($id, 1, $roomId)) {
+                if ($isAjax) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => "Peserta masuk ke {$roomId}."
+                    ]);
+                }
                 return redirect()->to('/backend/munaqosah/antrian')->with('success', "Peserta masuk ke {$roomId}.");
             }
 
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal mengupdate status antrian.'
+                ]);
+            }
             return redirect()->back()->with('error', 'Gagal mengupdate status antrian.');
         }
 
@@ -2621,12 +2865,30 @@ class Munaqosah extends BaseController
             $message = $status === 0 ? 'Peserta dikembalikan ke status menunggu.' : 'Peserta selesai mengikuti ujian.';
 
             if ($this->antrianMunaqosahModel->updateStatus($id, $status, null)) {
+                if ($isAjax) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => $message
+                    ]);
+                }
                 return redirect()->to('/backend/munaqosah/antrian')->with('success', $message);
             }
 
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal mengupdate status antrian.'
+                ]);
+            }
             return redirect()->back()->with('error', 'Gagal mengupdate status antrian.');
         }
 
+        if ($isAjax) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Status tidak valid.'
+            ]);
+        }
         return redirect()->back()->with('error', 'Status tidak valid.');
     }
 

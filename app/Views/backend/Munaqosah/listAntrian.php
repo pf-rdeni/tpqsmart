@@ -298,7 +298,7 @@
                                             <span class="info-box-icon"><i class="fas fa-users"></i></span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Total Peserta</span>
-                                                <span class="info-box-number"><?= $total ?></span>
+                                                <span class="info-box-number" id="statTotal"><?= $total ?></span>
                                                 <div class="progress">
                                                     <div class="progress-bar" style="width: 100%"></div>
                                                 </div>
@@ -312,11 +312,11 @@
                                             <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Sudah diuji</span>
-                                                <span class="info-box-number"><?= $completed ?></span>
+                                                <span class="info-box-number" id="statCompleted"><?= $completed ?></span>
                                                 <div class="progress">
-                                                    <div class="progress-bar" style="width: <?= $pctCompleted ?>%"></div>
+                                                    <div class="progress-bar" id="barCompleted" style="width: <?= $pctCompleted ?>%"></div>
                                                 </div>
-                                                <span class="progress-description"><?= $pctCompleted ?>% selesai</span>
+                                                <span class="progress-description" id="descCompleted"><?= $pctCompleted ?>% selesai</span>
                                             </div>
                                         </div>
                                     </div>
@@ -326,11 +326,11 @@
                                             <span class="info-box-icon"><i class="fas fa-clock"></i></span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Antrian ujian</span>
-                                                <span class="info-box-number"><?= $queueing ?></span>
+                                                <span class="info-box-number" id="statQueueing"><?= $queueing ?></span>
                                                 <div class="progress">
-                                                    <div class="progress-bar" style="width: <?= $pctQueueing ?>%"></div>
+                                                    <div class="progress-bar" id="barQueueing" style="width: <?= $pctQueueing ?>%"></div>
                                                 </div>
-                                                <span class="progress-description"><?= $pctQueueing ?>% menunggu</span>
+                                                <span class="progress-description" id="descQueueing"><?= $pctQueueing ?>% menunggu</span>
                                             </div>
                                         </div>
                                     </div>
@@ -340,9 +340,9 @@
                                             <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text">Progress</span>
-                                                <span class="info-box-number"><?= $progress ?>%</span>
+                                                <span class="info-box-number" id="statProgress"><?= $progress ?>%</span>
                                                 <div class="progress">
-                                                    <div class="progress-bar" style="width: <?= $progress ?>%"></div>
+                                                    <div class="progress-bar" id="barProgress" style="width: <?= $progress ?>%"></div>
                                                 </div>
                                                 <span class="progress-description">Tingkat penyelesaian</span>
                                             </div>
@@ -368,6 +368,7 @@
                         </div>
                         <!-- Status Ruangan -->
                         <h5 class="mt-4">Status Ruangan</h5>
+                        <div id="roomsContainer">
                         <?php if (!empty($rooms)): ?>
                             <?php
                             $totalRooms = count($rooms);
@@ -521,6 +522,7 @@
                                 Belum ada ruangan terdaftar untuk grup materi dan tipe ujian ini. Tambahkan RoomId pada data juri.
                             </div>
                         <?php endif; ?>
+                        </div>
                         <!-- Table Antrian -->
                         <div class="table-responsive">
                             <table id="tableAntrian" class="table table-bordered table-striped">
@@ -536,7 +538,7 @@
                                         <th class="no-sort">Tanggal Dibuat</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="tableAntrianBody">
                                     <?php
                                     // Kumpulkan semua unique GroupPeserta dari data queue
                                     $uniqueGroups = [];
@@ -1206,7 +1208,7 @@
                             // Set flag untuk auto focus setelah reload
                             sessionStorage.setItem('autoFocusQueueSearch', 'true');
                             // Reload halaman untuk memperbarui tabel setelah auto close
-                            location.reload();
+                            refreshDataAjax();
                         });
                     } else {
                         // Cek apakah peserta sudah ada di antrian aktif (sama grup dan type)
@@ -1666,11 +1668,13 @@
             }
         });
 
-        // Event handler untuk form update status dengan SweetAlert2
-        $('.form-update-status').on('submit', function(e) {
+        // Event handler untuk form update status dengan SweetAlert2 dan AJAX
+        $(document).on('submit', '.form-update-status', function(e) {
             e.preventDefault();
             const form = $(this);
             const confirmMessage = form.data('confirm') || 'Apakah Anda yakin?';
+            const formAction = form.attr('action');
+            const formData = form.serialize();
 
             Swal.fire({
                 title: 'Konfirmasi',
@@ -1683,9 +1687,58 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Submit form jika user confirm
-                    form.off('submit'); // Remove event handler to prevent loop
-                    form[0].submit(); // Submit form
+                    // Tampilkan loading
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Sedang mengupdate status',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Kirim request AJAX
+                    $.ajax({
+                        url: formAction,
+                        type: 'POST',
+                        data: formData,
+                        dataType: 'json',
+                        success: function(response) {
+                            Swal.close();
+                            if (response.success || response.message) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message || 'Status berhasil diupdate',
+                                    showConfirmButton: false,
+                                    timer: 1000,
+                                    timerProgressBar: true
+                                });
+                                // Langsung refresh data tanpa menunggu timer
+                                refreshDataAjax();
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupdate status'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.close();
+                            let errorMessage = 'Terjadi kesalahan saat mengupdate status';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.status === 0) {
+                                errorMessage = 'Tidak dapat terhubung ke server';
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: errorMessage
+                            });
+                        }
+                    });
                 }
             });
         });
@@ -1714,8 +1767,8 @@
             });
         });
 
-        // Event handler untuk tombol In (auto assign room)
-        $('.btn-open-room').on('click', function() {
+        // Event handler untuk tombol In (auto assign room) - menggunakan event delegation
+        $(document).on('click', '.btn-open-room', function() {
             const id = $(this).data('id');
             const noPeserta = $(this).data('nopeserta');
             const nama = $(this).data('nama');
@@ -1748,10 +1801,9 @@
                             showConfirmButton: false,
                             timer: 1500,
                             timerProgressBar: true
-                        }).then(() => {
-                            // Reload halaman untuk memperbarui data
-                            location.reload();
                         });
+                        // Langsung refresh data tanpa menunggu timer
+                        refreshDataAjax();
                     } else {
                         Swal.fire({
                             icon: 'warning',
@@ -1775,8 +1827,8 @@
             });
         });
 
-        // Event handler untuk button Selesai dari room card
-        $('.btn-finish-room').on('click', function() {
+        // Event handler untuk button Selesai dari room card - menggunakan event delegation
+        $(document).on('click', '.btn-finish-room', function() {
             const id = $(this).data('id');
             const noPeserta = $(this).data('nopeserta');
             const nama = $(this).data('nama');
@@ -1828,11 +1880,11 @@
                                     title: 'Berhasil',
                                     text: response.message || 'Peserta ditandai selesai',
                                     showConfirmButton: false,
-                                    timer: 1500,
+                                    timer: 1000,
                                     timerProgressBar: true
-                                }).then(() => {
-                                    location.reload();
                                 });
+                                // Langsung refresh data tanpa menunggu timer
+                                refreshDataAjax();
                             } else {
                                 Swal.fire({
                                     icon: 'error',
@@ -1858,8 +1910,8 @@
             });
         });
 
-        // Event handler untuk button Batal dari room card
-        $('.btn-exit-room').on('click', function() {
+        // Event handler untuk button Batal dari room card - menggunakan event delegation
+        $(document).on('click', '.btn-exit-room', function() {
             const id = $(this).data('id');
             const noPeserta = $(this).data('nopeserta');
             const nama = $(this).data('nama');
@@ -1911,11 +1963,11 @@
                                     title: 'Berhasil',
                                     text: response.message || 'Peserta dikembalikan ke antrian menunggu',
                                     showConfirmButton: false,
-                                    timer: 1500,
+                                    timer: 1000,
                                     timerProgressBar: true
-                                }).then(() => {
-                                    location.reload();
                                 });
+                                // Langsung refresh data tanpa menunggu timer
+                                refreshDataAjax();
                             } else {
                                 Swal.fire({
                                     icon: 'error',
@@ -2000,6 +2052,287 @@
             }
         }
 
+        // Fungsi untuk update data via AJAX tanpa reload
+        function refreshDataAjax() {
+            // Ambil parameter dari URL
+            const params = new URLSearchParams(window.location.search);
+            const ajaxUrl = '<?= base_url('backend/munaqosah/get-antrian-ajax') ?>?' + params.toString();
+
+            $.ajax({
+                url: ajaxUrl,
+                type: 'GET',
+                dataType: 'json',
+                beforeSend: function() {
+                    // Tampilkan indikator loading
+                    $('#autoRefreshStatus').find('i').addClass('fa-spin');
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Reset countdown timer setelah refresh manual
+                        if (autoRefreshEnabled) {
+                            countdownSeconds = autoRefreshSeconds;
+                            $('#autoRefreshCountdown').text(formatCountdown(countdownSeconds));
+                        }
+
+                        // Update statistics
+                        $('#statTotal').text(response.statistics.total);
+                        $('#statCompleted').text(response.statistics.completed);
+                        $('#statQueueing').text(response.statistics.queueing);
+                        $('#statProgress').text(response.statistics.progress + '%');
+
+                        // Update progress bars
+                        const pctCompleted = response.statistics.total > 0 
+                            ? Math.round((response.statistics.completed / response.statistics.total) * 100) 
+                            : 0;
+                        const pctQueueing = response.statistics.total > 0 
+                            ? Math.round((response.statistics.queueing / response.statistics.total) * 100) 
+                            : 0;
+
+                        $('#barCompleted').css('width', pctCompleted + '%');
+                        $('#barQueueing').css('width', pctQueueing + '%');
+                        $('#barProgress').css('width', response.statistics.progress + '%');
+                        $('#descCompleted').text(pctCompleted + '% selesai');
+                        $('#descQueueing').text(pctQueueing + '% menunggu');
+
+                        // Update table antrian
+                        updateTableAntrian(response.queue);
+
+                        // Update rooms
+                        updateRooms(response.rooms);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error refreshing data:', error);
+                },
+                complete: function() {
+                    // Hapus indikator loading
+                    $('#autoRefreshStatus').find('i').removeClass('fa-spin');
+                }
+            });
+        }
+
+        // Fungsi untuk update table antrian
+        function updateTableAntrian(queue) {
+            const tbody = $('#tableAntrianBody');
+            tbody.empty();
+
+            let no = 1;
+            queue.forEach(function(row) {
+                const status = row.Status;
+                const statusLabel = row.statusLabel;
+                const badgeClass = row.badgeClass;
+                const groupBadgeClass = row.groupBadgeClass;
+                const roomId = row.RoomId;
+                const typeUjian = row.TypeUjian;
+                const created_at = row.created_at ? new Date(row.created_at).toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : '-';
+
+                // Build action buttons based on status
+                let actionHtml = '';
+                if (status === 0) {
+                    actionHtml = '<div class="btn-group" role="group">' +
+                        '<button type="button" class="btn btn-sm btn-danger btn-open-room" ' +
+                        'data-id="' + row.id + '" ' +
+                        'data-nopeserta="' + row.NoPeserta + '" ' +
+                        'data-nama="' + (row.NamaSantri || '-') + '">In</button>' +
+                        '<a href="<?= base_url('backend/munaqosah/delete-antrian/') ?>' + row.id + '" ' +
+                        'class="btn btn-sm btn-outline-danger btn-delete-antrian" ' +
+                        'data-confirm="Apakah Anda yakin ingin menghapus data ini?">Del</a>' +
+                        '</div>';
+                } else if (status === 1) {
+                    actionHtml = '<div class="btn-group" role="group">' +
+                        '<form action="<?= base_url('backend/munaqosah/update-status-antrian/') ?>' + row.id + '" method="post" class="mr-1 form-update-status" data-confirm="Tandai peserta selesai?">' +
+                        '<?= csrf_field() ?>' +
+                        '<input type="hidden" name="status" value="2">' +
+                        '<button type="submit" class="btn btn-sm btn-success">Selesai</button>' +
+                        '</form>' +
+                        '<form action="<?= base_url('backend/munaqosah/update-status-antrian/') ?>' + row.id + '" method="post" class="form-update-status" data-confirm="Kembalikan peserta ke antrian menunggu?">' +
+                        '<?= csrf_field() ?>' +
+                        '<input type="hidden" name="status" value="0">' +
+                        '<button type="submit" class="btn btn-sm btn-warning">Batal</button>' +
+                        '</form>' +
+                        '<a href="<?= base_url('backend/munaqosah/delete-antrian/') ?>' + row.id + '" ' +
+                        'class="btn btn-sm btn-outline-danger btn-delete-antrian" ' +
+                        'data-confirm="Apakah Anda yakin ingin menghapus data ini?">Del</a>' +
+                        '</div>';
+                } else if (status === 2) {
+                    actionHtml = '<div class="btn-group" role="group">' +
+                        '<form action="<?= base_url('backend/munaqosah/update-status-antrian/') ?>' + row.id + '" method="post" class="form-update-status" data-confirm="Kembalikan peserta ke antrian menunggu?">' +
+                        '<?= csrf_field() ?>' +
+                        '<input type="hidden" name="status" value="0">' +
+                        '<button type="submit" class="btn btn-sm btn-secondary">Tunggu</button>' +
+                        '</form>' +
+                        '<a href="<?= base_url('backend/munaqosah/delete-antrian/') ?>' + row.id + '" ' +
+                        'class="btn btn-sm btn-outline-danger btn-delete-antrian" ' +
+                        'data-confirm="Apakah Anda yakin ingin menghapus data ini?">Del</a>' +
+                        '</div>';
+                }
+
+                const tr = $('<tr>');
+                tr.append($('<td>').text(no++));
+                tr.append($('<td>').html(actionHtml));
+                tr.append($('<td>').html('<span class="badge ' + groupBadgeClass + '">' + $('<div>').text(row.GroupPeserta).html() + '</span>'));
+                tr.append($('<td>').text(row.NoPeserta + ' - ' + (row.NamaSantri || '-')));
+                tr.append($('<td>').html(roomId ? '<span class="badge badge-info">' + roomId + '</span>' : '<span class="text-muted">-</span>'));
+                tr.append($('<td>').html('<span class="badge ' + badgeClass + '">' + statusLabel + '</span>'));
+                tr.append($('<td>').text(typeUjian));
+                tr.append($('<td>').text(created_at));
+                tbody.append(tr);
+            });
+
+            // Re-attach event handlers for new elements using event delegation
+            // Event handlers are already attached via delegation on document ready
+        }
+
+        // Fungsi untuk update rooms
+        function updateRooms(rooms) {
+            const container = $('#roomsContainer');
+            container.empty();
+
+            if (!rooms || rooms.length === 0) {
+                container.append(
+                    '<div class="alert alert-info">' +
+                    'Belum ada ruangan terdaftar untuk grup materi dan tipe ujian ini. Tambahkan RoomId pada data juri.' +
+                    '</div>'
+                );
+                return;
+            }
+
+            const totalRooms = rooms.length;
+            const singleRoom = totalRooms === 1;
+            const firstRoom = rooms[0] || null;
+            const singleRoomWithParticipants = singleRoom &&
+                firstRoom.participants &&
+                firstRoom.participants.length > 1;
+
+            const colClass = totalRooms === 1 ? 'col-12' : 'col-lg-4 col-md-6';
+
+            if (singleRoomWithParticipants) {
+                // Format Tabel Kompak untuk 1 Ruangan dengan Multiple Peserta
+                const room = firstRoom;
+                const isOccupied = room.occupied || false;
+                const participantCount = room.participant_count || 0;
+                const maxCapacity = room.max_capacity || 1;
+                const isFull = room.is_full || false;
+                const participants = room.participants || [];
+
+                let participantsHtml = '';
+                participants.forEach(function(participant) {
+                    participantsHtml += '<tr>' +
+                        '<td><strong>Peserta: ' + participant.NoPeserta + ' - ' + (participant.NamaSantri || '-') + '</strong></td>' +
+                        '<td>' +
+                        '<div class="btn-group btn-group-sm" role="group">' +
+                        '<button type="button" class="btn btn-success btn-finish-room" ' +
+                        'data-id="' + (participant.id || '') + '" ' +
+                        'data-nopeserta="' + (participant.NoPeserta || '') + '" ' +
+                        'data-nama="' + (participant.NamaSantri || '-') + '" title="Selesai">' +
+                        '<i class="fas fa-check"></i> Selesai</button>' +
+                        '<button type="button" class="btn btn-warning btn-exit-room" ' +
+                        'data-id="' + (participant.id || '') + '" ' +
+                        'data-nopeserta="' + (participant.NoPeserta || '') + '" ' +
+                        'data-nama="' + (participant.NamaSantri || '-') + '" title="Batal">' +
+                        '<i class="fas fa-sign-out-alt"></i> Batal</button>' +
+                        '</div>' +
+                        '</td>' +
+                        '</tr>';
+                });
+
+                const roomClass = isFull ? 'danger' : (isOccupied ? 'warning' : 'success');
+                const textClass = isFull || !isOccupied ? 'white' : 'dark';
+                const capacityText = maxCapacity > 1 ? ' (Kapasitas: ' + participantCount + ' / ' + maxCapacity + ')' : '';
+                const badgeHtml = isFull 
+                    ? '<span class="badge badge-light badge-pill"><i class="fas fa-users"></i> Penuh</span>'
+                    : (isOccupied 
+                        ? '<span class="badge badge-light badge-pill"><i class="fas fa-user"></i> Digunakan</span>'
+                        : '<span class="badge badge-light badge-pill"><i class="fas fa-door-open"></i> Kosong</span>');
+
+                container.append(
+                    '<div class="card border-' + roomClass + ' mb-3">' +
+                    '<div class="card-header bg-' + roomClass + ' text-' + textClass + ' d-flex justify-content-between align-items-center">' +
+                    '<div><h5 class="mb-0"><i class="fas fa-door-open"></i> Ruangan ' + room.RoomId + capacityText + '</h5></div>' +
+                    badgeHtml +
+                    '</div>' +
+                    '<div class="card-body p-2">' +
+                    '<div class="table-responsive">' +
+                    '<table class="table table-sm table-hover mb-0">' +
+                    '<thead class="thead-light">' +
+                    '<tr><th style="width: 60%;">Peserta</th><th style="width: 40%;" class="text-center">Aksi</th></tr>' +
+                    '</thead>' +
+                    '<tbody>' + participantsHtml + '</tbody>' +
+                    '</table>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>'
+                );
+            } else {
+                // Format Card untuk Multiple Ruangan atau 1 Ruangan dengan 1 Peserta
+                const row = $('<div>').addClass('row');
+                rooms.forEach(function(room) {
+                    const isOccupied = room.occupied || false;
+                    const participantCount = room.participant_count || 0;
+                    const maxCapacity = room.max_capacity || 1;
+                    const isFull = room.is_full || false;
+                    const participants = room.participants || [];
+
+                    let roomClass = 'bg-success text-white';
+                    let badgeHtml = '<span class="badge badge-light badge-pill"><i class="fas fa-door-open"></i> Kosong</span>';
+                    if (isFull) {
+                        roomClass = 'bg-danger text-white';
+                        badgeHtml = '<span class="badge badge-light badge-pill"><i class="fas fa-users"></i> Penuh</span>';
+                    } else if (isOccupied) {
+                        roomClass = 'bg-warning text-dark';
+                        badgeHtml = '<span class="badge badge-light badge-pill"><i class="fas fa-user"></i> Digunakan</span>';
+                    }
+
+                    let participantsHtml = '';
+                    if (isOccupied && participants.length > 0) {
+                        participantsHtml = '<div class="room-participant mb-3">';
+                        participants.forEach(function(participant) {
+                            participantsHtml += '<div class="mb-2 border-bottom pb-2">' +
+                                '<div class="mb-2"><strong>Peserta: ' + participant.NoPeserta + ' - ' + (participant.NamaSantri || '-') + '</strong></div>' +
+                                '<div class="btn-group btn-group-sm w-100" role="group">' +
+                                '<button type="button" class="btn btn-success btn-finish-room" ' +
+                                'data-id="' + (participant.id || '') + '" ' +
+                                'data-nopeserta="' + (participant.NoPeserta || '') + '" ' +
+                                'data-nama="' + (participant.NamaSantri || '-') + '">' +
+                                '<i class="fas fa-check"></i> Selesai</button>' +
+                                '<button type="button" class="btn btn-warning btn-exit-room" ' +
+                                'data-id="' + (participant.id || '') + '" ' +
+                                'data-nopeserta="' + (participant.NoPeserta || '') + '" ' +
+                                'data-nama="' + (participant.NamaSantri || '-') + '">' +
+                                '<i class="fas fa-sign-out-alt"></i> Batal</button>' +
+                                '</div>' +
+                                '</div>';
+                        });
+                        participantsHtml += '</div>';
+                    } else {
+                        participantsHtml = '<p class="mb-0">Kosong</p>';
+                    }
+
+                    const capacityText = maxCapacity > 1 ? ' (Kapasitas: ' + participantCount + ' / ' + maxCapacity + ')' : '';
+                    const roomCard = $('<div>').addClass(colClass + ' mb-3').html(
+                        '<div class="p-3 rounded shadow-sm room-card ' + roomClass + '">' +
+                        '<div class="d-flex justify-content-between align-items-start mb-2">' +
+                        '<h5 class="mb-0">Ruangan ' + room.RoomId + capacityText + '</h5>' +
+                        badgeHtml +
+                        '</div>' +
+                        participantsHtml +
+                        '</div>'
+                    );
+                    row.append(roomCard);
+                });
+                container.append(row);
+            }
+
+            // Re-attach event handlers for new elements using event delegation
+            // Event handlers are already attached via delegation on document ready
+        }
+
         // Fungsi untuk memulai auto refresh
         function startAutoRefresh() {
             stopAutoRefresh(); // Hentikan yang lama jika ada
@@ -2028,7 +2361,8 @@
 
                     // Jangan refresh jika ada modal/popup terbuka atau input sedang focused
                     if (!hasOpenModal && !hasSwalOpen && !isInputFocused) {
-                        location.reload();
+                        refreshDataAjax();
+                        countdownSeconds = autoRefreshSeconds;
                     } else {
                         // Reset countdown jika tidak bisa refresh
                         countdownSeconds = autoRefreshSeconds;
@@ -2044,7 +2378,7 @@
                 const isInputFocused = $('#queueSearch').is(':focus');
 
                 if (!hasOpenModal && !hasSwalOpen && !isInputFocused) {
-                    location.reload();
+                    refreshDataAjax();
                 }
             }, autoRefreshSeconds * 1000);
         }
