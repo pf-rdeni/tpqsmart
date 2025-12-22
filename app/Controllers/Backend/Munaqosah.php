@@ -2728,6 +2728,9 @@ class Munaqosah extends BaseController
         // Sort queue dengan prioritas waktu (Pagi/Siang)
         $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $selectedTahun, $selectedType);
 
+        // Limit tampilan antrian menjadi 10 item
+        $queue = array_slice($queue, 0, 10);
+
         $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
 
         $totalPeserta = array_sum($statusCounts);
@@ -2990,6 +2993,9 @@ class Munaqosah extends BaseController
 
         $queue = $this->antrianMunaqosahModel->getQueueWithDetails($filters);
         $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $selectedTahun, $selectedType);
+
+        // Limit tampilan antrian menjadi 10 item
+        $queue = array_slice($queue, 0, 10);
 
         $statusCounts = $this->antrianMunaqosahModel->getStatusCounts($filters);
 
@@ -10012,6 +10018,9 @@ class Munaqosah extends BaseController
 
             // Sort queue dengan prioritas waktu (Pagi/Siang)
             $queue = $this->antrianMunaqosahModel->sortQueueByTimePriority($queue, $currentTahunAjaran, $selectedType);
+
+            // Limit tampilan antrian menjadi 10 item
+            $queue = array_slice($queue, 0, 10);
 
             $totalPeserta = array_sum($statusCounts);
             $totalSelesai = $statusCounts[2] ?? 0;

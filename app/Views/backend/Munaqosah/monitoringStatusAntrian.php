@@ -418,20 +418,32 @@
                                                                             </div>
                                                                         </div>
                                                                         <div class="row text-center mt-2 mb-2">
-                                                                            <div class="col-3">
-                                                                                <small class="text-muted d-block">Total</small>
+                                                                            <div class="col-3 stat-item" title="Total Peserta">
+                                                                                <div class="stat-icon-wrapper">
+                                                                                    <i class="fas fa-users stat-icon text-info"></i>
+                                                                                    <span class="stat-label-text"><small class="text-muted">Total</small></span>
+                                                                                </div>
                                                                                 <strong><?= $antrian['statistics']['total'] ?></strong>
                                                                             </div>
-                                                                            <div class="col-3">
-                                                                                <small class="text-muted d-block">Selesai</small>
+                                                                            <div class="col-3 stat-item" title="Selesai">
+                                                                                <div class="stat-icon-wrapper">
+                                                                                    <i class="fas fa-check-circle stat-icon text-success"></i>
+                                                                                    <span class="stat-label-text"><small class="text-muted">Selesai</small></span>
+                                                                                </div>
                                                                                 <strong class="text-success"><?= $antrian['statistics']['completed'] ?></strong>
                                                                             </div>
-                                                                            <div class="col-3">
-                                                                                <small class="text-muted d-block">Menunggu</small>
+                                                                            <div class="col-3 stat-item" title="Tunggu">
+                                                                                <div class="stat-icon-wrapper">
+                                                                                    <i class="fas fa-clock stat-icon text-warning"></i>
+                                                                                    <span class="stat-label-text"><small class="text-muted">Tunggu</small></span>
+                                                                                </div>
                                                                                 <strong class="text-warning"><?= $antrian['statistics']['waiting'] ?></strong>
                                                                             </div>
-                                                                            <div class="col-3">
-                                                                                <small class="text-muted d-block">Ujian</small>
+                                                                            <div class="col-3 stat-item" title="Sedang Ujian">
+                                                                                <div class="stat-icon-wrapper">
+                                                                                    <i class="fas fa-clipboard-check stat-icon text-danger"></i>
+                                                                                    <span class="stat-label-text"><small class="text-muted">Ujian</small></span>
+                                                                                </div>
                                                                                 <strong class="text-danger"><?= $antrian['statistics']['in_progress'] ?></strong>
                                                                             </div>
                                                                         </div>
@@ -440,15 +452,19 @@
                                                                             $occupiedCount = 0;
                                                                             $fullCount = 0;
                                                                             $totalParticipants = 0;
+                                                                            $hasMultiCapacity = false;
                                                                             foreach ($antrian['rooms'] as $room) {
                                                                                 if ($room['occupied'] ?? false) $occupiedCount++;
                                                                                 if ($room['is_full'] ?? false) $fullCount++;
                                                                                 $totalParticipants += ($room['participant_count'] ?? 0);
+                                                                                if (($room['max_capacity'] ?? 1) > 1) {
+                                                                                    $hasMultiCapacity = true;
+                                                                                }
                                                                             }
                                                                             ?>
                                                                             <div class="mt-2 pt-2 border-top">
                                                                                 <small class="text-muted d-block mb-1">Status Ruangan:</small>
-                                                                                <div class="d-flex flex-nowrap align-items-center" style="gap: 0.5rem;">
+                                                                                <div class="room-badges-container">
                                                                                     <?php foreach ($antrian['rooms'] as $room): ?>
                                                                                         <?php
                                                                                         $isFull = $room['is_full'] ?? false;
@@ -456,14 +472,14 @@
                                                                                         $participantCount = $room['participant_count'] ?? 0;
                                                                                         $maxCapacity = $room['max_capacity'] ?? 1;
                                                                                         ?>
-                                                                                        <span class="badge <?= $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success') ?>" style="white-space: nowrap; flex-shrink: 0;" title="Kapasitas: <?= $participantCount ?>/<?= $maxCapacity ?>">
+                                                                                        <span class="badge room-badge <?= $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success') ?>" title="Kapasitas: <?= $participantCount ?>/<?= $maxCapacity ?>">
                                                                                             <i class="fas fa-<?= $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open') ?>"></i>
-                                                                                            <?= $room['RoomId'] ?> (<?= $participantCount ?>/<?= $maxCapacity ?>)
+                                                                                            <?= $room['RoomId'] ?><?= $maxCapacity > 1 ? ' (' . $participantCount . '/' . $maxCapacity . ')' : '' ?>
                                                                                         </span>
                                                                                     <?php endforeach; ?>
                                                                                 </div>
                                                                                 <small class="text-muted">
-                                                                                    <?= $totalParticipants ?> peserta di <?= $occupiedCount ?> ruangan (<?= $fullCount ?> penuh)
+                                                                                    <?= $totalParticipants ?> peserta di <?= $occupiedCount ?> ruangan<?= $hasMultiCapacity ? ' (' . $fullCount . ' penuh)' : '' ?>
                                                                                 </small>
                                                                             </div>
                                                                         <?php endif; ?>
@@ -546,6 +562,188 @@
         .room-card h5 {
             font-size: 1rem;
         }
+    }
+
+    /* Style untuk container badge status ruangan */
+    .room-badges-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .room-badge {
+        white-space: nowrap;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    /* Pastikan badge tidak overflow pada container kecil */
+    @media (max-width: 768px) {
+        .room-badges-container {
+            gap: 0.4rem;
+        }
+
+        .room-badge {
+            font-size: 0.85em;
+        }
+    }
+
+    /* Style untuk statistik dengan icon - selalu vertikal (icon di atas, label di bawah) */
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.25rem;
+        min-height: 60px;
+    }
+
+    .stat-icon-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        margin-bottom: 0.25rem;
+        width: 100%;
+    }
+
+    .stat-icon {
+        font-size: 1.1em;
+        line-height: 1;
+    }
+
+    .stat-label-text {
+        display: block;
+        line-height: 1.2;
+        width: 100%;
+        text-align: center;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .stat-label-text small {
+        display: block;
+        font-size: 0.7em;
+        line-height: 1.2;
+    }
+
+    .stat-item strong {
+        display: block;
+        margin-top: 0.15rem;
+        line-height: 1.2;
+    }
+
+    /* Desktop - icon di atas, label di bawah dengan spacing yang cukup */
+    @media (min-width: 992px) {
+        .stat-icon-wrapper {
+            gap: 0.25rem;
+        }
+
+        .stat-icon {
+            font-size: 1.1em;
+        }
+
+        .stat-label-text small {
+            font-size: 0.75em;
+        }
+
+        .stat-item {
+            min-height: 65px;
+        }
+    }
+
+    /* Tablet - icon di atas, label di bawah */
+    @media (min-width: 769px) and (max-width: 991px) {
+        .stat-icon-wrapper {
+            gap: 0.2rem;
+        }
+
+        .stat-icon {
+            font-size: 1em;
+        }
+
+        .stat-label-text small {
+            font-size: 0.65em;
+        }
+
+        .stat-item {
+            padding: 0.2rem;
+            min-height: 55px;
+        }
+
+        .stat-item strong {
+            font-size: 0.95em;
+        }
+    }
+
+    /* Responsive untuk statistik card - sembunyikan teks pada layar kecil */
+    @media (max-width: 768px) {
+        .stat-label-text {
+            display: none !important;
+        }
+        
+        .stat-icon {
+            font-size: 1.3em;
+            margin-bottom: 0;
+        }
+
+        .stat-icon-wrapper {
+            margin-bottom: 0.15rem;
+        }
+
+        .stat-item {
+            padding: 0.15rem;
+            min-height: 50px;
+        }
+
+        .stat-item strong {
+            font-size: 0.9em;
+        }
+    }
+
+    /* Pada layar sangat kecil, perbesar icon */
+    @media (max-width: 576px) {
+        .stat-icon {
+            font-size: 1.5em;
+        }
+
+        .stat-item {
+            min-height: 45px;
+        }
+
+        .stat-item strong {
+            font-size: 0.85em;
+        }
+    }
+
+    /* Untuk card yang lebih kecil, pastikan tidak tumpang tindih */
+    @media (min-width: 992px) and (max-width: 1200px) {
+        .stat-item {
+            padding: 0.2rem;
+        }
+
+        .stat-icon-wrapper {
+            gap: 0.2rem;
+        }
+
+        .stat-label-text small {
+            font-size: 0.7em;
+        }
+    }
+
+    /* Pastikan tidak ada overflow pada card */
+    .stat-item {
+        overflow: visible;
+    }
+
+    .stat-icon-wrapper {
+        flex-shrink: 0;
     }
 
     .card-group-bg-1 {
@@ -908,16 +1106,20 @@
                     let occupiedCount = 0;
                     let fullCount = 0;
                     let totalParticipants = 0;
+                    let hasMultiCapacity = false;
 
                     rooms.forEach(function(room) {
                         if (room.occupied) occupiedCount++;
                         if (room.is_full) fullCount++;
                         totalParticipants += (room.participant_count || 0);
+                        if ((room.max_capacity || 1) > 1) {
+                            hasMultiCapacity = true;
+                        }
                     });
 
                     roomsHtml = '<div class="mt-2 pt-2 border-top">' +
                         '<small class="text-muted d-block mb-1">Status Ruangan:</small>' +
-                        '<div class="d-flex flex-nowrap align-items-center" style="gap: 0.5rem;">';
+                        '<div class="room-badges-container">';
 
                     rooms.forEach(function(room) {
                         const isFull = room.is_full || false;
@@ -928,13 +1130,15 @@
                         const badgeClass = isFull ? 'badge-danger' : (isOccupied ? 'badge-warning' : 'badge-success');
                         const icon = isFull ? 'users' : (isOccupied ? 'user' : 'door-open');
 
-                        roomsHtml += '<span class="badge ' + badgeClass + '" style="white-space: nowrap; flex-shrink: 0;" title="Kapasitas: ' + participantCount + '/' + maxCapacity + '">' +
-                            '<i class="fas fa-' + icon + '"></i> ' + room.RoomId + ' (' + participantCount + '/' + maxCapacity + ')' +
+                        const capacityText = maxCapacity > 1 ? ' (' + participantCount + '/' + maxCapacity + ')' : '';
+                        roomsHtml += '<span class="badge room-badge ' + badgeClass + '" title="Kapasitas: ' + participantCount + '/' + maxCapacity + '">' +
+                            '<i class="fas fa-' + icon + '"></i> ' + room.RoomId + capacityText +
                             '</span>';
                     });
 
+                    const fullText = hasMultiCapacity ? ' (' + fullCount + ' penuh)' : '';
                     roomsHtml += '</div>' +
-                        '<small class="text-muted">' + totalParticipants + ' peserta di ' + occupiedCount + ' ruangan (' + fullCount + ' penuh)</small>' +
+                        '<small class="text-muted">' + totalParticipants + ' peserta di ' + occupiedCount + ' ruangan' + fullText + '</small>' +
                         '</div>';
                 }
 
@@ -965,10 +1169,34 @@
                     '</div>' +
                     '</div>' +
                     '<div class="row text-center mt-2 mb-2">' +
-                    '<div class="col-3"><small class="text-muted d-block">Total</small><strong>' + stats.total + '</strong></div>' +
-                    '<div class="col-3"><small class="text-muted d-block">Selesai</small><strong class="text-success">' + stats.completed + '</strong></div>' +
-                    '<div class="col-3"><small class="text-muted d-block">Menunggu</small><strong class="text-warning">' + stats.waiting + '</strong></div>' +
-                    '<div class="col-3"><small class="text-muted d-block">Ujian</small><strong class="text-danger">' + stats.in_progress + '</strong></div>' +
+                    '<div class="col-3 stat-item" title="Total Peserta">' +
+                    '<div class="stat-icon-wrapper">' +
+                    '<i class="fas fa-users stat-icon text-info"></i>' +
+                    '<span class="stat-label-text"><small class="text-muted">Total</small></span>' +
+                    '</div>' +
+                    '<strong>' + stats.total + '</strong>' +
+                    '</div>' +
+                    '<div class="col-3 stat-item" title="Selesai">' +
+                    '<div class="stat-icon-wrapper">' +
+                    '<i class="fas fa-check-circle stat-icon text-success"></i>' +
+                    '<span class="stat-label-text"><small class="text-muted">Selesai</small></span>' +
+                    '</div>' +
+                    '<strong class="text-success">' + stats.completed + '</strong>' +
+                    '</div>' +
+                    '<div class="col-3 stat-item" title="Tunggu">' +
+                    '<div class="stat-icon-wrapper">' +
+                    '<i class="fas fa-clock stat-icon text-warning"></i>' +
+                    '<span class="stat-label-text"><small class="text-muted">Tunggu</small></span>' +
+                    '</div>' +
+                    '<strong class="text-warning">' + stats.waiting + '</strong>' +
+                    '</div>' +
+                    '<div class="col-3 stat-item" title="Sedang Ujian">' +
+                    '<div class="stat-icon-wrapper">' +
+                    '<i class="fas fa-clipboard-check stat-icon text-danger"></i>' +
+                    '<span class="stat-label-text"><small class="text-muted">Ujian</small></span>' +
+                    '</div>' +
+                    '<strong class="text-danger">' + stats.in_progress + '</strong>' +
+                    '</div>' +
                     '</div>' +
                     roomsHtml +
                     '</div>' +
