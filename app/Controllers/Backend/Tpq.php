@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use App\Models\TpqModel;
 use App\Models\MdaModel;
 use App\Models\ToolsModel;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Exception;
 
 
@@ -125,7 +127,9 @@ class Tpq extends BaseController
             'TahunBerdiri' => $this->request->getVar('TanggalBerdiri'),
             'KepalaSekolah' => $this->request->getVar('NamaKepTpq'),
             'NoHp' => $this->request->getVar('NoHp'),
-            'TempatBelajar' => $this->request->getVar('TempatBelajar')
+            'TempatBelajar' => $this->request->getVar('TempatBelajar'),
+            'Visi' => $this->request->getVar('Visi'),
+            'Misi' => $this->request->getVar('Misi')
         ]);
 
         session()->setFlashdata('pesan', '
@@ -664,6 +668,114 @@ class Tpq extends BaseController
             return $this->response->setJSON([
                 'error' => 'Gagal mengambil data TPQ: ' . $e->getMessage()
             ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Print PDF Profil Lembaga
+     */
+    public function printProfilLembaga()
+    {
+        try {
+            // Ambil ID TPQ dari session
+            $idTpq = session('IdTpq');
+
+            if (empty($idTpq)) {
+                session()->setFlashdata('pesan', '
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    IdTpq tidak tersedia
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>');
+                return redirect()->to('/backend/tpq/profilLembaga');
+            }
+
+            // Ambil data TPQ
+            $datatpq = $this->DataTpq->GetData($idTpq);
+
+            if (empty($datatpq)) {
+                session()->setFlashdata('pesan', '
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    Data TPQ tidak ditemukan
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>');
+                return redirect()->to('/backend/tpq/profilLembaga');
+            }
+
+            $tpq = $datatpq[0];
+
+            // Siapkan path logo
+            $logoPath = null;
+            if (!empty($tpq['LogoLembaga'])) {
+                $logoFullPath = FCPATH . 'uploads/logo/' . $tpq['LogoLembaga'];
+                if (file_exists($logoFullPath)) {
+                    // Convert image to base64 untuk PDF
+                    $imageData = file_get_contents($logoFullPath);
+                    $logoBase64 = base64_encode($imageData);
+                    $imageInfo = getimagesize($logoFullPath);
+                    $mimeType = $imageInfo['mime'];
+                    $logoPath = 'data:' . $mimeType . ';base64,' . $logoBase64;
+                }
+            }
+
+            // Siapkan data untuk view
+            $data = [
+                'tpq' => $tpq,
+                'logoPath' => $logoPath
+            ];
+
+            // Load helper text_format
+            helper('text_format');
+            
+            // Load view untuk PDF
+            $html = view('backend/tpq/printProfilLembaga', $data);
+
+            // Setup Dompdf
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            // Gunakan ukuran kertas Folio (F4) portrait seperti profil santri
+            $dompdf->setPaper('folio', 'portrait');
+            $dompdf->render();
+
+            // Format filename
+            $filename = 'Profil_Lembaga_' . str_replace(' ', '_', $tpq['NamaTpq']) . '_' . date('Y-m-d') . '.pdf';
+
+            // Clear output buffer
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (Exception $e) {
+            log_message('error', 'Tpq: printProfilLembaga - Error: ' . $e->getMessage());
+            session()->setFlashdata('pesan', '
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                Gagal membuat PDF: ' . $e->getMessage() . '
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>');
+            return redirect()->to('/backend/tpq/profilLembaga');
         }
     }
 }

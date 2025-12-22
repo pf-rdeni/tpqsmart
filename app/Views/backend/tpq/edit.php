@@ -107,6 +107,34 @@
                                     </div>
                                 </div>
                                 
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label for="Visi">Visi Lembaga:</label>
+                                            <textarea class="form-control" 
+                                                      id="Visi" 
+                                                      name="Visi" 
+                                                      rows="4" 
+                                                      placeholder="Masukkan Visi Lembaga"><?= old('Visi', $tpq['Visi'] ?? '') ?></textarea>
+                                            <small class="form-text text-muted">Masukkan visi lembaga. Gunakan Enter untuk membuat baris baru.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label for="Misi">Misi Lembaga:</label>
+                                            <textarea class="form-control" 
+                                                      id="Misi" 
+                                                      name="Misi" 
+                                                      rows="6" 
+                                                      placeholder="Masukkan Misi Lembaga"><?= old('Misi', $tpq['Misi'] ?? '') ?></textarea>
+                                            <small class="form-text text-muted">Masukkan misi lembaga. Gunakan Enter untuk membuat baris baru. Untuk format list, gunakan nomor atau bullet (contoh: 1. Misi pertama, 2. Misi kedua).</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-primary">
                                         <i class="fas fa-save"></i> Update Profil

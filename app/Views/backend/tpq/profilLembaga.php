@@ -15,6 +15,9 @@
                         <h3 class="card-title">Informasi Profil Lembaga TPQ</h3>
                         <?php if (!empty($tpq)) : ?>
                             <div class="card-tools">
+                                <a href="<?= base_url('backend/tpq/printProfilLembaga') ?>" class="btn btn-danger btn-sm" target="_blank">
+                                    <i class="fas fa-file-pdf"></i> Print PDF
+                                </a>
                                 <a href="<?= base_url('backend/tpq/edit/' . $tpq[0]['IdTpq']) ?>" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i> Edit Profil TPQ
                                 </a>
@@ -61,6 +64,30 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <?php if (!empty($tpq[0]['Visi']) || !empty($tpq[0]['Misi'])) : ?>
+                                <div class="row mt-3">
+                                    <div class="col-md-12">
+                                        <?php if (!empty($tpq[0]['Visi'])) : ?>
+                                            <div class="mb-3">
+                                                <label class="font-weight-bold">Visi Lembaga:</label>
+                                                <div>
+                                                    <?= formatVisi($tpq[0]['Visi']) ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <?php if (!empty($tpq[0]['Misi'])) : ?>
+                                            <div class="mb-3">
+                                                <label class="font-weight-bold">Misi Lembaga:</label>
+                                                <div>
+                                                    <?= formatMisi($tpq[0]['Misi']) ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         <?php else : ?>
                             <div class="alert alert-warning">
                                 <h4><i class="icon fa fa-warning"></i> Data Tidak Ditemukan!</h4>
@@ -182,84 +209,111 @@
 
             <!-- Informasi Profil MDA -->
             <?php if (isset($hasMda) && $hasMda) : ?>
-            <div class="row mt-4">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header bg-info text-white">
-                            <h3 class="card-title"><i class="fas fa-building"></i> Informasi Profil Lembaga MDA</h3>
-                            <?php if (!empty($mda)) : ?>
-                                <div class="card-tools">
-                                    <a href="<?= base_url('backend/mda/edit/' . $mda[0]['IdTpq']) ?>" class="btn btn-warning btn-sm">
-                                        <i class="fas fa-edit"></i> Edit Profil MDA
-                                    </a>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="card-body">
-                            <?php if (!empty($mda)) : ?>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>ID TPQ:</label>
-                                            <p class="form-control-static"><?= $mda[0]['IdTpq'] ?></p>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h3 class="card-title"><i class="fas fa-building"></i> Informasi Profil Lembaga MDA</h3>
+                                <?php if (!empty($mda)) : ?>
+                                    <div class="card-tools">
+                                        <a href="<?= base_url('backend/mda/printProfilLembaga') ?>" class="btn btn-danger btn-sm" target="_blank">
+                                            <i class="fas fa-file-pdf"></i> Print PDF
+                                        </a>
+                                        <a href="<?= base_url('backend/mda/edit/' . $mda[0]['IdTpq']) ?>" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-edit"></i> Edit Profil MDA
+                                        </a>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="card-body">
+                                <?php if (!empty($mda)) : ?>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>ID TPQ:</label>
+                                                <p class="form-control-static"><?= $mda[0]['IdTpq'] ?></p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>ID MDA:</label>
+                                                <p class="form-control-static"><?= $mda[0]['IdMda'] ?? '-' ?></p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>ID MDA:</label>
-                                            <p class="form-control-static"><?= $mda[0]['IdMda'] ?? '-' ?></p>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Nama MDA:</label>
-                                            <p class="form-control-static"><?= $mda[0]['NamaTpq'] ?></p>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Nama MDA:</label>
+                                                <p class="form-control-static"><?= $mda[0]['NamaTpq'] ?></p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Kepala MDA:</label>
+                                                <p class="form-control-static"><?= $mda[0]['KepalaSekolah'] ?? '-' ?></p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Kepala MDA:</label>
-                                            <p class="form-control-static"><?= $mda[0]['KepalaSekolah'] ?? '-' ?></p>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label>Alamat:</label>
-                                            <p class="form-control-static"><?= $mda[0]['Alamat'] ?? '-' ?></p>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Alamat:</label>
+                                                <p class="form-control-static"><?= $mda[0]['Alamat'] ?? '-' ?></p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Tempat Belajar:</label>
-                                            <p class="form-control-static"><?= $mda[0]['TempatBelajar'] ?? '-' ?></p>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Tempat Belajar:</label>
+                                                <p class="form-control-static"><?= $mda[0]['TempatBelajar'] ?? '-' ?></p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Tahun Berdiri:</label>
+                                                <p class="form-control-static"><?= $mda[0]['TahunBerdiri'] ?? '-' ?></p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Tahun Berdiri:</label>
-                                            <p class="form-control-static"><?= $mda[0]['TahunBerdiri'] ?? '-' ?></p>
+
+                                    <?php if (!empty($mda[0]['Visi']) || !empty($mda[0]['Misi'])) : ?>
+                                        <div class="row mt-3">
+                                            <div class="col-md-12">
+                                                <?php if (!empty($mda[0]['Visi'])) : ?>
+                                                    <div class="mb-3">
+                                                        <label class="font-weight-bold">Visi Lembaga:</label>
+                                                        <div>
+                                                            <?= formatVisi($mda[0]['Visi']) ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <?php if (!empty($mda[0]['Misi'])) : ?>
+                                                    <div class="mb-3">
+                                                        <label class="font-weight-bold">Misi Lembaga:</label>
+                                                        <div>
+                                                            <?= formatMisi($mda[0]['Misi']) ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
+                                    <?php endif; ?>
+                                <?php else : ?>
+                                    <div class="alert alert-info">
+                                        <h4><i class="icon fa fa-info-circle"></i> Data MDA Belum Tersedia</h4>
+                                        Data profil MDA belum tersimpan. Silakan edit profil MDA untuk menambahkan data.
                                     </div>
-                                </div>
-                            <?php else : ?>
-                                <div class="alert alert-info">
-                                    <h4><i class="icon fa fa-info-circle"></i> Data MDA Belum Tersedia</h4>
-                                    Data profil MDA belum tersimpan. Silakan edit profil MDA untuk menambahkan data.
-                                </div>
-                            <?php endif; ?>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             <?php endif; ?>
 
             <!-- Logo dan Kop MDA -->
@@ -643,7 +697,7 @@
     }
 
     .crop-controls .btn-group {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .crop-controls .btn {
@@ -1022,8 +1076,8 @@
         const moveAmount = 10; // pixel
         let offsetX = 0;
         let offsetY = 0;
-        
-        switch(direction) {
+
+        switch (direction) {
             case 'up':
                 offsetY = -moveAmount;
                 break;
@@ -1037,7 +1091,7 @@
                 offsetX = moveAmount;
                 break;
         }
-        
+
         cropperLogo.move(offsetX, offsetY);
     }
 
@@ -1068,8 +1122,8 @@
         const moveAmount = 10; // pixel
         let offsetX = 0;
         let offsetY = 0;
-        
-        switch(direction) {
+
+        switch (direction) {
             case 'up':
                 offsetY = -moveAmount;
                 break;
@@ -1083,7 +1137,7 @@
                 offsetX = moveAmount;
                 break;
         }
-        
+
         cropperKop.move(offsetX, offsetY);
     }
 
@@ -1396,734 +1450,922 @@
 
     // ========== Functions untuk TPQ dan MDA (jika hasMda = true) ==========
     <?php if (isset($hasMda) && $hasMda) : ?>
-    // Variables untuk TPQ dan MDA
-    let cropperLogoTpq = null;
-    let cropperKopTpq = null;
-    let cropperLogoMda = null;
-    let cropperKopMda = null;
+        // Variables untuk TPQ dan MDA
+        let cropperLogoTpq = null;
+        let cropperKopTpq = null;
+        let cropperLogoMda = null;
+        let cropperKopMda = null;
 
-    // ========== Functions untuk Logo TPQ ==========
-    function editLogoTpq() {
-        const previewImg = document.getElementById('previewLogoTpq');
-        if (!previewImg || !previewImg.src) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Logo TPQ tidak ditemukan'
+        // ========== Functions untuk Logo TPQ ==========
+        function editLogoTpq() {
+            const previewImg = document.getElementById('previewLogoTpq');
+            if (!previewImg || !previewImg.src) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Logo TPQ tidak ditemukan'
+                });
+                return;
+            }
+            ensureCropperLoaded(function() {
+                showCropModalLogoTpqFromBase64(previewImg.src);
             });
-            return;
         }
-        ensureCropperLoaded(function() {
-            showCropModalLogoTpqFromBase64(previewImg.src);
-        });
-    }
 
-    function showCropModalLogoTpq() {
-        const fileInput = document.getElementById('logoTpq');
-        const file = fileInput.files[0];
-        if (!file) return;
-        if (file.size > 5242880) {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Ukuran file terlalu besar. Maksimal 5MB' });
-            fileInput.value = '';
-            return;
+        function showCropModalLogoTpq() {
+            const fileInput = document.getElementById('logoTpq');
+            const file = fileInput.files[0];
+            if (!file) return;
+            if (file.size > 5242880) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Ukuran file terlalu besar. Maksimal 5MB'
+                });
+                fileInput.value = '';
+                return;
+            }
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Tipe file tidak diizinkan'
+                });
+                fileInput.value = '';
+                return;
+            }
+            ensureCropperLoaded(function() {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showCropModalLogoTpqFromBase64(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
         }
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-        if (!allowedTypes.includes(file.type)) {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tipe file tidak diizinkan' });
-            fileInput.value = '';
-            return;
-        }
-        ensureCropperLoaded(function() {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                showCropModalLogoTpqFromBase64(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
 
-    function showCropModalLogoTpqFromBase64(imageUrl) {
-        const imageElement = document.getElementById('imageToCropLogo');
-        if (cropperLogoTpq) {
-            cropperLogoTpq.destroy();
-            cropperLogoTpq = null;
-        }
-        imageElement.src = imageUrl;
-        $('#modalCropLogo').off('shown.bs.modal');
-        $('#modalCropLogo').modal('show');
-        $('#modalCropLogo').on('shown.bs.modal', function() {
+        function showCropModalLogoTpqFromBase64(imageUrl) {
+            const imageElement = document.getElementById('imageToCropLogo');
             if (cropperLogoTpq) {
                 cropperLogoTpq.destroy();
                 cropperLogoTpq = null;
             }
-            const currentSrc = imageElement.src;
-            imageElement.src = '';
-            imageElement.src = currentSrc;
-            imageElement.onload = function() {
-                setTimeout(function() {
-                    if (typeof Cropper === 'undefined') {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Library Cropper.js belum dimuat' });
-                        return;
-                    }
-                    if (!imageElement.src || imageElement.offsetWidth === 0) return;
-                    if (cropperLogoTpq) {
-                        cropperLogoTpq.destroy();
-                        cropperLogoTpq = null;
-                    }
-                    try {
-                        cropperLogoTpq = new Cropper(imageElement, {
-                            aspectRatio: 1,
-                            viewMode: 1,
-                            dragMode: 'move',
-                            autoCropArea: 0.8,
-                            restore: false,
-                            guides: true,
-                            center: true,
-                            highlight: false,
-                            cropBoxMovable: true,
-                            cropBoxResizable: true,
-                            toggleDragModeOnDblclick: false,
-                            responsive: true,
-                            minCropBoxWidth: 200,
-                            minCropBoxHeight: 200
-                        });
-                    } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menginisialisasi cropper: ' + error.message });
-                    }
-                }, 500);
-            };
-            if (imageElement.complete) {
-                imageElement.onload();
-            } else {
-                imageElement.addEventListener('load', imageElement.onload, { once: true });
-            }
-        });
-    }
+            imageElement.src = imageUrl;
+            $('#modalCropLogo').off('shown.bs.modal');
+            $('#modalCropLogo').modal('show');
+            $('#modalCropLogo').on('shown.bs.modal', function() {
+                if (cropperLogoTpq) {
+                    cropperLogoTpq.destroy();
+                    cropperLogoTpq = null;
+                }
+                const currentSrc = imageElement.src;
+                imageElement.src = '';
+                imageElement.src = currentSrc;
+                imageElement.onload = function() {
+                    setTimeout(function() {
+                        if (typeof Cropper === 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Library Cropper.js belum dimuat'
+                            });
+                            return;
+                        }
+                        if (!imageElement.src || imageElement.offsetWidth === 0) return;
+                        if (cropperLogoTpq) {
+                            cropperLogoTpq.destroy();
+                            cropperLogoTpq = null;
+                        }
+                        try {
+                            cropperLogoTpq = new Cropper(imageElement, {
+                                aspectRatio: 1,
+                                viewMode: 1,
+                                dragMode: 'move',
+                                autoCropArea: 0.8,
+                                restore: false,
+                                guides: true,
+                                center: true,
+                                highlight: false,
+                                cropBoxMovable: true,
+                                cropBoxResizable: true,
+                                toggleDragModeOnDblclick: false,
+                                responsive: true,
+                                minCropBoxWidth: 200,
+                                minCropBoxHeight: 200
+                            });
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Gagal menginisialisasi cropper: ' + error.message
+                            });
+                        }
+                    }, 500);
+                };
+                if (imageElement.complete) {
+                    imageElement.onload();
+                } else {
+                    imageElement.addEventListener('load', imageElement.onload, {
+                        once: true
+                    });
+                }
+            });
+        }
 
-    function uploadLogoTpq() {
-        if (!cropperLogoTpq) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Cropper belum diinisialisasi' });
-            return;
-        }
-        const canvas = cropperLogoTpq.getCroppedCanvas({
-            width: 500,
-            height: 500,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high',
-        });
-        if (!canvas) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat canvas' });
-            return;
-        }
-        canvas.toBlob(function(blob) {
-            if (!blob) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengkonversi gambar' });
+        function uploadLogoTpq() {
+            if (!cropperLogoTpq) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Cropper belum diinisialisasi'
+                });
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Image = e.target.result;
-                const formData = new FormData();
-                formData.append('logo_cropped', base64Image);
-                const idTpq = document.getElementById('IdTpqLogoTpq')?.value;
-                if (idTpq) {
-                    formData.append('IdTpq', idTpq);
-                }
+            const canvas = cropperLogoTpq.getCroppedCanvas({
+                width: 500,
+                height: 500,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            if (!canvas) {
                 Swal.fire({
-                    title: 'Mengupload...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Gagal membuat canvas'
                 });
-                $.ajax({
-                    url: '<?= base_url('backend/tpq/uploadLogo') ?>',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil',
-                                text: response.message,
-                                showConfirmButton: false,
-                                timer: 2000
-                            });
-                            if (response.logo_url) {
-                                const previewImg = document.getElementById('previewLogoTpq');
-                                if (previewImg) {
-                                    previewImg.src = response.logo_url;
+                return;
+            }
+            canvas.toBlob(function(blob) {
+                if (!blob) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal mengkonversi gambar'
+                    });
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    const formData = new FormData();
+                    formData.append('logo_cropped', base64Image);
+                    const idTpq = document.getElementById('IdTpqLogoTpq')?.value;
+                    if (idTpq) {
+                        formData.append('IdTpq', idTpq);
+                    }
+                    Swal.fire({
+                        title: 'Mengupload...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    $.ajax({
+                        url: '<?= base_url('backend/tpq/uploadLogo') ?>',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message,
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                });
+                                if (response.logo_url) {
+                                    const previewImg = document.getElementById('previewLogoTpq');
+                                    if (previewImg) {
+                                        previewImg.src = response.logo_url;
+                                    } else {
+                                        setTimeout(() => {
+                                            location.reload();
+                                        }, 2000);
+                                    }
                                 } else {
-                                    setTimeout(() => { location.reload(); }, 2000);
+                                    setTimeout(() => {
+                                        location.reload();
+                                    }, 2000);
+                                }
+                                $('#modalCropLogo').modal('hide');
+                                document.getElementById('logoTpq').value = '';
+                                if (cropperLogoTpq) {
+                                    cropperLogoTpq.destroy();
+                                    cropperLogoTpq = null;
                                 }
                             } else {
-                                setTimeout(() => { location.reload(); }, 2000);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupload logo'
+                                });
                             }
-                            $('#modalCropLogo').modal('hide');
-                            document.getElementById('logoTpq').value = '';
-                            if (cropperLogoTpq) {
-                                cropperLogoTpq.destroy();
-                                cropperLogoTpq = null;
-                            }
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengupload logo' });
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Terjadi kesalahan saat menghubungi server'
+                            });
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghubungi server' });
-                    }
+                    });
+                };
+                reader.readAsDataURL(blob);
+            }, 'image/jpeg', 0.9);
+        }
+
+        // ========== Functions untuk Kop TPQ ==========
+        function editKopTpq() {
+            const previewImg = document.getElementById('previewKopTpq');
+            if (!previewImg || !previewImg.src) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Kop TPQ tidak ditemukan'
                 });
-            };
-            reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.9);
-    }
+                return;
+            }
+            ensureCropperLoaded(function() {
+                showCropModalKopTpqFromBase64(previewImg.src);
+            });
+        }
 
-    // ========== Functions untuk Kop TPQ ==========
-    function editKopTpq() {
-        const previewImg = document.getElementById('previewKopTpq');
-        if (!previewImg || !previewImg.src) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Kop TPQ tidak ditemukan' });
-            return;
+        function showCropModalKopTpq() {
+            const fileInput = document.getElementById('kop_lembaga_tpq');
+            const file = fileInput.files[0];
+            if (!file) return;
+            if (file.size > 5242880) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Ukuran file terlalu besar. Maksimal 5MB'
+                });
+                fileInput.value = '';
+                return;
+            }
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Tipe file tidak diizinkan'
+                });
+                fileInput.value = '';
+                return;
+            }
+            ensureCropperLoaded(function() {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showCropModalKopTpqFromBase64(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
         }
-        ensureCropperLoaded(function() {
-            showCropModalKopTpqFromBase64(previewImg.src);
-        });
-    }
 
-    function showCropModalKopTpq() {
-        const fileInput = document.getElementById('kop_lembaga_tpq');
-        const file = fileInput.files[0];
-        if (!file) return;
-        if (file.size > 5242880) {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Ukuran file terlalu besar. Maksimal 5MB' });
-            fileInput.value = '';
-            return;
-        }
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-        if (!allowedTypes.includes(file.type)) {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tipe file tidak diizinkan' });
-            fileInput.value = '';
-            return;
-        }
-        ensureCropperLoaded(function() {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                showCropModalKopTpqFromBase64(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    function showCropModalKopTpqFromBase64(imageUrl) {
-        const imageElement = document.getElementById('imageToCropKop');
-        if (cropperKopTpq) {
-            cropperKopTpq.destroy();
-            cropperKopTpq = null;
-        }
-        imageElement.src = imageUrl;
-        $('#modalCropKop').off('shown.bs.modal');
-        $('#modalCropKop').modal('show');
-        $('#modalCropKop').on('shown.bs.modal', function() {
+        function showCropModalKopTpqFromBase64(imageUrl) {
+            const imageElement = document.getElementById('imageToCropKop');
             if (cropperKopTpq) {
                 cropperKopTpq.destroy();
                 cropperKopTpq = null;
             }
-            const currentSrc = imageElement.src;
-            imageElement.src = '';
-            imageElement.src = currentSrc;
-            imageElement.onload = function() {
-                setTimeout(function() {
-                    if (typeof Cropper === 'undefined') {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Library Cropper.js belum dimuat' });
-                        return;
-                    }
-                    if (!imageElement.src || imageElement.offsetWidth === 0) return;
-                    if (cropperKopTpq) {
-                        cropperKopTpq.destroy();
-                        cropperKopTpq = null;
-                    }
-                    try {
-                        cropperKopTpq = new Cropper(imageElement, {
-                            aspectRatio: 4 / 1,
-                            viewMode: 1,
-                            dragMode: 'move',
-                            autoCropArea: 0.8,
-                            restore: false,
-                            guides: true,
-                            center: true,
-                            highlight: false,
-                            cropBoxMovable: true,
-                            cropBoxResizable: true,
-                            toggleDragModeOnDblclick: false,
-                            responsive: true,
-                            minCropBoxWidth: 400,
-                            minCropBoxHeight: 100
-                        });
-                    } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menginisialisasi cropper: ' + error.message });
-                    }
-                }, 500);
-            };
-            if (imageElement.complete) {
-                imageElement.onload();
-            } else {
-                imageElement.addEventListener('load', imageElement.onload, { once: true });
-            }
-        });
-    }
+            imageElement.src = imageUrl;
+            $('#modalCropKop').off('shown.bs.modal');
+            $('#modalCropKop').modal('show');
+            $('#modalCropKop').on('shown.bs.modal', function() {
+                if (cropperKopTpq) {
+                    cropperKopTpq.destroy();
+                    cropperKopTpq = null;
+                }
+                const currentSrc = imageElement.src;
+                imageElement.src = '';
+                imageElement.src = currentSrc;
+                imageElement.onload = function() {
+                    setTimeout(function() {
+                        if (typeof Cropper === 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Library Cropper.js belum dimuat'
+                            });
+                            return;
+                        }
+                        if (!imageElement.src || imageElement.offsetWidth === 0) return;
+                        if (cropperKopTpq) {
+                            cropperKopTpq.destroy();
+                            cropperKopTpq = null;
+                        }
+                        try {
+                            cropperKopTpq = new Cropper(imageElement, {
+                                aspectRatio: 4 / 1,
+                                viewMode: 1,
+                                dragMode: 'move',
+                                autoCropArea: 0.8,
+                                restore: false,
+                                guides: true,
+                                center: true,
+                                highlight: false,
+                                cropBoxMovable: true,
+                                cropBoxResizable: true,
+                                toggleDragModeOnDblclick: false,
+                                responsive: true,
+                                minCropBoxWidth: 400,
+                                minCropBoxHeight: 100
+                            });
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Gagal menginisialisasi cropper: ' + error.message
+                            });
+                        }
+                    }, 500);
+                };
+                if (imageElement.complete) {
+                    imageElement.onload();
+                } else {
+                    imageElement.addEventListener('load', imageElement.onload, {
+                        once: true
+                    });
+                }
+            });
+        }
 
-    function uploadKopTpq() {
-        if (!cropperKopTpq) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Cropper belum diinisialisasi' });
-            return;
-        }
-        const canvas = cropperKopTpq.getCroppedCanvas({
-            width: 2000,
-            height: 500,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high',
-        });
-        if (!canvas) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat canvas' });
-            return;
-        }
-        canvas.toBlob(function(blob) {
-            if (!blob) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengkonversi gambar' });
+        function uploadKopTpq() {
+            if (!cropperKopTpq) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Cropper belum diinisialisasi'
+                });
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Image = e.target.result;
-                const formData = new FormData();
-                formData.append('kop_lembaga_cropped', base64Image);
-                const idTpq = document.getElementById('IdTpqKopTpq')?.value;
-                if (idTpq) {
-                    formData.append('IdTpq', idTpq);
-                }
+            const canvas = cropperKopTpq.getCroppedCanvas({
+                width: 2000,
+                height: 500,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            if (!canvas) {
                 Swal.fire({
-                    title: 'Mengupload...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Gagal membuat canvas'
                 });
-                $.ajax({
-                    url: '<?= base_url('backend/tpq/uploadKop') ?>',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil',
-                                text: response.message,
-                                showConfirmButton: false,
-                                timer: 2000
-                            });
-                            if (response.kop_url) {
-                                const previewImg = document.getElementById('previewKopTpq');
-                                if (previewImg) {
-                                    previewImg.src = response.kop_url;
+                return;
+            }
+            canvas.toBlob(function(blob) {
+                if (!blob) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal mengkonversi gambar'
+                    });
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    const formData = new FormData();
+                    formData.append('kop_lembaga_cropped', base64Image);
+                    const idTpq = document.getElementById('IdTpqKopTpq')?.value;
+                    if (idTpq) {
+                        formData.append('IdTpq', idTpq);
+                    }
+                    Swal.fire({
+                        title: 'Mengupload...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    $.ajax({
+                        url: '<?= base_url('backend/tpq/uploadKop') ?>',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message,
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                });
+                                if (response.kop_url) {
+                                    const previewImg = document.getElementById('previewKopTpq');
+                                    if (previewImg) {
+                                        previewImg.src = response.kop_url;
+                                    } else {
+                                        setTimeout(() => {
+                                            location.reload();
+                                        }, 2000);
+                                    }
                                 } else {
-                                    setTimeout(() => { location.reload(); }, 2000);
+                                    setTimeout(() => {
+                                        location.reload();
+                                    }, 2000);
+                                }
+                                $('#modalCropKop').modal('hide');
+                                document.getElementById('kop_lembaga_tpq').value = '';
+                                if (cropperKopTpq) {
+                                    cropperKopTpq.destroy();
+                                    cropperKopTpq = null;
                                 }
                             } else {
-                                setTimeout(() => { location.reload(); }, 2000);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupload kop'
+                                });
                             }
-                            $('#modalCropKop').modal('hide');
-                            document.getElementById('kop_lembaga_tpq').value = '';
-                            if (cropperKopTpq) {
-                                cropperKopTpq.destroy();
-                                cropperKopTpq = null;
-                            }
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengupload kop' });
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Terjadi kesalahan saat menghubungi server'
+                            });
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghubungi server' });
-                    }
+                    });
+                };
+                reader.readAsDataURL(blob);
+            }, 'image/jpeg', 0.9);
+        }
+
+        // ========== Functions untuk Logo MDA ==========
+        function editLogoMda() {
+            const previewImg = document.getElementById('previewLogoMda');
+            if (!previewImg || !previewImg.src) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Logo MDA tidak ditemukan'
                 });
-            };
-            reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.9);
-    }
+                return;
+            }
+            ensureCropperLoaded(function() {
+                showCropModalLogoMdaFromBase64(previewImg.src);
+            });
+        }
 
-    // ========== Functions untuk Logo MDA ==========
-    function editLogoMda() {
-        const previewImg = document.getElementById('previewLogoMda');
-        if (!previewImg || !previewImg.src) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Logo MDA tidak ditemukan' });
-            return;
+        function showCropModalLogoMda() {
+            const fileInput = document.getElementById('logoMda');
+            const file = fileInput.files[0];
+            if (!file) return;
+            if (file.size > 5242880) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Ukuran file terlalu besar. Maksimal 5MB'
+                });
+                fileInput.value = '';
+                return;
+            }
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Tipe file tidak diizinkan'
+                });
+                fileInput.value = '';
+                return;
+            }
+            ensureCropperLoaded(function() {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showCropModalLogoMdaFromBase64(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
         }
-        ensureCropperLoaded(function() {
-            showCropModalLogoMdaFromBase64(previewImg.src);
-        });
-    }
 
-    function showCropModalLogoMda() {
-        const fileInput = document.getElementById('logoMda');
-        const file = fileInput.files[0];
-        if (!file) return;
-        if (file.size > 5242880) {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Ukuran file terlalu besar. Maksimal 5MB' });
-            fileInput.value = '';
-            return;
-        }
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-        if (!allowedTypes.includes(file.type)) {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tipe file tidak diizinkan' });
-            fileInput.value = '';
-            return;
-        }
-        ensureCropperLoaded(function() {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                showCropModalLogoMdaFromBase64(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    function showCropModalLogoMdaFromBase64(imageUrl) {
-        const imageElement = document.getElementById('imageToCropLogo');
-        if (cropperLogoMda) {
-            cropperLogoMda.destroy();
-            cropperLogoMda = null;
-        }
-        imageElement.src = imageUrl;
-        $('#modalCropLogo').off('shown.bs.modal');
-        $('#modalCropLogo').modal('show');
-        $('#modalCropLogo').on('shown.bs.modal', function() {
+        function showCropModalLogoMdaFromBase64(imageUrl) {
+            const imageElement = document.getElementById('imageToCropLogo');
             if (cropperLogoMda) {
                 cropperLogoMda.destroy();
                 cropperLogoMda = null;
             }
-            const currentSrc = imageElement.src;
-            imageElement.src = '';
-            imageElement.src = currentSrc;
-            imageElement.onload = function() {
-                setTimeout(function() {
-                    if (typeof Cropper === 'undefined') {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Library Cropper.js belum dimuat' });
-                        return;
-                    }
-                    if (!imageElement.src || imageElement.offsetWidth === 0) return;
-                    if (cropperLogoMda) {
-                        cropperLogoMda.destroy();
-                        cropperLogoMda = null;
-                    }
-                    try {
-                        cropperLogoMda = new Cropper(imageElement, {
-                            aspectRatio: 1,
-                            viewMode: 1,
-                            dragMode: 'move',
-                            autoCropArea: 0.8,
-                            restore: false,
-                            guides: true,
-                            center: true,
-                            highlight: false,
-                            cropBoxMovable: true,
-                            cropBoxResizable: true,
-                            toggleDragModeOnDblclick: false,
-                            responsive: true,
-                            minCropBoxWidth: 200,
-                            minCropBoxHeight: 200
-                        });
-                    } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menginisialisasi cropper: ' + error.message });
-                    }
-                }, 500);
-            };
-            if (imageElement.complete) {
-                imageElement.onload();
-            } else {
-                imageElement.addEventListener('load', imageElement.onload, { once: true });
-            }
-        });
-    }
+            imageElement.src = imageUrl;
+            $('#modalCropLogo').off('shown.bs.modal');
+            $('#modalCropLogo').modal('show');
+            $('#modalCropLogo').on('shown.bs.modal', function() {
+                if (cropperLogoMda) {
+                    cropperLogoMda.destroy();
+                    cropperLogoMda = null;
+                }
+                const currentSrc = imageElement.src;
+                imageElement.src = '';
+                imageElement.src = currentSrc;
+                imageElement.onload = function() {
+                    setTimeout(function() {
+                        if (typeof Cropper === 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Library Cropper.js belum dimuat'
+                            });
+                            return;
+                        }
+                        if (!imageElement.src || imageElement.offsetWidth === 0) return;
+                        if (cropperLogoMda) {
+                            cropperLogoMda.destroy();
+                            cropperLogoMda = null;
+                        }
+                        try {
+                            cropperLogoMda = new Cropper(imageElement, {
+                                aspectRatio: 1,
+                                viewMode: 1,
+                                dragMode: 'move',
+                                autoCropArea: 0.8,
+                                restore: false,
+                                guides: true,
+                                center: true,
+                                highlight: false,
+                                cropBoxMovable: true,
+                                cropBoxResizable: true,
+                                toggleDragModeOnDblclick: false,
+                                responsive: true,
+                                minCropBoxWidth: 200,
+                                minCropBoxHeight: 200
+                            });
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Gagal menginisialisasi cropper: ' + error.message
+                            });
+                        }
+                    }, 500);
+                };
+                if (imageElement.complete) {
+                    imageElement.onload();
+                } else {
+                    imageElement.addEventListener('load', imageElement.onload, {
+                        once: true
+                    });
+                }
+            });
+        }
 
-    function uploadLogoMda() {
-        if (!cropperLogoMda) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Cropper belum diinisialisasi' });
-            return;
-        }
-        const canvas = cropperLogoMda.getCroppedCanvas({
-            width: 500,
-            height: 500,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high',
-        });
-        if (!canvas) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat canvas' });
-            return;
-        }
-        canvas.toBlob(function(blob) {
-            if (!blob) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengkonversi gambar' });
+        function uploadLogoMda() {
+            if (!cropperLogoMda) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Cropper belum diinisialisasi'
+                });
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Image = e.target.result;
-                const formData = new FormData();
-                formData.append('logo_cropped', base64Image);
-                const idTpq = document.getElementById('IdTpqLogoMda')?.value;
-                if (idTpq) {
-                    formData.append('IdTpq', idTpq);
-                }
+            const canvas = cropperLogoMda.getCroppedCanvas({
+                width: 500,
+                height: 500,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            if (!canvas) {
                 Swal.fire({
-                    title: 'Mengupload...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Gagal membuat canvas'
                 });
-                $.ajax({
-                    url: '<?= base_url('backend/mda/uploadLogo') ?>',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil',
-                                text: response.message,
-                                showConfirmButton: false,
-                                timer: 2000
-                            });
-                            if (response.logo_url) {
-                                const previewImg = document.getElementById('previewLogoMda');
-                                if (previewImg) {
-                                    previewImg.src = response.logo_url;
+                return;
+            }
+            canvas.toBlob(function(blob) {
+                if (!blob) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal mengkonversi gambar'
+                    });
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    const formData = new FormData();
+                    formData.append('logo_cropped', base64Image);
+                    const idTpq = document.getElementById('IdTpqLogoMda')?.value;
+                    if (idTpq) {
+                        formData.append('IdTpq', idTpq);
+                    }
+                    Swal.fire({
+                        title: 'Mengupload...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    $.ajax({
+                        url: '<?= base_url('backend/mda/uploadLogo') ?>',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message,
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                });
+                                if (response.logo_url) {
+                                    const previewImg = document.getElementById('previewLogoMda');
+                                    if (previewImg) {
+                                        previewImg.src = response.logo_url;
+                                    } else {
+                                        setTimeout(() => {
+                                            location.reload();
+                                        }, 2000);
+                                    }
                                 } else {
-                                    setTimeout(() => { location.reload(); }, 2000);
+                                    setTimeout(() => {
+                                        location.reload();
+                                    }, 2000);
+                                }
+                                $('#modalCropLogo').modal('hide');
+                                document.getElementById('logoMda').value = '';
+                                if (cropperLogoMda) {
+                                    cropperLogoMda.destroy();
+                                    cropperLogoMda = null;
                                 }
                             } else {
-                                setTimeout(() => { location.reload(); }, 2000);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupload logo'
+                                });
                             }
-                            $('#modalCropLogo').modal('hide');
-                            document.getElementById('logoMda').value = '';
-                            if (cropperLogoMda) {
-                                cropperLogoMda.destroy();
-                                cropperLogoMda = null;
-                            }
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengupload logo' });
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Terjadi kesalahan saat menghubungi server'
+                            });
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghubungi server' });
-                    }
+                    });
+                };
+                reader.readAsDataURL(blob);
+            }, 'image/jpeg', 0.9);
+        }
+
+        // ========== Functions untuk Kop MDA ==========
+        function editKopMda() {
+            const previewImg = document.getElementById('previewKopMda');
+            if (!previewImg || !previewImg.src) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Kop MDA tidak ditemukan'
                 });
-            };
-            reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.9);
-    }
+                return;
+            }
+            ensureCropperLoaded(function() {
+                showCropModalKopMdaFromBase64(previewImg.src);
+            });
+        }
 
-    // ========== Functions untuk Kop MDA ==========
-    function editKopMda() {
-        const previewImg = document.getElementById('previewKopMda');
-        if (!previewImg || !previewImg.src) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Kop MDA tidak ditemukan' });
-            return;
+        function showCropModalKopMda() {
+            const fileInput = document.getElementById('kop_lembaga_mda');
+            const file = fileInput.files[0];
+            if (!file) return;
+            if (file.size > 5242880) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Ukuran file terlalu besar. Maksimal 5MB'
+                });
+                fileInput.value = '';
+                return;
+            }
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Tipe file tidak diizinkan'
+                });
+                fileInput.value = '';
+                return;
+            }
+            ensureCropperLoaded(function() {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showCropModalKopMdaFromBase64(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
         }
-        ensureCropperLoaded(function() {
-            showCropModalKopMdaFromBase64(previewImg.src);
-        });
-    }
 
-    function showCropModalKopMda() {
-        const fileInput = document.getElementById('kop_lembaga_mda');
-        const file = fileInput.files[0];
-        if (!file) return;
-        if (file.size > 5242880) {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Ukuran file terlalu besar. Maksimal 5MB' });
-            fileInput.value = '';
-            return;
-        }
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-        if (!allowedTypes.includes(file.type)) {
-            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tipe file tidak diizinkan' });
-            fileInput.value = '';
-            return;
-        }
-        ensureCropperLoaded(function() {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                showCropModalKopMdaFromBase64(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    function showCropModalKopMdaFromBase64(imageUrl) {
-        const imageElement = document.getElementById('imageToCropKop');
-        if (cropperKopMda) {
-            cropperKopMda.destroy();
-            cropperKopMda = null;
-        }
-        imageElement.src = imageUrl;
-        $('#modalCropKop').off('shown.bs.modal');
-        $('#modalCropKop').modal('show');
-        $('#modalCropKop').on('shown.bs.modal', function() {
+        function showCropModalKopMdaFromBase64(imageUrl) {
+            const imageElement = document.getElementById('imageToCropKop');
             if (cropperKopMda) {
                 cropperKopMda.destroy();
                 cropperKopMda = null;
             }
-            const currentSrc = imageElement.src;
-            imageElement.src = '';
-            imageElement.src = currentSrc;
-            imageElement.onload = function() {
-                setTimeout(function() {
-                    if (typeof Cropper === 'undefined') {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Library Cropper.js belum dimuat' });
-                        return;
-                    }
-                    if (!imageElement.src || imageElement.offsetWidth === 0) return;
-                    if (cropperKopMda) {
-                        cropperKopMda.destroy();
-                        cropperKopMda = null;
-                    }
-                    try {
-                        cropperKopMda = new Cropper(imageElement, {
-                            aspectRatio: 4 / 1,
-                            viewMode: 1,
-                            dragMode: 'move',
-                            autoCropArea: 0.8,
-                            restore: false,
-                            guides: true,
-                            center: true,
-                            highlight: false,
-                            cropBoxMovable: true,
-                            cropBoxResizable: true,
-                            toggleDragModeOnDblclick: false,
-                            responsive: true,
-                            minCropBoxWidth: 400,
-                            minCropBoxHeight: 100
-                        });
-                    } catch (error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menginisialisasi cropper: ' + error.message });
-                    }
-                }, 500);
-            };
-            if (imageElement.complete) {
-                imageElement.onload();
-            } else {
-                imageElement.addEventListener('load', imageElement.onload, { once: true });
-            }
-        });
-    }
+            imageElement.src = imageUrl;
+            $('#modalCropKop').off('shown.bs.modal');
+            $('#modalCropKop').modal('show');
+            $('#modalCropKop').on('shown.bs.modal', function() {
+                if (cropperKopMda) {
+                    cropperKopMda.destroy();
+                    cropperKopMda = null;
+                }
+                const currentSrc = imageElement.src;
+                imageElement.src = '';
+                imageElement.src = currentSrc;
+                imageElement.onload = function() {
+                    setTimeout(function() {
+                        if (typeof Cropper === 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Library Cropper.js belum dimuat'
+                            });
+                            return;
+                        }
+                        if (!imageElement.src || imageElement.offsetWidth === 0) return;
+                        if (cropperKopMda) {
+                            cropperKopMda.destroy();
+                            cropperKopMda = null;
+                        }
+                        try {
+                            cropperKopMda = new Cropper(imageElement, {
+                                aspectRatio: 4 / 1,
+                                viewMode: 1,
+                                dragMode: 'move',
+                                autoCropArea: 0.8,
+                                restore: false,
+                                guides: true,
+                                center: true,
+                                highlight: false,
+                                cropBoxMovable: true,
+                                cropBoxResizable: true,
+                                toggleDragModeOnDblclick: false,
+                                responsive: true,
+                                minCropBoxWidth: 400,
+                                minCropBoxHeight: 100
+                            });
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Gagal menginisialisasi cropper: ' + error.message
+                            });
+                        }
+                    }, 500);
+                };
+                if (imageElement.complete) {
+                    imageElement.onload();
+                } else {
+                    imageElement.addEventListener('load', imageElement.onload, {
+                        once: true
+                    });
+                }
+            });
+        }
 
-    function uploadKopMda() {
-        if (!cropperKopMda) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Cropper belum diinisialisasi' });
-            return;
-        }
-        const canvas = cropperKopMda.getCroppedCanvas({
-            width: 2000,
-            height: 500,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high',
-        });
-        if (!canvas) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat canvas' });
-            return;
-        }
-        canvas.toBlob(function(blob) {
-            if (!blob) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengkonversi gambar' });
+        function uploadKopMda() {
+            if (!cropperKopMda) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Cropper belum diinisialisasi'
+                });
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Image = e.target.result;
-                const formData = new FormData();
-                formData.append('kop_lembaga_cropped', base64Image);
-                const idTpq = document.getElementById('IdTpqKopMda')?.value;
-                if (idTpq) {
-                    formData.append('IdTpq', idTpq);
-                }
+            const canvas = cropperKopMda.getCroppedCanvas({
+                width: 2000,
+                height: 500,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            if (!canvas) {
                 Swal.fire({
-                    title: 'Mengupload...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Gagal membuat canvas'
                 });
-                $.ajax({
-                    url: '<?= base_url('backend/mda/uploadKop') ?>',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil',
-                                text: response.message,
-                                showConfirmButton: false,
-                                timer: 2000
-                            });
-                            if (response.kop_url) {
-                                const previewImg = document.getElementById('previewKopMda');
-                                if (previewImg) {
-                                    previewImg.src = response.kop_url;
+                return;
+            }
+            canvas.toBlob(function(blob) {
+                if (!blob) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal mengkonversi gambar'
+                    });
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    const formData = new FormData();
+                    formData.append('kop_lembaga_cropped', base64Image);
+                    const idTpq = document.getElementById('IdTpqKopMda')?.value;
+                    if (idTpq) {
+                        formData.append('IdTpq', idTpq);
+                    }
+                    Swal.fire({
+                        title: 'Mengupload...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    $.ajax({
+                        url: '<?= base_url('backend/mda/uploadKop') ?>',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.message,
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                });
+                                if (response.kop_url) {
+                                    const previewImg = document.getElementById('previewKopMda');
+                                    if (previewImg) {
+                                        previewImg.src = response.kop_url;
+                                    } else {
+                                        setTimeout(() => {
+                                            location.reload();
+                                        }, 2000);
+                                    }
                                 } else {
-                                    setTimeout(() => { location.reload(); }, 2000);
+                                    setTimeout(() => {
+                                        location.reload();
+                                    }, 2000);
+                                }
+                                $('#modalCropKop').modal('hide');
+                                document.getElementById('kop_lembaga_mda').value = '';
+                                if (cropperKopMda) {
+                                    cropperKopMda.destroy();
+                                    cropperKopMda = null;
                                 }
                             } else {
-                                setTimeout(() => { location.reload(); }, 2000);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.message || 'Gagal mengupload kop'
+                                });
                             }
-                            $('#modalCropKop').modal('hide');
-                            document.getElementById('kop_lembaga_mda').value = '';
-                            if (cropperKopMda) {
-                                cropperKopMda.destroy();
-                                cropperKopMda = null;
-                            }
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Gagal', text: response.message || 'Gagal mengupload kop' });
+                        },
+                        error: function(xhr, status, error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Terjadi kesalahan saat menghubungi server'
+                            });
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghubungi server' });
-                    }
-                });
-            };
-            reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.9);
-    }
+                    });
+                };
+                reader.readAsDataURL(blob);
+            }, 'image/jpeg', 0.9);
+        }
 
-    // Update button handlers untuk TPQ dan MDA
-    $(document).ready(function() {
-        // Handle crop logo TPQ
-        $('#btnCropLogo').off('click').on('click', function() {
-            // Cek cropper mana yang aktif
-            if (cropperLogoTpq) {
-                uploadLogoTpq();
-            } else if (cropperLogoMda) {
-                uploadLogoMda();
-            } else if (cropperLogo) {
-                uploadLogo(); // Fallback untuk default
-            }
-        });
+        // Update button handlers untuk TPQ dan MDA
+        $(document).ready(function() {
+            // Handle crop logo TPQ
+            $('#btnCropLogo').off('click').on('click', function() {
+                // Cek cropper mana yang aktif
+                if (cropperLogoTpq) {
+                    uploadLogoTpq();
+                } else if (cropperLogoMda) {
+                    uploadLogoMda();
+                } else if (cropperLogo) {
+                    uploadLogo(); // Fallback untuk default
+                }
+            });
 
-        // Handle crop kop TPQ
-        $('#btnCropKop').off('click').on('click', function() {
-            // Cek cropper mana yang aktif
-            if (cropperKopTpq) {
-                uploadKopTpq();
-            } else if (cropperKopMda) {
-                uploadKopMda();
-            } else if (cropperKop) {
-                uploadKop(); // Fallback untuk default
-            }
+            // Handle crop kop TPQ
+            $('#btnCropKop').off('click').on('click', function() {
+                // Cek cropper mana yang aktif
+                if (cropperKopTpq) {
+                    uploadKopTpq();
+                } else if (cropperKopMda) {
+                    uploadKopMda();
+                } else if (cropperKop) {
+                    uploadKop(); // Fallback untuk default
+                }
+            });
         });
-    });
     <?php endif; ?>
 </script>
 <?= $this->endSection() ?>

@@ -10,7 +10,7 @@ class MdaModel extends Model
     protected $primaryKey = 'IdTpq';
     protected $useAutoIncrement = false;
     protected $useTimestamps = true;
-    protected $allowedFields = ['IdTpq', 'IdMda', 'NamaTpq', 'Alamat', 'TahunBerdiri', 'TempatBelajar', 'KepalaSekolah', 'NoHp', 'LogoLembaga', 'KopLembaga'];
+    protected $allowedFields = ['IdTpq', 'IdMda', 'NamaTpq', 'Alamat', 'TahunBerdiri', 'TempatBelajar', 'KepalaSekolah', 'NoHp', 'LogoLembaga', 'KopLembaga', 'Visi', 'Misi'];
     
     public function GetData($id = false)
     {

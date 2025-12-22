@@ -5,6 +5,8 @@ namespace App\Controllers\Backend;
 use App\Controllers\BaseController;
 use App\Models\MdaModel;
 use App\Models\TpqModel;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Exception;
 
 
@@ -115,8 +117,13 @@ class Mda extends BaseController
 
     public function update($id)
     {
-        // Gunakan parameter $id sebagai IdTpq
-        $idTpq = $id;
+        // Ambil ID TPQ dari session atau parameter
+        $idTpq = session('IdTpq');
+        
+        // Jika tidak ada di session, gunakan parameter $id
+        if (empty($idTpq)) {
+            $idTpq = $id;
+        }
 
         if (!$this->validate([
             'NamaTpq' => [
@@ -135,10 +142,10 @@ class Mda extends BaseController
                     <span aria-hidden="true">&times;</span> 
                 </button>
             </div>');
-            return redirect()->to('/backend/mda/show')->withInput()->with('validation', $validation);
+            return redirect()->to('/backend/mda/edit/' . $idTpq)->withInput()->with('validation', $validation);
         }
 
-        // Update data menggunakan ID dari parameter
+        // Update data menggunakan ID dari session atau parameter
         $this->DataMda->update($idTpq, [
             'IdMda' => $this->request->getVar('IdMda') ?? null,
             'NamaTpq' => $this->request->getVar('NamaTpq'),
@@ -146,17 +153,19 @@ class Mda extends BaseController
             'TahunBerdiri' => $this->request->getVar('TanggalBerdiri'),
             'KepalaSekolah' => $this->request->getVar('NamaKepTpq'),
             'NoHp' => $this->request->getVar('NoHp'),
-            'TempatBelajar' => $this->request->getVar('TempatBelajar')
+            'TempatBelajar' => $this->request->getVar('TempatBelajar'),
+            'Visi' => $this->request->getVar('Visi'),
+            'Misi' => $this->request->getVar('Misi')
         ]);
 
         session()->setFlashdata('pesan', '
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            Data MDA berhasil diupdate 
+            Profil lembaga MDA berhasil diupdate 
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
             <span aria-hidden="true">&times;</span>
         </button>
         </div>');
-        return redirect()->to('/backend/mda/show');
+        return redirect()->to('/backend/tpq/profilLembaga');
     }
 
     public function delete($id)
@@ -671,6 +680,114 @@ class Mda extends BaseController
             return $this->response->setJSON([
                 'error' => 'Gagal mengambil data MDA: ' . $e->getMessage()
             ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Print PDF Profil Lembaga MDA
+     */
+    public function printProfilLembaga()
+    {
+        try {
+            // Ambil ID TPQ dari session
+            $idTpq = session('IdTpq');
+
+            if (empty($idTpq)) {
+                session()->setFlashdata('pesan', '
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    IdTpq tidak tersedia
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>');
+                return redirect()->to('/backend/tpq/profilLembaga');
+            }
+
+            // Ambil data MDA
+            $datamda = $this->DataMda->GetData($idTpq);
+
+            if (empty($datamda)) {
+                session()->setFlashdata('pesan', '
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    Data MDA tidak ditemukan
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>');
+                return redirect()->to('/backend/tpq/profilLembaga');
+            }
+
+            $mda = $datamda[0];
+
+            // Siapkan path logo
+            $logoPath = null;
+            if (!empty($mda['LogoLembaga'])) {
+                $logoFullPath = FCPATH . 'uploads/logo/' . $mda['LogoLembaga'];
+                if (file_exists($logoFullPath)) {
+                    // Convert image to base64 untuk PDF
+                    $imageData = file_get_contents($logoFullPath);
+                    $logoBase64 = base64_encode($imageData);
+                    $imageInfo = getimagesize($logoFullPath);
+                    $mimeType = $imageInfo['mime'];
+                    $logoPath = 'data:' . $mimeType . ';base64,' . $logoBase64;
+                }
+            }
+
+            // Siapkan data untuk view
+            $data = [
+                'mda' => $mda,
+                'logoPath' => $logoPath
+            ];
+
+            // Load helper text_format
+            helper('text_format');
+            
+            // Load view untuk PDF
+            $html = view('backend/mda/printProfilLembaga', $data);
+
+            // Setup Dompdf
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            // Gunakan ukuran kertas Folio (F4) portrait seperti profil santri
+            $dompdf->setPaper('folio', 'portrait');
+            $dompdf->render();
+
+            // Format filename
+            $filename = 'Profil_Lembaga_MDA_' . str_replace(' ', '_', $mda['NamaTpq']) . '_' . date('Y-m-d') . '.pdf';
+
+            // Clear output buffer
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (Exception $e) {
+            log_message('error', 'Mda: printProfilLembaga - Error: ' . $e->getMessage());
+            session()->setFlashdata('pesan', '
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                Gagal membuat PDF: ' . $e->getMessage() . '
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>');
+            return redirect()->to('/backend/tpq/profilLembaga');
         }
     }
 }
