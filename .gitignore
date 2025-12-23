@@ -125,4 +125,9 @@ nb-configuration.xml
 /results/
 /phpunit*.xml
 
-/public/uploads/qr/
+#-------------------------
+# Public Uploads
+#-------------------------
+# Ignore all uploads in public/uploads/ directory
+/public/uploads/*
+!/public/uploads/.gitkeep
