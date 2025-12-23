@@ -12245,8 +12245,53 @@ class Munaqosah extends BaseController
             $tpqData['KepalaSekolah'] = $kepalaSekolah;
             $tpqData['LembagaType'] = $lembagaType;
 
-            // Tambahkan tpqData ke detail
+            // Generate signature untuk Ketua FKPQ jika TypeUjian adalah Munaqosah
+            $signatureKetuaFkpq = null;
+            if ($typeUjianNormalized === 'munaqosah' && !empty($pesertaData['IdSantri']) && !empty($idTahunAjaran)) {
+                // Cek apakah signature sudah ada
+                $existingSignature = $this->signatureModel->where([
+                    'IdSantri' => $pesertaData['IdSantri'],
+                    'IdTahunAjaran' => $idTahunAjaran,
+                    'JenisDokumen' => 'Munaqosah',
+                    'SignatureData' => 'Ketua FKPQ',
+                    'StatusValidasi' => 'Valid'
+                ])->first();
+
+                if ($existingSignature) {
+                    // Gunakan signature yang sudah ada
+                    $signatureKetuaFkpq = $existingSignature;
+                } else {
+                    // Generate signature baru
+                    helper('signature');
+                    $token = generateUniqueSignatureToken($this->signatureModel);
+                    $qrCodeData = generateSignatureQRCode($token);
+
+                    if ($qrCodeData) {
+                        // Simpan signature ke database
+                        // Untuk Munaqosah, IdKelas, Semester, dan IdGuru tidak relevan, jadi tidak disertakan
+                        $signatureData = [
+                            'Token' => $token,
+                            'IdSantri' => $pesertaData['IdSantri'],
+                            'IdTahunAjaran' => $idTahunAjaran,
+                            'IdTpq' => $pesertaData['IdTpq'] ?? null,
+                            'JenisDokumen' => 'Munaqosah',
+                            'SignatureData' => 'Ketua FKPQ',
+                            'QrCode' => $qrCodeData['filename'],
+                            'StatusValidasi' => 'Valid',
+                            'TanggalTtd' => date('Y-m-d H:i:s')
+                        ];
+
+                        $signatureId = $this->signatureModel->insert($signatureData);
+                        if ($signatureId) {
+                            $signatureKetuaFkpq = $this->signatureModel->find($signatureId);
+                        }
+                    }
+                }
+            }
+
+            // Tambahkan tpqData dan signatureKetuaFkpq ke detail
             $detail['tpqData'] = $tpqData;
+            $detail['signatureKetuaFkpq'] = $signatureKetuaFkpq;
 
             $html = view('backend/Munaqosah/printKelulusanPesertaUjian', $detail);
 

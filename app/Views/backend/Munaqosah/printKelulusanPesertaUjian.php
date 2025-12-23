@@ -3,6 +3,7 @@ $peserta = $peserta ?? [];
 $categoryDetails = $categoryDetails ?? [];
 $meta = $meta ?? [];
 $tpqData = $tpqData ?? [];
+$signatureKetuaFkpq = $signatureKetuaFkpq ?? null;
 
 // Normalisasi TypeUjian untuk display
 $typeUjian = strtolower(trim($peserta['TypeUjian'] ?? 'munaqosah'));
@@ -339,7 +340,7 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
             <!-- Kosong, sesuai format formal -->
         </div>
         <div class="footer-right">
-            <div style="margin-top: 0; text-align: right;">
+            <div style="margin-top: 0; text-align: center;">
                 <?php
                 // Untuk Munaqosah, gunakan Kecamatan dari FKPQ, jika tidak ada gunakan AlamatTpq
                 if ($typeUjian === 'munaqosah' && !empty($tpqData['KecamatanFkpq'])) {
@@ -350,7 +351,7 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
                 ?>
                 <?= $tempatTandaTangan ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
             </div>
-            <div style="margin-top: 10px; text-align: right;">
+            <div style="margin-top: 10px; text-align: center;">
                 <?php
                 $lembagaType = $tpqData['LembagaType'] ?? 'TPQ';
 
@@ -370,20 +371,52 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
                 ?>
                 Mengetahui <?= esc($jabatanTandaTangan) ?>
             </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <?php
+                // Tampilkan QR code jika ada signature untuk Ketua FKPQ
+                if ($typeUjian === 'munaqosah' && !empty($signatureKetuaFkpq) && !empty($signatureKetuaFkpq['QrCode'])) {
+                    $qrPath = FCPATH . 'uploads/qr/' . $signatureKetuaFkpq['QrCode'];
+                    if (file_exists($qrPath)) {
+                        $qrContent = file_get_contents($qrPath);
+                        $ext = pathinfo($signatureKetuaFkpq['QrCode'], PATHINFO_EXTENSION);
+                        $mime = $ext === 'svg' ? 'image/svg+xml' : 'image/' . strtolower($ext);
+
+                        // Buat URL validasi dari token
+                        $validationUrl = '';
+                        if (!empty($signatureKetuaFkpq['Token'])) {
+                            $validationUrl = base_url("signature/validateSignature/{$signatureKetuaFkpq['Token']}");
+                        }
+
+                        // Tampilkan QR code
+                        if (!empty($validationUrl)) {
+                            echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block; margin-bottom: 10px;">';
+                        }
+                        echo '<img src="data:' . $mime . ';base64,' . base64_encode($qrContent) . '" alt="QR Code Ketua FKPQ" style="width: 70px; height: 70px; cursor: pointer;">';
+                        if (!empty($validationUrl)) {
+                            echo '</a>';
+                        }
+                    }
+                }
+                ?>
+            </div>
             <?php if (!empty($namaTandaTangan)): ?>
-                <div class="signature-name" style="text-align: right; margin-top: 80px;">
+                <div class="signature-name" style="text-align: center; margin-top: 10px;">
                     <?= esc($namaTandaTangan) ?>
                 </div>
             <?php else: ?>
-                <div class="signature-name" style="text-align: right; margin-top: 80px;">
+                <div class="signature-name" style="text-align: center; margin-top: 80px;">
                     (_____________________)
                 </div>
             <?php endif; ?>
         </div>
     </div>
     <br><br>
+    <br><br>
+    <br><br>
+    <br><br>
+    <br><br>
     <div class="print-date">
-        Dicetak pada: <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?> <?= esc(date('H:i:s')) ?><br>
+        Dicetak pada: <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?> <?= esc(date('H:i:s')) ?>
         Dokumen ini dihasilkan otomatis dari sistem http://tpqsmart.simpedis.com.
     </div>
 </body>
