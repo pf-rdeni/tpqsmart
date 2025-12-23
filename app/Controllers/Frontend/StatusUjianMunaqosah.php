@@ -13,6 +13,7 @@ use App\Models\MunaqosahBobotNilaiModel;
 use App\Models\MunaqosahKonfigurasiModel;
 use App\Models\MdaModel;
 use App\Models\FkpqModel;
+use App\Models\SignatureModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -28,6 +29,7 @@ class StatusUjianMunaqosah extends BaseController
     protected $munaqosahKonfigurasiModel;
     protected $mdaModel;
     protected $fkpqModel;
+    protected $signatureModel;
     protected $db;
 
     public function __construct()
@@ -42,6 +44,7 @@ class StatusUjianMunaqosah extends BaseController
         $this->munaqosahKonfigurasiModel = new MunaqosahKonfigurasiModel();
         $this->mdaModel = new MdaModel();
         $this->fkpqModel = new FkpqModel();
+        $this->signatureModel = new SignatureModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -943,11 +946,56 @@ class StatusUjianMunaqosah extends BaseController
             }
         }
 
+        // Generate signature untuk Ketua FKPQ jika TypeUjian adalah Munaqosah
+        $signatureKetuaFkpq = null;
+        if ($typeUjianNormalized === 'munaqosah' && !empty($pesertaData['IdSantri']) && !empty($idTahunAjaran)) {
+            // Cek apakah signature sudah ada
+            $existingSignature = $this->signatureModel->where([
+                'IdSantri' => $pesertaData['IdSantri'],
+                'IdTahunAjaran' => $idTahunAjaran,
+                'JenisDokumen' => 'Munaqosah',
+                'SignatureData' => 'Ketua FKPQ',
+                'StatusValidasi' => 'Valid'
+            ])->first();
+
+            if ($existingSignature) {
+                // Gunakan signature yang sudah ada
+                $signatureKetuaFkpq = $existingSignature;
+            } else {
+                // Generate signature baru
+                helper('signature');
+                $token = generateUniqueSignatureToken($this->signatureModel);
+                $qrCodeData = generateSignatureQRCode($token);
+
+                if ($qrCodeData) {
+                    // Simpan signature ke database
+                    // Untuk Munaqosah, IdKelas, Semester, dan IdGuru tidak relevan, jadi tidak disertakan
+                    $signatureData = [
+                        'Token' => $token,
+                        'IdSantri' => $pesertaData['IdSantri'],
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'IdTpq' => $pesertaData['IdTpq'] ?? null,
+                        'JenisDokumen' => 'Munaqosah',
+                        'SignatureData' => 'Ketua FKPQ',
+                        'QrCode' => $qrCodeData['filename'],
+                        'StatusValidasi' => 'Valid',
+                        'TanggalTtd' => date('Y-m-d H:i:s')
+                    ];
+
+                    $signatureId = $this->signatureModel->insert($signatureData);
+                    if ($signatureId) {
+                        $signatureKetuaFkpq = $this->signatureModel->find($signatureId);
+                    }
+                }
+            }
+        }
+
         $data = [
             'peserta' => $pesertaData,
             'categoryDetails' => $categoryDetails,
             'meta' => $meta,
             'tpqData' => $tpqData,
+            'signatureKetuaFkpq' => $signatureKetuaFkpq,
             'generated_at' => date('d F Y H:i:s')
         ];
 
@@ -986,7 +1034,7 @@ class StatusUjianMunaqosah extends BaseController
         }
 
         $registrasiBuilder = $this->db->table('tbl_munaqosah_registrasi_uji r');
-        $registrasiBuilder->select('r.*, s.NamaSantri, t.NamaTpq');
+        $registrasiBuilder->select('r.*, s.NamaSantri, t.NamaTpq, s.IdSantri');
         $registrasiBuilder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
         $registrasiBuilder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
         $registrasiBuilder->where('r.NoPeserta', $noPeserta);
@@ -1054,6 +1102,8 @@ class StatusUjianMunaqosah extends BaseController
         return [
             'success' => true,
             'peserta' => [
+                'IdSantri' => $rowData['IdSantri'],
+                'IdTpq' => $rowData['IdTpq'],
                 'NoPeserta' => $rowData['NoPeserta'],
                 'NamaSantri' => $rowData['NamaSantri'],
                 'NamaTpq' => $rowData['NamaTpq'],

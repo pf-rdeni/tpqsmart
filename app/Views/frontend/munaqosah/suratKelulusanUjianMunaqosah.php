@@ -3,6 +3,7 @@ $peserta = $peserta ?? [];
 $categoryDetails = $categoryDetails ?? [];
 $meta = $meta ?? [];
 $tpqData = $tpqData ?? [];
+$signatureKetuaFkpq = $signatureKetuaFkpq ?? null;
 $generated_at = $generated_at ?? date('Y-m-d');
 
 // Normalisasi TypeUjian untuk display
@@ -440,18 +441,43 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
             <!-- Kosong -->
         </div>
         <div class="footer-right" style="text-align: center;">
+            <?php
+            // Tampilkan QR code jika ada signature untuk Ketua FKPQ
+            if ($typeUjian === 'munaqosah' && !empty($signatureKetuaFkpq) && !empty($signatureKetuaFkpq['QrCode'])) {
+                $qrPath = FCPATH . 'uploads/qr/' . $signatureKetuaFkpq['QrCode'];
+                if (file_exists($qrPath)) {
+                    $qrContent = file_get_contents($qrPath);
+                    $ext = pathinfo($signatureKetuaFkpq['QrCode'], PATHINFO_EXTENSION);
+                    $mime = $ext === 'svg' ? 'image/svg+xml' : 'image/' . strtolower($ext);
+
+                    // Buat URL validasi dari token
+                    $validationUrl = '';
+                    if (!empty($signatureKetuaFkpq['Token'])) {
+                        $validationUrl = base_url("signature/validateSignature/{$signatureKetuaFkpq['Token']}");
+                    }
+
+                    // Tampilkan QR code
+                    if (!empty($validationUrl)) {
+                        echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block; margin-bottom: 10px;">';
+                    }
+                    echo '<img src="data:' . $mime . ';base64,' . base64_encode($qrContent) . '" alt="QR Code Ketua FKPQ" style="width: 70px; height: 70px; cursor: pointer;">';
+                    if (!empty($validationUrl)) {
+                        echo '</a>';
+                    }
+                }
+            }
+            ?>
             <?php if (!empty($namaTandaTangan)): ?>
-                <div class="signature-name">
+                <div class="signature-name" style="margin-top: 10px;">
                     <?= esc($namaTandaTangan) ?>
                 </div>
             <?php else: ?>
-                <div class="signature-name">
+                <div class="signature-name" style="margin-top: 10px;">
                     (_____________________)
                 </div>
             <?php endif; ?>
         </div>
     </div>
-    <br><br>
     <br><br>
     <br><br>
     <br><br>

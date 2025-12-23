@@ -143,18 +143,35 @@
                         <h5 class="border-bottom pb-2">Informasi Penandatangan</h5>
                         <div class="row">
                             <div class="col-12 col-md-6">
-                                <div class="info-row">
-                                    <div class="info-label">Nama Guru</div>
-                                    <div class="info-value"><strong><?= toTitleCase(esc($guru->Nama)) ?></strong></div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-label">Jabatan</div>
-                                    <div class="info-value"><strong><?= toTitleCase(esc($guru->NamaJabatan)) ?></strong></div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-label">Status Saat ini</div>
-                                    <div class="info-value"><strong><span class="badge bg-success"><?= esc($guru->Status) ? 'Aktif' : 'Tidak Aktif' ?></span></strong></div>
-                                </div>
+                                <?php if ($signature['JenisDokumen'] === 'Munaqosah' && $signature['SignatureData'] === 'Ketua FKPQ'): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama Ketua FKPQ</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($fkpq['KetuaFkpq'] ?? '-')) ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Jabatan</div>
+                                        <div class="info-value"><strong>Ketua FKPQ</strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama FKPQ</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($fkpq['NamaFkpq'] ?? '-')) ?></strong></div>
+                                    </div>
+                                <?php else: ?>
+                                    <?php if ($guru): ?>
+                                        <div class="info-row">
+                                            <div class="info-label">Nama Guru</div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($guru->Nama)) ?></strong></div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label">Jabatan</div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($guru->NamaJabatan)) ?></strong></div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label">Status Saat ini</div>
+                                            <div class="info-value"><strong><span class="badge bg-success"><?= esc($guru->Status) ? 'Aktif' : 'Tidak Aktif' ?></span></strong></div>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -188,18 +205,35 @@
                                 </div>
                             </div>
                             <div class="col-12 col-md-6">
-                                <div class="info-row">
-                                    <div class="info-label">Kelas</div>
-                                    <div class="info-value"><strong><?= esc($kelas['NamaKelas']) ?></strong></div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-label">Tahun Ajaran</div>
-                                    <div class="info-value"><strong><?= convertTahunAjaran(esc($kelas['IdTahunAjaran'])) ?></strong></div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-label">Semester</div>
-                                    <div class="info-value"><strong><?= toTitleCase(esc($signature['Semester'])) ?></strong></div>
-                                </div>
+                                <?php if ($signature['JenisDokumen'] === 'Munaqosah' && $signature['SignatureData'] === 'Ketua FKPQ'): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">No. Peserta</div>
+                                        <div class="info-value"><strong><?= esc($pesertaMunaqosah['NoPeserta'] ?? '-') ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Tahun Ajaran</div>
+                                        <div class="info-value"><strong><?= convertTahunAjaran(esc($signature['IdTahunAjaran'])) ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Type Ujian</div>
+                                        <div class="info-value"><strong>Munaqosah</strong></div>
+                                    </div>
+                                <?php else: ?>
+                                    <?php if ($kelas): ?>
+                                        <div class="info-row">
+                                            <div class="info-label">Kelas</div>
+                                            <div class="info-value"><strong><?= esc($kelas['NamaKelas']) ?></strong></div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label">Tahun Ajaran</div>
+                                            <div class="info-value"><strong><?= convertTahunAjaran(esc($kelas['IdTahunAjaran'])) ?></strong></div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label">Semester</div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($signature['Semester'])) ?></strong></div>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -210,7 +244,7 @@
                     <div class="col-12">
                         <h5 class="border-bottom pb-2">Tanda Tangan Digital</h5>
                         <div class="row">
-                            <?php if (!empty($signature['SignatureData']) && $signature['SignatureData'] !== 'Kepsek' && $signature['SignatureData'] !== 'Walas'): ?>
+                            <?php if (!empty($signature['SignatureData']) && $signature['SignatureData'] !== 'Kepsek' && $signature['SignatureData'] !== 'Walas' && $signature['SignatureData'] !== 'Ketua FKPQ'): ?>
                                 <div class="col-12 col-md-6 text-center mb-3">
                                     <h6 class="mb-2">Gambar Tanda Tangan</h6>
                                     <img src="<?= esc($signature['SignatureData']) ?>" alt="Tanda Tangan Digital" class="img-fluid" style="max-height: 150px;">
@@ -218,7 +252,7 @@
                             <?php endif; ?>
 
                             <?php if (!empty($signature['QrCode'])): ?>
-                                <div class="col-12 col-md-<?= (!empty($signature['SignatureData']) && $signature['SignatureData'] !== 'Kepsek' && $signature['SignatureData'] !== 'Walas') ? '6' : '12' ?> text-center mb-3">
+                                <div class="col-12 col-md-<?= (!empty($signature['SignatureData']) && $signature['SignatureData'] !== 'Kepsek' && $signature['SignatureData'] !== 'Walas' && $signature['SignatureData'] !== 'Ketua FKPQ') ? '6' : '12' ?> text-center mb-3">
                                     <h6 class="mb-2">QR Code Validasi</h6>
                                     <?php
                                     $qrPath = FCPATH . 'uploads/qr/' . $signature['QrCode'];
