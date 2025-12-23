@@ -249,8 +249,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                 scrollX: true,
                 order: [[2, 'desc']], // Sort by Kelulusan column
                 pageLength: 25,
-                dom: 'Bfrtip',
-                buttons: ['colvis', 'excel', 'print'],
+                dom: 'frtip',
                 columnDefs: [{
                     targets: [0],
                     orderable: false,
