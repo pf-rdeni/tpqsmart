@@ -10,7 +10,17 @@
                         <div class="d-flex">
                             <div class="mr-2">
                                 <label class="mb-0 small">Tahun Ajaran</label>
-                                <input type="text" id="filterTahunAjaran" class="form-control form-control-sm" value="<?= esc($current_tahun_ajaran) ?>">
+                                <select id="filterTahunAjaran" class="form-control form-control-sm">
+                                    <?php if (!empty($tahunAjaranList)) : ?>
+                                        <?php foreach ($tahunAjaranList as $tahunAjaran): ?>
+                                            <option value="<?= esc($tahunAjaran) ?>" <?= ($tahunAjaran === $current_tahun_ajaran) ? 'selected' : '' ?>>
+                                                <?= esc($tahunAjaran) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <option value="<?= esc($current_tahun_ajaran) ?>" selected><?= esc($current_tahun_ajaran) ?></option>
+                                    <?php endif; ?>
+                                </select>
                             </div>
                             <div class="mr-2">
                                 <label class="mb-0 small">TPQ</label>
@@ -116,12 +126,12 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const noPeserta = row.NoPeserta || '-';
             const namaSantri = row.NamaSantri || '-';
 
-            let actionHtml = '<div class="btn-group btn-group-sm" role="group">' +
-                `<a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Pdf</a>` +
-                `<a class="btn btn-outline-success" href="${suratUrl}" target="_blank"><i class="fas fa-file-alt"></i> Surat</a>`;
-            if (isAdmin) {
-                actionHtml += `<a class="btn btn-outline-secondary" href="${viewUrl}" target="_blank"><i class="fas fa-eye"></i> View</a>`;
-            }
+            let actionHtml = '<div style="text-align: center;">' +
+                '<div class="btn-group btn-group-sm" role="group">' +
+                // Surat Keterangan dengan icon PDF
+                `<a class="btn btn-outline-success" href="${suratUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Surat</a>` +
+                // Lampiran Nilai dengan icon PDF
+                `<a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Nilai</a>`;
             // Tambahkan button copy link jika HasKey tersedia
             if (hasKey) {
                 const noHpAyah = row.NoHpAyah || '';
@@ -137,10 +147,23 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                                 data-nama-ayah="${namaAyah}"
                                 data-nama-ibu="${namaIbu}"
                                 title="Copy link WhatsApp untuk ${namaSantri}">
-                            <i class="fas fa-copy"></i> Copy Link
+                            <i class="fas fa-copy"></i> Copy
                         </button>`;
             }
-            actionHtml += '</div>';
+            // View Nilai untuk admin
+            if (isAdmin) {
+                actionHtml += `<a class="btn btn-outline-secondary" href="${viewUrl}" target="_blank"><i class="fas fa-eye"></i> View</a>`;
+            }
+            actionHtml += '</div>' +
+                '<div class="small text-muted mt-1" style="font-size: 0.75rem; line-height: 1.2;">' +
+                '<div>Cetak surat kelulusan | Cetak lampiran nilai</div>' +
+                '<div>' +
+                (hasKey ? 'Salin link WhatsApp' : '') +
+                (hasKey && isAdmin ? ' | ' : '') +
+                (isAdmin ? 'Lihat detail nilai' : '') +
+                '</div>' +
+                '</div>' +
+                '</div>';
 
             // Format Peserta: No Peserta, Nama Santri, TPQ
             const pesertaInfo = `<div><strong>${row.NoPeserta || '-'}</strong></div>` +

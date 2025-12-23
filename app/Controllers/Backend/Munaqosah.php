@@ -10702,9 +10702,13 @@ class Munaqosah extends BaseController
             $aktiveTombolKelulusan = true;
         }
 
+        // Ambil tahun ajaran dari tabel nilai munaqosah (grouping IdTahunAjaran)
+        $tahunAjaranList = $this->getTahunAjaranFromNilaiMunaqosah();
+
         $data = [
             'page_title' => 'Kelulusan Ujian (Simple)',
             'current_tahun_ajaran' => $currentTahunAjaran,
+            'tahunAjaranList' => $tahunAjaranList,
             'tpqDropdown' => $dataTpq,
             'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
             'isAdmin' => $isAdmin,
@@ -10713,6 +10717,30 @@ class Munaqosah extends BaseController
         ];
 
         return view('backend/Munaqosah/kelulusanSimple', $data);
+    }
+
+    /**
+     * Ambil daftar tahun ajaran dari tabel nilai munaqosah (grouping IdTahunAjaran)
+     */
+    private function getTahunAjaranFromNilaiMunaqosah()
+    {
+        $builder = $this->nilaiMunaqosahModel->db->table('tbl_munaqosah_nilai');
+        $builder->select('IdTahunAjaran');
+        $builder->distinct();
+        $builder->where('IdTahunAjaran IS NOT NULL');
+        $builder->where('IdTahunAjaran !=', '');
+        $builder->orderBy('IdTahunAjaran', 'DESC');
+        
+        $results = $builder->get()->getResultArray();
+        
+        $tahunAjaranList = [];
+        foreach ($results as $row) {
+            if (!empty($row['IdTahunAjaran'])) {
+                $tahunAjaranList[] = $row['IdTahunAjaran'];
+            }
+        }
+        
+        return $tahunAjaranList;
     }
 
     public function exportHasilMunaqosah()
