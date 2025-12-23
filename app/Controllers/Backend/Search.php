@@ -117,12 +117,19 @@ class Search extends BaseController
             $dashboardParam === 'myauth'
         );
         
+        // Cek apakah sedang di halaman Sertifikasi
+        $isSertifikasiPage = (
+            strpos($uriString, 'sertifikasi') !== false ||
+            strpos($currentUri->getPath(), 'sertifikasi') !== false ||
+            $dashboardParam === 'sertifikasi'
+        );
+        
         // Cek apakah user memiliki peran operator
         $hasOperatorRole = ($activeRole === 'operator' || (empty($activeRole) && in_groups('Operator')));
         
-        // Menu operator (Kelembagaan, Guru, Santri, dll) tidak ditampilkan jika sedang di halaman Munaqosah atau MyAuth
-        // Tapi menu Munaqosah tetap muncul untuk operator
-        $isActiveOperator = $hasOperatorRole && !$isMunaqosahPage && !$isMyAuthPage;
+        // Untuk Operator: menu default (Kelembagaan, Guru, Santri, dll) dan menu Munaqosah selalu muncul bersamaan
+        // Dashboard utama adalah Default, tapi menu Munaqosah juga tersedia
+        $isActiveOperator = $hasOperatorRole && !$isMyAuthPage && !$isSertifikasiPage;
         
         // Cek apakah user memiliki peran guru
         $hasGuruRole = in_array('guru', $availableRoles) || in_groups('Guru');
@@ -675,7 +682,8 @@ class Search extends BaseController
             ];
 
             // Munaqosah untuk Operator (hanya jika bukan Admin, karena Admin sudah punya semua)
-            if ($isActiveOperator && !in_groups('Admin')) {
+            // Menu Munaqosah selalu muncul untuk Operator, terlepas dari halaman yang sedang dibuka
+            if ($hasOperatorRole && !in_groups('Admin')) {
                 $menus[] = [
                     'title' => 'Dashboard Munaqosah',
                     'url' => base_url('backend/munaqosah/dashboard-munaqosah'),
