@@ -99,8 +99,13 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
             text-align: justify;
         }
 
+        .content p {
+            text-indent: 40px;
+        }
+
         .data-section {
             margin: 20px 0;
+            margin-left: 40px;
         }
 
         .data-row {
@@ -112,13 +117,14 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
         .data-label {
             display: table-cell;
             width: 200px;
-            font-weight: bold;
+            font-weight: normal;
             vertical-align: top;
         }
 
         .data-value {
             display: table-cell;
             vertical-align: top;
+            font-weight: bold;
         }
 
         table {
@@ -348,32 +354,8 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
                 <span class="data-value">: <?= esc(convertTahunAjaran($peserta['IdTahunAjaran'] ?? '')) ?></span>
             </div>
             <div class="data-row">
-                <span class="data-label">Type Ujian</span>
-                <span class="data-value">: <?= esc($typeUjianLabel) ?></span>
-            </div>
-            <div class="data-row">
                 <span class="data-label"><?= esc(($tpqData['LembagaType'] ?? 'TPQ') === 'MDA' ? 'MDTA' : 'TPQ') ?></span>
                 <span class="data-value">: <?= esc($peserta['NamaTpq'] ?? '-') ?></span>
-            </div>
-        </div>
-
-        <div class="data-section" style="margin-top: 20px;">
-            <div class="data-row">
-                <span class="data-label">Total Nilai Bobot</span>
-                <span class="data-value">: <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?></span>
-            </div>
-            <div class="data-row">
-                <span class="data-label">Nilai Minimal Kelulusan</span>
-                <span class="data-value">: <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?></span>
-            </div>
-            <div class="data-row">
-                <span class="data-label">Status Kelulusan</span>
-                <span class="data-value">:
-                    <?php $passed = !empty($peserta['KelulusanMet']); ?>
-                    <span class="status-badge <?= $passed ? 'status-lulus' : 'status-belum' ?>">
-                        <?= esc($peserta['KelulusanStatus'] ?? 'Belum Lulus') ?>
-                    </span>
-                </span>
             </div>
         </div>
 
@@ -389,9 +371,9 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
                 oleh lembaga Formum Komunikasi Pendidikan Al-Quran (FKPQ) Kec. Seri Kuala Lobam Kab. Bintan Bintan,
             <?php endif; ?>
             <?php if (!empty($peserta['KelulusanMet'])): ?>
-                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> telah <strong>LULUS</strong> dalam ujian <?= esc($typeUjianLabelLower) ?> dengan memperoleh total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?>, yang telah memenuhi atau melebihi standar nilai minimal kelulusan sebesar <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?> sesuai dengan ketentuan yang berlaku.
+                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> telah <strong>LULUS</strong> dalam ujian <?= esc($typeUjianLabelLower) ?> yang telah memenuhi standar kelulusan sesuai dengan ketentuan yang berlaku.
             <?php else: ?>
-                dengan ini dinyatakan bahwa <strong><?= esc($peserta['NamaSantri']) ?></strong> <strong>BELUM LULUS</strong> dalam ujian <?= esc($typeUjianLabelLower) ?> dengan memperoleh total nilai bobot <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?>, yang belum memenuhi standar nilai minimal kelulusan sebesar <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?> sesuai dengan ketentuan yang berlaku.
+                dengan ini ananda <strong><?= esc($peserta['NamaSantri']) ?></strong> dinyatakan <strong>Ujian Ulang</strong> dalam ujian <?= esc($typeUjianLabelLower) ?> yang belum memenuhi standar kelulusan sesuai dengan ketentuan yang berlaku, dan santri bersedia mengikuti proses belajar mengajar di TPQnya untuk mengikuti Munaqosah berikutnya.
             <?php endif; ?>
         </p>
 
@@ -405,26 +387,77 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
             <!-- Kosong, sesuai format formal -->
         </div>
         <div class="footer-right">
-            <div style="margin-top: 0; text-align: right;">
-                <?= esc(toTitleCase($tpqData['AlamatTpq'] ?? 'TPQ')) ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
+            <div style="margin-top: 0; text-align: center;">
+                <?php
+                // Normalisasi TypeUjian untuk pengecekan
+                $typeUjian = strtolower(trim($peserta['TypeUjian'] ?? 'munaqosah'));
+                if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                    $typeUjian = 'pra-munaqosah';
+                } else {
+                    $typeUjian = 'munaqosah';
+                }
+
+                // Untuk Munaqosah, gunakan Kecamatan dari FKPQ, jika tidak ada gunakan AlamatTpq
+                if ($typeUjian === 'munaqosah' && !empty($tpqData['KecamatanFkpq'])) {
+                    $tempatTandaTangan = esc(toTitleCase($tpqData['KecamatanFkpq']));
+                } else {
+                    $tempatTandaTangan = esc(toTitleCase($tpqData['AlamatTpq'] ?? 'TPQ'));
+                }
+                ?>
+                <?= $tempatTandaTangan ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
             </div>
-            <div style="margin-top: 10px; text-align: right;">
-                Mengetahui <?= esc(($tpqData['LembagaType'] ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ') ?>
-            </div>
-            <?php if (!empty($tpqData['NamaKepalaTpq'])): ?>
-                <div class="signature-name" style="text-align: right; margin-top: 80px;">
-                    <?= esc($tpqData['NamaKepalaTpq']) ?>
+        </div>
+    </div>
+
+    <div class="footer" style="margin-top: 10px;">
+        <div class="footer-left">
+            <!-- Kosong -->
+        </div>
+        <div class="footer-right" style="text-align: center;">
+            <?php
+            $lembagaType = $tpqData['LembagaType'] ?? 'TPQ';
+
+            if ($typeUjian === 'pra-munaqosah') {
+                if ($lembagaType === 'MDA') {
+                    $jabatanTandaTangan = 'Kepala MDTA';
+                    $namaTandaTangan = $tpqData['NamaKepalaTpq'] ?? '';
+                } else {
+                    $jabatanTandaTangan = 'Kepala TPQ';
+                    $namaTandaTangan = $tpqData['NamaKepalaTpq'] ?? '';
+                }
+            } else {
+                // Untuk Munaqosah, menggunakan Ketua FKPQ
+                $jabatanTandaTangan = 'Ketua FKPQ';
+                $namaTandaTangan = $tpqData['KetuaFkpq'] ?? ''; // Ambil dari KetuaFkpq
+            }
+            ?>
+            Mengetahui <?= esc($jabatanTandaTangan) ?>
+        </div>
+    </div>
+
+    <div class="footer" style="margin-top: 20px;">
+        <div class="footer-left">
+            <!-- Kosong -->
+        </div>
+        <div class="footer-right" style="text-align: center;">
+            <?php if (!empty($namaTandaTangan)): ?>
+                <div class="signature-name">
+                    <?= esc($namaTandaTangan) ?>
                 </div>
             <?php else: ?>
-                <div class="signature-name" style="text-align: right; margin-top: 80px;">
+                <div class="signature-name">
                     (_____________________)
                 </div>
             <?php endif; ?>
         </div>
     </div>
     <br><br>
-    <div class="print-date">
-        Dicetak pada: <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?> <?= esc(date('H:i:s')) ?><br>
+    <br><br>
+    <br><br>
+    <br><br>
+    <br><br>
+    <div class="print-date" style="margin-top: 20px;">
+        Dicetak pada: <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?> <?= esc(date('H:i:s')) ?>
         Dokumen ini dihasilkan otomatis dari sistem http://tpqsmart.simpedis.com.
     </div>
 </body>

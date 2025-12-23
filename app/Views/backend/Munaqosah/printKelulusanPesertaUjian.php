@@ -340,7 +340,15 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
         </div>
         <div class="footer-right">
             <div style="margin-top: 0; text-align: right;">
-                <?= esc(toTitleCase($tpqData['AlamatTpq'] ?? 'TPQ')) ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
+                <?php
+                // Untuk Munaqosah, gunakan Kecamatan dari FKPQ, jika tidak ada gunakan AlamatTpq
+                if ($typeUjian === 'munaqosah' && !empty($tpqData['KecamatanFkpq'])) {
+                    $tempatTandaTangan = esc(toTitleCase($tpqData['KecamatanFkpq']));
+                } else {
+                    $tempatTandaTangan = esc(toTitleCase($tpqData['AlamatTpq'] ?? 'TPQ'));
+                }
+                ?>
+                <?= $tempatTandaTangan ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
             </div>
             <div style="margin-top: 10px; text-align: right;">
                 <?php
@@ -357,7 +365,7 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
                 } else {
                     // Untuk Munaqosah, menggunakan Ketua FKPQ
                     $jabatanTandaTangan = 'Ketua FKPQ';
-                    $namaTandaTangan = ''; // Untuk FKPQ, nama bisa kosong atau diisi manual
+                    $namaTandaTangan = $tpqData['KetuaFkpq'] ?? ''; // Ambil dari KetuaFkpq
                 }
                 ?>
                 Mengetahui <?= esc($jabatanTandaTangan) ?>

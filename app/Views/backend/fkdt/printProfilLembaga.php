@@ -194,6 +194,12 @@
                                 <td>: <?= htmlspecialchars($fkdt['Alamat']) ?></td>
                             </tr>
                         <?php endif; ?>
+                        <?php if (!empty($fkdt['Kecamatan'])) : ?>
+                            <tr>
+                                <td class="k">Kecamatan</td>
+                                <td>: <?= htmlspecialchars($fkdt['Kecamatan']) ?></td>
+                            </tr>
+                        <?php endif; ?>
                         <?php if (!empty($fkdt['KepalaSekolah'])) : ?>
                             <tr>
                                 <td class="k">Kepala Lembaga</td>

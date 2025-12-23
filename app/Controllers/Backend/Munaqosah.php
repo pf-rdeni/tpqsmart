@@ -24,6 +24,7 @@ use App\Models\MunaqosahKonfigurasiModel;
 use App\Models\MunaqosahJadwalUjianModel;
 use App\Models\KategoriMateriModel;
 use App\Models\MdaModel;
+use App\Models\FkpqModel;
 use Myth\Auth\Password;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -50,6 +51,7 @@ class Munaqosah extends BaseController
     protected $munaqosahKonfigurasiModel;
     protected $munaqosahJadwalUjianModel;
     protected $mdaModel;
+    protected $fkpqModel;
     protected $db;
     private array $bobotWeightCache = [];
     private array $kelulusanThresholdCache = [];
@@ -77,6 +79,7 @@ class Munaqosah extends BaseController
         $this->munaqosahJadwalUjianModel = new MunaqosahJadwalUjianModel();
         $this->munaqosahKategoriModel = new KategoriMateriModel();
         $this->mdaModel = new MdaModel();
+        $this->fkpqModel = new FkpqModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -12160,44 +12163,78 @@ class Munaqosah extends BaseController
                 ];
             }
 
-            // Ambil nama kelas dari data santri untuk menentukan apakah menggunakan kop MDA atau TPQ
-            $namaKelasSantri = null;
-            $santriDetail = $this->helpFunction->getDetailSantriByKelasSantri(
-                $pesertaData['IdSantri'] ?? null,
-                $idTahunAjaran,
-                $pesertaData['IdTpq'] ?? null
-            );
-
-            if (!empty($santriDetail) && isset($santriDetail['NamaKelas'])) {
-                $namaKelasSantri = $santriDetail['NamaKelas'];
+            // Normalisasi TypeUjian untuk pengecekan
+            $typeUjianNormalized = strtolower(trim($typeUjian ?? ''));
+            if ($typeUjianNormalized === 'pramunaqsah' || $typeUjianNormalized === 'pra-munaqosah') {
+                $typeUjianNormalized = 'pra-munaqosah';
+            } else {
+                $typeUjianNormalized = 'munaqosah';
             }
 
-            // Check apakah kelas sesuai dengan mapping MDA
-            $useMdaData = false;
-            $mdaRow = null;
+            // Jika TypeUjian adalah Munaqosah, ambil kop dari FKPQ
+            $useFkpqData = false;
+            $fkpqRow = null;
             $kopLembaga = $tpqData['KopLembaga'] ?? '';
             $namaLembaga = $tpqData['NamaTpq'] ?? '';
             $kepalaSekolah = $tpqData['KepalaSekolah'] ?? '';
 
-            if (!empty($namaKelasSantri) && !empty($pesertaData['IdTpq'])) {
-                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($pesertaData['IdTpq'], $namaKelasSantri);
-                $useMdaData = $mdaCheckResult['useMdaData'];
-
-                // Jika sesuai, ambil data MDA
-                if ($useMdaData) {
-                    $mdaData = $this->mdaModel->GetData($pesertaData['IdTpq']);
-                    if (!empty($mdaData) && !empty($mdaData[0])) {
-                        $mdaRow = $mdaData[0];
-                        // Gunakan kop lembaga dari MDA jika ada, fallback ke TPQ
-                        $kopLembaga = $mdaRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
-                        $namaLembaga = $mdaRow['NamaTpq'] ?? $tpqData['NamaTpq'] ?? '';
-                        $kepalaSekolah = $mdaRow['KepalaSekolah'] ?? $tpqData['KepalaSekolah'] ?? '';
-                    }
+            if ($typeUjianNormalized === 'munaqosah') {
+                // Ambil data FKPQ (ambil yang pertama jika ada lebih dari satu)
+                $fkpqData = $this->fkpqModel->GetData();
+                if (!empty($fkpqData) && !empty($fkpqData[0])) {
+                    $fkpqRow = $fkpqData[0];
+                    $useFkpqData = true;
+                    // Gunakan kop lembaga dari FKPQ jika ada
+                    $kopLembaga = $fkpqRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
+                    $namaLembaga = $fkpqRow['NamaFkpq'] ?? $tpqData['NamaTpq'] ?? '';
+                    $kepalaSekolah = $fkpqRow['KetuaFkpq'] ?? $tpqData['KepalaSekolah'] ?? '';
+                    // Simpan data Kecamatan dan Ketua FKPQ untuk tanda tangan
+                    $tpqData['KecamatanFkpq'] = $fkpqRow['Kecamatan'] ?? '';
+                    $tpqData['KetuaFkpq'] = $fkpqRow['KetuaFkpq'] ?? '';
                 }
             }
 
-            // Tentukan data yang akan digunakan (MDA atau TPQ)
-            $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+            // Jika bukan Munaqosah (Pra-Munaqosah), gunakan logic lama (MDA atau TPQ)
+            if ($typeUjianNormalized !== 'munaqosah') {
+                // Ambil nama kelas dari data santri untuk menentukan apakah menggunakan kop MDA atau TPQ
+                $namaKelasSantri = null;
+                $santriDetail = $this->helpFunction->getDetailSantriByKelasSantri(
+                    $pesertaData['IdSantri'] ?? null,
+                    $idTahunAjaran,
+                    $pesertaData['IdTpq'] ?? null
+                );
+
+                if (!empty($santriDetail) && isset($santriDetail['NamaKelas'])) {
+                    $namaKelasSantri = $santriDetail['NamaKelas'];
+                }
+
+                // Check apakah kelas sesuai dengan mapping MDA
+                $useMdaData = false;
+                $mdaRow = null;
+
+                if (!empty($namaKelasSantri) && !empty($pesertaData['IdTpq'])) {
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($pesertaData['IdTpq'], $namaKelasSantri);
+                    $useMdaData = $mdaCheckResult['useMdaData'];
+
+                    // Jika sesuai, ambil data MDA
+                    if ($useMdaData) {
+                        $mdaData = $this->mdaModel->GetData($pesertaData['IdTpq']);
+                        if (!empty($mdaData) && !empty($mdaData[0])) {
+                            $mdaRow = $mdaData[0];
+                            // Gunakan kop lembaga dari MDA jika ada, fallback ke TPQ
+                            $kopLembaga = $mdaRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
+                            $namaLembaga = $mdaRow['NamaTpq'] ?? $tpqData['NamaTpq'] ?? '';
+                            $kepalaSekolah = $mdaRow['KepalaSekolah'] ?? $tpqData['KepalaSekolah'] ?? '';
+                        }
+                    }
+                }
+
+                // Tentukan data yang akan digunakan (MDA atau TPQ)
+                $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+            } else {
+                // Untuk Munaqosah, gunakan FKPQ
+                $lembagaType = $useFkpqData && $fkpqRow ? 'FKPQ' : 'TPQ';
+            }
 
             // Update tpqData dengan kop lembaga yang sesuai
             $tpqData['KopLembaga'] = $kopLembaga;
@@ -12288,44 +12325,78 @@ class Munaqosah extends BaseController
                 }
             }
 
-            // Ambil nama kelas dari data santri untuk menentukan apakah menggunakan kop MDA atau TPQ
-            $namaKelasSantri = null;
-            $santriDetail = $this->helpFunction->getDetailSantriByKelasSantri(
-                $pesertaData['IdSantri'] ?? null,
-                $idTahunAjaran,
-                $pesertaData['IdTpq'] ?? null
-            );
-
-            if (!empty($santriDetail) && isset($santriDetail['NamaKelas'])) {
-                $namaKelasSantri = $santriDetail['NamaKelas'];
+            // Normalisasi TypeUjian untuk pengecekan
+            $typeUjianNormalized = strtolower(trim($typeUjian ?? ''));
+            if ($typeUjianNormalized === 'pramunaqsah' || $typeUjianNormalized === 'pra-munaqosah') {
+                $typeUjianNormalized = 'pra-munaqosah';
+            } else {
+                $typeUjianNormalized = 'munaqosah';
             }
 
-            // Check apakah kelas sesuai dengan mapping MDA
-            $useMdaData = false;
-            $mdaRow = null;
+            // Jika TypeUjian adalah Munaqosah, ambil kop dari FKPQ
+            $useFkpqData = false;
+            $fkpqRow = null;
             $kopLembaga = $tpqData['KopLembaga'] ?? '';
             $namaLembaga = $tpqData['NamaTpq'] ?? '';
             $kepalaSekolah = $tpqData['KepalaSekolah'] ?? '';
 
-            if (!empty($namaKelasSantri) && !empty($pesertaData['IdTpq'])) {
-                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($pesertaData['IdTpq'], $namaKelasSantri);
-                $useMdaData = $mdaCheckResult['useMdaData'];
-
-                // Jika sesuai, ambil data MDA
-                if ($useMdaData) {
-                    $mdaData = $this->mdaModel->GetData($pesertaData['IdTpq']);
-                    if (!empty($mdaData) && !empty($mdaData[0])) {
-                        $mdaRow = $mdaData[0];
-                        // Gunakan kop lembaga dari MDA jika ada, fallback ke TPQ
-                        $kopLembaga = $mdaRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
-                        $namaLembaga = $mdaRow['NamaTpq'] ?? $tpqData['NamaTpq'] ?? '';
-                        $kepalaSekolah = $mdaRow['KepalaSekolah'] ?? $tpqData['KepalaSekolah'] ?? '';
-                    }
+            if ($typeUjianNormalized === 'munaqosah') {
+                // Ambil data FKPQ (ambil yang pertama jika ada lebih dari satu)
+                $fkpqData = $this->fkpqModel->GetData();
+                if (!empty($fkpqData) && !empty($fkpqData[0])) {
+                    $fkpqRow = $fkpqData[0];
+                    $useFkpqData = true;
+                    // Gunakan kop lembaga dari FKPQ jika ada
+                    $kopLembaga = $fkpqRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
+                    $namaLembaga = $fkpqRow['NamaFkpq'] ?? $tpqData['NamaTpq'] ?? '';
+                    $kepalaSekolah = $fkpqRow['KetuaFkpq'] ?? $tpqData['KepalaSekolah'] ?? '';
+                    // Simpan data Kecamatan dan Ketua FKPQ untuk tanda tangan
+                    $tpqData['KecamatanFkpq'] = $fkpqRow['Kecamatan'] ?? '';
+                    $tpqData['KetuaFkpq'] = $fkpqRow['KetuaFkpq'] ?? '';
                 }
             }
 
-            // Tentukan data yang akan digunakan (MDA atau TPQ)
-            $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+            // Jika bukan Munaqosah (Pra-Munaqosah), gunakan logic lama (MDA atau TPQ)
+            if ($typeUjianNormalized !== 'munaqosah') {
+                // Ambil nama kelas dari data santri untuk menentukan apakah menggunakan kop MDA atau TPQ
+                $namaKelasSantri = null;
+                $santriDetail = $this->helpFunction->getDetailSantriByKelasSantri(
+                    $pesertaData['IdSantri'] ?? null,
+                    $idTahunAjaran,
+                    $pesertaData['IdTpq'] ?? null
+                );
+
+                if (!empty($santriDetail) && isset($santriDetail['NamaKelas'])) {
+                    $namaKelasSantri = $santriDetail['NamaKelas'];
+                }
+
+                // Check apakah kelas sesuai dengan mapping MDA
+                $useMdaData = false;
+                $mdaRow = null;
+
+                if (!empty($namaKelasSantri) && !empty($pesertaData['IdTpq'])) {
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($pesertaData['IdTpq'], $namaKelasSantri);
+                    $useMdaData = $mdaCheckResult['useMdaData'];
+
+                    // Jika sesuai, ambil data MDA
+                    if ($useMdaData) {
+                        $mdaData = $this->mdaModel->GetData($pesertaData['IdTpq']);
+                        if (!empty($mdaData) && !empty($mdaData[0])) {
+                            $mdaRow = $mdaData[0];
+                            // Gunakan kop lembaga dari MDA jika ada, fallback ke TPQ
+                            $kopLembaga = $mdaRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
+                            $namaLembaga = $mdaRow['NamaTpq'] ?? $tpqData['NamaTpq'] ?? '';
+                            $kepalaSekolah = $mdaRow['KepalaSekolah'] ?? $tpqData['KepalaSekolah'] ?? '';
+                        }
+                    }
+                }
+
+                // Tentukan data yang akan digunakan (MDA atau TPQ)
+                $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
+            } else {
+                // Untuk Munaqosah, gunakan FKPQ
+                $lembagaType = $useFkpqData && $fkpqRow ? 'FKPQ' : 'TPQ';
+            }
 
             // Update tpqData dengan kop lembaga yang sesuai
             $tpqData['KopLembaga'] = $kopLembaga;
@@ -12333,8 +12404,11 @@ class Munaqosah extends BaseController
             $tpqData['KepalaSekolah'] = $kepalaSekolah;
             $tpqData['LembagaType'] = $lembagaType;
 
-            // Ambil nama kepala sesuai dengan lembaga type (MDA atau TPQ)
-            if ($lembagaType === 'MDA' && !empty($kepalaSekolah)) {
+            // Ambil nama kepala sesuai dengan lembaga type (FKPQ, MDA atau TPQ)
+            if ($lembagaType === 'FKPQ' && !empty($kepalaSekolah)) {
+                // Jika menggunakan FKPQ, gunakan KetuaFkpq dari FKPQ
+                $tpqData['NamaKepalaTpq'] = $kepalaSekolah;
+            } elseif ($lembagaType === 'MDA' && !empty($kepalaSekolah)) {
                 // Jika menggunakan MDA, gunakan KepalaSekolah dari MDA
                 $tpqData['NamaKepalaTpq'] = $kepalaSekolah;
             } else {

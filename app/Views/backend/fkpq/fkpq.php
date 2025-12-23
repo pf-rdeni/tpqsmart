@@ -24,6 +24,7 @@
                         <th>ID FKPQ</th>
                         <th>Nama FKPQ</th>
                         <th>Alamat</th>
+                        <th>Kecamatan</th>
                         <th>Nama Kepala</th>
                         <th>Tempat Belajar</th>
                         <th>Tahun Berdiri</th>
@@ -39,7 +40,8 @@
                                 <td><?= $dataFkpq['IdFkpq'] ?></td>
                                 <td><?= $dataFkpq['NamaFkpq']  ?></td>
                                 <td><?= $dataFkpq['Alamat']  ?></td>
-                                <td><?= $dataFkpq['KepalaSekolah']  ?></td>
+                                <td><?= $dataFkpq['Kecamatan'] ?? '-'  ?></td>
+                                <td><?= $dataFkpq['KetuaFkpq']  ?></td>
                                 <td><?= $dataFkpq['TempatBelajar']  ?></td>
                                 <td><?= $dataFkpq['TahunBerdiri']  ?></td>
                                 <td><?= $dataFkpq['NoHp']  ?></td>
@@ -52,7 +54,7 @@
                         <?php endforeach;
                     } else { ?>
                         <tr>
-                            <td colspan="8" class="text-center">Tidak ada data FKPQ</td>
+                            <td colspan="9" class="text-center">Tidak ada data FKPQ</td>
                         </tr>
                     <?php } ?>
                 </tbody>
@@ -61,6 +63,7 @@
                         <th>ID FKPQ</th>
                         <th>Nama FKPQ</th>
                         <th>Alamat</th>
+                        <th>Kecamatan</th>
                         <th>Nama Kepala</th>
                         <th>Tempat Belajar</th>
                         <th>Tahun Berdiri</th>

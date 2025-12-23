@@ -301,7 +301,7 @@
                                                                 <?php foreach ($tahunData['detail_tpq'] as $detail): ?>
                                                                     <tr class="detail-row detail-<?= $tahunAjaranKey ?>" style="display: none; background-color: #ffffff;">
                                                                         <td></td>
-                                                                        <td class="text-center">
+                                                            <td class="text-center">
                                                                             <i class="fas fa-angle-right text-muted"></i>
                                                                         </td>
                                                                         <td style="padding-left: 40px;">
@@ -312,13 +312,13 @@
                                                                         </td>
                                                                         <td>
                                                                             <?= esc($detail['KelurahanDesa'] ?? '-') ?>
-                                                                        </td>
-                                                                        <td class="text-center">
+                                                            </td>
+                                                            <td class="text-center">
                                                                             <span class="badge badge-secondary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
                                                                                 <?= number_format($detail['jumlah_peserta']) ?>
-                                                                            </span>
-                                                                        </td>
-                                                                    </tr>
+                                                                </span>
+                                                            </td>
+                                                        </tr>
                                                                 <?php endforeach; ?>
                                                             <?php endif; ?>
                                                         <?php endforeach; ?>

@@ -24,6 +24,7 @@
                         <th>ID FKDT</th>
                         <th>Nama FKDT</th>
                         <th>Alamat</th>
+                        <th>Kecamatan</th>
                         <th>Nama Kepala</th>
                         <th>Tempat Belajar</th>
                         <th>Tahun Berdiri</th>
@@ -39,6 +40,7 @@
                                 <td><?= $dataFkdt['IdFkdt'] ?></td>
                                 <td><?= $dataFkdt['NamaFkdt']  ?></td>
                                 <td><?= $dataFkdt['Alamat']  ?></td>
+                                <td><?= $dataFkdt['Kecamatan'] ?? '-'  ?></td>
                                 <td><?= $dataFkdt['KepalaSekolah']  ?></td>
                                 <td><?= $dataFkdt['TempatBelajar']  ?></td>
                                 <td><?= $dataFkdt['TahunBerdiri']  ?></td>
@@ -52,7 +54,7 @@
                         <?php endforeach;
                     } else { ?>
                         <tr>
-                            <td colspan="8" class="text-center">Tidak ada data FKDT</td>
+                            <td colspan="9" class="text-center">Tidak ada data FKDT</td>
                         </tr>
                     <?php } ?>
                 </tbody>
@@ -61,6 +63,7 @@
                         <th>ID FKDT</th>
                         <th>Nama FKDT</th>
                         <th>Alamat</th>
+                        <th>Kecamatan</th>
                         <th>Nama Kepala</th>
                         <th>Tempat Belajar</th>
                         <th>Tahun Berdiri</th>

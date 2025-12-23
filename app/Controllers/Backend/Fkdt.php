@@ -73,6 +73,7 @@ class Fkdt extends BaseController
             'IdFkdt' => $this->request->getVar('IdFkdt'),
             'NamaFkdt' => $this->request->getVar('NamaFkdt'),
             'Alamat' => $this->request->getVar('AlamatFkdt'),
+            'Kecamatan' => $this->request->getVar('Kecamatan'),
             'TahunBerdiri' => $this->request->getVar('TanggalBerdiri'),
             'KepalaSekolah' => $this->request->getVar('NamaKepFkdt'),
             'NoHp' => $this->request->getVar('NoHp'),
@@ -115,6 +116,7 @@ class Fkdt extends BaseController
         $this->DataFkdt->update($id, [
             'NamaFkdt' => $this->request->getVar('NamaFkdt'),
             'Alamat' => $this->request->getVar('AlamatFkdt'),
+            'Kecamatan' => $this->request->getVar('Kecamatan'),
             'TahunBerdiri' => $this->request->getVar('TanggalBerdiri'),
             'KepalaSekolah' => $this->request->getVar('NamaKepFkdt'),
             'NoHp' => $this->request->getVar('NoHp'),

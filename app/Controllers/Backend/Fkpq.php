@@ -73,8 +73,9 @@ class Fkpq extends BaseController
             'IdFkpq' => $this->request->getVar('IdFkpq'),
             'NamaFkpq' => $this->request->getVar('NamaFkpq'),
             'Alamat' => $this->request->getVar('AlamatFkpq'),
+            'Kecamatan' => $this->request->getVar('Kecamatan'),
             'TahunBerdiri' => $this->request->getVar('TanggalBerdiri'),
-            'KepalaSekolah' => $this->request->getVar('NamaKepFkpq'),
+            'KetuaFkpq' => $this->request->getVar('NamaKepFkpq'),
             'NoHp' => $this->request->getVar('NoHp'),
             'TempatBelajar' => $this->request->getVar('TempatBelajar')
         ]);
@@ -115,8 +116,9 @@ class Fkpq extends BaseController
         $this->DataFkpq->update($id, [
             'NamaFkpq' => $this->request->getVar('NamaFkpq'),
             'Alamat' => $this->request->getVar('AlamatFkpq'),
+            'Kecamatan' => $this->request->getVar('Kecamatan'),
             'TahunBerdiri' => $this->request->getVar('TanggalBerdiri'),
-            'KepalaSekolah' => $this->request->getVar('NamaKepFkpq'),
+            'KetuaFkpq' => $this->request->getVar('NamaKepFkpq'),
             'NoHp' => $this->request->getVar('NoHp'),
             'TempatBelajar' => $this->request->getVar('TempatBelajar'),
             'Visi' => $this->request->getVar('Visi'),

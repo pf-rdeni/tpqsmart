@@ -194,10 +194,16 @@
                                 <td>: <?= htmlspecialchars($fkpq['Alamat']) ?></td>
                             </tr>
                         <?php endif; ?>
-                        <?php if (!empty($fkpq['KepalaSekolah'])) : ?>
+                        <?php if (!empty($fkpq['Kecamatan'])) : ?>
                             <tr>
-                                <td class="k">Kepala Lembaga</td>
-                                <td>: <?= htmlspecialchars($fkpq['KepalaSekolah']) ?></td>
+                                <td class="k">Kecamatan</td>
+                                <td>: <?= htmlspecialchars($fkpq['Kecamatan']) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php if (!empty($fkpq['KetuaFkpq'])) : ?>
+                            <tr>
+                                <td class="k">Ketua FKPQ</td>
+                                <td>: <?= htmlspecialchars($fkpq['KetuaFkpq']) ?></td>
                             </tr>
                         <?php endif; ?>
                         <?php if (!empty($fkpq['TahunBerdiri'])) : ?>
@@ -253,4 +259,3 @@
 </body>
 
 </html>
-

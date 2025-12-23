@@ -10,7 +10,7 @@ class FkpqModel extends Model
     protected $primaryKey = 'IdFkpq';
     protected $useAutoIncrement = false;
     protected $useTimestamps = true;
-    protected $allowedFields = ['IdFkpq', 'NamaFkpq', 'Alamat', 'TahunBerdiri', 'TempatBelajar', 'KepalaSekolah', 'NoHp', 'LogoLembaga', 'KopLembaga', 'Visi', 'Misi'];
+    protected $allowedFields = ['IdFkpq', 'NamaFkpq', 'Alamat', 'Kecamatan', 'TahunBerdiri', 'TempatBelajar', 'KetuaFkpq', 'NoHp', 'LogoLembaga', 'KopLembaga', 'Visi', 'Misi'];
     
     public function GetData($id = false)
     {

@@ -62,6 +62,17 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
+                                            <label for="Kecamatan">Kecamatan:</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="Kecamatan" 
+                                                   name="Kecamatan" 
+                                                   value="<?= old('Kecamatan', $fkpq['Kecamatan'] ?? '') ?>" 
+                                                   placeholder="Nama Kecamatan">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
                                             <label for="TanggalBerdiri">Tahun Berdiri:</label>
                                             <input type="text" 
                                                    class="form-control" 
@@ -78,7 +89,7 @@
                                                    class="form-control" 
                                                    id="NamaKepFkpq" 
                                                    name="NamaKepFkpq" 
-                                                   value="<?= old('NamaKepFkpq', $fkpq['KepalaSekolah']) ?>" 
+                                                   value="<?= old('NamaKepFkpq', $fkpq['KetuaFkpq']) ?>" 
                                                    required>
                                         </div>
                                     </div>

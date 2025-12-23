@@ -53,8 +53,8 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Tempat Belajar:</label>
-                                        <p class="form-control-static"><?= $fkdt[0]['TempatBelajar'] ?></p>
+                                        <label>Kecamatan:</label>
+                                        <p class="form-control-static"><?= $fkdt[0]['Kecamatan'] ?? '-' ?></p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -68,10 +68,19 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
+                                        <label>Tempat Belajar:</label>
+                                        <p class="form-control-static"><?= $fkdt[0]['TempatBelajar'] ?></p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
                                         <label>Kepala FKDT:</label>
                                         <p class="form-control-static"><?= $fkdt[0]['KepalaSekolah'] ?? '-' ?></p>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>No. HP:</label>

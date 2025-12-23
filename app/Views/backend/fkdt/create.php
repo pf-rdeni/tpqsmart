@@ -39,6 +39,10 @@
                     <textarea name="AlamatFkdt" class="form-control" rows="3" placeholder="Ketik Alamat FKDT"><?= old('AlamatFkdt'); ?></textarea>
                 </div>
                 <div class="form-group">
+                    <label for="Kecamatan">Kecamatan</label>
+                    <input type="text" name="Kecamatan" class="form-control" id="Kecamatan" placeholder="Ketik Nama Kecamatan" value="<?= old('Kecamatan'); ?>">
+                </div>
+                <div class="form-group">
                     <label for="NamaKepFkdt">Nama Kepala FKDT</label>
                     <input type="text" name="NamaKepFkdt" class="form-control" id="NamaKepFkdt" placeholder="Ketik Nama Kepala FKDT" value="<?= old('NamaKepFkdt'); ?>">
                 </div>

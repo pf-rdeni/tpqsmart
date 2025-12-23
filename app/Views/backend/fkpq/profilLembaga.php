@@ -53,8 +53,8 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Tempat Belajar:</label>
-                                        <p class="form-control-static"><?= $fkpq[0]['TempatBelajar'] ?></p>
+                                        <label>Kecamatan:</label>
+                                        <p class="form-control-static"><?= $fkpq[0]['Kecamatan'] ?? '-' ?></p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -68,10 +68,19 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label>Kepala FKPQ:</label>
-                                        <p class="form-control-static"><?= $fkpq[0]['KepalaSekolah'] ?? '-' ?></p>
+                                        <label>Tempat Belajar:</label>
+                                        <p class="form-control-static"><?= $fkpq[0]['TempatBelajar'] ?></p>
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Kepala FKPQ:</label>
+                                        <p class="form-control-static"><?= $fkpq[0]['KetuaFkpq'] ?? '-' ?></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>No. HP:</label>
@@ -79,6 +88,7 @@
                                     </div>
                                 </div>
                             </div>
+
 
                             <?php if (!empty($fkpq[0]['Visi']) || !empty($fkpq[0]['Misi'])) : ?>
                                 <div class="row mt-3">

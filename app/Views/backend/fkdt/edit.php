@@ -62,6 +62,17 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
+                                            <label for="Kecamatan">Kecamatan:</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="Kecamatan" 
+                                                   name="Kecamatan" 
+                                                   value="<?= old('Kecamatan', $fkdt['Kecamatan'] ?? '') ?>" 
+                                                   placeholder="Nama Kecamatan">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
                                             <label for="TanggalBerdiri">Tahun Berdiri:</label>
                                             <input type="text" 
                                                    class="form-control" 
@@ -71,6 +82,9 @@
                                                    required>
                                         </div>
                                     </div>
+                                </div>
+                                
+                                <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="NamaKepFkdt">Nama Kepala FKDT:</label>
@@ -80,6 +94,16 @@
                                                    name="NamaKepFkdt" 
                                                    value="<?= old('NamaKepFkdt', $fkdt['KepalaSekolah']) ?>" 
                                                    required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="TempatBelajar">Tempat Belajar:</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="TempatBelajar" 
+                                                   name="TempatBelajar" 
+                                                   value="<?= old('TempatBelajar', $fkdt['TempatBelajar']) ?>">
                                         </div>
                                     </div>
                                 </div>
@@ -93,16 +117,6 @@
                                                    id="NoHp" 
                                                    name="NoHp" 
                                                    value="<?= old('NoHp', $fkdt['NoHp']) ?>">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="TempatBelajar">Tempat Belajar:</label>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="TempatBelajar" 
-                                                   name="TempatBelajar" 
-                                                   value="<?= old('TempatBelajar', $fkdt['TempatBelajar']) ?>">
                                         </div>
                                     </div>
                                 </div>
