@@ -2221,6 +2221,7 @@ class Munaqosah extends BaseController
                 'id' => $row['id'] ?? null,
                 'NoPeserta' => $row['NoPeserta'],
                 'NamaSantri' => $row['NamaSantri'] ?? '-',
+                'PhotoProfil' => $row['PhotoProfil'] ?? null,
                 'GroupPeserta' => $groupPeserta,
                 'groupBadgeClass' => $groupBadgeClass,
                 'Status' => $status,
