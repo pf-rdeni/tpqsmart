@@ -106,6 +106,30 @@ $routes->get('backend/mda/printProfilLembaga', 'Backend\Mda::printProfilLembaga'
 $routes->post('backend/mda/uploadLogo', 'Backend\Mda::uploadLogo');
 $routes->post('backend/mda/uploadKop', 'Backend\Mda::uploadKop');
 
+// Routes untuk FKPQ
+$routes->get('backend/fkpq/show', 'Backend\Fkpq::show');
+$routes->get('backend/fkpq/create', 'Backend\Fkpq::create');
+$routes->post('backend/fkpq/save', 'Backend\Fkpq::save');
+$routes->get('backend/fkpq/edit/(:segment)', 'Backend\Fkpq::edit/$1');
+$routes->post('backend/fkpq/update/(:segment)', 'Backend\Fkpq::update/$1');
+$routes->get('backend/fkpq/delete/(:segment)', 'Backend\Fkpq::delete/$1');
+$routes->get('backend/fkpq/profil-lembaga/(:segment)', 'Backend\Fkpq::profilLembaga/$1');
+$routes->post('backend/fkpq/upload-logo', 'Backend\Fkpq::uploadLogo');
+$routes->post('backend/fkpq/upload-kop', 'Backend\Fkpq::uploadKop');
+$routes->get('backend/fkpq/print-profil-lembaga/(:segment)', 'Backend\Fkpq::printProfilLembaga/$1');
+
+// Routes untuk FKDT
+$routes->get('backend/fkdt/show', 'Backend\Fkdt::show');
+$routes->get('backend/fkdt/create', 'Backend\Fkdt::create');
+$routes->post('backend/fkdt/save', 'Backend\Fkdt::save');
+$routes->get('backend/fkdt/edit/(:segment)', 'Backend\Fkdt::edit/$1');
+$routes->post('backend/fkdt/update/(:segment)', 'Backend\Fkdt::update/$1');
+$routes->get('backend/fkdt/delete/(:segment)', 'Backend\Fkdt::delete/$1');
+$routes->get('backend/fkdt/profil-lembaga/(:segment)', 'Backend\Fkdt::profilLembaga/$1');
+$routes->post('backend/fkdt/upload-logo', 'Backend\Fkdt::uploadLogo');
+$routes->post('backend/fkdt/upload-kop', 'Backend\Fkdt::uploadKop');
+$routes->get('backend/fkdt/print-profil-lembaga/(:segment)', 'Backend\Fkdt::printProfilLembaga/$1');
+
 //Table Nilai
 $routes->get('nilai/showDetail/(:num)/(:num)', 'Nilai::showDetail/$1/$2');
 $routes->get('backend/nilai/showNilaiProfilDetail', 'Backend\Nilai::showNilaiProfilDetail');
