@@ -384,10 +384,18 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             }
             // Tambahkan button copy link jika HasKey tersedia
             if (hasKey) {
+                const noHpAyah = row.NoHpAyah || '';
+                const noHpIbu = row.NoHpIbu || '';
+                const namaAyah = row.NamaAyah || '';
+                const namaIbu = row.NamaIbu || '';
                 actionHtml += `<button type="button" class="btn btn-outline-info btn-sm copy-link-btn-kelulusan" 
                                 data-no-peserta="${noPeserta}" 
                                 data-nama-santri="${namaSantri}"
                                 data-haskey="${hasKey}"
+                                data-no-hp-ayah="${noHpAyah}"
+                                data-no-hp-ibu="${noHpIbu}"
+                                data-nama-ayah="${namaAyah}"
+                                data-nama-ibu="${namaIbu}"
                                 title="Copy link WhatsApp untuk ${namaSantri}">
                             <i class="fas fa-copy"></i> Copy Link
                         </button>`;
@@ -618,6 +626,10 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const noPeserta = $(this).data('no-peserta');
             const namaSantri = $(this).data('nama-santri');
             const hasKey = $(this).data('haskey');
+            const noHpAyah = $(this).data('no-hp-ayah') || '';
+            const noHpIbu = $(this).data('no-hp-ibu') || '';
+            const namaAyah = $(this).data('nama-ayah') || '';
+            const namaIbu = $(this).data('nama-ibu') || '';
 
             if (!hasKey) {
                 Swal.fire({
@@ -634,7 +646,46 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const statusUrl = baseUrl + hasKey;
             const copyText = `${noPeserta}-${namaSantri}\nCheck Status:\n${statusUrl}`;
 
-            // Tampilkan popup dengan informasi yang akan dicopy
+            // Format nomor HP untuk WhatsApp (hapus karakter non-digit)
+            const formatNoHp = (noHp) => {
+                if (!noHp) return '';
+                return noHp.replace(/\D/g, '');
+            };
+
+            const noHpAyahFormatted = formatNoHp(noHpAyah);
+            const noHpIbuFormatted = formatNoHp(noHpIbu);
+
+            // Buat pesan untuk WhatsApp
+            const pesanWhatsApp = `Assalamu'alaikum\n\nHasil kelulusan ujian munaqosah untuk ${namaSantri} (No. Peserta: ${noPeserta}) sudah dapat dilihat melalui link berikut:\n\n${statusUrl}\n\nTerima kasih.`;
+            const pesanEncoded = encodeURIComponent(pesanWhatsApp);
+
+            // Buat HTML untuk opsi WhatsApp
+            let whatsappOptionsHtml = '';
+            if (noHpAyahFormatted || noHpIbuFormatted) {
+                whatsappOptionsHtml = '<div class="mt-3"><strong>Kirim ke WhatsApp:</strong><div class="mt-2">';
+
+                if (noHpAyahFormatted) {
+                    const waLinkAyah = `https://wa.me/${noHpAyahFormatted}?text=${pesanEncoded}`;
+                    const labelAyah = namaAyah ? `Kirim ke WhatsApp Ayah (${namaAyah})` : `Kirim ke WhatsApp Ayah (${noHpAyah})`;
+                    whatsappOptionsHtml += `
+                        <a href="${waLinkAyah}" target="_blank" class="btn btn-success btn-sm btn-block mb-2" style="text-decoration: none;">
+                            <i class="fab fa-whatsapp"></i> ${labelAyah}
+                        </a>`;
+                }
+
+                if (noHpIbuFormatted) {
+                    const waLinkIbu = `https://wa.me/${noHpIbuFormatted}?text=${pesanEncoded}`;
+                    const labelIbu = namaIbu ? `Kirim ke WhatsApp Ibu (${namaIbu})` : `Kirim ke WhatsApp Ibu (${noHpIbu})`;
+                    whatsappOptionsHtml += `
+                        <a href="${waLinkIbu}" target="_blank" class="btn btn-success btn-sm btn-block mb-2" style="text-decoration: none;">
+                            <i class="fab fa-whatsapp"></i> ${labelIbu}
+                        </a>`;
+                }
+
+                whatsappOptionsHtml += '</div></div>';
+            }
+
+            // Tampilkan popup dengan informasi yang akan dicopy dan opsi WhatsApp
             Swal.fire({
                 title: 'Copy Link Status Ujian',
                 html: `
@@ -645,6 +696,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                         <div class="border p-3 bg-light rounded mt-2" style="font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; word-break: break-all;">
 ${copyText}
                         </div>
+                        ${whatsappOptionsHtml}
                     </div>
                 `,
                 icon: 'info',
@@ -653,7 +705,8 @@ ${copyText}
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: '<i class="fas fa-copy"></i> Copy ke Clipboard',
                 cancelButtonText: 'Batal',
-                footer: 'Klik "Copy ke Clipboard" untuk menyalin konten'
+                footer: 'Klik "Copy ke Clipboard" untuk menyalin konten atau klik tombol WhatsApp untuk mengirim langsung',
+                width: '600px'
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Copy ke clipboard
