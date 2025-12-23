@@ -116,9 +116,9 @@
         // Cek apakah user memiliki peran operator
         $hasOperatorRole = ($activeRole === 'operator' || (empty($activeRole) && in_groups('Operator')));
 
-        // Menu operator (Kelembagaan, Guru, Santri, dll) tidak ditampilkan jika sedang di halaman Munaqosah, MyAuth, atau Sertifikasi
-        // Tapi menu Munaqosah tetap muncul untuk operator
-        $isActiveOperator = $hasOperatorRole && !$isMunaqosahPage && !$isMyAuthPage && !$isSertifikasiPage;
+        // Untuk Operator: menu default (Kelembagaan, Guru, Santri, dll) dan menu Munaqosah selalu muncul bersamaan
+        // Dashboard utama adalah Default, tapi menu Munaqosah juga tersedia di sidebar
+        $isActiveOperator = $hasOperatorRole && !$isMyAuthPage && !$isSertifikasiPage;
 
         // Cek apakah user memiliki peran guru (dari active_role atau available_roles)
         // Peran guru bisa dari: 'guru', 'wali_kelas', atau 'kepala_tpq' (kepala TPQ juga memiliki akses menu guru)
@@ -291,7 +291,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if ((in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $hasOperatorRole) && $isMunaqosahPage): ?>
+                <?php if ((in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $hasOperatorRole) && ($isMunaqosahPage || $hasOperatorRole)): ?>
                     <!-- Munaqosah -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -508,7 +508,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if ((in_groups('Admin') || $isActiveOperator) && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage): ?>
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage) || ($isActiveOperator)): ?>
                     <!--  Kelembagaan -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -883,7 +883,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if ((in_groups('Admin') || $isActiveOperator) && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage): ?>
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage) || ($isActiveOperator)): ?>
                     <!--  General Setting -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">

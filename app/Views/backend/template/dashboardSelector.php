@@ -210,6 +210,18 @@
             return;
         }
 
+        // Skip modal untuk Operator - langsung set default dashboard
+        if (isOperator && !isAdmin) {
+            // Set default dashboard ke 'semester' untuk Operator
+            const operatorDashboard = localStorage.getItem(dashboardStorageKey);
+            if (!operatorDashboard) {
+                localStorage.setItem(dashboardStorageKey, 'semester');
+            }
+            // Update label dan skip modal
+            updateDashboardLabel();
+            return;
+        }
+
         // Fungsi untuk update label dashboard di navbar
         function updateDashboardLabel() {
             const selectedDashboard = localStorage.getItem(dashboardStorageKey) || 'semester';
@@ -309,6 +321,14 @@
         // Jika ada halaman terakhir yang valid setelah login, tunggu script lastPage redirect dulu
         // Jangan redirect ke dashboard jika ada halaman terakhir yang valid
         if (selectedDashboard && !dashboardParam && !hasValidLastPage) {
+            // Untuk Operator: jangan redirect ke Munaqosah, tetap di dashboard default
+            if (isOperator && !isAdmin && selectedDashboard === 'munaqosah') {
+                // Reset ke semester untuk Operator
+                localStorage.setItem(dashboardStorageKey, 'semester');
+                updateDashboardLabel();
+                return;
+            }
+
             // Cek apakah user berada di dashboard default (ujian semester)
             const isDashboardDefault = currentPath === '/' ||
                 currentPath.includes('/dashboard/index') ||
@@ -469,7 +489,17 @@
                 return; // Biarkan default behavior
             }
 
-            // Cek localStorage untuk pilihan dashboard dengan key spesifik user
+            // Untuk Operator: selalu redirect ke dashboard default (semester)
+            if (isOperator && !isAdmin) {
+                e.preventDefault(); // Prevent default navigation
+                // Pastikan localStorage set ke semester
+                localStorage.setItem(dashboardStorageKey, 'semester');
+                // Redirect ke dashboard default
+                window.location.href = '<?= base_url("/") ?>?dashboard=semester';
+                return false;
+            }
+
+            // Untuk Admin: cek localStorage untuk pilihan dashboard
             const selectedDashboard = localStorage.getItem(dashboardStorageKey);
 
             // Jika ada pilihan dashboard selain semester, intercept dan redirect

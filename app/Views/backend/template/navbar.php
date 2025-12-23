@@ -172,8 +172,8 @@
                 </div>
             </li>
         <?php endif; ?>
-        <!-- Dashboard Selector Dropdown (hanya untuk Admin dan Operator) -->
-        <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+        <!-- Dashboard Selector Dropdown (hanya untuk Admin) -->
+        <?php if (in_groups('Admin')): ?>
             <?php
             // Daftar dashboard yang tersedia
             $availableDashboards = [
