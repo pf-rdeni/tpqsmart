@@ -380,7 +380,7 @@
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/export-hasil-munaqosah') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Nilai Kelulusan</p>
+                                        <p>Export Hasil Munaqosah</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
@@ -409,7 +409,7 @@
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring-penilaian-juri-pasangan') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Monitoring Penilaian Juri Pasangan</p>
+                                        <p>Cek Nilai Pasangan Juri</p>
                                     </a>
                                 </li>
                                 <?php endif; ?>

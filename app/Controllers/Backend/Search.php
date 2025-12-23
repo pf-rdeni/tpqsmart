@@ -271,6 +271,13 @@ class Search extends BaseController
                 'description' => 'Nilai kelulusan munaqosah',
             ];
             $menus[] = [
+                'title' => 'Export Hasil Munaqosah',
+                'url' => base_url('backend/munaqosah/export-hasil-munaqosah'),
+                'icon' => 'fas fa-file-export',
+                'category' => 'Munaqosah',
+                'description' => 'Export hasil munaqosah ke Excel',
+            ];
+            $menus[] = [
                 'title' => 'Monitoring Munaqosah',
                 'url' => base_url('backend/munaqosah/monitoring'),
                 'icon' => 'fas fa-chart-line',

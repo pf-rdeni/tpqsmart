@@ -292,8 +292,10 @@ class Munaqosah extends BaseController
                 'jadwal_peserta_ujian' => base_url('backend/munaqosah/jadwal-peserta-ujian'),
                 'dashboard_monitoring' => base_url('backend/munaqosah/dashboard-monitoring'),
                 'monitoring' => base_url('backend/munaqosah/monitoring'),
+                'cek_nilai_pasangan_juri' => base_url('backend/munaqosah/monitoring-penilaian-juri-pasangan'),
                 'kelulusan' => base_url('backend/munaqosah/kelulusan'),
                 'kelulusan_simple' => base_url('backend/munaqosah/kelulusan-simple'),
+                'export_hasil_munaqosah' => base_url('backend/munaqosah/export-hasil-munaqosah'),
                 'konfigurasi' => base_url('backend/munaqosah/list-konfigurasi-munaqosah'),
                 'data_juri' => base_url('backend/munaqosah/juri'),
                 'daftar_peserta' => base_url('backend/munaqosah/peserta'),
@@ -348,23 +350,38 @@ class Munaqosah extends BaseController
                 $aktiveTombolKelulusanValue = false;
             }
 
-            // Query untuk mendapatkan data peserta Munaqosah per TPQ dengan jumlah Laki-Laki dan Perempuan
-            $query = $this->db->query("
-                SELECT 
-                    t.IdTpq,
-                    t.NamaTpq,
-                    t.KelurahanDesa,
-                    COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'LAKI-LAKI' THEN p.IdSantri END) as jumlah_laki_laki,
-                    COUNT(DISTINCT CASE WHEN s.JenisKelamin = 'PEREMPUAN' THEN p.IdSantri END) as jumlah_perempuan,
-                    COUNT(DISTINCT p.IdSantri) as total_peserta
-                FROM tbl_munaqosah_peserta p
-                INNER JOIN tbl_santri_baru s ON s.IdSantri = p.IdSantri
-                INNER JOIN tbl_tpq t ON t.IdTpq = p.IdTpq
-                WHERE p.IdTahunAjaran = ? 
-                GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa
-                ORDER BY t.NamaTpq ASC
-            ", [$currentTahunAjaran]);
-            $pesertaPerTpq = $query->getResultArray();
+            // Statistik Jumlah Peserta per Tahun Ajaran dan TPQ
+            $statistikQuery = $this->db->table('tbl_munaqosah_peserta p')
+                ->select('p.IdTahunAjaran, t.IdTpq, t.NamaTpq, t.KelurahanDesa, COUNT(DISTINCT p.id) as jumlah_peserta')
+                ->join('tbl_tpq t', 't.IdTpq = p.IdTpq', 'left')
+                ->groupBy('p.IdTahunAjaran, t.IdTpq, t.NamaTpq, t.KelurahanDesa')
+                ->orderBy('p.IdTahunAjaran', 'DESC')
+                ->orderBy('t.NamaTpq', 'ASC');
+
+            $statistikPesertaPerTahun = $statistikQuery->get()->getResultArray();
+
+            // Kelompokkan data per tahun ajaran untuk format tree
+            $statistikGroupedByTahun = [];
+            foreach ($statistikPesertaPerTahun as $stat) {
+                $tahunAjaranKey = $stat['IdTahunAjaran'];
+                if (!isset($statistikGroupedByTahun[$tahunAjaranKey])) {
+                    $statistikGroupedByTahun[$tahunAjaranKey] = [
+                        'IdTahunAjaran' => $tahunAjaranKey,
+                        'total_peserta' => 0,
+                        'detail_tpq' => []
+                    ];
+                }
+                $statistikGroupedByTahun[$tahunAjaranKey]['total_peserta'] += $stat['jumlah_peserta'];
+                $statistikGroupedByTahun[$tahunAjaranKey]['detail_tpq'][] = [
+                    'IdTpq' => $stat['IdTpq'],
+                    'NamaTpq' => $stat['NamaTpq'],
+                    'KelurahanDesa' => $stat['KelurahanDesa'] ?? '-',
+                    'jumlah_peserta' => $stat['jumlah_peserta']
+                ];
+            }
+
+            // Convert ke array untuk view
+            $statistikGroupedByTahun = array_values($statistikGroupedByTahun);
 
             $data = [
                 'page_title' => 'Dashboard Munaqosah - Admin',
@@ -382,7 +399,7 @@ class Munaqosah extends BaseController
                 'id_tpq_setting' => $idTpqForSetting,
                 'menu_items' => $menuItems,
                 'statistik' => $statistik,
-                'peserta_per_tpq' => $pesertaPerTpq,
+                'statistikGroupedByTahun' => $statistikGroupedByTahun,
                 'is_admin' => $isAdmin,
             ];
 

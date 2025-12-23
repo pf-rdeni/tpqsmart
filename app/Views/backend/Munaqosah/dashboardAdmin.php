@@ -229,80 +229,119 @@
                             </div>
                         </div>
 
-                        <!-- Tabel Peserta Munaqosah Per TPQ -->
+                        <!-- Statistik Jumlah Peserta per Tahun Ajaran dan TPQ -->
                         <div class="row mt-4">
                             <div class="col-12">
                                 <div class="card card-info collapsed-card">
                                     <div class="card-header">
                                         <h3 class="card-title">
-                                            <i class="fas fa-table"></i> Informasi Peserta Munaqosah Per TPQ
+                                            <i class="fas fa-chart-bar"></i> Statistik Jumlah Peserta Munaqosah per Tahun Ajaran
                                         </h3>
                                         <div class="card-tools">
                                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                                                 <i class="fas fa-plus"></i>
                                             </button>
+                                            <button type="button" class="btn btn-tool" data-toggle="tooltip" title="Menampilkan jumlah peserta munaqosah per tahun ajaran dan per TPQ">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="card-body">
+                                        <p class="text-muted mb-3">
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Informasi:</strong> Tabel ini menampilkan jumlah peserta munaqosah yang terdaftar per tahun ajaran. Klik pada baris tahun ajaran untuk melihat detail per TPQ.
+                                        </p>
                                         <div class="table-responsive">
-                                            <table id="tabelPesertaPerTpq" class="table table-bordered table-striped table-hover">
-                                                <thead>
+                                            <table id="tabelStatistikPesertaPerTahun" class="table table-bordered table-striped table-hover">
+                                                <thead class="thead-light">
                                                     <tr>
-                                                        <th style="width: 5%;">No</th>
+                                                        <th class="text-center" style="width: 50px;">No</th>
+                                                        <th style="width: 50px;"></th>
+                                                        <th>Tahun Ajaran</th>
                                                         <th>Nama TPQ</th>
-                                                        <th>Alamat</th>
-                                                        <th class="text-center" style="width: 15%;">Laki-Laki</th>
-                                                        <th class="text-center" style="width: 15%;">Perempuan</th>
-                                                        <th class="text-center" style="width: 15%;">Total Peserta</th>
+                                                        <th>Kelurahan/Desa</th>
+                                                        <th class="text-center">Jumlah Peserta</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <?php if (!empty($peserta_per_tpq)): ?>
+                                                    <?php if (!empty($statistikGroupedByTahun) && count($statistikGroupedByTahun) > 0): ?>
                                                         <?php $no = 1; ?>
-                                                        <?php foreach ($peserta_per_tpq as $row): ?>
-                                                            <tr>
-                                                                <td><?= $no++ ?></td>
-                                                                <td><?= esc($row['NamaTpq']) ?></td>
-                                                                <td><?= esc($row['KelurahanDesa'] ?? '-') ?></td>
+                                                        <?php foreach ($statistikGroupedByTahun as $tahunData): ?>
+                                                            <?php
+                                                            $tahunAjaranKey = md5($tahunData['IdTahunAjaran']); // Unique key untuk tahun ajaran
+                                                            $hasDetail = !empty($tahunData['detail_tpq']) && count($tahunData['detail_tpq']) > 0;
+                                                            ?>
+                                                            <!-- Row Tahun Ajaran (Parent) -->
+                                                            <tr class="tahun-row" data-tahun-key="<?= $tahunAjaranKey ?>" style="cursor: pointer; background-color: #f8f9fa;">
+                                                                <td class="text-center"><?= $no++ ?></td>
                                                                 <td class="text-center">
-                                                                    <span class="badge badge-primary" style="font-size: 1em; padding: 5px 10px;">
-                                                                        <?= number_format($row['jumlah_laki_laki']) ?>
-                                                                    </span>
+                                                                    <?php if ($hasDetail): ?>
+                                                                        <i class="fas fa-chevron-right expand-icon" style="transition: transform 0.3s;"></i>
+                                                                    <?php else: ?>
+                                                                        <i class="fas fa-minus" style="color: #ccc;"></i>
+                                                                    <?php endif; ?>
+                                                                </td>
+                                                                <td>
+                                                                    <strong><?= convertTahunAjaran($tahunData['IdTahunAjaran']) ?></strong>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="badge badge-info">Total Semua TPQ</span>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="badge badge-secondary">-</span>
                                                                 </td>
                                                                 <td class="text-center">
-                                                                    <span class="badge badge-pink" style="font-size: 1em; padding: 5px 10px; background-color: #e91e63; color: white;">
-                                                                        <?= number_format($row['jumlah_perempuan']) ?>
+                                                                    <span class="badge badge-primary badge-lg" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                                                                        <?= number_format($tahunData['total_peserta']) ?>
                                                                     </span>
-                                                                </td>
-                                                                <td class="text-center">
-                                                                    <strong><?= number_format($row['total_peserta']) ?></strong>
                                                                 </td>
                                                             </tr>
+                                                            <!-- Detail TPQ (Child rows - hidden by default) -->
+                                                            <?php if ($hasDetail): ?>
+                                                                <?php foreach ($tahunData['detail_tpq'] as $detail): ?>
+                                                                    <tr class="detail-row detail-<?= $tahunAjaranKey ?>" style="display: none; background-color: #ffffff;">
+                                                                        <td></td>
+                                                                        <td class="text-center">
+                                                                            <i class="fas fa-angle-right text-muted"></i>
+                                                                        </td>
+                                                                        <td style="padding-left: 40px;">
+                                                                            <span class="text-muted small"><i class="fas fa-building text-info mr-1"></i>TPQ</span>
+                                                                        </td>
+                                                                        <td>
+                                                                            <strong><?= esc($detail['NamaTpq'] ?? '-') ?></strong>
+                                                                        </td>
+                                                                        <td>
+                                                                            <?= esc($detail['KelurahanDesa'] ?? '-') ?>
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <span class="badge badge-secondary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
+                                                                                <?= number_format($detail['jumlah_peserta']) ?>
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                <?php endforeach; ?>
+                                                            <?php endif; ?>
                                                         <?php endforeach; ?>
-                                                        <tr class="bg-light font-weight-bold">
-                                                            <td colspan="3" class="text-right"><strong>TOTAL</strong></td>
-                                                            <td class="text-center">
-                                                                <span class="badge badge-primary" style="font-size: 1em; padding: 5px 10px;">
-                                                                    <?= number_format(array_sum(array_column($peserta_per_tpq, 'jumlah_laki_laki'))) ?>
-                                                                </span>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <span class="badge badge-pink" style="font-size: 1em; padding: 5px 10px; background-color: #e91e63; color: white;">
-                                                                    <?= number_format(array_sum(array_column($peserta_per_tpq, 'jumlah_perempuan'))) ?>
-                                                                </span>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <strong><?= number_format(array_sum(array_column($peserta_per_tpq, 'total_peserta'))) ?></strong>
-                                                            </td>
-                                                        </tr>
                                                     <?php else: ?>
                                                         <tr>
-                                                            <td colspan="6" class="text-center text-muted">
-                                                                <i class="fas fa-info-circle"></i> Belum ada data peserta Munaqosah
+                                                            <td colspan="6" class="text-center text-muted py-4">
+                                                                <i class="fas fa-info-circle"></i> Tidak ada data statistik
                                                             </td>
                                                         </tr>
                                                     <?php endif; ?>
                                                 </tbody>
+                                                <?php if (!empty($statistikGroupedByTahun) && count($statistikGroupedByTahun) > 0): ?>
+                                                    <tfoot class="thead-light">
+                                                        <tr>
+                                                            <th colspan="5" class="text-right">Grand Total:</th>
+                                                            <th class="text-center">
+                                                                <span class="badge badge-success badge-lg" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                                                                    <?= number_format(array_sum(array_column($statistikGroupedByTahun, 'total_peserta'))) ?>
+                                                                </span>
+                                                            </th>
+                                                        </tr>
+                                                    </tfoot>
+                                                <?php endif; ?>
                                             </table>
                                         </div>
                                     </div>
@@ -354,11 +393,17 @@
                                                     <a href="<?= $menu_items['monitoring'] ?>" class="list-group-item list-group-item-action">
                                                         <i class="fas fa-eye"></i> Monitoring Munaqosah
                                                     </a>
+                                                    <a href="<?= $menu_items['cek_nilai_pasangan_juri'] ?>" class="list-group-item list-group-item-action">
+                                                        <i class="fas fa-user-check"></i> Cek Nilai Pasangan Juri
+                                                    </a>
                                                     <a href="<?= $menu_items['kelulusan'] ?>" class="list-group-item list-group-item-action">
                                                         <i class="fas fa-certificate"></i> Nilai Munaqosah
                                                     </a>
                                                     <a href="<?= $menu_items['kelulusan_simple'] ?>" class="list-group-item list-group-item-action">
                                                         <i class="fas fa-check-circle"></i> Kelulusan
+                                                    </a>
+                                                    <a href="<?= $menu_items['export_hasil_munaqosah'] ?>" class="list-group-item list-group-item-action">
+                                                        <i class="fas fa-file-export"></i> Export Hasil Munaqosah
                                                     </a>
                                                     <a href="<?= $menu_items['data_juri'] ?>" class="list-group-item list-group-item-action">
                                                         <i class="fas fa-user-tie"></i> Data Juri
@@ -494,6 +539,48 @@
         padding: 5px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+
+    /* Styling untuk tabel statistik per tahun ajaran */
+    .tahun-row {
+        transition: background-color 0.2s ease;
+        user-select: none;
+    }
+
+    .tahun-row:hover {
+        background-color: #e9ecef !important;
+    }
+
+    .tahun-row.expanded {
+        background-color: #e9ecef;
+    }
+
+    .detail-row {
+        transition: all 0.3s ease;
+    }
+
+    .detail-row td {
+        border-top: 1px solid #dee2e6;
+    }
+
+    .expand-icon {
+        color: #007bff;
+        font-size: 0.9rem;
+        transition: transform 0.3s ease;
+    }
+
+    .tahun-row:hover .expand-icon {
+        color: #0056b3;
+    }
+
+    /* Styling untuk badge di detail row */
+    .detail-row .badge {
+        font-weight: 500;
+    }
+
+    /* Border untuk memisahkan tahun ajaran */
+    .tahun-row:not(:first-child) {
+        border-top: 2px solid #dee2e6;
+    }
 </style>
 <script>
     $(document).ready(function() {
@@ -558,15 +645,41 @@
             });
         });
 
-        // Inisialisasi DataTable untuk tabel peserta per TPQ
-        <?php if (!empty($peserta_per_tpq)): ?>
-            initializeDataTableUmum('#tabelPesertaPerTpq', true, true, ['copy', 'excel', 'pdf', 'print'], {
-                "order": [[1, "asc"]],
-                "columnDefs": [
-                    { "orderable": false, "targets": 0 } // Nonaktifkan sorting pada kolom No
-                ]
-            });
-        <?php endif; ?>
+        // Script untuk expand/collapse rows statistik per tahun ajaran
+        $(document).on('click', '.tahun-row', function() {
+            var tahunKey = $(this).data('tahun-key');
+            var detailRows = $('.detail-' + tahunKey);
+            var expandIcon = $(this).find('.expand-icon');
+
+            if (detailRows.length > 0) {
+                if (detailRows.is(':visible')) {
+                    // Collapse
+                    detailRows.slideUp(300);
+                    expandIcon.css('transform', 'rotate(0deg)');
+                    $(this).removeClass('expanded');
+                } else {
+                    // Expand
+                    detailRows.slideDown(300);
+                    expandIcon.css('transform', 'rotate(90deg)');
+                    $(this).addClass('expanded');
+                }
+            }
+        });
+
+        // Hover effect untuk tahun-row
+        $(document).on('mouseenter', '.tahun-row', function() {
+            if ($('.detail-' + $(this).data('tahun-key')).is(':visible')) {
+                $(this).css('background-color', '#e9ecef');
+            } else {
+                $(this).css('background-color', '#f0f0f0');
+            }
+        }).on('mouseleave', '.tahun-row', function() {
+            if ($('.detail-' + $(this).data('tahun-key')).is(':visible')) {
+                $(this).css('background-color', '#e9ecef');
+            } else {
+                $(this).css('background-color', '#f8f9fa');
+            }
+        });
     });
 </script>
 <?= $this->endSection(); ?>
