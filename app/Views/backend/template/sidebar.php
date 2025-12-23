@@ -416,7 +416,13 @@
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/kelulusan') ?> class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
-                                        <p>Kelulusan Ujian</p>
+                                        <p>Nilai Munaqosah</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/kelulusan-simple') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Kelulusan</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">

@@ -132,19 +132,19 @@ $meta = $meta ?? [];
                                             <?php if (!empty($juriScores)): ?>
                                                 <?php $first = array_shift($juriScores); ?>
                                                 <td><?= esc($first['label'] ?? 'Juri 1') ?></td>
-                                                <td class="text-center"><?= number_format((float)($first['Nilai'] ?? 0), 2) ?></td>
+                                                <td class="text-center <?= (float)($first['Nilai'] ?? 0) == 0 ? 'text-danger font-weight-bold' : '' ?>"><?= number_format((float)($first['Nilai'] ?? 0), 2) ?></td>
                                                 <td><?= nl2br(esc($first['Catatan'] ?? '-')) ?></td>
                                             <?php else: ?>
                                                 <td class="text-center" colspan="3">Belum ada penilaian</td>
                                             <?php endif; ?>
-                                            <td class="align-middle text-center" rowspan="<?= $rowspan ?>"><?= number_format($average, 2) ?></td>
-                                            <td class="align-middle text-center" rowspan="<?= $rowspan ?>"><?= number_format($weighted, 2) ?></td>
+                                            <td class="align-middle text-center <?= $average == 0 ? 'text-danger font-weight-bold' : '' ?>" rowspan="<?= $rowspan ?>"><?= number_format($average, 2) ?></td>
+                                            <td class="align-middle text-center <?= $weighted == 0 ? 'text-danger font-weight-bold' : '' ?>" rowspan="<?= $rowspan ?>"><?= number_format($weighted, 2) ?></td>
                                         </tr>
                                         <?php if (!empty($juriScores)): ?>
                                             <?php foreach ($juriScores as $score): ?>
                                                 <tr>
                                                     <td><?= esc($score['label'] ?? 'Juri') ?></td>
-                                                    <td class="text-center"><?= number_format((float)($score['Nilai'] ?? 0), 2) ?></td>
+                                                    <td class="text-center <?= (float)($score['Nilai'] ?? 0) == 0 ? 'text-danger font-weight-bold' : '' ?>"><?= number_format((float)($score['Nilai'] ?? 0), 2) ?></td>
                                                     <td><?= nl2br(esc($score['Catatan'] ?? '-')) ?></td>
                                                 </tr>
                                             <?php endforeach; ?>

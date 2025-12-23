@@ -355,7 +355,10 @@
                                                         <i class="fas fa-eye"></i> Monitoring Munaqosah
                                                     </a>
                                                     <a href="<?= $menu_items['kelulusan'] ?>" class="list-group-item list-group-item-action">
-                                                        <i class="fas fa-certificate"></i> Kelulusan Ujian
+                                                        <i class="fas fa-certificate"></i> Nilai Munaqosah
+                                                    </a>
+                                                    <a href="<?= $menu_items['kelulusan_simple'] ?>" class="list-group-item list-group-item-action">
+                                                        <i class="fas fa-check-circle"></i> Kelulusan
                                                     </a>
                                                     <a href="<?= $menu_items['data_juri'] ?>" class="list-group-item list-group-item-action">
                                                         <i class="fas fa-user-tie"></i> Data Juri

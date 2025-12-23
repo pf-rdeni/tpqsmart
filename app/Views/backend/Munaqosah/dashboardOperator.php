@@ -277,7 +277,12 @@
                                             </div>
                                             <div class="col-md-4 col-sm-6 mb-3">
                                                 <a href="<?= $menu_items['kelulusan'] ?>" class="btn btn-success btn-block btn-lg">
-                                                    <i class="fas fa-certificate"></i><br>Kelulusan Ujian
+                                                    <i class="fas fa-certificate"></i><br>Nilai Munaqosah
+                                                </a>
+                                            </div>
+                                            <div class="col-md-4 col-sm-6 mb-3">
+                                                <a href="<?= $menu_items['kelulusan_simple'] ?>" class="btn btn-info btn-block btn-lg">
+                                                    <i class="fas fa-check-circle"></i><br>Kelulusan
                                                 </a>
                                             </div>
                                             <div class="col-md-4 col-sm-6 mb-3">

@@ -293,6 +293,7 @@ class Munaqosah extends BaseController
                 'dashboard_monitoring' => base_url('backend/munaqosah/dashboard-monitoring'),
                 'monitoring' => base_url('backend/munaqosah/monitoring'),
                 'kelulusan' => base_url('backend/munaqosah/kelulusan'),
+                'kelulusan_simple' => base_url('backend/munaqosah/kelulusan-simple'),
                 'konfigurasi' => base_url('backend/munaqosah/list-konfigurasi-munaqosah'),
                 'data_juri' => base_url('backend/munaqosah/juri'),
                 'daftar_peserta' => base_url('backend/munaqosah/peserta'),
@@ -473,6 +474,7 @@ class Munaqosah extends BaseController
                 'dashboard_monitoring' => base_url('backend/munaqosah/dashboard-monitoring'),
                 'monitoring' => base_url('backend/munaqosah/monitoring'),
                 'kelulusan' => base_url('backend/munaqosah/kelulusan'),
+                'kelulusan_simple' => base_url('backend/munaqosah/kelulusan-simple'),
                 'konfigurasi' => base_url('backend/munaqosah/list-konfigurasi-munaqosah'),
                 'data_juri' => base_url('backend/munaqosah/juri'),
                 'daftar_peserta' => base_url('backend/munaqosah/peserta'),
@@ -10618,7 +10620,7 @@ class Munaqosah extends BaseController
         }
 
         $data = [
-            'page_title' => 'Kelulusan Ujian',
+            'page_title' => 'Nilai Munaqosah',
             'current_tahun_ajaran' => $currentTahunAjaran,
             'tpqDropdown' => $dataTpq,
             'statistik' => $statistik,
@@ -10628,7 +10630,66 @@ class Munaqosah extends BaseController
             'isKepalaTpq' => $isKepalaTpq,
         ];
 
-        return view('backend/Munaqosah/kelulusanUjian', $data);
+        return view('backend/Munaqosah/listNilaiMunaqosah', $data);
+    }
+
+    public function kelulusanSimple()
+    {
+        helper('munaqosah');
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $idTpq = session()->get('IdTpq');
+        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+
+        // Cek setting AktiveTombolKelulusan dengan IdTpq == 0 (setting global/admin)
+        // Operator/Kepala TPQ hanya bisa memilih munaqosah jika setting ini aktif
+        $aktiveTombolKelulusan = false;
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+
+        // Cek apakah user adalah Operator
+        $isOperator = in_groups('Operator');
+
+        // Cek apakah user adalah Kepala TPQ
+        $isKepalaTpq = false;
+        $idGuru = session()->get('IdGuru');
+        if (!empty($idGuru) && !empty($idTpq)) {
+            try {
+                $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                foreach ($strukturLembaga as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaTpq = true;
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore error
+            }
+        }
+
+        if (!$isAdmin) {
+            // Cek setting dengan IdTpq == 0 terlebih dahulu (setting global)
+            // Hanya Operator atau Kepala TPQ yang bisa melihat filter Munaqosah jika setting aktif
+            if ($isOperator || $isKepalaTpq) {
+                $aktiveTombolKelulusan = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+            }
+        } else {
+            // Admin selalu bisa melihat semua Type Ujian
+            $aktiveTombolKelulusan = true;
+        }
+
+        $data = [
+            'page_title' => 'Kelulusan Ujian (Simple)',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'tpqDropdown' => $dataTpq,
+            'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+            'isKepalaTpq' => $isKepalaTpq,
+        ];
+
+        return view('backend/Munaqosah/kelulusanSimple', $data);
     }
 
     public function exportHasilMunaqosah()

@@ -8,7 +8,7 @@
                 <div class="card card-info collapsed-card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-info-circle"></i> Panduan Alur Proses Kelulusan Ujian Munaqosah
+                            <i class="fas fa-info-circle"></i> Panduan Alur Proses Nilai Munaqosah
                         </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -71,19 +71,6 @@
                                         </ul>
                                     </li>
                                     <li class="mb-2">
-                                        <strong>Aksi pada Tabel:</strong>
-                                        <ul class="mt-2">
-                                            <li>Setiap baris peserta memiliki tombol aksi:
-                                                <ul>
-                                                    <li><span class="badge badge-danger"><i class="fas fa-file-pdf"></i> Pdf:</span> Print hasil kelulusan dalam format PDF</li>
-                                                    <li><span class="badge badge-success"><i class="fas fa-file-alt"></i> Surat:</span> Print surat kelulusan peserta</li>
-                                                    <li><span class="badge badge-secondary"><i class="fas fa-eye"></i> View:</span> Lihat detail kelulusan (hanya untuk Admin)</li>
-                                                </ul>
-                                            </li>
-                                            <li>Klik tombol untuk membuka dokumen di tab baru</li>
-                                        </ul>
-                                    </li>
-                                    <li class="mb-2">
                                         <strong>Export Data:</strong>
                                         <ul class="mt-2">
                                             <li>Gunakan tombol export di toolbar DataTable:
@@ -131,7 +118,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3 class="card-title">Kelulusan Ujian</h3>
+                        <h3 class="card-title">Nilai Munaqosah</h3>
                         <div class="d-flex">
                             <div class="mr-2">
                                 <label class="mb-0 small">Tahun Ajaran</label>
@@ -267,22 +254,6 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
     .dt-left {
         text-align: left;
     }
-
-    /* Copy link button styling untuk kelulusan - konsisten dengan button lainnya */
-    .copy-link-btn-kelulusan {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-        transition: all 0.2s ease;
-    }
-
-    .copy-link-btn-kelulusan:hover:not(:disabled) {
-        transform: scale(1.05);
-    }
-
-    .copy-link-btn-kelulusan:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
 </style>
 <script>
     let kelulusanTable = null;
@@ -316,8 +287,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             '<th class="dt-left">Nama Santri</th>' +
             '<th class="dt-left">TPQ</th>' +
             '<th class="dt-center">Type</th>' +
-            '<th class="dt-center">Thn</th>' +
-            '<th class="dt-center">Aksi</th>';
+            '<th class="dt-center">Thn</th>';
 
         headerCategories.forEach(cat => {
             const weight = cat.weight ? parseFloat(cat.weight) : 0;
@@ -333,7 +303,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             '</tr>';
 
         let th2 = '<tr>' +
-            '<th></th><th></th><th></th><th></th><th></th><th></th>';
+            '<th></th><th></th><th></th><th></th><th></th>';
         headerCategories.forEach(cat => {
             const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
             if (!hideJuriColumns) {
@@ -367,41 +337,6 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                 IdTpq: row.IdTpq || ''
             }).toString();
 
-            const viewUrl = '<?= base_url('backend/munaqosah/kelulusan-peserta') ?>' + '?' + params;
-            const pdfUrl = '<?= base_url('backend/munaqosah/printKelulusanPesertaUjian') ?>' + '?' + params;
-            const suratUrl = '<?= base_url('backend/munaqosah/printSuratKelulusanPesertaUjian') ?>' + '?' + params;
-
-            const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
-            const hasKey = row.HasKey || null;
-            const noPeserta = row.NoPeserta || '-';
-            const namaSantri = row.NamaSantri || '-';
-
-            let actionHtml = '<div class="btn-group btn-group-sm" role="group">' +
-                `<a class="btn btn-outline-primary" href="${pdfUrl}" target="_blank"><i class="fas fa-file-pdf"></i> Pdf</a>` +
-                `<a class="btn btn-outline-success" href="${suratUrl}" target="_blank"><i class="fas fa-file-alt"></i> Surat</a>`;
-            if (isAdmin) {
-                actionHtml += `<a class="btn btn-outline-secondary" href="${viewUrl}" target="_blank"><i class="fas fa-eye"></i> View</a>`;
-            }
-            // Tambahkan button copy link jika HasKey tersedia
-            if (hasKey) {
-                const noHpAyah = row.NoHpAyah || '';
-                const noHpIbu = row.NoHpIbu || '';
-                const namaAyah = row.NamaAyah || '';
-                const namaIbu = row.NamaIbu || '';
-                actionHtml += `<button type="button" class="btn btn-outline-info btn-sm copy-link-btn-kelulusan" 
-                                data-no-peserta="${noPeserta}" 
-                                data-nama-santri="${namaSantri}"
-                                data-haskey="${hasKey}"
-                                data-no-hp-ayah="${noHpAyah}"
-                                data-no-hp-ibu="${noHpIbu}"
-                                data-nama-ayah="${namaAyah}"
-                                data-nama-ibu="${namaIbu}"
-                                title="Copy link WhatsApp untuk ${namaSantri}">
-                            <i class="fas fa-copy"></i> Copy Link
-                        </button>`;
-            }
-            actionHtml += '</div>';
-
             const totalWeighted = parseFloat(row.total_weighted ?? 0).toFixed(2);
             const threshold = parseFloat(row.kelulusan_threshold ?? 0).toFixed(2);
             const status = row.kelulusan_status || '-';
@@ -414,8 +349,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                 `<td class="dt-left">${row.NamaSantri || '-'}</td>` +
                 `<td class="dt-left">${row.NamaTpq || '-'}</td>` +
                 `<td class="dt-center">${row.TypeUjian || '-'}</td>` +
-                `<td class="dt-center">${row.IdTahunAjaran || '-'}</td>` +
-                `<td class="dt-center">${actionHtml}</td>`;
+                `<td class="dt-center">${row.IdTahunAjaran || '-'}</td>`;
 
             headerCategories.forEach(cat => {
                 const catId = cat.id || cat.IdKategoriMateri;
@@ -516,7 +450,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const typeUjian = $('#filterTypeUjian').val() || 'munaqosah';
             const hideJuriColumns = isOperator && typeUjian === 'munaqosah';
 
-            let totalCols = 6; // No Peserta, Nama Santri, TPQ, Type, Thn, Aksi
+            let totalCols = 5; // No Peserta, Nama Santri, TPQ, Type, Thn
             categories.forEach(cat => {
                 const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
                 if (hideJuriColumns) {
@@ -537,12 +471,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                 ],
                 pageLength: 25,
                 dom: 'Bfrtip',
-                buttons: ['colvis', 'excel', 'print'],
-                columnDefs: [{
-                    targets: [5],
-                    orderable: false,
-                    searchable: false
-                }]
+                buttons: ['colvis', 'excel', 'print']
             });
 
             const totalPeserta = rows.length;
@@ -621,174 +550,8 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
         $('#filterTpq').on('change', loadKelulusan);
         $('#filterTypeUjian').on('change', loadKelulusan);
 
-        // Copy link button click handler untuk kelulusan
-        $(document).on('click', '.copy-link-btn-kelulusan:not(:disabled)', function() {
-            const noPeserta = $(this).data('no-peserta');
-            const namaSantri = $(this).data('nama-santri');
-            const hasKey = $(this).data('haskey');
-            const noHpAyah = $(this).data('no-hp-ayah') || '';
-            const noHpIbu = $(this).data('no-hp-ibu') || '';
-            const namaAyah = $(this).data('nama-ayah') || '';
-            const namaIbu = $(this).data('nama-ibu') || '';
-
-            if (!hasKey) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'HasKey tidak ditemukan untuk peserta ini',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            // Format teks yang akan dicopy
-            const baseUrl = '<?= base_url('cek-status/') ?>';
-            const statusUrl = baseUrl + hasKey;
-            const copyText = `${noPeserta}-${namaSantri}\nCheck Status:\n${statusUrl}`;
-
-            // Format nomor HP untuk WhatsApp (hapus karakter non-digit)
-            const formatNoHp = (noHp) => {
-                if (!noHp) return '';
-                return noHp.replace(/\D/g, '');
-            };
-
-            const noHpAyahFormatted = formatNoHp(noHpAyah);
-            const noHpIbuFormatted = formatNoHp(noHpIbu);
-
-            // Buat pesan untuk WhatsApp
-            const pesanWhatsApp = `Assalamu'alaikum\n\nHasil kelulusan ujian munaqosah untuk ${namaSantri} (No. Peserta: ${noPeserta}) sudah dapat dilihat melalui link berikut:\n\n${statusUrl}\n\nTerima kasih.`;
-            const pesanEncoded = encodeURIComponent(pesanWhatsApp);
-
-            // Buat HTML untuk opsi WhatsApp
-            let whatsappOptionsHtml = '';
-            if (noHpAyahFormatted || noHpIbuFormatted) {
-                whatsappOptionsHtml = '<div class="mt-3"><strong>Kirim ke WhatsApp:</strong><div class="mt-2">';
-
-                if (noHpAyahFormatted) {
-                    const waLinkAyah = `https://wa.me/${noHpAyahFormatted}?text=${pesanEncoded}`;
-                    const labelAyah = namaAyah ? `Kirim ke WhatsApp Ayah (${namaAyah})` : `Kirim ke WhatsApp Ayah (${noHpAyah})`;
-                    whatsappOptionsHtml += `
-                        <a href="${waLinkAyah}" target="_blank" class="btn btn-success btn-sm btn-block mb-2" style="text-decoration: none;">
-                            <i class="fab fa-whatsapp"></i> ${labelAyah}
-                        </a>`;
-                }
-
-                if (noHpIbuFormatted) {
-                    const waLinkIbu = `https://wa.me/${noHpIbuFormatted}?text=${pesanEncoded}`;
-                    const labelIbu = namaIbu ? `Kirim ke WhatsApp Ibu (${namaIbu})` : `Kirim ke WhatsApp Ibu (${noHpIbu})`;
-                    whatsappOptionsHtml += `
-                        <a href="${waLinkIbu}" target="_blank" class="btn btn-success btn-sm btn-block mb-2" style="text-decoration: none;">
-                            <i class="fab fa-whatsapp"></i> ${labelIbu}
-                        </a>`;
-                }
-
-                whatsappOptionsHtml += '</div></div>';
-            }
-
-            // Tampilkan popup dengan informasi yang akan dicopy dan opsi WhatsApp
-            Swal.fire({
-                title: 'Copy Link Status Ujian',
-                html: `
-                    <div class="text-left">
-                        <p><strong>Nama Santri:</strong> ${namaSantri}</p>
-                        <p><strong>No Peserta:</strong> ${noPeserta}</p>
-                        <p><strong>Konten yang akan dicopy:</strong></p>
-                        <div class="border p-3 bg-light rounded mt-2" style="font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; word-break: break-all;">
-${copyText}
-                        </div>
-                        ${whatsappOptionsHtml}
-                    </div>
-                `,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#17a2b8',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-copy"></i> Copy ke Clipboard',
-                cancelButtonText: 'Batal',
-                footer: 'Klik "Copy ke Clipboard" untuk menyalin konten atau klik tombol WhatsApp untuk mengirim langsung',
-                width: '600px'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Copy ke clipboard
-                    copyToClipboardKelulusan(copyText, namaSantri);
-                }
-            });
-        });
-
-        // Fungsi untuk copy ke clipboard untuk kelulusan
-        function copyToClipboardKelulusan(text, namaSantri) {
-            // Coba menggunakan Clipboard API modern
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(function() {
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Berhasil!',
-                        text: `Link untuk ${namaSantri} telah disalin ke clipboard`,
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true
-                    });
-                }).catch(function(err) {
-                    console.error('Error copying to clipboard:', err);
-                    // Fallback ke method lama
-                    fallbackCopyToClipboardKelulusan(text, namaSantri);
-                });
-            } else {
-                // Fallback untuk browser yang tidak support Clipboard API
-                fallbackCopyToClipboardKelulusan(text, namaSantri);
-            }
-        }
-
-        // Fallback method untuk copy ke clipboard untuk kelulusan
-        function fallbackCopyToClipboardKelulusan(text, namaSantri) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Berhasil!',
-                        text: `Link untuk ${namaSantri} telah disalin ke clipboard`,
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true
-                    });
-                } else {
-                    throw new Error('Copy command failed');
-                }
-            } catch (err) {
-                console.error('Error copying to clipboard:', err);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal!',
-                    html: `
-                        <div class="text-left">
-                            <p>Gagal menyalin ke clipboard. Silakan copy manual:</p>
-                            <div class="border p-2 bg-light rounded mt-2" style="font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;">
-${text}
-                            </div>
-                        </div>
-                    `,
-                    confirmButtonText: 'OK'
-                });
-            } finally {
-                document.body.removeChild(textArea);
-            }
-        }
-
         loadKelulusan();
     });
 </script>
 <?= $this->endSection(); ?>
+

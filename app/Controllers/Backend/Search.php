@@ -278,11 +278,11 @@ class Search extends BaseController
                 'description' => 'Monitoring munaqosah',
             ];
             $menus[] = [
-                'title' => 'Kelulusan Ujian',
+                'title' => 'Nilai Munaqosah',
                 'url' => base_url('backend/munaqosah/kelulusan'),
                 'icon' => 'fas fa-check-circle',
                 'category' => 'Munaqosah',
-                'description' => 'Kelola kelulusan ujian',
+                'description' => 'Kelola nilai munaqosah',
             ];
             $menus[] = [
                 'title' => 'Konfigurasi Munaqosah',
@@ -691,11 +691,11 @@ class Search extends BaseController
                     'description' => 'Monitoring munaqosah',
                 ];
                 $menus[] = [
-                    'title' => 'Kelulusan Ujian',
+                    'title' => 'Nilai Munaqosah',
                     'url' => base_url('backend/munaqosah/kelulusan'),
                     'icon' => 'fas fa-check-circle',
                     'category' => 'Munaqosah',
-                    'description' => 'Kelola kelulusan ujian',
+                    'description' => 'Kelola nilai munaqosah',
                 ];
                 $menus[] = [
                     'title' => 'Konfigurasi Munaqosah',

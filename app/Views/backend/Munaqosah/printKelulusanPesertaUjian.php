@@ -104,6 +104,12 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
             background-color: #dc3545;
         }
 
+        .nilai-0 {
+            background-color: #f8d7da !important;
+            color: #dc3545;
+            font-weight: bold;
+        }
+
         .meta-table td {
             border: none;
             padding: 4px 0;
@@ -315,8 +321,8 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
                 <tr>
                     <td><?= esc($category['name'] ?? '-') ?></td>
                     <td><?= $materiName ?></td>
-                    <td style="text-align:center"><?= number_format($average, 1) ?></td>
-                    <td style="text-align:center"><?= number_format($weighted, 1) ?></td>
+                    <td style="text-align:center" class="<?= $average == 0 ? 'nilai-0' : '' ?>"><?= number_format($average, 1) ?></td>
+                    <td style="text-align:center" class="<?= $weighted == 0 ? 'nilai-0' : '' ?>"><?= number_format($weighted, 1) ?></td>
                 </tr>
             <?php endforeach; ?>
             <tr class="summary-row">
