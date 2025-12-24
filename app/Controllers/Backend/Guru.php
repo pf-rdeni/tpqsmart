@@ -648,6 +648,105 @@ class Guru extends BaseController
         }
     }
 
+    // Generate PDF Lampiran (KTP + Rekening BPR)
+    public function printLampiran($idGuru)
+    {
+        try {
+            helper('nilai');
+
+            // Ambil data guru
+            $guru = $this->DataModels->find($idGuru);
+            if (!$guru) {
+                return redirect()->back()->with('error', 'Data guru tidak ditemukan');
+            }
+
+            // Ambil berkas KTP
+            $berkasKtp = $this->guruBerkasModel->getBerkasAktifByGuruAndType($idGuru, 'KTP');
+
+            // Ambil berkas Rekening BPR
+            $berkasBpr = $this->guruBerkasModel->getBerkasAktifByGuruAndType($idGuru, 'Buku Rekening', 'BPR');
+
+            // Validasi berkas
+            if (!$berkasKtp) {
+                return redirect()->back()->with('error', 'Berkas KTP tidak ditemukan. Silakan upload KTP terlebih dahulu.');
+            }
+
+            if (!$berkasBpr) {
+                return redirect()->back()->with('error', 'Berkas Rekening BPR tidak ditemukan. Silakan upload Buku Rekening BPR terlebih dahulu.');
+            }
+
+            // Path file
+            $ktpPath = FCPATH . 'uploads/berkas/' . $berkasKtp['NamaFile'];
+            $bprPath = FCPATH . 'uploads/berkas/' . $berkasBpr['NamaFile'];
+
+            // Validasi file exists
+            if (!file_exists($ktpPath)) {
+                return redirect()->back()->with('error', 'File KTP tidak ditemukan di server.');
+            }
+
+            if (!file_exists($bprPath)) {
+                return redirect()->back()->with('error', 'File Rekening BPR tidak ditemukan di server.');
+            }
+
+            // Convert image to base64 untuk PDF
+            $ktpBase64 = base64_encode(file_get_contents($ktpPath));
+            $ktpMimeType = mime_content_type($ktpPath);
+            $ktpDataUri = 'data:' . $ktpMimeType . ';base64,' . $ktpBase64;
+
+            $bprBase64 = base64_encode(file_get_contents($bprPath));
+            $bprMimeType = mime_content_type($bprPath);
+            $bprDataUri = 'data:' . $bprMimeType . ';base64,' . $bprBase64;
+
+            // Siapkan data untuk view
+            $data = [
+                'guru' => $guru,
+                'ktpDataUri' => $ktpDataUri,
+                'bprDataUri' => $bprDataUri,
+                'ktpFileName' => $berkasKtp['NamaFile'],
+                'bprFileName' => $berkasBpr['NamaFile']
+            ];
+
+            // Load view untuk PDF
+            $html = view('backend/guru/pdf/lampiran', $data);
+
+            // Setup Dompdf
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Format filename
+            $filename = 'Lampiran_KTP_BPR_' . str_replace(' ', '_', $guru['Nama']) . '_' . date('Y-m-d') . '.pdf';
+
+            // Clear output buffer
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: printLampiran - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
     // Halaman Berkas Lampiran
     public function showBerkasLampiran()
     {
@@ -708,6 +807,76 @@ class Guru extends BaseController
         ];
 
         return view('backend/guru/berkasLampiran', $data);
+    }
+
+    // Check Berkas Lampiran untuk validasi sebelum generate PDF
+    public function checkBerkasLampiran()
+    {
+        try {
+            if (!$this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Request harus menggunakan AJAX'
+                ]);
+            }
+
+            $idGuru = $this->request->getPost('IdGuru');
+
+            if (empty($idGuru)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdGuru tidak tersedia'
+                ]);
+            }
+
+            // Cek berkas KTP
+            $berkasKtp = $this->guruBerkasModel->getBerkasAktifByGuruAndType($idGuru, 'KTP');
+            $missingBerkas = [];
+
+            if (!$berkasKtp) {
+                $missingBerkas[] = 'KTP';
+            } else {
+                // Cek file KTP exists
+                $ktpPath = FCPATH . 'uploads/berkas/' . $berkasKtp['NamaFile'];
+                if (!file_exists($ktpPath)) {
+                    $missingBerkas[] = 'KTP';
+                }
+            }
+
+            // Cek berkas Rekening BPR
+            $berkasBpr = $this->guruBerkasModel->getBerkasAktifByGuruAndType($idGuru, 'Buku Rekening', 'BPR');
+            if (!$berkasBpr) {
+                $missingBerkas[] = 'Rekening BPR';
+            } else {
+                // Cek file BPR exists
+                $bprPath = FCPATH . 'uploads/berkas/' . $berkasBpr['NamaFile'];
+                if (!file_exists($bprPath)) {
+                    $missingBerkas[] = 'Rekening BPR';
+                }
+            }
+
+            // Jika ada berkas yang belum di-upload
+            if (!empty($missingBerkas)) {
+                $berkasList = implode(' dan ', $missingBerkas);
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Berkas ' . $berkasList . ' belum di-upload. Silakan upload terlebih dahulu di menu Berkas Lampiran.',
+                    'missingBerkas' => $missingBerkas,
+                    'uploadUrl' => base_url('backend/guru/showBerkasLampiran')
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Berkas lengkap'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: checkBerkasLampiran - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
     }
 
     // Upload Berkas

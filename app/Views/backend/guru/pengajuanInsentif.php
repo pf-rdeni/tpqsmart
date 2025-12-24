@@ -50,7 +50,7 @@
                             </td>
                             <td>
                                 <div style="display: flex; flex-direction: column; gap: 5px;">
-                                    <!-- Row 1: Buttons -->
+                                    <!-- Row 1: Buttons (4 buttons) -->
                                     <div style="display: flex; gap: 5px; justify-content: space-between;">
                                         <a href="<?= base_url('backend/guru/printSuratPernyataanAsn/' . $dataGuru['IdGuru']) ?>"
                                             class="btn btn-sm btn-primary btn-pdf-action"
@@ -77,12 +77,21 @@
                                             title="Surat Rekomendasi">
                                             <i class="fas fa-file-pdf"></i> Rekomendasi
                                         </a>
+                                        <a href="<?= base_url('backend/guru/printLampiran/' . $dataGuru['IdGuru']) ?>"
+                                            class="btn btn-sm btn-warning btn-lampiran"
+                                            style="flex: 1;"
+                                            data-id-guru="<?= $dataGuru['IdGuru'] ?>"
+                                            target="_blank"
+                                            title="Lampiran KTP dan Rekening BPR">
+                                            <i class="fas fa-paperclip"></i> Lampiran
+                                        </a>
                                     </div>
-                                    <!-- Row 2: Keterangan -->
+                                    <!-- Row 2: Keterangan (4 info) -->
                                     <div style="display: flex; gap: 5px; justify-content: space-between;">
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Pernyataan Tidak Berstatus ASN</small>
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Pernyataan Tidak Terima Insentif Lain</small>
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Rekomendasi Guru TPQ</small>
+                                        <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Lampiran KTP dan Rekening BPR</small>
                                     </div>
                                 </div>
                             </td>
@@ -215,6 +224,51 @@
                 return false;
             }
         }
+    });
+
+    // Validasi tombol Lampiran - cek apakah berkas sudah ada
+    $(document).on('click', '.btn-lampiran', function(e) {
+        e.preventDefault(); // Prevent default dulu
+
+        const btn = $(this);
+        const idGuru = btn.data('id-guru');
+        const href = btn.attr('href');
+
+        // Cek apakah berkas KTP dan BPR sudah ada
+        $.ajax({
+            url: '<?= base_url('backend/guru/checkBerkasLampiran') ?>',
+            type: 'POST',
+            data: {
+                IdGuru: idGuru
+            },
+            success: function(response) {
+                if (!response.success) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan',
+                        html: '<p>' + response.message + '</p>',
+                        showCancelButton: true,
+                        confirmButtonText: response.uploadUrl ? '<i class="fas fa-upload"></i> Ke Halaman Upload Berkas' : 'Mengerti',
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonText: 'Tutup',
+                        cancelButtonColor: '#6c757d',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed && response.uploadUrl) {
+                            // Redirect ke halaman upload berkas
+                            window.location.href = response.uploadUrl;
+                        }
+                    });
+                } else {
+                    // Jika berhasil, buka link
+                    window.open(href, '_blank');
+                }
+            },
+            error: function() {
+                // Jika error, tetap buka link (validasi akan dilakukan di server)
+                window.open(href, '_blank');
+            }
+        });
     });
 
     // Inisialisasi DataTable dengan scroll horizontal
