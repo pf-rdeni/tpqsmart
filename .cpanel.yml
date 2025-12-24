@@ -3,9 +3,10 @@ deployment:
   tasks:
     # TPQ Smart deployment
     - export DEPLOYPATH=/home/u1525344/tpqsmart/app
-    # Copy composer.json dan composer.lock untuk dependency management
+    # Copy composer.json untuk dependency management
+    # Note: composer.lock tidak di-copy karena PHP version berbeda (local 8.2+, server 8.1)
+    # Server akan generate composer.lock sendiri berdasarkan PHP 8.1
     - /bin/cp /home/u1525344/repositories/tpqsmart/composer.json /home/u1525344/tpqsmart/composer.json
-    - /bin/cp /home/u1525344/repositories/tpqsmart/composer.lock /home/u1525344/tpqsmart/composer.lock
     - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Models $DEPLOYPATH
     - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Views $DEPLOYPATH
     - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Controllers $DEPLOYPATH
