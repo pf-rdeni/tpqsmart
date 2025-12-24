@@ -1381,7 +1381,7 @@
         });
     }
 
-    // Function untuk delete berkas langsung
+    // Function untuk delete berkas secara langsung
     function deleteBerkasDirect(berkasId) {
         Swal.fire({
             title: 'Apakah Anda yakin?',
