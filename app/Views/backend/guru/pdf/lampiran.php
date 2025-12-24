@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -109,7 +110,8 @@
         }
 
         .ktp-section .image-wrapper {
-            max-width: 85mm; /* Ukuran KTP standar Indonesia */
+            max-width: 85mm;
+            /* Ukuran KTP standar Indonesia */
         }
 
         .ktp-section .image-wrapper img {
@@ -123,7 +125,8 @@
         }
 
         .bpr-section .image-wrapper {
-            max-width: 120mm; /* Lebar untuk BPR */
+            max-width: 120mm;
+            /* Lebar untuk BPR */
         }
 
         .bpr-section .image-wrapper img {
@@ -140,6 +143,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="page">
         <!-- Header -->
@@ -160,7 +164,12 @@
 
         <!-- BPR Section -->
         <div class="bpr-section">
-            <div class="image-label">2. BUKU REKENING BANK BPR</div>
+            <div class="image-label">
+                2. BUKU REKENING BANK BPR
+                <?php if (!empty($guru['NoRekBpr'])): ?>
+                    <br><span style="font-size: 11px; font-weight: normal;">No. Rekening: <?= esc($guru['NoRekBpr']) ?></span>
+                <?php endif; ?>
+            </div>
             <div class="image-container">
                 <div class="image-wrapper">
                     <img src="<?= $bprDataUri ?>" alt="Rekening BPR - <?= esc($guru['Nama'] ?? '') ?>">
@@ -170,5 +179,5 @@
 
     </div>
 </body>
-</html>
 
+</html>
