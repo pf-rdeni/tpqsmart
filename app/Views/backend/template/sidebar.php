@@ -406,12 +406,12 @@
                                     </a>
                                 </li>
                                 <?php if (in_groups('Admin')): ?>
-                                    <li class="nav-item">
-                                        <a href=<?php echo base_url('backend/munaqosah/monitoring-penilaian-juri-pasangan') ?> class="nav-link">
-                                            <i class="far fa-circle nav-icon"></i>
-                                            <p>Cek Nilai Pasangan Juri</p>
-                                        </a>
-                                    </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/monitoring-penilaian-juri-pasangan') ?> class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Cek Nilai Pasangan Juri</p>
+                                    </a>
+                                </li>
                                 <?php endif; ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/kelulusan') ?> class="nav-link">

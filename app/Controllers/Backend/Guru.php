@@ -1320,17 +1320,36 @@ class Guru extends BaseController
         $this->response->setHeader('Content-Type', 'application/json');
 
         try {
-            // Hanya Admin yang bisa akses
-            if (!in_groups('Admin')) {
+            // Hanya Admin dan Operator yang bisa akses
+            if (!in_groups('Admin') && !in_groups('Operator')) {
                 return $this->response->setStatusCode(403)->setJSON([
                     'success' => false,
                     'message' => 'Akses ditolak'
                 ]);
             }
 
+            // Untuk Operator, ambil TPQ dari session dan override filterTpq
+            $isOperator = in_groups('Operator');
+            $operatorIdTpq = null;
+            if ($isOperator) {
+                $operatorIdTpq = session()->get('IdTpq');
+                if (empty($operatorIdTpq)) {
+                    log_message('error', 'Guru: checkBulkInsentifData - Operator tidak memiliki IdTpq di session');
+                    return $this->response->setStatusCode(403)->setJSON([
+                        'success' => false,
+                        'message' => 'Anda tidak memiliki akses TPQ. Silakan hubungi administrator.'
+                    ]);
+                }
+            }
+
             // Ambil parameter
             $jenisPenerimaInsentif = $this->request->getGet('jenisPenerimaInsentif');
             $filterTpq = $this->request->getGet('filterTpq'); // Bisa array atau single value
+
+            // Override filterTpq untuk Operator
+            if ($isOperator) {
+                $filterTpq = [$operatorIdTpq];
+            }
 
             // Validasi: Jenis Penerima Insentif wajib dipilih
             if (empty($jenisPenerimaInsentif)) {
@@ -1432,13 +1451,27 @@ class Guru extends BaseController
     public function printBulkInsentif()
     {
         try {
-            // Hanya Admin yang bisa akses
-            if (!in_groups('Admin')) {
-                log_message('error', 'Guru: printBulkInsentif - Akses ditolak, bukan Admin');
+            // Hanya Admin dan Operator yang bisa akses
+            if (!in_groups('Admin') && !in_groups('Operator')) {
+                log_message('error', 'Guru: printBulkInsentif - Akses ditolak, bukan Admin atau Operator');
                 return $this->response->setStatusCode(403)->setJSON([
                     'success' => false,
                     'message' => 'Akses ditolak'
                 ]);
+            }
+
+            // Untuk Operator, ambil TPQ dari session dan override filterTpq
+            $isOperator = in_groups('Operator');
+            $operatorIdTpq = null;
+            if ($isOperator) {
+                $operatorIdTpq = session()->get('IdTpq');
+                if (empty($operatorIdTpq)) {
+                    log_message('error', 'Guru: printBulkInsentif - Operator tidak memiliki IdTpq di session');
+                    return $this->response->setStatusCode(403)->setJSON([
+                        'success' => false,
+                        'message' => 'Anda tidak memiliki akses TPQ. Silakan hubungi administrator.'
+                    ]);
+                }
             }
 
             // Set memory limit dan timeout untuk bulk processing
@@ -1455,6 +1488,11 @@ class Guru extends BaseController
             $fileTypes = $this->request->getGet('fileTypes');
             $jenisPenerimaInsentif = $this->request->getGet('jenisPenerimaInsentif');
             $filterTpq = $this->request->getGet('filterTpq'); // Bisa array atau single value
+
+            // Override filterTpq untuk Operator
+            if ($isOperator) {
+                $filterTpq = [$operatorIdTpq];
+            }
 
             // Validasi: Jenis Penerima Insentif wajib dipilih
             if (empty($jenisPenerimaInsentif)) {

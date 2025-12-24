@@ -7,25 +7,27 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
-            <?php if (in_groups('Admin')): ?>
+            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                 <div class="row mb-3">
-                    <div class="col-md-3">
-                        <label for="filterTpq" class="form-label">Filter TPQ</label>
-                        <select id="filterTpq" class="form-control form-control-sm">
-                            <option value="">Semua TPQ</option>
-                            <?php if (!empty($tpq)) : foreach ($tpq as $dataTpq): ?>
-                                    <option value="<?= esc($dataTpq['IdTpq']) ?>">
-                                        <?= esc($dataTpq['NamaTpq']) ?> - <?= esc($dataTpq['KelurahanDesa'] ?? '-') ?>
-                                    </option>
-                            <?php endforeach;
-                            endif; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
+                    <?php if (in_groups('Admin')): ?>
+                        <div class="col-md-3">
+                            <label for="filterTpq" class="form-label">Filter TPQ</label>
+                            <select id="filterTpq" class="form-control form-control-sm">
+                                <option value="">Semua TPQ</option>
+                                <?php if (!empty($tpq)) : foreach ($tpq as $dataTpq): ?>
+                                        <option value="<?= esc($dataTpq['IdTpq']) ?>">
+                                            <?= esc($dataTpq['NamaTpq']) ?> - <?= esc($dataTpq['KelurahanDesa'] ?? '-') ?>
+                                        </option>
+                                <?php endforeach;
+                                endif; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
+                    <div class="col-md-4">
                         <label class="form-label">&nbsp;</label>
                         <div>
                             <button type="button" class="btn btn-success btn-sm" id="btnPrintBulk" data-toggle="modal" data-target="#modalPrintBulk">
-                                <i class="fas fa-print"></i> Print Bulk
+                                <i class="fas fa-print"></i> Print Semua Berkas untuk Semua Guru
                             </button>
                         </div>
                     </div>
@@ -339,15 +341,100 @@
         <?php endif; ?>
     });
 
-    // Print Bulk Handler
-    <?php if (in_groups('Admin')): ?>
+    // Print Semua Berkas untuk Semua Guru Handler
+    <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+        <?php
+        $isOperator = in_groups('Operator');
+        $operatorIdTpq = $isOperator ? session()->get('IdTpq') : null;
+        ?>
         $(document).ready(function() {
-            // Initialize Select2 untuk TPQ filter
-            $('#bulkFilterTpq').select2({
-                placeholder: 'Pilih TPQ (kosongkan untuk semua TPQ)',
-                allowClear: true,
-                width: '100%'
+            // Key untuk localStorage
+            const STORAGE_KEY = 'bulkInsentifFilter';
+
+            // Fungsi untuk menyimpan filter ke localStorage
+            function saveFilterToStorage() {
+                const filterTpqValue = <?php if ($isOperator): ?>[<?= $operatorIdTpq ?>] <?php else: ?>($('#bulkFilterTpq').val() || []) <?php endif; ?>;
+                const filterData = {
+                    fileTypes: [],
+                    jenisPenerimaInsentif: $('#bulkJenisPenerimaInsentif').val() || '',
+                    filterTpq: filterTpqValue
+                };
+
+                // Ambil file types yang dicentang
+                $('input[name="fileTypes[]"]:checked').each(function() {
+                    filterData.fileTypes.push($(this).val());
+                });
+
+                // Simpan ke localStorage
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(filterData));
+                console.log('Filter saved to localStorage:', filterData);
+            }
+
+            // Fungsi untuk memuat filter dari localStorage
+            function loadFilterFromStorage() {
+                try {
+                    const savedData = localStorage.getItem(STORAGE_KEY);
+                    if (savedData) {
+                        const filterData = JSON.parse(savedData);
+                        console.log('Filter loaded from localStorage:', filterData);
+
+                        // Restore file types
+                        if (filterData.fileTypes && filterData.fileTypes.length > 0) {
+                            $('input[name="fileTypes[]"]').prop('checked', false);
+                            filterData.fileTypes.forEach(function(fileType) {
+                                $('input[name="fileTypes[]"][value="' + fileType + '"]').prop('checked', true);
+                            });
+                        }
+
+                        // Restore jenis penerima insentif
+                        if (filterData.jenisPenerimaInsentif) {
+                            $('#bulkJenisPenerimaInsentif').val(filterData.jenisPenerimaInsentif).trigger('change');
+                        }
+
+                        // Restore filter TPQ (hanya untuk Admin)
+                        <?php if (in_groups('Admin')): ?>
+                            if (filterData.filterTpq && filterData.filterTpq.length > 0) {
+                                $('#bulkFilterTpq').val(filterData.filterTpq).trigger('change');
+                            }
+                        <?php endif; ?>
+                    }
+                } catch (e) {
+                    console.error('Error loading filter from localStorage:', e);
+                }
+            }
+
+            // Initialize Select2 untuk TPQ filter (hanya untuk Admin)
+            <?php if (in_groups('Admin')): ?>
+                $('#bulkFilterTpq').select2({
+                    placeholder: 'Pilih TPQ (kosongkan untuk semua TPQ)',
+                    allowClear: true,
+                    width: '100%'
+                });
+            <?php else: ?>
+                // Untuk Operator, set TPQ otomatis dan disable dropdown
+                $('#bulkFilterTpq').val([<?= $operatorIdTpq ?>]).trigger('change');
+                $('#bulkFilterTpq').prop('disabled', true);
+            <?php endif; ?>
+
+            // Load filter saat modal dibuka
+            $('#modalPrintBulk').on('show.bs.modal', function() {
+                loadFilterFromStorage();
             });
+
+            // Simpan filter saat perubahan
+            $('input[name="fileTypes[]"]').on('change', function() {
+                saveFilterToStorage();
+            });
+
+            $('#bulkJenisPenerimaInsentif').on('change', function() {
+                saveFilterToStorage();
+            });
+
+            <?php if (in_groups('Admin')): ?>
+                $('#bulkFilterTpq').on('change', function() {
+                    saveFilterToStorage();
+                });
+            <?php endif; ?>
 
             // Prevent form submit
             $('#formPrintBulk').on('submit', function(e) {
@@ -359,7 +446,7 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                console.log('Print Bulk button clicked');
+                console.log('Print Semua Berkas untuk Semua Guru button clicked');
 
                 const fileTypes = [];
                 $('input[name="fileTypes[]"]:checked').each(function() {
@@ -378,7 +465,13 @@
                 }
 
                 const jenisPenerimaInsentif = $('#bulkJenisPenerimaInsentif').val();
-                const filterTpq = $('#bulkFilterTpq').val(); // Array jika multiple select
+                let bulkFilterTpq;
+                <?php if ($isOperator): ?>
+                    // Untuk Operator, gunakan TPQ mereka sendiri
+                    bulkFilterTpq = [<?= $operatorIdTpq ?>];
+                <?php else: ?>
+                    bulkFilterTpq = $('#bulkFilterTpq').val(); // Array jika multiple select
+                <?php endif; ?>
 
                 // Validasi: Jenis Penerima Insentif wajib dipilih
                 if (!jenisPenerimaInsentif || jenisPenerimaInsentif === '') {
@@ -406,13 +499,13 @@
                 if (jenisPenerimaInsentif) {
                     checkUrl += 'jenisPenerimaInsentif=' + encodeURIComponent(jenisPenerimaInsentif);
                 }
-                if (filterTpq && filterTpq.length > 0) {
+                if (bulkFilterTpq && bulkFilterTpq.length > 0) {
                     if (jenisPenerimaInsentif) {
                         checkUrl += '&';
                     }
                     // Jika multiple, kirim sebagai array
-                    if (Array.isArray(filterTpq)) {
-                        filterTpq.forEach(function(tpqId, index) {
+                    if (Array.isArray(bulkFilterTpq)) {
+                        bulkFilterTpq.forEach(function(tpqId, index) {
                             if (index === 0 && !jenisPenerimaInsentif) {
                                 checkUrl += 'filterTpq[]=' + encodeURIComponent(tpqId);
                             } else {
@@ -420,7 +513,7 @@
                             }
                         });
                     } else {
-                        checkUrl += 'filterTpq=' + encodeURIComponent(filterTpq);
+                        checkUrl += 'filterTpq=' + encodeURIComponent(bulkFilterTpq);
                     }
                 }
 
@@ -471,14 +564,14 @@
                         if (jenisPenerimaInsentif) {
                             url += '&jenisPenerimaInsentif=' + encodeURIComponent(jenisPenerimaInsentif);
                         }
-                        if (filterTpq && filterTpq.length > 0) {
+                        if (bulkFilterTpq && bulkFilterTpq.length > 0) {
                             // Jika multiple, kirim sebagai array
-                            if (Array.isArray(filterTpq)) {
-                                filterTpq.forEach(function(tpqId) {
+                            if (Array.isArray(bulkFilterTpq)) {
+                                bulkFilterTpq.forEach(function(tpqId) {
                                     url += '&filterTpq[]=' + encodeURIComponent(tpqId);
                                 });
                             } else {
-                                url += '&filterTpq=' + encodeURIComponent(filterTpq);
+                                url += '&filterTpq=' + encodeURIComponent(bulkFilterTpq);
                             }
                         }
 
@@ -600,13 +693,17 @@
     <?php endif; ?>
 </script>
 
-<!-- Modal Print Bulk (Hanya untuk Admin) -->
-<?php if (in_groups('Admin')): ?>
+<!-- Modal Print Semua Berkas untuk Semua Guru (Untuk Admin dan Operator) -->
+<?php if (in_groups('Admin') || in_groups('Operator')): ?>
+    <?php
+    $isOperator = in_groups('Operator');
+    $operatorIdTpq = $isOperator ? session()->get('IdTpq') : null;
+    ?>
     <div class="modal fade" id="modalPrintBulk" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Print Bulk - Pengajuan Insentif</h5>
+                    <h5 class="modal-title">Print Semua Berkas untuk Semua Guru - Pengajuan Insentif</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -652,15 +749,35 @@
                         </div>
                         <div class="form-group">
                             <label>Filter TPQ:</label>
-                            <select class="form-control select2" id="bulkFilterTpq" name="filterTpq[]" multiple="multiple" style="width: 100%;">
-                                <?php if (!empty($tpq)) : foreach ($tpq as $dataTpq): ?>
-                                        <option value="<?= esc($dataTpq['IdTpq']) ?>">
-                                            <?= esc($dataTpq['NamaTpq']) ?> - <?= esc($dataTpq['KelurahanDesa'] ?? '-') ?>
-                                        </option>
-                                <?php endforeach;
-                                endif; ?>
-                            </select>
-                            <small class="form-text text-muted">Pilih satu atau lebih TPQ. File ZIP akan dikelompokkan berdasarkan TPQ yang dipilih. Kosongkan untuk semua TPQ.</small>
+                            <?php if ($isOperator): ?>
+                                <select class="form-control" id="bulkFilterTpq" name="filterTpq[]" disabled style="width: 100%;">
+                                    <?php
+                                    // Tampilkan hanya TPQ operator
+                                    if (!empty($tpq)) :
+                                        foreach ($tpq as $dataTpq):
+                                            if ($dataTpq['IdTpq'] == $operatorIdTpq):
+                                    ?>
+                                                <option value="<?= esc($dataTpq['IdTpq']) ?>" selected>
+                                                    <?= esc($dataTpq['NamaTpq']) ?> - <?= esc($dataTpq['KelurahanDesa'] ?? '-') ?>
+                                                </option>
+                                    <?php
+                                            endif;
+                                        endforeach;
+                                    endif;
+                                    ?>
+                                </select>
+                                <small class="form-text text-muted">Anda hanya dapat melihat data TPQ Anda sendiri.</small>
+                            <?php else: ?>
+                                <select class="form-control select2" id="bulkFilterTpq" name="filterTpq[]" multiple="multiple" style="width: 100%;">
+                                    <?php if (!empty($tpq)) : foreach ($tpq as $dataTpq): ?>
+                                            <option value="<?= esc($dataTpq['IdTpq']) ?>">
+                                                <?= esc($dataTpq['NamaTpq']) ?> - <?= esc($dataTpq['KelurahanDesa'] ?? '-') ?>
+                                            </option>
+                                    <?php endforeach;
+                                    endif; ?>
+                                </select>
+                                <small class="form-text text-muted">Pilih satu atau lebih TPQ. File ZIP akan dikelompokkan berdasarkan TPQ yang dipilih. Kosongkan untuk semua TPQ.</small>
+                            <?php endif; ?>
                         </div>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i>
