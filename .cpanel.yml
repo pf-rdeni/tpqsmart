@@ -6,8 +6,6 @@ deployment:
     # Copy composer.json dan composer.lock untuk dependency management
     - /bin/cp /home/u1525344/repositories/tpqsmart/composer.json /home/u1525344/tpqsmart/composer.json
     - /bin/cp /home/u1525344/repositories/tpqsmart/composer.lock /home/u1525344/tpqsmart/composer.lock
-    # Install/Update Composer dependencies
-    - cd /home/u1525344/tpqsmart && /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --quiet
     - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Models $DEPLOYPATH
     - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Views $DEPLOYPATH
     - /bin/cp -r /home/u1525344/repositories/tpqsmart/app/Controllers $DEPLOYPATH
