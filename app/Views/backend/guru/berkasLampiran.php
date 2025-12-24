@@ -84,76 +84,76 @@
                                 <?php endif; ?>
                             </td>
                             <td>
-                                    <?php if (isset($berkas['Buku Rekening']) && is_array($berkas['Buku Rekening'])): ?>
-                                        <?php 
-                                        // Cek apakah sudah ada BPR dan BRK
-                                        $hasBpr = false;
-                                        $hasBrk = false;
-                                        foreach ($berkas['Buku Rekening'] as $rekening) {
-                                            $dataBerkas = $rekening['DataBerkas'] ?? '';
-                                            if ($dataBerkas === 'BPR') {
-                                                $hasBpr = true;
-                                            } elseif ($dataBerkas === 'BRK') {
-                                                $hasBrk = true;
-                                            }
+                                <?php if (isset($berkas['Buku Rekening']) && is_array($berkas['Buku Rekening'])): ?>
+                                    <?php
+                                    // Cek apakah sudah ada BPR dan BRK
+                                    $hasBpr = false;
+                                    $hasBrk = false;
+                                    foreach ($berkas['Buku Rekening'] as $rekening) {
+                                        $dataBerkas = $rekening['DataBerkas'] ?? '';
+                                        if ($dataBerkas === 'BPR') {
+                                            $hasBpr = true;
+                                        } elseif ($dataBerkas === 'BRK') {
+                                            $hasBrk = true;
                                         }
-                                        $showUploadButton = !($hasBpr && $hasBrk);
-                                        ?>
-                                        <?php foreach ($berkas['Buku Rekening'] as $rekening): ?>
-                                            <div class="mb-1 d-flex align-items-center gap-2 flex-wrap">
-                                                <strong><?= esc($rekening['DataBerkas'] ?? '-') ?>:</strong>
-                                                <a href="<?= base_url('uploads/berkas/' . $rekening['NamaFile']) ?>" target="_blank" class="btn btn-sm btn-info p-1" title="Lihat">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($rekening['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', '<?= esc($rekening['DataBerkas'] ?? '') ?>')" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($rekening['id']) ?>)" title="Hapus">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        <?php endforeach; ?>
-                                        <?php if ($showUploadButton): ?>
-                                            <div class="mt-1">
-                                                <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
-                                                    <i class="fas fa-upload"></i> Upload
-                                                </button>
-                                            </div>
-                                        <?php endif; ?>
-                                    <?php elseif (isset($berkas['Buku Rekening'])): ?>
-                                        <!-- Backward compatibility: jika masih single file -->
-                                        <?php 
-                                        // Cek apakah sudah ada BPR atau BRK
-                                        $dataBerkas = $berkas['Buku Rekening']['DataBerkas'] ?? '';
-                                        $hasBpr = ($dataBerkas === 'BPR');
-                                        $hasBrk = ($dataBerkas === 'BRK');
-                                        $showUploadButton = !($hasBpr && $hasBrk); // Akan false jika sudah ada keduanya, tapi untuk single file ini tidak mungkin
-                                        // Untuk single file, selalu tampilkan button upload karena masih bisa upload yang lain
-                                        $showUploadButton = true;
-                                        ?>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <a href="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>" target="_blank" class="btn btn-sm btn-info p-1" title="Lihat">
+                                    }
+                                    $showUploadButton = !($hasBpr && $hasBrk);
+                                    ?>
+                                    <?php foreach ($berkas['Buku Rekening'] as $rekening): ?>
+                                        <div class="mb-1 d-flex align-items-center gap-2 flex-wrap">
+                                            <strong><?= esc($rekening['DataBerkas'] ?? '-') ?>:</strong>
+                                            <a href="<?= base_url('uploads/berkas/' . $rekening['NamaFile']) ?>" target="_blank" class="btn btn-sm btn-info p-1" title="Lihat">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Edit">
+                                            <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($rekening['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', '<?= esc($rekening['DataBerkas'] ?? '') ?>')" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>)" title="Hapus">
+                                            <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($rekening['id']) ?>)" title="Hapus">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
-                                        <?php if ($showUploadButton): ?>
-                                            <div class="mt-1">
-                                                <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
-                                                    <i class="fas fa-upload"></i> Upload
-                                                </button>
-                                            </div>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
-                                            <i class="fas fa-upload"></i> Upload
-                                        </button>
+                                    <?php endforeach; ?>
+                                    <?php if ($showUploadButton): ?>
+                                        <div class="mt-1">
+                                            <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                        </div>
                                     <?php endif; ?>
+                                <?php elseif (isset($berkas['Buku Rekening'])): ?>
+                                    <!-- Backward compatibility: jika masih single file -->
+                                    <?php
+                                    // Cek apakah sudah ada BPR atau BRK
+                                    $dataBerkas = $berkas['Buku Rekening']['DataBerkas'] ?? '';
+                                    $hasBpr = ($dataBerkas === 'BPR');
+                                    $hasBrk = ($dataBerkas === 'BRK');
+                                    $showUploadButton = !($hasBpr && $hasBrk); // Akan false jika sudah ada keduanya, tapi untuk single file ini tidak mungkin
+                                    // Untuk single file, selalu tampilkan button upload karena masih bisa upload yang lain
+                                    $showUploadButton = true;
+                                    ?>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <a href="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>" target="_blank" class="btn btn-sm btn-info p-1" title="Lihat">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>)" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <?php if ($showUploadButton): ?>
+                                        <div class="mt-1">
+                                            <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
+                                        <i class="fas fa-upload"></i> Upload
+                                    </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -356,13 +356,13 @@
         max-width: 95%;
         margin: 10px auto;
     }
-    
+
     #modalCropBerkas .modal-content {
         height: calc(100vh - 20px);
         display: flex;
         flex-direction: column;
     }
-    
+
     #modalCropBerkas .modal-body {
         flex: 1;
         overflow: hidden;
@@ -372,7 +372,7 @@
         justify-content: center;
         min-height: 0;
     }
-    
+
     #cropContainerBerkas {
         width: 100%;
         height: 100%;
@@ -383,31 +383,31 @@
         justify-content: center;
         position: relative;
     }
-    
+
     #imageToCropBerkas {
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
     }
-    
+
     #modalCropBerkas .modal-footer {
         flex-shrink: 0;
         border-top: 1px solid #dee2e6;
         padding: 10px 15px;
     }
-    
+
     /* Pastikan cropper container tidak overflow */
     #modalCropBerkas .cropper-container {
         max-width: 100%;
         max-height: 100%;
     }
-    
+
     /* Responsive untuk layar kecil */
     @media (max-height: 600px) {
         #modalCropBerkas .modal-content {
             height: calc(100vh - 10px);
         }
-        
+
         #cropContainerBerkas {
             max-height: calc(100vh - 150px);
         }
@@ -432,43 +432,74 @@
         });
 
         <?php if (in_groups('Admin')): ?>
-        // Filter TPQ untuk Admin
-        const filterTpq = $('#filterTpq');
-        let customFilterFunction = null;
-        
-        filterTpq.on('change', function() {
-            const selectedTpq = $(this).val();
-            
-            if (customFilterFunction !== null) {
-                $.fn.dataTable.ext.search.pop();
-                customFilterFunction = null;
+            // Filter TPQ untuk Admin
+            const filterTpq = $('#filterTpq');
+            let customFilterFunction = null;
+            const filterStorageKey = 'berkasLampiran_filter_tpq';
+
+            // Fungsi untuk menyimpan filter TPQ ke localStorage
+            function saveFilterTpq() {
+                const selectedTpq = filterTpq.val() || '';
+                localStorage.setItem(filterStorageKey, selectedTpq);
             }
-            
-            if (selectedTpq !== '') {
-                customFilterFunction = function(settings, data, dataIndex) {
-                    if (!settings || !settings.nTable || settings.nTable.id !== 'tabelBerkasLampiran') {
-                        return true;
+
+            // Fungsi untuk memuat filter TPQ dari localStorage
+            function loadFilterTpq() {
+                try {
+                    const savedTpq = localStorage.getItem(filterStorageKey);
+                    if (savedTpq !== null && savedTpq !== '') {
+                        // Cek apakah option dengan value tersebut ada
+                        const optionExists = filterTpq.find('option[value="' + savedTpq + '"]').length > 0;
+                        if (optionExists) {
+                            filterTpq.val(savedTpq);
+                            // Trigger change event untuk menerapkan filter
+                            filterTpq.trigger('change');
+                        }
                     }
-                    
-                    try {
-                        const row = table.row(dataIndex).node();
-                        if (!row) {
+                } catch (e) {
+                    console.error('Error loading filter TPQ from localStorage:', e);
+                }
+            }
+
+            // Load filter saat halaman dimuat
+            loadFilterTpq();
+
+            filterTpq.on('change', function() {
+                const selectedTpq = $(this).val();
+
+                // Simpan filter ke localStorage
+                saveFilterTpq();
+
+                if (customFilterFunction !== null) {
+                    $.fn.dataTable.ext.search.pop();
+                    customFilterFunction = null;
+                }
+
+                if (selectedTpq !== '') {
+                    customFilterFunction = function(settings, data, dataIndex) {
+                        if (!settings || !settings.nTable || settings.nTable.id !== 'tabelBerkasLampiran') {
                             return true;
                         }
-                        
-                        const rowIdTpq = $(row).attr('data-idtpq');
-                        return rowIdTpq === selectedTpq;
-                    } catch (e) {
-                        console.error('Error in custom filter:', e);
-                        return true;
-                    }
-                };
-                
-                $.fn.dataTable.ext.search.push(customFilterFunction);
-            }
-            
-            table.draw();
-        });
+
+                        try {
+                            const row = table.row(dataIndex).node();
+                            if (!row) {
+                                return true;
+                            }
+
+                            const rowIdTpq = $(row).attr('data-idtpq');
+                            return rowIdTpq === selectedTpq;
+                        } catch (e) {
+                            console.error('Error in custom filter:', e);
+                            return true;
+                        }
+                    };
+
+                    $.fn.dataTable.ext.search.push(customFilterFunction);
+                }
+
+                table.draw();
+            });
         <?php endif; ?>
 
         // Handle perubahan tipe berkas untuk menampilkan/sembunyikan dropdown bank
@@ -497,13 +528,13 @@
         $('#existingImageContainer').hide();
         $('#btnUseExisting').hide();
         $('#editModeInfo').hide();
-        
+
         // Reset cropper jika ada
         if (cropperBerkas) {
             cropperBerkas.destroy();
             cropperBerkas = null;
         }
-        
+
         // Simpan nilai ke window SEBELUM set ke form
         window.savedCropNamaBerkas = namaBerkas;
         if (namaBerkas === 'Buku Rekening') {
@@ -517,11 +548,11 @@
         } else {
             window.savedCropDataBerkas = null;
         }
-        
+
         // Set tipe berkas yang dipilih
         $('#uploadNamaBerkas').val(namaBerkas);
         $('#uploadNamaBerkas').prop('disabled', true); // Disable karena sudah dipilih dari kolom
-        
+
         // Jika Buku Rekening, tampilkan dropdown bank
         if (namaBerkas === 'Buku Rekening') {
             $('#dataBerkasGroup').show();
@@ -536,9 +567,9 @@
             $('#uploadDataBerkas').prop('required', false);
             $('#uploadDataBerkas').val('');
         }
-        
+
         window.currentEditBerkasData = null;
-        
+
         // Buka modal setelah semua set
         $('#modalUploadBerkas').modal('show');
     }
@@ -573,32 +604,32 @@
         $('#existingImageContainer').hide();
         $('#btnUseExisting').hide();
         $('#editModeInfo').hide();
-        
+
         // Reset cropper jika ada
         if (cropperBerkas) {
             cropperBerkas.destroy();
             cropperBerkas = null;
         }
-        
+
         // Jika mode edit dan ada data existing
         if (isEditMode && existingBerkasData) {
             $('#uploadNamaBerkas').val(existingBerkasData.NamaBerkas);
             $('#uploadNamaBerkas').prop('disabled', true); // Disable dropdown karena sudah ada
-            
+
             // Jika Buku Rekening, tampilkan DataBerkas
             if (existingBerkasData.NamaBerkas === 'Buku Rekening') {
                 $('#uploadDataBerkas').val(existingBerkasData.DataBerkas || '');
                 $('#uploadDataBerkas').prop('disabled', true);
                 $('#dataBerkasGroup').show();
             }
-            
+
             // Tampilkan gambar existing
             const imageUrl = '<?= base_url('uploads/berkas/') ?>' + existingBerkasData.NamaFile;
             $('#existingImage').attr('src', imageUrl);
             $('#existingImageContainer').show();
             $('#btnUseExisting').show();
             $('#editModeInfo').show();
-            
+
             // Simpan data existing untuk digunakan nanti
             window.currentEditBerkasData = existingBerkasData;
         } else {
@@ -610,7 +641,7 @@
             $('#dataBerkasGroup').hide();
             window.currentEditBerkasData = null;
         }
-        
+
         $('#modalUploadBerkas').modal('show');
     }
 
@@ -735,9 +766,9 @@
         // Ambil nilai langsung dari form untuk memastikan nilai terbaru
         const currentNamaBerkas = $('#uploadNamaBerkas').val();
         const currentDataBerkas = $('#uploadDataBerkas').val();
-        
+
         window.savedCropNamaBerkas = currentNamaBerkas || namaBerkas;
-        
+
         if (currentNamaBerkas === 'Buku Rekening' || namaBerkas === 'Buku Rekening') {
             if (!currentDataBerkas) {
                 Swal.fire({
@@ -768,7 +799,7 @@
             // Resize sebelum crop
             const maxDimension = 2000;
             const resizeQuality = 0.85;
-            
+
             // Tampilkan loading
             Swal.fire({
                 title: 'Memproses gambar...',
@@ -780,10 +811,10 @@
                     Swal.showLoading();
                 }
             });
-            
+
             window.ImageUploadHelper.resizeImageBeforeCrop(file, maxDimension, maxDimension, resizeQuality, function(processedFile) {
                 selectedFileBerkas = processedFile;
-                
+
                 // Hitung ukuran file setelah resize
                 const originalSize = (file.size / 1024 / 1024).toFixed(2); // MB
                 const resizedSize = (processedFile.size / 1024 / 1024).toFixed(2); // MB
@@ -825,7 +856,7 @@
 
         // Tentukan apakah ini dari modal edit atau modal upload
         const isFromEditModal = $('#modalEditBerkas').is(':visible') || window.currentEditBerkasData;
-        
+
         // Jika namaBerkas tidak diberikan, ambil dari form yang sesuai
         if (!namaBerkas) {
             if (isFromEditModal) {
@@ -837,7 +868,7 @@
 
         // Simpan namaBerkas untuk digunakan saat inisialisasi cropper
         window.currentCropNamaBerkas = namaBerkas;
-        
+
         // Pastikan nilai bank juga tersimpan
         if (!window.savedCropDataBerkas && namaBerkas === 'Buku Rekening') {
             if (isFromEditModal) {
@@ -848,12 +879,12 @@
         }
 
         imageElement.src = imageUrl;
-        
+
         // Tutup modal yang sesuai (edit atau upload) sementara, akan dibuka kembali setelah crop selesai
         if (isFromEditModal) {
             $('#modalEditBerkas').modal('hide');
             $('#modalCropBerkas').off('shown.bs.modal');
-            
+
             // Tunggu modal edit tertutup, baru buka modal crop
             $('#modalEditBerkas').one('hidden.bs.modal', function() {
                 $('#modalCropBerkas').modal('show');
@@ -863,7 +894,7 @@
             // Ambil nilai langsung dari form untuk memastikan nilai terbaru
             const namaBerkas = $('#uploadNamaBerkas').val();
             const dataBerkas = $('#uploadDataBerkas').val();
-            
+
             // Simpan ke window untuk digunakan setelah crop
             if (namaBerkas) {
                 window.savedCropNamaBerkas = namaBerkas;
@@ -874,19 +905,19 @@
                 // Jika bukan Buku Rekening, pastikan dataBerkas null
                 window.savedCropDataBerkas = null;
             }
-            
+
             // Set flag bahwa kita sedang membuka modal crop
             window.isOpeningCropModal = true;
-            
+
             $('#modalUploadBerkas').modal('hide');
             $('#modalCropBerkas').off('shown.bs.modal');
-            
+
             // Tunggu modal upload tertutup, baru buka modal crop
             $('#modalUploadBerkas').one('hidden.bs.modal', function() {
                 $('#modalCropBerkas').modal('show');
             });
         }
-        
+
         $('#modalCropBerkas').on('shown.bs.modal', function() {
             if (cropperBerkas) {
                 cropperBerkas.destroy();
@@ -929,7 +960,7 @@
                         let aspectRatio = NaN; // Default: free aspect ratio
                         let aspectRatioFixed = false; // Apakah aspect ratio fixed atau bisa di-adjust
                         const namaBerkas = window.currentCropNamaBerkas || $('#uploadNamaBerkas').val();
-                        
+
                         if (namaBerkas === 'KTP') {
                             // KTP Indonesia: 85.6mm x 53.98mm = 1.585 (FIXED)
                             aspectRatio = 85.6 / 53.98; // = 1.585
@@ -967,7 +998,7 @@
                             minContainerHeight: 200,
                             ready: function() {
                                 console.log('Cropper Berkas initialized successfully');
-                                
+
                                 // Untuk KK dan Buku Rekening, set aspect ratio menjadi free setelah initial crop box dibuat
                                 // Ini memungkinkan user untuk adjust crop box
                                 if ((cropNamaBerkas === 'KK' || cropNamaBerkas === 'Buku Rekening') && !cropAspectRatioFixed && this.cropper) {
@@ -980,7 +1011,7 @@
                                         }
                                     }, 100);
                                 }
-                                
+
                                 // Pastikan gambar terlihat utuh setelah cropper siap
                                 try {
                                     if (this.cropper && typeof this.cropper.scaleToFit === 'function') {
@@ -1008,7 +1039,9 @@
             if (imageElement.complete) {
                 imageElement.onload();
             } else {
-                imageElement.addEventListener('load', imageElement.onload, { once: true });
+                imageElement.addEventListener('load', imageElement.onload, {
+                    once: true
+                });
             }
         });
     }
@@ -1046,14 +1079,14 @@
         // Tentukan apakah ini dari modal edit atau modal upload
         // Gunakan window.currentEditBerkasData atau cek apakah editNamaBerkas ada nilainya
         const isFromEditModal = window.currentEditBerkasData || ($('#editNamaBerkas').val() && $('#editNamaBerkas').val() !== '');
-        
+
         if (isFromEditModal) {
             // Jika dari modal edit
             $('#editCroppedImageData').val(base64Image);
             $('#editPreviewImage').attr('src', base64Image);
             $('#editPreviewContainer').show();
             $('#editPreviewPlaceholder').hide();
-            
+
             // Simpan nilai tipe berkas dan bank
             const namaBerkas = $('#editNamaBerkas').val();
             const dataBerkas = $('#editDataBerkas').val();
@@ -1063,40 +1096,40 @@
             // Jika dari modal upload
             $('#croppedImageData').val(base64Image);
             $('#previewImage').attr('src', base64Image);
-            
+
             // Jangan ambil nilai dari form karena form mungkin sudah di-reset saat modal ditutup
             // Gunakan nilai yang sudah disimpan di window (disimpan sebelum modal ditutup)
             // window.savedCropNamaBerkas dan window.savedCropDataBerkas sudah tersimpan
             // Tidak perlu set ulang di sini, nilai sudah ada di window
         }
-        
+
         // Tutup modal crop
         $('#modalCropBerkas').modal('hide');
-        
+
         // Tunggu modal crop tertutup, lalu buka kembali modal yang sesuai
         $('#modalCropBerkas').one('hidden.bs.modal', function() {
             // Tentukan apakah ini dari modal edit atau modal upload
             // Gunakan window.currentEditBerkasData atau cek apakah editNamaBerkas ada nilainya
             const isFromEditModal = window.currentEditBerkasData || ($('#editNamaBerkas').val() && $('#editNamaBerkas').val() !== '');
-            
+
             if (isFromEditModal) {
                 // Jika dari modal edit, kembali ke modal edit
                 const savedNamaBerkas = window.savedCropNamaBerkas || $('#editNamaBerkas').val();
                 const savedDataBerkas = window.savedCropDataBerkas || $('#editDataBerkas').val();
-                
+
                 // Tampilkan preview dan button update
                 $('#editPreviewContainer').show();
                 $('#editPreviewPlaceholder').hide();
                 $('#btnUpdateBerkas').show();
-                
+
                 // Sembunyikan button crop existing karena sudah ada preview hasil crop
                 $('#btnCropExistingImage').hide();
-                
+
                 // Pastikan nilai bank tetap tersimpan untuk edit
                 if (savedNamaBerkas === 'Buku Rekening' && savedDataBerkas) {
                     $('#editDataBerkas').val(savedDataBerkas);
                 }
-                
+
                 setTimeout(function() {
                     $('#modalEditBerkas').modal('show');
                 }, 100);
@@ -1105,9 +1138,9 @@
                 // Gunakan nilai yang sudah disimpan SEBELUM crop, jangan ambil dari form
                 const savedNamaBerkas = window.savedCropNamaBerkas;
                 const savedDataBerkas = window.savedCropDataBerkas;
-                
+
                 console.log('Restore setelah crop - savedNamaBerkas:', savedNamaBerkas, 'savedDataBerkas:', savedDataBerkas);
-                
+
                 // Sembunyikan existing image container dan tampilkan preview hasil crop
                 if ($('#existingImageContainer').is(':visible')) {
                     $('#existingImageContainer').hide();
@@ -1115,22 +1148,22 @@
                 }
                 $('#previewContainer').show();
                 $('#btnUploadBerkasFromForm').show();
-                
+
                 // Buka kembali modal upload
                 setTimeout(function() {
                     // Pastikan nilai bank sudah di-set sebelum modal dibuka
                     // Gunakan nilai yang sudah disimpan
                     const finalNamaBerkas = window.savedCropNamaBerkas;
                     const finalDataBerkas = window.savedCropDataBerkas;
-                    
+
                     console.log('Sebelum buka modal - finalNamaBerkas:', finalNamaBerkas, 'finalDataBerkas:', finalDataBerkas);
-                    
+
                     // Set nilai tipe berkas TERLEBIH DAHULU
                     if (finalNamaBerkas) {
                         $('#uploadNamaBerkas').val(finalNamaBerkas);
                         $('#uploadNamaBerkas').prop('disabled', true);
                     }
-                    
+
                     // Set nilai bank jika Buku Rekening
                     if (finalNamaBerkas === 'Buku Rekening') {
                         $('#dataBerkasGroup').show();
@@ -1144,22 +1177,22 @@
                         $('#uploadDataBerkas').prop('required', false);
                         $('#uploadDataBerkas').val('');
                     }
-                    
+
                     $('#modalUploadBerkas').modal('show');
-                    
+
                     // Setelah modal dibuka, pastikan nilai bank tetap tersimpan (triple check)
                     $('#modalUploadBerkas').one('shown.bs.modal', function() {
                         const checkNamaBerkas = window.savedCropNamaBerkas;
                         const checkDataBerkas = window.savedCropDataBerkas;
-                        
+
                         console.log('Setelah modal shown - checkNamaBerkas:', checkNamaBerkas, 'checkDataBerkas:', checkDataBerkas);
-                        
+
                         // Set nilai tipe berkas
                         if (checkNamaBerkas) {
                             $('#uploadNamaBerkas').val(checkNamaBerkas);
                             $('#uploadNamaBerkas').prop('disabled', true);
                         }
-                        
+
                         if (checkNamaBerkas === 'Buku Rekening') {
                             $('#dataBerkasGroup').show();
                             $('#uploadDataBerkas').prop('required', true);
@@ -1180,7 +1213,7 @@
     // Function untuk upload berkas dari form
     function uploadBerkasFromForm() {
         const croppedImageData = $('#croppedImageData').val();
-        
+
         if (!croppedImageData) {
             Swal.fire({
                 icon: 'error',
@@ -1295,13 +1328,13 @@
             success: function(response) {
                 if (response.success && response.data) {
                     const berkasData = response.data;
-                    
+
                     // Set data ke modal edit
                     $('#editBerkasId').val(berkasId);
                     $('#editIdGuru').val(idGuru);
                     $('#editNamaGuru').val(namaGuru);
                     $('#editNamaBerkas').val(namaBerkas);
-                    
+
                     // Jika Buku Rekening, tampilkan DataBerkas
                     if (namaBerkas === 'Buku Rekening') {
                         const bankValue = dataBerkas || berkasData.DataBerkas || '';
@@ -1310,24 +1343,24 @@
                     } else {
                         $('#editDataBerkasGroup').hide();
                     }
-                    
+
                     // Tampilkan gambar existing
                     const imageUrl = '<?= base_url('uploads/berkas/') ?>' + berkasData.NamaFile;
                     $('#editExistingImage').attr('src', imageUrl);
-                    
+
                     // Reset form
                     $('#editFileBerkas').val('');
                     $('#editPreviewContainer').hide();
                     $('#editPreviewPlaceholder').show();
                     $('#btnUpdateBerkas').hide();
                     $('#editCroppedImageData').val('');
-                    
+
                     // Tampilkan button crop existing image
                     $('#btnCropExistingImage').show();
-                    
+
                     // Simpan data untuk digunakan saat update
                     window.currentEditBerkasData = berkasData;
-                    
+
                     // Buka modal edit
                     $('#modalEditBerkas').modal('show');
                 } else {
@@ -1348,7 +1381,7 @@
         });
     }
 
-    // Function untuk delete berkas langsung
+    // Function untuk delete berkas secara langsung
     function deleteBerkasDirect(berkasId) {
         Swal.fire({
             title: 'Apakah Anda yakin?',
@@ -1428,7 +1461,7 @@
         // Simpan nilai tipe berkas untuk crop
         const namaBerkas = $('#editNamaBerkas').val();
         window.savedCropNamaBerkas = namaBerkas;
-        
+
         if (namaBerkas === 'Buku Rekening') {
             const dataBerkas = $('#editDataBerkas').val();
             window.savedCropDataBerkas = dataBerkas;
@@ -1448,7 +1481,7 @@
             // Resize sebelum crop
             const maxDimension = 2000;
             const resizeQuality = 0.85;
-            
+
             // Tampilkan loading
             Swal.fire({
                 title: 'Memproses gambar...',
@@ -1460,7 +1493,7 @@
                     Swal.showLoading();
                 }
             });
-            
+
             window.ImageUploadHelper.resizeImageBeforeCrop(file, maxDimension, maxDimension, resizeQuality, function(processedFile) {
                 // Hitung ukuran file setelah resize
                 const originalSize = (file.size / 1024 / 1024).toFixed(2); // MB
@@ -1505,7 +1538,7 @@
         // Simpan nilai tipe berkas dan bank untuk digunakan saat crop
         const namaBerkas = $('#editNamaBerkas').val();
         window.savedCropNamaBerkas = namaBerkas;
-        
+
         if (namaBerkas === 'Buku Rekening') {
             const dataBerkas = $('#editDataBerkas').val();
             window.savedCropDataBerkas = dataBerkas;
@@ -1529,7 +1562,7 @@
     function updateBerkasFromForm() {
         const croppedImageData = $('#editCroppedImageData').val();
         const editBerkasId = $('#editBerkasId').val();
-        
+
         // Jika tidak ada gambar baru yang di-crop, gunakan gambar existing
         if (!croppedImageData) {
             Swal.fire({
@@ -1621,10 +1654,10 @@
                         icon: 'error',
                         title: 'Error',
                         html: 'ImageUploadHelper tidak ditemukan. Pastikan:<br>' +
-                              '1. File helpers/js/image-upload-helper.js dapat diakses<br>' +
-                              '2. Route helpers/js/(:segment) sudah terdaftar di Routes.php<br>' +
-                              '3. Controller Helpers.php sudah ter-deploy<br>' +
-                              '4. Refresh halaman dan coba lagi'
+                            '1. File helpers/js/image-upload-helper.js dapat diakses<br>' +
+                            '2. Route helpers/js/(:segment) sudah terdaftar di Routes.php<br>' +
+                            '3. Controller Helpers.php sudah ter-deploy<br>' +
+                            '4. Refresh halaman dan coba lagi'
                     });
                 }
             }
@@ -1643,7 +1676,7 @@
         // Jangan reset nilai jika sedang membuka modal crop
         // Cek apakah modal crop sedang dibuka atau akan dibuka
         const isOpeningCrop = $('#modalCropBerkas').is(':visible') || window.isOpeningCropModal;
-        
+
         if (cropperBerkas) {
             cropperBerkas.destroy();
             cropperBerkas = null;
@@ -1656,7 +1689,7 @@
         $('#existingImageContainer').hide();
         $('#btnUseExisting').hide();
         $('#editModeInfo').hide();
-        
+
         // Jangan reset nilai tipe berkas dan bank jika sedang membuka modal crop
         if (!isOpeningCrop) {
             $('#dataBerkasGroup').hide();
@@ -1670,7 +1703,7 @@
             window.savedCropNamaBerkas = null;
             window.savedCropDataBerkas = null;
         }
-        
+
         // Reset flag
         window.isOpeningCropModal = false;
     });
@@ -1694,4 +1727,3 @@
     });
 </script>
 <?= $this->endSection(); ?>
-
