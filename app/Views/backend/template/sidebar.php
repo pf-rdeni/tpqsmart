@@ -583,18 +583,6 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/guru/showSertifikasi') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Sertifikasi</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/guru/showAkunBank') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Rekening Bank</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/guru/pengajuanInsentif') ?> class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Pengajuan Insentif</p>
