@@ -143,32 +143,34 @@
                         <h5 class="border-bottom pb-2">Informasi Penandatangan</h5>
                         <div class="row">
                             <div class="col-12 col-md-6">
-                                <?php if ($signature['JenisDokumen'] === 'Munaqosah' && $signature['SignatureData'] === 'Ketua FKPQ'): ?>
-                                    <div class="info-row">
-                                        <div class="info-label">Nama Ketua FKPQ</div>
-                                        <div class="info-value"><strong><?= toTitleCase(esc($fkpq['KetuaFkpq'] ?? '-')) ?></strong></div>
-                                    </div>
-                                    <div class="info-row">
-                                        <div class="info-label">Jabatan</div>
-                                        <div class="info-value"><strong>Ketua FKPQ</strong></div>
-                                    </div>
-                                    <div class="info-row">
-                                        <div class="info-label">Nama FKPQ</div>
-                                        <div class="info-value"><strong><?= toTitleCase(esc($fkpq['NamaFkpq'] ?? '-')) ?></strong></div>
-                                    </div>
+                                <?php if (($signature['JenisDokumen'] === 'Munaqosah' || $signature['JenisDokumen'] === 'Surat Rekomendasi') && $signature['SignatureData'] === 'Ketua FKPQ'): ?>
+                                    <?php if (!empty($fkpq)): ?>
+                                        <div class="info-row">
+                                            <div class="info-label">Nama Ketua FKPQ</div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($fkpq['KetuaFkpq'] ?? '-')) ?></strong></div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label">Jabatan</div>
+                                            <div class="info-value"><strong>Ketua FKPQ</strong></div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label">Nama FKPQ</div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($fkpq['NamaFkpq'] ?? '-')) ?></strong></div>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <?php if ($guru): ?>
                                         <div class="info-row">
                                             <div class="info-label">Nama Guru</div>
-                                            <div class="info-value"><strong><?= toTitleCase(esc($guru->Nama)) ?></strong></div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($guru->Nama ?? (is_array($guru) ? $guru['Nama'] : ''))) ?></strong></div>
                                         </div>
                                         <div class="info-row">
                                             <div class="info-label">Jabatan</div>
-                                            <div class="info-value"><strong><?= toTitleCase(esc($guru->NamaJabatan)) ?></strong></div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($guru->NamaJabatan ?? (is_array($guru) ? ($guru['NamaJabatan'] ?? '-') : '-'))) ?></strong></div>
                                         </div>
                                         <div class="info-row">
                                             <div class="info-label">Status Saat ini</div>
-                                            <div class="info-value"><strong><span class="badge bg-success"><?= esc($guru->Status) ? 'Aktif' : 'Tidak Aktif' ?></span></strong></div>
+                                            <div class="info-value"><strong><span class="badge bg-success"><?= esc($guru->Status ?? (is_array($guru) ? ($guru['Status'] ?? 0) : 0)) ? 'Aktif' : 'Tidak Aktif' ?></span></strong></div>
                                         </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
@@ -177,35 +179,80 @@
                     </div>
                 </div>
 
-                <!-- Informasi Santri dan Lembaga -->
+                <!-- Informasi Santri/Guru dan Lembaga -->
                 <div class="row mb-4">
                     <div class="col-12">
-                        <h5 class="border-bottom pb-2">Informasi Santri dan Lembaga</h5>
+                        <h5 class="border-bottom pb-2"><?= ($signature['JenisDokumen'] === 'Surat Rekomendasi') ? 'Informasi Guru dan Lembaga' : 'Informasi Santri dan Lembaga' ?></h5>
                         <div class="row">
                             <div class="col-12 col-md-6">
-                                <div class="info-row">
-                                    <div class="info-label">Nama Santri</div>
-                                    <div class="info-value"><strong><?= toTitleCase(esc($santri['NamaSantri'])) ?></strong></div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-label">Id Santri</div>
-                                    <div class="info-value"><strong><?= esc($santri['IdSantri']) ?></strong></div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-label">Status Saat ini</div>
-                                    <div class="info-value"><strong><span class="badge <?= esc($santri['Active']) ? 'bg-success' : 'bg-danger' ?>"><?= esc($santri['Active']) ? 'Aktif' : 'Tidak Aktif' ?></span></strong></div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-label">Nama TPQ</div>
-                                    <div class="info-value"><strong><?= toTitleCase(esc($tpq['NamaTpq'])) ?></strong></div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-label">Alamat</div>
-                                    <div class="info-value"><strong><?= toTitleCase(esc($tpq['Alamat'])) ?></strong></div>
-                                </div>
+                                <?php if ($signature['JenisDokumen'] === 'Surat Rekomendasi' && !empty($guru)): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama Guru</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($guru['Nama'])) ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">NIK</div>
+                                        <div class="info-value"><strong>
+                                                <?php
+                                                $nik = esc($guru['IdGuru']);
+                                                if (strlen($nik) >= 8) {
+                                                    // Tampilkan 4 digit pertama dan 4 digit terakhir, sisanya disamarkan
+                                                    $first = substr($nik, 0, 4);
+                                                    $last = substr($nik, -4);
+                                                    $masked = $first . str_repeat('*', strlen($nik) - 8) . $last;
+                                                    echo $masked;
+                                                } else {
+                                                    echo str_repeat('*', strlen($nik));
+                                                }
+                                                ?>
+                                            </strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Tempat Tugas</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($guru['TempatTugas'] ?? '-')) ?></strong></div>
+                                    </div>
+                                <?php elseif (!empty($santri)): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama Santri</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($santri['NamaSantri'])) ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Id Santri</div>
+                                        <div class="info-value"><strong><?= esc($santri['IdSantri']) ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Status Saat ini</div>
+                                        <div class="info-value"><strong><span class="badge <?= esc($santri['Active']) ? 'bg-success' : 'bg-danger' ?>"><?= esc($santri['Active']) ? 'Aktif' : 'Tidak Aktif' ?></span></strong></div>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($tpq)): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama TPQ</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($tpq['NamaTpq'])) ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Alamat</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($tpq['Alamat'])) ?></strong></div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                             <div class="col-12 col-md-6">
-                                <?php if ($signature['JenisDokumen'] === 'Munaqosah' && $signature['SignatureData'] === 'Ketua FKPQ'): ?>
+                                <?php if ($signature['JenisDokumen'] === 'Surat Rekomendasi' && $signature['SignatureData'] === 'Ketua FKPQ'): ?>
+                                    <?php if (!empty($fkpq)): ?>
+                                        <div class="info-row">
+                                            <div class="info-label">Nama FKPQ</div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($fkpq['NamaFkpq'] ?? '-')) ?></strong></div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label">Ketua FKPQ</div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($fkpq['KetuaFkpq'] ?? '-')) ?></strong></div>
+                                        </div>
+                                        <div class="info-row">
+                                            <div class="info-label">Kecamatan</div>
+                                            <div class="info-value"><strong><?= toTitleCase(esc($fkpq['Kecamatan'] ?? '-')) ?></strong></div>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php elseif ($signature['JenisDokumen'] === 'Munaqosah' && $signature['SignatureData'] === 'Ketua FKPQ'): ?>
                                     <div class="info-row">
                                         <div class="info-label">No. Peserta</div>
                                         <div class="info-value"><strong><?= esc($pesertaMunaqosah['NoPeserta'] ?? '-') ?></strong></div>

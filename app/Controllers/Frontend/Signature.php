@@ -38,7 +38,41 @@ class Signature extends \App\Controllers\BaseController
             ]);
         }
 
-        $santri = $this->santriModel->where('IdSantri', $signature['IdSantri'])->first();
+        // Handle signature untuk Surat Rekomendasi (menggunakan IdGuru)
+        if ($signature['JenisDokumen'] === 'Surat Rekomendasi' && $signature['SignatureData'] === 'Ketua FKPQ') {
+            // Ambil data guru
+            $guru = null;
+            if (!empty($signature['IdGuru'])) {
+                $guru = $this->guruModel->find($signature['IdGuru']);
+            }
+
+            // Ambil data TPQ
+            $tpq = null;
+            if (!empty($signature['IdTpq'])) {
+                $tpq = $this->tpqModel->find($signature['IdTpq']);
+            }
+
+            // Ambil data FKPQ
+            $fkpqModel = new \App\Models\FkpqModel();
+            $fkpqData = $fkpqModel->GetData();
+            $fkpq = !empty($fkpqData) ? $fkpqData[0] : null;
+
+            return view('frontend/signature/valid', [
+                'signature' => $signature,
+                'santri' => null,
+                'guru' => $guru,
+                'kelas' => null,
+                'tpq' => $tpq,
+                'fkpq' => $fkpq,
+                'pesertaMunaqosah' => null
+            ]);
+        }
+
+        // Ambil data santri hanya jika IdSantri ada
+        $santri = null;
+        if (!empty($signature['IdSantri'])) {
+            $santri = $this->santriModel->where('IdSantri', $signature['IdSantri'])->first();
+        }
 
         // Handle signature untuk Munaqosah (Ketua FKPQ)
         if ($signature['JenisDokumen'] === 'Munaqosah' && $signature['SignatureData'] === 'Ketua FKPQ') {

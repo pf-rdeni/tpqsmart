@@ -34,7 +34,8 @@ class GuruModel extends Model
         'Status',
         'IdTpq',
         'NoRekBpr',
-        'NoRekRiauKepri'
+        'NoRekRiauKepri',
+        'JenisPenerimaInsentif'
     ];
     public function GetData()
     {

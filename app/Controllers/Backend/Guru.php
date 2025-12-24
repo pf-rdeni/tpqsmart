@@ -5,16 +5,24 @@ namespace App\Controllers\Backend;
 use App\Controllers\BaseController;
 use App\Models\GuruModel;
 use App\Models\HelpFunctionModel;
+use App\Models\FkpqModel;
+use App\Models\SignatureModel;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class Guru extends BaseController
 {
     protected $DataModels;
     protected $helpFunction;
+    protected $fkpqModel;
+    protected $signatureModel;
 
     public function __construct()
     {
         $this->DataModels = new GuruModel();
         $this->helpFunction = new HelpFunctionModel();
+        $this->fkpqModel = new FkpqModel();
+        $this->signatureModel = new SignatureModel();
     }
 
     public function show()
@@ -316,6 +324,321 @@ class Guru extends BaseController
                 'success' => false,
                 'message' => 'Gagal memperbarui data guru: ' . $e->getMessage()
             ]);
+        }
+    }
+
+    // Halaman Pengajuan Insentif
+    public function pengajuanInsentif()
+    {
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+        // query data guru berdasarkan IdTpq jika idtpq tidak ada maka akan menampilkan semua data guru
+        if ($IdTpq == null) {
+            $data = [
+                'page_title' => 'Pengajuan Insentif Guru',
+                'guru' => $this->DataModels->findAll(),
+                'tpq' => $this->helpFunction->getDataTpq()
+            ];
+        } else {
+            $data = [
+                'page_title' => 'Pengajuan Insentif Guru',
+                'guru' => $this->DataModels->where('IdTpq', $IdTpq)->findAll(),
+                'tpq' => $this->helpFunction->getDataTpq()
+            ];
+        }
+        return view('backend/guru/pengajuanInsentif', $data);
+    }
+
+    // Update Penerima Insentif via AJAX
+    public function updatePenerimaInsentif()
+    {
+        try {
+            $IdGuru = $this->request->getPost('IdGuru');
+            $JenisPenerimaInsentif = $this->request->getPost('JenisPenerimaInsentif');
+
+            // Validasi
+            if (empty($IdGuru)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID Guru harus diisi'
+                ]);
+            }
+
+            // Validasi pilihan
+            $validOptions = ['Guru Ngaji', 'Mubaligh', 'Fardu Kifayah'];
+            if (!empty($JenisPenerimaInsentif) && !in_array($JenisPenerimaInsentif, $validOptions)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Pilihan Penerima Insentif tidak valid'
+                ]);
+            }
+
+            // Cek apakah data guru ada
+            $guru = $this->DataModels->find($IdGuru);
+            if (!$guru) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data guru tidak ditemukan'
+                ]);
+            }
+
+            // Update data
+            $this->DataModels->update($IdGuru, [
+                'JenisPenerimaInsentif' => $JenisPenerimaInsentif
+            ]);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Penerima Insentif berhasil diperbarui'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui Penerima Insentif: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Generate PDF Surat Pernyataan Tidak Berstatus ASN
+    public function printSuratPernyataanAsn($idGuru)
+    {
+        try {
+            helper('nilai');
+            
+            // Ambil data guru
+            $guru = $this->DataModels->find($idGuru);
+            if (!$guru) {
+                return redirect()->back()->with('error', 'Data guru tidak ditemukan');
+            }
+
+            // Format tanggal Indonesia
+            $tanggalSurat = formatTanggalIndonesia(date('Y-m-d'), 'd F Y');
+            $tanggalLahirFormatted = !empty($guru['TanggalLahir']) ? formatTanggalIndonesia($guru['TanggalLahir'], 'd F Y') : '';
+
+            // Siapkan data untuk view
+            $data = [
+                'guru' => $guru,
+                'tanggalSurat' => $tanggalSurat,
+                'tanggalLahirFormatted' => $tanggalLahirFormatted,
+                'alamatLengkap' => $guru['Alamat'] . ', RT ' . $guru['Rt'] . ' / RW ' . $guru['Rw'] . ', ' . $guru['KelurahanDesa']
+            ];
+
+            // Load view untuk PDF
+            $html = view('backend/guru/pdf/suratPernyataanAsn', $data);
+
+            // Setup Dompdf
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Format filename
+            $filename = 'Surat_Pernyataan_ASN_' . str_replace(' ', '_', $guru['Nama']) . '_' . date('Y-m-d') . '.pdf';
+
+            // Clear output buffer
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: printSuratPernyataanAsn - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Generate PDF Surat Pernyataan Tidak Sedang Menerima Insentif
+    public function printSuratPernyataanInsentif($idGuru)
+    {
+        try {
+            helper('nilai');
+            
+            // Ambil data guru
+            $guru = $this->DataModels->find($idGuru);
+            if (!$guru) {
+                return redirect()->back()->with('error', 'Data guru tidak ditemukan');
+            }
+
+            // Format tanggal Indonesia
+            $tanggalSurat = formatTanggalIndonesia(date('Y-m-d'), 'd F Y');
+            $tanggalLahirFormatted = !empty($guru['TanggalLahir']) ? formatTanggalIndonesia($guru['TanggalLahir'], 'd F Y') : '';
+
+            // Siapkan data untuk view
+            $data = [
+                'guru' => $guru,
+                'tanggalSurat' => $tanggalSurat,
+                'tanggalLahirFormatted' => $tanggalLahirFormatted,
+                'alamatLengkap' => $guru['Alamat'] . ', RT ' . $guru['Rt'] . ' / RW ' . $guru['Rw'] . ', ' . $guru['KelurahanDesa']
+            ];
+
+            // Load view untuk PDF
+            $html = view('backend/guru/pdf/suratPernyataanInsentif', $data);
+
+            // Setup Dompdf
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Format filename
+            $filename = 'Surat_Pernyataan_Insentif_' . str_replace(' ', '_', $guru['Nama']) . '_' . date('Y-m-d') . '.pdf';
+
+            // Clear output buffer
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: printSuratPernyataanInsentif - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    // Generate PDF Surat Rekomendasi
+    public function printSuratRekomendasi($idGuru)
+    {
+        try {
+            helper('nilai');
+            
+            // Ambil data guru
+            $guru = $this->DataModels->find($idGuru);
+            if (!$guru) {
+                return redirect()->back()->with('error', 'Data guru tidak ditemukan');
+            }
+
+            // Ambil data FKPQ untuk kop lembaga
+            $fkpqData = $this->fkpqModel->GetData();
+            $fkpqRow = null;
+            if (!empty($fkpqData) && !empty($fkpqData[0])) {
+                $fkpqRow = $fkpqData[0];
+            }
+
+            // Generate atau ambil signature QR code untuk Ketua FKPQ
+            $signatureKetuaFkpq = null;
+            if (!empty($guru['IdGuru'])) {
+                // Cek apakah signature sudah ada untuk surat rekomendasi guru ini
+                $existingSignature = $this->signatureModel->where([
+                    'IdGuru' => $guru['IdGuru'],
+                    'JenisDokumen' => 'Surat Rekomendasi',
+                    'SignatureData' => 'Ketua FKPQ',
+                    'StatusValidasi' => 'Valid'
+                ])->first();
+
+                if ($existingSignature) {
+                    // Gunakan signature yang sudah ada
+                    $signatureKetuaFkpq = $existingSignature;
+                } else {
+                    // Generate signature baru
+                    helper('signature');
+                    $token = generateUniqueSignatureToken($this->signatureModel);
+                    $qrCodeData = generateSignatureQRCode($token);
+
+                    if ($qrCodeData) {
+                        // Simpan signature ke database
+                        $signatureData = [
+                            'Token' => $token,
+                            'IdGuru' => $guru['IdGuru'],
+                            'IdTpq' => $guru['IdTpq'] ?? null,
+                            'JenisDokumen' => 'Surat Rekomendasi',
+                            'SignatureData' => 'Ketua FKPQ',
+                            'QrCode' => $qrCodeData['filename'],
+                            'StatusValidasi' => 'Valid',
+                            'TanggalTtd' => date('Y-m-d H:i:s')
+                        ];
+
+                        $signatureId = $this->signatureModel->insert($signatureData);
+                        if ($signatureId) {
+                            $signatureKetuaFkpq = $this->signatureModel->find($signatureId);
+                        }
+                    }
+                }
+            }
+
+            // Format tanggal Indonesia
+            $tanggalSurat = formatTanggalIndonesia(date('Y-m-d'), 'd F Y');
+
+            // Siapkan data untuk view
+            $data = [
+                'guru' => $guru,
+                'tanggalSurat' => $tanggalSurat,
+                'alamatLengkap' => $guru['Alamat'] . ', RT ' . $guru['Rt'] . ' / RW ' . $guru['Rw'] . ', ' . $guru['KelurahanDesa'],
+                'fkpqData' => $fkpqRow,
+                'signatureKetuaFkpq' => $signatureKetuaFkpq
+            ];
+
+            // Load view untuk PDF
+            $html = view('backend/guru/pdf/suratRekomendasi', $data);
+
+            // Setup Dompdf
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('isJavascriptEnabled', false);
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Format filename
+            $filename = 'Surat_Rekomendasi_' . str_replace(' ', '_', $guru['Nama']) . '_' . date('Y-m-d') . '.pdf';
+
+            // Clear output buffer
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: printSuratRekomendasi - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
 }
