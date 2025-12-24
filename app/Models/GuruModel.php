@@ -32,7 +32,9 @@ class GuruModel extends Model
         'Provinsi',
         'NoHp',
         'Status',
-        'IdTpq'
+        'IdTpq',
+        'NoRekBpr',
+        'NoRekRiauKepri'
     ];
     public function GetData()
     {

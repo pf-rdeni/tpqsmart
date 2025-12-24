@@ -49,13 +49,24 @@ class Guru extends BaseController
 
     public function store()
     {
-        // Validasi input
+        // Validasi input - semua field wajib kecuali GelarDepan dan GelarBelakang
         $rules = [
             'IdGuru' => 'required|min_length[16]|max_length[16]|is_unique[tbl_guru.IdGuru]',
             'Nama' => 'required',
             'IdTpq' => 'required',
+            'TempatTugas' => 'required',
             'TanggalMulaiTugas' => 'required',
             'NoHp' => 'required|min_length[10]|max_length[13]',
+            'JenisKelamin' => 'required|in_list[Laki-laki,Perempuan]',
+            'TempatLahir' => 'required',
+            'TanggalLahir' => 'required',
+            'PendidikanTerakhir' => 'required|in_list[SD,SMP,SMA,D1,D2,D3,D4,S1,S2,S3]',
+            'Alamat' => 'required',
+            'Rt' => 'required',
+            'Rw' => 'required',
+            'KelurahanDesa' => 'required|in_list[Teluk Sasah,Busung,Kuala Sempang,Tanjung Permai,Teluk Lobam]',
+            'NoRekBpr' => 'permit_empty|numeric|max_length[11]',
+            'NoRekRiauKepri' => 'permit_empty|numeric|max_length[10]',
         ];
 
         if (!$this->validate($rules)) {
@@ -92,6 +103,8 @@ class Guru extends BaseController
             'Rt' => $this->request->getPost('Rt'),
             'Rw' => $this->request->getPost('Rw'),
             'KelurahanDesa' => $this->request->getPost('KelurahanDesa'),
+            'NoRekBpr' => $this->request->getPost('NoRekBpr'),
+            'NoRekRiauKepri' => $this->request->getPost('NoRekRiauKepri'),
         ];
 
         $this->DataModels->insert($data);
@@ -102,11 +115,34 @@ class Guru extends BaseController
     public function validateNik()
     {
         $nik = $this->request->getPost('IdGuru');
+        
+        // Validasi format NIK (16 digit angka)
+        if (empty($nik)) {
+            return $this->response->setJSON([
+                'exists' => false,
+                'message' => 'NIK harus diisi',
+                'data' => null,
+                'valid' => false
+            ]);
+        }
+        
+        // Validasi format: harus 16 digit angka
+        if (!preg_match('/^\d{16}$/', $nik)) {
+            return $this->response->setJSON([
+                'exists' => false,
+                'message' => 'Format NIK tidak valid. NIK harus 16 digit angka.',
+                'data' => null,
+                'valid' => false
+            ]);
+        }
+        
+        // Cek apakah NIK sudah terdaftar
         $exists = $this->DataModels->where('IdGuru', $nik)->first();
         return $this->response->setJSON([
             'exists' => !empty($exists), // true jika NIK ditemukan, false jika tidak
             'message' => !empty($exists) ? 'NIK sudah terdaftar' : 'NIK belum terdaftar',
-            'data' => $exists
+            'data' => $exists,
+            'valid' => true
         ]);
     }
 
@@ -197,13 +233,25 @@ class Guru extends BaseController
     public function update()
     {
         try {
-            // Validasi input
+            // Validasi input - semua field wajib kecuali GelarDepan dan GelarBelakang
             $rules = [
                 'IdGuru' => 'required|min_length[16]|max_length[16]',
                 'Nama' => 'required',
                 'IdTpq' => 'required',
+                'TempatTugas' => 'required',
                 'TanggalMulaiTugas' => 'required',
                 'NoHp' => 'required|min_length[10]|max_length[13]',
+                'Status' => 'required|in_list[0,1]',
+                'JenisKelamin' => 'required|in_list[Laki-laki,Perempuan]',
+                'TempatLahir' => 'required',
+                'TanggalLahir' => 'required',
+                'PendidikanTerakhir' => 'required|in_list[SD,SMP,SMA,D1,D2,D3,D4,S1,S2,S3]',
+                'Alamat' => 'required',
+                'Rt' => 'required',
+                'Rw' => 'required',
+                'KelurahanDesa' => 'required|in_list[Teluk Sasah,Busung,Kuala Sempang,Tanjung Permai,Teluk Lobam]',
+                'NoRekBpr' => 'permit_empty|numeric|max_length[11]',
+                'NoRekRiauKepri' => 'permit_empty|numeric|max_length[10]',
             ];
 
             if (!$this->validate($rules)) {
@@ -253,6 +301,8 @@ class Guru extends BaseController
                 'Rw' => $this->request->getPost('Rw'),
                 'KelurahanDesa' => $this->request->getPost('KelurahanDesa'),
                 'Status' => $this->request->getPost('Status'),
+                'NoRekBpr' => $this->request->getPost('NoRekBpr'),
+                'NoRekRiauKepri' => $this->request->getPost('NoRekRiauKepri'),
             ];
 
             $this->DataModels->update($this->request->getPost('IdGuru'), $data);

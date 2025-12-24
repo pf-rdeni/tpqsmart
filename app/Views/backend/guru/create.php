@@ -7,6 +7,19 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
+            <?php if (session()->getFlashdata('errors')): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <h5><i class="icon fas fa-ban"></i> Validasi Gagal!</h5>
+                    <ul class="mb-0">
+                        <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                            <li><?= $error ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            <?php endif; ?>
             <form action="<?= base_url('backend/guru/store') ?>" method="POST">
                 <div class="form-group">
                     <label for="IdTpq">TPQ</label>
@@ -33,7 +46,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="IdGuru">NIK</label>
-                            <input type="text" class="form-control" id="IdGuru" name="IdGuru" required pattern="^[1-9]\d{15}$">
+                            <input type="text" class="form-control" id="IdGuru" name="IdGuru" required pattern="^[1-9]\d{15}$" maxlength="16">
                             <div id="IdGuruError" class="invalid-feedback"></div>
                         </div>
                     </div>
@@ -148,6 +161,22 @@
                         </div>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="NoRekBpr">Rekening BPR Insentif Kabupaten</label>
+                            <input type="text" class="form-control" id="NoRekBpr" name="NoRekBpr" placeholder="Nomor Rekening BPR (Optional)">
+                            <div id="NoRekBprError" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="NoRekRiauKepri">Rekening BRK Insentif Provinsi</label>
+                            <input type="text" class="form-control" id="NoRekRiauKepri" name="NoRekRiauKepri" placeholder="Nomor Rekening BRK (Optional)">
+                            <div id="NoRekRiauKepriError" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
                 <div class="form-group">
                     <input type="hidden" name="IdTpq" value="<?= session()->get('IdTpq') ?>">
                 </div>
@@ -217,7 +246,11 @@
 
         // Event listener untuk input
         input.addEventListener('input', function(e) {
-            const nilai = e.target.value.replace(/\D/g, '');
+            let nilai = e.target.value.replace(/\D/g, '');
+            // Batasi maksimal 16 digit
+            if (nilai.length > 16) {
+                nilai = nilai.slice(0, 16);
+            }
             e.target.value = nilai;
             validasiNomor(this);
         });
@@ -225,17 +258,66 @@
         // Event listener untuk blur
         input.addEventListener('blur', function() {
             if (validasiNomor(this)) {
+                const nikValue = this.value;
+
                 // Cek ke database jika validasi format berhasil
                 $.ajax({
                     url: '<?= base_url('backend/guru/validateNik') ?>',
                     type: 'POST',
                     data: {
-                        IdGuru: this.value
+                        IdGuru: nikValue
+                    },
+                    beforeSend: function() {
+                        // Tampilkan loading indicator jika diperlukan
+                        input.classList.add('is-loading');
                     },
                     success: function(response) {
-                        if (response.exists) {
-                            tampilkanError(`NIK ${response.data.IdGuru} sudah terdaftar atas nama ${response.data.Nama} di ${response.data.TempatTugas}!`);
+                        input.classList.remove('is-loading');
+
+                        // Cek apakah format valid
+                        if (response.valid === false) {
+                            tampilkanError(response.message || 'Format NIK tidak valid');
+                            return;
                         }
+
+                        // Cek apakah NIK sudah terdaftar
+                        if (response.exists) {
+                            const errorMsg = `NIK ${response.data.IdGuru} sudah terdaftar atas nama ${response.data.Nama} di ${response.data.TempatTugas}!`;
+                            tampilkanError(errorMsg);
+
+                            // Tampilkan popup SweetAlert
+                            Swal.fire({
+                                title: 'NIK Sudah Terdaftar!',
+                                html: `<div style="text-align: left;">
+                                        <p><strong>NIK:</strong> ${response.data.IdGuru}</p>
+                                        <p><strong>Nama:</strong> ${response.data.Nama}</p>
+                                        <p><strong>TPQ:</strong> ${response.data.TempatTugas || '-'}</p>
+                                       </div>`,
+                                icon: 'warning',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#3085d6',
+                                allowOutsideClick: false
+                            });
+                        } else {
+                            // NIK belum terdaftar, sembunyikan error
+                            sembunyikanError();
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        input.classList.remove('is-loading');
+                        console.error('Error checking NIK:', error);
+
+                        // Tampilkan error di field
+                        tampilkanError('Terjadi kesalahan saat mengecek NIK. Silakan coba lagi.');
+
+                        // Tampilkan popup error
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat mengecek NIK. Silakan coba lagi.',
+                            icon: 'error',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#3085d6'
+                        });
                     }
                 });
             }
@@ -598,6 +680,110 @@
         }
     }
 
+    // Fungsi validasi nomor rekening BPR (maksimal 11 digit angka)
+    function validasiNoRekBpr() {
+        const noRekBprInput = document.getElementById('NoRekBpr');
+        const noRekBprError = document.getElementById('NoRekBprError');
+
+        function validasiNoRek(input) {
+            const nilai = input.value.replace(/\D/g, ''); // Hapus karakter non-digit
+            input.value = nilai;
+
+            // Jika kosong, tidak perlu validasi (optional)
+            if (nilai === '') {
+                sembunyikanError();
+                return true;
+            }
+
+            // Validasi harus angka
+            if (!/^\d+$/.test(nilai)) {
+                tampilkanError('Nomor rekening BPR harus berupa angka.');
+                return false;
+            }
+
+            // Validasi maksimal 11 digit
+            if (nilai.length > 11) {
+                tampilkanError('Nomor rekening BPR maksimal 11 digit.');
+                input.value = nilai.slice(0, 11);
+                return false;
+            }
+
+            function tampilkanError(pesan) {
+                noRekBprError.textContent = pesan;
+                noRekBprError.style.display = 'block';
+                input.classList.add('is-invalid');
+            }
+
+            function sembunyikanError() {
+                noRekBprError.style.display = 'none';
+                input.classList.remove('is-invalid');
+            }
+
+            sembunyikanError();
+            return true;
+        }
+
+        noRekBprInput.addEventListener('input', function() {
+            validasiNoRek(this);
+        });
+
+        noRekBprInput.addEventListener('blur', function() {
+            validasiNoRek(this);
+        });
+    }
+
+    // Fungsi validasi nomor rekening BRK (maksimal 10 digit angka)
+    function validasiNoRekRiauKepri() {
+        const noRekRiauKepriInput = document.getElementById('NoRekRiauKepri');
+        const noRekRiauKepriError = document.getElementById('NoRekRiauKepriError');
+
+        function validasiNoRek(input) {
+            const nilai = input.value.replace(/\D/g, ''); // Hapus karakter non-digit
+            input.value = nilai;
+
+            // Jika kosong, tidak perlu validasi (optional)
+            if (nilai === '') {
+                sembunyikanError();
+                return true;
+            }
+
+            // Validasi harus angka
+            if (!/^\d+$/.test(nilai)) {
+                tampilkanError('Nomor rekening BRK harus berupa angka.');
+                return false;
+            }
+
+            // Validasi maksimal 10 digit
+            if (nilai.length > 10) {
+                tampilkanError('Nomor rekening BRK maksimal 10 digit.');
+                input.value = nilai.slice(0, 10);
+                return false;
+            }
+
+            function tampilkanError(pesan) {
+                noRekRiauKepriError.textContent = pesan;
+                noRekRiauKepriError.style.display = 'block';
+                input.classList.add('is-invalid');
+            }
+
+            function sembunyikanError() {
+                noRekRiauKepriError.style.display = 'none';
+                input.classList.remove('is-invalid');
+            }
+
+            sembunyikanError();
+            return true;
+        }
+
+        noRekRiauKepriInput.addEventListener('input', function() {
+            validasiNoRek(this);
+        });
+
+        noRekRiauKepriInput.addEventListener('blur', function() {
+            validasiNoRek(this);
+        });
+    }
+
     // Inisialisasi validasi saat dokumen siap
     document.addEventListener('DOMContentLoaded', function() {
         validasiNomorKkNik('IdGuru');
@@ -609,6 +795,8 @@
         validasiKapital();
         validasiNoHp();
         setTempatTugas();
+        validasiNoRekBpr();
+        validasiNoRekRiauKepri();
     });
 </script>
 <?= $this->endSection(); ?>

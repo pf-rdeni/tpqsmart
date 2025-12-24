@@ -16,14 +16,15 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>NIK</th>
-                        <th>Nama</th>
+                        <th>Aksi</th>
+                        <th>NIK / Nama</th>
                         <th>Jenis Kelamin</th>
                         <th>TTL</th>
-                        <th>Mulai Bertugas</th>
                         <th>Alamat Lengkap</th>
+                        <th>Mulai Bertugas</th>
+                        <th>No Rekening</th>
+                        <th>No HP</th>
                         <th>Status</th>
-                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -32,31 +33,41 @@
                     foreach ($guru as $dataGuru) : ?>
                         <tr>
                             <td><?= $no++ ?></td>
-                            <td><?= $dataGuru['IdGuru'] ?></td>
-                            <td><?= ucwords(strtolower($dataGuru['Nama'])) ?></td>
-                            <td><?= ucwords(strtolower($dataGuru['JenisKelamin'])) ?></td>
-                            <td><?= ucwords(strtolower($dataGuru['TempatLahir'])) . ", " . $dataGuru['TanggalLahir'] ?></td>
-                            <td><?= $dataGuru['TanggalMulaiTugas'] ?></td>
-                            <td><?= ucwords(strtolower($dataGuru['Alamat'])) . ", RT " . $dataGuru['Rt'] . " / RW " . $dataGuru['Rw'] . ", " . ucwords(strtolower($dataGuru['KelurahanDesa'])) ?></td>
-                            <td><?= $dataGuru['Status'] == 1 ? 'Aktif' : 'Tidak Aktif' ?></td>
                             <td>
                                 <a href="javascript:void(0)" onclick="editGuru('<?= $dataGuru['IdGuru'] ?>')" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
                                 <a href="javascript:void(0)" onclick="deleteGuru('<?= $dataGuru['IdGuru'] ?>', '<?= ucwords(strtolower($dataGuru['Nama'])) ?>')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></a>
                             </td>
+                            <td>
+                                <?= $dataGuru['IdGuru'] ?><br>
+                                <strong><?= ucwords(strtolower($dataGuru['Nama'])) ?></strong>
+                            </td>
+                            <td><?= ucwords(strtolower($dataGuru['JenisKelamin'])) ?></td>
+                            <td><?= ucwords(strtolower($dataGuru['TempatLahir'])) . ", " . (!empty($dataGuru['TanggalLahir']) ? formatTanggalIndonesia($dataGuru['TanggalLahir'], 'd F Y') : '-') ?></td>
+                            <td><?= ucwords(strtolower($dataGuru['Alamat'])) . ", RT " . $dataGuru['Rt'] . " / RW " . $dataGuru['Rw'] . ", " . ucwords(strtolower($dataGuru['KelurahanDesa'])) ?></td>
+                            <td><?= !empty($dataGuru['TanggalMulaiTugas']) ? formatTanggalIndonesia($dataGuru['TanggalMulaiTugas'], 'd F Y') : '-' ?></td>
+                            <td>
+                                <small>
+                                    <strong>Rek</strong> BPR: <?= !empty($dataGuru['NoRekBpr']) ? $dataGuru['NoRekBpr'] : '-' ?><br>
+                                    <strong>Rek</strong> BRK: <?= !empty($dataGuru['NoRekRiauKepri']) ? $dataGuru['NoRekRiauKepri'] : '-' ?>
+                                </small>
+                            </td>
+                            <td><?= $dataGuru['NoHp'] ?? '-' ?></td>
+                            <td><?= $dataGuru['Status'] == 1 ? 'Aktif' : 'Tidak Aktif' ?></td>
                         </tr>
                     <?php endforeach ?>
                 </tbody>
                 <tfoot>
                     <tr>
                         <th>No</th>
-                        <th>NIK</th>
-                        <th>Nama</th>
+                        <th>Aksi</th>
+                        <th>NIK / Nama</th>
                         <th>Jenis Kelamin</th>
                         <th>TTL</th>
-                        <th>Mulai Bertugas</th>
                         <th>Alamat Lengkap</th>
+                        <th>Mulai Bertugas</th>
+                        <th>No Rekening</th>
+                        <th>No HP</th>
                         <th>Status</th>
-                        <th>Aksi</th>
                     </tr>
                 </tfoot>
             </table>
@@ -80,6 +91,7 @@
                 <form id="editGuruForm" action="<?= base_url('backend/guru/update') ?>" method="POST">
                     <input type="hidden" id="edit_IdGuru" name="IdGuru">
                     <input type="hidden" id="edit_TempatTugas" name="TempatTugas" required>
+                    <div id="edit_TempatTugasError" class="invalid-feedback"></div>
 
                     <div class="form-group">
                         <label for="edit_Status">Status</label>
@@ -108,7 +120,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_NIK">NIK</label>
-                                <input type="text" class="form-control" id="edit_NIK" name="NIK" required pattern="[0-9]{16}" placeholder="Contoh: 1234567890123456" disabled>
+                                <input type="text" class="form-control" id="edit_NIK" name="NIK" required pattern="[0-9]{16}" placeholder="Contoh: 1234567890123456" maxlength="16" disabled>
                                 <div id="edit_NIKError" class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -123,6 +135,7 @@
                             <div class="form-group">
                                 <label for="edit_TanggalMulaiTugas">Tanggal Mulai Tugas</label>
                                 <input type="date" class="form-control" id="edit_TanggalMulaiTugas" name="TanggalMulaiTugas" required>
+                                <div id="edit_TanggalMulaiTugasError" class="invalid-feedback"></div>
                             </div>
                         </div>
                     </div>
@@ -139,6 +152,7 @@
                             <div class="form-group">
                                 <label for="edit_Nama">Nama Lengkap</label>
                                 <input type="text" class="form-control" id="edit_Nama" name="Nama" required>
+                                <div id="edit_NamaError" class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -159,18 +173,21 @@
                                     <option value="Laki-laki">Laki-laki</option>
                                     <option value="Perempuan">Perempuan</option>
                                 </select>
+                                <div id="edit_JenisKelaminError" class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="edit_TempatLahir">Tempat Lahir</label>
                                 <input type="text" class="form-control" id="edit_TempatLahir" name="TempatLahir" required>
+                                <div id="edit_TempatLahirError" class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="edit_TanggalLahir">Tanggal Lahir</label>
                                 <input type="date" class="form-control" id="edit_TanggalLahir" name="TanggalLahir" required>
+                                <div id="edit_TanggalLahirError" class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -189,6 +206,7 @@
                                     <option value="S2">S2</option>
                                     <option value="S3">S3</option>
                                 </select>
+                                <div id="edit_PendidikanTerakhirError" class="invalid-feedback"></div>
                             </div>
                         </div>
                     </div>
@@ -196,6 +214,7 @@
                     <div class="form-group">
                         <label for="edit_Alamat">Alamat</label>
                         <textarea class="form-control" id="edit_Alamat" name="Alamat" rows="3" required></textarea>
+                        <div id="edit_AlamatError" class="invalid-feedback"></div>
                     </div>
 
                     <div class="row">
@@ -224,6 +243,23 @@
                                     <option value="Tanjung Permai">Tanjung Permai</option>
                                     <option value="Teluk Lobam">Teluk Lobam</option>
                                 </select>
+                                <div id="edit_KelurahanDesaError" class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_NoRekBpr">Rekening BPR Insentif Kabupaten</label>
+                                <input type="text" class="form-control" id="edit_NoRekBpr" name="NoRekBpr" placeholder="Nomor Rekening BPR (Optional)">
+                                <div id="edit_NoRekBprError" class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_NoRekRiauKepri">Rekening BRK Insentif Provinsi</label>
+                                <input type="text" class="form-control" id="edit_NoRekRiauKepri" name="NoRekRiauKepri" placeholder="Nomor Rekening BRK (Optional)">
+                                <div id="edit_NoRekRiauKepriError" class="invalid-feedback"></div>
                             </div>
                         </div>
                     </div>
@@ -396,6 +432,8 @@
                     }
 
                     document.getElementById('edit_TempatTugas').value = guru.TempatTugas;
+                    document.getElementById('edit_NoRekBpr').value = guru.NoRekBpr || '';
+                    document.getElementById('edit_NoRekRiauKepri').value = guru.NoRekRiauKepri || '';
 
                     // Tampilkan modal
                     $('#editGuruModal').modal('show');
@@ -447,7 +485,46 @@
                         location.reload();
                     });
                 } else {
-                    throw new Error(data.message || 'Gagal memperbarui data guru');
+                    // Tampilkan error validasi jika ada
+                    if (data.errors) {
+                        let errorMessage = data.message || 'Validasi gagal:\n';
+                        // Mapping nama field dari backend ke frontend
+                        const fieldMapping = {
+                            'IdGuru': 'NIK', // NIK adalah field yang ditampilkan, tapi backend menggunakan IdGuru
+                            'TempatTugas': 'TempatTugas'
+                        };
+
+                        for (const field in data.errors) {
+                            errorMessage += `- ${data.errors[field]}\n`;
+                            // Tampilkan error di field yang sesuai
+                            const mappedField = fieldMapping[field] || field;
+                            const errorElement = document.getElementById('edit_' + mappedField + 'Error');
+                            const inputElement = document.getElementById('edit_' + mappedField);
+
+                            // Jika tidak ditemukan dengan mapping, coba langsung dengan nama field
+                            if (!errorElement || !inputElement) {
+                                const directErrorElement = document.getElementById('edit_' + field + 'Error');
+                                const directInputElement = document.getElementById('edit_' + field);
+                                if (directErrorElement && directInputElement) {
+                                    directErrorElement.textContent = data.errors[field];
+                                    directErrorElement.style.display = 'block';
+                                    directInputElement.classList.add('is-invalid');
+                                }
+                            } else {
+                                errorElement.textContent = data.errors[field];
+                                errorElement.style.display = 'block';
+                                inputElement.classList.add('is-invalid');
+                            }
+                        }
+                        Swal.fire({
+                            title: 'Validasi Gagal!',
+                            text: errorMessage,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        throw new Error(data.message || 'Gagal memperbarui data guru');
+                    }
                 }
             })
             .catch(error => {
@@ -507,23 +584,77 @@
         }
 
         input.addEventListener('input', function(e) {
-            const nilai = e.target.value.replace(/\D/g, '');
+            let nilai = e.target.value.replace(/\D/g, '');
+            // Batasi maksimal 16 digit
+            if (nilai.length > 16) {
+                nilai = nilai.slice(0, 16);
+            }
             e.target.value = nilai;
             validasiNomor(this);
         });
 
         input.addEventListener('blur', function() {
             if (validasiNomor(this)) {
+                const nikValue = this.value;
+
+                // Cek ke database jika validasi format berhasil
                 $.ajax({
                     url: '<?= base_url('backend/guru/validateNik') ?>',
                     type: 'POST',
                     data: {
-                        IdGuru: this.value
+                        IdGuru: nikValue
+                    },
+                    beforeSend: function() {
+                        // Tampilkan loading indicator jika diperlukan
+                        input.classList.add('is-loading');
                     },
                     success: function(response) {
-                        if (response.exists) {
-                            tampilkanError(`NIK ${response.data.IdGuru} sudah terdaftar atas nama ${response.data.Nama} di ${response.data.TempatTugas}!`);
+                        input.classList.remove('is-loading');
+
+                        // Cek apakah format valid
+                        if (response.valid === false) {
+                            tampilkanError(response.message || 'Format NIK tidak valid');
+                            return;
                         }
+
+                        // Cek apakah NIK sudah terdaftar
+                        if (response.exists) {
+                            const errorMsg = `NIK ${response.data.IdGuru} sudah terdaftar atas nama ${response.data.Nama} di ${response.data.TempatTugas}!`;
+                            tampilkanError(errorMsg);
+
+                            // Tampilkan popup SweetAlert
+                            Swal.fire({
+                                title: 'NIK Sudah Terdaftar!',
+                                html: `<div style="text-align: left;">
+                                        <p><strong>NIK:</strong> ${response.data.IdGuru}</p>
+                                        <p><strong>Nama:</strong> ${response.data.Nama}</p>
+                                        <p><strong>TPQ:</strong> ${response.data.TempatTugas || '-'}</p>
+                                       </div>`,
+                                icon: 'warning',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#3085d6',
+                                allowOutsideClick: false
+                            });
+                        } else {
+                            // NIK belum terdaftar, sembunyikan error
+                            sembunyikanError();
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        input.classList.remove('is-loading');
+                        console.error('Error checking NIK:', error);
+
+                        // Tampilkan error di field
+                        tampilkanError('Terjadi kesalahan saat mengecek NIK. Silakan coba lagi.');
+
+                        // Tampilkan popup error
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat mengecek NIK. Silakan coba lagi.',
+                            icon: 'error',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#3085d6'
+                        });
                     }
                 });
             }
@@ -875,6 +1006,114 @@
         }
     }
 
+    // Fungsi validasi nomor rekening BPR (maksimal 11 digit angka)
+    function validasiNoRekBpr() {
+        const noRekBprInput = document.getElementById('edit_NoRekBpr');
+        const noRekBprError = document.getElementById('edit_NoRekBprError');
+
+        if (!noRekBprInput || !noRekBprError) return;
+
+        function validasiNoRek(input) {
+            const nilai = input.value.replace(/\D/g, ''); // Hapus karakter non-digit
+            input.value = nilai;
+
+            // Jika kosong, tidak perlu validasi (optional)
+            if (nilai === '') {
+                sembunyikanError();
+                return true;
+            }
+
+            // Validasi harus angka
+            if (!/^\d+$/.test(nilai)) {
+                tampilkanError('Nomor rekening BPR harus berupa angka.');
+                return false;
+            }
+
+            // Validasi maksimal 11 digit
+            if (nilai.length > 11) {
+                tampilkanError('Nomor rekening BPR maksimal 11 digit.');
+                input.value = nilai.slice(0, 11);
+                return false;
+            }
+
+            function tampilkanError(pesan) {
+                noRekBprError.textContent = pesan;
+                noRekBprError.style.display = 'block';
+                input.classList.add('is-invalid');
+            }
+
+            function sembunyikanError() {
+                noRekBprError.style.display = 'none';
+                input.classList.remove('is-invalid');
+            }
+
+            sembunyikanError();
+            return true;
+        }
+
+        noRekBprInput.addEventListener('input', function() {
+            validasiNoRek(this);
+        });
+
+        noRekBprInput.addEventListener('blur', function() {
+            validasiNoRek(this);
+        });
+    }
+
+    // Fungsi validasi nomor rekening BRK (maksimal 10 digit angka)
+    function validasiNoRekRiauKepri() {
+        const noRekRiauKepriInput = document.getElementById('edit_NoRekRiauKepri');
+        const noRekRiauKepriError = document.getElementById('edit_NoRekRiauKepriError');
+
+        if (!noRekRiauKepriInput || !noRekRiauKepriError) return;
+
+        function validasiNoRek(input) {
+            const nilai = input.value.replace(/\D/g, ''); // Hapus karakter non-digit
+            input.value = nilai;
+
+            // Jika kosong, tidak perlu validasi (optional)
+            if (nilai === '') {
+                sembunyikanError();
+                return true;
+            }
+
+            // Validasi harus angka
+            if (!/^\d+$/.test(nilai)) {
+                tampilkanError('Nomor rekening BRK harus berupa angka.');
+                return false;
+            }
+
+            // Validasi maksimal 10 digit
+            if (nilai.length > 10) {
+                tampilkanError('Nomor rekening BRK maksimal 10 digit.');
+                input.value = nilai.slice(0, 10);
+                return false;
+            }
+
+            function tampilkanError(pesan) {
+                noRekRiauKepriError.textContent = pesan;
+                noRekRiauKepriError.style.display = 'block';
+                input.classList.add('is-invalid');
+            }
+
+            function sembunyikanError() {
+                noRekRiauKepriError.style.display = 'none';
+                input.classList.remove('is-invalid');
+            }
+
+            sembunyikanError();
+            return true;
+        }
+
+        noRekRiauKepriInput.addEventListener('input', function() {
+            validasiNoRek(this);
+        });
+
+        noRekRiauKepriInput.addEventListener('blur', function() {
+            validasiNoRek(this);
+        });
+    }
+
     // Inisialisasi validasi saat dokumen siap
     document.addEventListener('DOMContentLoaded', function() {
         validasiNomorKkNik('edit_NoHp');
@@ -886,8 +1125,13 @@
         validasiKapital();
         validasiNoHp();
         setTempatTugas();
+        validasiNoRekBpr();
+        validasiNoRekRiauKepri();
     });
 
-    initializeDataTableUmum("#tabelGuru", true, true);
+    initializeDataTableScrollX("#tabelGuru", [], {
+        "pageLength": 25,
+        "lengthChange": true
+    });
 </script>
 <?= $this->endSection(); ?>
