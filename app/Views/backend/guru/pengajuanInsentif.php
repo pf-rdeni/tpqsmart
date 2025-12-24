@@ -21,6 +21,14 @@
                             endif; ?>
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="button" class="btn btn-success btn-sm" id="btnPrintBulk" data-toggle="modal" data-target="#modalPrintBulk">
+                                <i class="fas fa-print"></i> Print Bulk
+                            </button>
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
             <table id="tabelPengajuanInsentif" class="table table-bordered table-striped">
@@ -330,5 +338,346 @@
             // Untuk Operator, tidak perlu filter karena sudah otomatis filtered di server
         <?php endif; ?>
     });
+
+    // Print Bulk Handler
+    <?php if (in_groups('Admin')): ?>
+        $(document).ready(function() {
+            // Initialize Select2 untuk TPQ filter
+            $('#bulkFilterTpq').select2({
+                placeholder: 'Pilih TPQ (kosongkan untuk semua TPQ)',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Prevent form submit
+            $('#formPrintBulk').on('submit', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
+            $(document).on('click', '#btnSubmitPrintBulk', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                console.log('Print Bulk button clicked');
+
+                const fileTypes = [];
+                $('input[name="fileTypes[]"]:checked').each(function() {
+                    fileTypes.push($(this).val());
+                });
+
+                console.log('File types selected:', fileTypes);
+
+                if (fileTypes.length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan',
+                        text: 'Silakan pilih minimal satu file yang akan di print'
+                    });
+                    return false;
+                }
+
+                const jenisPenerimaInsentif = $('#bulkJenisPenerimaInsentif').val();
+                const filterTpq = $('#bulkFilterTpq').val(); // Array jika multiple select
+
+                // Validasi: Jenis Penerima Insentif wajib dipilih
+                if (!jenisPenerimaInsentif || jenisPenerimaInsentif === '') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan',
+                        text: 'Silakan pilih Jenis Penerima Insentif terlebih dahulu'
+                    });
+                    return false;
+                }
+
+                // Validasi data terlebih dahulu
+                Swal.fire({
+                    title: 'Memvalidasi...',
+                    html: 'Sedang memeriksa ketersediaan data...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Check data terlebih dahulu
+                let checkUrl = '<?= base_url('backend/guru/checkBulkInsentifData') ?>?';
+                if (jenisPenerimaInsentif) {
+                    checkUrl += 'jenisPenerimaInsentif=' + encodeURIComponent(jenisPenerimaInsentif);
+                }
+                if (filterTpq && filterTpq.length > 0) {
+                    if (jenisPenerimaInsentif) {
+                        checkUrl += '&';
+                    }
+                    // Jika multiple, kirim sebagai array
+                    if (Array.isArray(filterTpq)) {
+                        filterTpq.forEach(function(tpqId, index) {
+                            if (index === 0 && !jenisPenerimaInsentif) {
+                                checkUrl += 'filterTpq[]=' + encodeURIComponent(tpqId);
+                            } else {
+                                checkUrl += '&filterTpq[]=' + encodeURIComponent(tpqId);
+                            }
+                        });
+                    } else {
+                        checkUrl += 'filterTpq=' + encodeURIComponent(filterTpq);
+                    }
+                }
+
+                fetch(checkUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        // Cek status code terlebih dahulu
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('HTTP Error:', response.status, text);
+                                throw new Error('HTTP ' + response.status + ': ' + (text.substring(0, 200) || 'Terjadi kesalahan pada server'));
+                            });
+                        }
+
+                        // Cek content type
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            return response.text().then(text => {
+                                console.error('Non-JSON response:', text);
+                                throw new Error('Server mengembalikan response yang tidak valid. Silakan cek log untuk detail.');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (!data.success) {
+                            Swal.close();
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Data Tidak Ditemukan',
+                                html: data.message,
+                                confirmButtonText: 'Mengerti',
+                                width: '600px'
+                            });
+                            return false;
+                        }
+
+                        // Jika data ada, lanjutkan proses print
+                        console.log('Data validation passed:', data.count, 'guru ditemukan');
+
+                        // Build URL untuk print
+                        let url = '<?= base_url('backend/guru/printBulkInsentif') ?>?';
+                        url += 'fileTypes=' + fileTypes.join(',');
+                        if (jenisPenerimaInsentif) {
+                            url += '&jenisPenerimaInsentif=' + encodeURIComponent(jenisPenerimaInsentif);
+                        }
+                        if (filterTpq && filterTpq.length > 0) {
+                            // Jika multiple, kirim sebagai array
+                            if (Array.isArray(filterTpq)) {
+                                filterTpq.forEach(function(tpqId) {
+                                    url += '&filterTpq[]=' + encodeURIComponent(tpqId);
+                                });
+                            } else {
+                                url += '&filterTpq=' + encodeURIComponent(filterTpq);
+                            }
+                        }
+
+                        console.log('Print URL:', url);
+
+                        // Close modal
+                        $('#modalPrintBulk').modal('hide');
+
+                        // Show loading
+                        Swal.fire({
+                            title: 'Memproses...',
+                            html: 'Sedang membuat PDF bulk untuk ' + data.count + ' guru, mohon tunggu...',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        // Gunakan fetch untuk download dengan error handling
+                        return fetch(url, {
+                                method: 'GET',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => {
+                                console.log('Response status:', response.status);
+                                console.log('Response headers:', response.headers);
+
+                                // Cek jika response adalah JSON (error)
+                                const contentType = response.headers.get('content-type');
+                                if (contentType && contentType.includes('application/json')) {
+                                    return response.json().then(data => {
+                                        throw new Error(data.message || 'Terjadi kesalahan');
+                                    });
+                                }
+
+                                // Cek status code
+                                if (!response.ok) {
+                                    return response.text().then(text => {
+                                        throw new Error('HTTP ' + response.status + ': ' + text.substring(0, 200));
+                                    });
+                                }
+
+                                // Ambil nama file dari header Content-Disposition
+                                const contentDisposition = response.headers.get('content-disposition');
+                                let downloadFilename = 'Pengajuan_Insentif_' + new Date().getTime() + '.zip';
+
+                                if (contentDisposition) {
+                                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                                    if (filenameMatch && filenameMatch[1]) {
+                                        // Hapus quotes jika ada
+                                        downloadFilename = filenameMatch[1].replace(/['"]/g, '');
+                                        console.log('Filename from header:', downloadFilename);
+                                    }
+                                }
+
+                                // Jika sukses, download file
+                                return response.blob().then(blob => {
+                                    return {
+                                        blob: blob,
+                                        filename: downloadFilename
+                                    };
+                                });
+                            })
+                            .then(result => {
+                                console.log('Download berhasil, blob size:', result.blob.size);
+                                console.log('Download filename:', result.filename);
+
+                                if (result.blob.size === 0) {
+                                    throw new Error('File ZIP kosong. Silakan cek log untuk detail error.');
+                                }
+
+                                // Buat URL untuk download
+                                const downloadUrl = window.URL.createObjectURL(result.blob);
+                                const a = document.createElement('a');
+                                a.href = downloadUrl;
+                                a.download = result.filename;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                window.URL.revokeObjectURL(downloadUrl);
+
+                                Swal.close();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: 'File ZIP berhasil diunduh',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                Swal.close();
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    html: '<p>Terjadi kesalahan saat membuat PDF bulk:</p><p><strong>' + error.message + '</strong></p><p>Silakan cek log atau hubungi administrator.</p>',
+                                    confirmButtonText: 'Mengerti'
+                                });
+                            });
+                    })
+                    .catch(error => {
+                        console.error('Validation error:', error);
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error Validasi',
+                            html: '<p>Terjadi kesalahan saat memvalidasi data:</p><p><strong>' + error.message + '</strong></p>',
+                            confirmButtonText: 'Mengerti'
+                        });
+                    });
+
+                return false;
+            });
+        });
+    <?php endif; ?>
 </script>
+
+<!-- Modal Print Bulk (Hanya untuk Admin) -->
+<?php if (in_groups('Admin')): ?>
+    <div class="modal fade" id="modalPrintBulk" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Print Bulk - Pengajuan Insentif</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formPrintBulk">
+                        <div class="form-group">
+                            <label>Pilih File yang Akan di Print:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkAsn" name="fileTypes[]" value="asn" checked>
+                                <label class="form-check-label" for="checkAsn">
+                                    Surat Pernyataan Tidak Berstatus ASN
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkInsentif" name="fileTypes[]" value="insentif" checked>
+                                <label class="form-check-label" for="checkInsentif">
+                                    Surat Pernyataan Tidak Sedang Menerima Insentif
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkRekomendasi" name="fileTypes[]" value="rekomendasi" checked>
+                                <label class="form-check-label" for="checkRekomendasi">
+                                    Surat Rekomendasi
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkLampiran" name="fileTypes[]" value="lampiran" checked>
+                                <label class="form-check-label" for="checkLampiran">
+                                    Lampiran KTP dan Rekening BPR
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="bulkJenisPenerimaInsentif">Filter Jenis Penerima Insentif: <span class="text-danger">*</span></label>
+                            <select class="form-control" id="bulkJenisPenerimaInsentif" name="jenisPenerimaInsentif" required>
+                                <option value="">-- Pilih Jenis Penerima Insentif --</option>
+                                <option value="Guru Ngaji">Guru Ngaji</option>
+                                <option value="Mubaligh">Mubaligh</option>
+                                <option value="Fardu Kifayah">Fardu Kifayah</option>
+                            </select>
+                            <small class="form-text text-muted">Wajib dipilih salah satu jenis penerima insentif</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Filter TPQ:</label>
+                            <select class="form-control select2" id="bulkFilterTpq" name="filterTpq[]" multiple="multiple" style="width: 100%;">
+                                <?php if (!empty($tpq)) : foreach ($tpq as $dataTpq): ?>
+                                        <option value="<?= esc($dataTpq['IdTpq']) ?>">
+                                            <?= esc($dataTpq['NamaTpq']) ?> - <?= esc($dataTpq['KelurahanDesa'] ?? '-') ?>
+                                        </option>
+                                <?php endforeach;
+                                endif; ?>
+                            </select>
+                            <small class="form-text text-muted">Pilih satu atau lebih TPQ. File ZIP akan dikelompokkan berdasarkan TPQ yang dipilih. Kosongkan untuk semua TPQ.</small>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Info:</strong> Setiap guru akan memiliki 1 file PDF yang berisi gabungan dari file yang dipilih (maksimal 4 file).
+                            File akan di-zip berdasarkan filter TPQ.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="btnSubmitPrintBulk">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <?= $this->endSection(); ?>
