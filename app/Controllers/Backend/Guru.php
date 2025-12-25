@@ -35,18 +35,27 @@ class Guru extends BaseController
     {
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
+        $isAdmin = in_groups('Admin');
+        $isOperator = in_groups('Operator');
+
         // query data guru berdasarkan IdTpq jika idtpq tidak ada maka akan menampilkan semua data guru
         if ($IdTpq == null) {
             $data = [
                 'page_title' => 'Data Guru',
                 'guru' => $this->DataModels->findAll(),
-                'tpq' => $this->helpFunction->getDataTpq()
+                'tpq' => $this->helpFunction->getDataTpq(),
+                'sessionIdTpq' => $IdTpq,
+                'isAdmin' => $isAdmin,
+                'isOperator' => $isOperator
             ];
         } else {
             $data = [
                 'page_title' => 'Data Guru',
                 'guru' => $this->DataModels->where('IdTpq', $IdTpq)->findAll(),
-                'tpq' => $this->helpFunction->getDataTpq()
+                'tpq' => $this->helpFunction->getDataTpq(),
+                'sessionIdTpq' => $IdTpq,
+                'isAdmin' => $isAdmin,
+                'isOperator' => $isOperator
             ];
         }
         return view('backend/guru/guru', $data);
