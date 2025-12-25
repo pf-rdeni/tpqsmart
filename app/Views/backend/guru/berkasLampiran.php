@@ -42,14 +42,34 @@
                             <td>
                                 <?= esc($guru['IdGuru']) ?><br>
                                 <strong><?= ucwords(strtolower($guru['Nama'])) ?></strong><br>
+                                <small style="color: #666;">
+                                    BPR:
+                                    <?php if (!empty($guru['NoRekBpr'])): ?>
+                                        <span style="color: #007bff;"><?= esc($guru['NoRekBpr']) ?></span>
+                                    <?php else: ?>
+                                        <span style="color: #dc3545;">xxxxxxxxxx</span>
+                                    <?php endif; ?>
+                                    <br>
+                                    BRK:
+                                    <?php if (!empty($guru['NoRekRiauKepri'])): ?>
+                                        <span style="color: #007bff;"><?= esc($guru['NoRekRiauKepri']) ?></span>
+                                    <?php else: ?>
+                                        <span style="color: #dc3545;">xxxxxxxxxx</span>
+                                    <?php endif; ?>
+                                </small><br>
                                 <small style="color: #666;">TPQ: <?= esc($namaTpq) ?></small>
                             </td>
                             <td>
                                 <?php if (isset($berkas['KTP'])): ?>
+                                    <div class="mb-2">
+                                        <img src="<?= base_url('uploads/berkas/' . $berkas['KTP']['NamaFile']) ?>"
+                                            alt="KTP Preview"
+                                            class="preview-image"
+                                            data-image-url="<?= base_url('uploads/berkas/' . $berkas['KTP']['NamaFile']) ?>"
+                                            style="max-width: 150px; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
+                                            title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
+                                    </div>
                                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <a href="<?= base_url('uploads/berkas/' . $berkas['KTP']['NamaFile']) ?>" target="_blank" class="btn btn-sm btn-info p-1" title="Lihat">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
                                         <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($berkas['KTP']['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'KTP')" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -65,10 +85,15 @@
                             </td>
                             <td>
                                 <?php if (isset($berkas['KK'])): ?>
+                                    <div class="mb-2">
+                                        <img src="<?= base_url('uploads/berkas/' . $berkas['KK']['NamaFile']) ?>"
+                                            alt="KK Preview"
+                                            class="preview-image"
+                                            data-image-url="<?= base_url('uploads/berkas/' . $berkas['KK']['NamaFile']) ?>"
+                                            style="max-width: 150px; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
+                                            title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
+                                    </div>
                                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <a href="<?= base_url('uploads/berkas/' . $berkas['KK']['NamaFile']) ?>" target="_blank" class="btn btn-sm btn-info p-1" title="Lihat">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
                                         <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($berkas['KK']['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'KK')" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -85,73 +110,166 @@
                             <td>
                                 <?php if (isset($berkas['Buku Rekening']) && is_array($berkas['Buku Rekening'])): ?>
                                     <?php
-                                    // Cek apakah sudah ada BPR dan BRK
-                                    $hasBpr = false;
-                                    $hasBrk = false;
+                                    // Pisahkan data BPR dan BRK
+                                    $bprData = null;
+                                    $brkData = null;
                                     foreach ($berkas['Buku Rekening'] as $rekening) {
                                         $dataBerkas = $rekening['DataBerkas'] ?? '';
                                         if ($dataBerkas === 'BPR') {
-                                            $hasBpr = true;
+                                            $bprData = $rekening;
                                         } elseif ($dataBerkas === 'BRK') {
-                                            $hasBrk = true;
+                                            $brkData = $rekening;
                                         }
                                     }
-                                    $showUploadButton = !($hasBpr && $hasBrk);
                                     ?>
-                                    <?php foreach ($berkas['Buku Rekening'] as $rekening): ?>
-                                        <div class="mb-1 d-flex align-items-center gap-2 flex-wrap">
-                                            <strong><?= esc($rekening['DataBerkas'] ?? '-') ?>:</strong>
-                                            <a href="<?= base_url('uploads/berkas/' . $rekening['NamaFile']) ?>" target="_blank" class="btn btn-sm btn-info p-1" title="Lihat">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($rekening['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', '<?= esc($rekening['DataBerkas'] ?? '') ?>')" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($rekening['id']) ?>)" title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                    <div class="row g-2">
+                                        <!-- Kolom BPR -->
+                                        <div class="col-6">
+                                            <?php if ($bprData): ?>
+                                                <div class="mb-1">
+                                                    <img src="<?= base_url('uploads/berkas/' . $bprData['NamaFile']) ?>"
+                                                        alt="BPR Preview"
+                                                        class="preview-image"
+                                                        data-image-url="<?= base_url('uploads/berkas/' . $bprData['NamaFile']) ?>"
+                                                        style="max-width: 100%; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
+                                                        title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <strong>BPR:</strong>
+                                                    <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($bprData['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BPR')" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($bprData['id']) ?>)" title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <strong>BPR:</strong>
+                                                    <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BPR')" title="Upload BPR">
+                                                        <i class="fas fa-upload"></i> Upload
+                                                    </button>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
-                                    <?php endforeach; ?>
-                                    <?php if ($showUploadButton): ?>
-                                        <div class="mt-1">
-                                            <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
-                                                <i class="fas fa-upload"></i> Upload
-                                            </button>
+                                        <!-- Kolom BRK -->
+                                        <div class="col-6">
+                                            <?php if ($brkData): ?>
+                                                <div class="mb-1">
+                                                    <img src="<?= base_url('uploads/berkas/' . $brkData['NamaFile']) ?>"
+                                                        alt="BRK Preview"
+                                                        class="preview-image"
+                                                        data-image-url="<?= base_url('uploads/berkas/' . $brkData['NamaFile']) ?>"
+                                                        style="max-width: 100%; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
+                                                        title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <strong>BRK:</strong>
+                                                    <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($brkData['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BRK')" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($brkData['id']) ?>)" title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <strong>BRK:</strong>
+                                                    <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BRK')" title="Upload BRK">
+                                                        <i class="fas fa-upload"></i> Upload
+                                                    </button>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
-                                    <?php endif; ?>
+                                    </div>
                                 <?php elseif (isset($berkas['Buku Rekening'])): ?>
                                     <!-- Backward compatibility: jika masih single file -->
                                     <?php
-                                    // Cek apakah sudah ada BPR atau BRK
                                     $dataBerkas = $berkas['Buku Rekening']['DataBerkas'] ?? '';
-                                    $hasBpr = ($dataBerkas === 'BPR');
-                                    $hasBrk = ($dataBerkas === 'BRK');
-                                    $showUploadButton = !($hasBpr && $hasBrk); // Akan false jika sudah ada keduanya, tapi untuk single file ini tidak mungkin
-                                    // Untuk single file, selalu tampilkan button upload karena masih bisa upload yang lain
-                                    $showUploadButton = true;
+                                    $isBpr = ($dataBerkas === 'BPR');
+                                    $isBrk = ($dataBerkas === 'BRK');
                                     ?>
-                                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <a href="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>" target="_blank" class="btn btn-sm btn-info p-1" title="Lihat">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>)" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                    <?php if ($showUploadButton): ?>
-                                        <div class="mt-1">
-                                            <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
-                                                <i class="fas fa-upload"></i> Upload
-                                            </button>
+                                    <div class="row g-2">
+                                        <!-- Kolom BPR -->
+                                        <div class="col-6">
+                                            <?php if ($isBpr): ?>
+                                                <div class="mb-1">
+                                                    <img src="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>"
+                                                        alt="BPR Preview"
+                                                        class="preview-image"
+                                                        data-image-url="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>"
+                                                        style="max-width: 100%; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
+                                                        title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <strong>BPR:</strong>
+                                                    <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BPR')" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>)" title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <strong>BPR:</strong>
+                                                    <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BPR')" title="Upload BPR">
+                                                        <i class="fas fa-upload"></i> Upload
+                                                    </button>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
-                                    <?php endif; ?>
+                                        <!-- Kolom BRK -->
+                                        <div class="col-6">
+                                            <?php if ($isBrk): ?>
+                                                <div class="mb-1">
+                                                    <img src="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>"
+                                                        alt="BRK Preview"
+                                                        class="preview-image"
+                                                        data-image-url="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>"
+                                                        style="max-width: 100%; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
+                                                        title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <strong>BRK:</strong>
+                                                    <button class="btn btn-sm btn-warning p-1" onclick="editBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>, '<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BRK')" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger p-1" onclick="deleteBerkasDirect(<?= esc($berkas['Buku Rekening']['id']) ?>)" title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <strong>BRK:</strong>
+                                                    <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BRK')" title="Upload BRK">
+                                                        <i class="fas fa-upload"></i> Upload
+                                                    </button>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 <?php else: ?>
-                                    <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening')" title="Upload Buku Rekening">
-                                        <i class="fas fa-upload"></i> Upload
-                                    </button>
+                                    <div class="row g-2">
+                                        <!-- Kolom BPR -->
+                                        <div class="col-6">
+                                            <strong>BPR:</strong>
+                                            <div class="mt-1">
+                                                <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BPR')" title="Upload BPR">
+                                                    <i class="fas fa-upload"></i> Upload
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <!-- Kolom BRK -->
+                                        <div class="col-6">
+                                            <strong>BRK:</strong>
+                                            <div class="mt-1">
+                                                <button class="btn btn-sm btn-primary" onclick="openUploadModalWithType('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', 'Buku Rekening', 'BRK')" title="Upload BRK">
+                                                    <i class="fas fa-upload"></i> Upload
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -344,6 +462,23 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-primary" id="btnUpdateBerkas" style="display: none;" onclick="updateBerkasFromForm()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal untuk memperbesar gambar -->
+<div class="modal fade" id="modalImagePreview" tabindex="-1" role="dialog" aria-labelledby="modalImagePreviewLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImagePreviewLabel">Preview Gambar</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center" style="padding: 20px;">
+                <img id="previewEnlargedImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; height: auto; border: 1px solid #ddd; border-radius: 4px;">
             </div>
         </div>
     </div>
@@ -562,11 +697,37 @@
                 $('#uploadDataBerkas').prop('required', false);
             }
         });
+
+        // Handle preview image: single click untuk memperbesar, double click untuk buka di tab baru
+        $(document).on('click', '.preview-image', function(e) {
+            const imageUrl = $(this).data('image-url');
+            if (!imageUrl) return;
+
+            // Delay untuk membedakan single click dan double click
+            const $img = $(this);
+            if ($img.data('clickTimer')) {
+                clearTimeout($img.data('clickTimer'));
+                $img.removeData('clickTimer');
+
+                // Ini adalah double click
+                window.open(imageUrl, '_blank');
+            } else {
+                // Set timer untuk single click
+                const timer = setTimeout(function() {
+                    // Single click: buka modal dengan gambar diperbesar
+                    $('#previewEnlargedImage').attr('src', imageUrl);
+                    $('#modalImagePreview').modal('show');
+                    $img.removeData('clickTimer');
+                }, 250); // Delay 250ms untuk membedakan dengan double click
+
+                $img.data('clickTimer', timer);
+            }
+        });
     });
 
     // Function untuk membuka modal upload
     // Function untuk membuka modal upload dengan tipe berkas yang sudah dipilih
-    function openUploadModalWithType(idGuru, namaGuru, namaBerkas) {
+    function openUploadModalWithType(idGuru, namaGuru, namaBerkas, dataBerkas = null) {
         currentIdGuru = idGuru;
         $('#uploadIdGuru').val(idGuru);
         $('#uploadNamaGuru').val(namaGuru);
@@ -586,12 +747,16 @@
         // Simpan nilai ke window SEBELUM set ke form
         window.savedCropNamaBerkas = namaBerkas;
         if (namaBerkas === 'Buku Rekening') {
-            // Jika Buku Rekening, simpan nilai bank jika sudah ada
-            const existingDataBerkas = $('#uploadDataBerkas').val();
-            if (existingDataBerkas) {
-                window.savedCropDataBerkas = existingDataBerkas;
+            // Jika Buku Rekening, gunakan parameter dataBerkas jika ada, atau ambil dari existing
+            if (dataBerkas) {
+                window.savedCropDataBerkas = dataBerkas;
             } else {
-                window.savedCropDataBerkas = null;
+                const existingDataBerkas = $('#uploadDataBerkas').val();
+                if (existingDataBerkas) {
+                    window.savedCropDataBerkas = existingDataBerkas;
+                } else {
+                    window.savedCropDataBerkas = null;
+                }
             }
         } else {
             window.savedCropDataBerkas = null;
@@ -605,15 +770,22 @@
         if (namaBerkas === 'Buku Rekening') {
             $('#dataBerkasGroup').show();
             $('#uploadDataBerkas').prop('required', true);
-            $('#uploadDataBerkas').prop('disabled', false);
-            // Set nilai bank jika sudah ada di window
-            if (window.savedCropDataBerkas) {
-                $('#uploadDataBerkas').val(window.savedCropDataBerkas);
+            // Jika dataBerkas diberikan sebagai parameter, set dan disable dropdown
+            if (dataBerkas) {
+                $('#uploadDataBerkas').val(dataBerkas);
+                $('#uploadDataBerkas').prop('disabled', true);
+            } else {
+                $('#uploadDataBerkas').prop('disabled', false);
+                // Set nilai bank jika sudah ada di window
+                if (window.savedCropDataBerkas) {
+                    $('#uploadDataBerkas').val(window.savedCropDataBerkas);
+                }
             }
         } else {
             $('#dataBerkasGroup').hide();
             $('#uploadDataBerkas').prop('required', false);
             $('#uploadDataBerkas').val('');
+            $('#uploadDataBerkas').prop('disabled', false);
         }
 
         window.currentEditBerkasData = null;
