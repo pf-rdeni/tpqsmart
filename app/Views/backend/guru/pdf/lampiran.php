@@ -31,10 +31,10 @@
 
         .page {
             width: 210mm;
+            min-height: 297mm;
             padding: 10mm;
             margin: 0 auto;
             background: #fff;
-            page-break-inside: avoid;
         }
 
         .header {
@@ -121,7 +121,7 @@
 
         /* BPR Section - Bagian Bawah */
         .bpr-section {
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         .bpr-section .image-wrapper {
@@ -133,6 +133,42 @@
             width: 100%;
             max-width: 150mm;
             height: auto;
+        }
+
+        /* KK Section - Halaman 2 Full A4 */
+        .kk-section {
+            width: 100%;
+            height: calc(297mm - 60mm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .kk-section .image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kk-section .image-wrapper {
+            width: 100%;
+            height: 100%;
+            max-width: 185mm;
+            max-height: 259mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kk-section .image-wrapper img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
         }
 
         @media print {
@@ -178,6 +214,25 @@
         </div>
 
     </div>
+
+    <?php if (!empty($hasKk) && !empty($kkDataUri)): ?>
+        <!-- Halaman 2: KK -->
+        <div class="page">
+            <div class="header">
+                <h2>LAMPIRAN BERKAS</h2>
+                <p>Kartu Keluarga (KK)</p>
+            </div>
+
+            <div class="kk-section">
+                <div class="image-label" style="margin-bottom: 10px;">3. KARTU KELUARGA (KK)</div>
+                <div class="image-container" style="width: 100%; height: 100%;">
+                    <div class="image-wrapper">
+                        <img src="<?= $kkDataUri ?>" alt="KK - <?= esc($guru['Nama'] ?? '') ?>">
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </body>
 
 </html>

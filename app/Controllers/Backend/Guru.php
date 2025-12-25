@@ -675,6 +675,9 @@ class Guru extends BaseController
             // Ambil berkas Rekening BPR
             $berkasBpr = $this->guruBerkasModel->getBerkasAktifByGuruAndType($idGuru, 'Buku Rekening', 'BPR');
 
+            // Ambil berkas KK
+            $berkasKk = $this->guruBerkasModel->getBerkasAktifByGuruAndType($idGuru, 'KK');
+
             // Validasi berkas
             if (!$berkasKtp) {
                 return redirect()->back()->with('error', 'Berkas KTP tidak ditemukan. Silakan upload KTP terlebih dahulu.');
@@ -706,13 +709,25 @@ class Guru extends BaseController
             $bprMimeType = mime_content_type($bprPath);
             $bprDataUri = 'data:' . $bprMimeType . ';base64,' . $bprBase64;
 
+            // Process KK jika ada
+            $kkDataUri = null;
+            $hasKk = false;
+            if ($berkasKk && file_exists(FCPATH . 'uploads/berkas/' . $berkasKk['NamaFile'])) {
+                $kkPath = FCPATH . 'uploads/berkas/' . $berkasKk['NamaFile'];
+                $kkDataUri = $this->processKkImage($kkPath);
+                $hasKk = true;
+            }
+
             // Siapkan data untuk view
             $data = [
                 'guru' => $guru,
                 'ktpDataUri' => $ktpDataUri,
                 'bprDataUri' => $bprDataUri,
+                'kkDataUri' => $kkDataUri,
+                'hasKk' => $hasKk,
                 'ktpFileName' => $berkasKtp['NamaFile'],
-                'bprFileName' => $berkasBpr['NamaFile']
+                'bprFileName' => $berkasBpr['NamaFile'],
+                'kkFileName' => $hasKk ? $berkasKk['NamaFile'] : null
             ];
 
             // Load view untuk PDF
@@ -753,6 +768,84 @@ class Guru extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Guru: printLampiran - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Process KK image: detect orientation and rotate if landscape
+     * Rotate 90 degrees clockwise if landscape to make it portrait
+     */
+    private function processKkImage($imagePath)
+    {
+        try {
+            // Get image info
+            $imageInfo = getimagesize($imagePath);
+            if (!$imageInfo) {
+                throw new \Exception('Tidak dapat membaca informasi gambar');
+            }
+
+            $width = $imageInfo[0];
+            $height = $imageInfo[1];
+            $mimeType = $imageInfo['mime'];
+
+            // Check if image is landscape (width > height)
+            $isLandscape = $width > $height;
+
+            // Create image resource based on type
+            switch ($mimeType) {
+                case 'image/jpeg':
+                    $source = imagecreatefromjpeg($imagePath);
+                    break;
+                case 'image/png':
+                    $source = imagecreatefrompng($imagePath);
+                    break;
+                case 'image/gif':
+                    $source = imagecreatefromgif($imagePath);
+                    break;
+                default:
+                    // If unsupported format, just return base64 encoded original
+                    $base64 = base64_encode(file_get_contents($imagePath));
+                    return 'data:' . $mimeType . ';base64,' . $base64;
+            }
+
+            if (!$source) {
+                throw new \Exception('Gagal membuat image resource');
+            }
+
+            // If landscape, rotate 90 degrees clockwise (270 degrees counter-clockwise)
+            if ($isLandscape) {
+                $rotated = imagerotate($source, -90, 0); // -90 = 90 degrees clockwise
+                imagedestroy($source);
+                $source = $rotated;
+
+                // Swap width and height after rotation
+                $temp = $width;
+                $width = $height;
+                $height = $temp;
+            }
+
+            // Create temporary file for output
+            $tempFile = tempnam(sys_get_temp_dir(), 'kk_processed_');
+            $tempFile .= '.jpg';
+
+            // Save as JPEG
+            imagejpeg($source, $tempFile, 90);
+            imagedestroy($source);
+
+            // Read and encode to base64
+            $imageData = file_get_contents($tempFile);
+            $base64 = base64_encode($imageData);
+
+            // Cleanup temp file
+            @unlink($tempFile);
+
+            return 'data:image/jpeg;base64,' . $base64;
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: processKkImage - Error: ' . $e->getMessage());
+            // Fallback: return original image if processing fails
+            $mimeType = mime_content_type($imagePath);
+            $base64 = base64_encode(file_get_contents($imagePath));
+            return 'data:' . $mimeType . ';base64,' . $base64;
         }
     }
 
