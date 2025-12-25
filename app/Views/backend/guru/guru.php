@@ -1,5 +1,11 @@
 <?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
+<?php
+// Default values untuk variabel
+$isAdmin = $isAdmin ?? false;
+$isOperator = $isOperator ?? false;
+$sessionIdTpq = $sessionIdTpq ?? null;
+?>
 <div class="col-12">
     <div class="card">
         <div class="card-header">
@@ -12,10 +18,24 @@
         </div>
         <!-- /.card-header -->
         <div class="card-body">
+            <?php if ($isAdmin || $isOperator): ?>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="filterTpq" class="form-label">Filter TPQ</label>
+                        <select id="filterTpq" class="form-control form-control-sm" <?= $isOperator ? 'disabled' : 'multiple="multiple"' ?>>
+                            <?php if (!empty($tpq)) : foreach ($tpq as $dataTpq): ?>
+                                    <option value="<?= esc($dataTpq['IdTpq']) ?>" <?= ($isOperator && $sessionIdTpq == $dataTpq['IdTpq']) ? 'selected' : '' ?>>
+                                        <?= esc($dataTpq['NamaTpq']) ?> - <?= esc($dataTpq['KelurahanDesa'] ?? '-') ?>
+                                    </option>
+                            <?php endforeach;
+                            endif; ?>
+                        </select>
+                    </div>
+                </div>
+            <?php endif; ?>
             <table id="tabelGuru" class="table table-bordered table-striped">
                 <thead>
                     <tr>
-                        <th>No</th>
                         <th>Aksi</th>
                         <th>NIK / Nama</th>
                         <th>Jenis Kelamin</th>
@@ -29,10 +49,8 @@
                 </thead>
                 <tbody>
                     <?php
-                    $no = 1;
                     foreach ($guru as $dataGuru) : ?>
-                        <tr>
-                            <td><?= $no++ ?></td>
+                        <tr data-idtpq="<?= esc($dataGuru['IdTpq'] ?? '') ?>">
                             <td>
                                 <a href="javascript:void(0)" onclick="editGuru('<?= $dataGuru['IdGuru'] ?>')" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
                                 <a href="javascript:void(0)" onclick="deleteGuru('<?= $dataGuru['IdGuru'] ?>', '<?= ucwords(strtolower($dataGuru['Nama'])) ?>')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></a>
@@ -58,7 +76,6 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th>No</th>
                         <th>Aksi</th>
                         <th>NIK / Nama</th>
                         <th>Jenis Kelamin</th>
@@ -1129,9 +1146,163 @@
         validasiNoRekRiauKepri();
     });
 
-    initializeDataTableScrollX("#tabelGuru", [], {
+    const table = initializeDataTableScrollX("#tabelGuru", [], {
         "pageLength": 25,
         "lengthChange": true
     });
+
+    <?php if ($isAdmin || $isOperator): ?>
+    // Filter TPQ dengan Select2
+    const filterTpq = $('#filterTpq');
+    let customFilterFunction = null;
+    const filterStorageKey = 'guru_filter_tpq';
+    const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
+    const sessionIdTpq = '<?= $sessionIdTpq ?? '' ?>';
+
+    // Inisialisasi Select2 untuk filter TPQ
+    if (isAdmin) {
+        // Admin: multiple select dengan Select2
+        filterTpq.select2({
+            placeholder: 'Pilih TPQ (bisa pilih beberapa)...',
+            allowClear: true,
+            width: '100%',
+            theme: 'bootstrap4',
+            language: 'id',
+            closeOnSelect: false // Tidak menutup dropdown saat memilih (untuk multiple selection)
+        });
+    } else {
+        // Operator: single select, disabled, sudah di-set ke TPQ mereka
+        filterTpq.select2({
+            placeholder: 'TPQ',
+            allowClear: false,
+            width: '100%',
+            theme: 'bootstrap4',
+            language: 'id',
+            disabled: true
+        });
+    }
+
+    // Fungsi untuk menyimpan filter TPQ ke localStorage (hanya untuk Admin)
+    function saveFilterTpq() {
+        if (isAdmin) {
+            const selectedTpq = filterTpq.val() || [];
+            // Simpan sebagai JSON array
+            localStorage.setItem(filterStorageKey, JSON.stringify(selectedTpq));
+        }
+    }
+
+    // Fungsi untuk memuat filter TPQ dari localStorage (hanya untuk Admin)
+    function loadFilterTpq() {
+        if (isAdmin) {
+            try {
+                const savedTpqStr = localStorage.getItem(filterStorageKey);
+                if (savedTpqStr !== null && savedTpqStr !== '') {
+                    let savedTpq = [];
+                    try {
+                        // Coba parse sebagai JSON array
+                        savedTpq = JSON.parse(savedTpqStr);
+                        if (!Array.isArray(savedTpq)) {
+                            // Jika bukan array, coba sebagai single value (backward compatibility)
+                            savedTpq = savedTpqStr ? [savedTpqStr] : [];
+                        }
+                    } catch (e) {
+                        // Jika parse gagal, anggap sebagai single value (backward compatibility)
+                        savedTpq = savedTpqStr ? [savedTpqStr] : [];
+                    }
+
+                    if (savedTpq.length > 0) {
+                        // Validasi bahwa semua option ada
+                        const validValues = [];
+                        savedTpq.forEach(function(value) {
+                            const optionExists = filterTpq.find('option[value="' + value + '"]').length > 0;
+                            if (optionExists) {
+                                validValues.push(value);
+                            }
+                        });
+
+                        if (validValues.length > 0) {
+                            filterTpq.val(validValues).trigger('change.select2');
+                            // Trigger change event untuk menerapkan filter setelah Select2 siap
+                            setTimeout(function() {
+                                filterTpq.trigger('change');
+                            }, 100);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading filter TPQ from localStorage:', e);
+            }
+        } else {
+            // Untuk Operator, selalu set ke TPQ sendiri dan terapkan filter
+            if (sessionIdTpq) {
+                filterTpq.val(sessionIdTpq).trigger('change.select2');
+                setTimeout(function() {
+                    filterTpq.trigger('change');
+                }, 100);
+            }
+        }
+    }
+
+    // Load filter saat halaman dimuat (setelah Select2 siap)
+    setTimeout(function() {
+        loadFilterTpq();
+    }, 200);
+
+    filterTpq.on('change', function() {
+        // Untuk Operator, selalu set filter TPQ ke TPQ sendiri
+        if (!isAdmin && sessionIdTpq) {
+            filterTpq.val(sessionIdTpq);
+        }
+
+        const selectedTpq = $(this).val() || [];
+
+        // Simpan filter ke localStorage (hanya untuk Admin)
+        if (isAdmin) {
+            saveFilterTpq();
+        }
+
+        // Hapus custom filter function yang lama jika ada
+        if (customFilterFunction !== null) {
+            const searchFunctions = $.fn.dataTable.ext.search;
+            for (let i = searchFunctions.length - 1; i >= 0; i--) {
+                if (searchFunctions[i] === customFilterFunction) {
+                    searchFunctions.splice(i, 1);
+                    break;
+                }
+            }
+            customFilterFunction = null;
+        }
+
+        // Jika ada filter yang dipilih
+        if (selectedTpq.length > 0) {
+            // Pastikan selectedTpq adalah array
+            const selectedTpqArray = Array.isArray(selectedTpq) ? selectedTpq : [selectedTpq];
+
+            customFilterFunction = function(settings, data, dataIndex) {
+                if (!settings || !settings.nTable || settings.nTable.id !== 'tabelGuru') {
+                    return true;
+                }
+
+                try {
+                    const row = table.row(dataIndex).node();
+                    if (!row) {
+                        return true;
+                    }
+
+                    const rowIdTpq = $(row).attr('data-idtpq') || '';
+                    // Cek apakah rowIdTpq ada dalam array selectedTpqArray
+                    return selectedTpqArray.indexOf(rowIdTpq) !== -1;
+                } catch (e) {
+                    console.error('Error in custom filter:', e);
+                    return true;
+                }
+            };
+
+            $.fn.dataTable.ext.search.push(customFilterFunction);
+        }
+
+        table.draw();
+    });
+    <?php endif; ?>
 </script>
 <?= $this->endSection(); ?>
