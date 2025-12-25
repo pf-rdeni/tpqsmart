@@ -9,10 +9,9 @@
         <div class="card-body">
             <?php if (in_groups('Admin')): ?>
                 <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="filterTpq" class="form-label">Filter TPQ</label>
-                        <select id="filterTpq" class="form-control form-control-sm">
-                            <option value="">Semua TPQ</option>
+                        <select id="filterTpq" class="form-control form-control-sm" multiple="multiple">
                             <?php if (!empty($tpq)) : foreach ($tpq as $dataTpq): ?>
                                     <option value="<?= esc($dataTpq['IdTpq']) ?>">
                                         <?= esc($dataTpq['NamaTpq']) ?> - <?= esc($dataTpq['KelurahanDesa'] ?? '-') ?>
@@ -432,28 +431,63 @@
         });
 
         <?php if (in_groups('Admin')): ?>
-            // Filter TPQ untuk Admin
+            // Filter TPQ untuk Admin dengan Select2 Multiple
             const filterTpq = $('#filterTpq');
             let customFilterFunction = null;
             const filterStorageKey = 'berkasLampiran_filter_tpq';
 
+            // Inisialisasi Select2 untuk filter TPQ (multiple select)
+            filterTpq.select2({
+                placeholder: 'Pilih TPQ (bisa pilih beberapa)...',
+                allowClear: true,
+                width: '100%',
+                theme: 'bootstrap4',
+                language: 'id',
+                closeOnSelect: false // Tidak menutup dropdown saat memilih (untuk multiple selection)
+            });
+
             // Fungsi untuk menyimpan filter TPQ ke localStorage
             function saveFilterTpq() {
-                const selectedTpq = filterTpq.val() || '';
-                localStorage.setItem(filterStorageKey, selectedTpq);
+                const selectedTpq = filterTpq.val() || [];
+                // Simpan sebagai JSON array
+                localStorage.setItem(filterStorageKey, JSON.stringify(selectedTpq));
             }
 
             // Fungsi untuk memuat filter TPQ dari localStorage
             function loadFilterTpq() {
                 try {
-                    const savedTpq = localStorage.getItem(filterStorageKey);
-                    if (savedTpq !== null && savedTpq !== '') {
-                        // Cek apakah option dengan value tersebut ada
-                        const optionExists = filterTpq.find('option[value="' + savedTpq + '"]').length > 0;
-                        if (optionExists) {
-                            filterTpq.val(savedTpq);
-                            // Trigger change event untuk menerapkan filter
-                            filterTpq.trigger('change');
+                    const savedTpqStr = localStorage.getItem(filterStorageKey);
+                    if (savedTpqStr !== null && savedTpqStr !== '') {
+                        let savedTpq = [];
+                        try {
+                            // Coba parse sebagai JSON array
+                            savedTpq = JSON.parse(savedTpqStr);
+                            if (!Array.isArray(savedTpq)) {
+                                // Jika bukan array, coba sebagai single value (backward compatibility)
+                                savedTpq = savedTpqStr ? [savedTpqStr] : [];
+                            }
+                        } catch (e) {
+                            // Jika parse gagal, anggap sebagai single value (backward compatibility)
+                            savedTpq = savedTpqStr ? [savedTpqStr] : [];
+                        }
+
+                        if (savedTpq.length > 0) {
+                            // Validasi bahwa semua option ada
+                            const validValues = [];
+                            savedTpq.forEach(function(value) {
+                                const optionExists = filterTpq.find('option[value="' + value + '"]').length > 0;
+                                if (optionExists) {
+                                    validValues.push(value);
+                                }
+                            });
+
+                            if (validValues.length > 0) {
+                                filterTpq.val(validValues).trigger('change.select2');
+                                // Trigger change event untuk menerapkan filter setelah Select2 siap
+                                setTimeout(function() {
+                                    filterTpq.trigger('change');
+                                }, 100);
+                            }
                         }
                     }
                 } catch (e) {
@@ -461,21 +495,34 @@
                 }
             }
 
-            // Load filter saat halaman dimuat
-            loadFilterTpq();
+            // Load filter saat halaman dimuat (setelah Select2 siap)
+            setTimeout(function() {
+                loadFilterTpq();
+            }, 200);
 
             filterTpq.on('change', function() {
-                const selectedTpq = $(this).val();
+                const selectedTpq = $(this).val() || [];
 
                 // Simpan filter ke localStorage
                 saveFilterTpq();
 
+                // Hapus custom filter function yang lama jika ada
                 if (customFilterFunction !== null) {
-                    $.fn.dataTable.ext.search.pop();
+                    const searchFunctions = $.fn.dataTable.ext.search;
+                    for (let i = searchFunctions.length - 1; i >= 0; i--) {
+                        if (searchFunctions[i] === customFilterFunction) {
+                            searchFunctions.splice(i, 1);
+                            break;
+                        }
+                    }
                     customFilterFunction = null;
                 }
 
-                if (selectedTpq !== '') {
+                // Jika ada filter yang dipilih
+                if (selectedTpq.length > 0) {
+                    // Pastikan selectedTpq adalah array
+                    const selectedTpqArray = Array.isArray(selectedTpq) ? selectedTpq : [selectedTpq];
+
                     customFilterFunction = function(settings, data, dataIndex) {
                         if (!settings || !settings.nTable || settings.nTable.id !== 'tabelBerkasLampiran') {
                             return true;
@@ -487,8 +534,9 @@
                                 return true;
                             }
 
-                            const rowIdTpq = $(row).attr('data-idtpq');
-                            return rowIdTpq === selectedTpq;
+                            const rowIdTpq = $(row).attr('data-idtpq') || '';
+                            // Cek apakah rowIdTpq ada dalam array selectedTpqArray
+                            return selectedTpqArray.indexOf(rowIdTpq) !== -1;
                         } catch (e) {
                             console.error('Error in custom filter:', e);
                             return true;
