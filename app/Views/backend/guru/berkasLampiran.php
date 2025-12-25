@@ -292,38 +292,42 @@
 
 <!-- Modal Upload Berkas -->
 <div class="modal fade" id="modalUploadBerkas" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div class="modal-dialog modal-lg" role="document" style="max-width: 900px;">
+        <div class="modal-content" style="height: calc(100vh - 40px); max-height: 900px; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
                 <h5 class="modal-title">Upload Berkas Lampiran</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="flex: 1; overflow-y: auto; min-height: 0;">
                 <form id="formUploadBerkas">
                     <input type="hidden" id="uploadIdGuru" name="IdGuru">
                     <div class="form-group">
-                        <label>Nama Guru</label>
-                        <input type="text" id="uploadNamaGuru" class="form-control" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="uploadNamaBerkas">Tipe Berkas <span class="text-danger">*</span></label>
-                        <select class="form-control" id="uploadNamaBerkas" name="NamaBerkas" required>
-                            <option value="">Pilih Tipe Berkas</option>
-                            <option value="KTP">KTP</option>
-                            <option value="KK">KK (Kartu Keluarga)</option>
-                            <option value="Buku Rekening">Buku Rekening</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="dataBerkasGroup" style="display: none;">
-                        <label for="uploadDataBerkas">Nama Bank <span class="text-danger">*</span></label>
-                        <select class="form-control" id="uploadDataBerkas" name="DataBerkas">
-                            <option value="">Pilih Nama Bank</option>
-                            <option value="BPR">BPR</option>
-                            <option value="BRK">BRK</option>
-                        </select>
-                        <small class="form-text text-muted">Pilih bank untuk buku rekening yang akan diupload</small>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label>Nama Guru</label>
+                                <input type="text" id="uploadNamaGuru" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="uploadNamaBerkas">Tipe Berkas <span class="text-danger">*</span></label>
+                                <select class="form-control" id="uploadNamaBerkas" name="NamaBerkas" required>
+                                    <option value="">Pilih Tipe Berkas</option>
+                                    <option value="KTP">KTP</option>
+                                    <option value="KK">KK (Kartu Keluarga)</option>
+                                    <option value="Buku Rekening">Buku Rekening</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4" id="dataBerkasGroup" style="display: none;">
+                                <label for="uploadDataBerkas">Nama Bank <span class="text-danger">*</span></label>
+                                <select class="form-control" id="uploadDataBerkas" name="DataBerkas">
+                                    <option value="">Pilih Nama Bank</option>
+                                    <option value="BPR">BPR</option>
+                                    <option value="BRK">BRK</option>
+                                </select>
+                                <small class="form-text text-muted">Pilih bank untuk buku rekening yang akan diupload</small>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="fileBerkas">File Berkas <span class="text-danger">*</span></label>
@@ -335,8 +339,8 @@
                     </div>
                     <div id="existingImageContainer" style="display: none;">
                         <label>Gambar Saat Ini</label>
-                        <div class="text-center mb-2">
-                            <img id="existingImage" src="" alt="Gambar Saat Ini" style="max-width: 100%; max-height: 400px; border: 1px solid #ddd; padding: 5px;">
+                        <div class="text-center mb-2" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 200px; max-height: 250px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <img id="existingImage" src="" alt="Gambar Saat Ini" style="max-width: 100%; max-height: 230px; object-fit: contain;">
                         </div>
                         <div class="text-center">
                             <button type="button" class="btn btn-sm btn-primary" id="btnCropExisting" onclick="cropExistingImage()">
@@ -349,8 +353,8 @@
                     </div>
                     <div id="previewContainer" style="display: none;">
                         <label>Preview Hasil Crop</label>
-                        <div class="text-center mb-2">
-                            <img id="previewImage" src="" alt="Preview" style="max-width: 100%; max-height: 400px; border: 1px solid #ddd; padding: 5px;">
+                        <div class="text-center mb-2" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 200px; max-height: 250px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <img id="previewImage" src="" alt="Preview" style="max-width: 100%; max-height: 230px; object-fit: contain;">
                         </div>
                         <button type="button" class="btn btn-sm btn-warning" onclick="removePreviewImage()">
                             <i class="fas fa-redo"></i> Pilih File Lain
@@ -359,7 +363,7 @@
                     <input type="hidden" id="croppedImageData" name="croppedImageData">
                 </form>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6;">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-info" id="btnUseExisting" style="display: none;" onclick="useExistingImage()">Gunakan Gambar Saat Ini</button>
                 <button type="button" class="btn btn-primary" id="btnUploadBerkasFromForm" style="display: none;" onclick="uploadBerkasFromForm()">Upload</button>
@@ -378,12 +382,28 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+            <div class="alert alert-warning m-0" style="flex-shrink: 0; border-radius: 0; padding: 10px 15px; margin-bottom: 0 !important;">
+                <small>
+                    <i class="fas fa-info-circle"></i> <strong>Panduan:</strong>
+                    Geser (drag) untuk memindahkan area crop • Resize untuk mengubah ukuran •
+                    Gunakan tombol Putar Kiri/Kanan untuk memutar gambar •
+                    Aspect ratio sudah fixed sesuai jenis berkas • Klik <strong>Selesai</strong> untuk menyimpan
+                </small>
+            </div>
             <div class="modal-body" style="flex: 1; overflow: hidden; padding: 15px; display: flex; align-items: center; justify-content: center;">
                 <div id="cropContainerBerkas" style="width: 100%; height: 100%; max-height: calc(100vh - 200px); overflow: hidden; display: flex; align-items: center; justify-content: center;">
                     <img id="imageToCropBerkas" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                 </div>
             </div>
             <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6;">
+                <div class="mr-auto">
+                    <button type="button" class="btn btn-info btn-sm" id="btnRotateLeft" title="Putar 90° ke kiri">
+                        <i class="fas fa-undo"></i> Putar Kiri
+                    </button>
+                    <button type="button" class="btn btn-info btn-sm" id="btnRotateRight" title="Putar 90° ke kanan">
+                        <i class="fas fa-redo"></i> Putar Kanan
+                    </button>
+                </div>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-primary" id="btnUploadBerkas">Selesai</button>
             </div>
@@ -393,53 +413,63 @@
 
 <!-- Modal Edit Berkas (Khusus untuk Edit) -->
 <div class="modal fade" id="modalEditBerkas" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div class="modal-dialog modal-lg" role="document" style="max-width: 900px;">
+        <div class="modal-content" style="height: calc(100vh - 40px); max-height: 900px; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
                 <h5 class="modal-title">Edit Berkas Lampiran</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="flex: 1; overflow-y: auto; min-height: 0;">
                 <form id="formEditBerkas">
                     <input type="hidden" id="editBerkasId" name="editBerkasId">
                     <input type="hidden" id="editIdGuru" name="IdGuru">
                     <div class="form-group">
-                        <label>Nama Guru</label>
-                        <input type="text" id="editNamaGuru" class="form-control" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Tipe Berkas</label>
-                        <input type="text" id="editNamaBerkas" class="form-control" readonly>
-                    </div>
-                    <div class="form-group" id="editDataBerkasGroup" style="display: none;">
-                        <label>Nama Bank</label>
-                        <input type="text" id="editDataBerkas" class="form-control" readonly>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label>Nama Guru</label>
+                                <input type="text" id="editNamaGuru" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label>Tipe Berkas</label>
+                                <input type="text" id="editNamaBerkas" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-4" id="editDataBerkasGroup" style="display: none;">
+                                <label>Nama Bank</label>
+                                <input type="text" id="editDataBerkas" class="form-control" readonly>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="editFileBerkas">Ganti dengan File Baru</label>
-                        <input type="file" class="form-control-file" id="editFileBerkas" accept="image/jpeg,image/jpg,image/png">
+                        <div class="custom-file-wrapper" style="position: relative;">
+                            <input type="file" class="form-control-file" id="editFileBerkas" accept="image/jpeg,image/jpg,image/png" style="position: absolute; opacity: 0; width: 0; height: 0; overflow: hidden;">
+                            <button type="button" class="btn btn-primary btn-sm" id="btnBrowseEditFile" onclick="document.getElementById('editFileBerkas').click()">
+                                <i class="fas fa-upload"></i> Pilih File
+                            </button>
+                            <span id="editFileNameDisplay" class="ml-2" style="font-size: 14px; color: #666;"></span>
+                        </div>
                         <small class="form-text text-muted">Format: JPG, JPEG, PNG. Maksimal 15MB (akan di-compress setelah crop). Kosongkan jika tidak ingin mengganti.</small>
                     </div>
                     <div class="form-group">
                         <div class="row">
                             <div class="col-md-6">
                                 <label>Gambar Saat Ini</label>
-                                <div class="text-center mb-2" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 300px; display: flex; align-items: center; justify-content: center;">
-                                    <img id="editExistingImage" src="" alt="Gambar Saat Ini" style="max-width: 100%; max-height: 400px; object-fit: contain;">
+                                <div class="text-center mb-2" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 200px; max-height: 250px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    <img id="editExistingImage" src="" alt="Gambar Saat Ini" style="max-width: 100%; max-height: 230px; object-fit: contain;">
                                 </div>
                                 <div class="text-center">
                                     <button type="button" class="btn btn-sm btn-warning" id="btnCropExistingImage" onclick="cropExistingImageInEdit()">
-                                        <i class="fas fa-crop"></i> Crop Gambar Saat Ini
+                                        <i class="fas fa-edit"></i> Edit Gambar saat ini
                                     </button>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label>Preview Hasil Edit</label>
                                 <div id="editPreviewContainer" style="display: none;">
-                                    <div class="text-center mb-2" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 300px; display: flex; align-items: center; justify-content: center;">
-                                        <img id="editPreviewImage" src="" alt="Preview" style="max-width: 100%; max-height: 400px; object-fit: contain;">
+                                    <div class="text-center mb-2" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 200px; max-height: 250px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                        <img id="editPreviewImage" src="" alt="Preview" style="max-width: 100%; max-height: 230px; object-fit: contain;">
                                     </div>
                                     <div class="text-center">
                                         <button type="button" class="btn btn-sm btn-warning" onclick="removeEditPreviewImage()">
@@ -447,7 +477,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div id="editPreviewPlaceholder" class="text-center" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 300px; display: flex; align-items: center; justify-content: center; color: #999;">
+                                <div id="editPreviewPlaceholder" class="text-center" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 200px; max-height: 250px; display: flex; align-items: center; justify-content: center; color: #999;">
                                     <div>
                                         <i class="fas fa-image" style="font-size: 48px; margin-bottom: 10px;"></i>
                                         <p class="mb-0">Belum ada preview</p>
@@ -459,7 +489,7 @@
                     <input type="hidden" id="editCroppedImageData" name="editCroppedImageData">
                 </form>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6;">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-primary" id="btnUpdateBerkas" style="display: none;" onclick="updateBerkasFromForm()">Update</button>
             </div>
@@ -485,6 +515,74 @@
 </div>
 
 <style>
+    /* Style untuk modal edit berkas */
+    #modalEditBerkas .modal-dialog {
+        max-width: 900px;
+        margin: 20px auto;
+    }
+
+    #modalEditBerkas .modal-content {
+        height: calc(100vh - 40px);
+        max-height: 900px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #modalEditBerkas .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        padding: 15px;
+    }
+
+    #modalEditBerkas .modal-footer {
+        flex-shrink: 0;
+        border-top: 1px solid #dee2e6;
+        padding: 10px 15px;
+    }
+
+    /* Responsive untuk layar kecil */
+    @media (max-height: 700px) {
+        #modalEditBerkas .modal-content {
+            height: calc(100vh - 20px);
+            max-height: 680px;
+        }
+    }
+
+    /* Style untuk modal upload berkas */
+    #modalUploadBerkas .modal-dialog {
+        max-width: 900px;
+        margin: 20px auto;
+    }
+
+    #modalUploadBerkas .modal-content {
+        height: calc(100vh - 40px);
+        max-height: 900px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #modalUploadBerkas .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        padding: 15px;
+    }
+
+    #modalUploadBerkas .modal-footer {
+        flex-shrink: 0;
+        border-top: 1px solid #dee2e6;
+        padding: 10px 15px;
+    }
+
+    /* Responsive untuk layar kecil */
+    @media (max-height: 700px) {
+        #modalUploadBerkas .modal-content {
+            height: calc(100vh - 20px);
+            max-height: 680px;
+        }
+    }
+
     /* Style untuk modal crop berkas */
     #modalCropBerkas .modal-dialog {
         max-width: 95%;
@@ -1035,32 +1133,16 @@
             window.ImageUploadHelper.resizeImageBeforeCrop(file, maxDimension, maxDimension, resizeQuality, function(processedFile) {
                 selectedFileBerkas = processedFile;
 
-                // Hitung ukuran file setelah resize
-                const originalSize = (file.size / 1024 / 1024).toFixed(2); // MB
-                const resizedSize = (processedFile.size / 1024 / 1024).toFixed(2); // MB
-                const sizeReduction = ((1 - processedFile.size / file.size) * 100).toFixed(1); // Persentase
-
-                // Tutup loading dan tampilkan info ukuran
+                // Tutup loading dan langsung buka modal crop tanpa menampilkan info resize
                 Swal.close();
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Gambar berhasil di-resize',
-                    html: `Ukuran file:<br>
-                           <strong>Sebelum:</strong> ${originalSize} MB<br>
-                           <strong>Sesudah:</strong> ${resizedSize} MB<br>
-                           <strong>Pengurangan:</strong> ${sizeReduction}%`,
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
-                    // Langsung buka modal crop tanpa preview di form
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        // Simpan tipe berkas untuk digunakan saat crop
-                        const namaBerkas = $('#uploadNamaBerkas').val();
-                        showCropModalBerkas(e.target.result, namaBerkas);
-                    };
-                    reader.readAsDataURL(processedFile);
-                });
+                // Langsung buka modal crop tanpa preview di form
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Simpan tipe berkas untuk digunakan saat crop
+                    const namaBerkas = $('#uploadNamaBerkas').val();
+                    showCropModalBerkas(e.target.result, namaBerkas);
+                };
+                reader.readAsDataURL(processedFile);
             });
         });
     });
@@ -1139,6 +1221,10 @@
         }
 
         $('#modalCropBerkas').on('shown.bs.modal', function() {
+            // Disable tombol rotate sampai cropper siap
+            $('#btnRotateLeft').prop('disabled', true);
+            $('#btnRotateRight').prop('disabled', true);
+
             if (cropperBerkas) {
                 cropperBerkas.destroy();
                 cropperBerkas = null;
@@ -1186,23 +1272,27 @@
                             aspectRatio = 85.6 / 53.98; // = 1.585
                             aspectRatioFixed = true;
                         } else if (namaBerkas === 'KK') {
-                            // KK: A4 Landscape (297mm x 210mm = 1.414) - Initial, bisa di-adjust
+                            // KK: A4 Landscape (297mm x 210mm = 1.414) (FIXED)
                             aspectRatio = 297 / 210; // = 1.414 (A4 Landscape)
-                            aspectRatioFixed = false; // Bisa di-adjust
+                            aspectRatioFixed = true; // Fixed ratio
                         } else if (namaBerkas === 'Buku Rekening') {
-                            // Buku Rekening: Proporsi dokumen rekening bank (mirip A4 Landscape)
-                            // Biasanya dokumen rekening bank memiliki proporsi sekitar 1.4-1.5
-                            aspectRatio = 297 / 210; // = 1.414 (A4 Landscape) - Initial, bisa di-adjust
-                            aspectRatioFixed = false; // Bisa di-adjust
+                            // Buku Rekening: A4 Portrait (210mm x 297mm = 0.707) (FIXED)
+                            aspectRatio = 210 / 297; // = 0.707 (A4 Portrait)
+                            aspectRatioFixed = true; // Fixed ratio
                         }
                         // Untuk lainnya, tetap NaN (free aspect ratio)
 
-                        // Simpan namaBerkas dan aspectRatioFixed untuk digunakan di ready callback
+                        // Simpan namaBerkas, aspectRatio, dan aspectRatioFixed untuk digunakan di ready callback dan rotate
                         const cropNamaBerkas = namaBerkas;
+                        const cropAspectRatio = aspectRatio;
                         const cropAspectRatioFixed = aspectRatioFixed;
 
+                        // Simpan aspect ratio ke window untuk digunakan saat rotate
+                        window.currentCropAspectRatio = aspectRatio;
+                        window.currentCropAspectRatioFixed = aspectRatioFixed;
+
                         cropperBerkas = new Cropper(imageElement, {
-                            aspectRatio: aspectRatio, // Fixed untuk KTP, initial untuk KK, free untuk lainnya
+                            aspectRatio: aspectRatio, // Fixed untuk KTP, KK, dan Buku Rekening
                             viewMode: 1, // Restrict the crop box within the canvas
                             dragMode: 'move',
                             autoCropArea: 0.8,
@@ -1219,18 +1309,9 @@
                             ready: function() {
                                 console.log('Cropper Berkas initialized successfully');
 
-                                // Untuk KK dan Buku Rekening, set aspect ratio menjadi free setelah initial crop box dibuat
-                                // Ini memungkinkan user untuk adjust crop box
-                                if ((cropNamaBerkas === 'KK' || cropNamaBerkas === 'Buku Rekening') && !cropAspectRatioFixed && this.cropper) {
-                                    // Set aspect ratio menjadi NaN setelah crop box dibuat
-                                    // User bisa adjust dengan mengubah ukuran crop box
-                                    setTimeout(() => {
-                                        if (this.cropper && typeof this.cropper.setAspectRatio === 'function') {
-                                            // Set ke NaN untuk memungkinkan free aspect ratio
-                                            this.cropper.setAspectRatio(NaN);
-                                        }
-                                    }, 100);
-                                }
+                                // Enable tombol rotate setelah cropper siap
+                                $('#btnRotateLeft').prop('disabled', false);
+                                $('#btnRotateRight').prop('disabled', false);
 
                                 // Pastikan gambar terlihat utuh setelah cropper siap
                                 try {
@@ -1265,6 +1346,152 @@
             }
         });
     }
+
+    // Function untuk rotate gambar ke kiri (90 derajat counterclockwise)
+    $('#btnRotateLeft').on('click', function() {
+        if (cropperBerkas) {
+            cropperBerkas.rotate(-90);
+            // Setelah rotate, sesuaikan crop box dengan ukuran gambar yang baru
+            setTimeout(function() {
+                if (cropperBerkas) {
+                    try {
+                        const canvasData = cropperBerkas.getCanvasData();
+                        const containerData = cropperBerkas.getContainerData();
+
+                        if (canvasData && containerData) {
+                            // Jika aspect ratio fixed, pastikan crop box mengikuti aspect ratio
+                            const aspectRatio = window.currentCropAspectRatio;
+                            const isFixedRatio = window.currentCropAspectRatioFixed && !isNaN(aspectRatio);
+
+                            let cropBoxWidth, cropBoxHeight;
+
+                            if (isFixedRatio) {
+                                // Untuk fixed ratio, hitung berdasarkan aspect ratio
+                                const maxSize = Math.min(canvasData.width * 0.8, canvasData.height * 0.8, containerData.width, containerData.height);
+
+                                if (canvasData.width > canvasData.height) {
+                                    // Landscape: width lebih besar
+                                    cropBoxWidth = Math.min(maxSize, containerData.width);
+                                    cropBoxHeight = cropBoxWidth / aspectRatio;
+
+                                    // Jika height terlalu besar, sesuaikan
+                                    if (cropBoxHeight > containerData.height) {
+                                        cropBoxHeight = Math.min(containerData.height, canvasData.height * 0.8);
+                                        cropBoxWidth = cropBoxHeight * aspectRatio;
+                                    }
+                                } else {
+                                    // Portrait: height lebih besar
+                                    cropBoxHeight = Math.min(maxSize, containerData.height);
+                                    cropBoxWidth = cropBoxHeight * aspectRatio;
+
+                                    // Jika width terlalu besar, sesuaikan
+                                    if (cropBoxWidth > containerData.width) {
+                                        cropBoxWidth = Math.min(containerData.width, canvasData.width * 0.8);
+                                        cropBoxHeight = cropBoxWidth / aspectRatio;
+                                    }
+                                }
+                            } else {
+                                // Free aspect ratio: hitung berdasarkan 80% dari canvas
+                                cropBoxWidth = Math.min(canvasData.width * 0.8, containerData.width);
+                                cropBoxHeight = Math.min(canvasData.height * 0.8, containerData.height);
+                            }
+
+                            // Pastikan aspect ratio tetap terjaga untuk fixed ratio
+                            if (isFixedRatio && !isNaN(aspectRatio)) {
+                                cropperBerkas.setAspectRatio(aspectRatio);
+                            }
+
+                            // Set posisi crop box di tengah container
+                            const cropBoxLeft = (containerData.width - cropBoxWidth) / 2;
+                            const cropBoxTop = (containerData.height - cropBoxHeight) / 2;
+
+                            cropperBerkas.setCropBoxData({
+                                left: cropBoxLeft,
+                                top: cropBoxTop,
+                                width: cropBoxWidth,
+                                height: cropBoxHeight
+                            });
+                        }
+                    } catch (e) {
+                        console.log('Error adjusting crop box after rotate:', e);
+                    }
+                }
+            }, 100);
+        }
+    });
+
+    // Function untuk rotate gambar ke kanan (90 derajat clockwise)
+    $('#btnRotateRight').on('click', function() {
+        if (cropperBerkas) {
+            cropperBerkas.rotate(90);
+            // Setelah rotate, sesuaikan crop box dengan ukuran gambar yang baru
+            setTimeout(function() {
+                if (cropperBerkas) {
+                    try {
+                        const canvasData = cropperBerkas.getCanvasData();
+                        const containerData = cropperBerkas.getContainerData();
+
+                        if (canvasData && containerData) {
+                            // Jika aspect ratio fixed, pastikan crop box mengikuti aspect ratio
+                            const aspectRatio = window.currentCropAspectRatio;
+                            const isFixedRatio = window.currentCropAspectRatioFixed && !isNaN(aspectRatio);
+
+                            let cropBoxWidth, cropBoxHeight;
+
+                            if (isFixedRatio) {
+                                // Untuk fixed ratio, hitung berdasarkan aspect ratio
+                                const maxSize = Math.min(canvasData.width * 0.8, canvasData.height * 0.8, containerData.width, containerData.height);
+
+                                if (canvasData.width > canvasData.height) {
+                                    // Landscape: width lebih besar
+                                    cropBoxWidth = Math.min(maxSize, containerData.width);
+                                    cropBoxHeight = cropBoxWidth / aspectRatio;
+
+                                    // Jika height terlalu besar, sesuaikan
+                                    if (cropBoxHeight > containerData.height) {
+                                        cropBoxHeight = Math.min(containerData.height, canvasData.height * 0.8);
+                                        cropBoxWidth = cropBoxHeight * aspectRatio;
+                                    }
+                                } else {
+                                    // Portrait: height lebih besar
+                                    cropBoxHeight = Math.min(maxSize, containerData.height);
+                                    cropBoxWidth = cropBoxHeight * aspectRatio;
+
+                                    // Jika width terlalu besar, sesuaikan
+                                    if (cropBoxWidth > containerData.width) {
+                                        cropBoxWidth = Math.min(containerData.width, canvasData.width * 0.8);
+                                        cropBoxHeight = cropBoxWidth / aspectRatio;
+                                    }
+                                }
+                            } else {
+                                // Free aspect ratio: hitung berdasarkan 80% dari canvas
+                                cropBoxWidth = Math.min(canvasData.width * 0.8, containerData.width);
+                                cropBoxHeight = Math.min(canvasData.height * 0.8, containerData.height);
+                            }
+
+                            // Pastikan aspect ratio tetap terjaga untuk fixed ratio
+                            if (isFixedRatio && !isNaN(aspectRatio)) {
+                                cropperBerkas.setAspectRatio(aspectRatio);
+                            }
+
+                            // Set posisi crop box di tengah container
+                            const cropBoxLeft = (containerData.width - cropBoxWidth) / 2;
+                            const cropBoxTop = (containerData.height - cropBoxHeight) / 2;
+
+                            cropperBerkas.setCropBoxData({
+                                left: cropBoxLeft,
+                                top: cropBoxTop,
+                                width: cropBoxWidth,
+                                height: cropBoxHeight
+                            });
+                        }
+                    } catch (e) {
+                        console.log('Error adjusting crop box after rotate:', e);
+                    }
+                }
+            }, 100);
+        }
+    });
 
     // Function untuk menyimpan hasil crop dan kembali ke form
     $('#btnUploadBerkas').on('click', function() {
@@ -1570,6 +1797,7 @@
 
                     // Reset form
                     $('#editFileBerkas').val('');
+                    $('#editFileNameDisplay').text('');
                     $('#editPreviewContainer').hide();
                     $('#editPreviewPlaceholder').show();
                     $('#btnUpdateBerkas').hide();
@@ -1651,6 +1879,14 @@
     // Handle file input change untuk modal edit
     $('#editFileBerkas').on('change', function(e) {
         const file = e.target.files[0];
+
+        // Tampilkan nama file yang dipilih
+        if (file) {
+            $('#editFileNameDisplay').text(file.name).css('color', '#28a745');
+        } else {
+            $('#editFileNameDisplay').text('').css('color', '#666');
+        }
+
         if (!file) {
             return;
         }
@@ -1663,6 +1899,7 @@
                 text: 'Ukuran file terlalu besar. Maksimal 15MB. File akan otomatis di-compress setelah crop.'
             });
             $(this).val('');
+            $('#editFileNameDisplay').text('');
             return;
         }
 
@@ -1675,6 +1912,7 @@
                 text: 'Tipe file tidak diizinkan. Hanya JPG, JPEG, atau PNG'
             });
             $(this).val('');
+            $('#editFileNameDisplay').text('');
             return;
         }
 
@@ -1715,30 +1953,14 @@
             });
 
             window.ImageUploadHelper.resizeImageBeforeCrop(file, maxDimension, maxDimension, resizeQuality, function(processedFile) {
-                // Hitung ukuran file setelah resize
-                const originalSize = (file.size / 1024 / 1024).toFixed(2); // MB
-                const resizedSize = (processedFile.size / 1024 / 1024).toFixed(2); // MB
-                const sizeReduction = ((1 - processedFile.size / file.size) * 100).toFixed(1); // Persentase
-
-                // Tutup loading dan tampilkan info ukuran
+                // Tutup loading dan langsung buka modal crop tanpa menampilkan info resize
                 Swal.close();
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Gambar berhasil di-resize',
-                    html: `Ukuran file:<br>
-                           <strong>Sebelum:</strong> ${originalSize} MB<br>
-                           <strong>Sesudah:</strong> ${resizedSize} MB<br>
-                           <strong>Pengurangan:</strong> ${sizeReduction}%`,
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
-                    // Langsung buka modal crop tanpa preview di form
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        showCropModalBerkas(e.target.result, namaBerkas);
-                    };
-                    reader.readAsDataURL(processedFile);
-                });
+                // Langsung buka modal crop tanpa preview di form
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showCropModalBerkas(e.target.result, namaBerkas);
+                };
+                reader.readAsDataURL(processedFile);
             });
         });
     });
@@ -1775,6 +1997,7 @@
         $('#btnUpdateBerkas').hide();
         $('#editCroppedImageData').val('');
         $('#editFileBerkas').val('');
+        $('#editFileNameDisplay').text('');
         $('#btnCropExistingImage').show();
     }
 
@@ -1935,6 +2158,7 @@
             cropperBerkas = null;
         }
         $('#editFileBerkas').val('');
+        $('#editFileNameDisplay').text('');
         $('#editPreviewContainer').hide();
         $('#editPreviewPlaceholder').show();
         $('#btnUpdateBerkas').hide();

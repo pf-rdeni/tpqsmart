@@ -1092,13 +1092,22 @@ class Guru extends BaseController
                 // Untuk KTP dan KK, hanya satu file aktif (replace yang lama)
                 $existingBerkas = $this->guruBerkasModel->getBerkasAktifByGuruAndType($idGuru, $namaBerkas, $dataBerkas);
                 if ($existingBerkas) {
-                    // Set status file lama menjadi nonaktif
-                    $this->guruBerkasModel->deactivateBerkasByType($idGuru, $namaBerkas, $dataBerkas);
+                    // PERBAIKAN: Jika sudah ada file aktif dengan DataBerkas yang sama,
+                    // kita akan UPDATE file tersebut daripada deactivate dan insert baru
+                    // Ini mencegah status menjadi 0 yang tidak diinginkan
+                    // Set edit mode agar file yang ada di-update, bukan di-deactivate
+                    $isEditMode = true;
+                    $berkasToUpdate = $existingBerkas;
+                    $editBerkasId = $existingBerkas['id'];
 
-                    // Hapus file fisik lama
-                    $oldFilePath = $uploadPath . $existingBerkas['NamaFile'];
-                    if (file_exists($oldFilePath)) {
-                        @unlink($oldFilePath);
+                    log_message('info', 'Guru: uploadBerkas - Found existing active file. Switching to edit mode. editBerkasId: ' . $editBerkasId . ', IdGuru: ' . $idGuru . ', NamaBerkas: ' . $namaBerkas . ', DataBerkas: ' . ($dataBerkas ?? 'null'));
+
+                    // Validasi ownership untuk existing file yang akan di-update
+                    if ($berkasToUpdate['IdGuru'] != $idGuru) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Data berkas tidak ditemukan atau tidak memiliki akses'
+                        ]);
                     }
                 }
             }
