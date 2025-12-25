@@ -43,54 +43,56 @@
                 </thead>
                 <tbody>
                     <?php
-                    foreach ($guru as $dataGuru) : ?>
-                        <tr data-idtpq="<?= esc($dataGuru['IdTpq'] ?? '') ?>">
+                    foreach ($guru as $dataGuru) : 
+                        $guruData = $dataGuru['guru'];
+                    ?>
+                        <tr data-idtpq="<?= esc($guruData['IdTpq'] ?? '') ?>">
                             <td>
-                                <?= $dataGuru['IdGuru'] ?><br>
-                                <strong><?= ucwords(strtolower($dataGuru['Nama'])) ?></strong><br>
-                                <small style="color: #666;"><?= $dataGuru['TempatTugas'] ?? '-' ?></small>
+                                <?= $guruData['IdGuru'] ?><br>
+                                <strong><?= ucwords(strtolower($guruData['Nama'])) ?></strong><br>
+                                <small style="color: #666;"><?= $guruData['TempatTugas'] ?? '-' ?></small>
                             </td>
                             <td>
-                                <select class="form-control form-control-sm penerima-insentif" data-id-guru="<?= $dataGuru['IdGuru'] ?>">
+                                <select class="form-control form-control-sm penerima-insentif" data-id-guru="<?= $guruData['IdGuru'] ?>">
                                     <option value="">Pilih Penerima Insentif</option>
-                                    <option value="Guru Ngaji" <?= ($dataGuru['JenisPenerimaInsentif'] ?? '') == 'Guru Ngaji' ? 'selected' : '' ?>>Guru Ngaji</option>
-                                    <option value="Mubaligh" <?= ($dataGuru['JenisPenerimaInsentif'] ?? '') == 'Mubaligh' ? 'selected' : '' ?>>Mubaligh</option>
-                                    <option value="Fardu Kifayah" <?= ($dataGuru['JenisPenerimaInsentif'] ?? '') == 'Fardu Kifayah' ? 'selected' : '' ?>>Fardu Kifayah</option>
+                                    <option value="Guru Ngaji" <?= ($guruData['JenisPenerimaInsentif'] ?? '') == 'Guru Ngaji' ? 'selected' : '' ?>>Guru Ngaji</option>
+                                    <option value="Mubaligh" <?= ($guruData['JenisPenerimaInsentif'] ?? '') == 'Mubaligh' ? 'selected' : '' ?>>Mubaligh</option>
+                                    <option value="Fardu Kifayah" <?= ($guruData['JenisPenerimaInsentif'] ?? '') == 'Fardu Kifayah' ? 'selected' : '' ?>>Fardu Kifayah</option>
                                 </select>
                             </td>
                             <td>
                                 <div style="display: flex; flex-direction: column; gap: 5px;">
                                     <!-- Row 1: Buttons (4 buttons) -->
                                     <div style="display: flex; gap: 5px; justify-content: space-between;">
-                                        <a href="<?= base_url('backend/guru/printSuratPernyataanAsn/' . $dataGuru['IdGuru']) ?>"
+                                        <a href="<?= base_url('backend/guru/printSuratPernyataanAsn/' . $guruData['IdGuru']) ?>"
                                             class="btn btn-sm btn-primary btn-pdf-action"
                                             style="flex: 1;"
-                                            data-id-guru="<?= $dataGuru['IdGuru'] ?>"
+                                            data-id-guru="<?= $guruData['IdGuru'] ?>"
                                             target="_blank"
                                             title="Surat Pernyataan Tidak Berstatus ASN">
                                             <i class="fas fa-file-pdf"></i> ASN
                                         </a>
-                                        <a href="<?= base_url('backend/guru/printSuratPernyataanInsentif/' . $dataGuru['IdGuru']) ?>"
+                                        <a href="<?= base_url('backend/guru/printSuratPernyataanInsentif/' . $guruData['IdGuru']) ?>"
                                             class="btn btn-sm btn-info btn-pdf-action"
                                             style="flex: 1;"
-                                            data-id-guru="<?= $dataGuru['IdGuru'] ?>"
+                                            data-id-guru="<?= $guruData['IdGuru'] ?>"
                                             target="_blank"
                                             title="Surat Pernyataan Tidak Sedang Menerima Insentif">
                                             <i class="fas fa-file-pdf"></i> Insentif
                                         </a>
-                                        <a href="<?= base_url('backend/guru/printSuratRekomendasi/' . $dataGuru['IdGuru']) ?>"
+                                        <a href="<?= base_url('backend/guru/printSuratRekomendasi/' . $guruData['IdGuru']) ?>"
                                             class="btn btn-sm btn-success btn-pdf-action btn-rekomendasi"
                                             style="flex: 1;"
-                                            data-id-guru="<?= $dataGuru['IdGuru'] ?>"
-                                            data-penerima-insentif="<?= esc($dataGuru['JenisPenerimaInsentif'] ?? '') ?>"
+                                            data-id-guru="<?= $guruData['IdGuru'] ?>"
+                                            data-penerima-insentif="<?= esc($guruData['JenisPenerimaInsentif'] ?? '') ?>"
                                             target="_blank"
                                             title="Surat Rekomendasi">
                                             <i class="fas fa-file-pdf"></i> Rekomendasi
                                         </a>
-                                        <a href="<?= base_url('backend/guru/printLampiran/' . $dataGuru['IdGuru']) ?>"
+                                        <a href="<?= base_url('backend/guru/printLampiran/' . $guruData['IdGuru']) ?>"
                                             class="btn btn-sm btn-warning btn-lampiran"
                                             style="flex: 1;"
-                                            data-id-guru="<?= $dataGuru['IdGuru'] ?>"
+                                            data-id-guru="<?= $guruData['IdGuru'] ?>"
                                             target="_blank"
                                             title="Lampiran KTP dan Rekening BPR">
                                             <i class="fas fa-paperclip"></i> Lampiran
@@ -101,7 +103,33 @@
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Pernyataan Tidak Berstatus ASN</small>
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Pernyataan Tidak Terima Insentif Lain</small>
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Rekomendasi Guru TPQ</small>
-                                        <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Lampiran KTP dan Rekening BPR</small>
+                                        <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">
+                                            Lampiran KTP 
+                                            <?php if (!empty($dataGuru['hasKtp'])): ?>
+                                                <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                            <?php else: ?>
+                                                <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                                            <?php endif; ?>
+                                            BPR
+                                            <?php if (!empty($dataGuru['hasBpr'])): ?>
+                                                <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                            <?php else: ?>
+                                                <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                                            <?php endif; ?>
+                                            KK
+                                            <?php if (!empty($dataGuru['hasKk'])): ?>
+                                                <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                            <?php else: ?>
+                                                <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                                            <?php endif; ?>
+                                            <br>
+                                            No Rek BPR: 
+                                            <?php if (!empty($guruData['NoRekBpr'])): ?>
+                                                <span style="color: #007bff;"><?= esc($guruData['NoRekBpr']) ?></span>
+                                            <?php else: ?>
+                                                <span style="color: #dc3545;">xxxxxxxxxx</span>
+                                            <?php endif; ?>
+                                        </small>
                                     </div>
                                 </div>
                             </td>

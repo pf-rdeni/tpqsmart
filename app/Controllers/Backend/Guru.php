@@ -349,18 +349,39 @@ class Guru extends BaseController
         $IdTpq = session()->get('IdTpq');
         // query data guru berdasarkan IdTpq jika idtpq tidak ada maka akan menampilkan semua data guru
         if ($IdTpq == null) {
-            $data = [
-                'page_title' => 'Pengajuan Insentif Guru',
-                'guru' => $this->DataModels->findAll(),
-                'tpq' => $this->helpFunction->getDataTpq()
-            ];
+            $guruList = $this->DataModels->findAll();
         } else {
-            $data = [
-                'page_title' => 'Pengajuan Insentif Guru',
-                'guru' => $this->DataModels->where('IdTpq', $IdTpq)->findAll(),
-                'tpq' => $this->helpFunction->getDataTpq()
+            $guruList = $this->DataModels->where('IdTpq', $IdTpq)->findAll();
+        }
+
+        // Cek status berkas untuk setiap guru
+        $guruWithBerkasStatus = [];
+        foreach ($guruList as $guru) {
+            // Cek KTP
+            $berkasKtp = $this->guruBerkasModel->getBerkasAktifByGuruAndType($guru['IdGuru'], 'KTP');
+            $hasKtp = $berkasKtp && file_exists(FCPATH . 'uploads/berkas/' . $berkasKtp['NamaFile']);
+
+            // Cek BPR
+            $berkasBpr = $this->guruBerkasModel->getBerkasAktifByGuruAndType($guru['IdGuru'], 'Buku Rekening', 'BPR');
+            $hasBpr = $berkasBpr && file_exists(FCPATH . 'uploads/berkas/' . $berkasBpr['NamaFile']);
+
+            // Cek KK
+            $berkasKk = $this->guruBerkasModel->getBerkasAktifByGuruAndType($guru['IdGuru'], 'KK');
+            $hasKk = $berkasKk && file_exists(FCPATH . 'uploads/berkas/' . $berkasKk['NamaFile']);
+
+            $guruWithBerkasStatus[] = [
+                'guru' => $guru,
+                'hasKtp' => $hasKtp,
+                'hasBpr' => $hasBpr,
+                'hasKk' => $hasKk
             ];
         }
+
+        $data = [
+            'page_title' => 'Pengajuan Insentif Guru',
+            'guru' => $guruWithBerkasStatus,
+            'tpq' => $this->helpFunction->getDataTpq()
+        ];
         return view('backend/guru/pengajuanInsentif', $data);
     }
 
@@ -705,9 +726,8 @@ class Guru extends BaseController
             $ktpMimeType = mime_content_type($ktpPath);
             $ktpDataUri = 'data:' . $ktpMimeType . ';base64,' . $ktpBase64;
 
-            $bprBase64 = base64_encode(file_get_contents($bprPath));
-            $bprMimeType = mime_content_type($bprPath);
-            $bprDataUri = 'data:' . $bprMimeType . ';base64,' . $bprBase64;
+            // Process BPR image: auto-rotate jika landscape menjadi portrait
+            $bprDataUri = $this->processKkImage($bprPath);
 
             // Process KK jika ada
             $kkDataUri = null;

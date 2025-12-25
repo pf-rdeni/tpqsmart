@@ -78,7 +78,7 @@
         }
 
         .image-container {
-            margin: 10px 0;
+            margin: 5px 0;
             text-align: center;
         }
 
@@ -184,8 +184,7 @@
     <div class="page">
         <!-- Header -->
         <div class="header">
-            <h2>LAMPIRAN BERKAS</h2>
-            <p>KTP dan Rekening Bank BPR</p>
+            <h2><?= strtoupper('lampiran berkas - ' . ($guru['Nama'] ?? '')) ?></h2>
         </div>
 
         <!-- KTP Section -->
@@ -219,8 +218,7 @@
         <!-- Halaman 2: KK -->
         <div class="page">
             <div class="header">
-                <h2>LAMPIRAN BERKAS</h2>
-                <p>Kartu Keluarga (KK)</p>
+                <h2><?= strtoupper('lampiran berkas - ' . ($guru['Nama'] ?? '')) ?></h2>
             </div>
 
             <div class="kk-section">
