@@ -4,6 +4,11 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Berkas Lampiran Guru</h3>
+            <div class="card-tools">
+                <a href="<?= base_url('backend/guru/pengajuanInsentif') ?>" class="btn btn-primary btn-sm">
+                    <i class="fas fa-file-invoice"></i> Pengajuan Insentif
+                </a>
+            </div>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -131,6 +136,9 @@
                                                         alt="BPR Preview"
                                                         class="preview-image"
                                                         data-image-url="<?= base_url('uploads/berkas/' . $bprData['NamaFile']) ?>"
+                                                        data-id-guru="<?= esc($guru['IdGuru']) ?>"
+                                                        data-bank-type="BPR"
+                                                        data-no-rek="<?= esc($guru['NoRekBpr'] ?? '') ?>"
                                                         style="max-width: 100%; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
                                                         title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
                                                 </div>
@@ -160,6 +168,9 @@
                                                         alt="BRK Preview"
                                                         class="preview-image"
                                                         data-image-url="<?= base_url('uploads/berkas/' . $brkData['NamaFile']) ?>"
+                                                        data-id-guru="<?= esc($guru['IdGuru']) ?>"
+                                                        data-bank-type="BRK"
+                                                        data-no-rek="<?= esc($guru['NoRekRiauKepri'] ?? '') ?>"
                                                         style="max-width: 100%; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
                                                         title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
                                                 </div>
@@ -198,6 +209,9 @@
                                                         alt="BPR Preview"
                                                         class="preview-image"
                                                         data-image-url="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>"
+                                                        data-id-guru="<?= esc($guru['IdGuru']) ?>"
+                                                        data-bank-type="BPR"
+                                                        data-no-rek="<?= esc($guru['NoRekBpr'] ?? '') ?>"
                                                         style="max-width: 100%; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
                                                         title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
                                                 </div>
@@ -227,6 +241,9 @@
                                                         alt="BRK Preview"
                                                         class="preview-image"
                                                         data-image-url="<?= base_url('uploads/berkas/' . $berkas['Buku Rekening']['NamaFile']) ?>"
+                                                        data-id-guru="<?= esc($guru['IdGuru']) ?>"
+                                                        data-bank-type="BRK"
+                                                        data-no-rek="<?= esc($guru['NoRekRiauKepri'] ?? '') ?>"
                                                         style="max-width: 100%; max-height: 100px; width: auto; height: auto; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
                                                         title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
                                                 </div>
@@ -507,8 +524,27 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body text-center" style="padding: 20px;">
-                <img id="previewEnlargedImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+            <div class="modal-body" style="padding: 20px;">
+                <div class="text-center mb-3">
+                    <img id="previewEnlargedImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <!-- Form untuk update no rekening (hanya muncul untuk BPR/BRK) -->
+                <div id="noRekFormContainer" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                    <form id="formUpdateNoRek">
+                        <input type="hidden" id="updateNoRekIdGuru" name="IdGuru">
+                        <input type="hidden" id="updateNoRekBankType" name="BankType">
+                        <div class="form-group">
+                            <label for="updateNoRekInput" id="updateNoRekLabel">No. Rekening</label>
+                            <input type="text" class="form-control" id="updateNoRekInput" name="NoRek" placeholder="Masukkan nomor rekening" maxlength="50">
+                            <small class="form-text text-muted">Masukkan nomor rekening sesuai dengan buku rekening di atas</small>
+                        </div>
+                        <div class="form-group mb-0">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-save"></i> Simpan No. Rekening
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -814,6 +850,27 @@
                 const timer = setTimeout(function() {
                     // Single click: buka modal dengan gambar diperbesar
                     $('#previewEnlargedImage').attr('src', imageUrl);
+
+                    // Cek apakah ini gambar BPR atau BRK
+                    const idGuru = $img.data('id-guru');
+                    const bankType = $img.data('bank-type');
+                    const noRek = $img.data('no-rek') || '';
+
+                    if (bankType && (bankType === 'BPR' || bankType === 'BRK')) {
+                        // Tampilkan form no rekening
+                        $('#noRekFormContainer').show();
+                        $('#updateNoRekIdGuru').val(idGuru);
+                        $('#updateNoRekBankType').val(bankType);
+                        $('#updateNoRekInput').val(noRek);
+
+                        // Update label berdasarkan bank type
+                        const labelText = bankType === 'BPR' ? 'No. Rekening BPR' : 'No. Rekening BRK';
+                        $('#updateNoRekLabel').text(labelText);
+                    } else {
+                        // Sembunyikan form untuk KTP/KK
+                        $('#noRekFormContainer').hide();
+                    }
+
                     $('#modalImagePreview').modal('show');
                     $img.removeData('clickTimer');
                 }, 250); // Delay 250ms untuk membedakan dengan double click
@@ -2076,6 +2133,82 @@
         });
     }
 
+    // Handle form update no rekening
+    $('#formUpdateNoRek').on('submit', function(e) {
+        e.preventDefault();
+
+        const idGuru = $('#updateNoRekIdGuru').val();
+        const bankType = $('#updateNoRekBankType').val();
+        const noRek = $('#updateNoRekInput').val().trim();
+
+        if (!idGuru || !bankType) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Data tidak lengkap'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Menyimpan...',
+            text: 'Mohon tunggu',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '<?= base_url('backend/guru/updateNoRekening') ?>',
+            type: 'POST',
+            data: {
+                IdGuru: idGuru,
+                BankType: bankType,
+                NoRek: noRek
+            },
+            dataType: 'json',
+            success: function(response) {
+                Swal.close();
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: response.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Update data attribute pada gambar preview
+                        const $img = $('.preview-image[data-id-guru="' + idGuru + '"][data-bank-type="' + bankType + '"]');
+                        if ($img.length) {
+                            $img.data('no-rek', noRek);
+                        }
+                        // Reload halaman untuk update tampilan no rekening
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: response.message || 'Terjadi kesalahan saat menyimpan nomor rekening'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                let errorMessage = 'Terjadi kesalahan saat menyimpan nomor rekening';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMessage
+                });
+            }
+        });
+    });
+
     // Function untuk delete berkas (legacy, redirect ke deleteBerkasDirect)
     function deleteBerkas(berkasId) {
         deleteBerkasDirect(berkasId);
@@ -2106,6 +2239,14 @@
             }
         }, 100);
     }
+
+    // Reset form no rekening saat modal preview ditutup
+    $('#modalImagePreview').on('hidden.bs.modal', function() {
+        $('#noRekFormContainer').hide();
+        $('#formUpdateNoRek')[0].reset();
+        $('#updateNoRekIdGuru').val('');
+        $('#updateNoRekBankType').val('');
+    });
 
     // Cleanup cropper saat modal ditutup
     $('#modalCropBerkas').on('hidden.bs.modal', function() {

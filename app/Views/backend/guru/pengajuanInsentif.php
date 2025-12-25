@@ -4,6 +4,11 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Pengajuan Insentif Guru</h3>
+            <div class="card-tools">
+                <a href="<?= base_url('backend/guru/showBerkasLampiran') ?>" class="btn btn-primary btn-sm">
+                    <i class="fas fa-folder-open"></i> Berkas Lampiran
+                </a>
+            </div>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -43,7 +48,7 @@
                 </thead>
                 <tbody>
                     <?php
-                    foreach ($guru as $dataGuru) : 
+                    foreach ($guru as $dataGuru) :
                         $guruData = $dataGuru['guru'];
                     ?>
                         <tr data-idtpq="<?= esc($guruData['IdTpq'] ?? '') ?>">
@@ -104,7 +109,7 @@
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Pernyataan Tidak Terima Insentif Lain</small>
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Rekomendasi Guru TPQ</small>
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">
-                                            Lampiran KTP 
+                                            Lampiran KTP
                                             <?php if (!empty($dataGuru['hasKtp'])): ?>
                                                 <i class="fas fa-check-circle" style="color: #28a745;"></i>
                                             <?php else: ?>
@@ -123,7 +128,7 @@
                                                 <i class="fas fa-times-circle" style="color: #dc3545;"></i>
                                             <?php endif; ?>
                                             <br>
-                                            No Rek BPR: 
+                                            No Rek BPR:
                                             <?php if (!empty($guruData['NoRekBpr'])): ?>
                                                 <span style="color: #007bff;"><?= esc($guruData['NoRekBpr']) ?></span>
                                             <?php else: ?>

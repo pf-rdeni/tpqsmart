@@ -385,6 +385,85 @@ class Guru extends BaseController
         return view('backend/guru/pengajuanInsentif', $data);
     }
 
+    // Update No Rekening via AJAX
+    public function updateNoRekening()
+    {
+        try {
+            if (!$this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Request harus menggunakan AJAX'
+                ]);
+            }
+
+            $IdGuru = $this->request->getPost('IdGuru');
+            $BankType = $this->request->getPost('BankType');
+            $NoRek = trim($this->request->getPost('NoRek') ?? '');
+
+            // Validasi
+            if (empty($IdGuru)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID Guru harus diisi'
+                ]);
+            }
+
+            if (empty($BankType) || !in_array($BankType, ['BPR', 'BRK'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tipe bank tidak valid. Harus BPR atau BRK'
+                ]);
+            }
+
+            // Validasi nomor rekening (opsional, maksimal 50 karakter)
+            if (!empty($NoRek) && strlen($NoRek) > 50) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Nomor rekening maksimal 50 karakter'
+                ]);
+            }
+
+            // Cek apakah data guru ada
+            $guru = $this->DataModels->find($IdGuru);
+            if (!$guru) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data guru tidak ditemukan'
+                ]);
+            }
+
+            // Update no rekening berdasarkan tipe bank
+            $updateData = [];
+            if ($BankType === 'BPR') {
+                $updateData['NoRekBpr'] = !empty($NoRek) ? $NoRek : null;
+            } else if ($BankType === 'BRK') {
+                $updateData['NoRekRiauKepri'] = !empty($NoRek) ? $NoRek : null;
+            }
+
+            // Update data
+            $updateResult = $this->DataModels->update($IdGuru, $updateData);
+
+            if ($updateResult) {
+                $bankName = $BankType === 'BPR' ? 'BPR' : 'BRK';
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Nomor rekening ' . $bankName . ' berhasil diupdate'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal mengupdate nomor rekening'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: updateNoRekening - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     // Update Penerima Insentif via AJAX
     public function updatePenerimaInsentif()
     {
