@@ -525,11 +525,8 @@
                 </button>
             </div>
             <div class="modal-body" style="padding: 20px;">
-                <div class="text-center mb-3">
-                    <img id="previewEnlargedImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; height: auto; border: 1px solid #ddd; border-radius: 4px;">
-                </div>
                 <!-- Form untuk update no rekening (hanya muncul untuk BPR/BRK) -->
-                <div id="noRekFormContainer" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                <div id="noRekFormContainer" style="display: none;">
                     <form id="formUpdateNoRek">
                         <input type="hidden" id="updateNoRekIdGuru" name="IdGuru">
                         <input type="hidden" id="updateNoRekBankType" name="BankType">
@@ -537,13 +534,15 @@
                             <label for="updateNoRekInput" id="updateNoRekLabel">No. Rekening</label>
                             <input type="text" class="form-control" id="updateNoRekInput" name="NoRek" placeholder="Masukkan nomor rekening" maxlength="50">
                             <small class="form-text text-muted">Masukkan nomor rekening sesuai dengan buku rekening di atas</small>
-                        </div>
-                        <div class="form-group mb-0">
                             <button type="submit" class="btn btn-primary btn-sm">
                                 <i class="fas fa-save"></i> Simpan No. Rekening
                             </button>
                         </div>
                     </form>
+                </div>
+
+                <div class="text-center mb-3">
+                    <img id="previewEnlargedImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; height: auto; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
             </div>
         </div>
