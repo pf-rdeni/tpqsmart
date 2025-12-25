@@ -415,12 +415,32 @@ class Guru extends BaseController
                 ]);
             }
 
-            // Validasi nomor rekening (opsional, maksimal 50 karakter)
-            if (!empty($NoRek) && strlen($NoRek) > 50) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Nomor rekening maksimal 50 karakter'
-                ]);
+            // Validasi nomor rekening (opsional)
+            if (!empty($NoRek)) {
+                // Harus berupa angka
+                if (!ctype_digit($NoRek)) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Nomor rekening harus berupa angka'
+                    ]);
+                }
+
+                // Validasi panjang berdasarkan tipe bank
+                if ($BankType === 'BPR') {
+                    if (strlen($NoRek) !== 11) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Nomor rekening BPR harus 11 digit'
+                        ]);
+                    }
+                } else if ($BankType === 'BRK') {
+                    if (strlen($NoRek) !== 10) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Nomor rekening BRK harus 10 digit'
+                        ]);
+                    }
+                }
             }
 
             // Cek apakah data guru ada
@@ -1698,6 +1718,7 @@ class Guru extends BaseController
             $fileTypes = $this->request->getGet('fileTypes');
             $jenisPenerimaInsentif = $this->request->getGet('jenisPenerimaInsentif');
             $filterTpq = $this->request->getGet('filterTpq'); // Bisa array atau single value
+            $singleZip = $this->request->getGet('singleZip'); // Opsi untuk semua guru dalam satu ZIP
 
             // Override filterTpq untuk Operator
             if ($isOperator) {
@@ -1723,7 +1744,7 @@ class Guru extends BaseController
                 }
             }
 
-            log_message('info', "Guru: printBulkInsentif - Request: fileTypes={$fileTypes}, jenisPenerimaInsentif={$jenisPenerimaInsentif}, filterTpq=" . json_encode($filterTpqArray));
+            log_message('info', "Guru: printBulkInsentif - Request: fileTypes={$fileTypes}, jenisPenerimaInsentif={$jenisPenerimaInsentif}, singleZip={$singleZip}, filterTpq=" . json_encode($filterTpqArray));
 
             if (empty($fileTypes)) {
                 log_message('warning', 'Guru: printBulkInsentif - File types kosong');
@@ -1803,7 +1824,7 @@ class Guru extends BaseController
 
             // Panggil method untuk generate dan zip
             // Pass array TPQ untuk handle multiple TPQ
-            return $this->printBulkInsentifZip($listGuru, $fileTypesArray, $filterTpqArray);
+            return $this->printBulkInsentifZip($listGuru, $fileTypesArray, $filterTpqArray, $singleZip);
         } catch (\Exception $e) {
             log_message('error', 'Guru: printBulkInsentif - Error: ' . $e->getMessage());
             log_message('error', 'Guru: printBulkInsentif - Stack trace: ' . $e->getTraceAsString());
@@ -1822,9 +1843,9 @@ class Guru extends BaseController
 
     /**
      * Print PDF bulk dengan metode zip (satu per satu lalu di-zip)
-     * Jika multiple TPQ, buat ZIP terpisah per TPQ
+     * Jika multiple TPQ, buat ZIP terpisah per TPQ (kecuali jika singleZip = true)
      */
-    private function printBulkInsentifZip($listGuru, $fileTypesArray, $filterTpqArray = [])
+    private function printBulkInsentifZip($listGuru, $fileTypesArray, $filterTpqArray = [], $singleZip = false)
     {
         // Buat temporary directory
         $tempDir = sys_get_temp_dir() . '/insentif_bulk_' . uniqid();
@@ -1884,7 +1905,7 @@ class Guru extends BaseController
                     // Merge PDF menjadi satu (jika FPDI tersedia)
                     $mergedPdf = $this->mergePdfs($pdfsToMerge);
 
-                    $namaGuru = preg_replace('/[^a-zA-Z0-9_-]/', '_', str_replace(' ', '_', $guru['Nama']));
+                    $namaGuru = preg_replace('/[^a-zA-Z0-9_-]/', '_', str_replace(' ', '_', strtoupper($guru['Nama'])));
 
                     if ($mergedPdf && !empty($mergedPdf)) {
                         // Jika merge berhasil, simpan sebagai satu file
@@ -1949,23 +1970,28 @@ class Guru extends BaseController
 
             log_message('info', "Guru: printBulkInsentifZip - Berhasil membuat {$successCount} PDF, {$errorCount} error");
 
-            // Group PDF files berdasarkan TPQ
-            $pdfFilesByTpq = [];
-            foreach ($pdfFiles as $pdfFile) {
-                $idTpq = $pdfFile['IdTpq'] ?? null;
-                if (!isset($pdfFilesByTpq[$idTpq])) {
-                    $pdfFilesByTpq[$idTpq] = [];
-                }
-                $pdfFilesByTpq[$idTpq][] = $pdfFile;
-            }
-
-            log_message('info', "Guru: printBulkInsentifZip - PDF files grouped by TPQ: " . count($pdfFilesByTpq) . " TPQ");
-
-            // Buat ZIP file berdasarkan TPQ
+            // Buat ZIP file berdasarkan opsi singleZip
             $foldersPerTpq = []; // Untuk cleanup nanti
             try {
-                // Jika multiple TPQ, buat folder per TPQ lalu zip semua folder
-                if (count($pdfFilesByTpq) > 1 || (count($filterTpqArray) > 1)) {
+                // Jika singleZip = true, semua guru dalam satu ZIP tanpa grouping per TPQ
+                if ($singleZip) {
+                    log_message('info', "Guru: printBulkInsentifZip - Opsi Single ZIP dipilih, semua guru dalam satu ZIP");
+                    $zipFilename = $this->createZipFromPdfsInsentif($pdfFiles, null, $tempDir, 'Pengajuan_Insentif_Semua_Guru');
+                } else {
+                    // Group PDF files berdasarkan TPQ
+                    $pdfFilesByTpq = [];
+                    foreach ($pdfFiles as $pdfFile) {
+                        $idTpq = $pdfFile['IdTpq'] ?? null;
+                        if (!isset($pdfFilesByTpq[$idTpq])) {
+                            $pdfFilesByTpq[$idTpq] = [];
+                        }
+                        $pdfFilesByTpq[$idTpq][] = $pdfFile;
+                    }
+
+                    log_message('info', "Guru: printBulkInsentifZip - PDF files grouped by TPQ: " . count($pdfFilesByTpq) . " TPQ");
+
+                    // Jika multiple TPQ, buat folder per TPQ lalu zip semua folder
+                    if (count($pdfFilesByTpq) > 1 || (count($filterTpqArray) > 1)) {
                     // Buat folder untuk setiap TPQ dan pindahkan PDF files ke folder tersebut
                     foreach ($pdfFilesByTpq as $idTpq => $files) {
                         // Ambil nama TPQ
@@ -2005,13 +2031,14 @@ class Guru extends BaseController
                         log_message('info', "Guru: printBulkInsentifZip - Created folder for TPQ {$idTpq}: {$folderName}");
                     }
 
-                    // Buat ZIP utama yang berisi semua folder per TPQ
-                    $mainZipFilename = $this->createMainZipFromTpqFolders($foldersPerTpq, $tempDir);
-                    $zipFilename = $mainZipFilename;
-                } else {
-                    // Single TPQ, buat ZIP langsung
-                    $idTpq = !empty($filterTpqArray) && count($filterTpqArray) === 1 ? $filterTpqArray[0] : (key($pdfFilesByTpq) ?? null);
-                    $zipFilename = $this->createZipFromPdfsInsentif($pdfFiles, $idTpq, $tempDir);
+                        // Buat ZIP utama yang berisi semua folder per TPQ
+                        $mainZipFilename = $this->createMainZipFromTpqFolders($foldersPerTpq, $tempDir);
+                        $zipFilename = $mainZipFilename;
+                    } else {
+                        // Single TPQ, buat ZIP langsung
+                        $idTpq = !empty($filterTpqArray) && count($filterTpqArray) === 1 ? $filterTpqArray[0] : (key($pdfFilesByTpq) ?? null);
+                        $zipFilename = $this->createZipFromPdfsInsentif($pdfFiles, $idTpq, $tempDir);
+                    }
                 }
 
                 $zipFileSize = filesize($zipFilename);
@@ -2435,27 +2462,35 @@ class Guru extends BaseController
     /**
      * Buat ZIP file dari array PDF files
      */
-    private function createZipFromPdfsInsentif($pdfFiles, $filterTpq, $tempDir)
+    private function createZipFromPdfsInsentif($pdfFiles, $filterTpq, $tempDir, $customPrefix = null)
     {
-        // Ambil nama TPQ dan Kelurahan/Desa jika filter ada
+        // Inisialisasi variabel di luar blok if/else
         $namaTpq = 'SemuaTPQ';
         $kelurahanDesa = '';
-        if (!empty($filterTpq)) {
-            $tpqData = $this->tpqModel->GetData($filterTpq);
-            if (!empty($tpqData) && !empty($tpqData[0])) {
-                $namaTpq = preg_replace('/[^a-zA-Z0-9_-]/', '_', $tpqData[0]['NamaTpq']);
-                $kelurahanDesa = !empty($tpqData[0]['KelurahanDesa'])
-                    ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $tpqData[0]['KelurahanDesa'])
-                    : '';
-            }
-        }
 
-        // Buat nama file dengan format: Pengajuan_Insentif_NamaTPQ_KelurahanDesa_Tanggal.zip
-        $zipName = 'Pengajuan_Insentif_' . $namaTpq;
-        if (!empty($kelurahanDesa)) {
-            $zipName .= '_' . $kelurahanDesa;
+        // Jika ada custom prefix, gunakan itu
+        if (!empty($customPrefix)) {
+            $zipName = $customPrefix . '_' . date('Y-m-d') . '.zip';
+            $namaTpq = $customPrefix; // Set untuk logging
+        } else {
+            // Ambil nama TPQ dan Kelurahan/Desa jika filter ada
+            if (!empty($filterTpq)) {
+                $tpqData = $this->tpqModel->GetData($filterTpq);
+                if (!empty($tpqData) && !empty($tpqData[0])) {
+                    $namaTpq = preg_replace('/[^a-zA-Z0-9_-]/', '_', $tpqData[0]['NamaTpq']);
+                    $kelurahanDesa = !empty($tpqData[0]['KelurahanDesa'])
+                        ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $tpqData[0]['KelurahanDesa'])
+                        : '';
+                }
+            }
+
+            // Buat nama file dengan format: Pengajuan_Insentif_NamaTPQ_KelurahanDesa_Tanggal.zip
+            $zipName = 'Pengajuan_Insentif_' . $namaTpq;
+            if (!empty($kelurahanDesa)) {
+                $zipName .= '_' . $kelurahanDesa;
+            }
+            $zipName .= '_' . date('Y-m-d') . '.zip';
         }
-        $zipName .= '_' . date('Y-m-d') . '.zip';
 
         $zipFilename = $tempDir . '/' . $zipName;
 

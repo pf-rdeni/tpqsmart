@@ -28,6 +28,15 @@
                             </select>
                         </div>
                     <?php endif; ?>
+                    <div class="col-md-3">
+                        <label for="filterPenerimaInsentif" class="form-label">Filter Penerima Insentif</label>
+                        <select id="filterPenerimaInsentif" class="form-control form-control-sm">
+                            <option value="">Semua Jenis</option>
+                            <option value="Guru Ngaji">Guru Ngaji</option>
+                            <option value="Mubaligh">Mubaligh</option>
+                            <option value="Fardu Kifayah">Fardu Kifayah</option>
+                        </select>
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label">&nbsp;</label>
                         <div>
@@ -321,57 +330,93 @@
             "lengthChange": true
         });
 
+        // Filter kombinasi TPQ dan Penerima Insentif
         <?php if (in_groups('Admin')): ?>
-            // Filter TPQ untuk Admin
             const filterTpq = $('#filterTpq');
-            let customFilterFunction = null;
-
-            // Event handler untuk filter TPQ
-            filterTpq.on('change', function() {
-                const selectedTpq = $(this).val();
-
-                // Remove existing custom filter if any
-                if (customFilterFunction !== null) {
-                    $.fn.dataTable.ext.search.pop();
-                    customFilterFunction = null;
-                }
-
-                if (selectedTpq !== '') {
-                    // Create new custom filter function
-                    customFilterFunction = function(settings, data, dataIndex) {
-                        // Hanya terapkan filter untuk tabel ini
-                        if (!settings || !settings.nTable || settings.nTable.id !== 'tabelPengajuanInsentif') {
-                            return true;
-                        }
-
-                        try {
-                            // Dapatkan row node langsung dari DataTable
-                            const row = table.row(dataIndex).node();
-                            if (!row) {
-                                return true;
-                            }
-
-                            // Ambil data-idtpq dari row
-                            const rowIdTpq = $(row).attr('data-idtpq');
-
-                            // Cek apakah rowIdTpq match dengan selectedTpq
-                            return rowIdTpq === selectedTpq;
-                        } catch (e) {
-                            console.error('Error in custom filter:', e, 'dataIndex:', dataIndex);
-                            return true;
-                        }
-                    };
-
-                    // Add custom filter
-                    $.fn.dataTable.ext.search.push(customFilterFunction);
-                }
-
-                // Redraw table
-                table.draw();
-            });
-        <?php else: ?>
-            // Untuk Operator, tidak perlu filter karena sudah otomatis filtered di server
         <?php endif; ?>
+        const filterPenerimaInsentif = $('#filterPenerimaInsentif');
+        let combinedFilterFunction = null;
+
+        // Fungsi untuk apply filter gabungan
+        function applyCombinedFilter() {
+            // Remove existing filter if any
+            if (combinedFilterFunction !== null) {
+                const searchFunctions = $.fn.dataTable.ext.search;
+                for (let i = searchFunctions.length - 1; i >= 0; i--) {
+                    if (searchFunctions[i] === combinedFilterFunction) {
+                        searchFunctions.splice(i, 1);
+                        break;
+                    }
+                }
+                combinedFilterFunction = null;
+            }
+
+            let selectedTpq = '';
+            <?php if (in_groups('Admin')): ?>
+                selectedTpq = filterTpq.val();
+            <?php endif; ?>
+            const selectedPenerimaInsentif = filterPenerimaInsentif.val();
+
+            // Jika ada filter yang dipilih
+            if (selectedTpq !== '' || selectedPenerimaInsentif !== '') {
+                combinedFilterFunction = function(settings, data, dataIndex) {
+                    // Hanya terapkan filter untuk tabel ini
+                    if (!settings || !settings.nTable || settings.nTable.id !== 'tabelPengajuanInsentif') {
+                        return true;
+                    }
+
+                    try {
+                        // Gunakan data array dari DataTables, bukan DOM
+                        // data[0] = NIK/Nama column (index 0)
+                        // data[1] = Penerima Insentif column (index 1)
+
+                        // Untuk mendapatkan IdTpq dan Penerima Insentif dari DOM
+                        const row = table.row(dataIndex).node();
+                        if (!row) {
+                            return true;
+                        }
+
+                        // Filter TPQ - dari data-idtpq attribute
+                        let tpqMatch = true;
+                        if (selectedTpq !== '') {
+                            const rowIdTpq = $(row).attr('data-idtpq');
+                            tpqMatch = (rowIdTpq === selectedTpq);
+                        }
+
+                        // Filter Penerima Insentif - dari select value di kolom
+                        let penerimaMatch = true;
+                        if (selectedPenerimaInsentif !== '') {
+                            const selectElement = $(row).find('.penerima-insentif');
+                            const rowPenerimaInsentif = selectElement.val();
+                            penerimaMatch = (rowPenerimaInsentif === selectedPenerimaInsentif);
+                        }
+
+                        // Kedua filter harus match (AND logic)
+                        return tpqMatch && penerimaMatch;
+                    } catch (e) {
+                        console.error('Error in combined filter:', e);
+                        return true;
+                    }
+                };
+
+                // Add combined filter
+                $.fn.dataTable.ext.search.push(combinedFilterFunction);
+            }
+
+            // Redraw table - ini akan memfilter semua data, tidak hanya page saat ini
+            table.draw();
+        }
+
+        // Event handlers untuk filter
+        <?php if (in_groups('Admin')): ?>
+            filterTpq.on('change', function() {
+                applyCombinedFilter();
+            });
+        <?php endif; ?>
+
+        filterPenerimaInsentif.on('change', function() {
+            applyCombinedFilter();
+        });
     });
 
     // Print Semua Berkas untuk Semua Guru Handler
@@ -390,7 +435,8 @@
                 const filterData = {
                     fileTypes: [],
                     jenisPenerimaInsentif: $('#bulkJenisPenerimaInsentif').val() || '',
-                    filterTpq: filterTpqValue
+                    filterTpq: filterTpqValue,
+                    singleZip: $('#checkSingleZip').is(':checked')
                 };
 
                 // Ambil file types yang dicentang
@@ -430,6 +476,11 @@
                                 $('#bulkFilterTpq').val(filterData.filterTpq).trigger('change');
                             }
                         <?php endif; ?>
+
+                        // Restore single ZIP checkbox
+                        if (filterData.singleZip !== undefined) {
+                            $('#checkSingleZip').prop('checked', filterData.singleZip);
+                        }
                     }
                 } catch (e) {
                     console.error('Error loading filter from localStorage:', e);
@@ -469,6 +520,10 @@
                 });
             <?php endif; ?>
 
+            $('#checkSingleZip').on('change', function() {
+                saveFilterToStorage();
+            });
+
             // Prevent form submit
             $('#formPrintBulk').on('submit', function(e) {
                 e.preventDefault();
@@ -498,6 +553,7 @@
                 }
 
                 const jenisPenerimaInsentif = $('#bulkJenisPenerimaInsentif').val();
+                const singleZip = $('#checkSingleZip').is(':checked');
                 let bulkFilterTpq;
                 <?php if ($isOperator): ?>
                     // Untuk Operator, gunakan TPQ mereka sendiri
@@ -596,6 +652,9 @@
                         url += 'fileTypes=' + fileTypes.join(',');
                         if (jenisPenerimaInsentif) {
                             url += '&jenisPenerimaInsentif=' + encodeURIComponent(jenisPenerimaInsentif);
+                        }
+                        if (singleZip) {
+                            url += '&singleZip=1';
                         }
                         if (bulkFilterTpq && bulkFilterTpq.length > 0) {
                             // Jika multiple, kirim sebagai array
@@ -812,10 +871,21 @@
                                 <small class="form-text text-muted">Pilih satu atau lebih TPQ. File ZIP akan dikelompokkan berdasarkan TPQ yang dipilih. Kosongkan untuk semua TPQ.</small>
                             <?php endif; ?>
                         </div>
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkSingleZip" name="singleZip" value="1">
+                                <label class="form-check-label" for="checkSingleZip">
+                                    <strong>Semua Guru dalam Satu Folder ZIP (Tidak Dikelompokkan per TPQ)</strong>
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                Jika dicentang, semua PDF guru akan dimasukkan dalam satu folder ZIP, bukan dikelompokkan berdasarkan TPQ.
+                            </small>
+                        </div>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i>
                             <strong>Info:</strong> Setiap guru akan memiliki 1 file PDF yang berisi gabungan dari file yang dipilih (maksimal 4 file).
-                            File akan di-zip berdasarkan filter TPQ.
+                            File akan di-zip berdasarkan filter TPQ (kecuali opsi "Semua dalam Satu ZIP" dicentang).
                         </div>
                     </form>
                 </div>

@@ -532,9 +532,9 @@
                         <input type="hidden" id="updateNoRekBankType" name="BankType">
                         <div class="form-group">
                             <label for="updateNoRekInput" id="updateNoRekLabel">No. Rekening</label>
-                            <input type="text" class="form-control" id="updateNoRekInput" name="NoRek" placeholder="Masukkan nomor rekening" maxlength="50">
-                            <small class="form-text text-muted">Masukkan nomor rekening sesuai dengan buku rekening di atas</small>
-                            <button type="submit" class="btn btn-primary btn-sm">
+                            <input type="text" class="form-control" id="updateNoRekInput" name="NoRek" placeholder="Masukkan nomor rekening" maxlength="11" inputmode="numeric" pattern="[0-9]*">
+                            <small class="form-text text-muted" id="updateNoRekHelp">Masukkan nomor rekening sesuai dengan buku rekening di atas</small>
+                            <button type="submit" class="btn btn-primary btn-sm mt-2">
                                 <i class="fas fa-save"></i> Simpan No. Rekening
                             </button>
                         </div>
@@ -862,9 +862,16 @@
                         $('#updateNoRekBankType').val(bankType);
                         $('#updateNoRekInput').val(noRek);
 
-                        // Update label berdasarkan bank type
-                        const labelText = bankType === 'BPR' ? 'No. Rekening BPR' : 'No. Rekening BRK';
-                        $('#updateNoRekLabel').text(labelText);
+                        // Update label dan help text berdasarkan bank type
+                        if (bankType === 'BPR') {
+                            $('#updateNoRekLabel').text('No. Rekening BPR (11 digit)');
+                            $('#updateNoRekHelp').text('Masukkan 11 digit nomor rekening BPR (hanya angka)');
+                            $('#updateNoRekInput').attr('maxlength', '11');
+                        } else {
+                            $('#updateNoRekLabel').text('No. Rekening BRK (10 digit)');
+                            $('#updateNoRekHelp').text('Masukkan 10 digit nomor rekening BRK (hanya angka)');
+                            $('#updateNoRekInput').attr('maxlength', '10');
+                        }
                     } else {
                         // Sembunyikan form untuk KTP/KK
                         $('#noRekFormContainer').hide();
@@ -2132,6 +2139,25 @@
         });
     }
 
+    // Validasi nomor rekening saat input
+    $('#updateNoRekInput').on('input', function() {
+        const bankType = $('#updateNoRekBankType').val();
+        const noRek = $(this).val().trim();
+
+        // Hapus karakter non-digit
+        const cleanNoRek = noRek.replace(/\D/g, '');
+        if (noRek !== cleanNoRek) {
+            $(this).val(cleanNoRek);
+        }
+
+        // Validasi panjang berdasarkan bank type
+        if (bankType === 'BPR' && cleanNoRek.length > 11) {
+            $(this).val(cleanNoRek.substring(0, 11));
+        } else if (bankType === 'BRK' && cleanNoRek.length > 10) {
+            $(this).val(cleanNoRek.substring(0, 10));
+        }
+    });
+
     // Handle form update no rekening
     $('#formUpdateNoRek').on('submit', function(e) {
         e.preventDefault();
@@ -2147,6 +2173,40 @@
                 text: 'Data tidak lengkap'
             });
             return;
+        }
+
+        // Validasi nomor rekening
+        if (noRek) {
+            // Harus berupa angka
+            if (!/^\d+$/.test(noRek)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validasi Gagal',
+                    text: 'Nomor rekening harus berupa angka'
+                });
+                return;
+            }
+
+            // Validasi panjang berdasarkan bank type
+            if (bankType === 'BPR') {
+                if (noRek.length !== 11) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validasi Gagal',
+                        text: 'Nomor rekening BPR harus 11 digit'
+                    });
+                    return;
+                }
+            } else if (bankType === 'BRK') {
+                if (noRek.length !== 10) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validasi Gagal',
+                        text: 'Nomor rekening BRK harus 10 digit'
+                    });
+                    return;
+                }
+            }
         }
 
         Swal.fire({
