@@ -1484,7 +1484,7 @@
         }
 
         // Validasi ukuran file (max 15MB - file akan di-compress setelah crop)
-        if (file.size > 15728640) { // 15MB
+        if (file.size > 15728640) { //15MB
             Swal.fire({
                 icon: 'error',
                 title: 'Gagal',
