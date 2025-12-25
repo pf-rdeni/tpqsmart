@@ -31,10 +31,10 @@
 
         .page {
             width: 210mm;
-            min-height: 297mm;
             padding: 10mm;
             margin: 0 auto;
             background: #fff;
+            page-break-inside: avoid;
         }
 
         .header {
