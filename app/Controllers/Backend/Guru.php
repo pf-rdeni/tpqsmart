@@ -1705,8 +1705,10 @@ class Guru extends BaseController
             }
 
             // Set memory limit dan timeout untuk bulk processing
-            ini_set('memory_limit', '512M');
-            set_time_limit(600);
+            // Untuk 100+ guru, butuh waktu dan memory lebih besar
+            ini_set('memory_limit', '2048M'); // 2GB memory
+            ini_set('max_execution_time', '3600'); // 1 jam
+            set_time_limit(3600); // 1 jam (3600 detik)
             mb_internal_encoding('UTF-8');
 
             // Disable output buffering
@@ -1956,13 +1958,21 @@ class Guru extends BaseController
 
                     // Free memory
                     unset($mergedPdf, $pdfsToMerge);
-                    gc_collect_cycles();
+
+                    // Garbage collection setiap 10 guru untuk mencegah memory leak
+                    if ($successCount % 10 === 0) {
+                        gc_collect_cycles();
+                        log_message('info', "Guru: printBulkInsentifZip - Progress: {$successCount} dari " . count($listGuru) . " guru berhasil diproses");
+                    }
                 } catch (\Exception $e) {
                     $errorCount++;
                     log_message('error', "Guru: printBulkInsentifZip - Error untuk guru {$guru['IdGuru']}: " . $e->getMessage());
                     continue;
                 }
             }
+
+            // Final garbage collection
+            gc_collect_cycles();
 
             if (empty($pdfFiles)) {
                 throw new \Exception('Tidak ada PDF yang berhasil dibuat');
