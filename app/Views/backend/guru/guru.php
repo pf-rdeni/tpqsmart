@@ -107,7 +107,7 @@ $sessionIdTpq = $sessionIdTpq ?? null;
             <div class="modal-body">
                 <form id="editGuruForm" action="<?= base_url('backend/guru/update') ?>" method="POST">
                     <input type="hidden" id="edit_IdGuru" name="IdGuru">
-                    <input type="hidden" id="edit_TempatTugas" name="TempatTugas" required>
+                    <input type="hidden" id="edit_TempatTugas" name="TempatTugas">
                     <div id="edit_TempatTugasError" class="invalid-feedback"></div>
 
                     <div class="form-group">

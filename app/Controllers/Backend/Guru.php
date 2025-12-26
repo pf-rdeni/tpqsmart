@@ -261,7 +261,7 @@ class Guru extends BaseController
                 'IdGuru' => 'required|min_length[16]|max_length[16]',
                 'Nama' => 'required',
                 'IdTpq' => 'required',
-                'TempatTugas' => 'required',
+                'TempatTugas' => 'permit_empty',
                 'TanggalMulaiTugas' => 'required',
                 'NoHp' => 'required|min_length[10]|max_length[13]',
                 'Status' => 'required|in_list[0,1]',
