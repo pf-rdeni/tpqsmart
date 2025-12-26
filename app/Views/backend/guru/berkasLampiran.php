@@ -404,12 +404,26 @@
                     <i class="fas fa-info-circle"></i> <strong>Panduan:</strong>
                     Geser (drag) untuk memindahkan area crop • Resize untuk mengubah ukuran •
                     Gunakan tombol Putar Kiri/Kanan untuk memutar gambar •
-                    Aspect ratio sudah fixed sesuai jenis berkas • Klik <strong>Selesai</strong> untuk menyimpan
+                    <span id="perspectiveModeInfo">Aspect ratio sudah fixed sesuai jenis berkas</span> •
+                    <span id="perspectiveModeActive" style="display: none; color: #dc3545; font-weight: bold;">Mode Perspektif Aktif: Drag titik sudut untuk memperbaiki perspektif miring</span> •
+                    Klik <strong>Selesai</strong> untuk menyimpan
                 </small>
             </div>
             <div class="modal-body" style="flex: 1; overflow: hidden; padding: 15px; display: flex; align-items: center; justify-content: center;">
-                <div id="cropContainerBerkas" style="width: 100%; height: 100%; max-height: calc(100vh - 200px); overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <div id="cropContainerBerkas" style="width: 100%; height: 100%; max-height: calc(100vh - 200px); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
                     <img id="imageToCropBerkas" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    <!-- Perspective Overlay -->
+                    <div id="perspectiveOverlay">
+                        <canvas id="perspectiveCanvas"></canvas>
+                        <div class="perspective-line" id="perspectiveLine1"></div>
+                        <div class="perspective-line" id="perspectiveLine2"></div>
+                        <div class="perspective-line" id="perspectiveLine3"></div>
+                        <div class="perspective-line" id="perspectiveLine4"></div>
+                        <div class="perspective-handle" id="handleTL" data-handle="tl" style="top: 20%; left: 20%;"></div>
+                        <div class="perspective-handle" id="handleTR" data-handle="tr" style="top: 20%; right: 20%;"></div>
+                        <div class="perspective-handle" id="handleBL" data-handle="bl" style="bottom: 20%; left: 20%;"></div>
+                        <div class="perspective-handle" id="handleBR" data-handle="br" style="bottom: 20%; right: 20%;"></div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6;">
@@ -419,6 +433,9 @@
                     </button>
                     <button type="button" class="btn btn-info btn-sm" id="btnRotateRight" title="Putar 90° ke kanan">
                         <i class="fas fa-redo"></i> Putar Kanan
+                    </button>
+                    <button type="button" class="btn btn-warning btn-sm" id="btnTogglePerspective" title="Aktifkan Mode Perspektif untuk memperbaiki gambar miring">
+                        <i class="fas fa-project-diagram"></i> Mode Perspektif
                     </button>
                 </div>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
@@ -651,6 +668,56 @@
         position: relative;
     }
 
+    /* Style untuk perspective overlay */
+    #perspectiveOverlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+        display: none;
+    }
+
+    #perspectiveOverlay.active {
+        display: block;
+        pointer-events: all;
+    }
+
+    .perspective-handle {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: #007bff;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        cursor: move;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        pointer-events: all;
+        z-index: 1001;
+    }
+
+    .perspective-handle:hover {
+        background-color: #0056b3;
+        transform: scale(1.2);
+    }
+
+    .perspective-line {
+        position: absolute;
+        border: 2px dashed #007bff;
+        pointer-events: none;
+        z-index: 999;
+    }
+
+    #perspectiveCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 998;
+    }
+
     #imageToCropBerkas {
         max-width: 100%;
         max-height: 100%;
@@ -690,6 +757,30 @@
     let cropperBerkas = null;
     let selectedFileBerkas = null;
     let currentIdGuru = null;
+    let perspectiveMode = false;
+    let perspectiveHandles = {
+        tl: {
+            x: 20,
+            y: 20
+        },
+        tr: {
+            x: 80,
+            y: 20
+        },
+        bl: {
+            x: 20,
+            y: 80
+        },
+        br: {
+            x: 80,
+            y: 80
+        }
+    };
+    let perspectiveCanvas = null;
+    let perspectiveCtx = null;
+    let perspectiveImage = null;
+    let currentDraggedHandle = null;
+    let cropBoxBounds = null;
 
     // Inisialisasi DataTable
     document.addEventListener('DOMContentLoaded', function() {
@@ -1375,6 +1466,10 @@
                                 // Enable tombol rotate setelah cropper siap
                                 $('#btnRotateLeft').prop('disabled', false);
                                 $('#btnRotateRight').prop('disabled', false);
+                                $('#btnTogglePerspective').prop('disabled', false);
+
+                                // Initialize perspective canvas
+                                initPerspectiveCanvas();
 
                                 // Pastikan gambar terlihat utuh setelah cropper siap
                                 try {
@@ -1556,6 +1651,386 @@
         }
     });
 
+    // Function untuk initialize perspective canvas
+    function initPerspectiveCanvas() {
+        perspectiveCanvas = document.getElementById('perspectiveCanvas');
+        if (perspectiveCanvas) {
+            const container = document.getElementById('cropContainerBerkas');
+            if (container) {
+                const updateCanvasSize = () => {
+                    const rect = container.getBoundingClientRect();
+                    perspectiveCanvas.width = rect.width;
+                    perspectiveCanvas.height = rect.height;
+                    perspectiveCanvas.style.width = rect.width + 'px';
+                    perspectiveCanvas.style.height = rect.height + 'px';
+                    if (perspectiveCanvas.width && perspectiveCanvas.height) {
+                        perspectiveCtx = perspectiveCanvas.getContext('2d');
+                    }
+                };
+                updateCanvasSize();
+            }
+        }
+    }
+
+    // Function untuk toggle perspective mode
+    $('#btnTogglePerspective').on('click', function() {
+        console.log('Toggle perspective clicked');
+        if (!cropperBerkas) {
+            console.warn('Cropper not initialized');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan',
+                text: 'Cropper belum diinisialisasi'
+            });
+            return;
+        }
+
+        perspectiveMode = !perspectiveMode;
+        console.log('Perspective mode:', perspectiveMode);
+
+        if (perspectiveMode) {
+            // Aktifkan mode perspektif
+            const overlay = $('#perspectiveOverlay');
+            overlay.addClass('active');
+            $('#perspectiveModeInfo').hide();
+            $('#perspectiveModeActive').show();
+            $(this).removeClass('btn-warning').addClass('btn-success');
+            $(this).html('<i class="fas fa-check"></i> Mode Perspektif Aktif');
+
+            // Disable cropper interaction saat perspective mode aktif
+            if (cropperBerkas) {
+                cropperBerkas.setDragMode('none');
+                cropperBerkas.disable();
+                // Hide crop box dengan CSS
+                $('.cropper-crop-box').css('display', 'none');
+            }
+
+            // Update canvas size
+            initPerspectiveCanvas();
+
+            // Ambil crop box data dan update handles
+            if (cropperBerkas) {
+                const cropBoxData = cropperBerkas.getCropBoxData();
+                const container = document.getElementById('cropContainerBerkas');
+                if (container) {
+                    const rect = container.getBoundingClientRect();
+
+                    // Update handles berdasarkan crop box
+                    perspectiveHandles.tl = {
+                        x: (cropBoxData.left / rect.width) * 100,
+                        y: (cropBoxData.top / rect.height) * 100
+                    };
+                    perspectiveHandles.tr = {
+                        x: ((cropBoxData.left + cropBoxData.width) / rect.width) * 100,
+                        y: (cropBoxData.top / rect.height) * 100
+                    };
+                    perspectiveHandles.bl = {
+                        x: (cropBoxData.left / rect.width) * 100,
+                        y: ((cropBoxData.top + cropBoxData.height) / rect.height) * 100
+                    };
+                    perspectiveHandles.br = {
+                        x: ((cropBoxData.left + cropBoxData.width) / rect.width) * 100,
+                        y: ((cropBoxData.top + cropBoxData.height) / rect.height) * 100
+                    };
+
+                    updatePerspectiveHandlesPosition();
+
+                    // Load image untuk preview
+                    const originalCanvas = cropperBerkas.getCroppedCanvas({
+                        imageSmoothingEnabled: true,
+                        imageSmoothingQuality: 'high'
+                    });
+
+                    if (originalCanvas) {
+                        const img = new Image();
+                        img.onload = function() {
+                            perspectiveImage = img;
+                            drawPerspectivePreview();
+                        };
+                        img.src = originalCanvas.toDataURL();
+                    }
+                }
+            }
+        } else {
+            // Nonaktifkan mode perspektif
+            $('#perspectiveOverlay').removeClass('active');
+            $('#perspectiveModeInfo').show();
+            $('#perspectiveModeActive').hide();
+            $(this).removeClass('btn-success').addClass('btn-warning');
+            $(this).html('<i class="fas fa-project-diagram"></i> Mode Perspektif');
+
+            // Enable cropper interaction kembali
+            if (cropperBerkas) {
+                cropperBerkas.enable();
+                cropperBerkas.setDragMode('move');
+                // Show crop box kembali
+                $('.cropper-crop-box').css('display', '');
+            }
+        }
+    });
+
+    // Function untuk update position handles
+    function updatePerspectiveHandlesPosition() {
+        $('#handleTL').css({
+            left: perspectiveHandles.tl.x + '%',
+            top: perspectiveHandles.tl.y + '%'
+        });
+        $('#handleTR').css({
+            right: (100 - perspectiveHandles.tr.x) + '%',
+            top: perspectiveHandles.tr.y + '%'
+        });
+        $('#handleBL').css({
+            left: perspectiveHandles.bl.x + '%',
+            bottom: (100 - perspectiveHandles.bl.y) + '%'
+        });
+        $('#handleBR').css({
+            right: (100 - perspectiveHandles.br.x) + '%',
+            bottom: (100 - perspectiveHandles.br.y) + '%'
+        });
+
+        updatePerspectiveLines();
+        if (perspectiveMode && perspectiveImage) {
+            drawPerspectivePreview();
+        }
+    }
+
+    // Function untuk update perspective lines
+    function updatePerspectiveLines() {
+        const container = document.getElementById('cropContainerBerkas');
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+
+        const tl = {
+            x: (perspectiveHandles.tl.x / 100) * rect.width,
+            y: (perspectiveHandles.tl.y / 100) * rect.height
+        };
+        const tr = {
+            x: (perspectiveHandles.tr.x / 100) * rect.width,
+            y: (perspectiveHandles.tr.y / 100) * rect.height
+        };
+        const bl = {
+            x: (perspectiveHandles.bl.x / 100) * rect.width,
+            y: (perspectiveHandles.bl.y / 100) * rect.height
+        };
+        const br = {
+            x: (perspectiveHandles.br.x / 100) * rect.width,
+            y: (perspectiveHandles.br.y / 100) * rect.height
+        };
+
+        const dist1 = Math.sqrt(Math.pow(tr.x - tl.x, 2) + Math.pow(tr.y - tl.y, 2));
+        const angle1 = Math.atan2(tr.y - tl.y, tr.x - tl.x) * 180 / Math.PI;
+        $('#perspectiveLine1').css({
+            left: tl.x + 'px',
+            top: tl.y + 'px',
+            width: dist1 + 'px',
+            transform: 'rotate(' + angle1 + 'deg)',
+            transformOrigin: '0 0'
+        });
+
+        const dist2 = Math.sqrt(Math.pow(br.x - tr.x, 2) + Math.pow(br.y - tr.y, 2));
+        const angle2 = Math.atan2(br.y - tr.y, br.x - tr.x) * 180 / Math.PI;
+        $('#perspectiveLine2').css({
+            left: tr.x + 'px',
+            top: tr.y + 'px',
+            width: dist2 + 'px',
+            transform: 'rotate(' + angle2 + 'deg)',
+            transformOrigin: '0 0'
+        });
+
+        const dist3 = Math.sqrt(Math.pow(bl.x - br.x, 2) + Math.pow(bl.y - br.y, 2));
+        const angle3 = Math.atan2(bl.y - br.y, bl.x - br.x) * 180 / Math.PI;
+        $('#perspectiveLine3').css({
+            left: br.x + 'px',
+            top: br.y + 'px',
+            width: dist3 + 'px',
+            transform: 'rotate(' + angle3 + 'deg)',
+            transformOrigin: '0 0'
+        });
+
+        const dist4 = Math.sqrt(Math.pow(tl.x - bl.x, 2) + Math.pow(tl.y - bl.y, 2));
+        const angle4 = Math.atan2(tl.y - bl.y, tl.x - bl.x) * 180 / Math.PI;
+        $('#perspectiveLine4').css({
+            left: bl.x + 'px',
+            top: bl.y + 'px',
+            width: dist4 + 'px',
+            transform: 'rotate(' + angle4 + 'deg)',
+            transformOrigin: '0 0'
+        });
+    }
+
+    // Function untuk draw perspective preview
+    function drawPerspectivePreview() {
+        if (!perspectiveCanvas || !perspectiveCtx || !perspectiveImage || !cropperBerkas) return;
+        const container = document.getElementById('cropContainerBerkas');
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+
+        if (perspectiveCanvas.width !== rect.width || perspectiveCanvas.height !== rect.height) {
+            perspectiveCanvas.width = rect.width;
+            perspectiveCanvas.height = rect.height;
+        }
+
+        perspectiveCtx.clearRect(0, 0, perspectiveCanvas.width, perspectiveCanvas.height);
+        const cropBoxData = cropperBerkas.getCropBoxData();
+
+        // Simplified preview - hanya draw outline, transform akan dilakukan saat save
+        perspectiveCtx.strokeStyle = 'rgba(0, 123, 255, 0.5)';
+        perspectiveCtx.lineWidth = 2;
+        perspectiveCtx.beginPath();
+        const tl = {
+            x: (perspectiveHandles.tl.x / 100) * rect.width,
+            y: (perspectiveHandles.tl.y / 100) * rect.height
+        };
+        const tr = {
+            x: (perspectiveHandles.tr.x / 100) * rect.width,
+            y: (perspectiveHandles.tr.y / 100) * rect.height
+        };
+        const bl = {
+            x: (perspectiveHandles.bl.x / 100) * rect.width,
+            y: (perspectiveHandles.bl.y / 100) * rect.height
+        };
+        const br = {
+            x: (perspectiveHandles.br.x / 100) * rect.width,
+            y: (perspectiveHandles.br.y / 100) * rect.height
+        };
+        perspectiveCtx.moveTo(tl.x, tl.y);
+        perspectiveCtx.lineTo(tr.x, tr.y);
+        perspectiveCtx.lineTo(br.x, br.y);
+        perspectiveCtx.lineTo(bl.x, bl.y);
+        perspectiveCtx.closePath();
+        perspectiveCtx.stroke();
+    }
+
+    // Drag handlers untuk perspective handles
+    $(document).on('mousedown touchstart', '.perspective-handle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!perspectiveMode) return;
+
+        currentDraggedHandle = $(this).data('handle');
+        const container = document.getElementById('cropContainerBerkas');
+        const rect = container.getBoundingClientRect();
+
+        function moveHandle(e) {
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            if (!clientX || !clientY) return;
+
+            const x = ((clientX - rect.left) / rect.width) * 100;
+            const y = ((clientY - rect.top) / rect.height) * 100;
+            const clampedX = Math.max(0, Math.min(100, x));
+            const clampedY = Math.max(0, Math.min(100, y));
+
+            perspectiveHandles[currentDraggedHandle] = {
+                x: clampedX,
+                y: clampedY
+            };
+            updatePerspectiveHandlesPosition();
+        }
+
+        function stopDrag() {
+            currentDraggedHandle = null;
+            $(document).off('mousemove touchmove', moveHandle);
+            $(document).off('mouseup touchend', stopDrag);
+        }
+
+        $(document).on('mousemove touchmove', moveHandle);
+        $(document).on('mouseup touchend', stopDrag);
+        return false;
+    });
+
+    // Function untuk apply perspective crop saat save
+    function applyPerspectiveCrop() {
+        if (!perspectiveMode || !cropperBerkas) return null;
+
+        // Get original cropped image
+        const originalCanvas = cropperBerkas.getCroppedCanvas({
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+        });
+
+        if (!originalCanvas) return null;
+
+        const cropBoxData = cropperBerkas.getCropBoxData();
+
+        // Create output canvas dengan ukuran crop box
+        const outputCanvas = document.createElement('canvas');
+        outputCanvas.width = cropBoxData.width;
+        outputCanvas.height = cropBoxData.height;
+
+        const outputCtx = outputCanvas.getContext('2d');
+        outputCtx.imageSmoothingEnabled = true;
+        outputCtx.imageSmoothingQuality = 'high';
+
+        // Source quad dari perspective handles (relatif ke container)
+        const container = document.getElementById('cropContainerBerkas');
+        if (!container) return originalCanvas;
+
+        const rect = container.getBoundingClientRect();
+
+        // Convert perspective handles ke koordinat relatif crop box
+        const srcTL = {
+            x: ((perspectiveHandles.tl.x / 100) * rect.width - cropBoxData.left) / cropBoxData.width,
+            y: ((perspectiveHandles.tl.y / 100) * rect.height - cropBoxData.top) / cropBoxData.height
+        };
+        const srcTR = {
+            x: ((perspectiveHandles.tr.x / 100) * rect.width - cropBoxData.left) / cropBoxData.width,
+            y: ((perspectiveHandles.tr.y / 100) * rect.height - cropBoxData.top) / cropBoxData.height
+        };
+        const srcBL = {
+            x: ((perspectiveHandles.bl.x / 100) * rect.width - cropBoxData.left) / cropBoxData.width,
+            y: ((perspectiveHandles.bl.y / 100) * rect.height - cropBoxData.top) / cropBoxData.height
+        };
+        const srcBR = {
+            x: ((perspectiveHandles.br.x / 100) * rect.width - cropBoxData.left) / cropBoxData.width,
+            y: ((perspectiveHandles.br.y / 100) * rect.height - cropBoxData.top) / cropBoxData.height
+        };
+
+        // Apply perspective transform menggunakan bilinear interpolation
+        const sourceImageData = originalCanvas.getContext('2d').getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+        const outputImageData = outputCtx.createImageData(outputCanvas.width, outputCanvas.height);
+
+        // Isi semua pixel dengan warna putih terlebih dahulu
+        for (let i = 0; i < outputImageData.data.length; i += 4) {
+            outputImageData.data[i] = 255; // R
+            outputImageData.data[i + 1] = 255; // G
+            outputImageData.data[i + 2] = 255; // B
+            outputImageData.data[i + 3] = 255; // A
+        }
+
+        for (let y = 0; y < outputCanvas.height; y++) {
+            for (let x = 0; x < outputCanvas.width; x++) {
+                const u = x / outputCanvas.width;
+                const v = y / outputCanvas.height;
+
+                // Bilinear interpolation pada source quad
+                const topX = srcTL.x + (srcTR.x - srcTL.x) * u;
+                const topY = srcTL.y + (srcTR.y - srcTL.y) * u;
+                const bottomX = srcBL.x + (srcBR.x - srcBL.x) * u;
+                const bottomY = srcBL.y + (srcBR.y - srcBL.y) * u;
+
+                const srcX = topX + (bottomX - topX) * v;
+                const srcY = topY + (bottomY - topY) * v;
+
+                const mappedX = Math.floor(srcX * originalCanvas.width);
+                const mappedY = Math.floor(srcY * originalCanvas.height);
+
+                if (mappedX >= 0 && mappedX < originalCanvas.width && mappedY >= 0 && mappedY < originalCanvas.height) {
+                    const srcIdx = (mappedY * originalCanvas.width + mappedX) * 4;
+                    const dstIdx = (y * outputCanvas.width + x) * 4;
+
+                    outputImageData.data[dstIdx] = sourceImageData.data[srcIdx];
+                    outputImageData.data[dstIdx + 1] = sourceImageData.data[srcIdx + 1];
+                    outputImageData.data[dstIdx + 2] = sourceImageData.data[srcIdx + 2];
+                    outputImageData.data[dstIdx + 3] = sourceImageData.data[srcIdx + 3];
+                }
+            }
+        }
+
+        outputCtx.putImageData(outputImageData, 0, 0);
+        return outputCanvas;
+    }
+
     // Function untuk menyimpan hasil crop dan kembali ke form
     $('#btnUploadBerkas').on('click', function() {
         if (!cropperBerkas) {
@@ -1567,11 +2042,25 @@
             return;
         }
 
-        // Get cropped canvas
-        const canvas = cropperBerkas.getCroppedCanvas({
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high',
-        });
+        let canvas;
+
+        // Jika perspective mode aktif, gunakan perspective transform
+        if (perspectiveMode && $('#perspectiveOverlay').hasClass('active')) {
+            canvas = applyPerspectiveCrop();
+            if (!canvas) {
+                // Fallback ke normal crop jika perspective gagal
+                canvas = cropperBerkas.getCroppedCanvas({
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high',
+                });
+            }
+        } else {
+            // Get cropped canvas normal
+            canvas = cropperBerkas.getCroppedCanvas({
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+        }
 
         if (!canvas) {
             Swal.fire({
