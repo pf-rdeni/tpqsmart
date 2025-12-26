@@ -2238,7 +2238,7 @@ class Guru extends BaseController
                 break;
 
             case 'lampiran':
-                // Validasi berkas
+                // Validasi berkas KTP dan BPR
                 $berkasKtp = $this->guruBerkasModel->getBerkasAktifByGuruAndType($guru['IdGuru'], 'KTP');
                 $berkasBpr = $this->guruBerkasModel->getBerkasAktifByGuruAndType($guru['IdGuru'], 'Buku Rekening', 'BPR');
 
@@ -2253,20 +2253,33 @@ class Guru extends BaseController
                     return null; // Skip jika file tidak ada
                 }
 
+                // Process KTP
                 $ktpBase64 = base64_encode(file_get_contents($ktpPath));
                 $ktpMimeType = mime_content_type($ktpPath);
                 $ktpDataUri = 'data:' . $ktpMimeType . ';base64,' . $ktpBase64;
 
-                $bprBase64 = base64_encode(file_get_contents($bprPath));
-                $bprMimeType = mime_content_type($bprPath);
-                $bprDataUri = 'data:' . $bprMimeType . ';base64,' . $bprBase64;
+                // Process BPR image: auto-rotate jika landscape menjadi portrait
+                $bprDataUri = $this->processKkImage($bprPath);
+
+                // Process KK jika ada
+                $berkasKk = $this->guruBerkasModel->getBerkasAktifByGuruAndType($guru['IdGuru'], 'KK');
+                $kkDataUri = null;
+                $hasKk = false;
+                if ($berkasKk && file_exists(FCPATH . 'uploads/berkas/' . $berkasKk['NamaFile'])) {
+                    $kkPath = FCPATH . 'uploads/berkas/' . $berkasKk['NamaFile'];
+                    $kkDataUri = $this->processKkImage($kkPath);
+                    $hasKk = true;
+                }
 
                 $data = [
                     'guru' => $guru,
                     'ktpDataUri' => $ktpDataUri,
                     'bprDataUri' => $bprDataUri,
+                    'kkDataUri' => $kkDataUri,
+                    'hasKk' => $hasKk,
                     'ktpFileName' => $berkasKtp['NamaFile'],
-                    'bprFileName' => $berkasBpr['NamaFile']
+                    'bprFileName' => $berkasBpr['NamaFile'],
+                    'kkFileName' => $hasKk ? $berkasKk['NamaFile'] : null
                 ];
                 $html = view('backend/guru/pdf/lampiran', $data);
                 break;
