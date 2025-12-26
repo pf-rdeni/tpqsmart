@@ -50,6 +50,7 @@
             <table id="tabelPengajuanInsentif" class="table table-bordered table-striped">
                 <thead>
                     <tr>
+                        <th style="width: 80px; text-align: center;">Print</th>
                         <th>NIK / Nama</th>
                         <th>Penerima Insentif</th>
                         <th>Aksi</th>
@@ -57,10 +58,27 @@
                 </thead>
                 <tbody>
                     <?php
-                    foreach ($guru as $dataGuru) :
-                        $guruData = $dataGuru['guru'];
+                    foreach ($guru as $item) :
+                        $guruData = $item['guru'];
+                        $hasKtp = $item['hasKtp'];
+                        $hasBpr = $item['hasBpr'];
+                        $hasKk = $item['hasKk'];
                     ?>
                         <tr data-idtpq="<?= esc($guruData['IdTpq'] ?? '') ?>">
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-info btn-print-all d-flex flex-column align-items-center justify-content-center"
+                                    data-id-guru="<?= $guruData['IdGuru'] ?>"
+                                    data-nama-guru="<?= esc($guruData['Nama']) ?>"
+                                    data-penerima-insentif="<?= esc($guruData['JenisPenerimaInsentif'] ?? '') ?>"
+                                    data-has-ktp="<?= $hasKtp ? '1' : '0' ?>"
+                                    data-has-bpr="<?= $hasBpr ? '1' : '0' ?>"
+                                    data-has-kk="<?= $hasKk ? '1' : '0' ?>"
+                                    title="Print semua dokumen dalam 1 PDF"
+                                    style="min-height: 60px; padding: 5px;">
+                                    <i class="fas fa-file-pdf mb-1"></i>
+                                    <small style="font-size: 9px; line-height: 1.1;">Print Semua Berkas</small>
+                                </button>
+                            </td>
                             <td>
                                 <?= $guruData['IdGuru'] ?><br>
                                 <strong><?= ucwords(strtolower($guruData['Nama'])) ?></strong><br>
@@ -119,19 +137,19 @@
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">Surat Rekomendasi Guru TPQ</small>
                                         <small style="font-size: 9px; color: #666; line-height: 1.2; flex: 1; text-align: center;">
                                             Lampiran KTP
-                                            <?php if (!empty($dataGuru['hasKtp'])): ?>
+                                            <?php if ($hasKtp): ?>
                                                 <i class="fas fa-check-circle" style="color: #28a745;"></i>
                                             <?php else: ?>
                                                 <i class="fas fa-times-circle" style="color: #dc3545;"></i>
                                             <?php endif; ?>
                                             BPR
-                                            <?php if (!empty($dataGuru['hasBpr'])): ?>
+                                            <?php if ($hasBpr): ?>
                                                 <i class="fas fa-check-circle" style="color: #28a745;"></i>
                                             <?php else: ?>
                                                 <i class="fas fa-times-circle" style="color: #dc3545;"></i>
                                             <?php endif; ?>
                                             KK
-                                            <?php if (!empty($dataGuru['hasKk'])): ?>
+                                            <?php if ($hasKk): ?>
                                                 <i class="fas fa-check-circle" style="color: #28a745;"></i>
                                             <?php else: ?>
                                                 <i class="fas fa-times-circle" style="color: #dc3545;"></i>
@@ -152,6 +170,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
+                        <th style="text-align: center;">Print</th>
                         <th>NIK / Nama</th>
                         <th>Penerima Insentif</th>
                         <th>Aksi</th>
@@ -321,6 +340,112 @@
                 window.open(href, '_blank');
             }
         });
+    });
+
+    // Print All Documents per Guru dalam 1 PDF
+    $(document).on('click', '.btn-print-all', function(e) {
+        e.preventDefault();
+
+        const idGuru = $(this).data('id-guru');
+        const namaGuru = $(this).data('nama-guru');
+        const penerimaInsentif = $(this).data('penerima-insentif');
+        const hasKtp = $(this).data('has-ktp') == 1;
+        const hasBpr = $(this).data('has-bpr') == 1;
+        const hasKk = $(this).data('has-kk') == 1;
+
+        // Validasi minimal harus ada Penerima Insentif
+        if (!penerimaInsentif || penerimaInsentif === '') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan',
+                html: 'Silakan pilih <strong>Penerima Insentif</strong> terlebih dahulu untuk guru <strong>' + namaGuru + '</strong>',
+                confirmButtonText: 'Mengerti'
+            });
+            return;
+        }
+
+        // Validasi berkas lampiran
+        if (!hasKtp || !hasBpr) {
+            let missingFiles = [];
+            if (!hasKtp) missingFiles.push('KTP');
+            if (!hasBpr) missingFiles.push('Buku Rekening BPR');
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Berkas Tidak Lengkap',
+                html: '<p>Berkas berikut belum diupload untuk <strong>' + namaGuru + '</strong>:</p>' +
+                    '<ul style="text-align: left;">' +
+                    missingFiles.map(f => '<li>' + f + '</li>').join('') +
+                    '</ul>' +
+                    '<p>Silakan upload berkas terlebih dahulu.</p>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-upload"></i> Ke Halaman Upload Berkas',
+                confirmButtonColor: '#3085d6',
+                cancelButtonText: 'Tutup',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '<?= base_url('backend/guru/showBerkasLampiran') ?>';
+                }
+            });
+            return;
+        }
+
+        // Tampilkan loading
+        Swal.fire({
+            title: 'Memproses PDF...',
+            html: 'Sedang menggabungkan semua dokumen menjadi 1 PDF untuk <strong>' + namaGuru + '</strong>',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Generate PDF
+        const printUrl = '<?= base_url('backend/guru/printAllDocuments') ?>/' + idGuru;
+
+        fetch(printUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Gagal generate PDF');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                Swal.close();
+
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                // Format: NAMA_IDGURU.pdf (semua uppercase)
+                // Bersihkan nama: hanya huruf, angka, dan underscore
+                const namaBersih = namaGuru.replace(/\s+/g, '_').replace(/[^A-Z0-9_]/gi, '').toUpperCase();
+                const namaFile = namaBersih + '_' + idGuru.toString() + '.pdf';
+                a.download = namaFile;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: 'PDF berhasil didownload',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Terjadi kesalahan saat generate PDF: ' + error.message
+                });
+            });
     });
 
     // Inisialisasi DataTable dengan scroll horizontal

@@ -535,6 +535,119 @@ class Guru extends BaseController
     }
 
     // Generate PDF Surat Pernyataan Tidak Berstatus ASN
+    /**
+     * Print All Documents per Guru dalam 1 PDF
+     * Menggabungkan ASN, Insentif, Rekomendasi, dan Lampiran
+     */
+    public function printAllDocuments($idGuru)
+    {
+        try {
+            helper('nilai');
+
+            // Ambil data guru
+            $guru = $this->DataModels->find($idGuru);
+            if (!$guru) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Data guru tidak ditemukan'
+                ]);
+            }
+
+            // Validasi Penerima Insentif harus sudah diisi
+            if (empty($guru['JenisPenerimaInsentif'])) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Penerima Insentif belum diisi'
+                ]);
+            }
+
+            log_message('info', 'Guru: printAllDocuments - Start for IdGuru: ' . $idGuru);
+
+            // Generate PDFs untuk semua dokumen
+            $pdfContents = [];
+            $fileTypes = ['asn', 'insentif'];
+
+            // Tambahkan rekomendasi hanya untuk Guru Ngaji
+            if ($guru['JenisPenerimaInsentif'] === 'Guru Ngaji') {
+                $fileTypes[] = 'rekomendasi';
+            }
+
+            $fileTypes[] = 'lampiran';
+
+            foreach ($fileTypes as $type) {
+                $pdfContent = $this->generatePdfByType($guru, $type);
+                if ($pdfContent) {
+                    $pdfContents[] = [
+                        'type' => $type,
+                        'content' => $pdfContent
+                    ];
+                    log_message('info', "Guru: printAllDocuments - Generated PDF for type: {$type}");
+                }
+            }
+
+            if (empty($pdfContents)) {
+                log_message('error', 'Guru: printAllDocuments - No PDF generated');
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal generate PDF'
+                ]);
+            }
+
+            $fileName = $this->buildAllDocsFilename($guru);
+
+            // Jika hanya ada 1 PDF, langsung return
+            if (count($pdfContents) === 1) {
+                $filename = $fileName . '.pdf';
+
+                if (ob_get_level()) {
+                    ob_end_clean();
+                }
+
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+
+                echo $pdfContents[0]['content'];
+                exit();
+            }
+
+            // Merge multiple PDFs menggunakan FPDI
+            $mergedPdf = $this->mergePdfs($pdfContents);
+
+            if (!$mergedPdf) {
+                log_message('error', 'Guru: printAllDocuments - Failed to merge PDFs');
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menggabungkan PDF'
+                ]);
+            }
+
+            // Output merged PDF
+            $filename = $fileName . '.pdf';
+
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $mergedPdf;
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: printAllDocuments - Error: ' . $e->getMessage());
+            log_message('error', 'Guru: printAllDocuments - Stack trace: ' . $e->getTraceAsString());
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function printSuratPernyataanAsn($idGuru)
     {
         try {
@@ -2564,5 +2677,17 @@ class Guru extends BaseController
             }
         }
         @rmdir($dir);
+    }
+
+    private function buildAllDocsFilename(array $guru): string
+    {
+        $name = strtoupper(trim($guru['Nama'] ?? 'guru'));
+        $name = preg_replace('/[^A-Z0-9]+/', '_', $name);
+        $name = preg_replace('/_+/', '_', $name);
+        $name = trim($name, '_');
+
+        $idGuru = $guru['IdGuru'] ?? 'unknown';
+
+        return $name . '_' . $idGuru;
     }
 }
