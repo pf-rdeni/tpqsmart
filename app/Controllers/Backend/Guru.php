@@ -1081,6 +1081,150 @@ class Guru extends BaseController
         }
     }
 
+    /**
+     * Convert PDF to Image (first page only)
+     * Uses Imagick extension OR Ghostscript binary to convert PDF to JPEG
+     * 
+     * @param string $pdfPath Path to PDF file
+     * @return string Base64 encoded JPEG image with data URI prefix
+     * @throws \Exception if conversion fails
+     */
+    private function convertPdfToImage($pdfPath)
+    {
+        // Check if file exists
+        if (!file_exists($pdfPath)) {
+            throw new \Exception('File PDF tidak ditemukan');
+        }
+
+        // Validate file is actually a PDF
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $pdfPath);
+        finfo_close($finfo);
+
+        if ($mimeType !== 'application/pdf') {
+            throw new \Exception('File bukan PDF yang valid');
+        }
+
+        // 1. Try Imagick Extension (Best Quality)
+        if (extension_loaded('imagick')) {
+            try {
+                $imagick = new \Imagick();
+                $imagick->setResolution(300, 300);
+                $imagick->readImage($pdfPath . '[0]');
+                $imagick->setImageFormat('jpeg');
+                $imagick->setImageCompressionQuality(90);
+                $imagick->setImageBackgroundColor('white');
+                $imagick = $imagick->flattenImages();
+                $imageBlob = $imagick->getImageBlob();
+                $imagick->clear();
+                $imagick->destroy();
+                return 'data:image/jpeg;base64,' . base64_encode($imageBlob);
+            } catch (\Exception $e) {
+                log_message('error', 'Guru: convertPdfToImage - Imagick failed, trying Ghostscript. Error: ' . $e->getMessage());
+                // Continue to Ghostscript fallback
+            }
+        }
+
+        // 2. Try Ghostscript Binary (Fallback)
+        $gsBin = $this->getGhostscriptBinary();
+        if ($gsBin) {
+            return $this->convertPdfWithGhostscript($pdfPath, $gsBin);
+        }
+
+        throw new \Exception('Server tidak mendukung konversi PDF. Ekstensi Imagick tidak tersedia dan Ghostscript tidak ditemukan. Mohon hubungi administrator untuk mengaktifkan salah satunya.');
+    }
+
+    /**
+     * Get Ghostscript binary path
+     */
+    private function getGhostscriptBinary()
+    {
+        $binaries = ['gswin64c', 'gswin32c', 'gs'];
+        
+        foreach ($binaries as $binary) {
+            // Check if binary exists in PATH
+            $output = [];
+            $returnVar = -1;
+            
+            // On Windows use 'where', on Linux use 'which'
+            $cmd = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') ? "where $binary" : "which $binary";
+            
+            exec($cmd, $output, $returnVar);
+            
+            if ($returnVar === 0) {
+                return $binary;
+            }
+        }
+
+        // Check common default install locations on Windows
+        $commonPaths = [
+            'C:\Program Files\gs\gs10.04.0\bin\gswin64c.exe',
+            'C:\Program Files\gs\gs10.03.1\bin\gswin64c.exe',
+            'C:\Program Files\gs\gs10.03.0\bin\gswin64c.exe',
+            'C:\Program Files\gs\gs10.02.1\bin\gswin64c.exe',
+            'C:\Program Files\gs\gs10.02.0\bin\gswin64c.exe',
+            'C:\Program Files\gs\gs10.01.2\bin\gswin64c.exe',
+            'C:\Program Files\gs\gs10.01.1\bin\gswin64c.exe', 
+            'C:\Program Files\gs\gs10.01.0\bin\gswin64c.exe',
+            'C:\Program Files\gs\gs10.00.0\bin\gswin64c.exe',
+            'C:\Program Files\gs\gs9.56.1\bin\gswin64c.exe',
+        ];
+
+        foreach ($commonPaths as $path) {
+            if (file_exists($path)) {
+                return '"' . $path . '"';
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Convert PDF to Image using Ghostscript CLI
+     */
+    private function convertPdfWithGhostscript($pdfPath, $gsBin)
+    {
+        try {
+            $outputFile = tempnam(sys_get_temp_dir(), 'gs_conv_') . '.jpg';
+            
+            // Command: gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=jpeg -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -r300 -dFirstPage=1 -dLastPage=1 -sOutputFile=output.jpg input.pdf
+            $cmd = "$gsBin -dSAFER -dBATCH -dNOPAUSE -sDEVICE=jpeg -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -r300 -dFirstPage=1 -dLastPage=1 -sOutputFile=\"$outputFile\" \"$pdfPath\"";
+            
+            // Redirect stderr to stdout to capture errors
+            $cmd .= ' 2>&1';
+            
+            $output = [];
+            $returnVar = -1;
+            
+            exec($cmd, $output, $returnVar);
+            
+            if ($returnVar !== 0) {
+                log_message('error', 'Guru: convertPdfWithGhostscript - Failed. Output: ' . implode("\n", $output));
+                
+                // Cleanup
+                if (file_exists($outputFile)) @unlink($outputFile);
+                
+                throw new \Exception('Ghostscript conversion failed (Exit Code: ' . $returnVar . ')');
+            }
+            
+            if (!file_exists($outputFile) || filesize($outputFile) === 0) {
+                throw new \Exception('Ghostscript did not generate output file');
+            }
+            
+            $imageData = file_get_contents($outputFile);
+            $base64 = base64_encode($imageData);
+            
+            // Cleanup
+            @unlink($outputFile);
+            
+            return 'data:image/jpeg;base64,' . $base64;
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: convertPdfWithGhostscript - Error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
     // Halaman Berkas Lampiran
     public function showBerkasLampiran()
     {
@@ -1209,6 +1353,90 @@ class Guru extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Convert PDF to Image for Crop (AJAX endpoint)
+    public function convertPdfForCrop()
+    {
+        try {
+            if (!$this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Request harus menggunakan AJAX'
+                ]);
+            }
+
+            // Get uploaded file
+            $file = $this->request->getFile('pdfFile');
+            
+            if (!$file) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'File PDF tidak ditemukan'
+                ]);
+            }
+
+            // Validate file
+            if (!$file->isValid()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'File tidak valid: ' . $file->getErrorString()
+                ]);
+            }
+
+            // Validate file size (max 20MB)
+            if ($file->getSize() > 20971520) { // 20MB in bytes
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Ukuran file terlalu besar. Maksimal 20MB'
+                ]);
+            }
+
+            // Validate MIME type
+            $mimeType = $file->getMimeType();
+            if ($mimeType !== 'application/pdf') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'File harus berformat PDF'
+                ]);
+            }
+
+            // Create temp directory if not exists
+            $tempDir = FCPATH . 'writable/uploads/temp/';
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            // Save PDF to temp location
+            $tempFileName = 'pdf_' . time() . '_' . uniqid() . '.pdf';
+            $tempFilePath = $tempDir . $tempFileName;
+            
+            if (!$file->move($tempDir, $tempFileName)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan file PDF'
+                ]);
+            }
+
+            // Convert PDF to image
+            $imageBase64 = $this->convertPdfToImage($tempFilePath);
+
+            // Delete temp PDF file
+            @unlink($tempFilePath);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'PDF berhasil dikonversi',
+                'imageData' => $imageBase64
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: convertPdfForCrop - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $e->getMessage()
             ]);
         }
     }

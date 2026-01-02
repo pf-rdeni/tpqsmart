@@ -348,8 +348,8 @@
                     </div>
                     <div class="form-group">
                         <label for="fileBerkas">File Berkas <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control-file" id="fileBerkas" accept="image/jpeg,image/jpg,image/png">
-                        <small class="form-text text-muted">Format: JPG, JPEG, PNG. Maksimal 15MB (akan di-compress setelah crop)</small>
+                        <input type="file" class="form-control-file" id="fileBerkas" accept="image/jpeg,image/jpg,image/png,application/pdf">
+                        <small class="form-text text-muted">Format: JPG, JPEG, PNG, PDF. Maksimal 20MB. PDF akan dikonversi ke gambar (halaman pertama)</small>
                         <small class="form-text text-info" id="editModeInfo" style="display: none;">
                             <i class="fas fa-info-circle"></i> Kosongkan jika tidak ingin mengganti gambar
                         </small>
@@ -478,13 +478,13 @@
                     <div class="form-group">
                         <label for="editFileBerkas">Ganti dengan File Baru</label>
                         <div class="custom-file-wrapper" style="position: relative;">
-                            <input type="file" class="form-control-file" id="editFileBerkas" accept="image/jpeg,image/jpg,image/png" style="position: absolute; opacity: 0; width: 0; height: 0; overflow: hidden;">
+                            <input type="file" class="form-control-file" id="editFileBerkas" accept="image/jpeg,image/jpg,image/png,application/pdf" style="position: absolute; opacity: 0; width: 0; height: 0; overflow: hidden;">
                             <button type="button" class="btn btn-primary btn-sm" id="btnBrowseEditFile" onclick="document.getElementById('editFileBerkas').click()">
                                 <i class="fas fa-upload"></i> Pilih File
                             </button>
                             <span id="editFileNameDisplay" class="ml-2" style="font-size: 14px; color: #666;"></span>
                         </div>
-                        <small class="form-text text-muted">Format: JPG, JPEG, PNG. Maksimal 15MB (akan di-compress setelah crop). Kosongkan jika tidak ingin mengganti.</small>
+                        <small class="form-text text-muted">Format: JPG, JPEG, PNG, PDF. Maksimal 20MB. PDF akan dikonversi ke gambar (halaman pertama). Kosongkan jika tidak ingin mengganti.</small>
                     </div>
                     <div class="form-group">
                         <div class="row">
@@ -1189,24 +1189,27 @@
             return;
         }
 
-        // Validasi ukuran file (max 15MB - file akan di-compress setelah crop)
-        if (file.size > 15728640) { // 15MB
+        // Validasi ukuran file (max 20MB untuk PDF, 15MB untuk gambar)
+        const maxSize = file.type === 'application/pdf' ? 20971520 : 15728640; // 20MB or 15MB
+        if (file.size > maxSize) {
             Swal.fire({
                 icon: 'error',
                 title: 'Gagal',
-                text: 'Ukuran file terlalu besar. Maksimal 15MB. File akan otomatis di-compress setelah crop.'
+                text: file.type === 'application/pdf' 
+                    ? 'Ukuran file PDF terlalu besar. Maksimal 20MB' 
+                    : 'Ukuran file terlalu besar. Maksimal 15MB. File akan otomatis di-compress setelah crop.'
             });
             $(this).val('');
             return;
         }
 
         // Validasi tipe file
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
         if (!allowedTypes.includes(file.type)) {
             Swal.fire({
                 icon: 'error',
                 title: 'Gagal',
-                text: 'Tipe file tidak diizinkan. Hanya JPG, JPEG, atau PNG'
+                text: 'Tipe file tidak diizinkan. Hanya JPG, JPEG, PNG, atau PDF'
             });
             $(this).val('');
             return;
@@ -1251,31 +1254,17 @@
                 $(this).val('');
                 return;
             }
-            // Simpan nilai bank ke window
             window.savedCropDataBerkas = currentDataBerkas;
         } else {
             window.savedCropDataBerkas = null;
         }
 
-        // Tunggu ImageUploadHelper tersedia
-        waitForImageUploadHelper(function() {
-            if (!window.ImageUploadHelper || !window.ImageUploadHelper.resizeImageBeforeCrop) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'ImageUploadHelper tidak ditemukan. Pastikan image-upload-helper.js sudah di-include.'
-                });
-                return;
-            }
-
-            // Resize sebelum crop
-            const maxDimension = 2000;
-            const resizeQuality = 0.85;
-
-            // Tampilkan loading
+        // Check if file is PDF
+        if (file.type === 'application/pdf') {
+            // Show loading indicator
             Swal.fire({
-                title: 'Memproses gambar...',
-                text: 'Sedang resize dan compress gambar...',
+                title: 'Mengkonversi PDF...',
+                text: 'Mohon tunggu, sedang mengkonversi PDF ke gambar',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 showConfirmButton: false,
@@ -1284,21 +1273,52 @@
                 }
             });
 
-            window.ImageUploadHelper.resizeImageBeforeCrop(file, maxDimension, maxDimension, resizeQuality, function(processedFile) {
-                selectedFileBerkas = processedFile;
+            // Send PDF to backend for conversion
+            const formData = new FormData();
+            formData.append('pdfFile', file);
 
-                // Tutup loading dan langsung buka modal crop tanpa menampilkan info resize
-                Swal.close();
-                // Langsung buka modal crop tanpa preview di form
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    // Simpan tipe berkas untuk digunakan saat crop
-                    const namaBerkas = $('#uploadNamaBerkas').val();
-                    showCropModalBerkas(e.target.result, namaBerkas);
-                };
-                reader.readAsDataURL(processedFile);
+            $.ajax({
+                url: '<?= base_url('backend/guru/convertPdfForCrop') ?>',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        // Open crop modal with converted image
+                        showCropModalBerkas(response.imageData, window.savedCropNamaBerkas);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: response.message || 'Gagal mengkonversi PDF'
+                        });
+                        $('#fileBerkas').val('');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.close();
+                    let errorMessage = 'Terjadi kesalahan saat mengkonversi PDF';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: errorMessage
+                    });
+                    $('#fileBerkas').val('');
+                }
             });
-        });
+        } else {
+            // Regular image file - process as before
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showCropModalBerkas(e.target.result, window.savedCropNamaBerkas);
+            };
+            reader.readAsDataURL(file);
+        }
     });
 
     // Function untuk menampilkan modal crop
@@ -2443,12 +2463,15 @@
             return;
         }
 
-        // Validasi ukuran file (max 15MB - file akan di-compress setelah crop)
-        if (file.size > 15728640) { //15MB
+        // Validasi ukuran file (max 20MB untuk PDF, 15MB untuk gambar)
+        const maxSize = file.type === 'application/pdf' ? 20971520 : 15728640; // 20MB or 15MB
+        if (file.size > maxSize) {
             Swal.fire({
                 icon: 'error',
                 title: 'Gagal',
-                text: 'Ukuran file terlalu besar. Maksimal 15MB. File akan otomatis di-compress setelah crop.'
+                text: file.type === 'application/pdf' 
+                    ? 'Ukuran file PDF terlalu besar. Maksimal 20MB' 
+                    : 'Ukuran file terlalu besar. Maksimal 15MB. File akan otomatis di-compress setelah crop.'
             });
             $(this).val('');
             $('#editFileNameDisplay').text('');
@@ -2456,12 +2479,12 @@
         }
 
         // Validasi tipe file
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
         if (!allowedTypes.includes(file.type)) {
             Swal.fire({
                 icon: 'error',
                 title: 'Gagal',
-                text: 'Tipe file tidak diizinkan. Hanya JPG, JPEG, atau PNG'
+                text: 'Tipe file tidak diizinkan. Hanya JPG, JPEG, PNG, atau PDF'
             });
             $(this).val('');
             $('#editFileNameDisplay').text('');
@@ -2477,25 +2500,12 @@
             window.savedCropDataBerkas = dataBerkas;
         }
 
-        // Tunggu ImageUploadHelper tersedia
-        waitForImageUploadHelper(function() {
-            if (!window.ImageUploadHelper || !window.ImageUploadHelper.resizeImageBeforeCrop) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'ImageUploadHelper tidak ditemukan. Pastikan image-upload-helper.js sudah di-include.'
-                });
-                return;
-            }
-
-            // Resize sebelum crop
-            const maxDimension = 2000;
-            const resizeQuality = 0.85;
-
-            // Tampilkan loading
+        // Check if file is PDF
+        if (file.type === 'application/pdf') {
+            // Show loading indicator
             Swal.fire({
-                title: 'Memproses gambar...',
-                text: 'Sedang resize dan compress gambar...',
+                title: 'Mengkonversi PDF...',
+                text: 'Mohon tunggu, sedang mengkonversi PDF ke gambar',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 showConfirmButton: false,
@@ -2504,17 +2514,54 @@
                 }
             });
 
-            window.ImageUploadHelper.resizeImageBeforeCrop(file, maxDimension, maxDimension, resizeQuality, function(processedFile) {
-                // Tutup loading dan langsung buka modal crop tanpa menampilkan info resize
-                Swal.close();
-                // Langsung buka modal crop tanpa preview di form
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    showCropModalBerkas(e.target.result, namaBerkas);
-                };
-                reader.readAsDataURL(processedFile);
+            // Send PDF to backend for conversion
+            const formData = new FormData();
+            formData.append('pdfFile', file);
+
+            $.ajax({
+                url: '<?= base_url('backend/guru/convertPdfForCrop') ?>',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        // Open crop modal with converted image
+                        showCropModalBerkas(response.imageData, window.savedCropNamaBerkas);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: response.message || 'Gagal mengkonversi PDF'
+                        });
+                        $('#editFileBerkas').val('');
+                        $('#editFileNameDisplay').text('');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.close();
+                    let errorMessage = 'Terjadi kesalahan saat mengkonversi PDF';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: errorMessage
+                    });
+                    $('#editFileBerkas').val('');
+                    $('#editFileNameDisplay').text('');
+                }
             });
-        });
+        } else {
+            // Regular image file - process as before
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showCropModalBerkas(e.target.result, namaBerkas);
+            };
+            reader.readAsDataURL(file);
+        }
     });
 
     // Function untuk crop gambar existing di modal edit
