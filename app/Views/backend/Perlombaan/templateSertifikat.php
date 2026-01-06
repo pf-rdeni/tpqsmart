@@ -112,6 +112,9 @@
                                        class="btn btn-primary">
                                         <i class="fas fa-cog"></i> Konfigurasi Field
                                     </a>
+                                    <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#modalEditTemplate">
+                                        <i class="fas fa-edit"></i> Ganti Gambar
+                                    </button>
                                     <button type="button" class="btn btn-danger" onclick="deleteTemplate(<?= $template['id'] ?>)">
                                         <i class="fas fa-trash"></i> Hapus
                                     </button>
@@ -140,6 +143,53 @@
         </div>
         <?php endif; ?>
     </div>
+
+<!-- Modal Edit/Ganti Template -->
+<?php if ($template): ?>
+<div class="modal fade" id="modalEditTemplate" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Ganti Gambar Template</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form id="formUpdateTemplate" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="template_id" value="<?= $template['id'] ?>">
+                    
+                    <div class="form-group">
+                        <label>Gambar Template Baru (JPG/PNG)</label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="updateTemplateFile" name="template_file" accept="image/jpeg,image/png" required>
+                            <label class="custom-file-label" for="updateTemplateFile">Pilih file baru...</label>
+                        </div>
+                        <small class="text-muted">Resolusi minimal 1920x1080px untuk kualitas terbaik</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Orientasi</label>
+                        <select class="form-control" name="orientation">
+                            <option value="landscape" <?= ($template['Orientation'] ?? 'landscape') === 'landscape' ? 'selected' : '' ?>>Landscape (Horizontal)</option>
+                            <option value="portrait" <?= ($template['Orientation'] ?? 'landscape') === 'portrait' ? 'selected' : '' ?>>Portrait (Vertical)</option>
+                        </select>
+                    </div>
+
+                    <div id="updateImagePreview" class="mt-3" style="display:none;">
+                        <label>Preview:</label>
+                        <img id="updatePreviewImg" src="" class="img-fluid" style="max-height: 200px;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 </section>
 <?= $this->endSection(); ?>
 
@@ -224,6 +274,52 @@ $(document).ready(function() {
             error: function() {
                 Swal.fire('Error', 'Terjadi kesalahan saat upload', 'error');
                 btn.prop('disabled', false).html('<i class="fas fa-upload"></i> Upload Template');
+            }
+        });
+    });
+
+    // Preview image before update
+    $('#updateTemplateFile').change(function() {
+        var file = this.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                $('#updatePreviewImg').attr('src', e.target.result);
+                $('#updateImagePreview').show();
+            }
+            reader.readAsDataURL(file);
+            
+            // Update label
+            $('#modalEditTemplate .custom-file-label').text(file.name);
+        }
+    });
+
+    // Update template form
+    $('#formUpdateTemplate').submit(function(e) {
+        e.preventDefault();
+        
+        var formData = new FormData(this);
+        var btn = $(this).find('button[type="submit"]');
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
+
+        $.ajax({
+            url: '<?= base_url('backend/perlombaan/update-template') ?>',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire('Berhasil', response.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Gagal', response.message, 'error');
+                    btn.prop('disabled', false).html('<i class="fas fa-save"></i> Simpan Perubahan');
+                }
+            },
+            error: function() {
+                Swal.fire('Error', 'Terjadi kesalahan saat update', 'error');
+                btn.prop('disabled', false).html('<i class="fas fa-save"></i> Simpan Perubahan');
             }
         });
     });

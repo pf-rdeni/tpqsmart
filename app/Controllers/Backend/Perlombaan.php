@@ -2391,6 +2391,82 @@ class Perlombaan extends BaseController
     }
 
     /**
+     * Update template image (AJAX) - Re-upload gambar template
+     */
+    public function updateTemplate()
+    {
+        $templateId = $this->request->getPost('template_id');
+        $orientation = $this->request->getPost('orientation');
+
+        if (!$templateId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Template ID tidak valid']);
+        }
+
+        // Get existing template
+        $template = $this->sertifikatTemplateModel->find($templateId);
+        if (!$template) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Template tidak ditemukan']);
+        }
+
+        $file = $this->request->getFile('template_file');
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'File template harus diupload']);
+        }
+
+        // Validate file type
+        if (!in_array($file->getExtension(), ['jpg', 'jpeg', 'png'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'File harus berformat JPG atau PNG']);
+        }
+
+        $uploadPath = FCPATH . 'uploads/sertifikat/';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        // Generate unique filename
+        $newName = 'template_' . $template['cabang_id'] . '_' . time() . '.' . $file->getExtension();
+        
+        try {
+            // Delete old file if exists
+            $oldFile = FCPATH . 'uploads/' . $template['FileTemplate'];
+            if (file_exists($oldFile)) {
+                unlink($oldFile);
+            }
+
+            // Move new file
+            $file->move($uploadPath, $newName);
+
+            // Get image dimensions
+            $imagePath = $uploadPath . $newName;
+            list($width, $height) = getimagesize($imagePath);
+
+            // Update database
+            $updateData = [
+                'FileTemplate' => 'sertifikat/' . $newName,
+                'Width' => $width,
+                'Height' => $height,
+            ];
+
+            // Update orientation if provided
+            if ($orientation) {
+                $updateData['Orientation'] = $orientation;
+            }
+
+            if ($this->sertifikatTemplateModel->update($templateId, $updateData)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Gambar template berhasil diperbarui'
+                ]);
+            }
+
+            return $this->response->setJSON(['success' => false, 'message' => 'Gagal memperbarui template']);
+
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Configure fields for template
      */
     public function configureFields($templateId)

@@ -551,17 +551,20 @@ $routes->get('signature/guru/(:num)', 'Frontend\\Signature::getSignaturesByGuru/
 $routes->get('signature/tpq/(:num)', 'Frontend\\Signature::getSignaturesByTpq/$1');
 
 // Certificate Template Routes
-$routes->get('backend/perlombaan/template-sertifikat', 'Backend\\Perlombaan::templateSertifikat');
-$routes->get('backend/perlombaan/template-sertifikat/(:num)', 'Backend\\Perlombaan::templateSertifikat/$1');
-$routes->post('backend/perlombaan/upload-template', 'Backend\\Perlombaan::uploadTemplate');
-$routes->post('backend/perlombaan/delete-template/(:num)', 'Backend\\Perlombaan::deleteTemplate/$1');
-$routes->get('backend/perlombaan/configure-fields/(:num)', 'Backend\\Perlombaan::configureFields/$1');
-$routes->post('backend/perlombaan/save-field-config', 'Backend\\Perlombaan::saveFieldConfig');
-$routes->post('backend/perlombaan/delete-field/(:num)', 'Backend\\Perlombaan::deleteField/$1');
-$routes->get('backend/perlombaan/get-available-fields', 'Backend\\Perlombaan::getAvailableFields');
-$routes->get('backend/perlombaan/download-sertifikat/(:num)', 'Backend\\Perlombaan::downloadSertifikat/$1');
-$routes->get('backend/perlombaan/preview-sertifikat/(:num)', 'Backend\\Perlombaan::previewCertificate/$1');
-$routes->post('backend/perlombaan/batch-download-sertifikat', 'Backend\\Perlombaan::batchDownloadSertifikat');
+$routes->group('backend/perlombaan', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
+    $routes->get('template-sertifikat', 'Perlombaan::templateSertifikat');
+    $routes->get('template-sertifikat/(:num)', 'Perlombaan::templateSertifikat/$1');
+    $routes->post('upload-template', 'Perlombaan::uploadTemplate');
+    $routes->post('delete-template/(:num)', 'Perlombaan::deleteTemplate/$1');
+    $routes->post('update-template', 'Perlombaan::updateTemplate');
+    $routes->get('configure-fields/(:num)', 'Perlombaan::configureFields/$1');
+    $routes->post('save-field-config', 'Perlombaan::saveFieldConfig');
+    $routes->post('delete-field/(:num)', 'Perlombaan::deleteField/$1');
+    $routes->get('get-available-fields', 'Perlombaan::getAvailableFields');
+    $routes->get('download-sertifikat/(:num)', 'Perlombaan::downloadSertifikat/$1');
+    $routes->get('preview-sertifikat/(:num)', 'Perlombaan::previewCertificate/$1');
+    $routes->post('batch-download-sertifikat', 'Perlombaan::batchDownloadSertifikat');
+});
 
 $routes->get('logout', 'Dashboard::logout');
 
