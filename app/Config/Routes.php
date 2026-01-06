@@ -240,6 +240,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('rapor/serah-terima/(:segment)', 'Rapor::serahTerimaRapor/$1');
     $routes->post('rapor/getSerahTerimaData', 'Rapor::getSerahTerimaData');
     $routes->post('rapor/saveSerahTerima', 'Rapor::saveSerahTerima');
+    $routes->post('rapor/deleteSerahTerima', 'Rapor::deleteSerahTerima');
 
     // Routes untuk Group Kategori Rapor
     $routes->get('raporGroupKategori', 'RaporGroupKategori::index');

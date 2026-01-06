@@ -3698,4 +3698,79 @@ class Rapor extends BaseController
 
         return $hasKey;
     }
+    /**
+     * Hapus transaksi serah terima rapor
+     */
+    public function deleteSerahTerima()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $id = $this->request->getPost('id');
+            if (empty($id)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'ID transaksi tidak ditemukan'
+                ]);
+            }
+
+            // Cek data transaksi
+            $transaksi = $this->serahTerimaRaporModel->find($id);
+            if (!$transaksi) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Data transaksi tidak ditemukan'
+                ]);
+            }
+
+            // Validasi: pastikan ini adalah transaksi terakhir untuk santri tersebut
+            // Agar urutan status tetap terjaga
+            $latestTransaction = $this->serahTerimaRaporModel
+                ->where('IdSantri', $transaksi['IdSantri'])
+                ->where('idTahunAjaran', $transaksi['idTahunAjaran'])
+                ->where('Semester', $transaksi['Semester'])
+                ->orderBy('TanggalTransaksi', 'DESC')
+                ->orderBy('id', 'DESC')
+                ->first();
+
+            if ($latestTransaction && $latestTransaction['id'] != $id) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Hanya transaksi terakhir yang dapat dihapus. Silakan hapus transaksi yang lebih baru terlebih dahulu.'
+                ]);
+            }
+
+            // Hapus file foto bukti jika ada
+            if (!empty($transaksi['FotoBukti'])) {
+                $filePath = FCPATH . 'uploads/serah_terima_rapor/' . $transaksi['FotoBukti'];
+                if (file_exists($filePath)) {
+                    @unlink($filePath);
+                }
+            }
+
+            // Hapus data
+            if ($this->serahTerimaRaporModel->delete($id)) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Transaksi berhasil dihapus'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal menghapus data dari database'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor: deleteSerahTerima - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

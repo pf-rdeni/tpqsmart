@@ -196,9 +196,19 @@
                                                                 $buttonClass = 'btn-warning';
                                                             }
                                                         }
+
+                                                        // Logic untuk tombol hapus
+                                                        $targetDeleteId = null;
+                                                        if ($canTerima && $transaksiSerah) {
+                                                            // Jika status "Sudah Diserahkan", bisa hapus transaksi Serah
+                                                            $targetDeleteId = $transaksiSerah['id'];
+                                                        } elseif ($isLocked && $transaksiTerima) { 
+                                                            // Jika status "Sudah Dikembalikan", bisa hapus transaksi Terima
+                                                            $targetDeleteId = $transaksiTerima['id'];
+                                                        }
                                                     ?>
                                                         <tr>
-                                                            <td>
+                                                            <td style="white-space: nowrap;">
                                                                 <button class="btn btn-sm <?= $buttonClass ?> btn-proses-transaksi <?= $isLocked ? 'disabled' : '' ?>"
                                                                         data-id-santri="<?= esc($santri['IdSantri']) ?>"
                                                                         data-id-kelas="<?= esc($idKelas) ?>"
@@ -214,6 +224,13 @@
                                                                         <i class="fas fa-exchange-alt"></i> <?= esc($buttonText) ?>
                                                                     <?php endif; ?>
                                                                 </button>
+                                                                <?php if ($targetDeleteId): ?>
+                                                                    <button class="btn btn-sm btn-danger btn-hapus-transaksi ml-1" 
+                                                                            data-id="<?= $targetDeleteId ?>"
+                                                                            title="Hapus Transaksi Terakhir">
+                                                                        <i class="fas fa-trash"></i> Hapus
+                                                                    </button>
+                                                                <?php endif; ?>
                                                             </td>
                                                             <td>
                                                                 <?= esc($santri['NamaSantri'] ?? '-') ?>
@@ -1177,6 +1194,65 @@ $(document).ready(function() {
             $(this).html(originalText);
         }, 2000);
     });
+    // Button hapus transaksi
+    $(document).on('click', '.btn-hapus-transaksi', function() {
+        const id = $(this).data('id');
+        
+        Swal.fire({
+            title: 'Hapus Transaksi?',
+            text: "Apakah Anda yakin ingin menghapus status transaksi terakhir ini? Status akan kembali ke tahap sebelumnya.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Memproses...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '<?= base_url('backend/rapor/deleteSerahTerima') ?>',
+                    type: 'POST',
+                    data: { id: id },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan sistem'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
 });
 </script>
 
