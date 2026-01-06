@@ -2515,6 +2515,7 @@ class Perlombaan extends BaseController
      */
     public function previewCertificate($templateId)
     {
+        log_message('info', "Preview Certificate requested for Template ID: {$templateId}");
         // Get template
         $template = $this->sertifikatTemplateModel->getTemplateWithCabang($templateId);
         if (!$template) {
@@ -2588,6 +2589,7 @@ class Perlombaan extends BaseController
     public function batchDownloadSertifikat()
     {
         $cabangId = $this->request->getPost('cabang_id');
+        log_message('info', "Batch Download Certificate requested for Cabang ID: {$cabangId}");
         
         if (!$cabangId) {
             return redirect()->back()->with('error', 'Cabang belum dipilih');

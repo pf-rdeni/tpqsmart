@@ -17,6 +17,8 @@ class CertificateGenerator
         $this->template = $template;
         $this->fields = $fields;
 
+        log_message('info', 'CertificateGenerator initialized for Template ID: ' . $template['id']);
+
         // Configure DomPDF
         $options = new Options();
         $options->set('isHtml5ParserEnabled', true);
@@ -41,6 +43,7 @@ class CertificateGenerator
      */
     public function generate()
     {
+        log_message('info', 'CertificateGenerator: generating PDF...');
         $html = $this->buildHtml();
         
         $this->dompdf->loadHtml($html);
@@ -59,6 +62,7 @@ class CertificateGenerator
         $this->dompdf->setPaper([0, 0, $widthPt, $heightPt], 'portrait');
         
         $this->dompdf->render();
+        log_message('info', 'CertificateGenerator: PDF generated successfully.');
         
         return $this;
     }
@@ -70,6 +74,7 @@ class CertificateGenerator
      */
     public function output($filename = 'certificate.pdf', $dest = 'D')
     {
+        log_message('info', "CertificateGenerator: outputting PDF as {$dest} with filename {$filename}");
         $output = $this->dompdf->output();
         
         switch ($dest) {
@@ -101,8 +106,15 @@ class CertificateGenerator
      */
     public function stream($filename = 'certificate.pdf', $options = [])
     {
+        log_message('info', "CertificateGenerator: streaming PDF {$filename}");
+        // Clear any previous output buffers to prevent corrupt PDF structure
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+        
         $attachment = $options['Attachment'] ?? true;
         $this->dompdf->stream($filename, ['Attachment' => $attachment]);
+        exit;
     }
 
     /**
