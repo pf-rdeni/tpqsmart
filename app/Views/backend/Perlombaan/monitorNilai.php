@@ -189,7 +189,7 @@ $(document).ready(function() {
                     var html = '<option value="">-- Pilih Cabang --</option>';
                     response.data.forEach(function(item) {
                         var selected = (selectedId && item.id == selectedId) ? 'selected' : '';
-                        html += '<option value="' + item.id + '" ' + selected + '>' + item.NamaCabang + '</option>';
+                        html += '<option value="' + item.id + '" ' + selected + '>' + (item.DisplayLabel || item.NamaCabang) + '</option>';
                     });
                     $('#selectCabang').html(html).prop('disabled', false);
                 }

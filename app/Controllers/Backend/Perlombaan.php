@@ -483,6 +483,23 @@ class Perlombaan extends BaseController
     public function getCabangByLomba($lombaId)
     {
         $cabangList = $this->lombaCabangModel->getCabangByLomba($lombaId);
+        
+        // Add display label with extended format: NamaCabang - Kategori - Batasan
+        foreach ($cabangList as &$cabang) {
+            $batasan = '';
+            // Check if using Kelas-based limit
+            if ((!empty($cabang['KelasMin']) && $cabang['KelasMin'] != 0) || (!empty($cabang['KelasMax']) && $cabang['KelasMax'] != 0)) {
+                $kelasMin = $cabang['NamaKelasMin'] ?? '?';
+                $kelasMax = $cabang['NamaKelasMax'] ?? '?';
+                $batasan = $kelasMin . '-' . $kelasMax;
+            } else {
+                // Use Usia-based limit
+                $batasan = ($cabang['UsiaMin'] ?? 0) . '-' . ($cabang['UsiaMax'] ?? 0) . ' Tahun';
+            }
+            
+            $cabang['DisplayLabel'] = $cabang['NamaCabang'] . ' (' . ($cabang['Kategori'] ?? 'Campuran') . ', ' . $batasan . ')';
+        }
+        
         return $this->response->setJSON(['success' => true, 'data' => $cabangList]);
     }
 

@@ -32,18 +32,6 @@ $routes->setAutoRoute(true);
 $routes->get('login', 'AuthController::login', ['as' => 'login']);
 $routes->post('login', 'AuthController::attemptLogin');
 
-// Route untuk favicon.ico (serve as static file)
-$routes->get('favicon.ico', function() {
-    $faviconPath = FCPATH . 'favicon.ico';
-    if (file_exists($faviconPath)) {
-        header('Content-Type: image/x-icon');
-        header('Cache-Control: public, max-age=86400'); // Cache for 1 day
-        readfile($faviconPath);
-        exit;
-    }
-    throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-});
-
 // Route untuk serve JavaScript helpers dari app/Helpers/js/ (public access)
 $routes->get('helpers/js/(:segment)', 'Helpers::js/$1/public');
 
