@@ -91,6 +91,69 @@ class Search extends BaseController
     }
 
     /**
+     * AJAX endpoint untuk autocomplete suggestions
+     */
+    public function suggestions()
+    {
+        $query = $this->request->getGet('q') ?? '';
+        $query = trim($query);
+
+        $results = [];
+        
+        if (!empty($query) && strlen($query) >= 2) {
+            // Ambil semua menu yang bisa diakses user
+            $availableMenus = $this->getAvailableMenus();
+            
+            // Filter menu berdasarkan query
+            $queryLower = strtolower($query);
+            foreach ($availableMenus as $menu) {
+                $menuTitleLower = strtolower($menu['title']);
+                $menuCategoryLower = strtolower($menu['category'] ?? '');
+                $menuDescriptionLower = strtolower($menu['description'] ?? '');
+
+                // Cek apakah query cocok dengan title, category, atau description
+                if (
+                    strpos($menuTitleLower, $queryLower) !== false ||
+                    strpos($menuCategoryLower, $queryLower) !== false ||
+                    strpos($menuDescriptionLower, $queryLower) !== false
+                ) {
+                    // Hitung relevansi (prioritas: title > category > description)
+                    $relevance = 0;
+                    if (strpos($menuTitleLower, $queryLower) !== false) {
+                        $relevance += 10;
+                        if ($menuTitleLower === $queryLower) {
+                            $relevance += 5; // Exact match
+                        }
+                        // Bonus jika query di awal title
+                        if (strpos($menuTitleLower, $queryLower) === 0) {
+                            $relevance += 3;
+                        }
+                    }
+                    if (strpos($menuCategoryLower, $queryLower) !== false) {
+                        $relevance += 5;
+                    }
+                    if (strpos($menuDescriptionLower, $queryLower) !== false) {
+                        $relevance += 2;
+                    }
+
+                    $menu['relevance'] = $relevance;
+                    $results[] = $menu;
+                }
+            }
+
+            // Sort berdasarkan relevansi
+            usort($results, function ($a, $b) {
+                return $b['relevance'] - $a['relevance'];
+            });
+
+            // Limit to top 10 results
+            $results = array_slice($results, 0, 10);
+        }
+
+        return $this->response->setJSON($results);
+    }
+
+    /**
      * Mendapatkan semua menu yang bisa diakses user berdasarkan permission
      */
     private function getAvailableMenus()
@@ -414,6 +477,85 @@ class Search extends BaseController
 
         // Menu untuk Admin dan Operator
         if (in_groups('Admin') || $isActiveOperator) {
+            // Perlombaan
+            $menus[] = [
+                'title' => 'Dashboard Perlombaan',
+                'url' => base_url('backend/perlombaan/dashboard'),
+                'icon' => 'fas fa-trophy',
+                'category' => 'Perlombaan',
+                'description' => 'Dashboard perlombaan',
+            ];
+            $menus[] = [
+                'title' => 'Panduan Perlombaan',
+                'url' => base_url('backend/perlombaan/panduan'),
+                'icon' => 'fas fa-question-circle',
+                'category' => 'Perlombaan',
+                'description' => 'Panduan penggunaan perlombaan',
+            ];
+            $menus[] = [
+                'title' => 'Master Lomba',
+                'url' => base_url('backend/perlombaan/master-lomba'),
+                'icon' => 'fas fa-list',
+                'category' => 'Perlombaan',
+                'description' => 'Kelola master lomba',
+            ];
+            $menus[] = [
+                'title' => 'Template Sertifikat',
+                'url' => base_url('backend/perlombaan/template-sertifikat'),
+                'icon' => 'fas fa-certificate',
+                'category' => 'Perlombaan',
+                'description' => 'Kelola template sertifikat lomba',
+            ];
+            $menus[] = [
+                'title' => 'Cabang Lomba',
+                'url' => base_url('backend/perlombaan/cabang-lomba'),
+                'icon' => 'fas fa-sitemap',
+                'category' => 'Perlombaan',
+                'description' => 'Kelola cabang lomba',
+            ];
+            $menus[] = [
+                'title' => 'Pendaftaran Peserta',
+                'url' => base_url('backend/perlombaan/pendaftaran'),
+                'icon' => 'fas fa-user-plus',
+                'category' => 'Perlombaan',
+                'description' => 'Pendaftaran peserta lomba',
+            ];
+            $menus[] = [
+                'title' => 'Pengundian Peserta',
+                'url' => base_url('backend/perlombaan/pengundian'),
+                'icon' => 'fas fa-random',
+                'category' => 'Perlombaan',
+                'description' => 'Pengundian nomor peserta',
+            ];
+            $menus[] = [
+                'title' => 'Monitor Nilai',
+                'url' => base_url('backend/perlombaan/monitor-nilai'),
+                'icon' => 'fas fa-chart-line',
+                'category' => 'Perlombaan',
+                'description' => 'Monitoring nilai peserta',
+            ];
+            $menus[] = [
+                'title' => 'Peringkat & Hasil',
+                'url' => base_url('backend/perlombaan/peringkat'),
+                'icon' => 'fas fa-medal',
+                'category' => 'Perlombaan',
+                'description' => 'Peringkat dan hasil lomba',
+            ];
+            $menus[] = [
+                'title' => 'Data Juri Lomba',
+                'url' => base_url('backend/perlombaan/data-juri'),
+                'icon' => 'fas fa-user-tie',
+                'category' => 'Perlombaan',
+                'description' => 'Data juri lomba',
+            ];
+            $menus[] = [
+                'title' => 'Juri Kriteria',
+                'url' => base_url('backend/perlombaan/juri-kriteria'),
+                'icon' => 'fas fa-clipboard-list',
+                'category' => 'Perlombaan',
+                'description' => 'Kelola juri kriteria penilaian',
+            ];
+
             // Guru
             $menus[] = [
                 'title' => 'Daftar Guru',

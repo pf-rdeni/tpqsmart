@@ -80,6 +80,7 @@ class HelpFunctionModel extends Model
             $builder->where('IdTpq', $id);
         }
 
+        $builder->orderBy('NamaTpq', 'ASC');
         return $builder->get()->getResultArray();
     }
 

@@ -18,6 +18,12 @@
                         </button>
                     </div>
                     <div class="dashboard-option-wrapper">
+                        <button type="button" class="btn btn-outline-info btn-lg btn-block h-100 dashboard-option" data-dashboard="perlombaan">
+                            <i class="fas fa-trophy fa-3x mb-2"></i><br>
+                            <strong>Perlombaan</strong>
+                        </button>
+                    </div>
+                    <div class="dashboard-option-wrapper">
                         <button type="button" class="btn btn-outline-success btn-lg btn-block h-100 dashboard-option" data-dashboard="munaqosah">
                             <i class="fas fa-graduation-cap fa-3x mb-2"></i><br>
                             <strong>Munaqosah</strong>
@@ -227,6 +233,7 @@
             const selectedDashboard = localStorage.getItem(dashboardStorageKey) || 'semester';
             const labelMap = {
                 'semester': 'Default',
+                'perlombaan': 'Perlombaan',
                 'munaqosah': 'Munaqosah',
                 'sertifikasi': 'Sertifikasi',
                 'myauth': 'MyAuth'
@@ -280,6 +287,10 @@
         if (dashboardParam && !selectedDashboard) {
             localStorage.setItem(dashboardStorageKey, dashboardParam);
             updateDashboardLabel();
+            if (dashboardParam === 'perlombaan') {
+                window.location.href = '<?= base_url("backend/perlombaan/dashboard") ?>';
+                return;
+            }
             if (dashboardParam === 'munaqosah') {
                 window.location.href = '<?= base_url("backend/munaqosah/dashboard-munaqosah") ?>';
                 return;
@@ -337,6 +348,7 @@
                 currentPath.includes('/backend/dashboard/kepala-tpq') ||
                 currentPath.includes('/backend/dashboard/guru') ||
                 (currentUrl.includes('dashboard') &&
+                    !currentUrl.includes('perlombaan') &&
                     !currentUrl.includes('munaqosah') &&
                     !currentUrl.includes('sertifikasi') &&
                     !currentUrl.includes('auth'));
@@ -346,6 +358,10 @@
             // TAPI: Delay sedikit jika after_login untuk memberi waktu script lastPage redirect dulu
             if (selectedDashboard !== 'semester' && isDashboardDefault) {
                 const redirectToSelectedDashboard = function() {
+                    if (selectedDashboard === 'perlombaan') {
+                        window.location.href = '<?= base_url("backend/perlombaan/dashboard") ?>';
+                        return;
+                    }
                     if (selectedDashboard === 'munaqosah') {
                         window.location.href = '<?= base_url("backend/munaqosah/dashboard-munaqosah") ?>';
                         return;
@@ -438,6 +454,7 @@
 
             // Jika user sudah di dashboard yang dipilih, tidak perlu redirect
             if ((dashboard === 'semester' && (currentPath === '/' || currentPath.includes('/dashboard/index'))) ||
+                (dashboard === 'perlombaan' && currentUrl.includes('perlombaan')) ||
                 (dashboard === 'munaqosah' && currentUrl.includes('munaqosah')) ||
                 (dashboard === 'sertifikasi' && currentUrl.includes('sertifikasi')) ||
                 (dashboard === 'myauth' && currentUrl.includes('auth'))) {
@@ -451,6 +468,10 @@
         function redirectToDashboard(dashboard) {
             let url = '';
             switch (dashboard) {
+                case 'perlombaan':
+                    // Redirect melalui query parameter untuk server-side redirect yang lebih cepat
+                    url = '<?= base_url("/") ?>?dashboard=perlombaan';
+                    break;
                 case 'munaqosah':
                     // Redirect melalui query parameter untuk server-side redirect yang lebih cepat
                     url = '<?= base_url("/") ?>?dashboard=munaqosah';

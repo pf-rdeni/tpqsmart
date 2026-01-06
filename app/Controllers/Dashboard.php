@@ -507,11 +507,21 @@ class Dashboard extends BaseController
             return redirect()->to(base_url('backend/dashboard/santri') . $queryString);
         }
 
-        // Cek jika user adalah Juri atau Panitia, redirect ke dashboard munaqosah
+        // Cek jika user adalah Juri atau Panitia Munaqosah, redirect ke dashboard munaqosah
         if (in_groups('Juri') || in_groups('Panitia')) {
             return redirect()->to(base_url('backend/munaqosah/dashboard-munaqosah') . $queryString);
         }
 
+        // Cek jika user adalah JuriLomba, redirect ke dashboard perlombaan juri
+        if (in_groups('JuriLomba')) {
+            return redirect()->to(base_url('backend/perlombaan/dashboardLombaJuri') . $queryString);
+        }
+
+        // Cek jika user adalah panitiaLomba, rediaect ke dashboard panitia lomba
+        if(in_groups('PanitiaLomba')) {
+            return redirect()->to(base_url('backend/perlombaan/dashboardLombaPanitia') . $queryString);
+        }
+        
         // Untuk Admin dan Operator, cek query parameter dashboard untuk redirect server-side
         if (in_groups('Admin') || in_groups('Operator')) {
             $dashboardParam = $this->request->getGet('dashboard');

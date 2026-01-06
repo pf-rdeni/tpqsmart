@@ -99,6 +99,13 @@
             $dashboardParam === 'munaqosah'
         );
 
+        // Cek apakah sedang di halaman Perlombaan (untuk menyembunyikan menu default)
+        $isPerlombaanPage = (
+            strpos($uriString, 'perlombaan') !== false ||
+            strpos($currentUri->getPath(), 'perlombaan') !== false ||
+            $dashboardParam === 'perlombaan'
+        );
+
         // Cek apakah sedang di halaman MyAuth (untuk menyembunyikan menu lain)
         $isMyAuthPage = (
             strpos($uriString, 'backend/auth') !== false ||
@@ -174,13 +181,26 @@
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 <li class="nav-item">
-                    <a href=<?php echo base_url('/') ?> class="nav-link">
+                    <?php 
+                    // Tentukan URL dashboard berdasarkan halaman yang aktif
+                    $dashboardUrl = base_url('/');
+                    if ($isPerlombaanPage) {
+                        $dashboardUrl = base_url('backend/perlombaan/dashboard');
+                    } elseif ($isMunaqosahPage) {
+                        $dashboardUrl = base_url('backend/munaqosah/dashboard-munaqosah');
+                    } elseif ($isSertifikasiPage) {
+                        $dashboardUrl = base_url('backend/sertifikasi/dashboard-admin');
+                    } elseif ($isMyAuthPage) {
+                        $dashboardUrl = base_url('backend/auth');
+                    }
+                    ?>
+                    <a href="<?php echo $dashboardUrl ?>" class="nav-link">
                         <i class="nav-icon 	fas fa-tachometer-alt"></i>
                         <p> Dashboard</p>
                     </a>
                 </li>
                 <!-- Jadwal Sholat & Al-Qur'an -->
-                <?php if (in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage): ?>
+                <?php if (in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage): ?>
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-mosque"></i>
@@ -302,6 +322,12 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview" style="display: none;">
+                            <li class="nav-item">
+                                <a href="<?php echo base_url('backend/munaqosah/panduan') ?>" class="nav-link">
+                                    <i class="fas fa-question-circle nav-icon text-warning"></i>
+                                    <p>Panduan Penggunaan</p>
+                                </a>
+                            </li>
                             <?php if (in_groups('Juri')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
@@ -508,7 +534,110 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage) || ($isActiveOperator)): ?>
+                <?php 
+                // Cek apakah user adalah Juri Lomba
+                $isJuriLomba = in_groups('JuriLomba');
+                ?>
+                <?php if (in_groups('Admin') || in_groups('Operator') || $isJuriLomba || $isPerlombaanPage): ?>
+                    <!-- Perlombaan -->
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-trophy"></i>
+                            <p>
+                                Perlombaan
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/panduan') ?>" class="nav-link">
+                                        <i class="fas fa-question-circle nav-icon text-warning"></i>
+                                        <p>Panduan Penggunaan</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/dashboard') ?>" class="nav-link">
+                                        <i class="fas fa-chart-line nav-icon text-info"></i>
+                                        <p>Dashboard Perlombaan</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Daftar Lomba</p>
+                                    </a>
+                                </li>
+                                    <a href="<?php echo base_url('backend/perlombaan/setJuri') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Setting Juri</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/template-sertifikat') ?>" class="nav-link">
+                                        <i class="fas fa-certificate nav-icon"></i>
+                                        <p>Template Sertifikat</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/peringkat') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Peringkat</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Operator') || in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/pendaftaran') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Pendaftaran Peserta</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/viewHasil') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Hasil Penilaian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/pengundian') ?>" class="nav-link">
+                                        <i class="fas fa-random nav-icon"></i>
+                                        <p>Pengundian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/monitorNilai') ?>" class="nav-link">
+                                        <i class="fas fa-chart-bar nav-icon"></i>
+                                        <p>Monitor Nilai</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if ($isJuriLomba): ?>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/dashboardLombaJuri') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Dashboard Juri</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/inputNilaiJuri') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Input Nilai</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/perlombaan/dataNilaiJuri') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Data Nilai</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </li>
+                <?php endif; ?>
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage) || $isActiveOperator): ?>
                     <!--  Kelembagaan -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -883,7 +1012,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage) || ($isActiveOperator)): ?>
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage) || $isActiveOperator): ?>
                     <!--  General Setting -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -959,7 +1088,7 @@
                         </ul>
                     </li>
                 <?php endif; ?>
-                <?php if ($isActiveGuru && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage): ?>
+                <?php if ($isActiveGuru && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage): ?>
                     <li class="nav-item">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>
@@ -1264,7 +1393,7 @@
                         </li>
                     <?php endif; ?>
                 <?php endif; ?>
-                <?php if (in_groups('Santri') && !$isSertifikasiPage && !$isMunaqosahPage): ?>
+                <?php if (in_groups('Santri') && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage): ?>
                     <!-- Kesantrian -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">

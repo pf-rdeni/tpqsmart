@@ -182,6 +182,11 @@
                     'icon' => 'fas fa-book',
                     'url' => base_url('backend/dashboard/admin')
                 ],
+                'perlombaan' => [
+                    'label' => 'Perlombaan',
+                    'icon' => 'fas fa-trophy',
+                    'url' => base_url('backend/perlombaan/dashboard')
+                ],
                 'munaqosah' => [
                     'label' => 'Munaqosah',
                     'icon' => 'fas fa-graduation-cap',
@@ -208,7 +213,9 @@
             $uriString = uri_string();
             $activeDashboard = 'semester'; // default
 
-            if (strpos($uriString, 'munaqosah') !== false) {
+            if (strpos($uriString, 'perlombaan') !== false) {
+                $activeDashboard = 'perlombaan';
+            } elseif (strpos($uriString, 'munaqosah') !== false) {
                 $activeDashboard = 'munaqosah';
             } elseif (strpos($uriString, 'sertifikasi') !== false) {
                 $activeDashboard = 'sertifikasi';
@@ -252,9 +259,9 @@
                 <i class="fas fa-search"></i>
             </a>
             <div class="navbar-search-block">
-                <form class="form-inline" action="<?= base_url('backend/search') ?>" method="GET">
+                <form class="form-inline" action="<?= base_url('backend/search') ?>" method="GET" id="navbarSearchForm">
                     <div class="input-group input-group-sm">
-                        <input class="form-control form-control-navbar" type="search" name="q" placeholder="Cari menu atau halaman..."
+                        <input class="form-control form-control-navbar" type="search" name="q" id="navbarSearchInput" placeholder="Cari menu atau halaman..."
                             aria-label="Search" autocomplete="off">
                         <div class="input-group-append">
                             <button class="btn btn-navbar" type="submit">
@@ -263,6 +270,16 @@
                             <button class="btn btn-navbar" type="button" data-widget="navbar-search">
                                 <i class="fas fa-times"></i>
                             </button>
+                        </div>
+                    </div>
+                    <!-- Autocomplete Dropdown -->
+                    <div id="searchAutocomplete" class="search-autocomplete" style="display: none;">
+                        <div class="search-autocomplete-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i> Mencari...
+                        </div>
+                        <div class="search-autocomplete-results"></div>
+                        <div class="search-autocomplete-empty" style="display: none;">
+                            <i class="fas fa-info-circle"></i> Tidak ada hasil
                         </div>
                     </div>
                 </form>
@@ -590,3 +607,5 @@
         }
     }
 </style>
+
+<?php include(__DIR__ . '/search_autocomplete.php'); ?>

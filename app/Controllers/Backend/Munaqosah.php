@@ -86,7 +86,25 @@ class Munaqosah extends BaseController
         $this->db = \Config\Database::connect();
     }
 
-    // ==================== NILAI MUNAQOSAH ====================
+    // ==================== DASHBOARD & PANDUAN ====================
+
+    /**
+     * Halaman Panduan Penggunaan Munaqosah
+     */
+    public function panduan()
+    {
+        // Deteksi role user
+        $isAdmin = in_groups('Admin');
+        $isOperator = in_groups('Operator');
+        
+        $data = [
+            'page_title' => 'Panduan Penggunaan Munaqosah',
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+        ];
+
+        return view('backend/Munaqosah/panduan', $data);
+    }
 
 
     /**

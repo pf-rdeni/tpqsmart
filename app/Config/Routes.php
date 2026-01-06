@@ -32,6 +32,18 @@ $routes->setAutoRoute(true);
 $routes->get('login', 'AuthController::login', ['as' => 'login']);
 $routes->post('login', 'AuthController::attemptLogin');
 
+// Route untuk favicon.ico (serve as static file)
+$routes->get('favicon.ico', function() {
+    $faviconPath = FCPATH . 'favicon.ico';
+    if (file_exists($faviconPath)) {
+        header('Content-Type: image/x-icon');
+        header('Cache-Control: public, max-age=86400'); // Cache for 1 day
+        readfile($faviconPath);
+        exit;
+    }
+    throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+});
+
 // Route untuk serve JavaScript helpers dari app/Helpers/js/ (public access)
 $routes->get('helpers/js/(:segment)', 'Helpers::js/$1/public');
 
@@ -548,6 +560,19 @@ $routes->get('signature/validateSignature/(:segment)', 'Frontend\\Signature::val
 $routes->get('signature/santri/(:num)', 'Frontend\\Signature::getSignaturesBySantri/$1');
 $routes->get('signature/guru/(:num)', 'Frontend\\Signature::getSignaturesByGuru/$1');
 $routes->get('signature/tpq/(:num)', 'Frontend\\Signature::getSignaturesByTpq/$1');
+
+// Certificate Template Routes
+$routes->get('backend/perlombaan/template-sertifikat', 'Backend\\Perlombaan::templateSertifikat');
+$routes->get('backend/perlombaan/template-sertifikat/(:num)', 'Backend\\Perlombaan::templateSertifikat/$1');
+$routes->post('backend/perlombaan/upload-template', 'Backend\\Perlombaan::uploadTemplate');
+$routes->post('backend/perlombaan/delete-template/(:num)', 'Backend\\Perlombaan::deleteTemplate/$1');
+$routes->get('backend/perlombaan/configure-fields/(:num)', 'Backend\\Perlombaan::configureFields/$1');
+$routes->post('backend/perlombaan/save-field-config', 'Backend\\Perlombaan::saveFieldConfig');
+$routes->post('backend/perlombaan/delete-field/(:num)', 'Backend\\Perlombaan::deleteField/$1');
+$routes->get('backend/perlombaan/get-available-fields', 'Backend\\Perlombaan::getAvailableFields');
+$routes->get('backend/perlombaan/download-sertifikat/(:num)', 'Backend\\Perlombaan::downloadSertifikat/$1');
+$routes->get('backend/perlombaan/preview-sertifikat/(:num)', 'Backend\\Perlombaan::previewCertificate/$1');
+$routes->post('backend/perlombaan/batch-download-sertifikat', 'Backend\\Perlombaan::batchDownloadSertifikat');
 
 $routes->get('logout', 'Dashboard::logout');
 
