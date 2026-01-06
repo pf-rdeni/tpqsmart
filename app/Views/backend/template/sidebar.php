@@ -331,31 +331,31 @@
                             <?php if (in_groups('Juri')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                <i class="fas fa-tachometer-alt nav-icon text-warning"></i>
                                         <p>Dashboard Munaqosah</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/input-nilai-juri') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-edit nav-icon text-warning"></i>
                                         <p>Input Nilai Juri</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/data-nilai-juri') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-database nav-icon text-warning"></i>
                                         <p>Data Nilai Juri</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring-antrian-peserta-ruangan-juri') ?> class="nav-link" target="_blank">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-users nav-icon text-warning"></i>
                                         <p>Antrian Peserta</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-monitoring') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-desktop nav-icon text-warning"></i>
                                         <p>Dashboard Monitoring</p>
                                     </a>
                                 </li>
@@ -363,49 +363,49 @@
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-tachometer-alt nav-icon text-warning"></i>
                                         <p>Dashboard Munaqosah</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kategori-materi') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-layer-group nav-icon text-warning"></i>
                                         <p>Kategori Materi</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/list-kategori-kesalahan') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-exclamation-triangle nav-icon text-warning"></i>
                                         <p>Kategori Kesalahan</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/grup-materi-ujian') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-object-group nav-icon text-warning"></i>
                                         <p>Grup Materi Ujian</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/materi') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-book-open nav-icon text-warning"></i>
                                         <p>Materi Ujian</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/bobot') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-balance-scale nav-icon text-warning"></i>
                                         <p>Bobot Nilai</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/jadwal-peserta-ujian') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-calendar-alt nav-icon text-warning"></i>
                                         <p>Jadwal Peserta Ujian</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/export-hasil-munaqosah') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-file-export nav-icon text-warning"></i>
                                         <p>Export Hasil Munaqosah</p>
                                     </a>
                                 </li>
@@ -413,13 +413,13 @@
                             <?php if ($hasOperatorRole): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-tachometer-alt nav-icon text-warning"></i>
                                         <p>Dashboard Munaqosah</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/jadwal-peserta-ujian?type=pra-munaqosah') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-calendar-check nav-icon text-warning"></i>
                                         <p>Jadwal Peserta Ujian</p>
                                     </a>
                                 </li>
@@ -427,7 +427,7 @@
                             <?php if (in_groups('Admin') || $hasOperatorRole): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-chart-bar nav-icon text-warning"></i>
                                         <p>Monitoring Munaqosah</p>
                                     </a>
                                 </li>
@@ -441,32 +441,32 @@
                                 <?php endif; ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/kelulusan') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-graduation-cap nav-icon text-warning"></i>
                                         <p>Nilai Munaqosah</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/kelulusan-simple') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-check-circle nav-icon text-warning"></i>
                                         <p>Kelulusan</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/list-konfigurasi-munaqosah') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-cog nav-icon text-warning"></i>
                                         <p>Konfigurasi</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/juri') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-user-tie nav-icon text-warning"></i>
                                         <p>Data Juri dan Panitia</p>
                                     </a>
                                 </li>
                                 <?php if (!in_groups('Juri')): ?>
                                     <li class="nav-item">
                                         <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">
-                                            <i class="far fa-circle nav-icon"></i>
+                                            <i class="fas fa-list-alt nav-icon text-warning"></i>
                                             <p>Daftar Peserta</p>
                                         </a>
                                     </li>
@@ -476,43 +476,43 @@
                             <?php if (in_groups('Panitia') && !in_groups('Juri')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-tachometer-alt nav-icon text-warning"></i>
                                         <p>Dashboard Munaqosah</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/peserta?type=munaqosah&tpq=0') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-users nav-icon text-warning"></i>
                                         <p>Daftar Peserta</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/registrasi-peserta?type=munaqosah&tpq=0') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-user-plus nav-icon text-warning"></i>
                                         <p>Registrasi Peserta</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/jadwal-peserta-ujian?type=munaqosah&tpq=0') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-calendar-alt nav-icon text-warning"></i>
                                         <p>Jadwal Peserta Ujian</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/antrian?type=munaqosah&tpq=0') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-stream nav-icon text-warning"></i>
                                         <p>Antrian Ujian</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/dashboard-monitoring?type=munaqosah&tpq=0') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-desktop nav-icon text-warning"></i>
                                         <p>Dashboard Monitoring</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring?type=munaqosah&tpq=0') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-chart-line nav-icon text-warning"></i>
                                         <p>Monitoring Munaqosah</p>
                                     </a>
                                 </li>
@@ -520,13 +520,13 @@
                             <?php if ((in_groups('Panitia') || in_groups('Admin') || $isActiveOperator) && !in_groups('Juri')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/registrasi-peserta') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-user-plus nav-icon text-warning"></i>
                                         <p>Registrasi Peserta</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/antrian') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-stream nav-icon text-warning"></i>
                                         <p>Antrian Ujian</p>
                                     </a>
                                 </li>
@@ -558,24 +558,25 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/dashboard') ?>" class="nav-link">
-                                        <i class="fas fa-chart-line nav-icon text-info"></i>
+                                        <i class="fas fa-chart-line nav-icon text-warning"></i>
                                         <p>Dashboard Perlombaan</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-list nav-icon text-warning"></i>
                                         <p>Daftar Lomba</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/setJuri') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-user-cog nav-icon text-warning"></i>
                                         <p>Setting Juri</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/template-sertifikat') ?>" class="nav-link">
-                                        <i class="fas fa-certificate nav-icon"></i>
+                                        <i class="fas fa-certificate nav-icon text-warning"></i>
                                         <p>Template Sertifikat</p>
                                     </a>
                                 </li>
@@ -583,7 +584,7 @@
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/peringkat') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-medal nav-icon text-warning"></i>
                                         <p>Peringkat</p>
                                     </a>
                                 </li>
@@ -591,25 +592,25 @@
                             <?php if (in_groups('Operator') || in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/pendaftaran') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-user-plus nav-icon text-warning"></i>
                                         <p>Pendaftaran Peserta</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/viewHasil') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-clipboard-list nav-icon text-warning"></i>
                                         <p>Hasil Penilaian</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/pengundian') ?>" class="nav-link">
-                                        <i class="fas fa-random nav-icon"></i>
+                                        <i class="fas fa-random nav-icon text-warning"></i>
                                         <p>Pengundian</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/monitorNilai') ?>" class="nav-link">
-                                        <i class="fas fa-chart-bar nav-icon"></i>
+                                        <i class="fas fa-chart-bar nav-icon text-warning"></i>
                                         <p>Monitor Nilai</p>
                                     </a>
                                 </li>
@@ -617,19 +618,19 @@
                             <?php if ($isJuriLomba): ?>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/dashboardLombaJuri') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-tachometer-alt nav-icon text-warning"></i>
                                         <p>Dashboard Juri</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/inputNilaiJuri') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-edit nav-icon text-warning"></i>
                                         <p>Input Nilai</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/dataNilaiJuri') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-database nav-icon text-warning"></i>
                                         <p>Data Nilai</p>
                                     </a>
                                 </li>
@@ -651,25 +652,25 @@
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/tpq/show') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-mosque nav-icon text-warning"></i>
                                         <p> List TPQ</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/mda/show') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-school nav-icon text-warning"></i>
                                         <p> List MDA</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/fkpq/show') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-users-cog nav-icon text-warning"></i>
                                         <p> List FKPQ</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/fkdt/show') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-hands-helping nav-icon text-warning"></i>
                                         <p> List FKDT</p>
                                     </a>
                                 </li>
@@ -677,19 +678,19 @@
                             <?php if ($isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/tpq/profilLembaga') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-id-card nav-icon text-warning"></i>
                                         <p>Profil Lembaga</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/strukturlembaga') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-sitemap nav-icon text-warning"></i>
                                         <p>Struktur Lembaga</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/tpq/showSaranaLembaga') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-warehouse nav-icon text-warning"></i>
                                         <p>Sarana Lembaga</p>
                                     </a>
                                 </li>
@@ -707,26 +708,26 @@
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/guru/show') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-chalkboard-teacher nav-icon text-warning"></i>
                                     <p>Daftar Guru</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/guru/pengajuanInsentif') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-money-bill-wave nav-icon text-warning"></i>
                                     <p>Pengajuan Insentif</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/guru/showBerkasLampiran') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-folder-open nav-icon text-warning"></i>
                                     <p>Berkas Lampiran</p>
                                 </a>
                             </li>
                             <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-cogs nav-icon text-warning"></i>
                                         <p>Setting Guru Kelas</p>
                                     </a>
                                 </li>
@@ -745,52 +746,52 @@
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-user-plus nav-icon text-warning"></i>
                                     <p>Santri Baru</p>
                                 </a>
                             </li>
                             <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-clipboard-check nav-icon text-warning"></i>
                                         <p>Registrasi Santri Baru</p>
                                     </a>
                                 </li>
                             <?php endif; ?>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-address-card nav-icon text-warning"></i>
                                     <p>Profil Santri</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-info-circle nav-icon text-warning"></i>
                                     <p>Detail Profil Santri</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-user-edit nav-icon text-warning"></i>
                                     <p>Ubah Santri</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showSantriEmis') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-file-alt nav-icon text-warning"></i>
                                     <p>Data Emis</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showSantriBaruPerkelasTpq') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-users nav-icon text-warning"></i>
                                     <p>Santri Per Kelas</p>
                                 </a>
                             </li>
                             <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kelas/showListSantriPerKelas') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-level-up-alt nav-icon text-warning"></i>
                                         <p>Kenaikan Kelas</p>
                                     </a>
                                 </li>
@@ -809,7 +810,7 @@
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="nav-item">
                                 <a href="#" class="nav-link no-hover">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-file-invoice nav-icon text-warning"></i>
                                     <p>Rapor Nilai</p>
                                     <i class="right fas fa-angle-left"></i>
                                     </p>
@@ -833,7 +834,7 @@
                             </li>
                             <li class="nav-item">
                                 <a href="#" class="nav-link no-hover">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-handshake nav-icon text-warning"></i>
                                     <p>Serah Terima</p>
                                     <i class="right fas fa-angle-left"></i>
                                     </p>
@@ -855,7 +856,7 @@
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/rapor/kriteriaCatatanRapor') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-clipboard nav-icon text-warning"></i>
                                     <p>Kriteria Catatan</p>
                                 </a>
                             </li>
@@ -917,7 +918,7 @@
                             <?php if ($showMappingMenu): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/rapor/settingMappingWaliKelas') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-user-friends nav-icon text-warning"></i>
                                         <p>Mapping Wali Kelas</p>
                                     </a>
                                 </li>
@@ -937,19 +938,19 @@
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="=nav-item">
                                 <a href=<?php echo base_url('backend/extra/showDownload') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-download nav-icon text-warning"></i>
                                     <p>Download</p>
                                 </a>
                             </li>
                             <li class="=nav-item">
                                 <a href=<?php echo base_url('backend/extra/showArtikel') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-newspaper nav-icon text-warning"></i>
                                     <p>Artikel</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/qr/index') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-qrcode nav-icon text-warning"></i>
                                     <p>QR</p>
                                 </a>
                             </li>
@@ -969,43 +970,43 @@
                         <ul class="nav nav-treeview" style="display: none;">
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/auth') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-tachometer-alt nav-icon text-warning"></i>
                                     <p>Dashboard</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/auth/users') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-users nav-icon text-warning"></i>
                                     <p>Manajemen User</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/auth/groups') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-layer-group nav-icon text-warning"></i>
                                     <p>Manajemen Group</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/auth/permissions') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-key nav-icon text-warning"></i>
                                     <p>Manajemen Permission</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/auth/loginAttempts') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-history nav-icon text-warning"></i>
                                     <p>Riwayat Login</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/auth/passwordResets') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-unlock-alt nav-icon text-warning"></i>
                                     <p>Token Reset Password</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/auth/onlineUsers') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-user-clock nav-icon text-warning"></i>
                                     <p>User Online</p>
                                 </a>
                             </li>
@@ -1025,26 +1026,26 @@
                         <ul class="nav nav-treeview" style="display: none;"> <!-- none; or block -->
                             <li class="=nav-item">
                                 <a href=<?php echo base_url('backend/materiPelajaran/showMateriPelajaran') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-book nav-icon text-warning"></i>
                                     <p>Daftar Materi</p>
                                 </a>
                             </li>
                             <li class="=nav-item">
                                 <a href=<?php echo base_url('backend/kelasMateriPelajaran/showMateriKelas') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-chalkboard nav-icon text-warning"></i>
                                     <p>Materi Kelas</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/user/index') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-user-cog nav-icon text-warning"></i>
                                     <p>Daftar Akun</p>
                                 </a>
                             </li>
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/user/authGroup') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-users-cog nav-icon text-warning"></i>
                                         <p>Auth Group</p>
                                     </a>
                                 </li>
@@ -1052,7 +1053,7 @@
                             <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/tools/index') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-sliders-h nav-icon text-warning"></i>
                                         <p>Pengaturan Umum</p>
                                     </a>
                                 </li>
@@ -1060,7 +1061,7 @@
                             <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/raporGroupKategori/index') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-tags nav-icon text-warning"></i>
                                         <p>Nama Group</p>
                                     </a>
                                 </li>
@@ -1068,19 +1069,19 @@
                             <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/nilai/resetNilaiIndex') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-undo nav-icon text-warning"></i>
                                         <p>Reset Nilai</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/logviewer') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-file-alt nav-icon text-warning"></i>
                                         <p>Log Viewer</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kelas/showCheckDuplikasiKelasSantri') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-broom nav-icon text-warning"></i>
                                         <p>Normalisasi Data</p>
                                     </a>
                                 </li>
@@ -1100,25 +1101,25 @@
                         <ul class="nav nav-treeview" style="display: none;">
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/createEmisStep') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-user-plus nav-icon text-warning"></i>
                                     <p>Input Data Santri</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-user-edit nav-icon text-warning"></i>
                                     <p>Ubah Data Santri</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-id-card nav-icon text-warning"></i>
                                     <p>Profil Data Santri</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-info-circle nav-icon text-warning"></i>
                                     <p>Detail Profil Santri</p>
                                 </a>
                             </li>
@@ -1143,19 +1144,19 @@
                         <ul class="nav nav-treeview" style="display: none;">
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/absensi/index') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-check-double nav-icon text-warning"></i>
                                     <p>Kehadiran</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/absensi/ubahAbsensi') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-edit nav-icon text-warning"></i>
                                     <p>Ubah Absensi</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/absensi/statistikKehadiran') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-chart-pie nav-icon text-warning"></i>
                                     <p>Statistik</p>
                                 </a>
                             </li>
@@ -1173,13 +1174,13 @@
                         <ul class="nav nav-treeview" style="display: none;">
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/tabungan/showPerkelas') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-piggy-bank nav-icon text-warning"></i>
                                     <p>Tabungan</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/iuranBulanan/showPerKelas') ?> class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-money-check-alt nav-icon text-warning"></i>
                                     <p>Iuran Bulanan</p>
                                 </a>
                             </li>
@@ -1204,13 +1205,13 @@
                                     $encryptedIdGuru = bin2hex($encrypter->encrypt($IdGuru));; ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/prestasi/showPerKelas') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-star nav-icon text-warning"></i>
                                         <p>Prestasi</p>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-pen nav-icon text-warning"></i>
                                         <p>Input Nilai
                                             <i class="right fas fa-angle-left"></i>
                                         </p>
@@ -1236,7 +1237,7 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-list-ol nav-icon text-warning"></i>
                                         <p>Detail Nilai
                                             <i class="right fas fa-angle-left"></i>
                                         </p>
@@ -1262,7 +1263,7 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-sort-numeric-down nav-icon text-warning"></i>
                                         <p>Rangking Kelas
                                             <i class="right fas fa-angle-left"></i>
                                         </p>
@@ -1286,7 +1287,7 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-file-invoice nav-icon text-warning"></i>
                                         <p>Rapor Nilai</p>
                                         <i class="right fas fa-angle-left"></i>
                                         </p>
@@ -1310,7 +1311,7 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-handshake nav-icon text-warning"></i>
                                         <p>Serah Terima</p>
                                         <i class="right fas fa-angle-left"></i>
                                         </p>
@@ -1332,7 +1333,7 @@
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/rapor/kriteriaCatatanRapor') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-clipboard-check nav-icon text-warning"></i>
                                         <p>Kriteria Catatan</p>
                                     </a>
                                 </li>
@@ -1384,7 +1385,7 @@
                                 <?php if ($showMappingMenuGuru): ?>
                                     <li class="nav-item">
                                         <a href=<?php echo base_url('backend/rapor/settingMappingWaliKelas') ?> class="nav-link">
-                                            <i class="far fa-circle nav-icon"></i>
+                                            <i class="fas fa-user-friends nav-icon text-warning"></i>
                                             <p>Mapping Wali Kelas</p>
                                         </a>
                                     </li>
@@ -1406,37 +1407,37 @@
                         <ul class="nav nav-treeview" style="display: block;">
                             <li class="nav-item">
                                 <a href="<?= base_url('backend/santri/detailProfilSantri') ?>" class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-id-card nav-icon text-warning"></i>
                                     <p>Detail Profil</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url('backend/absensi/showAbsensiSantri') ?>" class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-calendar-check nav-icon text-warning"></i>
                                     <p>Detail Absensi</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url('backend/prestasi/showPrestasiSantri') ?>" class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-trophy nav-icon text-warning"></i>
                                     <p>Detail Prestasi</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url('backend/nilai/showNilaiProfilDetail') ?>" class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-chart-bar nav-icon text-warning"></i>
                                     <p>Detail Nilai</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url('backend/tabungan/showTabunganSantri') ?>" class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-piggy-bank nav-icon text-warning"></i>
                                     <p>Detail Tabungan</p>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url('backend/santri/showKontakSantri') ?>" class="nav-link">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-phone nav-icon text-warning"></i>
                                     <p>Kontak Santri</p>
                                 </a>
                             </li>
