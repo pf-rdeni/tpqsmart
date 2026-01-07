@@ -1,46 +1,34 @@
 <!DOCTYPE html>
 <html lang="id">
-<?= $this->include('/backend/template/meta'); ?>
-<?php
-// Theme akan di-handle oleh JavaScript menggunakan localStorage
-$bodyClass = 'hold-transition sidebar-mini layout-fixed';
-?>
-<body class="<?= $bodyClass ?>">
+<!-- Include Meta -->
+<?= $this->include('frontend/template/meta'); ?>
+
+<body class="hold-transition layout-top-nav">
     <div class="wrapper">
-        <?php if (isset($isPublic) && $isPublic): ?>
-            <!-- Public Header - Tanpa Sidebar/Navbar Admin -->
-            <div class="content-wrapper" style="margin-left: 0;">
-                <!-- <div class="content-header">
-                    <div class="container-fluid">
-                        <div class="row mb-2">
-                            <div class="col-sm-6">
-                                <h1 class="m-0"><?= $page_title ?? 'Form Pendaftaran Santri' ?></h1>
-                            </div>
-                            <div class="col-sm-6">
-                                <ol class="breadcrumb float-sm-right">
-                                    <li class="breadcrumb-item"><a href="<?= base_url('/') ?>">Beranda</a></li>
-                                    <li class="breadcrumb-item active">Pendaftaran</li>
-                                </ol>
-                            </div>
-                        </div>
-                    </div>
-                </div> -->
-            <?php else: ?>
-                <!-- Admin Layout - Dengan Sidebar/Navbar -->
-                <?= $this->include('/backend/template/navbar'); ?>
-                <?= $this->include('/backend/template/sidebar'); ?>
-                <div class="content-wrapper">
-                    <?= $this->include('/backend/template/header'); ?>
-                <?php endif; ?>
+        
+        <!-- Include Navbar -->
+        <?= $this->include('frontend/template/navbar'); ?>
 
-                <?= $this->renderSection('content'); ?>
-
+        <div class="content-wrapper">
+            <!-- Content Header (Page header) -->
+             <!-- Optional: Add breadcrumbs or page title here if needed -->
+            
+            <!-- Main content -->
+            <div class="content">
+                <div class="container">
+                    <?= $this->renderSection('content'); ?>
                 </div>
-                <?= $this->include('/backend/template/footer'); ?>
             </div>
-            <?= $this->include('/backend/template/js'); ?>
-            <?= $this->include('/backend/template/scripts'); ?>
-            <?= $this->renderSection('scripts'); ?>
-</body>
+        </div>
 
+        <!-- Include Footer -->
+        <?= $this->include('frontend/template/footer'); ?>
+    </div>
+
+    <!-- Include Scripts -->
+    <?= $this->include('frontend/template/scripts'); ?>
+    
+    <!-- Custom Scripts Section -->
+    <?= $this->renderSection('scripts'); ?>
+</body>
 </html>

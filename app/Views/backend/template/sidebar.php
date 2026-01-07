@@ -719,6 +719,12 @@
                                     <p>Berkas Lampiran</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/kegiatan-absensi') ?> class="nav-link">
+                                    <i class="fas fa-calendar-check nav-icon text-warning"></i>
+                                    <p>Absensi Guru</p>
+                                </a>
+                            </li>
                             <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">

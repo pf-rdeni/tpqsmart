@@ -568,6 +568,16 @@ $routes->group('backend/perlombaan', ['namespace' => 'App\Controllers\Backend'],
     $routes->post('uploadSignatureImage', 'Perlombaan::uploadSignatureImage');
 });
 
+// Public Teacher Attendance Routes
+$routes->get('presensi', 'AbsensiGuru::index');
+$routes->post('presensi/hadir', 'AbsensiGuru::hadir');
+
+// Admin/Operator Activity/Event Routes
+$routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
+    $routes->resource('kegiatan-absensi', ['controller' => 'KegiatanAbsensi']);
+    $routes->post('kegiatan-absensi/active/(:num)', 'KegiatanAbsensi::setActive/$1');
+});
+
 $routes->get('logout', 'Dashboard::logout');
 
 /*
