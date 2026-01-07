@@ -251,14 +251,25 @@
                                 <div class="card-body box-profile text-center d-flex flex-column">
                                     <div class="text-center mb-2">
                                          <?php 
-                                            // Handling Photo profile
-                                            $imgUrl = base_url('template/backend/dist/img/user1-128x128.jpg'); // Default
+                                            // Icon based on gender
+                                            $iconClass = 'fa-user'; // Default
+                                            $iconColor = '#6c757d'; // Gray default
+                                            
+                                            if (!empty($guru->JenisKelamin)) {
+                                                if (strtolower($guru->JenisKelamin) == 'perempuan' || strtolower($guru->JenisKelamin) == 'p') {
+                                                    $iconClass = 'fa-user-graduate'; // Muslim woman icon
+                                                    $iconColor = '#e83e8c'; // Pink
+                                                } else {
+                                                    $iconClass = 'fa-user-tie'; // Muslim man icon  
+                                                    $iconColor = '#007bff'; // Blue
+                                                }
+                                            }
                                          ?>
-                                        <img class="profile-user-img img-fluid img-circle"
-                                             src="<?= $imgUrl ?>"
-                                             alt="User profile picture" 
-                                             style="height: 100px; width: 100px; object-fit: cover; cursor: pointer;"
+                                        <div class="profile-user-img img-fluid img-circle d-flex align-items-center justify-content-center"
+                                             style="height: 100px; width: 100px; background: linear-gradient(135deg, <?= $iconColor ?>15 0%, <?= $iconColor ?>30 100%); cursor: pointer; border: 3px solid <?= $iconColor ?>;"
                                              onclick="this.closest('.card-body').querySelector('button').click()">
+                                            <i class="fas <?= $iconClass ?> fa-3x" style="color: <?= $iconColor ?>;"></i>
+                                        </div>
                                     </div>
                                     <h5 class="profile-username text-center font-weight-bold"><?= ucwords(strtolower(esc((string)$guru->NamaGuru))) ?></h5>
                                     
@@ -276,7 +287,8 @@
                                             onclick="tandaiHadir(this)"
                                             data-id="<?= $guru->Id ?>"
                                             data-nama="<?= ucwords(strtolower(esc((string)$guru->NamaGuru))) ?>"
-                                            data-img="<?= $imgUrl ?>"
+                                            data-icon-class="<?= $iconClass ?>"
+                                            data-icon-color="<?= $iconColor ?>"
                                             data-tpq="<?= esc($guru->NamaTpq) ?>"
                                             data-loc="<?= esc($guru->KelurahanDesa) ?>"
                                             data-hp="<?= esc($guru->NoHp) ?>" 
@@ -320,9 +332,24 @@
                                 <div class="card-body box-profile d-flex flex-column">
                                     <div class="text-center mb-2">
                                         <?php 
-                                            $imgUrl = base_url('template/backend/dist/img/user1-128x128.jpg');
+                                            // Icon based on gender
+                                            $iconClass = 'fa-user'; // Default
+                                            $iconColor = '#6c757d'; // Gray default
+                                            
+                                            if (!empty($guru->JenisKelamin)) {
+                                                if (strtolower($guru->JenisKelamin) == 'perempuan' || strtolower($guru->JenisKelamin) == 'p') {
+                                                    $iconClass = 'fa-user-graduate'; // Muslim woman icon
+                                                    $iconColor = '#e83e8c'; // Pink
+                                                } else {
+                                                    $iconClass = 'fa-user-tie'; // Muslim man icon
+                                                    $iconColor = '#007bff'; // Blue
+                                                }
+                                            }
                                         ?>
-                                        <img class="img-circle" src="<?= $imgUrl ?>" alt="User" style="width: 50px; height: 50px; object-fit: cover;">
+                                        <div class="img-circle d-inline-flex align-items-center justify-content-center" 
+                                             style="width: 50px; height: 50px; background: linear-gradient(135deg, <?= $iconColor ?>15 0%, <?= $iconColor ?>30 100%); border: 2px solid <?= $iconColor ?>;">
+                                            <i class="fas <?= $iconClass ?> fa-lg" style="color: <?= $iconColor ?>;"></i>
+                                        </div>
                                     </div>
                                     <h5 class="text-center font-weight-bold mb-1" style="font-size: 1rem;"><?= ucwords(strtolower(esc((string)$guru->NamaGuru))) ?></h5>
                                     
@@ -654,14 +681,19 @@
         // Extract data from button
         const id = btn.getAttribute('data-id');
         const nama = btn.getAttribute('data-nama');
-        const imgUrl = btn.getAttribute('data-img');
+        const iconClass = btn.getAttribute('data-icon-class');
+        const iconColor = btn.getAttribute('data-icon-color');
         const tpq = btn.getAttribute('data-tpq');
         const loc = btn.getAttribute('data-loc');
-        // Build HTML for Profile Info
+        
+        // Build HTML for Profile Info with Icon
         let profileHtml = `
             <div class="text-center mb-4">
-                <div class="mb-3">
-                    <img src="${imgUrl}" class="img-circle" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #dee2e6;">
+                <div class="mb-3 d-flex justify-content-center">
+                    <div class="d-inline-flex align-items-center justify-content-center" 
+                         style="width: 100px; height: 100px; background: linear-gradient(135deg, ${iconColor}15 0%, ${iconColor}30 100%); border-radius: 50%; border: 3px solid ${iconColor};">
+                        <i class="fas ${iconClass} fa-3x" style="color: ${iconColor};"></i>
+                    </div>
                 </div>
                 <h4 class="font-weight-bold mb-2">${nama}</h4>
         `;
