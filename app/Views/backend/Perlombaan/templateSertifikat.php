@@ -2,7 +2,7 @@
 <?= $this->section('content'); ?>
 <section class="content">
     <div class="container-fluid">
-        <!-- Row 1: Pilih Lomba & Cabang -->
+        <!-- Row 1: Pilih Kegiatan & Perlombaan -->
         <div class="row">
             <div class="col-12">
                 <div class="card card-primary">
@@ -13,9 +13,9 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Lomba</label>
+                                    <label>Kegiatan</label>
                                     <select class="form-control" id="selectLomba">
-                                        <option value="">-- Pilih Lomba --</option>
+                                        <option value="">-- Pilih Kegiatan --</option>
                                         <?php foreach ($lomba_list as $l): ?>
                                             <?php 
                                                 $tpqLabel = !empty($l['NamaTpq']) 
@@ -31,9 +31,9 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Cabang</label>
+                                    <label>Perlombaan</label>
                                     <select class="form-control" id="selectCabang">
-                                        <option value="">-- Pilih Cabang --</option>
+                                        <option value="">-- Pilih Perlombaan --</option>
                                     </select>
                                 </div>
                             </div>
@@ -137,7 +137,7 @@
             <div class="col-12">
                 <div class="alert alert-info">
                     <h5><i class="icon fas fa-info"></i> Informasi</h5>
-                    Pilih lomba dan cabang terlebih dahulu untuk mengelola template sertifikat.
+                    Pilih kegiatan dan perlombaan terlebih dahulu untuk mengelola template sertifikat.
                 </div>
             </div>
         </div>
@@ -221,7 +221,7 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    var html = '<option value="">-- Pilih Cabang --</option>';
+                    var html = '<option value="">-- Pilih Perlombaan --</option>';
                     response.data.forEach(function(item) {
                         var selected = (selectedId && item.id == selectedId) ? 'selected' : '';
                         html += '<option value="' + item.id + '" ' + selected + '>' + (item.DisplayLabel || item.NamaCabang) + '</option>';

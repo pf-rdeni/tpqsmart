@@ -6,7 +6,7 @@
             <div class="col-md-8">
                 <div class="card card-primary">
                     <div class="card-header">
-                        <h3 class="card-title"><?= $lomba ? 'Edit Lomba' : 'Tambah Lomba Baru' ?></h3>
+                        <h3 class="card-title"><?= $lomba ? 'Edit Kegiatan' : 'Tambah Kegiatan Baru' ?></h3>
                     </div>
                     <form action="<?= $lomba ? base_url('backend/perlombaan/updateLomba/' . $lomba['id']) : base_url('backend/perlombaan/storeLomba') ?>" method="post">
                         <?= csrf_field() ?>
@@ -22,7 +22,7 @@
                             <?php endif; ?>
 
                             <div class="form-group">
-                                <label for="NamaLomba">Nama Lomba <span class="text-danger">*</span></label>
+                                <label for="NamaLomba">Nama Kegiatan <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="NamaLomba" name="NamaLomba" 
                                        value="<?= old('NamaLomba', $lomba['NamaLomba'] ?? '') ?>" required>
                             </div>
@@ -60,7 +60,7 @@
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <small class="text-muted">Kosongkan jika lomba untuk semua TPQ</small>
+                                    <small class="text-muted">Kosongkan jika kegiatan untuk semua TPQ</small>
                                 </div>
                             <?php endif; ?>
 

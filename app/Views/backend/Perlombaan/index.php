@@ -19,7 +19,7 @@
             <div class="col-md-12">
                 <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                     <a href="<?= base_url('backend/perlombaan/listLomba') ?>" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Tambah Lomba Baru
+                        <i class="fas fa-plus"></i> Tambah Kegiatan Baru
                     </a>
                 <?php endif; ?>
             </div>
@@ -35,7 +35,7 @@
             <?php if (empty($lomba_list)): ?>
                 <div class="col-md-12">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Belum ada perlombaan yang tersedia.
+                        <i class="fas fa-info-circle"></i> Belum ada kegiatan yang tersedia.
                     </div>
                 </div>
             <?php else: ?>
@@ -47,32 +47,35 @@
                     $canFullAccess = $isAdmin || $isMyLomba; // Admin or owner has full access
                     ?>
                     <div class="col-md-4">
-                        <div class="card card-outline <?= $lomba['Status'] === 'aktif' ? 'card-primary' : ($lomba['Status'] === 'selesai' ? 'card-success' : 'card-secondary') ?>">
+                        <div class="card card-outline <?= $lomba['Status'] === 'aktif' ? 'card-success' : ($lomba['Status'] === 'selesai' ? 'card-danger' : 'card-warning') ?>">
                             <div class="card-header">
                                 <h3 class="card-title">
                                     <i class="fas fa-trophy"></i> <?= esc($lomba['NamaLomba']) ?>
                                 </h3>
-                                <div class="card-tools">
-                                    <?php if ($isAdminCreated): ?>
-                                        <span class="badge badge-dark mr-1" title="Lomba dari Pusat">
-                                            <i class="fas fa-globe"></i> Pusat
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge badge-info mr-1" title="Lomba TPQ">
-                                            <i class="fas fa-mosque"></i> TPQ
-                                        </span>
-                                    <?php endif; ?>
-                                    <span class="badge badge-<?= $lomba['Status'] === 'aktif' ? 'primary' : ($lomba['Status'] === 'selesai' ? 'success' : 'secondary') ?>">
-                                        <?= ucfirst($lomba['Status']) ?>
-                                    </span>
-                                </div>
                             </div>
                             <div class="card-body">
                                 <p class="text-muted"><?= esc($lomba['Deskripsi'] ?: 'Tidak ada deskripsi') ?></p>
                                 <ul class="list-unstyled">
+                                    <li>
+                                        <i class="fas fa-building"></i> Penyelenggara: 
+                                        <?php if ($isAdminCreated): ?>
+                                            <strong>Umum</strong>
+                                        <?php else: ?>
+                                            <strong><?= esc($lomba['NamaTpq'] ?? 'TPQ') ?></strong>
+                                        <?php endif; ?>
+                                    </li>
+                                    <?php if (!$isAdminCreated && !empty($lomba['KelurahanDesa'])): ?>
+                                    <li><i class="fas fa-map-marker-alt"></i> Lokasi: <strong><?= esc($lomba['KelurahanDesa']) ?></strong></li>
+                                    <?php endif; ?>
+                                    <li>
+                                        <i class="fas fa-toggle-on"></i> Status: 
+                                        <span class="badge badge-<?= $lomba['Status'] === 'aktif' ? 'success' : ($lomba['Status'] === 'selesai' ? 'danger' : 'warning') ?>">
+                                            <?= ucfirst($lomba['Status']) ?>
+                                        </span>
+                                    </li>
                                     <li><i class="fas fa-calendar"></i> Mulai: <?= $lomba['TanggalMulai'] ? date('d M Y', strtotime($lomba['TanggalMulai'])) : '-' ?></li>
                                     <li><i class="fas fa-calendar-check"></i> Selesai: <?= $lomba['TanggalSelesai'] ? date('d M Y', strtotime($lomba['TanggalSelesai'])) : '-' ?></li>
-                                    <li><i class="fas fa-sitemap"></i> Cabang: <strong><?= $lomba['total_cabang'] ?? 0 ?></strong></li>
+                                    <li><i class="fas fa-sitemap"></i> Perlombaan: <strong><?= $lomba['total_cabang'] ?? 0 ?></strong></li>
                                     <li><i class="fas fa-users"></i> Peserta: <strong><?= $lomba['total_peserta'] ?? 0 ?></strong></li>
                                 </ul>
                             </div>
@@ -83,7 +86,7 @@
                                         <a href="<?= base_url('backend/perlombaan/listLomba/' . $lomba['id']) ?>" class="btn btn-warning" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="<?= base_url('backend/perlombaan/setCabang/' . $lomba['id']) ?>" class="btn btn-info" title="Cabang">
+                                        <a href="<?= base_url('backend/perlombaan/setCabang/' . $lomba['id']) ?>" class="btn btn-info" title="Perlombaan">
                                             <i class="fas fa-sitemap"></i>
                                         </a>
                                     <?php endif; ?>

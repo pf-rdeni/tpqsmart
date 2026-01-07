@@ -211,6 +211,7 @@
 
     // Canvas drag and resize
     canvas.addEventListener('mousedown', function(e) {
+        e.preventDefault(); // Prevent text selection during drag
         var rect = canvas.getBoundingClientRect();
         var scaleX = canvas.width / rect.width;
         var scaleY = canvas.height / rect.height;
@@ -259,7 +260,33 @@
         }
     });
 
-    canvas.addEventListener('mousemove', function(e) {
+    // Use document-level mousemove for better drag accuracy (even when mouse leaves canvas)
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging && !isResizing) {
+            // Only handle cursor change for canvas hover
+            if (e.target === canvas && selectedFieldIndex >= 0) {
+                var rect = canvas.getBoundingClientRect();
+                var scaleX = canvas.width / rect.width;
+                var scaleY = canvas.height / rect.height;
+                var mouseX = (e.clientX - rect.left) * scaleX;
+                var mouseY = (e.clientY - rect.top) * scaleY;
+                
+                var field = fields[selectedFieldIndex];
+                if (field && field._handleBounds) {
+                    var h = field._handleBounds;
+                    if (mouseX >= h.x && mouseX <= h.x + h.width &&
+                        mouseY >= h.y && mouseY <= h.y + h.height) {
+                        canvas.style.cursor = 'nwse-resize';
+                    } else {
+                        canvas.style.cursor = 'crosshair';
+                    }
+                }
+            }
+            return;
+        }
+        
+        e.preventDefault(); // Prevent text selection
+        
         var rect = canvas.getBoundingClientRect();
         var scaleX = canvas.width / rect.width;
         var scaleY = canvas.height / rect.height;
@@ -278,40 +305,31 @@
             return;
         }
         
-        // Handle dragging
+        // Handle dragging - clamp to canvas bounds for accuracy
         if (isDragging && selectedFieldIndex >= 0) {
-            fields[selectedFieldIndex].x = mouseX - dragOffset.x;
-            fields[selectedFieldIndex].y = mouseY - dragOffset.y;
+            var newX = mouseX - dragOffset.x;
+            var newY = mouseY - dragOffset.y;
+            
+            // Clamp to canvas bounds (with some padding)
+            newX = Math.max(0, Math.min(canvas.width - 50, newX));
+            newY = Math.max(10, Math.min(canvas.height - 10, newY));
+            
+            fields[selectedFieldIndex].x = Math.round(newX);
+            fields[selectedFieldIndex].y = Math.round(newY);
             
             drawCanvas();
-            updateFieldForm(selectedFieldIndex);
+            renderFieldsList(); // Update form values in real-time
             markAsDirty();
-            return;
         }
-        
-        // Update cursor based on what we're hovering over
-        if (selectedFieldIndex >= 0) {
-            var field = fields[selectedFieldIndex];
-            if (field._handleBounds) {
-                var h = field._handleBounds;
-                if (mouseX >= h.x && mouseX <= h.x + h.width &&
-                    mouseY >= h.y && mouseY <= h.y + h.height) {
-                    canvas.style.cursor = 'nwse-resize';
-                    return;
-                }
-            }
-        }
-        canvas.style.cursor = 'crosshair';
     });
 
-    canvas.addEventListener('mouseup', function() {
-        isDragging = false;
-        isResizing = false;
-    });
-    
-    canvas.addEventListener('mouseleave', function() {
-        isDragging = false;
-        isResizing = false;
+    // Use document-level mouseup to ensure we always catch the release
+    document.addEventListener('mouseup', function(e) {
+        if (isDragging || isResizing) {
+            isDragging = false;
+            isResizing = false;
+            canvas.style.cursor = 'crosshair';
+        }
     });
 
     // Save configuration
@@ -586,7 +604,12 @@ function renderFieldsList() {
 }
 
 function selectField(index) {
-    selectedFieldIndex = index;
+    // Toggle: if clicking on already selected field, deselect it
+    if (selectedFieldIndex === index) {
+        selectedFieldIndex = -1;
+    } else {
+        selectedFieldIndex = index;
+    }
     renderFieldsList();
     drawCanvas();
 }

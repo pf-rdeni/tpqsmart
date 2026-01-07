@@ -22,11 +22,11 @@
                                 <td>: <?= esc($juri_data['NamaJuri'] ?: $juri_data['UsernameJuri']) ?></td>
                             </tr>
                             <tr>
-                                <td>Lomba</td>
+                                <td>Kegiatan</td>
                                 <td>: <?= esc($juri_data['NamaLomba']) ?></td>
                             </tr>
                             <tr>
-                                <td>Cabang</td>
+                                <td>Perlombaan</td>
                                 <td>: <?= esc($juri_data['NamaCabang']) ?></td>
                             </tr>
                             <tr>

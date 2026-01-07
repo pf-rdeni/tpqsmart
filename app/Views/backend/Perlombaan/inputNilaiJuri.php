@@ -7,7 +7,7 @@
             <div class="col-12">
                 <div class="card card-success">
                     <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-edit"></i> Input Nilai Lomba</h3>
+                        <h3 class="card-title"><i class="fas fa-edit"></i> Input Nilai Perlombaan</h3>
                         <div class="card-tools">
                             <span class="badge badge-light mr-2">
                                 <i class="fas fa-trophy"></i> <?= esc($juri_data['NamaLomba']) ?> - <?= esc($juri_data['NamaCabang']) ?>
@@ -302,7 +302,7 @@ function cekPeserta() {
         html += '<div class="row align-items-center">';
         html += '<div class="col-md-4"><strong>No Peserta:</strong> <span class="badge ' + badgeClass + ' px-3 py-2" style="font-size: 1.1rem;">' + registrasi.NoPeserta + '</span>' + statusText + '</div>';
         html += '<div class="col-md-4"><strong>Nama:</strong> ' + registrasi.NamaSantri + '</div>';
-        html += '<div class="col-md-4"><strong>Cabang:</strong> ' + registrasi.NamaCabang + '</div>';
+        html += '<div class="col-md-4"><strong>Perlombaan:</strong> ' + registrasi.NamaCabang + '</div>';
         html += '</div>';
         html += '</div>';
         

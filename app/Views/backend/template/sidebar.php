@@ -4,7 +4,7 @@
         <?php
         // Ambil logo lembaga dari database
         $logoUrl = base_url('/template/backend/dist/img/AdminLTELogo.png'); // Default logo
-        $namaTpq = 'TPQ'; // Default nama
+        $namaTpq = 'FKPQ'; // Default nama
 
         $idTpq = session()->get('IdTpq');
         if (!empty($idTpq)) {
@@ -538,7 +538,7 @@
                 // Cek apakah user adalah Juri Lomba
                 $isJuriLomba = in_groups('JuriLomba');
                 ?>
-                <?php if (in_groups('Admin') || in_groups('Operator') || $isJuriLomba || $isPerlombaanPage): ?>
+                <?php if (($isPerlombaanPage && (in_groups('Admin') || in_groups('Operator'))) || $isJuriLomba): ?>
                     <!-- Perlombaan -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -581,7 +581,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin')): ?>
+                            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/peringkat') ?>" class="nav-link">
                                         <i class="fas fa-medal nav-icon text-warning"></i>
@@ -596,12 +596,7 @@
                                         <p>Pendaftaran Peserta</p>
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a href="<?php echo base_url('backend/perlombaan/viewHasil') ?>" class="nav-link">
-                                        <i class="fas fa-clipboard-list nav-icon text-warning"></i>
-                                        <p>Hasil Penilaian</p>
-                                    </a>
-                                </li>
+
                                 <li class="nav-item">
                                     <a href="<?php echo base_url('backend/perlombaan/pengundian') ?>" class="nav-link">
                                         <i class="fas fa-random nav-icon text-warning"></i>

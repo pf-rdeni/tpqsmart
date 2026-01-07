@@ -10,6 +10,9 @@
                             <i class="fas fa-list-ol"></i> Kriteria Penilaian - <?= esc($cabang['NamaCabang']) ?>
                         </h3>
                         <div class="card-tools">
+                            <button type="button" class="btn btn-sm btn-secondary mr-1" onclick="history.back()" title="Kembali ke halaman sebelumnya">
+                                <i class="fas fa-arrow-left"></i> Kembali
+                            </button>
                             <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#modalAddKriteria">
                                 <i class="fas fa-plus"></i> Tambah Kriteria
                             </button>
@@ -69,11 +72,6 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="<?= base_url('backend/perlombaan/setCabang/' . $lomba['id']) ?>" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Kembali ke Cabang
-                        </a>
                     </div>
                 </div>
             </div>

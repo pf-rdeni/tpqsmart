@@ -812,6 +812,12 @@ class Perlombaan extends BaseController
 
     // ==================== METHOD PERINGKAT ====================
 
+
+    /**
+     * Ambil data peringkat (AJAX)
+     */
+    // ==================== METHOD PERINGKAT ====================
+
     /**
      * Lihat peringkat/pemenang untuk cabang
      */
@@ -829,12 +835,17 @@ class Perlombaan extends BaseController
             }
         }
 
-        // Ambil semua lomba untuk dropdown (filter by TPQ for operators)
+        // Ambil semua lomba untuk dropdown
         $idTpq = session()->get('IdTpq');
-        $lombaList = $this->lombaMasterModel->getLombaListDetailed(in_groups('Admin') ? null : $idTpq);
+        if (in_groups('Admin')) {
+            $lombaList = $this->lombaMasterModel->getLombaListDetailed();
+        } else {
+            // Operator hanya lihat lomba sendiri (tanpa umum) agar konsisten dengan viewHasil
+            $lombaList = $this->lombaMasterModel->getLombaListDetailed($idTpq, 'aktif', false);
+        }
 
         $data = [
-            'page_title' => 'Peringkat Lomba',
+            'page_title' => 'Peringkat Perlombaan',
             'lomba'      => $lomba,
             'cabang'     => $cabang,
             'cabang_id'  => $cabangId,
@@ -1358,44 +1369,7 @@ class Perlombaan extends BaseController
         }
     }
 
-    /**
-     * Lihat hasil penilaian
-     */
-    public function viewHasil($cabangId = null)
-    {
-        $cabang = null;
-        $lomba = null;
-        $hasilList = [];
 
-        if ($cabangId !== null) {
-            $cabang = $this->lombaCabangModel->find($cabangId);
-            if ($cabang) {
-                $lomba = $this->lombaMasterModel->find($cabang['lomba_id']);
-                $hasilList = $this->lombaNilaiModel->getPeringkat($cabangId);
-            }
-        }
-
-        // Ambil daftar lomba untuk dropdown (filter by TPQ for operators)
-        $idTpq = session()->get('IdTpq');
-        if (in_groups('Admin')) {
-            // Admin: semua lomba (TPQ + Umum)
-            $lombaList = $this->lombaMasterModel->getLombaListDetailed();
-        } else {
-            // Operator: HANYA lomba milik TPQ sendiri (tanpa lomba umum)
-            $lombaList = $this->lombaMasterModel->getLombaListDetailed($idTpq, 'aktif', false);
-        }
-
-        $data = [
-            'page_title' => 'Hasil Penilaian',
-            'lomba'      => $lomba,
-            'cabang'     => $cabang,
-            'cabang_id'  => $cabangId,
-            'hasil_list' => $hasilList,
-            'lomba_list' => $lombaList,
-        ];
-
-        return view('backend/Perlombaan/viewHasil', $data);
-    }
 
 
     // ==================== METHOD INPUT NILAI JURI ====================
@@ -2674,6 +2648,25 @@ class Perlombaan extends BaseController
             'nilai_akhir' => number_format($hasil['NilaiAkhir'], 2),
             'no_peserta' => $hasil['NoPeserta'] ?? '',
         ];
+    }
+
+    /**
+     * Cek apakah template sertifikat sudah ada untuk cabang ini
+     */
+    public function checkCertificateTemplate($cabangId)
+    {
+        $template = $this->sertifikatTemplateModel->getTemplateByCabang($cabangId);
+        
+        if ($template) {
+            // Cek juga fieldnya
+            $fields = $this->sertifikatFieldModel->getFieldsByTemplate($template['id']);
+            if (!empty($fields)) {
+                return $this->response->setJSON(['success' => true]);
+            }
+            return $this->response->setJSON(['success' => false, 'message' => 'Template ada tapi field belum dikonfigurasi']);
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Template sertifikat belum diupload untuk perlombaan ini']);
     }
 
     /**

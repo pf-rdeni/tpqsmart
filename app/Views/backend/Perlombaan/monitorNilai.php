@@ -2,20 +2,25 @@
 <?= $this->section('content'); ?>
 <section class="content">
     <div class="container-fluid">
-        <!-- Row 1: Filter Lomba & Cabang -->
+        <!-- Row 1: Filter Kegiatan & Perlombaan -->
         <div class="row">
             <div class="col-12">
                 <div class="card card-primary">
                     <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-filter"></i> Filter Lomba & Cabang</h3>
+                        <h3 class="card-title"><i class="fas fa-filter"></i> Filter Kegiatan & Perlombaan</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="history.back()" title="Kembali ke halaman sebelumnya">
+                                <i class="fas fa-arrow-left"></i> Kembali
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Lomba</label>
+                                    <label>Kegiatan</label>
                                     <select class="form-control" id="selectLomba">
-                                        <option value="">-- Pilih Lomba --</option>
+                                        <option value="">-- Pilih Kegiatan --</option>
                                         <?php foreach ($lomba_list as $l): ?>
                                             <?php 
                                                 $tpqLabel = !empty($l['NamaTpq']) 
@@ -31,9 +36,9 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Cabang</label>
+                                    <label>Perlombaan</label>
                                     <select class="form-control" id="selectCabang" <?= !$cabang ? 'disabled' : '' ?>>
-                                        <option value="">-- Pilih Cabang --</option>
+                                        <option value="">-- Pilih Perlombaan --</option>
                                     </select>
                                 </div>
                             </div>
@@ -125,11 +130,7 @@
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="card-footer">
-                        <a href="<?= base_url('backend/perlombaan') ?>" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Kembali
-                        </a>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -146,7 +147,7 @@ $(document).ready(function() {
     // Restore from localStorage if no ID is in URL
     <?php if (!$cabang): ?>
     if (storedCabangId) {
-        window.location.href = '<?= base_url('backend/perlombaan/monitorNilai') ?>/' + storedCabangId;
+        location.replace('<?= base_url('backend/perlombaan/monitorNilai') ?>/' + storedCabangId);
         return;
     } else if (storedLombaId) {
         $('#selectLomba').val(storedLombaId);
@@ -167,7 +168,7 @@ $(document).ready(function() {
         } else {
             localStorage.removeItem('last_lomba_id_monitor');
             localStorage.removeItem('last_cabang_id_monitor');
-            $('#selectCabang').html('<option value="">-- Pilih Cabang --</option>').prop('disabled', true);
+            $('#selectCabang').html('<option value="">-- Pilih Perlombaan --</option>').prop('disabled', true);
         }
     });
 
@@ -186,7 +187,7 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    var html = '<option value="">-- Pilih Cabang --</option>';
+                    var html = '<option value="">-- Pilih Perlombaan --</option>';
                     response.data.forEach(function(item) {
                         var selected = (selectedId && item.id == selectedId) ? 'selected' : '';
                         html += '<option value="' + item.id + '" ' + selected + '>' + (item.DisplayLabel || item.NamaCabang) + '</option>';

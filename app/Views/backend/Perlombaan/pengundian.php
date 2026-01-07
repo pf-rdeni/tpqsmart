@@ -3,12 +3,17 @@
 <section class="content">
     <div class="container-fluid">
         <?php if (!$cabang): ?>
-            <!-- Pilih Cabang -->
+            <!-- Pilih Perlombaan -->
             <div class="row">
                 <div class="col-md-12">
                     <div class="card card-primary">
                         <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-random"></i> Pilih Cabang Lomba untuk Pengundian</h3>
+                            <h3 class="card-title"><i class="fas fa-random"></i> Pilih Perlombaan untuk Pengundian</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="history.back()" title="Kembali ke halaman sebelumnya">
+                                    <i class="fas fa-arrow-left"></i> Kembali
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -16,8 +21,8 @@
                                     <thead>
                                         <tr>
                                             <th>No</th>
-                                            <th>Lomba</th>
-                                            <th>Cabang</th>
+                                            <th>Kegiatan</th>
+                                            <th>Perlombaan</th>
                                             <th>Kategori</th>
                                             <th>Tipe</th>
                                             <th>Batasan</th>
@@ -98,7 +103,7 @@
                             </div>
                             <div class="mt-2 mt-md-0">
                                 <a href="<?= base_url('backend/perlombaan/pengundian') ?>" class="btn btn-sm btn-secondary">
-                                    <i class="fas fa-arrow-left"></i> Pilih Cabang Lain
+                                    <i class="fas fa-arrow-left"></i> Pilih Perlombaan Lain
                                 </a>
                                 <a href="<?= base_url('backend/perlombaan/setCabang/' . $cabang['lomba_id']) ?>" class="btn btn-sm btn-info ml-1">
                                     <i class="fas fa-cog"></i> Kelola Cabang

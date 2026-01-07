@@ -7,11 +7,14 @@
                 <div class="card card-primary">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-sitemap"></i> Cabang Lomba - <?= esc($lomba['NamaLomba']) ?>
+                            <i class="fas fa-sitemap"></i> Perlombaan - <?= esc($lomba['NamaLomba']) ?>
                         </h3>
                         <div class="card-tools">
+                            <button type="button" class="btn btn-sm btn-secondary mr-1" onclick="history.back()" title="Kembali ke halaman sebelumnya">
+                                <i class="fas fa-arrow-left"></i> Kembali
+                            </button>
                             <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#modalAddCabang">
-                                <i class="fas fa-plus"></i> Tambah Cabang
+                                <i class="fas fa-plus"></i> Tambah Perlombaan
                             </button>
                         </div>
                     </div>
@@ -21,7 +24,7 @@
                                 <thead>
                                     <tr>
                                         <th>No</th>
-                                        <th>Nama Cabang</th>
+                                        <th>Nama Perlombaan</th>
                                         <th>Kategori</th>
                                         <th>Tipe</th>
                                         <th>Batasan</th>
@@ -34,7 +37,7 @@
                                 <tbody>
                                     <?php if (empty($cabang_list)): ?>
                                         <tr>
-                                            <td colspan="9" class="text-center">Belum ada cabang</td>
+                                            <td colspan="9" class="text-center">Belum ada perlombaan</td>
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach ($cabang_list as $i => $cabang): ?>
@@ -92,11 +95,6 @@
                             </table>
                         </div>
                     </div>
-                    <div class="card-footer">
-                        <a href="<?= base_url('backend/perlombaan') ?>" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Kembali
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
@@ -108,14 +106,14 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-primary">
-                <h5 class="modal-title">Tambah Cabang</h5>
+                <h5 class="modal-title">Tambah Perlombaan</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <form id="formAddCabang">
                 <div class="modal-body">
                     <input type="hidden" name="lomba_id" value="<?= $lomba['id'] ?>">
                     <div class="form-group">
-                        <label>Nama Cabang <span class="text-danger">*</span></label>
+                        <label>Nama Perlombaan <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="NamaCabang" required>
                     </div>
                     <div class="row">
@@ -216,14 +214,14 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-warning">
-                <h5 class="modal-title">Edit Cabang</h5>
+                <h5 class="modal-title">Edit Perlombaan</h5>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <form id="formEditCabang">
                 <div class="modal-body">
                     <input type="hidden" name="id" id="editCabangId">
                     <div class="form-group">
-                        <label>Nama Cabang <span class="text-danger">*</span></label>
+                        <label>Nama Perlombaan <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="NamaCabang" id="editNamaCabang" required>
                     </div>
                     <div class="row">
@@ -424,7 +422,7 @@ $(document).ready(function() {
     $('.btn-delete-cabang').click(function() {
         var id = $(this).data('id');
         Swal.fire({
-            title: 'Yakin hapus cabang ini?',
+            title: 'Yakin hapus perlombaan ini?',
             text: 'Data kriteria, peserta, dan nilai juga akan terhapus!',
             icon: 'warning',
             showCancelButton: true,

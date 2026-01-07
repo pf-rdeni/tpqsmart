@@ -80,12 +80,19 @@ class LombaMasterModel extends Model
      */
     public function getLombaWithStats($id)
     {
-        $lomba = $this->find($id);
+        $db = \Config\Database::connect();
+        
+        // Get lomba with TPQ name
+        $lomba = $db->table('tbl_lomba_master as l')
+                    ->select('l.*, t.NamaTpq, t.KelurahanDesa')
+                    ->join('tbl_tpq as t', 't.IdTpq = l.IdTpq', 'left')
+                    ->where('l.id', $id)
+                    ->get()
+                    ->getRowArray();
+        
         if (!$lomba) {
             return null;
         }
-
-        $db = \Config\Database::connect();
         
         // Hitung total cabang
         $cabangCount = $db->table('tbl_lomba_cabang')
