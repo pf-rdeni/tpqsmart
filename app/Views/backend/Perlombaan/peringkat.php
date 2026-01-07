@@ -54,7 +54,14 @@
                                         <?php if (($cabang['KelasMin'] ?? 0) > 0 || ($cabang['KelasMax'] ?? 0) > 0): ?>
                                             <p class="mb-1"><strong>Kelas:</strong> <span class="badge badge-warning"><?= esc($cabang['NamaKelasMin'] ?: 'Semua') ?> - <?= esc($cabang['NamaKelasMax'] ?: 'Semua') ?></span></p>
                                         <?php endif; ?>
-                                        <p class="mb-0"><strong>Kategori:</strong> <?= $cabang['Kategori'] ?></p>
+                                        <p class="mb-1"><strong>Kategori:</strong> <?= $cabang['Kategori'] ?></p>
+                                        <p class="mb-0"><strong>Sertifikat Template:</strong> 
+                                            <?php if ($template_ready): ?>
+                                                <span class="badge badge-success">Tersedia</span>
+                                            <?php else: ?>
+                                                <span class="badge badge-danger">Belum Tersedia</span>
+                                            <?php endif; ?>
+                                        </p>
                                     </div>
                                 <?php else: ?>
                                     <div class="alert alert-light text-center">

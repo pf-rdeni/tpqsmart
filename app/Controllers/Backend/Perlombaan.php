@@ -834,6 +834,18 @@ class Perlombaan extends BaseController
                 $ranking = $this->lombaNilaiModel->getPeringkat($cabangId);
             }
         }
+        
+        // CEK STATUS TEMPLATE SERTIFIKAT
+        $templateReady = false;
+        if ($cabangId) {
+            $tmpl = $this->sertifikatTemplateModel->getTemplateByCabang($cabangId);
+            if ($tmpl) {
+                 $flds = $this->sertifikatFieldModel->getFieldsByTemplate($tmpl['id']);
+                 if (!empty($flds)) {
+                     $templateReady = true;
+                 }
+            }
+        }
 
         // Ambil semua lomba untuk dropdown
         $idTpq = session()->get('IdTpq');
@@ -851,6 +863,7 @@ class Perlombaan extends BaseController
             'cabang_id'  => $cabangId,
             'ranking'    => $ranking,
             'lomba_list' => $lombaList,
+            'template_ready' => $templateReady,
         ];
 
         return view('backend/Perlombaan/peringkat', $data);
