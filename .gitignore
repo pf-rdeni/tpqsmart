@@ -140,5 +140,4 @@ app/Database/Migrations/*
 !app/Database/Migrations/.gitkeep
 
 # Ignore SQL files
-*.sql
 /public/*

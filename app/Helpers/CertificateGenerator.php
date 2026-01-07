@@ -175,7 +175,61 @@ class CertificateGenerator
             
             if ($value) {
                 $style = $this->buildFieldStyle($field);
-                $html .= '<div class="field" style="' . $style . '">' . htmlspecialchars($value) . '</div>';
+                
+                // Check if it is an image/QR field
+                $isImage = false;
+                $fieldName = $field['FieldName'];
+                if (substr($fieldName, -3) === '_QR' || substr($fieldName, -6) === '_Image' || substr($fieldName, -5) === 'Image') {
+                    $isImage = true;
+                }
+
+                if ($isImage) {
+                    // Value is file path
+                    if (file_exists($value)) {
+                        $ext = pathinfo($value, PATHINFO_EXTENSION);
+                        // Handle SVG vs Bitmap
+                        if ($ext === 'svg') {
+                            $mime = 'image/svg+xml';
+                        } else {
+                            $mime = 'image/' . $ext;
+                        }
+                        
+                        // Use Base64 again for compatibility, but rely on small resizing for performance
+                        $base64 = base64_encode(file_get_contents($value));
+                        $src = "data:$mime;base64,$base64";
+                        
+                        // Use FontSize as Height control (QR is square)
+                        $imgHeight = (int)$field['FontSize'];
+                        $imgStyle = 'height: ' . $imgHeight . 'px; width: auto;';
+                        
+                        // Check if this is a QR field and has a URL for clickable link
+                        $isQR = (substr($fieldName, -3) === '_QR');
+                        $qrUrlKey = str_replace('_QR', '_QR_URL', $fieldName);
+                        $qrUrl = $this->getFieldValue($qrUrlKey);
+                        
+                        if ($isQR && !empty($qrUrl)) {
+                            // Build custom style WITHOUT transform for QR - calculate actual position
+                            $posX = (int)$field['PosX'];
+                            $posY = (int)$field['PosY'];
+                            
+                            // Adjust left position based on alignment (QR is square, width = height)
+                            if ($field['TextAlign'] === 'C') {
+                                $posX = $posX - ($imgHeight / 2);
+                            } elseif ($field['TextAlign'] === 'R') {
+                                $posX = $posX - $imgHeight;
+                            }
+                            
+                            $qrDivStyle = 'position:absolute; left:' . $posX . 'px; top:' . $posY . 'px;';
+                            $html .= '<div style="' . $qrDivStyle . '"><a href="' . htmlspecialchars($qrUrl) . '" target="_blank" style="display:block;"><img src="' . $src . '" style="height:' . $imgHeight . 'px; width:' . $imgHeight . 'px; display:block;"></a></div>';
+                        } else {
+                            // Regular image without link (use normal style with transform)
+                            $html .= '<div class="field" style="' . $style . '"><img src="' . $src . '" style="' . $imgStyle . '"></div>';
+                        }
+                    }
+                } else {
+                    // Text
+                    $html .= '<div class="field" style="' . $style . '">' . htmlspecialchars($value) . '</div>';
+                }
             }
         }
 

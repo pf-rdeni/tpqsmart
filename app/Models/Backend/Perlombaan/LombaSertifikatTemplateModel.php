@@ -19,7 +19,9 @@ class LombaSertifikatTemplateModel extends Model
         'Width',
         'Height',
         'Orientation',
-        'Status'
+        'Status',
+        'RankSettings',
+        'SignatorySettings'
     ];
 
     protected $useTimestamps = true;

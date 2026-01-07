@@ -100,6 +100,47 @@ class Signature extends \App\Controllers\BaseController
                 'pesertaMunaqosah' => $pesertaMunaqosah
             ]);
         }
+        
+        // Handle Signature untuk Sertifikat Lomba
+        if (strpos($signature['JenisDokumen'], 'SertifikatLomba') !== false) {
+             $tpq = $this->tpqModel->find($signature['IdTpq']);
+             
+             // Parse SignatureData
+             $sigData = json_decode($signature['SignatureData'], true);
+             
+             // Fetch Perlombaan Details
+             $lombaMasterModel = new \App\Models\Backend\Perlombaan\LombaMasterModel();
+             $lombaCabangModel = new \App\Models\Backend\Perlombaan\LombaCabangModel();
+             $lombaNilaiModel = new \App\Models\Backend\Perlombaan\LombaNilaiModel(); 
+             
+             $hasilId = $sigData['hasil_id'] ?? 0;
+             $hasil = !empty($hasilId) ? $lombaNilaiModel->getPeringkatById($hasilId) : null;
+             
+             $lomba = null;
+             $cabang = null;
+             
+             if ($hasil) {
+                 $cabang = $lombaCabangModel->find($hasil['cabang_id']);
+                 if ($cabang) {
+                     $lomba = $lombaMasterModel->find($cabang['lomba_id']);
+                 }
+             }
+
+             return view('frontend/signature/valid', [
+                'signature' => $signature,
+                'santri' => $santri, // Already fetched above
+                'guru' => null,
+                'kelas' => null,
+                'tpq' => $tpq,
+                'perlombaan' => [
+                    'hasil' => $hasil,
+                    'lomba' => $lomba,
+                    'cabang' => $cabang,
+                    'signer_name' => $sigData['signer_name'] ?? '',
+                    'signer_jabatan' => $sigData['signer_jabatan'] ?? ''
+                ]
+            ]);
+        }
 
         // Handle signature untuk Rapor (logic lama)
         // Ambil data guru kelas

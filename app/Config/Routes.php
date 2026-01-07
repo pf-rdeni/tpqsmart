@@ -565,6 +565,7 @@ $routes->group('backend/perlombaan', ['namespace' => 'App\Controllers\Backend'],
     $routes->get('preview-sertifikat/(:num)', 'Perlombaan::previewCertificate/$1');
     $routes->post('batch-download-sertifikat', 'Perlombaan::batchDownloadSertifikat');
     $routes->get('check-certificate-template/(:num)', 'Perlombaan::checkCertificateTemplate/$1');
+    $routes->post('uploadSignatureImage', 'Perlombaan::uploadSignatureImage');
 });
 
 $routes->get('logout', 'Dashboard::logout');

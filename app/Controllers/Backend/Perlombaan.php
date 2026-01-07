@@ -2353,6 +2353,64 @@ class Perlombaan extends BaseController
     }
 
     /**
+     * Upload signature image (AJAX) - for manual signatures
+     */
+    public function uploadSignatureImage()
+    {
+        $file = $this->request->getFile('signature_image');
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Image upload invalid']);
+        }
+
+        // Validate file type
+        if (!in_array($file->getExtension(), ['jpg', 'jpeg', 'png'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Format harus JPG/PNG']);
+        }
+
+        // Handle Old Image Deletion
+        $oldImage = $this->request->getPost('old_image');
+        if ($oldImage && !empty($oldImage)) {
+            // Validate and delete old file
+            // Stored path is relative e.g., 'sertifikat/signatures/filename.jpg'
+            // We expect it to be inside uploads/
+            $oldPath = FCPATH . 'uploads/' . $oldImage;
+            
+            // Security check: ensure it is within uploads dir and exists
+            if (file_exists($oldPath) && is_file($oldPath) && strpos(realpath($oldPath), realpath(FCPATH . 'uploads/')) === 0) {
+                @unlink($oldPath);
+            }
+        }
+
+        $uploadPath = FCPATH . 'uploads/sertifikat/signatures/';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        $newName = 'sig_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $file->getExtension();
+        
+        try {
+            // Resize Image to max 300px width to optimize PDF rendering
+            $image = \Config\Services::image()
+                ->withFile($file)
+                ->resize(300, 150, true, 'width') // Maintain aspect ratio, max width 300
+                ->save($uploadPath . $newName);
+            
+            // Check if save was successful (file exists), if not move original
+            if (!file_exists($uploadPath . $newName)) {
+                 $file->move($uploadPath, $newName);
+            }
+            
+            return $this->response->setJSON([
+                'success' => true, 
+                'url' => base_url('uploads/sertifikat/signatures/' . $newName),
+                'filename' => 'sertifikat/signatures/' . $newName // Relative path
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Delete template (AJAX)
      */
     public function deleteTemplate($id)
@@ -2471,39 +2529,60 @@ class Perlombaan extends BaseController
     {
         $templateId = $this->request->getPost('template_id');
         $fieldsData = $this->request->getPost('fields'); // Array of field configurations
+        $rankSettings = $this->request->getPost('rank_settings');
+        $signatorySettings = $this->request->getPost('signatory_settings');
 
-        if (!$templateId || empty($fieldsData)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Data tidak lengkap']);
+        if (!$templateId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Data tidak lengkap (ID Template missing)']);
         }
+        
+        // fieldsData might be empty if user clears all fields, so don't strict check it for failure
 
         $this->db->transStart();
 
         try {
-            // Delete existing fields
-            $this->sertifikatFieldModel->deleteByTemplate($templateId);
-
-            // Insert new fields
-            $insertData = [];
-            foreach ($fieldsData as $field) {
-                $insertData[] = [
-                    'template_id' => $templateId,
-                    'FieldName' => $field['name'],
-                    'FieldLabel' => $field['label'],
-                    'PosX' => (int) $field['x'],
-                    'PosY' => (int) $field['y'],
-                    'FontFamily' => $field['font_family'] ?? 'Arial',
-                    'FontSize' => (int) ($field['font_size'] ?? 16),
-                    'FontStyle' => $field['font_style'] ?? 'B',
-                    'TextAlign' => $field['text_align'] ?? 'C',
-                    'TextColor' => $field['text_color'] ?? '#000000',
-                    'MaxWidth' => (int) ($field['max_width'] ?? 0),
-                ];
+            // 1. Update Template Settings (Rank & Signatory)
+            // Even if fieldsData is empty, we might want to save these settings
+            $templateData = [];
+            if ($rankSettings) {
+                // Determine if it came as string or array (likely array from JS object)
+                $templateData['RankSettings'] = is_array($rankSettings) ? json_encode($rankSettings) : $rankSettings;
+            }
+            if ($signatorySettings) {
+                $templateData['SignatorySettings'] = is_array($signatorySettings) ? json_encode($signatorySettings) : $signatorySettings;
+            }
+            
+            if (!empty($templateData)) {
+                $this->sertifikatTemplateModel->update($templateId, $templateData);
             }
 
-            if (!empty($insertData)) {
-                if ($this->sertifikatFieldModel->insertBatch($insertData) === false) {
-                    $errors = $this->sertifikatFieldModel->errors();
-                    throw new \Exception(implode(', ', $errors));
+            // 2. Delete existing fields
+            $this->sertifikatFieldModel->deleteByTemplate($templateId);
+
+            // 3. Insert new fields
+            if (!empty($fieldsData) && is_array($fieldsData)) {
+                $insertData = [];
+                foreach ($fieldsData as $field) {
+                    $insertData[] = [
+                        'template_id' => $templateId,
+                        'FieldName' => $field['name'],
+                        'FieldLabel' => $field['label'],
+                        'PosX' => (int) $field['x'],
+                        'PosY' => (int) $field['y'],
+                        'FontFamily' => $field['font_family'] ?? 'Arial',
+                        'FontSize' => (int) ($field['font_size'] ?? 16),
+                        'FontStyle' => $field['font_style'] ?? 'B',
+                        'TextAlign' => $field['text_align'] ?? 'C',
+                        'TextColor' => $field['text_color'] ?? '#000000',
+                        'MaxWidth' => (int) ($field['max_width'] ?? 0),
+                    ];
+                }
+
+                if (!empty($insertData)) {
+                    if ($this->sertifikatFieldModel->insertBatch($insertData) === false) {
+                        $errors = $this->sertifikatFieldModel->errors();
+                        throw new \Exception(implode(', ', $errors));
+                    }
                 }
             }
 
@@ -2513,7 +2592,7 @@ class Perlombaan extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Gagal menyimpan konfigurasi']);
             }
 
-            return $this->response->setJSON(['success' => true, 'message' => 'Konfigurasi field berhasil disimpan']);
+            return $this->response->setJSON(['success' => true, 'message' => 'Konfigurasi berhasil disimpan']);
 
         } catch (\Exception $e) {
             $this->db->transRollback();
@@ -2565,7 +2644,7 @@ class Perlombaan extends BaseController
         }
 
         // Prepare data for certificate
-        $certificateData = $this->prepareCertificateData($hasil);
+        $certificateData = $this->prepareCertificateData($hasil, $template);
 
         // Generate PDF
         helper('CertificateGenerator');
@@ -2596,19 +2675,60 @@ class Perlombaan extends BaseController
         }
 
         // Prepare dummy data
-        $dummyData = [
-            'nama_santri' => 'Abdullah Azzam',
-            'no_peserta' => 'A001',
-            'nama_lomba' => $template['NamaLomba'] ?? 'FASI XI Tingkat Kota',
-            'nama_cabang' => $template['NamaCabang'] ?? 'Tartil Al-Quran',
-            'kategori' => 'TKA Putra',
-            'peringkat' => 'Juara 1',
-            'peringkat_text' => 'Satu',
-            'nama_tpq' => 'TPA Al-Hidayah',
-            'tanggal_lomba' => date('d F Y'),
-            'tempat_lomba' => 'Aula Masjid Agung',
-            'nilai_akhir' => '98.50'
-        ];
+    $dummyData = [
+        'nama_santri' => 'Abdullah Azzam',
+        'no_peserta' => 'A001',
+        'nama_lomba' => $template['NamaLomba'] ?? 'FASI XI Tingkat Kota',
+        'nama_cabang' => $template['NamaCabang'] ?? 'Tartil Al-Quran',
+        'kategori' => 'TKA Putra',
+        'peringkat' => 'Juara 1', // Default
+        'peringkat_text' => 'Satu',
+        'nama_tpq' => 'TPA Al-Hidayah',
+        'tanggal_lomba' => date('d F Y'),
+        'tempat_lomba' => 'Aula Masjid Agung',
+        'nilai_akhir' => '98.50'
+    ];
+
+    // Overlay Dynamic Settings for Preview
+    $rankSettings = json_decode($template['RankSettings'] ?? '{}', true);
+    if (!empty($rankSettings)) {
+        $dummyData['peringkat'] = ($rankSettings['labelJuara'] ?? 'Juara') . ' 1';
+        $dummyData['peringkat_text'] = 'Satu';
+    }
+
+    $sigSettings = json_decode($template['SignatorySettings'] ?? '[]', true);
+    if (!empty($sigSettings)) {
+        // Need helper for QR preview
+        helper('signature');
+        
+        foreach ($sigSettings as $i => $sig) {
+            $prefix = 'Sig' . ($i + 1) . '_';
+            $dummyData[$prefix . 'Name'] = $sig['name'] ?? 'Nama Penandatangan';
+            $dummyData[$prefix . 'Jabatan'] = $sig['jabatan'] ?? 'Jabatan';
+            
+            if (($sig['type'] ?? 'manual') === 'qr') {
+                 // Generate a realistic preview token (Base64 URL Safe)
+                 $previewToken = base64_encode(random_bytes(24));
+                 $previewToken = str_replace(['+', '/', '='], ['-', '_', ''], $previewToken);
+                 $qrData = generateSignatureQRCode($previewToken);
+                 if ($qrData) {
+                     $dummyData[$prefix . 'QR'] = FCPATH . 'uploads/qr/' . $qrData['filename'];
+                     $dummyData[$prefix . 'QR_URL'] = $qrData['url']; // Pass URL for clickable link
+                 } else {
+                     $dummyData[$prefix . 'QR'] = '';
+                     $dummyData[$prefix . 'QR_URL'] = '';
+                 }
+                 $dummyData[$prefix . 'Image'] = '';
+            } else {
+                 if (!empty($sig['image'])) {
+                      $dummyData[$prefix . 'Image'] = FCPATH . 'uploads/' . $sig['image'];
+                 } else {
+                      $dummyData[$prefix . 'Image'] = '';
+                 }
+                 $dummyData[$prefix . 'QR'] = '';
+            }
+        }
+    }
 
         // Generate PDF
         helper('CertificateGenerator');
@@ -2626,28 +2746,150 @@ class Perlombaan extends BaseController
     /**
      * Prepare certificate data from hasil
      */
-    protected function prepareCertificateData($hasil)
+    protected function prepareCertificateData($hasil, $template = null) // added template arg
     {
         // Get additional data
         $cabang = $this->lombaCabangModel->find($hasil['cabang_id']);
         $lomba = $this->lombaMasterModel->find($cabang['lomba_id']);
 
-        // Prepare peringkat text
-        $peringkatText = \App\Helpers\CertificateGenerator::peringkatToText($hasil['Peringkat']);
+        // 1. Rank Logic
+        $rankSettings = $template ? json_decode($template['RankSettings'] ?? '{}', true) : [];
+        $juaraCount = $rankSettings['juaraCount'] ?? 3;
+        $harapanCount = $rankSettings['harapanCount'] ?? 3;
+        $rank = (int)$hasil['Peringkat'];
+        
+        $peringkatLabel = '';
+        $peringkatText = '';
 
-        return [
+        if ($rank <= $juaraCount) {
+            $peringkatLabel = ($rankSettings['labelJuara'] ?? 'Juara') . ' ' . $rank;
+            $peringkatText = \App\Helpers\CertificateGenerator::peringkatToText($rank);
+        } elseif ($rank <= $juaraCount + $harapanCount) {
+             $r = $rank - $juaraCount;
+             $peringkatLabel = ($rankSettings['labelHarapan'] ?? 'Harapan') . ' ' . $r;
+             $peringkatText = \App\Helpers\CertificateGenerator::peringkatToText($r);
+        } else {
+             $peringkatLabel = $rankSettings['labelPeserta'] ?? 'Peserta';
+             $peringkatText = '-';
+        }
+
+        $data = [
             'nama_santri' => $hasil['NamaSantri'] ?? '',
             'nama_lomba' => $lomba['NamaLomba'] ?? '',
             'nama_cabang' => $cabang['NamaCabang'] ?? '',
             'kategori' => $cabang['Kategori'] ?? '',
-            'peringkat' => 'Juara ' . $hasil['Peringkat'],
+            'peringkat' => $peringkatLabel,
             'peringkat_text' => $peringkatText,
             'nama_tpq' => $hasil['NamaTpq'] ?? '',
             'tanggal_lomba' => date('d F Y', strtotime($lomba['TanggalMulai'] ?? 'now')),
-            'tempat_lomba' => 'Aula MDA', // TODO: Add to lomba master
+            'tempat_lomba' => 'Aula MDA', // TODO: Add to lomba master logic if needed
             'nilai_akhir' => number_format($hasil['NilaiAkhir'], 2),
             'no_peserta' => $hasil['NoPeserta'] ?? '',
         ];
+
+        // 2. Signatory Logic
+        if ($template) {
+            $sigSettings = json_decode($template['SignatorySettings'] ?? '[]', true);
+            foreach ($sigSettings as $i => $sig) {
+                $prefix = 'Sig' . ($i + 1) . '_';
+                $data[$prefix . 'Name'] = $sig['name'];
+                $data[$prefix . 'Jabatan'] = $sig['jabatan'];
+                
+                if ($sig['type'] === 'qr') {
+                    $token = $this->getOrCreateSignatureToken($hasil['id'], $i, $sig);
+                    
+                    // Generate QR File
+                    helper('signature');
+                    $qrData = generateSignatureQRCode($token);
+                    
+                    if ($qrData) {
+                        $data[$prefix . 'QR'] = FCPATH . 'uploads/qr/' . $qrData['filename'];
+                        $data[$prefix . 'QR_URL'] = $qrData['url']; // Pass URL for clickable link
+                    } else {
+                        $data[$prefix . 'QR'] = '';
+                        $data[$prefix . 'QR_URL'] = '';
+                    }
+                    $data[$prefix . 'Image'] = '';
+                } else {
+                    // For manual image, we need absolute path for PDF generation
+                    // $sig['image'] stores relative path like 'sertifikat/signatures/xyz.png'
+                    if (!empty($sig['image'])) {
+                        $data[$prefix . 'Image'] = FCPATH . 'uploads/' . $sig['image'];
+                    } else {
+                         $data[$prefix . 'Image'] = '';
+                    }
+                    $data[$prefix . 'QR'] = '';
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get or create signature token for QR Code
+     */
+    protected function getOrCreateSignatureToken($hasilId, $sigIndex, $sigData)
+    {
+         // Check if exists
+         $signatureModel = new \App\Models\SignatureModel();
+         // structure of SignatureData for Perlombaan: 
+         // {"context":"Perlombaan", "hasil_id": 123, "sig_index": 0, "name": "...", "jabatan": "..."}
+         
+         // We verify by Custom Hash or just check DB?
+         // Tbl_tanda_tangan has IdSantri, IdGuru, etc.
+         // For Perlombaan, IdGuru is likely null. IdSantri we can fill.
+         
+         // To avoid duplicates, we need to query based on unique criteria.
+         // Since generic lookups might not fit, we can search by SignatureData JSON containment?
+         // Or simpler: use a specific lookup table, OR standard tbl_tanda_tangan columns.
+         // Let's use IdSantri + JenisDokumen='SertifikatLomba' + (some marker).
+         
+         // For now, let's just CREATE a new one if not found by strict token lookup? No, we need to return SAME token for same certificate.
+         // Let's use `check` first.
+         
+         // Simplest: Query by IdSantri, JenisDokumen='SertifikatLomba', And parse JSON? Expensive.
+         // Better: Use `IdTahunAjaran` or `Semester` columns to store ID Lomba / ID Cabang?
+         // Or generic approach:
+         
+         $hasil = $this->lombaNilaiModel->getPeringkatById($hasilId); // Ensure we have details
+         
+         // Handle potential missing keys with null coalescing
+         $santriId = $hasil['santri_id'] ?? $hasil['IdSantri'] ?? 0;
+         
+         $criteria = [
+             'IdSantri' => $santriId,
+             'JenisDokumen' => 'SertifikatLomba_' . $hasilId . '_' . $sigIndex // Unique Key
+         ];
+         
+         $existing = $signatureModel->where($criteria)->first();
+         
+         if ($existing) {
+             return $existing['Token'];
+         }
+         
+         // Create New
+         $token = base64_encode(random_bytes(24));
+         $token = str_replace(['+', '/', '='], ['-', '_', ''], $token);
+         $data = [
+             'Token' => $token,
+             'IdSantri' => $santriId,
+             'IdTpq' => $hasil['tpq_id'] ?? $hasil['IdTpq'] ?? 0,
+             'JenisDokumen' => 'SertifikatLomba_' . $hasilId . '_' . $sigIndex,
+             'SignatureData' => json_encode([
+                 'context' => 'Perlombaan',
+                 'hasil_id' => $hasilId,
+                 'lomba_id' => $hasil['lomba_id'] ?? $hasil['cabang_id'] ?? 0,
+                 'signer_name' => $sigData['name'],
+                 'signer_jabatan' => $sigData['jabatan']
+             ]),
+             'QrCode' => 'signature_' . $token . '.svg', // Matches signature_helper format
+             'StatusValidasi' => 'valid',
+             'TanggalTtd' => date('Y-m-d H:i:s'),
+         ];
+         
+         $signatureModel->insert($data);
+         return $token;
     }
 
     /**
@@ -2729,7 +2971,7 @@ class Perlombaan extends BaseController
         $count = 0;
         foreach ($participants as $p) {
              try {
-                $certData = $this->prepareCertificateData($p);
+                $certData = $this->prepareCertificateData($p, $template); // Pass template
                 
                 $generator = new \App\Helpers\CertificateGenerator($template, $fields);
                 $pdfContent = $generator->setData($certData)->generate()->output(null, 'S');

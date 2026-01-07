@@ -158,6 +158,15 @@
                                             <div class="info-value"><strong><?= toTitleCase(esc($fkpq['NamaFkpq'] ?? '-')) ?></strong></div>
                                         </div>
                                     <?php endif; ?>
+                                <?php elseif (isset($perlombaan)): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama Penandatangan</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($perlombaan['signer_name'])) ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Jabatan</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($perlombaan['signer_jabatan'])) ?></strong></div>
+                                    </div>
                                 <?php else: ?>
                                     <?php if ($guru): ?>
                                         <div class="info-row">
@@ -211,6 +220,34 @@
                                         <div class="info-label">Tempat Tugas</div>
                                         <div class="info-value"><strong><?= toTitleCase(esc($guru['TempatTugas'] ?? '-')) ?></strong></div>
                                     </div>
+                                    </div>
+                                <?php elseif (isset($perlombaan)): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama Event</div>
+                                        <div class="info-value"><strong><?= esc($perlombaan['lomba']['NamaLomba'] ?? '-') ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Cabang Lomba</div>
+                                        <div class="info-value"><strong><?= esc($perlombaan['cabang']['NamaCabang'] ?? '-') ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Kategori</div>
+                                        <div class="info-value"><strong><?= esc($perlombaan['cabang']['Kategori'] ?? '-') ?></strong></div>
+                                    </div>
+                                    <?php if ($perlombaan['hasil']): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama Peserta</div>
+                                        <div class="info-value"><strong><?= esc($perlombaan['hasil']['NamaSantri'] ?? '-') ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Asal Lembaga</div>
+                                        <div class="info-value"><strong><?= esc($perlombaan['hasil']['NamaTpq'] ?? '-') ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Prestasi</div>
+                                        <div class="info-value"><strong>Juara <?= esc($perlombaan['hasil']['Peringkat'] ?? '-') ?></strong></div>
+                                    </div>
+                                    <?php endif; ?>
                                 <?php elseif (!empty($santri)): ?>
                                     <div class="info-row">
                                         <div class="info-label">Nama Santri</div>
@@ -291,7 +328,11 @@
                     <div class="col-12">
                         <h5 class="border-bottom pb-2">Tanda Tangan Digital</h5>
                         <div class="row">
-                            <?php if (!empty($signature['SignatureData']) && $signature['SignatureData'] !== 'Kepsek' && $signature['SignatureData'] !== 'Walas' && $signature['SignatureData'] !== 'Ketua FKPQ'): ?>
+                            <?php if (!empty($signature['SignatureData']) && 
+                                      $signature['SignatureData'] !== 'Kepsek' && 
+                                      $signature['SignatureData'] !== 'Walas' && 
+                                      $signature['SignatureData'] !== 'Ketua FKPQ' && 
+                                      strpos($signature['JenisDokumen'], 'SertifikatLomba') === false): ?>
                                 <div class="col-12 col-md-6 text-center mb-3">
                                     <h6 class="mb-2">Gambar Tanda Tangan</h6>
                                     <img src="<?= esc($signature['SignatureData']) ?>" alt="Tanda Tangan Digital" class="img-fluid" style="max-height: 150px;">
@@ -299,10 +340,24 @@
                             <?php endif; ?>
 
                             <?php if (!empty($signature['QrCode'])): ?>
-                                <div class="col-12 col-md-<?= (!empty($signature['SignatureData']) && $signature['SignatureData'] !== 'Kepsek' && $signature['SignatureData'] !== 'Walas' && $signature['SignatureData'] !== 'Ketua FKPQ') ? '6' : '12' ?> text-center mb-3">
+                                <div class="col-12 col-md-<?= (!empty($signature['SignatureData']) && 
+                                                              $signature['SignatureData'] !== 'Kepsek' && 
+                                                              $signature['SignatureData'] !== 'Walas' && 
+                                                              $signature['SignatureData'] !== 'Ketua FKPQ' && 
+                                                              strpos($signature['JenisDokumen'], 'SertifikatLomba') === false) ? '6' : '12' ?> text-center mb-3">
                                     <h6 class="mb-2">QR Code Validasi</h6>
                                     <?php
                                     $qrPath = FCPATH . 'uploads/qr/' . $signature['QrCode'];
+                                    
+                                    // Fallback: Check if file mismatch exists (e.g. DB has .png but file is .svg with prefix)
+                                    if (!file_exists($qrPath)) {
+                                        $altFilename = 'signature_' . $signature['Token'] . '.svg';
+                                        if (file_exists(FCPATH . 'uploads/qr/' . $altFilename)) {
+                                            $signature['QrCode'] = $altFilename;
+                                            $qrPath = FCPATH . 'uploads/qr/' . $altFilename;
+                                        }
+                                    }
+
                                     if (file_exists($qrPath)) {
                                         $qrContent = file_get_contents($qrPath);
                                         $ext = pathinfo($signature['QrCode'], PATHINFO_EXTENSION);

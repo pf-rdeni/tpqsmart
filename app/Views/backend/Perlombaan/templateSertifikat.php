@@ -53,6 +53,36 @@
                     </div>
                     <form id="formUploadTemplate" enctype="multipart/form-data">
                         <div class="card-body">
+                            <!-- Panduan Pembuatan Template -->
+                            <div class="card card-warning card-outline collapsed-card mb-3">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0"><i class="fas fa-lightbulb text-warning"></i> Panduan Membuat Template</h6>
+                                    <div class="card-tools">
+                                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body p-3" style="display: none;">
+                                    <h6><i class="fas fa-paint-brush text-info"></i> Rekomendasi: Buat Template di Canva</h6>
+                                    <ol class="pl-3 mb-3">
+                                        <li>Buka <a href="https://canva.com" target="_blank"><strong>canva.com</strong></a> dan buat desain baru</li>
+                                        <li>Pilih ukuran <strong>1920 x 1080 px</strong> (landscape) atau <strong>1080 x 1920 px</strong> (portrait)</li>
+                                        <li>Desain sertifikat dengan background, border, logo, dll</li>
+                                        <li><strong>Jangan tambahkan teks dinamis</strong> (nama, peringkat, dll) - ini akan diatur di sistem</li>
+                                        <li>Download sebagai <strong>PNG</strong> dengan kualitas tertinggi</li>
+                                    </ol>
+                                    <hr>
+                                    <h6><i class="fas fa-check-circle text-success"></i> Tips Desain Template</h6>
+                                    <ul class="pl-3 mb-0">
+                                        <li><strong>Kosongkan area</strong> untuk: Nama peserta, peringkat, nama lomba, tanggal, tanda tangan</li>
+                                        <li>Gunakan <strong>kontras warna</strong> yang baik agar teks terlihat jelas</li>
+                                        <li>Hindari elemen dekoratif di area yang akan ditempati teks dinamis</li>
+                                        <li>Untuk hasil terbaik, simpan dalam format <strong>PNG</strong> (bukan JPG)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
                             <input type="hidden" name="cabang_id" value="<?= $cabang['id'] ?>">
                             
                             <div class="form-group">
