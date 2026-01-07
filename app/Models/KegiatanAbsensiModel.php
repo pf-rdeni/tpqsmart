@@ -19,8 +19,11 @@ class KegiatanAbsensiModel extends Model
         'JamSelesai',
         'Lingkup',
         'IdTpq',
+        'Tempat',
+        'Detail',
         'IsActive',
-        'CreatedBy'
+        'CreatedBy',
+        'Token'
     ];
 
     // Dates

@@ -33,6 +33,11 @@
                             <label>Nama Kegiatan</label>
                             <input type="text" class="form-control" name="NamaKegiatan" value="<?= isset($kegiatan) ? $kegiatan['NamaKegiatan'] : old('NamaKegiatan') ?>" placeholder="Contoh: Rapat Bulanan, Halal Bihalal" required>
                         </div>
+
+                        <div class="form-group">
+                            <label>Tempat</label>
+                            <input type="text" class="form-control" name="Tempat" value="<?= isset($kegiatan) ? $kegiatan['Tempat'] : old('Tempat') ?>" placeholder="Contoh: Aula Utama, TPQ Al-Hidayah" required>
+                        </div>
                         
                         <div class="row">
                             <div class="col-md-4">
@@ -56,30 +61,64 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Lingkup</label>
-                            <select class="form-control" name="Lingkup" id="selectLingkup" <?= isset($kegiatan) ? 'disabled' : '' ?>>
-                                <option value="Umum" <?= (isset($kegiatan) && $kegiatan['Lingkup'] == 'Umum') || old('Lingkup') == 'Umum' ? 'selected' : '' ?>>Umum (Semua Guru)</option>
-                                <option value="TPQ" <?= (isset($kegiatan) && $kegiatan['Lingkup'] == 'TPQ') || old('Lingkup') == 'TPQ' ? 'selected' : '' ?>>TPQ Tertentu</option>
-                            </select>
-                            <?php if (isset($kegiatan)) : ?>
-                                <input type="hidden" name="Lingkup" value="<?= $kegiatan['Lingkup'] ?>">
-                            <?php endif; ?>
+                            <label>Detail / Keterangan</label>
+                            <textarea class="form-control" name="Detail" rows="3" placeholder="Masukkan detail kegiatan..."><?= isset($kegiatan) ? $kegiatan['Detail'] : old('Detail') ?></textarea>
                         </div>
 
-                        <!-- TPQ Selection only for Admin. Operator auto-assigned. -->
-                        <?php if (in_groups('Admin')): ?>
-                        <div class="form-group" id="groupTpq" style="display: none;">
-                            <label>Pilih TPQ</label>
-                            <select class="form-control select2" name="IdTpq" <?= isset($kegiatan) ? 'disabled' : '' ?>>
-                                <option value="">-- Pilih TPQ --</option>
-                                <?php foreach($tpq_list as $tpq): ?>
-                                    <option value="<?= $tpq['IdTpq'] ?>" <?= (isset($kegiatan) && $kegiatan['IdTpq'] == $tpq['IdTpq']) || old('IdTpq') == $tpq['IdTpq'] ? 'selected' : '' ?>>
-                                        <?= $tpq['NamaTpq'] ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                        <div class="form-group">
+                            <label>Lingkup (Peserta)</label>
+                            <?php 
+                                $activeRole = session()->get('active_role');
+                                $idTpqSession = session()->get('IdTpq');
+                                $isOperator = ($activeRole == 'operator' && !in_groups('Admin'));
+                                
+                                if ($isOperator && !empty($idTpqSession)) {
+                                    // Find TPQ Name from the list
+                                    $tpqName = 'TPQ Anda';
+                                    if (!empty($tpq_list)) {
+                                        foreach ($tpq_list as $t) {
+                                            if ($t['IdTpq'] == $idTpqSession) {
+                                                $tpqName = $t['NamaTpq'] . (!empty($t['NamaKelDesa']) ? ' - ' . $t['NamaKelDesa'] : '');
+                                                break;
+                                            }
+                                        }
+                                    }
+                            ?>
+                                <!-- Operator View: Fixed to their TPQ -->
+                                <input type="text" class="form-control" value="<?= $tpqName ?>" readonly>
+                                <input type="hidden" name="LingkupSelect" value="<?= $idTpqSession ?>">
+                                <small class="text-muted">Kegiatan ini otomatis dikhususkan untuk TPQ Anda.</small>
+                            
+                            <?php } else { ?>
+                                <!-- Admin View: Full Selection -->
+                                <select class="form-control select2" name="LingkupSelect" <?= isset($kegiatan) ? 'disabled' : '' ?>>
+                                    <option value="Umum" <?= (isset($kegiatan) && $kegiatan['Lingkup'] == 'Umum') || old('LingkupSelect') == 'Umum' ? 'selected' : '' ?>>Umum (Semua Guru)</option>
+                                    <?php if (!empty($tpq_list)): ?>
+                                        <optgroup label="TPQ">
+                                            <?php foreach ($tpq_list as $tpq): ?>
+                                                <?php 
+                                                    $isSelected = (isset($kegiatan) && $kegiatan['Lingkup'] == 'TPQ' && $kegiatan['IdTpq'] == $tpq['IdTpq']) || old('LingkupSelect') == $tpq['IdTpq'];
+                                                    $label = $tpq['NamaTpq'];
+                                                    if (!empty($tpq['NamaKelDesa'])) {
+                                                        $label .= ' - ' . $tpq['NamaKelDesa'];
+                                                    } elseif (isset($tpq['KelurahanDesa'])) { 
+                                                        $label .= ' - ' . $tpq['KelurahanDesa'];
+                                                    }
+                                                ?>
+                                                <option value="<?= $tpq['IdTpq'] ?>" <?= $isSelected ? 'selected' : '' ?>>
+                                                    <?= $label ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    <?php endif; ?>
+                                </select>
+                                <?php if (isset($kegiatan)) : ?>
+                                    <input type="hidden" name="LingkupSelect" value="<?= $kegiatan['Lingkup'] == 'Umum' ? 'Umum' : $kegiatan['IdTpq'] ?>">
+                                <?php endif; ?>
+                                <small class="text-muted">Pilih "Umum" untuk semua guru, atau pilih TPQ spesifik.</small>
+                            <?php } ?>
                         </div>
-                        <?php endif; ?>
+
                     </div>
                     <div class="card-footer">
                         <button type="submit" class="btn btn-primary">Simpan</button>
@@ -93,18 +132,6 @@
 
 <script>
     $(document).ready(function() {
-        function toggleTpq() {
-            var scope = $('#selectLingkup').val();
-            if (scope === 'TPQ') {
-                $('#groupTpq').show();
-            } else {
-                $('#groupTpq').hide();
-            }
-        }
-        
-        $('#selectLingkup').change(toggleTpq);
-        toggleTpq(); // Run on init
-        
         // Initialize Select2 if available
         if ($('.select2').length) {
             $('.select2').select2({

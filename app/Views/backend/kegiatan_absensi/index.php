@@ -28,6 +28,7 @@
                                 <th>Nama Kegiatan</th>
                                 <th>Tanggal & Waktu</th>
                                 <th>Lingkup</th>
+                                <th>Link Absensi</th>
                                 <th>Status Active</th>
                                 <th>Aksi</th>
                             </tr>
@@ -47,6 +48,20 @@
                                         <?php else: ?>
                                             <span class="badge badge-warning">TPQ (<?= $item['IdTpq'] ?>)</span>
                                         <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control" value="<?= base_url('presensi/' . $item['Token']) ?>" id="link-<?= $item['Id'] ?>" readonly>
+                                            <span class="input-group-append">
+                                                <button type="button" class="btn btn-info btn-flat" onclick="copyLink('link-<?= $item['Id'] ?>')" title="Copy Link"><i class="fas fa-copy"></i></button>
+                                                <button type="button" class="btn btn-success btn-flat btn-wa-modal" 
+                                                    data-link="<?= base_url('presensi/' . $item['Token']) ?>" 
+                                                    data-nama="<?= esc($item['NamaKegiatan']) ?>" 
+                                                    title="Kirim WhatsApp">
+                                                    <i class="fab fa-whatsapp"></i>
+                                                </button>
+                                            </span>
+                                        </div>
                                     </td>
                                     <td>
                                         <div class="custom-control custom-switch">
@@ -75,12 +90,69 @@
             </div>
         </div>
 
+    <!-- Modal WhatsApp -->
+    <div class="modal fade" id="waModal" tabindex="-1" role="dialog" aria-labelledby="waModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="waModalLabel">Kirim Link via WhatsApp</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Link Presensi</label>
+                        <input type="text" class="form-control" id="waLink" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox mb-2">
+                            <input type="checkbox" class="custom-control-input" id="checkGroup">
+                            <label class="custom-control-label" for="checkGroup">Kirim ke Grup / Pilih Kontak Lain (Manual)</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="group-guru-select">
+                        <label>Pilih Guru</label>
+                        <select class="form-control select2" id="waGuru" style="width: 100%;">
+                            <option value="">-- Pilih Guru --</option>
+                            <?php foreach($guruList as $guru): ?>
+                                <option value="<?= $guru['NoHp'] ?>" data-nama="<?= $guru['Nama'] ?>"><?= $guru['Nama'] ?> - <?= $guru['NoHp'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Pesan</label>
+                        <textarea class="form-control" id="waMessage" rows="6"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-success" onclick="sendWa()"><i class="fab fa-whatsapp"></i> Kirim</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </section>
 
+<?= $this->endSection(); ?>
+
+<?= $this->section('scripts'); ?>
 <script>
     $(function() {
+        // Initialize Select2
+        // dropdownParent is required for search to work within a Bootstrap modal
+        $('.select2').select2({
+            theme: 'bootstrap4',
+            dropdownParent: $('#waModal')
+        });
+
+        // Toggle Active
         $('.switch-active').change(function() {
             var id = $(this).data('id');
+            // ... (rest of the code)
             var isChecked = $(this).is(':checked');
             
             // If checking (turning ON), others might turn OFF, so we might reload or handle UI.
@@ -102,6 +174,97 @@
                 }
             });
         });
+
+        // Initialize Message on Guru Change
+        $('#waGuru').change(function(){
+            updateWaMessage();
+        });
+
+        // Toggle Group Checkbox
+        $('#checkGroup').change(function() {
+            if($(this).is(':checked')) {
+                $('#waGuru').prop('disabled', true);
+            } else {
+                $('#waGuru').prop('disabled', false);
+            }
+            updateWaMessage();
+        });
+
+        // Open WA Modal via class listener (Using event delegation for DataTables compatibility)
+        $(document).on('click', '.btn-wa-modal', function() {
+            var link = $(this).data('link');
+            var nama = $(this).data('nama');
+            openWaModal(link, nama);
+        });
     });
+
+    function copyLink(elementId) {
+        var copyText = document.getElementById(elementId);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); /* For mobile devices */
+        document.execCommand("copy");
+        toastr.success('Link berhasil disalin ke clipboard');
+    }
+
+    var currentKegiatanName = '';
+
+    function openWaModal(link, kegiatanName) {
+        $('#waLink').val(link);
+        currentKegiatanName = kegiatanName;
+        
+        // Reset state
+        $('#checkGroup').prop('checked', false);
+        $('#waGuru').prop('disabled', false).val('').trigger('change');
+        
+        // Default Message handled by updateWaMessage trigger or manual init
+        updateWaMessage();
+        
+        $('#waModal').modal('show');
+    }
+    
+    function updateWaMessage() {
+         var link = $('#waLink').val();
+         var isGroup = $('#checkGroup').is(':checked');
+         var greeting = "Assalamualaikum";
+         
+         if (isGroup) {
+             greeting += " Bapak/Ibu Guru";
+         } else {
+             var guruNama = $('#waGuru option:selected').data('nama');
+             if(guruNama) {
+                 greeting += " Ustadz/Ustadzah *" + guruNama + "*";
+             }
+         }
+         
+         var msg = greeting + ",\nBerikut adalah link presensi untuk kegiatan *" + currentKegiatanName + "*:\n" + link + "\n\nMohon segera melakukan absensi.\nTerima kasih.";
+         $('#waMessage').val(msg);
+    }
+
+    function sendWa() {
+        var isGroup = $('#checkGroup').is(':checked');
+        var message = $('#waMessage').val();
+        var url = "";
+
+        if (isGroup) {
+            // No phone number, just text. User picks contact/group in WA.
+            url = "https://wa.me/?text=" + encodeURIComponent(message);
+        } else {
+            var noHp = $('#waGuru').val();
+            if (!noHp) {
+                toastr.error('Silakan pilih guru terlebih dahulu atau centang opsi Kirim ke Grup.');
+                return;
+            }
+            
+            // Format NoHP
+            var formattedHp = noHp.replace(/\D/g, '');
+            if (formattedHp.startsWith('0')) {
+                formattedHp = '62' + formattedHp.substring(1);
+            }
+             url = "https://wa.me/" + formattedHp + "?text=" + encodeURIComponent(message);
+        }
+        
+        window.open(url, '_blank');
+        $('#waModal').modal('hide');
+    }
 </script>
 <?= $this->endSection(); ?>

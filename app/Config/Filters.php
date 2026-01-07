@@ -98,6 +98,8 @@ class Filters extends BaseFilters
                     'auth/logout', // untuk logout
                     'helpers/js/*', // JavaScript helper files (public access)
                     'helpers/js/(:segment)', // JavaScript helper files dengan segment (public access)
+                    'presensi',            // Absensi Guru (Public)
+                    'presensi/*',          // Absensi Guru Actions (Public)
                 ]
             ],
         ],

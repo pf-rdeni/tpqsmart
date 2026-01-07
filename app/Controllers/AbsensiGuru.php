@@ -16,26 +16,28 @@ class AbsensiGuru extends BaseController
         $this->absensiGuruModel = new AbsensiGuruModel();
     }
 
-    public function index()
+    public function index($token = null)
     {
-        // 1. Find ANY active event
-        // Logic: Get the latest active event.
-        // If multiple active, maybe prioritized by date?
-        $kegiatan = $this->kegiatanModel->where('IsActive', 1)
-                                        ->orderBy('Tanggal', 'DESC')
-                                        ->first();
+        if (!$token) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        // 1. Find active event by Token
+        $kegiatan = $this->kegiatanModel->where('Token', $token)->where('IsActive', 1)->first();
 
         if (!$kegiatan) {
-            return view('absensi_guru/index', [
-                'hasAction' => false,
-                'message'   => 'Tidak ada kegiatan aktif saat ini.',
-                'page_title' => 'Absensi Guru'
-            ]);
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
         // 2. Fetch Attendance Records (joined with Guru info)
         $idKegiatan = $kegiatan['Id']; // Array return type
-        $attendanceRecords = $this->absensiGuruModel->getAbsensiByKegiatan($idKegiatan);
+        $idTpqFilter = null;
+        
+        if ($kegiatan['Lingkup'] == 'TPQ' && !empty($kegiatan['IdTpq'])) {
+            $idTpqFilter = $kegiatan['IdTpq'];
+        }
+
+        $attendanceRecords = $this->absensiGuruModel->getAbsensiByKegiatan($idKegiatan, $idTpqFilter);
 
         // 3. Separate into Present (Hadir) and Not Present (Alfa, Izin, Sakit)
         // NOTE: Plan said default default 'Alfa'. When user clicks 'Hadir', status becomes 'Hadir'.
@@ -69,25 +71,73 @@ class AbsensiGuru extends BaseController
             'hadir' => 0,
             'izin'  => 0,
             'sakit' => 0,
-            'belum' => count($belumHadir)
+            'alfa'  => 0
         ];
 
+        $statsTpq = [];
+
+        foreach ($attendanceRecords as $record) {
+            $tpqName = $record->NamaTpq ?? '-';
+            if (!isset($statsTpq[$tpqName])) {
+                $statsTpq[$tpqName] = [
+                    'hadir' => 0,
+                    'izin'  => 0,
+                    'sakit' => 0,
+                    'alfa'  => 0,
+                    'total' => 0
+                ];
+            }
+
+            $statsTpq[$tpqName]['total']++;
+
+            if ($record->StatusKehadiran == 'Hadir') {
+                $stats['hadir']++;
+                $statsTpq[$tpqName]['hadir']++;
+            } elseif ($record->StatusKehadiran == 'Izin') {
+                $stats['izin']++;
+                $statsTpq[$tpqName]['izin']++;
+            } elseif ($record->StatusKehadiran == 'Sakit') {
+                $stats['sakit']++;
+                $statsTpq[$tpqName]['sakit']++;
+            } else {
+                // Assuming Alfa or empty is Alfa
+                $stats['alfa']++;
+                $statsTpq[$tpqName]['alfa']++;
+            }
+        }
+
+
+        // Sort TPQ stats by name (optional)
+        ksort($statsTpq);
+
+        // Prepare location data for map visualization
+        $locationData = [];
         foreach ($sudahHadir as $guru) {
-            if ($guru->StatusKehadiran == 'Hadir') $stats['hadir']++;
-            elseif ($guru->StatusKehadiran == 'Izin') $stats['izin']++;
-            elseif ($guru->StatusKehadiran == 'Sakit') $stats['sakit']++;
+            // Only include records with valid coordinates
+            if (!empty($guru->Latitude) && !empty($guru->Longitude)) {
+                $locationData[] = [
+                    'lat' => floatval($guru->Latitude),
+                    'lng' => floatval($guru->Longitude),
+                    'nama' => $guru->NamaGuru,
+                    'status' => $guru->StatusKehadiran,
+                    'waktu' => date('H:i', strtotime($guru->WaktuAbsen ?? 'now')),
+                    'tpq' => $guru->NamaTpq ?? '-'
+                ];
+            }
         }
 
         $data = [
             'hasAction'  => true,
             'kegiatan'   => $kegiatan,
-            'belumHadir' => $belumHadir,
-            'sudahHadir' => $sudahHadir,
+            'belumHadir' => $belumHadir, // Still used for list display
+            'sudahHadir' => $sudahHadir, // Still used for list display
             'stats'      => $stats,
+            'statsTpq'   => $statsTpq,   // Passed to view
+            'locationData' => $locationData, // For map visualization
             'page_title' => 'Absensi Guru'
         ];
 
-        return view('absensi_guru/index', $data);
+        return view('frontend/absensi/index', $data);
     }
 
     public function hadir()
@@ -105,6 +155,8 @@ class AbsensiGuru extends BaseController
         // Update status
         $status = $this->request->getPost('status');
         $keterangan = $this->request->getPost('keterangan');
+        $latitude = $this->request->getPost('latitude');
+        $longitude = $this->request->getPost('longitude');
 
         // Default to Hadir if not specified (backward compatibility)
         if (!$status) {
@@ -121,6 +173,18 @@ class AbsensiGuru extends BaseController
             'WaktuAbsen'      => date('Y-m-d H:i:s'),
             'Keterangan'      => $keterangan
         ];
+
+        // Add location data if provided
+        if ($latitude !== null && $latitude !== '' && $longitude !== null && $longitude !== '') {
+            // Basic validation for latitude and longitude ranges
+            $lat = floatval($latitude);
+            $lng = floatval($longitude);
+            
+            if ($lat >= -90 && $lat <= 90 && $lng >= -180 && $lng <= 180) {
+                $data['Latitude'] = $lat;
+                $data['Longitude'] = $lng;
+            }
+        }
 
         $update = $this->absensiGuruModel->update($idAbsensi, $data);
 

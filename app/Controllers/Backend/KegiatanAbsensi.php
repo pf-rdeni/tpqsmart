@@ -8,12 +8,15 @@ use App\Models\AbsensiGuruModel;
 use App\Models\GuruModel;
 use App\Models\TpqModel;
 
+use App\Models\HelpFunctionModel;
+
 class KegiatanAbsensi extends BaseController
 {
     protected $kegiatanModel;
     protected $absensiGuruModel;
     protected $guruModel;
     protected $tpqModel;
+    protected $helpFunctionModel;
 
     public function __construct()
     {
@@ -21,6 +24,7 @@ class KegiatanAbsensi extends BaseController
         $this->absensiGuruModel = new AbsensiGuruModel();
         $this->guruModel = new GuruModel();
         $this->tpqModel = new TpqModel();
+        $this->helpFunctionModel = new HelpFunctionModel();
     }
 
     public function index()
@@ -32,23 +36,35 @@ class KegiatanAbsensi extends BaseController
 
         // Filter based on role
         if ($activeRole == 'operator' || (!empty($idTpqSession) && !in_groups('Admin'))) {
-             // Operator sees shared 'Umum' events AND their own 'TPQ' events
-             // OR maybe just their own? Requirement says "halaman untuk mengatur kegiatan apa untuk admin".
-             // Assuming Operators manage their own events.
+             // Operator ONLY sees their own 'TPQ' events
              $query->groupStart()
-                   ->where('Lingkup', 'Umum')
-                   ->orGroupStart()
-                        ->where('Lingkup', 'TPQ')
-                        ->where('IdTpq', $idTpqSession)
-                   ->groupEnd()
+                   ->where('Lingkup', 'TPQ')
+                   ->where('IdTpq', $idTpqSession)
                    ->groupEnd();
         }
 
         $kegiatan = $query->orderBy('Tanggal', 'DESC')->findAll();
 
+        // Auto-generate token for legacy events
+        $updated = false;
+        foreach ($kegiatan as &$k) {
+            if (empty($k['Token'])) {
+                $token = bin2hex(random_bytes(32));
+                $this->kegiatanModel->update($k['Id'], ['Token' => $token]);
+                $k['Token'] = $token;
+                $updated = true;
+            }
+        }
+        
+        // Get Guru List for WA Share
+        // Filter by TPQ if strictly scoped? Or just all?
+        // Let's get all active teachers for the search.
+        $guruList = $this->guruModel->select('IdGuru, Nama, NoHp')->where('Status', '1')->findAll();
+
         $data = [
             'page_title' => 'Data Kegiatan Absensi Guru',
             'kegiatan'   => $kegiatan,
+            'guruList'   => $guruList
         ];
 
         return view('backend/kegiatan_absensi/index', $data);
@@ -58,7 +74,7 @@ class KegiatanAbsensi extends BaseController
     {
         $data = [
             'page_title' => 'Tambah Kegiatan Absensi',
-            'tpq_list'   => $this->tpqModel->findAll(), // For Admin to select TPQ if needed
+            'tpq_list'   => $this->helpFunctionModel->getDataTpq(), 
         ];
         return view('backend/kegiatan_absensi/form', $data);
     }
@@ -70,24 +86,32 @@ class KegiatanAbsensi extends BaseController
             'Tanggal'      => 'required|valid_date',
             'JamMulai'     => 'required',
             'JamSelesai'   => 'required',
-            'Lingkup'      => 'required',
+            'LingkupSelect'=> 'required',
+            'Tempat'       => 'required',
         ];
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $lingkup = $this->request->getPost('Lingkup');
+        $lingkupSelect = $this->request->getPost('LingkupSelect');
+        $lingkup = 'Umum';
         $idTpq = null;
 
-        // Determine IdTpq
-        if ($lingkup == 'TPQ') {
-            // If Admin, get from POST. If Operator, get from Session.
-            if (in_groups('Admin')) {
-                 $idTpq = $this->request->getPost('IdTpq'); // Admin selects
-            } else {
-                 $idTpq = session()->get('IdTpq');
-            }
+        if ($lingkupSelect === 'Umum') {
+            $lingkup = 'Umum';
+            $idTpq = null;
+        } else {
+            // Assume it's an IdTpq
+            $lingkup = 'TPQ';
+            // Validation: Ensure valid TPQ ID?
+            $idTpq = $lingkupSelect;
+        }
+
+        // Override for Operator
+        if (session()->get('active_role') == 'operator' && !in_groups('Admin')) {
+            $lingkup = 'TPQ';
+            $idTpq = session()->get('IdTpq');
         }
         
         // Save Event
@@ -98,8 +122,11 @@ class KegiatanAbsensi extends BaseController
             'JamSelesai'   => $this->request->getPost('JamSelesai'),
             'Lingkup'      => $lingkup,
             'IdTpq'        => $idTpq,
+            'Tempat'       => $this->request->getPost('Tempat'),
+            'Detail'       => $this->request->getPost('Detail'),
             'IsActive'     => 0, // Default inactive
             'CreatedBy'    => user()->username,
+            'Token'        => bin2hex(random_bytes(32)), // Generate 64-char hex token
         ];
 
         $idKegiatan = $this->kegiatanModel->insert($data, true);
@@ -124,7 +151,7 @@ class KegiatanAbsensi extends BaseController
         $data = [
             'page_title' => 'Edit Kegiatan Absensi',
             'kegiatan'   => $kegiatan,
-            'tpq_list'   => $this->tpqModel->findAll(),
+            'tpq_list'   => $this->helpFunctionModel->getDataTpq(),
         ];
         return view('backend/kegiatan_absensi/form', $data);
     }
@@ -136,21 +163,22 @@ class KegiatanAbsensi extends BaseController
             'Tanggal'      => 'required|valid_date',
             'JamMulai'     => 'required',
             'JamSelesai'   => 'required',
+            'Tempat'       => 'required',
         ];
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         
-        // Note: Changing Scope (Lingkup) or TPQ after creation is tricky because logs are already generated.
-        // For simplicity, we assume Scope/TPQ doesn't change, or if it does, the user must regenerate logs manually (not implemented yet).
-        // We only update basic info here.
+        // Note: Lingkup change is not handled here to avoid mismatch with generated attendance logs.
         
         $data = [
             'NamaKegiatan' => $this->request->getPost('NamaKegiatan'),
             'Tanggal'      => $this->request->getPost('Tanggal'),
             'JamMulai'     => $this->request->getPost('JamMulai'),
             'JamSelesai'   => $this->request->getPost('JamSelesai'),
+            'Tempat'       => $this->request->getPost('Tempat'),
+            'Detail'       => $this->request->getPost('Detail'),
         ];
         
         $this->kegiatanModel->update($id, $data);
@@ -179,16 +207,23 @@ class KegiatanAbsensi extends BaseController
         
         $lingkup = $kegiatan['Lingkup'];
         $idTpq = $kegiatan['IdTpq'];
+        $isActive = $kegiatan['IsActive'];
         
-        // Deactivate similar events
-        if ($lingkup == 'Umum') {
-             $this->kegiatanModel->where('Lingkup', 'Umum')->set(['IsActive' => 0])->update();
+        if ($isActive) {
+            // Toggle OFF
+            $this->kegiatanModel->update($id, ['IsActive' => 0]);
         } else {
-             $this->kegiatanModel->where('IdTpq', $idTpq)->set(['IsActive' => 0])->update();
+            // Toggle ON
+            // Deactivate similar events
+            if ($lingkup == 'Umum') {
+                 $this->kegiatanModel->where('Lingkup', 'Umum')->set(['IsActive' => 0])->update();
+            } else {
+                 $this->kegiatanModel->where('IdTpq', $idTpq)->set(['IsActive' => 0])->update();
+            }
+            
+            // Set this one active
+            $this->kegiatanModel->update($id, ['IsActive' => 1]);
         }
-        
-        // Set this one active
-        $this->kegiatanModel->update($id, ['IsActive' => 1]);
         
         return $this->response->setJSON(['success' => true]);
     }

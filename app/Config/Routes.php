@@ -569,7 +569,7 @@ $routes->group('backend/perlombaan', ['namespace' => 'App\Controllers\Backend'],
 });
 
 // Public Teacher Attendance Routes
-$routes->get('presensi', 'AbsensiGuru::index');
+$routes->get('presensi/(:segment)', 'AbsensiGuru::index/$1');
 $routes->post('presensi/hadir', 'AbsensiGuru::hadir');
 
 // Admin/Operator Activity/Event Routes

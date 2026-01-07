@@ -1,5 +1,4 @@
-<!-- jQuery -->
-<script src="<?php echo base_url('/plugins') ?>/jquery/jquery.min.js"></script>
+
 
 <!-- jQuery -->
 <script src="<?php echo base_url('/plugins') ?>/jquery/jquery.min.js"></script>
@@ -49,6 +48,8 @@
 
 <!-- sweetalert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Toastr -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
 <!-- Select2 -->
 <script src="<?php echo base_url('/plugins') ?>/select2/js/select2.min.js"></script>
