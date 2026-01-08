@@ -136,7 +136,7 @@ nb-configuration.xml
 # Database Migrations
 #-------------------------
 # Ignore all migration files
-app/Database/Migrations/*
+#app/Database/Migrations/*
 !app/Database/Migrations/.gitkeep
 
 # Ignore SQL files
