@@ -396,7 +396,7 @@ helper('nilai');
                 $jabatanKepala = (($lembagaType ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ');
                 $kepsekSignature = null;
                 foreach ($signatures as $signature) {
-                    if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] == $jabatanKepala && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
+                    if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] === $jabatanKepala && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
                         $kepsekSignature = $signature;
                         break;
                     }

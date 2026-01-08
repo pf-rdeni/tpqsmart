@@ -56,7 +56,7 @@ class SignatureModel extends Model
     /**
      * Get signatures with teacher position information for rapor
      */
-    public function getSignaturesWithPosition($idSantri = null, $idKelas = null, $idTpq = null, $idTahunAjaran = null, $semester = null)
+    public function getSignaturesWithPosition($idSantri = null, $idKelas = null, $idTpq = null, $idTahunAjaran = null, $semester = null, $typeLembaga= null)
     {
         // Query untuk guru kelas (Wali Kelas, Guru Kelas)
         $builder1 = $this->db->table('tbl_tanda_tangan s');
@@ -99,7 +99,12 @@ class SignatureModel extends Model
         $builder2->join('tbl_struktur_lembaga sl', 'sl.IdGuru = s.IdGuru AND sl.IdTpq = s.IdTpq');
         $builder2->join('tbl_jabatan j', 'j.IdJabatan = sl.IdJabatan');
         $builder2->join('tbl_guru g', 'g.IdGuru = s.IdGuru');
-        $builder2->where('j.NamaJabatan', 'Kepala TPQ');
+        if($typeLembaga === 'MDA') {
+            $builder2->where('j.NamaJabatan', 'Kepala MDTA');
+        }else{
+            $builder2->where('j.NamaJabatan', 'Kepala TPQ');
+        }
+
 
         if ($idSantri) {
             $builder2->where('s.IdSantri', $idSantri);

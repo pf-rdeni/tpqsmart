@@ -555,7 +555,8 @@ class Rapor extends BaseController
         $signatures = $this->signatureModel->getSignaturesWithPosition(
             idSantri: $santriData['santri']['IdSantri'],
             idTahunAjaran: $IdTahunAjaran,
-            semester: $semester
+            semester: $semester,
+            typeLembaga: $lembagaType
         );
 
         // Ambil IdKelas dari data santri (pastikan ada dan valid)
