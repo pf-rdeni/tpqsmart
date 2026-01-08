@@ -574,6 +574,9 @@ $routes->post('presensi/hadir', 'AbsensiGuru::hadir');
 
 // Admin/Operator Activity/Event Routes
 $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
+    // Guru Statistik Presensi
+    $routes->get('guru/statistik-presensi', 'Guru::statistikPresensi');
+    
     $routes->resource('kegiatan-absensi', ['controller' => 'KegiatanAbsensi']);
     $routes->post('kegiatan-absensi/active/(:num)', 'KegiatanAbsensi::setActive/$1');
 });

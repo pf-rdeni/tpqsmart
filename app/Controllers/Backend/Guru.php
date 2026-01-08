@@ -2918,4 +2918,129 @@ class Guru extends BaseController
 
         return $name . '_' . $idGuru;
     }
+
+    // Halaman Statistik Presensi dengan Peta Lokasi
+    public function statistikPresensi()
+    {
+        // Access control - only Admin, Operator, Guru
+        if (!in_groups(['Admin', 'Operator', 'Guru'])) {
+            return redirect()->to(base_url('backend/dashboard'))->with('error', 'Anda tidak memiliki akses ke halaman ini');
+        }
+
+        // Load models
+        $kegiatanModel = new \App\Models\KegiatanAbsensiModel();
+        $absensiModel = new \App\Models\AbsensiGuruModel();
+        
+        $isAdmin = in_groups('Admin');
+        $sessionIdTpq = session()->get('IdTpq');
+
+        // Get filter parameters
+        $filterTanggalDari = $this->request->getGet('tanggal_dari');
+        $filterTanggalSampai = $this->request->getGet('tanggal_sampai');
+        $filterKegiatan = $this->request->getGet('kegiatan');
+        $filterTpq = $this->request->getGet('tpq');
+
+        // Get list of kegiatan for dropdown - filtered by TPQ for Operator/Guru
+        if ($isAdmin) {
+            // Admin sees all kegiatan
+            $kegiatanList = $kegiatanModel->orderBy('Tanggal', 'DESC')->findAll();
+        } else {
+            // Operator/Guru only see kegiatan from their TPQ and Umum
+            $kegiatanList = $kegiatanModel
+                ->where('(IdTpq = ' . $sessionIdTpq . ' OR IdTpq IS NULL OR IdTpq = "")')
+                ->orderBy('Tanggal', 'DESC')
+                ->findAll();
+        }
+
+        // Get list of TPQ for dropdown (Admin only)
+        $tpqList = [];
+        if ($isAdmin) {
+            $tpqList = $this->tpqModel->orderBy('NamaTpq', 'ASC')->findAll();
+        }
+
+        // Initialize data
+        $locationData = [];
+        $stats = [
+            'total' => 0,
+            'hadir' => 0,
+            'izin' => 0,
+            'sakit' => 0,
+            'alfa' => 0
+        ];
+        $selectedKegiatan = null;
+
+        // Fetch data if filters are applied
+        if ($filterKegiatan) {
+            $selectedKegiatan = $kegiatanModel->find($filterKegiatan);
+            
+            if ($selectedKegiatan) {
+                // Build query
+                $builder = $absensiModel->db->table('tbl_absensi_guru');
+                $builder->select('tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.JenisKelamin, tbl_tpq.NamaTpq');
+                $builder->join('tbl_guru', 'CONVERT(tbl_guru.IdGuru USING utf8) = CONVERT(tbl_absensi_guru.IdGuru USING utf8)');
+                $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'left');
+                $builder->where('tbl_absensi_guru.IdKegiatan', $filterKegiatan);
+
+                // Apply TPQ filter
+                if ($isAdmin && $filterTpq) {
+                    $builder->where('tbl_guru.IdTpq', $filterTpq);
+                } elseif (!$isAdmin && $sessionIdTpq) {
+                    $builder->where('tbl_guru.IdTpq', $sessionIdTpq);
+                }
+
+                // Apply date filter if provided
+                if ($filterTanggalDari && $filterTanggalSampai) {
+                    $builder->where('tbl_absensi_guru.WaktuAbsen >=', $filterTanggalDari . ' 00:00:00');
+                    $builder->where('tbl_absensi_guru.WaktuAbsen <=', $filterTanggalSampai . ' 23:59:59');
+                }
+
+                $builder->orderBy('tbl_guru.Nama', 'ASC');
+                $attendanceRecords = $builder->get()->getResult();
+
+                // Process data
+                foreach ($attendanceRecords as $record) {
+                    $stats['total']++;
+                    
+                    if ($record->StatusKehadiran == 'Hadir') {
+                        $stats['hadir']++;
+                    } elseif ($record->StatusKehadiran == 'Izin') {
+                        $stats['izin']++;
+                    } elseif ($record->StatusKehadiran == 'Sakit') {
+                        $stats['sakit']++;
+                    } else {
+                        $stats['alfa']++;
+                    }
+
+                    // Collect location data (only for non-Alfa status with valid coordinates)
+                    if ($record->StatusKehadiran != 'Alfa' && !empty($record->Latitude) && !empty($record->Longitude)) {
+                        $locationData[] = [
+                            'lat' => floatval($record->Latitude),
+                            'lng' => floatval($record->Longitude),
+                            'nama' => $record->NamaGuru,
+                            'status' => $record->StatusKehadiran,
+                            'waktu' => date('d/m/Y H:i', strtotime($record->WaktuAbsen ?? 'now')),
+                            'tpq' => $record->NamaTpq ?? '-',
+                            'keterangan' => $record->Keterangan ?? ''
+                        ];
+                    }
+                }
+            }
+        }
+
+        $data = [
+            'page_title' => 'Statistik Presensi Guru',
+            'kegiatanList' => $kegiatanList,
+            'tpqList' => $tpqList,
+            'locationData' => $locationData,
+            'stats' => $stats,
+            'selectedKegiatan' => $selectedKegiatan,
+            'filterTanggalDari' => $filterTanggalDari,
+            'filterTanggalSampai' => $filterTanggalSampai,
+            'filterKegiatan' => $filterKegiatan,
+            'filterTpq' => $filterTpq,
+            'isAdmin' => $isAdmin
+        ];
+
+        return view('backend/guru/statistikPresensi', $data);
+    }
 }

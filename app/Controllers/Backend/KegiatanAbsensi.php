@@ -74,7 +74,8 @@ class KegiatanAbsensi extends BaseController
     {
         $data = [
             'page_title' => 'Tambah Kegiatan Absensi',
-            'tpq_list'   => $this->helpFunctionModel->getDataTpq(), 
+            'tpq_list'   => $this->helpFunctionModel->getDataTpq(),
+            'isGuru'     => in_groups('Guru') && !in_groups('Admin'),
         ];
         return view('backend/kegiatan_absensi/form', $data);
     }
@@ -108,10 +109,11 @@ class KegiatanAbsensi extends BaseController
             $idTpq = $lingkupSelect;
         }
 
-        // Override for Operator
-        if (session()->get('active_role') == 'operator' && !in_groups('Admin')) {
+        // Override for Operator and Guru - force TPQ scope
+        $sessionIdTpq = session()->get('IdTpq');
+        if ((session()->get('active_role') == 'operator' || in_groups('Guru')) && !in_groups('Admin')) {
             $lingkup = 'TPQ';
-            $idTpq = session()->get('IdTpq');
+            $idTpq = $sessionIdTpq;
         }
         
         // Save Event
@@ -152,6 +154,7 @@ class KegiatanAbsensi extends BaseController
             'page_title' => 'Edit Kegiatan Absensi',
             'kegiatan'   => $kegiatan,
             'tpq_list'   => $this->helpFunctionModel->getDataTpq(),
+            'isGuru'     => in_groups('Guru') && !in_groups('Admin'),
         ];
         return view('backend/kegiatan_absensi/form', $data);
     }

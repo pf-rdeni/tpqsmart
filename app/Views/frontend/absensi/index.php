@@ -208,23 +208,6 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <?php if (!empty($locationData)): ?>
-                                <!-- Map Visualization Section -->
-                                <hr class="my-3">
-                                <div class="row">
-                                    <div class="col-12">
-                                        <h6 class="text-center font-weight-bold mb-3">
-                                            <i class="fas fa-map-marked-alt mr-2"></i>Peta Sebaran Lokasi Absensi
-                                        </h6>
-                                        <div id="attendance-map" style="height: 450px; border-radius: 8px; border: 2px solid #dee2e6;"></div>
-                                        <p class="text-muted text-center mt-2 mb-0 small">
-                                            <i class="fas fa-info-circle mr-1"></i>
-                                            Menampilkan <?= count($locationData) ?> lokasi absensi guru
-                                        </p>
-                                    </div>
-                                </div>
-                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -387,16 +370,6 @@
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<!-- Leaflet MarkerCluster CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-<!-- Leaflet MarkerCluster JS -->
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
 <!-- ChartJS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- ChartJS DataLabels Plugin -->
@@ -484,86 +457,6 @@
                 }
             });
         }
-
-        // Initialize Map for Location Visualization
-        <?php if (!empty($locationData)): ?>
-        const locationData = <?= json_encode($locationData) ?>;
-        
-        if (locationData && locationData.length > 0) {
-            // Calculate center point (average of all coordinates)
-            let sumLat = 0, sumLng = 0;
-            locationData.forEach(loc => {
-                sumLat += loc.lat;
-                sumLng += loc.lng;
-            });
-            const centerLat = sumLat / locationData.length;
-            const centerLng = sumLng / locationData.length;
-
-            // Initialize map
-            const map = L.map('attendance-map').setView([centerLat, centerLng], 13);
-
-            // Add tile layer (OpenStreetMap)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
-            }).addTo(map);
-
-            // Create marker cluster group
-            const markers = L.markerClusterGroup({
-                chunkedLoading: true,
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: false,
-                zoomToBoundsOnClick: true
-            });
-
-            // Define custom icons for different statuses
-            const iconColors = {
-                'Hadir': '#28a745',  // Green
-                'Izin': '#ffc107',   // Yellow
-                'Sakit': '#007bff'   // Blue
-            };
-
-            // Add markers for each location
-            locationData.forEach(loc => {
-                const color = iconColors[loc.status] || '#6c757d';
-                
-                // Create custom icon with color
-                const customIcon = L.divIcon({
-                    className: 'custom-marker',
-                    html: `<div style="background-color: ${color}; width: 25px; height: 25px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>`,
-                    iconSize: [25, 25],
-                    iconAnchor: [12, 12]
-                });
-
-                // Create marker
-                const marker = L.marker([loc.lat, loc.lng], { icon: customIcon });
-
-                // Create popup content
-                const popupContent = `
-                    <div style="min-width: 200px;">
-                        <h6 class="mb-2 font-weight-bold">${loc.nama}</h6>
-                        <p class="mb-1 small"><i class="fas fa-school mr-1"></i> ${loc.tpq}</p>
-                        <p class="mb-1 small"><i class="far fa-clock mr-1"></i> ${loc.waktu}</p>
-                        <p class="mb-0 small">
-                            <span class="badge badge-${loc.status === 'Hadir' ? 'success' : (loc.status === 'Izin' ? 'warning' : 'primary')}">${loc.status}</span>
-                        </p>
-                    </div>
-                `;
-
-                marker.bindPopup(popupContent);
-                markers.addLayer(marker);
-            });
-
-            // Add marker cluster to map
-            map.addLayer(markers);
-
-            // Fit bounds to show all markers
-            if (locationData.length > 1) {
-                const bounds = markers.getBounds();
-                map.fitBounds(bounds, { padding: [50, 50] });
-            }
-        }
-        <?php endif; ?>
 
         // Initialize pagination
         initPagination('list-belum', 'pagination-belum');

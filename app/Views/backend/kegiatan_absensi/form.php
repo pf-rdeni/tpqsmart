@@ -71,8 +71,9 @@
                                 $activeRole = session()->get('active_role');
                                 $idTpqSession = session()->get('IdTpq');
                                 $isOperator = ($activeRole == 'operator' && !in_groups('Admin'));
+                                $isGuruOnly = ($isGuru ?? false); // From controller
                                 
-                                if ($isOperator && !empty($idTpqSession)) {
+                                if (($isOperator || $isGuruOnly) && !empty($idTpqSession)) {
                                     // Find TPQ Name from the list
                                     $tpqName = 'TPQ Anda';
                                     if (!empty($tpq_list)) {
@@ -84,7 +85,7 @@
                                         }
                                     }
                             ?>
-                                <!-- Operator View: Fixed to their TPQ -->
+                                <!-- Operator/Guru View: Fixed to their TPQ -->
                                 <input type="text" class="form-control" value="<?= $tpqName ?>" readonly>
                                 <input type="hidden" name="LingkupSelect" value="<?= $idTpqSession ?>">
                                 <small class="text-muted">Kegiatan ini otomatis dikhususkan untuk TPQ Anda.</small>
