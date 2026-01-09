@@ -26,6 +26,7 @@
                             <tr>
                                 <th>No</th>
                                 <th>Nama Kegiatan</th>
+                                <th>Jenis Jadwal</th>
                                 <th>Tanggal & Waktu</th>
                                 <th>Lingkup</th>
                                 <th>Link Absensi</th>
@@ -38,6 +39,17 @@
                                 <tr>
                                     <td><?= $key + 1 ?></td>
                                     <td><?= esc($item['NamaKegiatan']) ?></td>
+                                    <td>
+                                        <?php
+                                        $jenisLabel = [
+                                            'sekali' => '<span class="badge badge-secondary">Sekali</span>',
+                                            'harian' => '<span class="badge badge-success">Harian</span>',
+                                            'mingguan' => '<span class="badge badge-primary">Mingguan</span>',
+                                            'bulanan' => '<span class="badge badge-warning">Bulanan</span>'
+                                        ];
+                                        echo $jenisLabel[$item['JenisJadwal'] ?? 'sekali'] ?? '<span class="badge badge-secondary">Sekali</span>';
+                                        ?>
+                                    </td>
                                     <td>
                                         <?= date('d M Y', strtotime($item['Tanggal'])) ?><br>
                                         <small><?= date('H:i', strtotime($item['JamMulai'])) ?> - <?= date('H:i', strtotime($item['JamSelesai'])) ?></small>
@@ -54,6 +66,7 @@
                                             <input type="text" class="form-control" value="<?= base_url('presensi/' . $item['Token']) ?>" id="link-<?= $item['Id'] ?>" readonly>
                                             <span class="input-group-append">
                                                 <button type="button" class="btn btn-info btn-flat" onclick="copyLink('link-<?= $item['Id'] ?>')" title="Copy Link"><i class="fas fa-copy"></i></button>
+                                                <a href="<?= base_url('presensi/' . $item['Token']) ?>" target="_blank" class="btn btn-primary btn-flat" title="Buka Halaman Absensi"><i class="fas fa-external-link-alt"></i></a>
                                                 <button type="button" class="btn btn-success btn-flat btn-wa-modal" 
                                                     data-link="<?= base_url('presensi/' . $item['Token']) ?>" 
                                                     data-nama="<?= esc($item['NamaKegiatan']) ?>" 
@@ -65,7 +78,7 @@
                                     </td>
                                     <td>
                                         <div class="custom-control custom-switch">
-                                            <input type="checkbox" class="custom-control-input switch-active" id="activeSwitch<?= $item['Id'] ?>" data-id="<?= $item['Id'] ?>" <?= $item['IsActive'] ? 'checked' : '' ?>>
+                                            <input type="checkbox" class="custom-control-input switch-active" id="activeSwitch<?= $item['Id'] ?>" data-id="<?= $item['Id'] ?>" <?= ($item['IsActive'] == 1) ? 'checked' : '' ?>>
                                             <label class="custom-control-label" for="activeSwitch<?= $item['Id'] ?>"></label>
                                         </div>
                                     </td>

@@ -182,6 +182,11 @@ class KegiatanAbsensi extends BaseController
             'JamSelesai'   => $this->request->getPost('JamSelesai'),
             'Tempat'       => $this->request->getPost('Tempat'),
             'Detail'       => $this->request->getPost('Detail'),
+            'JenisJadwal'       => $this->request->getPost('JenisJadwal'),
+            'TanggalMulaiRutin' => $this->request->getPost('TanggalMulaiRutin') ?: null,
+            'TanggalAkhirRutin' => $this->request->getPost('TanggalAkhirRutin') ?: null,
+            'HariDalamMinggu'   => $this->request->getPost('HariDalamMinggu') ?: null,
+            'TanggalDalamBulan' => $this->request->getPost('TanggalDalamBulan') ?: null,
         ];
         
         $this->kegiatanModel->update($id, $data);
@@ -199,36 +204,16 @@ class KegiatanAbsensi extends BaseController
 
     public function setActive($id)
     {
-        // Deactivate all others? Or allow multiple? plan said "Limit to 1 active event per scope?"
-        // Simplicity: Deactivate EVERYTHING first.
-        
-        // Ideally should scope by TPQ/Umum.
-        // If I activate an 'Umum' event, maybe deactivate other 'Umum' events.
-        
         $kegiatan = $this->kegiatanModel->find($id);
         if (!$kegiatan) return $this->response->setJSON(['success' => false]);
         
-        $lingkup = $kegiatan['Lingkup'];
-        $idTpq = $kegiatan['IdTpq'];
         $isActive = $kegiatan['IsActive'];
         
-        if ($isActive) {
-            // Toggle OFF
-            $this->kegiatanModel->update($id, ['IsActive' => 0]);
-        } else {
-            // Toggle ON
-            // Deactivate similar events
-            if ($lingkup == 'Umum') {
-                 $this->kegiatanModel->where('Lingkup', 'Umum')->set(['IsActive' => 0])->update();
-            } else {
-                 $this->kegiatanModel->where('IdTpq', $idTpq)->set(['IsActive' => 0])->update();
-            }
-            
-            // Set this one active
-            $this->kegiatanModel->update($id, ['IsActive' => 1]);
-        }
+        // Simply toggle the status - allow multiple active
+        $newStatus = $isActive ? 0 : 1;
+        $this->kegiatanModel->update($id, ['IsActive' => $newStatus]);
         
-        return $this->response->setJSON(['success' => true]);
+        return $this->response->setJSON(['success' => true, 'newStatus' => $newStatus]);
     }
 
     private function generateAbsensiLog($idKegiatan, $lingkup, $idTpq)

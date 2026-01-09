@@ -66,6 +66,61 @@
                         </div>
 
                         <div class="form-group">
+                            <label>Jenis Jadwal</label>
+                            <select class="form-control" name="JenisJadwal" id="jenisJadwal">
+                                <option value="sekali" <?= (isset($kegiatan) && $kegiatan['JenisJadwal'] == 'sekali') || old('JenisJadwal') == 'sekali' || !isset($kegiatan) ? 'selected' : '' ?>>Sekali</option>
+                                <option value="harian" <?= (isset($kegiatan) && $kegiatan['JenisJadwal'] == 'harian') || old('JenisJadwal') == 'harian' ? 'selected' : '' ?>>Harian</option>
+                                <option value="mingguan" <?= (isset($kegiatan) && $kegiatan['JenisJadwal'] == 'mingguan') || old('JenisJadwal') == 'mingguan' ? 'selected' : '' ?>>Mingguan</option>
+                                <option value="bulanan" <?= (isset($kegiatan) && $kegiatan['JenisJadwal'] == 'bulanan') || old('JenisJadwal') == 'bulanan' ? 'selected' : '' ?>>Bulanan</option>
+                            </select>
+                            <small class="text-muted">Pilih "Sekali" untuk kegiatan satu kali, atau pilih pola rutin.</small>
+                        </div>
+
+                        <!-- Conditional fields for recurring schedules -->
+                        <div id="rutinFields" style="display: none;">
+                            <div class="form-group">
+                                <label>Periode Rutin</label>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="small">Tanggal Mulai</label>
+                                        <input type="date" name="TanggalMulaiRutin" id="tanggalMulaiRutin" class="form-control" value="<?= isset($kegiatan) ? $kegiatan['TanggalMulaiRutin'] : old('TanggalMulaiRutin') ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="small">Tanggal Akhir <span class="text-muted">(Opsional)</span></label>
+                                        <input type="date" name="TanggalAkhirRutin" id="tanggalAkhirRutin" class="form-control" value="<?= isset($kegiatan) ? $kegiatan['TanggalAkhirRutin'] : old('TanggalAkhirRutin') ?>">
+                                    </div>
+                                </div>
+                                <small class="text-muted">Tentukan periode jadwal rutin. Kosongkan tanggal akhir jika tidak ada batas waktu.</small>
+                            </div>
+                            
+                            <!-- Weekly: Day selector -->
+                            <div id="weeklyField" style="display: none;">
+                                <div class="form-group">
+                                    <label>Hari dalam Minggu</label>
+                                    <select class="form-control" name="HariDalamMinggu" id="hariDalamMinggu">
+                                        <option value="1" <?= (isset($kegiatan) && $kegiatan['HariDalamMinggu'] == 1) || old('HariDalamMinggu') == 1 ? 'selected' : '' ?>>Senin</option>
+                                        <option value="2" <?= (isset($kegiatan) && $kegiatan['HariDalamMinggu'] == 2) || old('HariDalamMinggu') == 2 ? 'selected' : '' ?>>Selasa</option>
+                                        <option value="3" <?= (isset($kegiatan) && $kegiatan['HariDalamMinggu'] == 3) || old('HariDalamMinggu') == 3 ? 'selected' : '' ?>>Rabu</option>
+                                        <option value="4" <?= (isset($kegiatan) && $kegiatan['HariDalamMinggu'] == 4) || old('HariDalamMinggu') == 4 ? 'selected' : '' ?>>Kamis</option>
+                                        <option value="5" <?= (isset($kegiatan) && $kegiatan['HariDalamMinggu'] == 5) || old('HariDalamMinggu') == 5 ? 'selected' : '' ?>>Jumat</option>
+                                        <option value="6" <?= (isset($kegiatan) && $kegiatan['HariDalamMinggu'] == 6) || old('HariDalamMinggu') == 6 ? 'selected' : '' ?>>Sabtu</option>
+                                        <option value="7" <?= (isset($kegiatan) && $kegiatan['HariDalamMinggu'] == 7) || old('HariDalamMinggu') == 7 ? 'selected' : '' ?>>Minggu</option>
+                                    </select>
+                                    <small class="text-muted">Pilih hari dalam minggu untuk jadwal mingguan.</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Monthly: Date selector -->
+                            <div id="monthlyField" style="display: none;">
+                                <div class="form-group">
+                                    <label>Tanggal dalam Bulan</label>
+                                    <input type="number" name="TanggalDalamBulan" id="tanggalDalamBulan" class="form-control" min="1" max="31" value="<?= isset($kegiatan) ? $kegiatan['TanggalDalamBulan'] : old('TanggalDalamBulan') ?>">
+                                    <small class="text-muted">Pilih tanggal (1-31) untuk jadwal bulanan.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
                             <label>Lingkup (Peserta)</label>
                             <?php 
                                 $activeRole = session()->get('active_role');
@@ -139,6 +194,37 @@
                 theme: 'bootstrap4'
             });
         }
+
+        // Conditional display for recurring schedule fields
+        function toggleRecurringFields() {
+            const jenisJadwal = $('#jenisJadwal').val();
+            
+            if (jenisJadwal === 'sekali') {
+                $('#rutinFields').hide();
+                $('#weeklyField').hide();
+                $('#monthlyField').hide();
+            } else {
+                $('#rutinFields').show();
+                
+                // Show/hide specific fields based on type
+                if (jenisJadwal === 'mingguan') {
+                    $('#weeklyField').show();
+                    $('#monthlyField').hide();
+                } else if (jenisJadwal === 'bulanan') {
+                    $('#weeklyField').hide();
+                    $('#monthlyField').show();
+                } else if (jenisJadwal === 'harian') {
+                    $('#weeklyField').hide();
+                    $('#monthlyField').hide();
+                }
+            }
+        }
+
+        // Initialize on page load
+        toggleRecurringFields();
+
+        // Toggle on change
+        $('#jenisJadwal').on('change', toggleRecurringFields);
     });
 </script>
 <?= $this->endSection(); ?>

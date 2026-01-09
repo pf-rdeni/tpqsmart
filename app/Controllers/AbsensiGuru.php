@@ -4,16 +4,19 @@ namespace App\Controllers;
 
 use App\Models\KegiatanAbsensiModel;
 use App\Models\AbsensiGuruModel;
+use App\Models\GuruModel;
 
 class AbsensiGuru extends BaseController
 {
     protected $kegiatanModel;
     protected $absensiGuruModel;
+    protected $guruModel;
 
     public function __construct()
     {
         $this->kegiatanModel = new KegiatanAbsensiModel();
         $this->absensiGuruModel = new AbsensiGuruModel();
+        $this->guruModel = new GuruModel();
     }
 
     public function index($token = null)
@@ -22,22 +25,82 @@ class AbsensiGuru extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
-        // 1. Find active event by Token
-        $kegiatan = $this->kegiatanModel->where('Token', $token)->where('IsActive', 1)->first();
+        // 1. Find activity by Token (regardless of IsActive status)
+        $kegiatan = $this->kegiatanModel->where('Token', $token)->first();
 
+        // 2. Validate: Token Not Found/Invalid
         if (!$kegiatan) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return view('frontend/absensi/error', [
+                'errorType' => 'invalid_token',
+                'kegiatan' => null,
+                'page_title' => 'Link Tidak Valid'
+            ]);
         }
 
-        // 2. Fetch Attendance Records (joined with Guru info)
-        $idKegiatan = $kegiatan['Id']; // Array return type
+        // 3. Validate: Activity Not Active
+        if ($kegiatan['IsActive'] != 1) {
+            return view('frontend/absensi/error', [
+                'errorType' => 'inactive',
+                'kegiatan' => $kegiatan,
+                'page_title' => 'Kegiatan Belum Aktif'
+            ]);
+        }
+
+        // 4. Calculate current occurrence date
+        $currentOccurrence = $this->calculateCurrentOccurrence($kegiatan);
+        
+        if (!$currentOccurrence) {
+            return view('frontend/absensi/error', [
+                'errorType' => 'no_occurrence',
+                'kegiatan' => $kegiatan,
+                'page_title' => 'Tidak Ada Jadwal Hari Ini'
+            ]);
+        }
+
+        // 5. Validate: Time Range for current occurrence
+        $occurrenceDate = $currentOccurrence['date'];
+        $startTime = $kegiatan['JamMulai'];
+        $endTime = $kegiatan['JamSelesai'];
+        
+        $activityStart = strtotime("$occurrenceDate $startTime");
+        $activityEnd = strtotime("$occurrenceDate $endTime");
+        $now = time();
+
+        // 5a. Check if accessing BEFORE start time
+        if ($now < $activityStart) {
+            return view('frontend/absensi/error', [
+                'errorType' => 'before_start',
+                'kegiatan' => $kegiatan,
+                'activityStart' => $activityStart,
+                'currentOccurrence' => $occurrenceDate,
+                'page_title' => 'Belum Dimulai'
+            ]);
+        }
+
+        // 5b. Check if accessing AFTER end time
+        if ($now > $activityEnd) {
+            return view('frontend/absensi/error', [
+                'errorType' => 'after_end',
+                'kegiatan' => $kegiatan,
+                'page_title' => 'Sudah Berakhir'
+            ]);
+        }
+
+        // 6. Fetch Attendance Records for current occurrence
+        $idKegiatan = $kegiatan['Id'];
         $idTpqFilter = null;
         
         if ($kegiatan['Lingkup'] == 'TPQ' && !empty($kegiatan['IdTpq'])) {
             $idTpqFilter = $kegiatan['IdTpq'];
         }
 
-        $attendanceRecords = $this->absensiGuruModel->getAbsensiByKegiatan($idKegiatan, $idTpqFilter);
+        // Get or create attendance records for this occurrence
+        $attendanceRecords = $this->getOrCreateAttendanceForOccurrence(
+            $idKegiatan,
+            $occurrenceDate,
+            $kegiatan['Lingkup'],
+            $idTpqFilter
+        );
 
         // 3. Separate into Present (Hadir) and Not Present (Alfa, Izin, Sakit)
         // NOTE: Plan said default default 'Alfa'. When user clicks 'Hadir', status becomes 'Hadir'.
@@ -193,5 +256,99 @@ class AbsensiGuru extends BaseController
         } else {
             return $this->response->setJSON(['success' => false, 'message' => 'Gagal update database']);
         }
+    }
+
+    /**
+     * Calculate the current occurrence date for a given activity
+     * Returns array with 'date' key or null if no valid occurrence today
+     */
+    protected function calculateCurrentOccurrence($kegiatan)
+    {
+        $today = date('Y-m-d');
+        $jenisJadwal = $kegiatan['JenisJadwal'] ?? 'sekali';
+        
+        switch ($jenisJadwal) {
+            case 'sekali':
+                // Original behavior: use the Tanggal field
+                return ['date' => $kegiatan['Tanggal']];
+                
+            case 'harian':
+                // Check if today is within the recurring period
+                if ($today >= $kegiatan['TanggalMulaiRutin'] && 
+                    (empty($kegiatan['TanggalAkhirRutin']) || $today <= $kegiatan['TanggalAkhirRutin'])) {
+                    return ['date' => $today];
+                }
+                break;
+                
+            case 'mingguan':
+                // Check if today's day of week matches
+                $todayDayOfWeek = date('N'); // 1=Monday, 7=Sunday
+                if ($todayDayOfWeek == $kegiatan['HariDalamMinggu'] &&
+                    $today >= $kegiatan['TanggalMulaiRutin'] &&
+                    (empty($kegiatan['TanggalAkhirRutin']) || $today <= $kegiatan['TanggalAkhirRutin'])) {
+                    return ['date' => $today];
+                }
+                break;
+                
+            case 'bulanan':
+                // Check if today's date matches
+                $todayDate = (int)date('d');
+                if ($todayDate == $kegiatan['TanggalDalamBulan'] &&
+                    $today >= $kegiatan['TanggalMulaiRutin'] &&
+                    (empty($kegiatan['TanggalAkhirRutin']) || $today <= $kegiatan['TanggalAkhirRutin'])) {
+                    return ['date' => $today];
+                }
+                break;
+        }
+        
+        return null; // No valid occurrence today
+    }
+
+    /**
+     * Get or create attendance records for a specific occurrence
+     */
+    protected function getOrCreateAttendanceForOccurrence($idKegiatan, $tanggalOccurrence, $lingkup, $idTpq)
+    {
+        // Check if attendance records exist for this occurrence
+        $existing = $this->absensiGuruModel
+            ->where('IdKegiatan', $idKegiatan)
+            ->where('TanggalOccurrence', $tanggalOccurrence)
+            ->findAll();
+        
+        if (!empty($existing)) {
+            // Records exist, return them with joined data
+            return $this->absensiGuruModel->getAbsensiByKegiatan($idKegiatan, $idTpq, $tanggalOccurrence);
+        }
+        
+        // No records exist, generate them
+        // Get guru list based on lingkup
+        if ($lingkup == 'Umum') {
+            $guruList = $this->guruModel->findAll();
+        } else {
+            // TPQ specific
+            $guruList = $this->guruModel->where('IdTpq', $idTpq)->findAll();
+        }
+        
+        // Generate attendance records
+        $absensiData = [];
+        foreach ($guruList as $guru) {
+            $absensiData[] = [
+                'IdKegiatan' => $idKegiatan,
+                'TanggalOccurrence' => $tanggalOccurrence,
+                'IdGuru' => $guru['IdGuru'],
+                'StatusKehadiran' => 'Alfa',
+                'WaktuAbsen' => null,
+                'Keterangan' => null,
+                'Latitude' => null,
+                'Longitude' => null
+            ];
+        }
+        
+        if (!empty($absensiData)) {
+            $this->absensiGuruModel->insertBatch($absensiData);
+        }
+        
+        // Fetch and return the newly created records with joined data
+        return $this->absensiGuruModel->getAbsensiByKegiatan($idKegiatan, $idTpq, $tanggalOccurrence);
     }
 }

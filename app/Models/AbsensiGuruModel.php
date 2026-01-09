@@ -14,6 +14,7 @@ class AbsensiGuruModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'IdKegiatan',
+        'TanggalOccurrence',
         'IdGuru',
         'StatusKehadiran',
         'WaktuAbsen',
@@ -29,7 +30,7 @@ class AbsensiGuruModel extends Model
     protected $updatedField  = 'updated_at';
 
     // Relationships or Helpers can be added here
-    public function getAbsensiByKegiatan($idKegiatan, $idTpq = null)
+    public function getAbsensiByKegiatan($idKegiatan, $idTpq = null, $tanggalOccurrence = null)
     {
         // Use raw query to handle collation mismatch safely
         $sql = "SELECT tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.NoHp, tbl_guru.KelurahanDesa, tbl_guru.JenisKelamin, tbl_tpq.NamaTpq
@@ -39,6 +40,11 @@ class AbsensiGuruModel extends Model
                 WHERE IdKegiatan = ?";
         
         $params = [$idKegiatan];
+
+        if ($tanggalOccurrence) {
+            $sql .= " AND tbl_absensi_guru.TanggalOccurrence = ?";
+            $params[] = $tanggalOccurrence;
+        }
 
         if ($idTpq) {
             $sql .= " AND tbl_guru.IdTpq = ?";
