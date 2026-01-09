@@ -32,14 +32,15 @@ class KegiatanAbsensi extends BaseController
         $activeRole = session()->get('active_role');
         $idTpqSession = session()->get('IdTpq');
         
-        $query = $this->kegiatanModel;
+        $query = $this->kegiatanModel->select('tbl_kegiatan_absensi.*, tbl_tpq.NamaTpq')
+                                     ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_kegiatan_absensi.IdTpq', 'left');
 
         // Filter based on role
         if ($activeRole == 'operator' || (!empty($idTpqSession) && !in_groups('Admin'))) {
              // Operator ONLY sees their own 'TPQ' events
              $query->groupStart()
-                   ->where('Lingkup', 'TPQ')
-                   ->where('IdTpq', $idTpqSession)
+                   ->where('tbl_kegiatan_absensi.Lingkup', 'TPQ')
+                   ->where('tbl_kegiatan_absensi.IdTpq', $idTpqSession)
                    ->groupEnd();
         }
 

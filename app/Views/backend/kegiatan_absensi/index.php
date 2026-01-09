@@ -27,7 +27,6 @@
                                 <th>No</th>
                                 <th>Nama Kegiatan</th>
                                 <th>Jenis Jadwal</th>
-                                <th>Tanggal & Waktu</th>
                                 <th>Lingkup</th>
                                 <th>Link Absensi</th>
                                 <th>Status Active</th>
@@ -129,18 +128,21 @@
                                                 echo '</span>';
                                             }
                                             echo '</div>';
+                                        } else {
+                                            // Untuk 'Sekali', tampilkan Tanggal & Waktu di sini
+                                            echo '<div class="small text-muted mt-1">';
+                                            echo '<i class="far fa-calendar-alt mr-1"></i> ' . date('d M Y', strtotime($item['Tanggal']));
+                                            echo '<br>';
+                                            echo '<i class="far fa-clock mr-1"></i> ' . date('H:i', strtotime($item['JamMulai'])) . ' - ' . date('H:i', strtotime($item['JamSelesai']));
+                                            echo '</div>';
                                         }
                                         ?>
-                                    </td>
-                                    <td>
-                                        <?= date('d M Y', strtotime($item['Tanggal'])) ?><br>
-                                        <small><?= date('H:i', strtotime($item['JamMulai'])) ?> - <?= date('H:i', strtotime($item['JamSelesai'])) ?></small>
                                     </td>
                                     <td>
                                         <?php if($item['Lingkup'] == 'Umum'): ?>
                                             <span class="badge badge-info">Umum</span>
                                         <?php else: ?>
-                                            <span class="badge badge-warning">TPQ (<?= $item['IdTpq'] ?>)</span>
+                                            <span class="badge badge-warning">TPQ <?= !empty($item['NamaTpq']) ? esc($item['NamaTpq']) : '(' . $item['IdTpq'] . ')' ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
