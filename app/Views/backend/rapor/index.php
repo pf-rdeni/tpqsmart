@@ -433,11 +433,19 @@
                                                         <td><?= $no++ ?></td>
                                                         <td>
                                                             <div class="d-flex flex-column align-items-start action-buttons-container">
-                                                                <button type="button" class="btn btn-warning btn-sm btn-print-pdf"
+                                                                <button type="button" class="btn-rapor-action btn-view-pdf"
                                                                     data-id="<?= $nilaiDetail->IdSantri ?>"
                                                                     data-semester="<?= $semester ?>"
-                                                                    data-kelas="<?= $kelas->IdKelas ?>">
-                                                                    <i class="fas fa-print"></i> Cetak Rapor
+                                                                    data-kelas="<?= $kelas->IdKelas ?>"
+                                                                    title="Preview Rapor">
+                                                                    <i class="fas fa-eye"></i> View
+                                                                </button>
+                                                                <button type="button" class="btn-rapor-action btn-rapor-download btn-print-pdf"
+                                                                    data-id="<?= $nilaiDetail->IdSantri ?>"
+                                                                    data-semester="<?= $semester ?>"
+                                                                    data-kelas="<?= $kelas->IdKelas ?>"
+                                                                    title="Download PDF">
+                                                                    <i class="fas fa-download"></i> PDF
                                                                 </button>
                                                                 <label class="toggle-switch toggle-switch-absensi">
                                                                     <input type="checkbox"
@@ -508,6 +516,48 @@
 
     .action-buttons-container>*:last-child {
         margin-bottom: 0;
+    }
+
+    /* Rapor Action Buttons (View/PDF) - matching toggle switch style */
+    .btn-rapor-action {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 120px;
+        height: 38px;
+        cursor: pointer;
+        border: none;
+        border-radius: 38px;
+        background-color: #17a2b8;
+        color: white;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s;
+        gap: 6px;
+    }
+
+    .btn-rapor-action:hover {
+        background-color: #138496;
+        transform: scale(1.02);
+    }
+
+    .btn-rapor-action:active {
+        transform: scale(0.98);
+    }
+
+    .btn-rapor-action.btn-rapor-download {
+        background-color: #f0ad4e;
+    }
+
+    .btn-rapor-action.btn-rapor-download:hover {
+        background-color: #ec971f;
+    }
+
+    .btn-rapor-action i {
+        font-size: 0.9rem;
     }
 
     /* Toggle Switch */
@@ -809,6 +859,87 @@
                 confirmButtonText: 'OK'
             });
         <?php endif; ?>
+
+        // Store current PDF URL for download from preview
+        let currentPdfUrl = '';
+
+        // Handle view PDF button click (preview in modal)
+        $(document).on('click', '.btn-view-pdf', function() {
+            const IdSantri = $(this).data('id');
+            const semester = $(this).data('semester');
+            const IdKelas = $(this).data('kelas');
+
+            // Ambil tanggal dari card "Cetak Rapor" yang sesuai dengan kelas
+            const tanggal = $(`#tanggalCetak-${IdKelas}`).val();
+            const checkbox = $(`#confirmTanggal-${IdKelas}`);
+
+            // Validasi checkbox harus tercentang
+            if (!checkbox.is(':checked')) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Silakan centang konfirmasi tanggal di card "Cetak Rapor" terlebih dahulu',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Validasi tanggal harus diisi
+            if (!tanggal) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Silakan isi tanggal diserahkan di card "Cetak Rapor" terlebih dahulu',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Ambil nilai peringkat dari input (jika ada)
+            const peringkat = $(`#peringatanRapor-${IdKelas}`).val() || '';
+
+            // Build URL with stream parameter for inline display
+            let url = `<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}?tanggal=${tanggal}&stream=true`;
+            if (peringkat && peringkat.trim() !== '') {
+                url += `&peringkat=${peringkat}`;
+            }
+
+            // Store URL for download button (without stream parameter)
+            currentPdfUrl = `<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}?tanggal=${tanggal}`;
+            if (peringkat && peringkat.trim() !== '') {
+                currentPdfUrl += `&peringkat=${peringkat}`;
+            }
+
+            // Show loading, hide iframe
+            $('#pdfLoading').show();
+            $('#pdfPreviewFrame').hide();
+
+            // Set iframe src
+            $('#pdfPreviewFrame').attr('src', url);
+
+            // Show modal
+            $('#modalPdfPreview').modal('show');
+        });
+
+        // Handle iframe load - hide loading, show iframe
+        $('#pdfPreviewFrame').on('load', function() {
+            $('#pdfLoading').hide();
+            $(this).show();
+        });
+
+        // Handle download from preview modal
+        $('#btnDownloadFromPreview').on('click', function() {
+            if (currentPdfUrl) {
+                window.open(currentPdfUrl, '_blank');
+            }
+        });
+
+        // Clear iframe when modal is closed
+        $('#modalPdfPreview').on('hidden.bs.modal', function() {
+            $('#pdfPreviewFrame').attr('src', '');
+            $('#pdfLoading').show();
+            $('#pdfPreviewFrame').hide();
+        });
 
         // Handle print PDF button click
         $(document).on('click', '.btn-print-pdf', function() {
@@ -2165,6 +2296,37 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-primary" id="btnSaveCatatan">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal PDF Preview -->
+<div class="modal fade" id="modalPdfPreview" tabindex="-1" role="dialog" aria-labelledby="modalPdfPreviewLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalPdfPreviewLabel">
+                    <i class="fas fa-file-pdf text-danger"></i> Preview Rapor
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="pdfLoading" class="text-center py-5">
+                    <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                    <p class="mt-3">Memuat PDF...</p>
+                </div>
+                <iframe id="pdfPreviewFrame" src="" style="width: 100%; height: 80vh; border: none; display: none;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Tutup
+                </button>
+                <button type="button" class="btn btn-warning" id="btnDownloadFromPreview">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
             </div>
         </div>
     </div>

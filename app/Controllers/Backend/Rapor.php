@@ -1104,7 +1104,17 @@ class Rapor extends BaseController
 
             // Output PDF
             $filename = str_replace(' ', '_', $santriData['santri']['NamaSantri']) . '_' . $IdTahunAjaran . '_' . $semester . '.pdf';
-            $this->outputPdf($dompdf, $filename);
+            
+            // Check if stream parameter is set (for modal preview)
+            $isStream = $this->request->getGet('stream') === 'true';
+            
+            if ($isStream) {
+                // Stream PDF inline (for preview in modal/iframe)
+                $dompdf->stream($filename, ["Attachment" => false]);
+            } else {
+                // Download PDF (original behavior)
+                $this->outputPdf($dompdf, $filename);
+            }
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdf - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
