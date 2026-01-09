@@ -893,32 +893,50 @@
                     confirmButtonText: 'OK'
                 });
                 return;
+
             }
 
             // Ambil nilai peringkat dari input (jika ada)
             const peringkat = $(`#peringatanRapor-${IdKelas}`).val() || '';
 
-            // Build URL with stream parameter for inline display
+            // Construct base URL for stream
             let url = `<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}?tanggal=${tanggal}&stream=true`;
-            if (peringkat && peringkat.trim() !== '') {
+            let downloadUrl = `<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}?tanggal=${tanggal}`;
+
+            // Add peringkat if available
+            if (peringkat) {
                 url += `&peringkat=${peringkat}`;
+                downloadUrl += `&peringkat=${peringkat}`;
             }
 
-            // Store URL for download button (without stream parameter)
-            currentPdfUrl = `<?= base_url('backend/rapor/printPdf') ?>/${IdSantri}/${semester}?tanggal=${tanggal}`;
-            if (peringkat && peringkat.trim() !== '') {
-                currentPdfUrl += `&peringkat=${peringkat}`;
+            // Detect mobile device (screen width < 768px or user agent)
+            const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                // On mobile, open in new tab (let browser handle PDF)
+                // This avoids "Open" button issue in iframes on Chrome Android
+                window.open(url, '_blank');
+            } else {
+                // On desktop, use the preview modal
+                // Show loading state
+                $('#pdfPreviewContent').hide();
+                $('#pdfLoading').show();
+
+                // Set iframe src
+                $('#pdfPreviewFrame').attr('src', url);
+
+                // Set download button url in modal
+                $('#btnDownloadFromPreview').attr('href', downloadUrl);
+
+                // Show modal first
+                $('#modalPdfPreview').modal('show');
+
+                // Handle iframe load event
+                $('#pdfPreviewFrame').on('load', function() {
+                    $('#pdfLoading').hide();
+                    $('#pdfPreviewContent').show();
+                });
             }
-
-            // Show loading, hide iframe
-            $('#pdfLoading').show();
-            $('#pdfPreviewFrame').hide();
-
-            // Set iframe src
-            $('#pdfPreviewFrame').attr('src', url);
-
-            // Show modal
-            $('#modalPdfPreview').modal('show');
         });
 
         // Handle iframe load - hide loading, show iframe
